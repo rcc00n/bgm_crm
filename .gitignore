@@ -1,0 +1,7 @@
+# created by virtualenv automatically
+booking.iml
+CACHEDIR.TAG
+pyvenv.cfg
+.idea
+site-packages
+Scripts
