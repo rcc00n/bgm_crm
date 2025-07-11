@@ -4,4 +4,4 @@ CACHEDIR.TAG
 pyvenv.cfg
 .idea
 site-packages
-Scripts
+venv
