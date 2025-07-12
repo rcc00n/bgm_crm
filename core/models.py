@@ -26,10 +26,10 @@ class UserRole(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     phone = models.CharField(max_length=20, unique=True)
-    birth_date = models.DateField()
+    birth_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return self.user.username
+        return f"{self.user.username} Profile"
 
 # --- 2. SERVICES ---
 
