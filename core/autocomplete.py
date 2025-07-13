@@ -1,14 +1,14 @@
 from dal import autocomplete
-from .models import ServiceMaster
+from .models import Service
 
-class ServiceMasterAutocomplete(autocomplete.Select2QuerySetView):
+class ServiceAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if not self.request.user.is_authenticated:
-            return ServiceMaster.objects.none()
+            return Service.objects.none()
 
-        qs = ServiceMaster.objects.select_related('master', 'service')
+        qs = Service.objects.all()
 
         if self.q:
-            qs = qs.filter(service__name__icontains=self.q)
+            qs = qs.filter(name__icontains=self.q)
 
         return qs

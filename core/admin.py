@@ -1,12 +1,11 @@
 
-from django.contrib.admin import SimpleListFilter
+from django.contrib.admin import SimpleListFilter, DateFieldListFilter
 from django.contrib import admin
 
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import (Role, UserRole, Appointment, Service, Payment, PaymentMethod, PaymentStatus,
-                     AppointmentStatus, ServiceMaster, AppointmentStatusHistory, PrepaymentOption, AppointmentPrepayment)
+from .models import *
 from .forms import AppointmentForm, CustomUserChangeForm, CustomUserCreationForm
 
 class RoleFilter(SimpleListFilter):
@@ -37,7 +36,7 @@ class CustomUserAdmin(BaseUserAdmin):
     )
     list_display = ('username', 'email', 'first_name', 'last_name', 'staff_status', 'phone', 'birth_date', 'user_roles')
     list_filter = ('is_staff', 'is_superuser', 'is_active', RoleFilter)
-    search_fields = ('username', 'email', 'first_name', 'last_name', 'userprofile__phone')
+    search_fields = ('username', 'email', 'first_name', 'last_name', 'phone')
     fieldsets =(
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'birth_date')}),
@@ -83,7 +82,7 @@ class CustomUserAdmin(BaseUserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
-class MasterSelector(admin.ModelAdmin):
+class MasterSelectorMixing:
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "master":
             # Find the Role instance for 'Master'
@@ -99,8 +98,23 @@ class MasterSelector(admin.ModelAdmin):
 
 
 @admin.register(Appointment)
-class AppointmentAdmin(admin.ModelAdmin):
+class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
+    list_display = ('client', 'master', 'service', 'service_base_price', 'start_time', 'payment_status')
+    list_filter = (
+        ('start_time', DateFieldListFilter), 'payment_status' # 👈 this adds a date filter
+    )
+    search_fields = ('client__first_name',
+                     'client__last_name',
+                     'master__first_name',
+                     'master__last_name',
+                     'service__name')
+    ordering = ['-start_time']
     form = AppointmentForm
+
+    def service_base_price(self, obj):
+        return obj.service.base_price
+    service_base_price.short_description = 'Base Price'
+
 
 @admin.register(AppointmentStatusHistory)
 class AppointmentStatusHistoryAdmin(admin.ModelAdmin):
@@ -113,19 +127,62 @@ class AppointmentStatusHistoryAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-
-    list_display = ('appointment', 'amount', 'method', 'status')  # fields to show in table
+    search_fields = ('appointment__client__first_name',
+                     'appointment__master__first_name',
+                     'appointment__client__last_name',
+                     'appointment__master__last_name',
+                     'appointment__service__name',)
+    list_display = ('appointment', 'amount', 'method')  # fields to show in table
+    list_filter = ('method',)
 
 @admin.register(AppointmentPrepayment)
 class AppointmentPrepaymentAdmin(admin.ModelAdmin):
 
     list_display = ('appointment', 'option')  # fields to show in table
 
+@admin.register(CustomUserDisplay)
+class CustomUserDisplayAdmin(admin.ModelAdmin):
+    def get_model_perms(self, request):
+        # Hide model from admin index
+        return {}
+
+@admin.register(ServiceMaster)
+class ServiceMasterAdmin(MasterSelectorMixing, admin.ModelAdmin):
+    list_display = ('master', 'service')
+    search_fields = ('master__first_name', 'master__last_name', 'service__name')
+
+@admin.register(Service)
+class ServiceAdmin(MasterSelectorMixing, admin.ModelAdmin):
+    list_display = ('name', 'base_price', 'duration_min')
+    search_fields = ('name',)
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('user', 'appointment', 'channel', 'short_message')
+    search_fields = ('user__first_name',
+                     'user__last_name',
+                     'appointment__service__name')
+    list_filter = (('sent_at', DateFieldListFilter),'channel',)
+    ordering = ['-sent_at']
+
+    def short_message(self, obj):
+        words = obj.message.split()
+        return ' '.join(words[:10]) + ('...' if len(words) > 10 else '')
+    short_message.short_description = 'message'
+
+@admin.register(ClientFile)
+class ClientFileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'file_type', 'file_url')
+    search_fields = ('user__first_name',
+                     'user__last_name',)
+    list_filter = (('uploaded_at', DateFieldListFilter),'file_type',)
+    ordering = ['-uploaded_at']
+
+
+
 # Register related models
 admin.site.register(Role)
 admin.site.register(UserRole)
-admin.site.register(Service)
-admin.site.register(ServiceMaster, MasterSelector)
 admin.site.register(AppointmentStatus)
 admin.site.register(PaymentMethod)
 admin.site.register(PrepaymentOption)

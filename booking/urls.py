@@ -16,9 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from core.autocomplete import ServiceMasterAutocomplete
+from core.autocomplete import ServiceAutocomplete
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('autocomplete/service-master/', ServiceMasterAutocomplete.as_view(), name='service-master-autocomplete'),
+    path('autocomplete/service/', ServiceAutocomplete.as_view(), name='service-autocomplete'),
 ]

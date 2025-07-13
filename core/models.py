@@ -69,16 +69,24 @@ class AppointmentStatus(models.Model):
     def __str__(self):
         return self.name
 
+class PaymentStatus(models.Model):
+    name = models.CharField(max_length=20)
+
+    def __str__(self):
+        return self.name
+
 
 class Appointment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     client = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE, related_name='appointments_as_client')
-    master_service = models.ForeignKey(ServiceMaster, on_delete=models.CASCADE, related_name='service_and_master')
+    master = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE, related_name='appointments_as_master')
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
     start_time = models.DateTimeField()
+    payment_status = models.ForeignKey(PaymentStatus, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.client} to {self.master_service.master} for {self.master_service.service} on {self.start_time}"
+        return f"{self.client} for {self.service} "
 
 
 class AppointmentStatusHistory(models.Model):
@@ -89,12 +97,6 @@ class AppointmentStatusHistory(models.Model):
 
 
 # --- 4. PAYMENTS ---
-
-class PaymentStatus(models.Model):
-    name = models.CharField(max_length=20)
-
-    def __str__(self):
-        return self.name
 
 
 class PaymentMethod(models.Model):
@@ -109,7 +111,6 @@ class Payment(models.Model):
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     method = models.ForeignKey(PaymentMethod, on_delete=models.CASCADE)
-    status = models.ForeignKey(PaymentStatus, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -146,3 +147,26 @@ class Notification(models.Model):
     channel = models.CharField(max_length=10, choices=[('email', 'Email'), ('sms', 'SMS')])
     message = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
+
+
+    def save(self, *args, **kwargs):
+        """
+        Add the actions to send the message on email or SMS here
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+
+        if is_new:
+            if self.channel == 'email':
+                self.send_email()
+            elif self.channel == 'sms':
+                self.send_sms()
+
+    def send_email(self):
+            print(f"[EMAIL] To {self.user}: {self.message}")
+
+    def send_sms(self):
+            print(f"[SMS] To {self.user}: {self.message}")

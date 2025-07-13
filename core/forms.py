@@ -2,13 +2,14 @@ from dal import autocomplete
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import Appointment, Role, User, UserProfile, CustomUserDisplay
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
 
 class AppointmentForm(forms.ModelForm):
     class Meta:
         model = Appointment
         fields = '__all__'
         widgets = {
-            'master_service': autocomplete.ModelSelect2(url='service-master-autocomplete')
+            'service': autocomplete.ModelSelect2(url='service-autocomplete')
         }
 
 
@@ -65,6 +66,7 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class CustomUserChangeForm(UserChangeForm):
+    password = ReadOnlyPasswordHashField(label="Password")
     email = forms.EmailField(required=True)
     first_name = forms.CharField(required=False)
     last_name = forms.CharField(required=False)
@@ -88,6 +90,7 @@ class CustomUserChangeForm(UserChangeForm):
             'is_superuser',
             'groups',
             'user_permissions',
+            'password',
             'roles'
         ]
 
