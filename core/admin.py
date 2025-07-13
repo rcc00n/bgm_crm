@@ -1,11 +1,13 @@
-from django import forms
+
 from django.contrib.admin import SimpleListFilter
 from django.contrib import admin
+
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import UserProfile, Role, UserRole, Appointment, Service, Payment, PaymentMethod, PaymentStatus
 
+from .models import (Role, UserRole, Appointment, Service, Payment, PaymentMethod, PaymentStatus,
+                     AppointmentStatus, ServiceMaster, AppointmentStatusHistory, PrepaymentOption, AppointmentPrepayment)
+from .forms import AppointmentForm, CustomUserChangeForm, CustomUserCreationForm
 
 class RoleFilter(SimpleListFilter):
     title = 'Role'
@@ -20,129 +22,6 @@ class RoleFilter(SimpleListFilter):
             return queryset.filter(id__in=user_ids)
         return queryset
 
-# Custom user creation form with roles
-class CustomUserCreationForm(UserCreationForm):
-    email = forms.EmailField(required=True)
-    first_name = forms.CharField(required=False)
-    last_name = forms.CharField(required=False)
-    phone = forms.CharField(required=False)
-    birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
-    roles = forms.ModelMultipleChoiceField(
-        queryset=Role.objects.all(),
-        widget=forms.CheckboxSelectMultiple,
-        required=False
-    )
-
-    class Meta:
-        model = User
-        fields = [
-            'username', 'email', 'first_name', 'last_name',
-            'phone', 'birth_date',
-            'password1', 'password2',
-            'is_staff', 'is_active', 'is_superuser',
-            'groups', 'roles'
-        ]
-    def save(self, commit=True):
-
-        user = super().save(commit=False)
-        user.set_password(self.cleaned_data["password1"])
-
-        user.save()
-
-        # Save profile data
-        phone = self.cleaned_data.get('phone')
-        birth_date = self.cleaned_data.get('birth_date')
-        profile, created = UserProfile.objects.get_or_create(user=user)
-
-        profile.phone = phone
-        profile.birth_date = birth_date
-        profile.save()
-
-            # Save roles
-        roles = self.cleaned_data.get('roles')
-        print("CUSTOM SAVE METHOD CALLED")
-        if roles:
-            user.userrole_set.all().delete()
-            for role in roles:
-                user.userrole_set.create(role=role)
-
-        return user
-
-    def clean(self):
-        print(self.cleaned_data)
-
-
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     # 💡 Enable native HTML date picker
-    #     self.fields['birth_date'].widget = DateInput(attrs={'type': 'date'})
-
-
-
-class CustomUserChangeForm(UserChangeForm):
-    email = forms.EmailField(required=True)
-    first_name = forms.CharField(required=False)
-    last_name = forms.CharField(required=False)
-    phone = forms.CharField(required=False)
-    birth_date = forms.DateField(required=False)
-    roles = forms.ModelMultipleChoiceField(
-        queryset=Role.objects.all(),
-        widget=forms.CheckboxSelectMultiple,
-        required=False
-    )
-
-    class Meta:
-        model = User
-        fields = [
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'is_staff',
-            'is_active',
-            'is_superuser',
-            'groups',
-            'user_permissions',
-            'roles'
-        ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Load data from UserProfile if exists
-        if self.instance and hasattr(self.instance, 'userprofile'):
-            self.fields['phone'].initial = self.instance.userprofile.phone
-            self.fields['birth_date'].initial = self.instance.userprofile.birth_date
-            self.fields['roles'].initial = Role.objects.filter(userrole__user=self.instance)
-
-        # self.fields['birth_date'].widget = DateInput(attrs={'type': 'date'})
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-
-        # Save user first to ensure it has a primary key
-
-        user.save()
-
-        # Save or update profile
-        phone = self.cleaned_data.get('phone', '')
-        birth_date = self.cleaned_data.get('birth_date', None)
-        profile, _ = UserProfile.objects.get_or_create(user=user)
-        profile.phone = phone
-        profile.birth_date = birth_date
-        profile.save()
-
-        # Sync roles
-        user.userrole_set.all().delete()
-        roles = self.cleaned_data.get('roles', [])
-        for role in roles:
-            user.userrole_set.create(role=role)
-
-        return user
-
-
-    def clean(self):
-        cleaned_data = self.cleaned_data
-        print(cleaned_data)
 
 
 # Custom UserAdmin
@@ -158,6 +37,7 @@ class CustomUserAdmin(BaseUserAdmin):
     )
     list_display = ('username', 'email', 'first_name', 'last_name', 'staff_status', 'phone', 'birth_date', 'user_roles')
     list_filter = ('is_staff', 'is_superuser', 'is_active', RoleFilter)
+    search_fields = ('username', 'email', 'first_name', 'last_name', 'userprofile__phone')
     fieldsets =(
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'birth_date')}),
@@ -189,8 +69,9 @@ class CustomUserAdmin(BaseUserAdmin):
 
     def staff_status(self, instance):
         return instance.is_staff
+
     staff_status.boolean = True
-    staff_status.short_description = 'Staff'
+    staff_status.short_description = 'Staff Status'
 
     def user_roles(self, instance):
         roles = instance.userrole_set.select_related('role').all()
@@ -202,7 +83,7 @@ class CustomUserAdmin(BaseUserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
-class AppointmentAdmin(admin.ModelAdmin):
+class MasterSelector(admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "master":
             # Find the Role instance for 'Master'
@@ -215,11 +96,37 @@ class AppointmentAdmin(admin.ModelAdmin):
                 kwargs["queryset"] = User.objects.none()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
+
+
+@admin.register(Appointment)
+class AppointmentAdmin(admin.ModelAdmin):
+    form = AppointmentForm
+
+@admin.register(AppointmentStatusHistory)
+class AppointmentStatusHistoryAdmin(admin.ModelAdmin):
+    exclude = ('set_by',)  # hide it from form
+    list_display = ('appointment', 'status', 'set_by', 'set_at')  # fields to show in table
+    def save_model(self, request, obj, form, change):
+        if not obj.set_by_id:
+            obj.set_by = request.user
+        (super().save_model(request, obj, form, change))
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+
+    list_display = ('appointment', 'amount', 'method', 'status')  # fields to show in table
+
+@admin.register(AppointmentPrepayment)
+class AppointmentPrepaymentAdmin(admin.ModelAdmin):
+
+    list_display = ('appointment', 'option')  # fields to show in table
+
 # Register related models
 admin.site.register(Role)
 admin.site.register(UserRole)
 admin.site.register(Service)
-admin.site.register(Appointment, AppointmentAdmin)
-admin.site.register(Payment)
+admin.site.register(ServiceMaster, MasterSelector)
+admin.site.register(AppointmentStatus)
 admin.site.register(PaymentMethod)
+admin.site.register(PrepaymentOption)
 admin.site.register(PaymentStatus)

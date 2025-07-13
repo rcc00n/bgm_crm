@@ -10,9 +10,16 @@ class Role(models.Model):
     def __str__(self):
         return self.name
 
+class CustomUserDisplay(User):
+    class Meta:
+        proxy = True
+
+    def __str__(self):
+        full_name = self.get_full_name()
+        return full_name if full_name else self.username
 
 class UserRole(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
     assigned_at = models.DateTimeField(auto_now_add=True)
 
@@ -20,16 +27,17 @@ class UserRole(models.Model):
         unique_together = ('user', 'role')
 
     def __str__(self):
-        return f"{self.user.username} → {self.role.name}"
+        return f"{self.user} → {self.role.name}"
+
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(CustomUserDisplay, on_delete=models.CASCADE)
     phone = models.CharField(max_length=20, unique=True)
     birth_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user.username} Profile"
+        return f"{self.user} Profile"
 
 # --- 2. SERVICES ---
 
@@ -47,10 +55,10 @@ class Service(models.Model):
 
 class ServiceMaster(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
-    master = models.ForeignKey(User, on_delete=models.CASCADE)
+    master = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.master.username} → {self.service.name}"
+        return f"{self.master} → {self.service.name}"
 
 
 # --- 3. APPOINTMENTS ---
@@ -64,20 +72,19 @@ class AppointmentStatus(models.Model):
 
 class Appointment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_client')
-    master = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_master')
-    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    client = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE, related_name='appointments_as_client')
+    master_service = models.ForeignKey(ServiceMaster, on_delete=models.CASCADE, related_name='service_and_master')
     start_time = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.client.username} → {self.service.name} on {self.start_time}"
+        return f"{self.client} to {self.master_service.master} for {self.master_service.service} on {self.start_time}"
 
 
 class AppointmentStatusHistory(models.Model):
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
     status = models.ForeignKey(AppointmentStatus, on_delete=models.CASCADE)
-    set_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    set_by = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
     set_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -109,7 +116,7 @@ class Payment(models.Model):
 # --- 5. PREPAYMENTS ---
 
 class PrepaymentOption(models.Model):
-    percent = models.IntegerField(choices=[(0, '0%'), (30, '30%'), (50, '50%'), (100, '100%')])
+    percent = models.IntegerField()
 
     def __str__(self):
         return f"{self.percent}%"
@@ -124,7 +131,7 @@ class AppointmentPrepayment(models.Model):
 
 class ClientFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
     file_url = models.URLField()
     file_type = models.CharField(max_length=50)
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -134,7 +141,7 @@ class ClientFile(models.Model):
 
 class Notification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
     appointment = models.ForeignKey(Appointment, on_delete=models.SET_NULL, null=True, blank=True)
     channel = models.CharField(max_length=10, choices=[('email', 'Email'), ('sms', 'SMS')])
     message = models.TextField()
