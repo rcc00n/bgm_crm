@@ -1,16 +1,23 @@
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
-
+from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
 
 class Role(models.Model):
+    """
+    Represents a role that can be assigned to a user (e.g., Master, Client, Admin).
+    """
     name = models.CharField(max_length=20, unique=True)
 
     def __str__(self):
         return self.name
 
+
 class CustomUserDisplay(User):
+    """
+    Proxy model for Django's User to allow customization in admin views and display logic.
+    """
     class Meta:
         proxy = True
 
@@ -18,7 +25,11 @@ class CustomUserDisplay(User):
         full_name = self.get_full_name()
         return full_name if full_name else self.username
 
+
 class UserRole(models.Model):
+    """
+    Links a user to a specific role with a timestamp of when the role was assigned.
+    """
     user = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
     assigned_at = models.DateTimeField(auto_now_add=True)
@@ -30,8 +41,10 @@ class UserRole(models.Model):
         return f"{self.user} → {self.role.name}"
 
 
-
 class UserProfile(models.Model):
+    """
+    Additional user information extending the Django User model.
+    """
     user = models.OneToOneField(CustomUserDisplay, on_delete=models.CASCADE)
     phone = models.CharField(max_length=20, unique=True)
     birth_date = models.DateField(null=True, blank=True)
@@ -42,6 +55,9 @@ class UserProfile(models.Model):
 # --- 2. SERVICES ---
 
 class Service(models.Model):
+    """
+    Represents a service offered in the system (e.g., haircut, massage).
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
@@ -54,22 +70,31 @@ class Service(models.Model):
 
 
 class ServiceMaster(models.Model):
+    """
+    Connects a specific service with a master who can perform it.
+    """
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
     master = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.master} → {self.service.name}"
 
-
 # --- 3. APPOINTMENTS ---
 
 class AppointmentStatus(models.Model):
+    """
+    Statuses an appointment can have (e.g., Confirmed, Cancelled).
+    """
     name = models.CharField(max_length=20)
 
     def __str__(self):
         return self.name
 
+
 class PaymentStatus(models.Model):
+    """
+    Describes the status of a payment (e.g., Paid, Pending).
+    """
     name = models.CharField(max_length=20)
 
     def __str__(self):
@@ -77,6 +102,9 @@ class PaymentStatus(models.Model):
 
 
 class Appointment(models.Model):
+    """
+    Represents a scheduled appointment between a client and a master for a service.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     client = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE, related_name='appointments_as_client')
     master = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE, related_name='appointments_as_master')
@@ -90,16 +118,20 @@ class Appointment(models.Model):
 
 
 class AppointmentStatusHistory(models.Model):
+    """
+    Tracks status changes for appointments, including who made the change and when.
+    """
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
     status = models.ForeignKey(AppointmentStatus, on_delete=models.CASCADE)
     set_by = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
     set_at = models.DateTimeField(auto_now_add=True)
 
-
 # --- 4. PAYMENTS ---
 
-
 class PaymentMethod(models.Model):
+    """
+    Represents a method of payment (e.g., Credit Card, Cash).
+    """
     name = models.CharField(max_length=20)
 
     def __str__(self):
@@ -107,16 +139,21 @@ class PaymentMethod(models.Model):
 
 
 class Payment(models.Model):
+    """
+    Stores payment records for appointments.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     method = models.ForeignKey(PaymentMethod, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
-
 # --- 5. PREPAYMENTS ---
 
 class PrepaymentOption(models.Model):
+    """
+    Defines available prepayment percentage options.
+    """
     percent = models.IntegerField()
 
     def __str__(self):
@@ -124,23 +161,31 @@ class PrepaymentOption(models.Model):
 
 
 class AppointmentPrepayment(models.Model):
+    """
+    Links a prepayment option to a specific appointment.
+    """
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE)
     option = models.ForeignKey(PrepaymentOption, on_delete=models.CASCADE)
-
 
 # --- 6. FILES ---
 
 class ClientFile(models.Model):
+    """
+    Represents a file uploaded for a user, such as a document or image.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
-    file_url = models.URLField()
+    file = models.FileField(upload_to='client_files/', storage=S3Boto3Storage()) # stored in S3!
     file_type = models.CharField(max_length=50)
     uploaded_at = models.DateTimeField(auto_now_add=True)
-
 
 # --- 7. NOTIFICATIONS ---
 
 class Notification(models.Model):
+    """
+    Represents a notification sent to a user regarding an appointment.
+    Supports email and SMS channels.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
     appointment = models.ForeignKey(Appointment, on_delete=models.SET_NULL, null=True, blank=True)
@@ -148,13 +193,9 @@ class Notification(models.Model):
     message = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
 
-
     def save(self, *args, **kwargs):
         """
-        Add the actions to send the message on email or SMS here
-        :param args:
-        :param kwargs:
-        :return:
+        Triggers message sending based on the selected channel (email or SMS).
         """
         is_new = self._state.adding
         super().save(*args, **kwargs)
@@ -166,7 +207,13 @@ class Notification(models.Model):
                 self.send_sms()
 
     def send_email(self):
-            print(f"[EMAIL] To {self.user}: {self.message}")
+        """
+        Stub: logic to send an email message to the user.
+        """
+        print(f"[EMAIL] To {self.user}: {self.message}")
 
     def send_sms(self):
-            print(f"[SMS] To {self.user}: {self.message}")
+        """
+        Stub: logic to send an SMS message to the user.
+        """
+        print(f"[SMS] To {self.user}: {self.message}")
