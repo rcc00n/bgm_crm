@@ -148,12 +148,12 @@ class AppointmentAdmin(admin.ModelAdmin):
         today = datetime.today().date()
 
         selected_date = request.GET.get('date')
+
         if selected_date:
             selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
 
         else:
             selected_date = timezone.localdate()
-
         appointments = Appointment.objects.select_related('client', 'service', 'master')
         masters = CustomUserDisplay.objects.filter(
             id__in=appointments.values_list('master_id', flat=True)
@@ -174,8 +174,7 @@ class AppointmentAdmin(admin.ModelAdmin):
                 'calendar_table': calendar_table,
                 'masters': masters,
             }, request=request)
-            print(selected_date)
-            print(calendar_table)
+
             return JsonResponse({'html': html})
 
         calendar_table = createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters)

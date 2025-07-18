@@ -249,12 +249,14 @@
 
             const newDate = getLocalDateString(currentDate);
             input.value = newDate;
+
             onDateChange(newDate);
         }
 
         function onDateChange(value) {
             const display = document.getElementById("displayDate");
-            display.textContent = getLocalDateString( new Date(value));
+
+            display.textContent = value;
             fetch(`/admin/core/appointment/?date=${value}`, {
                 headers: { 'x-requested-with': 'XMLHttpRequest' }
             })
