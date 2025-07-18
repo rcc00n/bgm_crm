@@ -1,9 +1,16 @@
+from datetime import timedelta, datetime
+
 from django.contrib.admin import SimpleListFilter, DateFieldListFilter
 from django.contrib import admin
 
-from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.http import JsonResponse
+from django.template.loader import render_to_string
 
+from django.template.response import TemplateResponse
+from django.utils.timezone import now, localtime, make_aware
+from django.utils.html import escape
+from django.utils import timezone
 from .models import *
 from .forms import AppointmentForm, CustomUserChangeForm, CustomUserCreationForm
 
@@ -23,6 +30,22 @@ class RoleFilter(SimpleListFilter):
             return queryset.filter(id__in=user_ids)
         return queryset
 
+class MasterOnlyFilter(SimpleListFilter):
+    title = 'Master'
+    parameter_name = 'master'
+
+    def lookups(self, request, model_admin):
+        master_role = Role.objects.filter(name="Master").first()
+        if not master_role:
+            return []
+        master_ids = UserRole.objects.filter(role=master_role).values_list('user_id', flat=True)
+        masters = CustomUserDisplay.objects.filter(id__in=master_ids)
+        return [(m.id, m.get_full_name() or m.username) for m in masters]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(master_id=self.value())
+        return queryset
 
 # -----------------------------
 # Customized User Admin
@@ -79,15 +102,15 @@ class CustomUserAdmin(BaseUserAdmin):
     def birth_date(self, instance):
         return instance.userprofile.birth_date if hasattr(instance, 'userprofile') else '-'
 
+    @admin.display(boolean=True, description="Staff Status")
     def staff_status(self, instance):
         return instance.is_staff
     staff_status.boolean = True
-    staff_status.short_description = 'Staff Status'
 
+    @admin.display(description="Roles")
     def user_roles(self, instance):
         roles = instance.userrole_set.select_related('role').all()
         return ", ".join([ur.role.name for ur in roles]) if roles else "-"
-    user_roles.short_description = 'Roles'
 
 
 # Unregister the default User admin and re-register with our custom one
@@ -117,23 +140,56 @@ class MasterSelectorMixing:
 # Appointment Admin
 # -----------------------------
 @admin.register(Appointment)
-class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
-    """
-    Admin interface for managing Appointments.
-    """
-    list_display = ('client', 'master', 'service', 'service_base_price', 'start_time', 'payment_status')
-    list_filter = (('start_time', DateFieldListFilter), 'payment_status')
-    search_fields = (
-        'client__first_name', 'client__last_name',
-        'master__first_name', 'master__last_name',
-        'service__name'
-    )
-    ordering = ['-start_time']
+class AppointmentAdmin(admin.ModelAdmin):
+    change_list_template = "admin/appointments_calendar.html"
     form = AppointmentForm
+    def changelist_view(self, request, extra_context=None):
 
-    def service_base_price(self, obj):
-        return obj.service.base_price
-    service_base_price.short_description = 'Base Price'
+        today = datetime.today().date()
+
+        selected_date = request.GET.get('date')
+        if selected_date:
+            selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+
+        else:
+            selected_date = timezone.localdate()
+
+        appointments = Appointment.objects.select_related('client', 'service', 'master')
+        masters = CustomUserDisplay.objects.filter(
+            id__in=appointments.values_list('master_id', flat=True)
+        ).distinct()
+
+        # Слоты по 15 минут
+        start_hour = 8
+        end_hour = 21
+        slot_times = []
+        time_pointer = datetime(2000, 1, 1, start_hour, 0)
+        end_time = datetime(2000, 1, 1, end_hour, 0)
+
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            calendar_table = createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters)
+
+            html = render_to_string('admin/appointments_calendar_partial.html', {
+                'calendar_table': calendar_table,
+                'masters': masters,
+            }, request=request)
+            print(selected_date)
+            print(calendar_table)
+            return JsonResponse({'html': html})
+
+        calendar_table = createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters)
+        context = {
+            "calendar_table": calendar_table,
+            "masters": masters,
+            "selected_date": selected_date,
+            "prev_date": (selected_date - timedelta(days=1)).strftime("%Y-%m-%d"),
+            "next_date": (selected_date + timedelta(days=1)).strftime("%Y-%m-%d"),
+            "today": today.strftime("%Y-%m-%d"),
+        }
+
+        return TemplateResponse(request, "admin/appointments_calendar.html", context)
+
 
 
 # -----------------------------
@@ -231,13 +287,13 @@ class NotificationAdmin(admin.ModelAdmin):
     search_fields = ('user__first_name', 'user__last_name', 'appointment__service__name')
     ordering = ['-sent_at']
 
+    @admin.display(description="message")
     def short_message(self, obj):
         """
         Truncates long messages to first 10 words.
         """
         words = obj.message.split()
         return ' '.join(words[:10]) + ('...' if len(words) > 10 else '')
-    short_message.short_description = 'message'
 
 
 # -----------------------------
@@ -264,3 +320,67 @@ admin.site.register(AppointmentStatus)
 admin.site.register(PaymentMethod)
 admin.site.register(PrepaymentOption)
 admin.site.register(PaymentStatus)
+
+def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters):
+    while time_pointer <= end_time:
+        slot_times.append(time_pointer.strftime('%H:%M'))
+        time_pointer += timedelta(minutes=15)
+
+        # Мапа: master_id + time → appointment (только начало)
+    slot_map = {}  # slot_map[master_id][time_str] = {...}
+    skip_map = {}  # skip_map[master_id][time_str] = True
+
+    for appt in appointments:
+        local_start = localtime(appt.start_time)
+        if local_start.date() != selected_date:
+            continue
+
+        master_id = appt.master_id
+        time_key = local_start.strftime('%H:%M')
+        duration = appt.service.duration_min
+        rowspan = max(1, duration // 15)
+
+        if master_id not in slot_map:
+            slot_map[master_id] = {}
+            skip_map[master_id] = {}
+
+        slot_map[master_id][time_key] = {
+            "appointment": appt,
+            "rowspan": rowspan,
+        }
+
+        # Отметим следующие ячейки как "пропущенные"
+        for i in range(1, rowspan):
+            t = local_start + timedelta(minutes=i * 15)
+            skip_map[master_id][t.strftime('%H:%M')] = True
+
+    # Генерируем таблицу
+    calendar_table = []
+    for time_str in slot_times:
+        row = {"time": time_str, "cells": []}
+        for master in masters:
+            master_id = master.id
+            if master_id in skip_map and time_str in skip_map[master_id]:
+                row["cells"].append({"skip": True})
+            elif master_id in slot_map and time_str in slot_map[master_id]:
+                appt = slot_map[master_id][time_str]["appointment"]
+                rowspan = slot_map[master_id][time_str]["rowspan"]
+                html = f"""
+                        <div >
+                            {escape(appt.client.first_name)}<br>
+                            {escape(appt.service.name)}
+                        </div>
+                    """
+                row["cells"].append({
+                    "html": html,
+                    "rowspan": rowspan,
+                    "appt_id": appt.id
+                })
+
+            else:
+                row["cells"].append({
+                    "html": '',
+                    "rowspan": 1,
+                })
+        calendar_table.append(row)
+    return calendar_table

@@ -1,0 +1,42 @@
+<div class="scrollable">
+    <table class="calendar-table">
+        <thead>
+        <tr>
+            <th class="time-col"></th>
+            {% for master in masters %}
+                <th class="master-col">{{ master.first_name }} {{ master.last_name }}</th>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in calendar_table %}
+            <tr>
+                <td class="time-col">
+                    {% if forloop.first or forloop.counter0|divisibleby:4 %}
+                        {{ row.time }}
+                    {% endif %}
+                </td>
+                {% for cell in row.cells %}
+                    {% if cell.skip %}
+                        {# пустая ячейка, которую уже занял rowspan #}
+                    {% else %}
+                        {% if cell.rowspan > 1 %}
+                            <td rowspan="{{ cell.rowspan }}" data-time="{{ row.time }}" class="event" onclick="window.location.href='/admin/core/appointment/{{cell.appt_id}}/change/'">
+                                <div>
+                                    {{ cell.html|safe }}
+                                </div>
+                            </td>
+                        {% else %}
+                            <td >
+                                <div data-time="{{ row.time }}" class="calendar-cell">
+                                {{ cell.html|safe }}
+                                </div>
+                            </td>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'dal',
     'dal_select2',
     'storages',
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -113,7 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Canada/Mountain'
 
 USE_I18N = True
 
@@ -125,6 +126,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+STATICFILES_DIRS = [ BASE_DIR / "static" ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -152,4 +154,76 @@ AWS_DEFAULT_ACL = None
 # Media URL for S3
 MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.ca-central-1.amazonaws.com/'
 
+JAZZMIN_SETTINGS = {
+    "site_title": "Malva Admin",
+    "site_header": "Malva Health & Beauty",
+    "welcome_sign": "Welcome to Malva",
+    "copyright": "Malva © 2025",
+    "search_model": ["core.Appointment"],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "show_ui_builder": False,
+    "hide_models": ["Groups"],
+    # Цвета темы (можно поменять)
+    "topmenu_links": [
+        {"name": "Webpage", "url": "/", "permissions": ["auth.view_user"]},
+    ],
+    "icons": {
+        # Django
+        "auth.User": "fas fa-user",
+        "auth.Group": "fas fa-users-cog",
 
+        # Core app
+        "core.Appointment": "fas fa-calendar-check",
+        "core.AppointmentStatus": "fas fa-info-circle",
+        "core.AppointmentStatusHistory": "fas fa-history",
+        "core.AppointmentPrepayment": "fas fa-coins",
+
+        "core.ClientFile": "fas fa-file-alt",
+        "core.Notification": "fas fa-bell",
+        "core.Payment": "fas fa-money-check-alt",
+        "core.PaymentMethod": "fas fa-credit-card",
+        "core.PaymentStatus": "fas fa-receipt",
+
+        "core.PrepaymentOption": "fas fa-percentage",
+
+        "core.Role": "fas fa-user-tag",
+        "core.UserRole": "fas fa-user-friends",
+
+        "core.Service": "fas fa-spa",
+        "core.ServiceMaster": "fas fa-user-cog",
+    },
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": False,
+    "accent": "accent-primary",
+    "navbar": "navbar-white navbar-light",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",
+    "dark_mode_theme": None,
+    "button_classes": {
+        "primary": "btn-outline-primary",
+        "secondary": "btn-outline-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    },
+    "custom_css": "admin/css/admin_custom.css"
+}

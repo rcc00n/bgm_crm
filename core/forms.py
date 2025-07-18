@@ -44,7 +44,7 @@ class CustomUserCreationForm(UserCreationForm):
     )
 
     class Meta:
-        model = CustomUserDisplay
+        model = User
         fields = [
             'username', 'email', 'first_name', 'last_name',
             'phone', 'birth_date',
@@ -101,7 +101,7 @@ class CustomUserChangeForm(UserChangeForm):
     first_name = forms.CharField(required=False)
     last_name = forms.CharField(required=False)
     phone = forms.CharField(required=False)
-    birth_date = forms.DateField(required=False)
+    birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
     roles = forms.ModelMultipleChoiceField(
         queryset=Role.objects.all(),
         widget=forms.CheckboxSelectMultiple,
@@ -109,7 +109,7 @@ class CustomUserChangeForm(UserChangeForm):
     )
 
     class Meta:
-        model = CustomUserDisplay
+        model = User
         fields = [
             'username',
             'email',

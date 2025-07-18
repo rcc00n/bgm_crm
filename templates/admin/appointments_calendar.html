@@ -1,0 +1,267 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Daily Calendar{% endblock %}
+
+{% block content %}
+    <style>
+        .content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 95vw !important;
+            max-width: 95vw !important;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 16px 0;
+        }
+
+        .nav-btn {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .nav-btn:hover {
+            border-color: #999;
+        }
+
+        .nav-group {
+            display: flex;
+            border: 1px solid #ddd;
+            margin-left: 10px;
+            margin-right: 10px;
+            border-radius: 20px;
+            overflow: hidden;
+            align-items: center;
+        }
+
+        .nav-icon2 {
+            background: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .nav-date {
+            padding: 6px 16px;
+            font-weight: 500;
+            background-color: #f8f8f8;
+            border-left: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+        }
+
+        .calendar-table {
+            font-size: 14px;
+
+            border-collapse: collapse;
+            width: 100%;
+            {#max-width: 1200px;#}
+            table-layout: fixed;
+            margin: 0 auto;
+
+        }
+        .calendar-table tbody tr {
+            border-bottom: none;
+        }
+
+        .calendar-table tbody tr:nth-child(4n) {
+            border-bottom: 2px solid rgba(153, 153, 153, 0.47);
+        }
+
+        .calendar-table tbody td:first-child {
+            font-weight: bold;
+        }
+        .scrollable{
+            margin: 0;
+            padding: 0;
+            max-height: 725px;           /* ограничим высоту */
+            overflow-y: auto;            /* вертикальный скролл */
+            width: 100%;
+        }
+
+        .calendar-cell {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .calendar-cell:hover::before {
+            content: '';
+            position: absolute;
+            border: 1px solid rgba(164, 104, 197, 0.53);
+            top: 1px;
+            left: 1px;
+            right: 1px;
+            bottom: 1px;
+            background-color: rgba(191, 116, 228, 0.2);
+            border-radius: 10px;
+            box-shadow: 1px 1px 3px rgba(199, 154, 250, 0.82);
+            z-index: 0;
+        }
+
+        .calendar-cell:hover::after {
+            content:attr(data-time);
+            font-family: "Bold Italic Art", serif;
+            padding-left: 2%;
+            font-size: 14px;
+            color: #7f00bd;
+            text-align: left;
+            z-index: 1;
+        }
+        .calendar-cell:hover::after {
+            display: inline-block;
+        }
+
+        .calendar-table thead th {
+            position: sticky;
+            top: 0;
+
+            background-color: #f9f9f9; /* фон должен быть непрозрачным */
+            z-index: 10;
+            text-align: center;
+            border-bottom: 2px solid #aaa;
+        }
+        .calendar-table th,
+        .calendar-table td {
+            border: 1px solid #ddd;
+            padding: 2px;
+
+            text-align: center;
+            height:27px;
+        }
+
+        .calendar-table th.time-col {
+            width: 5%;
+
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+
+
+
+        .fake-date-picker {
+            display: inline-block;
+            padding: 6px 16px;
+            font-weight: bold;
+            text-align: center;
+            background: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 170px;
+            font-size: 16px;
+            user-select: none;
+        }
+
+        /* Скрываем настоящий input */
+        .fake-date-picker input[type="date"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            height: 0;
+        }
+
+        .event {
+            background-color: #6bb9f0;
+            margin: 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            vertical-align: middle;
+            height: 100%;
+            align-items: center;      /* центр по вертикали */
+            justify-content: center;  /* центр по горизонтали */
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .event:hover {
+            opacity: 0.9;
+        }
+    </style>
+
+    <div style="text-align: center; padding-left: 20px; width: 100%; background: rgba(239,239,239,0.52);">
+        <div class="calendar-nav">
+                <button class="nav-btn" onclick="changeDateToToday()">Today</button>
+
+
+            <div class="nav-group">
+
+                    <button class="nav-icon2" onclick="changeDateByDays(-1)">&lt;</button>
+
+
+                <div class="fake-date-picker" onclick="document.getElementById('realDateInput').showPicker()">
+                    <span id="displayDate">{{ selected_date|date:"Y-m-d" }}</span>
+                    <input
+                            type="date"
+                            id="realDateInput"
+                            value="{{ selected_date|date:'Y-m-d' }}"
+                            onchange="onDateChange(this.value)"
+                    />
+                </div>
+
+                <button class="nav-icon2" onclick="changeDateByDays(1)">&gt;</button>
+            </div>
+
+            <button class="nav-icon2" style="border-radius: 10px;">
+                <img src="https://img.icons8.com/?size=100&id=O7hGF9n2ssaW&format=png&color=000000" alt="Filter" style="width: 20px; height: 20px;">  <!-- filter icon -->
+            </button>
+        </div>
+    </div>
+    <div id="calendar-container">
+        {% include "admin/appointments_calendar_partial.html" %}
+    </div>
+
+    <script>
+        function getLocalDateString(date = new Date()) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function changeDateToToday() {
+            const today = getLocalDateString();
+            document.getElementById('realDateInput').value = today;
+            onDateChange(today);
+        }
+
+        function changeDateByDays(days) {
+            const input = document.getElementById('realDateInput');
+
+            // Преобразуем вручную в YYYY-MM-DD → локальная дата
+            const [year, month, day] = input.value.split('-').map(Number);
+            const currentDate = new Date(year, month - 1, day); // ← важно: месяц от 0
+            currentDate.setHours(12);  // 👈 Устанавливаем безопасное время (чтобы избежать смещений при DST)
+
+            // Меняем дату
+            currentDate.setDate(currentDate.getDate() + days);
+
+            const newDate = getLocalDateString(currentDate);
+            input.value = newDate;
+            onDateChange(newDate);
+        }
+
+        function onDateChange(value) {
+            const display = document.getElementById("displayDate");
+            display.textContent = getLocalDateString( new Date(value));
+            fetch(`/admin/core/appointment/?date=${value}`, {
+                headers: { 'x-requested-with': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("calendar-container").innerHTML = data.html;
+                });
+        }
+    </script>
+{% endblock %}
