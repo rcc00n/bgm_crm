@@ -2,193 +2,11 @@
 {% load static %}
 
 {% block title %}Daily Calendar{% endblock %}
-
+{% block extrastyle %}
+    <link rel="stylesheet" href="{% static 'admin/appointments.css' %}">
+{% endblock %}
 {% block content %}
-    <style>
-        .content {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 95vw !important;
-            max-width: 95vw !important;
-        }
 
-        .calendar-nav {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            padding: 16px 0;
-        }
-
-        .nav-btn {
-            background: white;
-            border: 1px solid #ddd;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-        }
-
-        .nav-btn:hover {
-            border-color: #999;
-        }
-
-        .nav-group {
-            display: flex;
-            border: 1px solid #ddd;
-            margin-left: 10px;
-            margin-right: 10px;
-            border-radius: 20px;
-            overflow: hidden;
-            align-items: center;
-        }
-
-        .nav-icon2 {
-            background: white;
-            border: none;
-            padding: 6px 12px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .nav-date {
-            padding: 6px 16px;
-            font-weight: 500;
-            background-color: #f8f8f8;
-            border-left: 1px solid #ddd;
-            border-right: 1px solid #ddd;
-        }
-
-        .calendar-table {
-            font-size: 14px;
-
-            border-collapse: collapse;
-            width: 100%;
-            {#max-width: 1200px;#}
-            table-layout: fixed;
-            margin: 0 auto;
-
-        }
-        .calendar-table tbody tr {
-            border-bottom: none;
-        }
-
-        .calendar-table tbody tr:nth-child(4n) {
-            border-bottom: 2px solid rgba(153, 153, 153, 0.47);
-        }
-
-        .calendar-table tbody td:first-child {
-            font-weight: bold;
-        }
-        .scrollable{
-            margin: 0;
-            padding: 0;
-            max-height: 725px;           /* ограничим высоту */
-            overflow-y: auto;            /* вертикальный скролл */
-            width: 100%;
-        }
-
-        .calendar-cell {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        .calendar-cell:hover::before {
-            content: '';
-            position: absolute;
-            border: 1px solid rgba(164, 104, 197, 0.53);
-            top: 1px;
-            left: 1px;
-            right: 1px;
-            bottom: 1px;
-            background-color: rgba(191, 116, 228, 0.2);
-            border-radius: 10px;
-            box-shadow: 1px 1px 3px rgba(199, 154, 250, 0.82);
-            z-index: 0;
-        }
-
-        .calendar-cell:hover::after {
-            content:attr(data-time);
-            font-family: "Bold Italic Art", serif;
-            padding-left: 2%;
-            font-size: 14px;
-            color: #7f00bd;
-            text-align: left;
-            z-index: 1;
-        }
-        .calendar-cell:hover::after {
-            display: inline-block;
-        }
-
-        .calendar-table thead th {
-            position: sticky;
-            top: 0;
-
-            background-color: #f9f9f9; /* фон должен быть непрозрачным */
-            z-index: 10;
-            text-align: center;
-            border-bottom: 2px solid #aaa;
-        }
-        .calendar-table th,
-        .calendar-table td {
-            border: 1px solid #ddd;
-            padding: 2px;
-
-            text-align: center;
-            height:27px;
-        }
-
-        .calendar-table th.time-col {
-            width: 5%;
-
-            background-color: #f5f5f5;
-            font-weight: bold;
-        }
-
-
-
-        .fake-date-picker {
-            display: inline-block;
-            padding: 6px 16px;
-            font-weight: bold;
-            text-align: center;
-            background: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 170px;
-            font-size: 16px;
-            user-select: none;
-        }
-
-        /* Скрываем настоящий input */
-        .fake-date-picker input[type="date"] {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-            width: 0;
-            height: 0;
-        }
-
-        .event {
-            background-color: #6bb9f0;
-            margin: 2px;
-            border-radius: 6px;
-            cursor: pointer;
-            text-align: center;
-            vertical-align: middle;
-            height: 100%;
-            align-items: center;      /* центр по вертикали */
-            justify-content: center;  /* центр по горизонтали */
-            color: white;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        .event:hover {
-            opacity: 0.9;
-        }
-    </style>
 
     <div style="text-align: center; padding-left: 20px; width: 100%; background: rgba(239,239,239,0.52);">
         <div class="calendar-nav">
@@ -213,10 +31,71 @@
                 <button class="nav-icon2" onclick="changeDateByDays(1)">&gt;</button>
             </div>
 
-            <button class="nav-icon2" style="border-radius: 10px;">
+            <button class="nav-icon2" id="nav-icon2" style="border-radius: 10px;">
                 <img src="https://img.icons8.com/?size=100&id=O7hGF9n2ssaW&format=png&color=000000" alt="Filter" style="width: 20px; height: 20px;">  <!-- filter icon -->
             </button>
+
+            <button class="add-appointment-btn" onclick="window.location.href='/admin/core/appointment/add/'">
+                Add
+            </button>
         </div>
+    </div>
+    <!-- Sidebar -->
+    <div id="filterSidebar" class="sidebar2 hidden">
+        <div class="sidebar-header2">
+            <h3>All filters</h3>
+            <button class="close-btn2" onclick="closeSidebar()">✕</button>
+        </div>
+
+
+        <form id="filterForm">
+            <div class="filter-section">
+                <div class="filter-header" onclick="toggleSection(this)">
+                    📅 Appointment status <span class="arrow">⌄</span>
+                </div>
+                <div class="filter-content">
+                    {% for status in appointment_statuses %}
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" name="status" value="{{ status.id }}">
+                            <span>{{ status.name }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-header" onclick="toggleSection(this)">
+                    💳 Payment status <span class="arrow">⌄</span>
+                </div>
+                <div class="filter-content">
+                    {% for ps in payment_statuses %}
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" name="payment_status" value="{{ ps.id }}">
+                            <span>{{ ps.name }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-header" onclick="toggleSection(this)">
+                    🏷️ Services <span class="arrow">Edit</span>
+                </div>
+                <div class="filter-content">
+                    <select name="service" id="serviceSelect">
+                        <option value="">All</option>
+                        {% for service in services %}
+                            <option value="{{ service.id }}">{{ service.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-footer">
+                <button type="submit" class="apply-btn">Apply filters</button>
+                <button type="button" onclick="clearAllFilters()" class="clear-btn">Clear filters</button>
+            </div>
+        </form>
     </div>
     <div id="calendar-container">
         {% include "admin/appointments_calendar_partial.html" %}
@@ -257,7 +136,11 @@
             const display = document.getElementById("displayDate");
 
             display.textContent = value;
-            fetch(`/admin/core/appointment/?date=${value}`, {
+            const params = new URLSearchParams();
+            params.append("date", value);
+            params.append("action", "calendar");
+
+            fetch(`/admin/core/appointment/?${params.toString()}`, {
                 headers: { 'x-requested-with': 'XMLHttpRequest' }
             })
                 .then(res => res.json())
@@ -265,5 +148,58 @@
                     document.getElementById("calendar-container").innerHTML = data.html;
                 });
         }
+
+
+        const sidebar = document.getElementById("filterSidebar");
+        const filterBtn = document.getElementById("nav-icon2");
+        const filterForm = document.getElementById("filterForm");
+
+        filterBtn.addEventListener("click", () => {
+
+            sidebar.classList.remove("hidden");
+            setTimeout(() => sidebar.classList.add("visible"), 200);
+        });
+        function closeSidebar() {
+            sidebar.classList.remove("visible");
+            setTimeout(() => sidebar.classList.add("hidden"), 350);
+        }
+
+        function toggleSection(el) {
+            const content = el.nextElementSibling;
+            content.style.display = content.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function clearAllFilters() {
+            // Сброс чекбоксов
+            document.querySelectorAll('#filterForm input[type="checkbox"]').forEach(cb => cb.checked = false);
+            // Сброс селектов
+            document.querySelectorAll('#filterForm select').forEach(sel => sel.value = "");
+        }
+
+        // Преобразуем несколько чекбоксов в один параметр запроса: ?status=1&status=2
+        filterForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(filterForm);
+            formData.append("action", "filter");
+            const selectedDate = document.getElementById("realDateInput").value;
+            formData.append("date", selectedDate);
+            const params = new URLSearchParams(formData).toString();
+
+            fetch(`?${params}`, {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("calendar-container").innerHTML = data.html;
+                    closeSidebar();
+                })
+                .catch(err => {
+                    console.error("Error loading appointments:", err);
+                });
+        });
+
     </script>
 {% endblock %}

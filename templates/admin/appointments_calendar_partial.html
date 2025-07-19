@@ -1,3 +1,4 @@
+{% load calendar_filter %}
 <div class="scrollable">
     <table class="calendar-table">
         <thead>
@@ -13,7 +14,7 @@
             <tr>
                 <td class="time-col">
                     {% if forloop.first or forloop.counter0|divisibleby:4 %}
-                        {{ row.time }}
+                        {{ row.time|string_to_ampm  }}
                     {% endif %}
                 </td>
                 {% for cell in row.cells %}
@@ -28,7 +29,7 @@
                             </td>
                         {% else %}
                             <td >
-                                <div data-time="{{ row.time }}" class="calendar-cell">
+                                <div data-time="{{ row.time|string_to_ampm }}" class="calendar-cell">
                                 {{ cell.html|safe }}
                                 </div>
                             </td>

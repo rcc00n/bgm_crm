@@ -154,10 +154,22 @@ class AppointmentAdmin(admin.ModelAdmin):
 
         else:
             selected_date = timezone.localdate()
+
+        services = Service.objects.all()
+        appointment_statuses = AppointmentStatus.objects.all()
+        payment_statuses = PaymentStatus.objects.all()
+
         appointments = Appointment.objects.select_related('client', 'service', 'master')
         masters = CustomUserDisplay.objects.filter(
             id__in=appointments.values_list('master_id', flat=True)
         ).distinct()
+
+        if request.GET.get("service"):
+            appointments = appointments.filter(service_id=request.GET["service"])
+        if request.GET.get("status"):
+            appointments = appointments.filter(appointmentstatushistory__status_id=request.GET["status"])
+        if request.GET.get("payment_status"):
+            appointments = appointments.filter(payment_status_id__in=request.GET.getlist("payment_status"))
 
         # Слоты по 15 минут
         start_hour = 8
@@ -168,14 +180,26 @@ class AppointmentAdmin(admin.ModelAdmin):
 
 
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            action = request.GET.get("action")
             calendar_table = createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters)
+            if action == "filter":  # Фильтрация по форме
 
-            html = render_to_string('admin/appointments_calendar_partial.html', {
-                'calendar_table': calendar_table,
-                'masters': masters,
-            }, request=request)
 
-            return JsonResponse({'html': html})
+
+                html = render_to_string('admin/appointments_calendar_partial.html', {
+                    "calendar_table": calendar_table,
+                    'masters': masters,
+                })
+                return JsonResponse({"html": html})
+
+            elif action == "calendar":  # Подгрузка календаря (твоя текущая логика)
+
+                html = render_to_string('admin/appointments_calendar_partial.html', {
+                    'calendar_table': calendar_table,
+                    'masters': masters,
+                }, request=request)
+
+                return JsonResponse({'html': html})
 
         calendar_table = createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters)
         context = {
@@ -185,6 +209,9 @@ class AppointmentAdmin(admin.ModelAdmin):
             "prev_date": (selected_date - timedelta(days=1)).strftime("%Y-%m-%d"),
             "next_date": (selected_date + timedelta(days=1)).strftime("%Y-%m-%d"),
             "today": today.strftime("%Y-%m-%d"),
+            "services": services,
+            "appointment_statuses": appointment_statuses,
+            "payment_statuses": payment_statuses,
         }
 
         return TemplateResponse(request, "admin/appointments_calendar.html", context)

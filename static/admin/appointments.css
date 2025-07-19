@@ -1,0 +1,328 @@
+.content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 95vw !important;
+    max-width: 95vw !important;
+}
+
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 16px 24px;
+    gap: 12px;
+}
+
+.add-appointment-btn {
+    margin-left: auto;
+    background-color: black;
+    color: white;
+    width: 100px;
+    font-weight: bold;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.add-appointment-btn:hover {
+    background-color: rgba(0, 0, 0, 0.85);
+}
+
+.nav-btn {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.nav-btn:hover {
+    border-color: #999;
+}
+
+.nav-group {
+    display: flex;
+    border: 1px solid #ddd;
+    margin-left: 10px;
+    margin-right: 10px;
+    border-radius: 20px;
+    overflow: hidden;
+    align-items: center;
+}
+
+.nav-icon2 {
+    background: white;
+    border: none;
+    padding: 6px 12px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.nav-date {
+    padding: 6px 16px;
+    font-weight: 500;
+    background-color: #f8f8f8;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+}
+
+.sidebar2 {
+    position: fixed;
+    top: 60px;
+    right: 0;
+    width: 500px;
+    height: calc(100vh - 60px);
+    background: #fff;
+    border-left: 1px solid #ccc;
+    padding: 20px;
+    overflow-y: auto;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.3s ease;
+    z-index: 1000;
+}
+
+.sidebar2.visible {
+    transform: translateX(0%);
+    opacity: 1;
+}
+
+.sidebar2.hidden {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.sidebar-header2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.close-btn2 {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.filter-section {
+    border-bottom: 1px solid #eee;
+    margin-bottom: 15px;
+}
+
+.filter-header {
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.clear-link, .edit-link {
+    color: #7e57c2;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.filter-content {
+    display: none;
+    padding: 8px 0;
+}
+
+.filter-content select {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.apply-btn {
+    background-color: #7e57c2;
+    color: #fff;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    width: 100%;
+    margin-top: 10px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #7e57c2; /* фиолетовый */
+}
+
+.filter-footer {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.clear-btn {
+    background: transparent;
+    color: #7e57c2;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 14px;
+}
+.calendar-table {
+    font-size: 14px;
+
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+    margin: 0 auto;
+
+}
+
+.calendar-table tbody tr:nth-child(4n) {
+    border-bottom: 2px solid rgba(153, 153, 153, 0.47);
+}
+
+.calendar-table tbody td:first-child {
+    font-weight: bold;
+}
+.scrollable{
+    margin: 0;
+    padding: 0;
+    max-height: 725px;           /* ограничим высоту */
+    overflow-y: auto;            /* вертикальный скролл */
+    width: 100%;
+}
+
+.calendar-cell {
+    position: relative;
+    width: 100%;
+
+    height: 100%;
+}
+
+.calendar-cell:hover::before {
+    content: '';
+    position: absolute;
+    border: 1px solid rgba(164, 104, 197, 0.53);
+    top: 1px;
+    left: 1px;
+    right: 1px;
+    bottom: 1px;
+    background-color: rgba(191, 116, 228, 0.2);
+    border-radius: 10px;
+    box-shadow: 1px 1px 3px rgba(199, 154, 250, 0.82);
+    z-index: 0;
+}
+
+.calendar-cell:hover::after {
+    content:attr(data-time);
+    font-family: "Bold Italic Art", serif;
+    padding-left: 2%;
+    font-size: 14px;
+    color: #7f00bd;
+    text-align: left;
+    z-index: 1;
+}
+.calendar-cell:hover::after {
+    display: inline-block;
+}
+
+.calendar-table thead th {
+    position: sticky;
+    top: 0;
+
+    background-color: #f9f9f9; /* фон должен быть непрозрачным */
+    z-index: 10;
+    text-align: center;
+    border-bottom: 2px solid #aaa;
+}
+.calendar-table th,
+.calendar-table td {
+    padding: 2px;
+    border-right: 2px solid rgba(153, 153, 153, 0.47);
+    text-align: center;
+    height:27px;
+}
+
+.calendar-table th.time-col {
+    width: 5%;
+
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+
+
+.fake-date-picker {
+    display: inline-block;
+    padding: 6px 16px;
+    font-weight: bold;
+    text-align: center;
+    background: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 170px;
+    font-size: 16px;
+    user-select: none;
+}
+
+/* Скрываем настоящий input */
+.fake-date-picker input[type="date"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+.event {
+    background-color: #6bb9f0;
+    margin: 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+    vertical-align: middle;
+    height: 100%;
+    align-items: center;      /* центр по вертикали */
+    justify-content: center;  /* центр по горизонтали */
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+}
+.event:hover {
+    opacity: 0.9;
+}
