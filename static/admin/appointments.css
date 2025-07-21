@@ -32,6 +32,56 @@
     background-color: rgba(0, 0, 0, 0.85);
 }
 
+.popup {
+    position: absolute;
+    z-index: 2000;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    width: 220px;
+    padding: 0;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+}
+
+.popup.hidden {
+    display: none;
+}
+
+.popup-header {
+    background-color: #e0e0e0;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 14px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.popup-close {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.popup-body {
+    padding: 12px;
+}
+
+.popup-add {
+    background-color: transparent;
+    border: none;
+    font-weight: 500;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
 .nav-btn {
     background: white;
     border: 1px solid #ddd;
@@ -201,6 +251,36 @@
     text-align: center;
     font-size: 14px;
 }
+
+.master-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+}
+
+.initials-circle {
+    width: 48px;
+    height: 48px;
+    background-color: #e3e0ff;
+    border: 3px solid #8be9fd;
+    color: #7e57c2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    text-transform: uppercase;
+}
+
+.master-name {
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+}
+
 .calendar-table {
     font-size: 14px;
 
@@ -229,8 +309,9 @@
 .calendar-cell {
     position: relative;
     width: 100%;
-
+    color: #650098;
     height: 100%;
+    text-align: left;
 }
 
 .calendar-cell:hover::before {
@@ -241,23 +322,31 @@
     left: 1px;
     right: 1px;
     bottom: 1px;
-    background-color: rgba(191, 116, 228, 0.2);
-    border-radius: 10px;
+    text-align: left;
+    background-color: rgba(230, 179, 192, 0.33);
+    border-radius: 5px;
     box-shadow: 1px 1px 3px rgba(199, 154, 250, 0.82);
     z-index: 0;
 }
 
-.calendar-cell:hover::after {
+.calendar-cell:hover::after{
     content:attr(data-time);
     font-family: "Bold Italic Art", serif;
     padding-left: 2%;
     font-size: 14px;
-    color: #7f00bd;
+
     text-align: left;
-    z-index: 1;
-}
-.calendar-cell:hover::after {
     display: inline-block;
+    z-index: 1;
+
+}
+.calendar-cell.active {
+    background-color: rgba(126, 87, 194, 0.1); /* нежно-фиолетовый фон */
+    border: 1px solid #7e57c2;
+    border-radius: 6px;
+    color: #333;
+    display: inline-block;
+    z-index: 1;
 }
 
 .calendar-table thead th {
@@ -271,7 +360,7 @@
 }
 .calendar-table th,
 .calendar-table td {
-    padding: 2px;
+    padding: 1px;
     border-right: 2px solid rgba(153, 153, 153, 0.47);
     text-align: center;
     height:27px;
@@ -309,20 +398,136 @@
     height: 0;
 }
 
-.event {
-    background-color: #6bb9f0;
-    margin: 2px;
+.event > div{
+    background-color: #A4C0CE;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* по вертикали вверх */
+    align-items: flex-start;     /* по горизонтали влево */
+    text-align: left;
     border-radius: 6px;
     cursor: pointer;
-    text-align: center;
-    vertical-align: middle;
+    width: 100%;
+    transition: all 0.2s ease;
     height: 100%;
-    align-items: center;      /* центр по вертикали */
-    justify-content: center;  /* центр по горизонтали */
-    color: white;
+    color: black;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 6px 8px;
     font-size: 14px;
     font-weight: 500;
 }
-.event:hover {
-    opacity: 0.9;
+.event:hover > div {
+    width: calc(100% - 5%); /* сжатие справа */
+    margin-left: 0;           /* левый край остаётся */
+    margin-right: 0; /* двигаем влево, правый край остаётся внутри */
+    border: 2px solid #0097fb;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+#apptTooltip {
+    position: absolute;
+    z-index: 9999;
+    display: block;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+#apptTooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+}
+
+#apptTooltip.hidden {
+    opacity: 0;
+    transform: translateY(10px);
+    visibility: hidden;
+    pointer-events: none;
+}
+
+
+.tooltip-card {
+    font-family: Arial, sans-serif;
+    width: 375px;
+    height: 210px;
+    background: #fff;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.tooltip-header {
+    background: #0064ef;
+    color: #fff;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.tooltip-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* центрирует клиентский блок по вертикали */
+    padding: 16px 20px;
+    height: 100%;
+    position: relative;
+}
+
+.tooltip-client {
+    display: flex;
+    align-items: center;
+    margin-bottom: auto; /* толкает footer вниз */
+}
+
+.tooltip-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #e6e6fa;
+    color: #5f5fc4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 20px;
+    margin-right: 12px;
+}
+
+.tooltip-client-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.tooltip-client-name {
+    font-weight: 700;
+    font-size: 17px;
+}
+
+.tooltip-client-phone {
+    font-size: 15px;
+    color: #777;
+}
+
+.tooltip-footer {
+    position: absolute;
+    bottom: 32px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.tooltip-meta {
+    position: absolute;
+    bottom: 12px;
+    left: 20px;
+    font-size: 14px;
+    color: #777;
 }

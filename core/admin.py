@@ -130,7 +130,7 @@ class MasterSelectorMixing:
             master_role = Role.objects.filter(name="Master").first()
             if master_role:
                 master_user_ids = UserRole.objects.filter(role=master_role).values_list('user_id', flat=True)
-                kwargs["queryset"] = User.objects.filter(id__in=master_user_ids)
+                kwargs["queryset"] = CustomUserDisplay.objects.filter(id__in=master_user_ids)
             else:
                 kwargs["queryset"] = User.objects.none()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
@@ -140,9 +140,29 @@ class MasterSelectorMixing:
 # Appointment Admin
 # -----------------------------
 @admin.register(Appointment)
-class AppointmentAdmin(admin.ModelAdmin):
+class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
     change_list_template = "admin/appointments_calendar.html"
     form = AppointmentForm
+
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+
+        date_str = request.GET.get("date")
+        time_str = request.GET.get("time")
+        const_master = request.GET.get("master")
+
+        if date_str and time_str:
+            try:
+                combined = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+                initial["start_time"] = make_aware(combined)
+
+            except ValueError:
+                pass
+        if const_master:
+            initial["master"] = const_master
+
+        return initial
+
     def changelist_view(self, request, extra_context=None):
 
         today = datetime.today().date()
@@ -183,8 +203,6 @@ class AppointmentAdmin(admin.ModelAdmin):
             action = request.GET.get("action")
             calendar_table = createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters)
             if action == "filter":  # Фильтрация по форме
-
-
 
                 html = render_to_string('admin/appointments_calendar_partial.html', {
                     "calendar_table": calendar_table,
@@ -391,22 +409,41 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
             elif master_id in slot_map and time_str in slot_map[master_id]:
                 appt = slot_map[master_id][time_str]["appointment"]
                 rowspan = slot_map[master_id][time_str]["rowspan"]
+                last_status = appt.appointmentstatushistory_set.order_by('-set_at').first()
+                status_name = last_status.status.name if last_status else "Unknown"
+                local_start = localtime(appt.start_time)
+                local_end = local_start + timedelta(minutes=appt.service.duration_min)
                 html = f"""
-                        <div >
-                            {escape(appt.client.first_name)}<br>
-                            {escape(appt.service.name)}
+                        <div>
+                            <div style="font-size:16px;">
+                                {escape(local_start.strftime('%I:%M').lstrip('0'))} – {escape(local_end.strftime('%I:%M').lstrip('0'))}
+                                <strong>{escape(appt.client.get_full_name())}</strong>
+                            </div>
+                            <div style="font-size:16px;">
+                                {escape(appt.service.name)}
+                            </div>
                         </div>
                     """
                 row["cells"].append({
                     "html": html,
                     "rowspan": rowspan,
-                    "appt_id": appt.id
+                    "appt_id": appt.id,
+                    "appointment": appt,
+                    "client": escape(appt.client.get_full_name()),
+                    "phone": escape("+1 " + getattr(appt.client.userprofile, "phone", "")),
+                    "service": escape(appt.service.name),
+                    "status": status_name,
+                    "master": escape(master.get_full_name()),
+                    "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
+                    "duration": f"{appt.service.duration_min}min",
+                    "price": f"${appt.service.base_price}",
                 })
 
             else:
                 row["cells"].append({
                     "html": '',
                     "rowspan": 1,
+                    "master_id": master_id,
                 })
         calendar_table.append(row)
     return calendar_table

@@ -36,7 +36,7 @@
             </button>
 
             <button class="add-appointment-btn" onclick="window.location.href='/admin/core/appointment/add/'">
-                Add
+                Add +
             </button>
         </div>
     </div>
@@ -100,7 +100,18 @@
     <div id="calendar-container">
         {% include "admin/appointments_calendar_partial.html" %}
     </div>
-
+    <div id="addPopup" class="popup hidden">
+        <div class="popup-header">
+            <span id="popupTime">Time</span>
+            <button class="popup-close" onclick="closePopup()">✕</button>
+        </div>
+        <div class="popup-body">
+            <button id="popupAddBtn" class="popup-add">
+                📅 Add appointment
+            </button>
+        </div>
+    </div>
+    <div id="apptTooltip" class="appt-tooltip hidden"></div>
     <script>
         function getLocalDateString(date = new Date()) {
             const year = date.getFullYear();
@@ -146,6 +157,7 @@
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById("calendar-container").innerHTML = data.html;
+                    attachTooltipHandlers();
                 });
         }
 
@@ -194,12 +206,143 @@
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById("calendar-container").innerHTML = data.html;
+                    attachTooltipHandlers();
                     closeSidebar();
                 })
                 .catch(err => {
                     console.error("Error loading appointments:", err);
                 });
         });
+        let popup = document.getElementById("addPopup");
+        let popupTime = document.getElementById("popupTime");
+        let popupAddBtn = document.getElementById("popupAddBtn");
 
+        let lastActiveCell = null;
+
+        function showAddPopup(event, time, label) {
+            closePopup();
+
+            const cell = event.currentTarget;
+            cell.innerHTML = `<span class="cell-label">${label}</span>`;
+            const rect = cell.getBoundingClientRect();
+            cell.value = time;
+            // Пометить активной
+            cell.classList.add("active");
+            lastActiveCell = cell;
+
+            popupTime.textContent = label;
+            popupAddBtn.onclick = function () {
+                const selectedDate = document.getElementById("realDateInput").value;
+                const masterId = cell.dataset.master;
+                const url = `/admin/core/appointment/add/?date=${selectedDate}&time=${time}&master=${masterId}`;
+                window.location.href = url;
+            };
+            if ((rect.left + window.scrollX - 230) < 0 || rect.width < 100) {
+                // либо слишком близко к левому краю, либо слишком узкая ячейка
+                popup.style.left = `${rect.left + window.scrollX + rect.width + 10}px`;
+            } else {
+                popup.style.left = `${rect.left + window.scrollX - rect.width/2.5}px`;
+            }
+            popup.style.top = `${rect.top + window.scrollY - 40}px`;
+
+
+            popup.classList.remove("hidden");
+        }
+
+        function closePopup() {
+            popup.classList.add("hidden");
+
+            // Сбросить активную ячейку
+            if (lastActiveCell) {
+                lastActiveCell.classList.remove("active");
+                lastActiveCell.innerHTML = ``;
+                lastActiveCell = null;
+            }
+        }
+
+        document.addEventListener("click", function (e) {
+            if (!popup.contains(e.target) && !e.target.classList.contains("calendar-cell")) {
+                closePopup();
+            }
+        });
+
+        const tooltip = document.getElementById("apptTooltip");
+
+        function attachTooltipHandlers() {
+            document.querySelectorAll(".event").forEach(box => {
+                box.addEventListener("mouseenter", function () {
+                    showTooltip(box);
+                });
+                box.addEventListener("mouseleave", function () {
+                    hideTooltip();
+                });
+            });
+        }
+
+        attachTooltipHandlers();
+
+        function showTooltip(box) {
+            const rect = box.getBoundingClientRect();
+            const client = box.dataset.client || "";
+            const phone = box.dataset.phone || "";
+            const service = box.dataset.service || "";
+            const time = box.dataset.timeLabel || "";
+            const status = box.dataset.status || "";
+            const duration = box.dataset.duration || "";
+            const price = box.dataset.price || "";
+            const master = box.dataset.master || "";
+
+            const firstLetter = client.trim().charAt(0).toUpperCase();
+
+            tooltip.innerHTML = `
+        <div class="tooltip-card">
+            <div class="tooltip-header">
+                <span>${time}</span>
+                <span>${status}</span>
+            </div>
+            <div class="tooltip-body">
+                <div class="tooltip-client">
+                    <div class="tooltip-avatar">${firstLetter}</div>
+                    <div class="tooltip-client-info">
+                        <div class="tooltip-client-name">${client}</div>
+                        <div class="tooltip-client-phone">${phone}</div>
+                    </div>
+                </div>
+
+                <div class="tooltip-footer">
+                    <div class="tooltip-service">${service}</div>
+                    <div class="tooltip-price">${price}</div>
+                </div>
+                <div class="tooltip-meta">${master} · ${duration}</div>
+            </div>
+        </div>
+    `;
+
+            const tooltipWidth = 375;
+            const tooltipHeight = 210;
+
+            let top = rect.top + window.scrollY;
+            let left = rect.left + window.scrollX - tooltipWidth - 10;
+
+
+            // Чтобы не вышел за верхний край экрана
+            if (top + tooltipHeight > window.scrollY + window.innerHeight) {
+                top = window.scrollY + window.innerHeight - tooltipHeight - 20;
+            }
+            if (left < 0) {
+                left = rect.left + window.scrollX + box.offsetWidth + 10;
+            }
+
+            tooltip.style.top = `${top}px`;
+            tooltip.style.left = `${left}px`;
+            tooltip.classList.remove("hidden");
+            tooltip.classList.add("visible");
+        }
+
+        function hideTooltip() {
+            tooltip.classList.remove("visible");
+            tooltip.classList.add("hidden");
+        }
     </script>
+
 {% endblock %}
