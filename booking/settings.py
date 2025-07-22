@@ -159,7 +159,7 @@ JAZZMIN_SETTINGS = {
     "site_header": "Malva Health & Beauty",
     "welcome_sign": "Welcome to Malva",
     "copyright": "Malva © 2025",
-    "search_model": ["core.Appointment"],
+    "search_model": ["auth.User"],
     "show_sidebar": True,
     "navigation_expanded": True,
     "show_ui_builder": False,

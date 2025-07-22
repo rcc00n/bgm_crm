@@ -1,6 +1,8 @@
-{% extends "admin/base_site.html" %}
+{% extends "admin/change_list.html" %}
 {% load static %}
-
+{% block breadcrumbs %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block object-tools %}{% endblock %}
 {% block title %}Daily Calendar{% endblock %}
 {% block extrastyle %}
     <link rel="stylesheet" href="{% static 'admin/appointments.css' %}">
@@ -10,34 +12,40 @@
 
     <div style="text-align: center; padding-left: 20px; width: 100%; background: rgba(239,239,239,0.52);">
         <div class="calendar-nav">
+            <div class="calendar-left">
                 <button class="nav-btn" onclick="changeDateToToday()">Today</button>
 
-
-            <div class="nav-group">
-
+                <div class="nav-group">
                     <button class="nav-icon2" onclick="changeDateByDays(-1)">&lt;</button>
-
-
-                <div class="fake-date-picker" onclick="document.getElementById('realDateInput').showPicker()">
-                    <span id="displayDate">{{ selected_date|date:"Y-m-d" }}</span>
-                    <input
-                            type="date"
-                            id="realDateInput"
-                            value="{{ selected_date|date:'Y-m-d' }}"
-                            onchange="onDateChange(this.value)"
-                    />
+                    <div class="fake-date-picker" onclick="document.getElementById('realDateInput').showPicker()">
+                        <span id="displayDate">{{ selected_date|date:"Y-m-d" }}</span>
+                        <input
+                                type="date"
+                                id="realDateInput"
+                                value="{{ selected_date|date:'Y-m-d' }}"
+                                onchange="onDateChange(this.value)"
+                        />
+                    </div>
+                    <button class="nav-icon2" onclick="changeDateByDays(1)">&gt;</button>
                 </div>
 
-                <button class="nav-icon2" onclick="changeDateByDays(1)">&gt;</button>
+                <button class="nav-icon2" id="nav-icon2" style="border-radius: 10px;">
+                    <img src="https://img.icons8.com/?size=100&id=O7hGF9n2ssaW&format=png&color=000000"
+                         alt="Filter" style="width: 20px; height: 20px;">
+                </button>
             </div>
 
-            <button class="nav-icon2" id="nav-icon2" style="border-radius: 10px;">
-                <img src="https://img.icons8.com/?size=100&id=O7hGF9n2ssaW&format=png&color=000000" alt="Filter" style="width: 20px; height: 20px;">  <!-- filter icon -->
-            </button>
+            <div class="calendar-right">
+                <div class="add-dropdown">
+                    <button id="addDropdownBtn" class="add-appointment-btn">Add <span id="arrow">▾</span></button>
+                    <div id="addDropdownMenu" class="add-dropdown-menu hidden">
+                        <a href="#" onclick="handleAdd('appointment')">📅 Appointment</a>
 
-            <button class="add-appointment-btn" onclick="window.location.href='/admin/core/appointment/add/'">
-                Add +
-            </button>
+                        <a href="#" onclick="handleAdd('vacation')">❌ Blocked time</a>
+
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <!-- Sidebar -->
@@ -277,6 +285,18 @@
                     hideTooltip();
                 });
             });
+            document.querySelectorAll(".unavailable-cell").forEach(cell => {
+                cell.addEventListener("click", () => {
+                    const id = cell.dataset.id;
+                    if (id) {
+                        window.location.href = `/admin/core/masteravailability/${id}/change/`;
+                    }
+                });
+            });
+            document.querySelectorAll(".unavailable-cell").forEach(cell => {
+                cell.addEventListener("mouseenter", () => showUnavailableTooltip(cell));
+                cell.addEventListener("mouseleave", () => hideTooltip());
+            });
         }
 
         attachTooltipHandlers();
@@ -342,6 +362,90 @@
         function hideTooltip() {
             tooltip.classList.remove("visible");
             tooltip.classList.add("hidden");
+        }
+
+        document.querySelectorAll(".unavailable-cell").forEach(cell => {
+            cell.addEventListener("mouseenter", () => showUnavailableTooltip(cell));
+            cell.addEventListener("mouseleave", () => hideTooltip());
+        });
+
+        function showUnavailableTooltip(cell) {
+            const rect = cell.getBoundingClientRect();
+            const reason = cell.dataset.reason || "Unavailable";
+            const start = cell.dataset.start || "";
+            const end = cell.dataset.end || "";
+            const until = cell.dataset.until || "";
+
+            const tooltip = document.getElementById("apptTooltip");
+
+            tooltip.innerHTML = `
+        <div class="tooltip-card">
+            <div class="tooltip-header">
+                <span><strong>${reason.charAt(0).toUpperCase() + reason.slice(1)}</strong></span>
+            </div>
+            <div class="tooltip-body">
+                <div style="font-size:15px; font-weight:500; margin-bottom: 6px;">
+                    ${start} - ${end}
+                </div>
+                ${until ? `<div style="font-size:13px; color:#777;">Ends ${until}</div>` : ""}
+            </div>
+        </div>
+    `;
+            const tooltipWidth = 375;
+            const tooltipHeight = 120; // можно скорректировать
+            const middleY = rect.top + rect.height / 2 + window.scrollY;
+            const leftX = rect.left + window.scrollX - tooltipWidth - 10;
+            const rightX = rect.right + window.scrollX + 10;
+
+            // Установим начальные координаты
+            tooltip.style.top = `${middleY - tooltipHeight / 2}px`;
+
+            // Если не влезает слева — показываем справа
+            if (leftX < 0) {
+                tooltip.style.left = `${rightX}px`;
+            } else {
+                tooltip.style.left = `${leftX}px`;
+            }
+
+
+            tooltip.classList.remove("hidden");
+            tooltip.classList.add("visible");
+        }
+
+        const addBtn = document.getElementById("addDropdownBtn");
+        const menu = document.getElementById("addDropdownMenu");
+        const arrow = document.getElementById("arrow");
+
+        addBtn.addEventListener("click", () => {
+            menu.classList.toggle("hidden");
+            arrow.textContent = menu.classList.contains("hidden") ? "▾" : "▴";
+        });
+
+        // Закрытие по клику вне меню
+        document.addEventListener("click", (e) => {
+            if (!addBtn.contains(e.target) && !menu.contains(e.target)) {
+                menu.classList.add("hidden");
+                arrow.textContent = "▾";
+            }
+        });
+
+        function handleAdd(type) {
+            const selectedDate = document.getElementById("realDateInput").value;
+            const masterId = lastActiveCell?.dataset?.master;
+            const time = lastActiveCell?.value;
+
+            let url = "#";
+
+            if (type === "appointment") {
+                url = `/admin/core/appointment/add/?date=${selectedDate}&time=${time}&master=${masterId}`;
+            } else if (type === "vacation") {
+                url = `/admin/core/masteravailability/add/?date=${selectedDate}&time=${time}&master=${masterId}`;
+            } else {
+                alert(`"${type}" action is not implemented yet.`);
+                return;
+            }
+
+            window.location.href = url;
         }
     </script>
 

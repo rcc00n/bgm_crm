@@ -2,8 +2,8 @@ from dal import autocomplete
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
-
-from .models import Appointment, Role, User, UserProfile, CustomUserDisplay
+from django.core.exceptions import ValidationError
+from .models import Appointment, Role, User, UserProfile, AppointmentStatus, AppointmentStatusHistory, ClientFile, MasterProfile
 
 # -----------------------------
 # Appointment Form
@@ -14,12 +14,51 @@ class AppointmentForm(forms.ModelForm):
     Custom form for the Appointment model.
     Adds autocomplete functionality for the 'service' field.
     """
+    status = forms.ModelChoiceField(
+        queryset=AppointmentStatus.objects.all(),
+        required=True,
+        label="Appointment status"
+    )
+
     class Meta:
         model = Appointment
         fields = '__all__'
         widgets = {
             'service': autocomplete.ModelSelect2(url='service-autocomplete')
         }
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        instance = self.instance
+
+        # Обнови instance перед вызовом clean()
+        instance.master = cleaned_data.get("master")
+        instance.start_time = cleaned_data.get("start_time")
+        instance.service = cleaned_data.get("service")
+
+        try:
+            instance.clean()
+        except ValidationError as e:
+            raise forms.ValidationError(e)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.save()
+
+        new_status = self.cleaned_data['status']
+
+        latest = instance.appointmentstatushistory_set.order_by('-set_at').first()
+        if not latest or latest.status != new_status:
+            AppointmentStatusHistory.objects.create(
+                appointment=instance,
+                status=new_status,
+                set_by=self.user
+            )
+
+        return instance
 
 # -----------------------------
 # Custom User Creation Form
@@ -74,11 +113,15 @@ class CustomUserCreationForm(UserCreationForm):
 
         # Assign roles
         roles = self.cleaned_data.get('roles')
-        print("CUSTOM SAVE METHOD CALLED")
+
         if roles:
             user.userrole_set.all().delete()
             for role in roles:
                 user.userrole_set.create(role=role)
+
+            # Автосоздание MasterProfile
+            if any(role.name == "Master" for role in roles):
+                MasterProfile.objects.get_or_create(user=user)
 
         return user
 
@@ -108,6 +151,11 @@ class CustomUserChangeForm(UserChangeForm):
         required=False
     )
 
+    files = forms.FileField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={'multiple': False}),
+        label="Upload files"
+    )
     class Meta:
         model = User
         fields = [
@@ -121,7 +169,8 @@ class CustomUserChangeForm(UserChangeForm):
             'groups',
             'user_permissions',
             'password',
-            'roles'
+            'roles',
+            'files'
         ]
 
     def __init__(self, *args, **kwargs):
@@ -154,11 +203,23 @@ class CustomUserChangeForm(UserChangeForm):
         profile.save()
 
         # Sync roles
-        user.userrole_set.all().delete()
         roles = self.cleaned_data.get('roles', [])
-        for role in roles:
-            user.userrole_set.create(role=role)
+        if roles:
+            user.userrole_set.all().delete()
+            for role in roles:
+                user.userrole_set.create(role=role)
 
+            # Автосоздание MasterProfile
+            if any(role.name == "Master" for role in roles):
+                MasterProfile.objects.get_or_create(user=user)
+
+        uploaded_files = self.files.getlist('files')
+        for f in uploaded_files:
+            ClientFile.objects.create(
+                user=user,
+                file=f,
+                file_type=f.content_type
+            )
         return user
 
     def clean(self):

@@ -7,11 +7,22 @@
 
 .calendar-nav {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
     flex-wrap: wrap;
     padding: 16px 24px;
+    background: rgba(239,239,239,0.52);
+}
+
+.calendar-left {
+    display: flex;
+    align-items: center;
     gap: 12px;
+}
+
+.calendar-right {
+    display: flex;
+    align-items: center;
 }
 
 .add-appointment-btn {
@@ -30,6 +41,47 @@
 
 .add-appointment-btn:hover {
     background-color: rgba(0, 0, 0, 0.85);
+}
+
+.add-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.add-dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 120%;
+    color: black;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    z-index: 10000;
+    overflow: hidden;
+    padding: 10px 0;
+    transition: all 0.3s ease;
+}
+
+.add-dropdown-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    text-decoration: none;
+    color: black;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.add-dropdown-menu a:hover {
+    background-color: #f1f1f1;
+
+}
+
+.hidden {
+    display: none;
 }
 
 .popup {
@@ -309,7 +361,7 @@
 .calendar-cell {
     position: relative;
     width: 100%;
-    color: #650098;
+
     height: 100%;
     text-align: left;
 }
@@ -321,9 +373,10 @@
     top: 1px;
     left: 1px;
     right: 1px;
+    color: #650098;
     bottom: 1px;
     text-align: left;
-    background-color: rgba(230, 179, 192, 0.33);
+    background-color: rgba(230, 179, 192, 0.47);
     border-radius: 5px;
     box-shadow: 1px 1px 3px rgba(199, 154, 250, 0.82);
     z-index: 0;
@@ -333,11 +386,11 @@
     content:attr(data-time);
     font-family: "Bold Italic Art", serif;
     padding-left: 2%;
-    font-size: 14px;
+    font-size: 15px;
 
     text-align: left;
     display: inline-block;
-    z-index: 1;
+    z-index: 2;
 
 }
 .calendar-cell.active {
@@ -346,7 +399,7 @@
     border-radius: 6px;
     color: #333;
     display: inline-block;
-    z-index: 1;
+    z-index: 3;
 }
 
 .calendar-table thead th {
@@ -399,7 +452,7 @@
 }
 
 .event > div{
-    background-color: #A4C0CE;
+
     display: flex;
     flex-direction: column;
     justify-content: flex-start; /* по вертикали вверх */
@@ -416,12 +469,31 @@
     font-size: 14px;
     font-weight: 500;
 }
-.event:hover > div {
+.event:hover > div, .unavailable-cell:hover > div {
     width: calc(100% - 5%); /* сжатие справа */
     margin-left: 0;           /* левый край остаётся */
     margin-right: 0; /* двигаем влево, правый край остаётся внутри */
-    border: 2px solid #0097fb;
+    border: 1px solid #5ac2ff;
     box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.unavailable-cell > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* по вертикали вверх */
+    align-items: flex-start;     /* по горизонтали влево */
+    text-align: left;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s ease;
+    background-color: #A4ADBA;
+    height: 100%;
+    color: black;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 6px 8px;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 #apptTooltip {
@@ -530,4 +602,8 @@
     left: 20px;
     font-size: 14px;
     color: #777;
+}
+
+.main-footer {
+    display: none; !important;
 }

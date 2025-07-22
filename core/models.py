@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
+from django.core.exceptions import ValidationError
+from datetime import timedelta
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
 
@@ -48,6 +50,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(CustomUserDisplay, on_delete=models.CASCADE)
     phone = models.CharField(max_length=20, unique=True)
     birth_date = models.DateField(null=True, blank=True)
+    source = models.CharField(max_length=25, default="In-store")
 
     def __str__(self):
         return f"{self.user} Profile"
@@ -115,6 +118,31 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"{self.client} for {self.service} "
+
+    def clean(self):
+        # Проверка на пересечение с другими записями
+        overlapping = Appointment.objects.filter(
+            master=self.master,
+            start_time__lt=self.start_time + timedelta(minutes=self.service.duration_min),
+            start_time__gte=self.start_time - timedelta(hours=3)
+        ).exclude(id=self.id)
+
+        this_end = self.start_time + timedelta(minutes=self.service.duration_min)
+        for appt in overlapping:
+            other_end = appt.start_time + timedelta(minutes=appt.service.duration_min)
+            if self.start_time < other_end and this_end > appt.start_time:
+                raise ValidationError({
+                    "start_time": "This appointment overlaps with another appointment for the same master."
+                })
+
+
+        # Проверка на отпуск / отгулы
+        unavailable_periods = MasterAvailability.objects.filter(master=self.master)
+
+        for period in unavailable_periods:
+            if self.start_time < period.end_time and this_end > period.start_time:
+                raise ValidationError({"start_time": "This appointment falls within the master's time off or vacation."})
+
 
 
 class AppointmentStatusHistory(models.Model):
@@ -217,3 +245,45 @@ class Notification(models.Model):
         Stub: logic to send an SMS message to the user.
         """
         print(f"[SMS] To {self.user}: {self.message}")
+
+# --- 8. MASTERS ---
+class MasterProfile(models.Model):
+    """
+    Дополнительная информация о мастере: профессия, график работы, цвет и т.д.
+    """
+    user = models.OneToOneField(CustomUserDisplay, on_delete=models.CASCADE, related_name="master_profile")
+    profession = models.CharField(max_length=100, blank=True)
+    bio = models.TextField(blank=True)
+    work_start = models.TimeField(default="08:00")
+    work_end = models.TimeField(default="21:00")
+
+    def __str__(self):
+        return f"Master: {self.user.get_full_name()}"
+
+class MasterAvailability(models.Model):
+    VACATION = 'vacation'
+    LUNCH = 'lunch'
+    BREAK = 'break'
+
+    REASON_CHOICES = [
+        (VACATION, 'Vacation'),
+        (LUNCH, 'Lunch'),
+        (BREAK, 'Break'),
+    ]
+
+    master = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    reason = models.CharField(
+        max_length=20,
+        choices=REASON_CHOICES,
+        default=VACATION,
+        help_text="Reason for time off"
+    )
+
+    class Meta:
+        verbose_name = "Time Off / Vacation"
+        verbose_name_plural = "Time Offs / Vacations"
+
+    def __str__(self):
+        return f"{self.master} → {self.get_reason_display()} from {self.start_time} to {self.end_time}"
