@@ -1,8 +1,31 @@
+
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.content-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 .content {
-    margin: 0 !important;
+    flex: 1;
+    display: flex;
+    width: 96vw !important;
+    max-width: 96vw !important;
     padding: 0 !important;
-    width: 95vw !important;
-    max-width: 95vw !important;
+    flex-direction: column;
+    min-height: 0; /* 👈 предотвратить выталкивание */
+}
+.content.border-bottom.mb-2 {
+    display: none !important;
+}
+#calendar-container{
+    height: 100%;
 }
 
 .calendar-nav {
@@ -10,6 +33,7 @@
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
+
     padding: 16px 24px;
     background: rgba(239,239,239,0.52);
 }
@@ -353,7 +377,7 @@
 .scrollable{
     margin: 0;
     padding: 0;
-    max-height: 725px;           /* ограничим высоту */
+    max-height: 85vh;           /* ограничим высоту */
     overflow-y: auto;            /* вертикальный скролл */
     width: 100%;
 }
@@ -604,6 +628,3 @@
     color: #777;
 }
 
-.main-footer {
-    display: none; !important;
-}

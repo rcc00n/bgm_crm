@@ -160,7 +160,7 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Welcome to Malva",
     "copyright": "Malva © 2025",
     "search_model": ["auth.User"],
-    "show_sidebar": True,
+    "show_sidebar": False,
     "navigation_expanded": True,
     "show_ui_builder": False,
     "hide_models": ["Groups"],
@@ -193,6 +193,55 @@ JAZZMIN_SETTINGS = {
         "core.Service": "fas fa-spa",
         "core.ServiceMaster": "fas fa-user-cog",
     },
+    "menu": [
+    {
+        "label": "📅 Appointments",
+        "models": [
+            "core.appointment",
+            "core.appointmentstatus",
+            "core.appointmentprepayment",
+            "core.appointmentstatushistory",
+        ],
+    },
+{
+    "label": "🧑‍💼 Users",
+    "models": [
+        "core.user",
+        "core.userprofile",
+        "core.role",
+        "core.userrole",
+        "core.clientfile",
+    ],
+},
+{
+    "label": "💳 Payments",
+    "models": [
+        "core.payment",
+        "core.paymentstatus",
+        "core.paymentmethod",
+    ],
+},
+{
+    "label": "🛎️ Services",
+    "models": [
+        "core.service",
+        "core.servicemaster",
+    ],
+},
+{
+    "label": "🔔 Notifications",
+    "models": [
+        "core.notification",
+    ]
+},
+{
+    "label": "👨‍🏫 Masters",
+    "models": [
+        "core.masterprofile",
+        "core.masteravailability",
+    ]
+}
+],
 }
 
 JAZZMIN_UI_TWEAKS = {

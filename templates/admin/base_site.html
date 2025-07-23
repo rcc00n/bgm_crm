@@ -1,0 +1,79 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrahead %}
+    <link rel="stylesheet" href="{% static 'admin/css/custom_sidebar.css' %}">
+    <script defer src="{% static 'admin/js/custom_sidebar.js' %}"></script>
+{% endblock %}
+
+{% block sidebar %}
+
+        <aside class="icon-sidebar" id="sidebar">
+            <ul>
+                <li>
+                    <a href="/admin/">
+                        <img src="{% static 'admin/icons/home.png' %}" alt="Dashboard">
+                        <span class="sidebar-label">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:core_appointment_changelist' %}">
+                        <img src="{% static 'admin/icons/appointments.png' %}" alt="Appointments">
+                        <span class="sidebar-label">Appointments</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:auth_user_changelist' %}">
+                        <img src="{% static 'admin/icons/users.png' %}" alt="Users">
+                        <span class="sidebar-label">Users</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:core_payment_changelist' %}">
+                        <img src="{% static 'admin/icons/wallet.png' %}" alt="Payments">
+                        <span class="sidebar-label">Payments</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:core_service_changelist' %}">
+                        <img src="{% static 'admin/icons/services.png' %}" alt="Settings">
+                        <span class="sidebar-label">Services</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:core_notification_changelist' %}">
+                        <img src="{% static 'admin/icons/notifications.png' %}" alt="Settings">
+                        <span class="sidebar-label">Notifications</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:core_clientfile_changelist' %}">
+                        <img src="{% static 'admin/icons/files.png' %}" alt="Settings">
+                        <span class="sidebar-label">Files</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+    <main class="main-content">
+        <style>
+            .main-footer {
+                display: none !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                visibility: hidden !important;
+            }
+            html, body {
+                height: 100%; !important;
+                margin: 0; !important;
+                padding: 0; !important;
+             }
+
+
+        </style>
+        {{ block.super }}
+    </main>
+{% endblock %}
+
+
