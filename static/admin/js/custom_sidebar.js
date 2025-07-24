@@ -1,12 +1,21 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const toggleBtn = document.getElementById("sidebar-toggle");
-    const sidebar = document.querySelector(".custom-sidebar");
+    const sidebar = document.getElementById("sidebar");
 
-    toggleBtn.addEventListener("click", () => {
-        sidebar.classList.toggle("closed");
+    sidebar.addEventListener("mouseleave", () => {
+        // Закрываем все открытые дропдауны, когда мышь уходит с сайдбара
+        const openDropdowns = sidebar.querySelectorAll(".dropdown.open");
+        openDropdowns.forEach(dropdown => dropdown.classList.remove("open"));
     });
 });
 
-function toggleDropdown(el) {
-    el.classList.toggle("open");
+function toggleDropdown(clickedElement) {
+    const allDropdowns = document.querySelectorAll(".icon-sidebar .dropdown");
+
+    allDropdowns.forEach(dropdown => {
+        if (dropdown !== clickedElement.parentElement) {
+            dropdown.classList.remove("open");
+        }
+    });
+
+    clickedElement.parentElement.classList.toggle("open");
 }

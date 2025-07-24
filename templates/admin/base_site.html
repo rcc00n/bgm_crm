@@ -1,10 +1,7 @@
 {% extends "admin/base.html" %}
 {% load static %}
 
-{% block extrahead %}
-    <link rel="stylesheet" href="{% static 'admin/css/custom_sidebar.css' %}">
-    <script defer src="{% static 'admin/js/custom_sidebar.js' %}"></script>
-{% endblock %}
+
 
 {% block sidebar %}
 
@@ -16,29 +13,55 @@
                         <span class="sidebar-label">Dashboard</span>
                     </a>
                 </li>
-                <li>
-                    <a href="{% url 'admin:core_appointment_changelist' %}">
+                <li class="dropdown">
+                    <a href="javascript:void(0);" onclick="toggleDropdown(this)">
                         <img src="{% static 'admin/icons/appointments.png' %}" alt="Appointments">
-                        <span class="sidebar-label">Appointments</span>
+                        <span class="sidebar-label">Appointments
+                        <span class="dropdown-arrow"> <img src="{% static 'admin/icons/arrow.png' %}" alt="Pointer"> </span>
+                        </span>
                     </a>
+                    <ul class="submenu">
+                        <li><a href="{% url 'admin:core_appointment_changelist' %}">All Appointments</a></li>
+                        <li><a href="{% url 'admin:core_appointmentstatushistory_changelist' %}">Status History</a></li>
+                    </ul>
                 </li>
-                <li>
-                    <a href="{% url 'admin:auth_user_changelist' %}">
+                <li class="dropdown">
+                    <a href="javascript:void(0);" onclick="toggleDropdown(this)">
                         <img src="{% static 'admin/icons/users.png' %}" alt="Users">
-                        <span class="sidebar-label">Users</span>
+                        <span class="sidebar-label">Users
+                        <span class="dropdown-arrow"> <img src="{% static 'admin/icons/arrow.png' %}" alt="Pointer"> </span>
+                       </span>
                     </a>
+                    <ul class="submenu">
+                        <li><a href="{% url 'admin:auth_user_changelist' %}">All Users</a></li>
+                        <li><a href="{% url 'admin:core_masterprofile_changelist' %}">Masters</a></li>
+                        <li><a href="{% url 'admin:core_masteravailability_changelist' %}">Master's time off</a></li>
+                    </ul>
                 </li>
-                <li>
-                    <a href="{% url 'admin:core_payment_changelist' %}">
+                <li class="dropdown">
+                    <a href="javascript:void(0);" onclick="toggleDropdown(this)">
                         <img src="{% static 'admin/icons/wallet.png' %}" alt="Payments">
-                        <span class="sidebar-label">Payments</span>
+                        <span class="sidebar-label">Payments
+                        <span class="dropdown-arrow"> <img src="{% static 'admin/icons/arrow.png' %}" alt="Pointer"> </span>
+                       </span>
                     </a>
+                    <ul class="submenu">
+                        <li><a href="{% url 'admin:core_payment_changelist' %}">All Payments</a></li>
+                        <li><a href="{% url 'admin:core_appointmentprepayment_changelist' %}">Prepayment</a></li>
+                    </ul>
                 </li>
-                <li>
-                    <a href="{% url 'admin:core_service_changelist' %}">
-                        <img src="{% static 'admin/icons/services.png' %}" alt="Settings">
-                        <span class="sidebar-label">Services</span>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" onclick="toggleDropdown(this)">
+                        <img src="{% static 'admin/icons/services.png' %}" alt="Services">
+                        <span class="sidebar-label">Services
+                        <span class="dropdown-arrow"> <img src="{% static 'admin/icons/arrow.png' %}" alt="Pointer"> </span>
+                       </span>
                     </a>
+                    <ul class="submenu">
+                        <li><a href="{% url 'admin:core_service_changelist' %}">All Services</a></li>
+                        <li><a href="{% url 'admin:core_servicemaster_changelist' %}">Master - Service</a></li>
+
+                    </ul>
                 </li>
                 <li>
                     <a href="{% url 'admin:core_notification_changelist' %}">
@@ -51,6 +74,20 @@
                         <img src="{% static 'admin/icons/files.png' %}" alt="Settings">
                         <span class="sidebar-label">Files</span>
                     </a>
+                </li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" onclick="toggleDropdown(this)">
+                        <img src="{% static 'admin/icons/options.png' %}" alt="Options">
+                        <span class="sidebar-label">Options
+                        <span class="dropdown-arrow"> <img src="{% static 'admin/icons/arrow.png' %}" alt="Pointer"> </span>
+                       </span>
+                    </a>
+                    <ul class="submenu">
+                        <li><a href="{% url 'admin:core_appointmentstatus_changelist' %}">Appointment Statuses</a></li>
+                        <li><a href="{% url 'admin:core_paymentmethod_changelist' %}">Payment Methods</a></li>
+                        <li><a href="{% url 'admin:core_prepaymentoption_changelist' %}">Prepayment Options</a></li>
+                        <li><a href="{% url 'admin:core_role_changelist' %}">Roles</a></li>
+                    </ul>
                 </li>
             </ul>
         </aside>

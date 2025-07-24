@@ -1,5 +1,4 @@
 from bisect import bisect_left
-from calendar import prweek
 from datetime import timedelta, datetime, time
 
 from django.contrib.admin import SimpleListFilter, DateFieldListFilter
@@ -8,11 +7,13 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.http import JsonResponse
 from django.template.loader import render_to_string
+from django.template.response import TemplateResponse
+from django.contrib import admin
+from django.db.models import Sum, Count
 from itertools import cycle
-from django.utils.timezone import now, localtime, make_aware
+from django.utils.timezone import localtime, make_aware, localdate
 from django.utils.html import escape
 from django.utils import timezone
-from django.db.models import Q
 from .models import *
 from .forms import AppointmentForm, CustomUserChangeForm, CustomUserCreationForm
 
@@ -48,6 +49,61 @@ class MasterOnlyFilter(SimpleListFilter):
         if self.value():
             return queryset.filter(master_id=self.value())
         return queryset
+
+# Переопределение index view
+def custom_index(request):
+    today = localdate()
+    week_ago = today - timedelta(days=6)
+
+    appointments_qs = Appointment.objects.filter(start_time__date__range=[week_ago, today])
+    payments_qs = Payment.objects.filter(appointment__start_time__date__range=[week_ago, today])
+
+    chart_data = []
+    total_sales = 0
+    for i in range(7):
+        day = today - timedelta(days=6 - i)
+        sales = payments_qs.filter(appointment__start_time__date=day).aggregate(total=Sum("amount"))["total"] or 0
+        appts = appointments_qs.filter(start_time__date=day).count()
+        total_sales += float(sales)
+        chart_data.append({
+            "day": day.strftime("%a"),
+            "sales": float(sales),
+            "appointments": appts
+        })
+
+    confirmed = AppointmentStatus.objects.filter(name="Confirmed").first()
+    cancelled = AppointmentStatus.objects.filter(name="Cancelled").first()
+    upcoming = Appointment.objects.filter(start_time__date__gt=today)
+    confirmed_count = upcoming.filter(appointmentstatushistory__status=confirmed).count()
+    cancelled_count = upcoming.filter(appointmentstatushistory__status=cancelled).count()
+
+    top_services = Service.objects.annotate(count=Count("appointment")).order_by("-count")[:5]
+
+    master_role = Role.objects.filter(name="Master").first()
+    masters = CustomUserDisplay.objects.filter(userrole__role=master_role)
+    top_masters = masters.annotate(
+        total=Sum("appointments_as_master__service__base_price")
+    ).order_by("-total")[:1]
+    recent_appointments = Appointment.objects.select_related("client", "master", "service").order_by("-start_time")[:5]
+    today_appointments = Appointment.objects.filter(start_time__date=today).order_by("start_time")
+
+    context = admin.site.each_context(request)
+    context.update({
+        "chart_data": chart_data,
+        "total_sales": total_sales,
+        "upcoming_total": upcoming.count(),
+        "confirmed_count": confirmed_count,
+        "cancelled_count": cancelled_count,
+        "top_services": top_services,
+        "top_masters": top_masters,
+        "recent_appointments": recent_appointments,
+        "today_appointments": today_appointments,
+    })
+
+    return TemplateResponse(request, "admin/index.html", context)
+
+# Переопределить главную страницу
+admin.site.index = custom_index
 
 # -----------------------------
 # Customized User Admin
@@ -414,7 +470,6 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
     master_ids = [m.id for m in masters]
     MASTER_COLORS = dict(zip(master_ids, cycle(COLOR_PALETTE)))
 
-    num_slots_per_day = len(slot_times) # обычно 52 (15 мин шаг)
 
     while time_pointer <= end_time:
         slot_times.append(time_pointer.strftime('%H:%M'))
@@ -422,7 +477,6 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
     slot_map = {}
     skip_map = {}
-    unavail_map = {}
 
     # --- Appointments ---
     for appt in appointments:
@@ -432,7 +486,7 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
         master_id = appt.master_id
         time_key = local_start.strftime('%H:%M')
-        duration = appt.service.duration_min
+        duration = appt.service.duration_min + appt.service.extra_time_min
         rowspan = max(1, duration // 15)
 
         slot_map.setdefault(master_id, {})
@@ -512,7 +566,7 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                 data = slot_map[master_id][time_str]
                 appt = data["appointment"]
                 local_start = localtime(appt.start_time)
-                local_end = local_start + timedelta(minutes=appt.service.duration_min)
+                local_end = local_start + timedelta(minutes=appt.service.duration_min) + timedelta(minutes=appt.service.extra_time_min)
                 last_status = appt.appointmentstatushistory_set.order_by('-set_at').first()
                 status_name = last_status.status.name if last_status else "Unknown"
                 row["cells"].append({

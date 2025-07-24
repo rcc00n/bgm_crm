@@ -1,0 +1,44 @@
+.content.border-bottom.mb-2 {
+    display: none !important;
+}
+.row{
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex-direction: column;
+}
+.dashboard-container {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, auto);
+    gap: 24px;
+    max-width: 1200px;
+    width: 100%;
+}
+.dashboard-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.05);
+}
+.activity-list {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-left: 20px;
+    font-size: 14px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+}
+th, td {
+    padding: 6px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}

@@ -1,0 +1,127 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'admin/css/custom_sidebar.css' %}">
+    <script defer src="{% static 'admin/js/custom_sidebar.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'admin/css/admin_dashboard.css' %}">
+    <script defer src="{% static 'admin/js/admin_dashboard.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+
+
+    <div class="dashboard-container">
+        <div class="dashboard-grid">
+            <!-- Block 1: Recent Sales Chart -->
+            <div class="dashboard-card">
+                <h3>Recent Sales</h3>
+                <p>Appointments {{ chart_data|length }}<br>Appointments value: <strong>CA$ {{ total_sales }}</strong></p>
+                <canvas id="salesChart"></canvas>
+            </div>
+
+            <!-- Block 2: Upcoming Appointments -->
+            <div class="dashboard-card">
+                <h3>Upcoming appointments</h3>
+                <p><strong>{{ upcoming_total }} booked</strong></p>
+                <p>Confirmed appointments: {{ confirmed_count }}<br>Cancelled appointments: {{ cancelled_count }}</p>
+                <canvas id="upcomingChart"></canvas>
+            </div>
+
+            <!-- Block 3: Appointments Activity -->
+            <div class="dashboard-card">
+                <h3>Appointments activity</h3>
+                <ul class="activity-list">
+                    {% for app in recent_appointments %}
+                        <li>
+                            <strong>{{ app.start_time|date:"D, d M Y H:i" }}</strong><br>
+                            {{ app.service.name }} with {{ app.master.get_full_name }}<br>
+                            CA$ {{ app.service.base_price }} - {{ app.appointmentstatushistory_set.last.status.name }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Block 4: Today's Appointments -->
+            <div class="dashboard-card">
+                <h3>Today's next appointments</h3>
+                {% if today_appointments %}
+                    <ul>
+                        {% for a in today_appointments %}
+                            <li>{{ a.start_time|time:"H:i" }} — {{ a.client.get_full_name }} ({{ a.service.name }})</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p style="text-align:center; margin-top: 20px;">
+                        <img src="{% static 'admin/icons/calendar_empty.png' %}" style="width:40px;" alt="No appts">
+                        <br>No Appointments Today<br><a href="/admin/core/appointment/">Go to calendar</a>
+                    </p>
+                {% endif %}
+            </div>
+
+            <!-- Block 5: Top Services -->
+            <div class="dashboard-card">
+                <h3>Top services</h3>
+                <table>
+                    <thead><tr><th>Service</th><th>This month</th></tr></thead>
+                    <tbody>
+                    {% for s in top_services %}
+                        <tr><td>{{ s.name }}</td><td>{{ s.count }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Block 6: Top Team Member -->
+            <div class="dashboard-card">
+                <h3>Top team member</h3>
+                <table>
+                    <thead><tr><th>Team member</th><th>This month</th></tr></thead>
+                    <tbody>
+                    {% for m in top_masters %}
+                        <tr><td>{{ m.get_full_name }}</td><td>CA$ {{ m.total|floatformat:2 }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const chartData = {{ chart_data|safe }};
+        new Chart(document.getElementById('salesChart'), {
+            type: 'line',
+            data: {
+                labels: chartData.map(x => x.day),
+                datasets: [
+                    {
+                        label: 'Sales',
+                        data: chartData.map(x => x.sales),
+                        borderColor: 'blue', fill: false
+                    },
+                    {
+                        label: 'Appointments',
+                        data: chartData.map(x => x.appointments),
+                        borderColor: 'green', fill: false
+                    }
+                ]
+            }
+        });
+
+        new Chart(document.getElementById('upcomingChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Confirmed', 'Cancelled'],
+                datasets: [{
+                    label: 'Upcoming',
+                    data: [{{ confirmed_count }}, {{ cancelled_count }}],
+                    backgroundColor: ['blue', 'red']
+                }]
+            }
+        });
+    </script>
+
+
+{% endblock %}
