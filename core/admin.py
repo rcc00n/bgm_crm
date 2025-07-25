@@ -14,6 +14,7 @@ from itertools import cycle
 from django.utils.timezone import localtime, make_aware, localdate
 from django.utils.html import escape
 from django.utils import timezone
+from django import forms
 from .models import *
 from .forms import AppointmentForm, CustomUserChangeForm, CustomUserCreationForm
 
@@ -54,7 +55,7 @@ class MasterOnlyFilter(SimpleListFilter):
 def custom_index(request):
     today = localdate()
     week_ago = today - timedelta(days=6)
-
+    week = [today + timedelta(days=i) for i in range(7)]
     appointments_qs = Appointment.objects.filter(start_time__date__range=[week_ago, today])
     payments_qs = Payment.objects.filter(appointment__start_time__date__range=[week_ago, today])
 
@@ -66,14 +67,14 @@ def custom_index(request):
         appts = appointments_qs.filter(start_time__date=day).count()
         total_sales += float(sales)
         chart_data.append({
-            "day": day.strftime("%a"),
+            "day": day.strftime("%a %d"),
             "sales": float(sales),
             "appointments": appts
         })
 
     confirmed = AppointmentStatus.objects.filter(name="Confirmed").first()
     cancelled = AppointmentStatus.objects.filter(name="Cancelled").first()
-    upcoming = Appointment.objects.filter(start_time__date__gt=today)
+    upcoming = Appointment.objects.filter(start_time__range=(today, today+timedelta(7)))
     confirmed_count = upcoming.filter(appointmentstatushistory__status=confirmed).count()
     cancelled_count = upcoming.filter(appointmentstatushistory__status=cancelled).count()
 
@@ -84,11 +85,33 @@ def custom_index(request):
     top_masters = masters.annotate(
         total=Sum("appointments_as_master__service__base_price")
     ).order_by("-total")[:1]
-    recent_appointments = Appointment.objects.select_related("client", "master", "service").order_by("-start_time")[:5]
-    today_appointments = Appointment.objects.filter(start_time__date=today).order_by("start_time")
+    recent_appointments = Appointment.objects.select_related("client", "master", "service").order_by("-start_time")[:20]
+    today_appointments = Appointment.objects.filter(
+        start_time__date=today,
+        # start_time__gte=timezone.now()
+    ).order_by("start_time")
 
+    daily_counts = []
+
+    for day in week:
+        confirmed_appts = Appointment.objects.filter(
+            start_time__date=day,
+            appointmentstatushistory__status=confirmed
+        ).count()
+
+        cancelled_appts =  Appointment.objects.filter(
+            start_time__date=day,
+            appointmentstatushistory__status=cancelled
+        ).count()
+
+        daily_counts.append({
+            "day": day.strftime("%a %d"),  # e.g., "Fri 25"
+            "confirmed": confirmed_appts,
+            "cancelled": cancelled_appts
+        })
     context = admin.site.each_context(request)
     context.update({
+        "daily_appointments": daily_counts,
         "chart_data": chart_data,
         "total_sales": total_sales,
         "upcoming_total": upcoming.count(),
@@ -96,6 +119,7 @@ def custom_index(request):
         "cancelled_count": cancelled_count,
         "top_services": top_services,
         "top_masters": top_masters,
+        "today": localdate(),
         "recent_appointments": recent_appointments,
         "today_appointments": today_appointments,
     })
@@ -218,7 +242,7 @@ class MasterAvailabilityAdmin(MasterSelectorMixing, admin.ModelAdmin):
 class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
     change_list_template = "admin/appointments_calendar.html"
     form = AppointmentForm
-
+    fields = ['client', 'master', 'service', 'start_time', 'payment_status', 'status']
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
 
@@ -236,6 +260,7 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         if const_master:
             initial["master"] = const_master
 
+
         return initial
 
     def get_form(self, request, obj=None, **kwargs):
@@ -243,6 +268,11 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
 
         class WrappedForm(form):
             def __new__(cls, *args, **kwargs_inner):
+                form.base_fields['status'] = forms.ModelChoiceField(queryset=AppointmentStatus.objects.all(), required=False, label='Appointment status')
+                if obj:
+                    last_status = obj.appointmentstatushistory_set.order_by('-set_at').first()
+                    if last_status:
+                        form.base_fields['status'].initial = last_status.status
                 kwargs_inner['user'] = request.user
                 return form(*args, **kwargs_inner)
 
@@ -332,7 +362,15 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
             })
 
         return response
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
 
+        if 'status' in form.cleaned_data and form.cleaned_data['status']:
+            AppointmentStatusHistory.objects.create(
+                appointment=obj,
+                status=form.cleaned_data['status'],
+                set_by=request.user
+            )
 
 
 # -----------------------------

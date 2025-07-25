@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 import uuid
 from django.core.exceptions import ValidationError
-from datetime import timedelta
+from datetime import timedelta, datetime
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
 
@@ -117,7 +117,9 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.client} for {self.service} "
+        dt = datetime.fromisoformat(str(self.start_time))  # автоматически распознаёт +00:00
+        formatted = dt.strftime("%Y-%m-%d %H:%M")
+        return f"{self.client} for {self.service} at {formatted}"
 
     def clean(self):
         # Проверка на пересечение с другими записями

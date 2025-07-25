@@ -22,14 +22,87 @@
 .dashboard-card {
     background: #fff;
     border-radius: 12px;
-    padding: 20px;
+    /*padding: 20px;*/
     box-shadow: 0 0 8px rgba(0,0,0,0.05);
 }
-.activity-list {
-    max-height: 200px;
+.dashboard-card h3{
+    padding: 20px;
+}
+
+
+.appt-list {
+    max-height: 280px;
     overflow-y: auto;
-    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+}
+.appt-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid #eee;
+    padding: 10px 20px;
+}
+.appt-item:hover, .appt-today:hover{
+    background-color: rgba(0,0,0,0.11);
+    cursor: pointer;
+}
+.appt-today {
+    display: flex;
+    align-items: flex-start;
+    background-color: #eef4ff;
+    border-left: 4px solid #1d4ed8;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid #eee;
+    padding: 10px 20px;
+}
+.appt-date {
+    width: 40px;
+    text-align: center;
+    font-weight: bold;
+    color: #555;
+}
+.appt-day {
+    font-size: 20px;
+    line-height: 1;
+}
+.appt-month {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #aaa;
+}
+.appt-details {
+    flex: 1;
     font-size: 14px;
+}
+.appt-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.appt-time {
+    font-weight: bold;
+}
+.appt-status {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #eee;
+    text-transform: capitalize;
+}
+.appt-status.confirmed { background: #dbeafe; color: #1d4ed8; }
+.appt-status.cancelled { background: #fee2e2; color: #b91c1c; }
+.appt-service { font-weight: 500; }
+.appt-master { color: #777; font-size: 13px; }
+.appt-price {
+    white-space: nowrap;
+    font-weight: bold;
+    font-size: 14px;
+    margin-left: auto;
+    padding-top: 4px;
+
 }
 table {
     width: 100%;
@@ -41,4 +114,64 @@ th, td {
     padding: 6px;
     text-align: left;
     border-bottom: 1px solid #eee;
+}
+
+.appt-timeline {
+    max-height: 280px; /* 👈 подбирается под ~3 записи */
+    overflow-y: auto;
+    padding-right: 4px;
+    position: relative;
+    margin-top: 15px;
+    padding-left: 20px;
+    border-left: 3px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.appt-timeline-item {
+    position: relative;
+    padding-left: 16px;
+}
+
+.appt-timeline-marker {
+    width: 12px;
+    height: 12px;
+    background-color: #3b82f6;
+    border-radius: 50%;
+    position: absolute;
+    left: -7px;
+    top: 4px;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.appt-timeline-content {
+    background: #f9fafb;
+    padding: 10px 12px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.appt-time-tag {
+    font-size: 14px;
+    font-weight: bold;
+    color: #1d4ed8;
+    margin-bottom: 4px;
+}
+
+.appt-line-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.appt-service-badge {
+    background-color: #e0f2fe;
+    color: #0284c7;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
 }
