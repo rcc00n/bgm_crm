@@ -20,10 +20,16 @@ http://127.0.0.1:8000/accounts/login/ - general login
 
 
 Test accounts:
+
   Admin:
+  
     UN: Vadim
+    
     P: 7238523qwQW!
+    
   User:
+  
     UN: user
+    
     P: useruser!!!
 
