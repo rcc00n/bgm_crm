@@ -3,6 +3,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
 from .models import *
 
 # -----------------------------
@@ -227,4 +228,104 @@ class CustomUserChangeForm(UserChangeForm):
         print(self.cleaned_data)
 
 
+class MasterCreateFullForm(forms.ModelForm):
+    # Общие поля
+    username = forms.CharField()
+    email = forms.EmailField()
+    first_name = forms.CharField(required=False)
+    last_name = forms.CharField(required=False)
+    phone = forms.CharField(required=False)
+    birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
 
+    password1 = forms.CharField(widget=forms.PasswordInput, required=False)
+    password2 = forms.CharField(widget=forms.PasswordInput, required=False)
+
+    class Meta:
+        model = MasterProfile
+        fields = ['profession', 'bio', 'work_start', 'work_end']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Если редактируем — заменяем пароли на read-only поле
+        if self.instance and self.instance.pk:
+            user = self.instance.user
+            self.fields['password'] = ReadOnlyPasswordHashField(label="Password")
+            self.initial['password'] = user.password
+
+            # Удаляем поля пароля
+            self.fields.pop('password1')
+            self.fields.pop('password2')
+
+            # Заполняем initial для полей пользователя
+            self.fields['username'].initial = user.username
+            self.fields['email'].initial = user.email
+            self.fields['first_name'].initial = user.first_name
+            self.fields['last_name'].initial = user.last_name
+
+            if hasattr(user, 'userprofile'):
+                self.fields['phone'].initial = user.userprofile.phone
+                self.fields['birth_date'].initial = user.userprofile.birth_date
+
+    def clean_password2(self):
+        # Только если создаём
+        if self.instance and self.instance.pk:
+            return None
+
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError("Passwords do not match")
+
+        validate_password(password2)
+        return password2
+
+    def save(self, commit=True):
+        if not self.instance.pk:
+            # Создание нового пользователя
+            user = CustomUserDisplay.objects.create_user(
+                username=self.cleaned_data['username'],
+                email=self.cleaned_data['email'],
+                password=self.cleaned_data['password1'],
+                first_name=self.cleaned_data['first_name'],
+                last_name=self.cleaned_data['last_name'],
+            )
+            user.is_staff = True
+            user.is_active = True
+            user.save()
+
+            # Профиль пользователя
+            UserProfile.objects.create(
+                user=user,
+                phone=self.cleaned_data.get('phone'),
+                birth_date=self.cleaned_data.get('birth_date')
+            )
+
+            # Назначаем роль Master
+            master_role = Role.objects.filter(name="Master").first()
+            if master_role:
+                user.userrole_set.create(role=master_role)
+
+            # Профиль мастера
+            master = super().save(commit=False)
+            master.user = user
+            if commit:
+                master.save()
+            return master
+
+        else:
+            # Редактирование мастера
+            user = self.instance.user
+            user.username = self.cleaned_data['username']
+            user.email = self.cleaned_data['email']
+            user.first_name = self.cleaned_data['first_name']
+            user.last_name = self.cleaned_data['last_name']
+            user.save()
+
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.phone = self.cleaned_data.get('phone')
+            profile.birth_date = self.cleaned_data.get('birth_date')
+            profile.save()
+
+            return super().save(commit=commit)

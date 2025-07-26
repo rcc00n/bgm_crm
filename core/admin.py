@@ -1,7 +1,7 @@
 from bisect import bisect_left
 from datetime import timedelta, datetime, time
 
-from django.contrib.admin import SimpleListFilter, DateFieldListFilter
+from django.contrib.admin import DateFieldListFilter
 from django.contrib import admin
 
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
@@ -14,42 +14,16 @@ from itertools import cycle
 from django.utils.timezone import localtime, make_aware, localdate
 from django.utils.html import escape
 from django.utils import timezone
-from django import forms
+from django.urls import path
+from django.shortcuts import redirect, render
+from django.contrib import messages
+from .filters import *
 from .models import *
-from .forms import AppointmentForm, CustomUserChangeForm, CustomUserCreationForm
+from .forms import *
 
 # -----------------------------
 # Custom filter for filtering users by Role
 # -----------------------------
-class RoleFilter(SimpleListFilter):
-    title = 'Role'
-    parameter_name = 'role'
-
-    def lookups(self, request, model_admin):
-        return [(role.id, role.name) for role in Role.objects.all()]
-
-    def queryset(self, request, queryset):
-        if self.value():
-            user_ids = UserRole.objects.filter(role_id=self.value()).values_list('user_id', flat=True)
-            return queryset.filter(id__in=user_ids)
-        return queryset
-
-class MasterOnlyFilter(SimpleListFilter):
-    title = 'Master'
-    parameter_name = 'master'
-
-    def lookups(self, request, model_admin):
-        master_role = Role.objects.filter(name="Master").first()
-        if not master_role:
-            return []
-        master_ids = UserRole.objects.filter(role=master_role).values_list('user_id', flat=True)
-        masters = CustomUserDisplay.objects.filter(id__in=master_ids)
-        return [(m.id, m.get_full_name() or m.username) for m in masters]
-
-    def queryset(self, request, queryset):
-        if self.value():
-            return queryset.filter(master_id=self.value())
-        return queryset
 
 # Переопределение index view
 def custom_index(request):
@@ -216,19 +190,6 @@ class MasterSelectorMixing:
             else:
                 kwargs["queryset"] = User.objects.none()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
-
-
-# -----------------------------
-# Customized Master Admin
-# -----------------------------
-@admin.register(MasterProfile)
-class MasterProfileAdmin(admin.ModelAdmin):
-
-
-    list_display = ("user", "profession", "work_start", "work_end")
-    search_fields = ("user__user__first_name", "user__user__last_name", "profession")
-
 
 
 
@@ -426,10 +387,8 @@ class AppointmentPrepaymentAdmin(admin.ModelAdmin):
 # Hidden Proxy Admin for CustomUserDisplay
 # -----------------------------
 @admin.register(CustomUserDisplay)
-class CustomUserDisplayAdmin(admin.ModelAdmin):
-    """
-    Admin registration for proxy model CustomUserDisplay (hidden from UI).
-    """
+class CustomUserAdmin(admin.ModelAdmin):
+
     def get_model_perms(self, request):
         # Hide from admin index
         return {}
@@ -662,3 +621,52 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
         calendar_table.append(row)
 
     return calendar_table
+
+@admin.register(MasterProfile)
+class MasterProfileAdmin(admin.ModelAdmin):
+    add_form = MasterCreateFullForm
+    readonly_fields = ['password_display']  # ← используем в fieldsets
+    form = MasterCreateFullForm  # на редактирование тоже можно оставить ту же
+
+    # def get_form(self, request, obj=None, **kwargs):
+    #     if obj is None:
+    #         kwargs['form'] = self.add_form
+    #     else:
+    #         kwargs['form'] = self.form
+    #     return super().get_form(request, obj, **kwargs)
+
+    list_display = ("get_name", "profession", "work_start", "work_end")
+
+    def get_fieldsets(self, request, obj=None):
+        form = self.form(instance=obj if obj else None)
+        fields = list(form.fields.keys())
+
+        if obj:
+            # редактирование
+            fields = [f for f in fields if f not in ['password1', 'password2', 'password']]  # ← обязательно убрать 'password'
+            if 'email' in fields and 'password_display' not in fields:
+                fields.insert(fields.index('email') + 1, 'password_display')
+            elif 'password_display' not in fields:
+                fields.append('password_display')
+        else:
+            # создание
+            fields = [f for f in fields if f != 'password_display']
+
+        return [(None, {'fields': fields})]
+
+    def password_display(self, obj):
+        from django.utils.html import format_html
+        reset_url = f"/admin/auth/user/{obj.user.id}/password/"
+        return format_html(
+            '<div style="word-break: break-all;">'
+            '<strong>algorithm:</strong> pbkdf2_sha256<br>'
+            '<strong>hash:</strong> {}<br><br>'
+            '<a href="{}" class="button" style="color: #fff; background: #007bff; padding: 4px 8px; text-decoration: none; border-radius: 4px;">Reset password</a>'
+            '</div>',
+            obj.user.password,
+            reset_url
+        )
+    password_display.short_description = "Password"
+
+    def get_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
