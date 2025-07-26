@@ -583,11 +583,11 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                 row["cells"].append({
                     "html": f"""
                                         <div>
-                                            <div style="font-size:16px;">
+                                            <div style="font-size:1.8vh;">
                                                 {local_start.strftime('%I:%M').lstrip('0')} – {local_end.strftime('%I:%M').lstrip('0')}
                                                 <strong>{escape(appt.client.get_full_name())}</strong>
                                             </div>
-                                            <div style="font-size:16px;">
+                                            <div style="font-size:1.8vh;">
                                                 {escape(appt.service.name)}
                                             </div>
                                         </div>

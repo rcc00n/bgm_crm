@@ -261,10 +261,10 @@ function showUnavailableTooltip(cell) {
                 <span><strong>${reason.charAt(0).toUpperCase() + reason.slice(1)}</strong></span>
             </div>
             <div class="tooltip-body">
-                <div style="font-size:15px; font-weight:500; margin-bottom: 6px;">
+                <div style="font-size:1.6vh; font-weight:500; margin-bottom: 0.66vh;">
                     ${start} - ${end}
                 </div>
-                ${until ? `<div style="font-size:13px; color:#777;">Ends ${until}</div>` : ""}
+                ${until ? `<div style="font-size:1.4vh; color:#777;">Ends ${until}</div>` : ""}
             </div>
         </div>
     `;

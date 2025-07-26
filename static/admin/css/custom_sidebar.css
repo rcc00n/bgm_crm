@@ -1,6 +1,6 @@
 /* Layout container */
 .content {
-    margin-left: 60px !important;
+    margin-left: 6.6vh !important;
 }
 .content-wrapper{
     margin-left: 0 !important;
@@ -11,7 +11,7 @@ margin-left: 0 !important;
 /* Sidebar */
 .icon-sidebar {
     background-color: #3d3d43;
-    width: 60px;
+    width: 6.6vh;
     transition: width 0.3s ease;
     overflow-x: hidden;
     position: absolute; /* ⛔ was fixed */
@@ -23,13 +23,13 @@ margin-left: 0 !important;
 }
 
 .icon-sidebar:hover {
-    width: 220px;
+    width: 23.6vh;
 }
 
 /* List styling */
 .icon-sidebar ul {
     list-style: none;
-    padding: 60px 0 0 0;  /* 👈 отступ сверху под header */
+    padding: 6.6vh 0 0 0;  /* 👈 отступ сверху под header */
     margin: 0;
 }
 
@@ -37,7 +37,7 @@ margin-left: 0 !important;
 .icon-sidebar li {
     display: flex;
     align-items: center;
-    padding: 12px 12px;
+    padding: 1.3vh 1.3vh;
     white-space: nowrap;
     overflow: hidden;
 }
@@ -49,11 +49,11 @@ margin-left: 0 !important;
     width: 100%;
     text-decoration: none;
     color: #fff !important;
-    font-size: 15px;
-    gap: 12px;
+    font-size: 1.6vh;
+    gap: 1.3vh;
     transition: background 0.2s ease;
     border-radius: 6px;
-    padding: 8px;
+    padding: 1vh;
 }
 
 .icon-sidebar a:hover {
@@ -61,8 +61,8 @@ margin-left: 0 !important;
 }
 
 .icon-sidebar img {
-    width: 20px;
-    height: 20px;
+    width: 2.2vh;
+    height: 2.2vh;
     filter: invert(100%);
     flex-shrink: 0;
 }
@@ -77,14 +77,14 @@ margin-left: 0 !important;
 }
 
 .icon-sidebar:hover ~ .main-content {
-    margin-left: 220px;
-    width: calc(100% - 220px);
+    margin-left: 23.6vh;
+    width: calc(100% - 23.6vh);
 }
 
 .dropdown-arrow {
     margin-left: auto;
     transition: transform 0.6s ease;
-    font-size: 14px;
+    font-size: 1.6vh;
 }
 
 .icon-sidebar .dropdown.open .dropdown-arrow img {
@@ -106,14 +106,14 @@ margin-left: 0 !important;
 }
 
 .icon-sidebar .dropdown.open .submenu {
-    max-height: 500px; /* Должно быть достаточно для всех вложенных элементов */
-    padding-top: 4px;
+    max-height: 53.7vh; /* Должно быть достаточно для всех вложенных элементов */
+    padding-top: 0.5vh;
 }
 .icon-sidebar .submenu li a {
-    font-size: 15px;
+    font-size: 1.6vh;
     display: block;
     width: 100%;
-    padding: 10px 16px;
+    padding: 1.1vh 1.8vh;
     color: #d8d8d8 !important;
     text-decoration: none;
     box-sizing: border-box;
