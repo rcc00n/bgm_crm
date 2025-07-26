@@ -1,19 +1,31 @@
-Commands:
+### Commands:
 
-Command to activate the enviroment:
+Command to activate the enviroment and install dependencies:
+```bash
+python -m venv venv
 source venv/bin/activate
+pip install -r requirements.txt
+```
 
-Command to start the server:  
+Command to start the server:
+```bash
 python manage.py runserver
+```
 
-Command to make migration:  
+Command to make migration:
+```bash
 python manage.py makemigrations
+```
 
-Command to migrate:  
+Command to migrate:
+```bash
 python manage.py migrate
+```
 
-Command to add superuser to the Admin panel:  
+Command to add superuser to the Admin panel:
+```bash
 python manage.py createsuperuser
+```
 
 Pages:
 
