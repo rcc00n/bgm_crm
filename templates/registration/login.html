@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+<!-- {% extends "base.html" %}
 {% block content %}
 <h1 class="title">Вход в Malva Booking</h1>
 <form method="post" class="login-form">{% csrf_token %}
@@ -7,4 +7,266 @@
   <div>{{ form.password.label_tag }} {{ form.password }}</div>
   <button type="submit">Войти</button>
 </form>
-{% endblock %}
+{% endblock %} -->
+
+<!DOCTYPE html>
+<html lang="ru" x-data="{ tab: 'dashboard' }" class="h-full">
+<head>
+    <meta charset="utf-8">
+    <title>Личный кабинет | Malva Booking (DEMO)</title>
+
+    <!-- Tailwind CSS JIT CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+
+    <!-- Alpine JS (вкладки)  +  Chart.js (график) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* Скрываем секции до появления Alpine */
+        [x-cloak]{display:none!important}
+    </style>
+</head>
+<body class="h-full bg-gray-100 text-gray-800">
+
+<div class="min-h-screen flex">
+
+    <!-- ▸▸ SIDEBAR ◂◂ -->
+    <aside class="w-64 bg-white shadow-lg">
+        <div class="p-6 font-bold text-indigo-600 text-xl">Malva</div>
+        <nav class="space-y-1 px-4 text-sm">
+            <a href="#" @click.prevent="tab='dashboard'"
+               :class="{'bg-indigo-50 text-indigo-700':tab==='dashboard'}"
+               class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+                🏠 <span>Обзор</span>
+            </a>
+            <a href="#" @click.prevent="tab='appointments'"
+               :class="{'bg-indigo-50 text-indigo-700':tab==='appointments'}"
+               class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+                📅 <span>Записи</span>
+            </a>
+            <a href="#" @click.prevent="tab='files'"
+               :class="{'bg-indigo-50 text-indigo-700':tab==='files'}"
+               class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+                📂 <span>Файлы</span>
+            </a>
+            <a href="#" @click.prevent="tab='notifications'"
+               :class="{'bg-indigo-50 text-indigo-700':tab==='notifications'}"
+               class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+                🔔 <span>Уведомления</span>
+            </a>
+            <a href="#" @click.prevent="tab='profile'"
+               :class="{'bg-indigo-50 text-indigo-700':tab==='profile'}"
+               class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+                👤 <span>Профиль</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- ▸▸ MAIN ◂◂ -->
+    <main class="flex-1 p-8 overflow-y-auto">
+
+        <!-- DASHBOARD -->
+        <section x-show="tab==='dashboard'" x-cloak>
+            <h1 class="text-3xl font-bold mb-8">Здравствуйте, Анна!</h1>
+
+            <div class="grid lg:grid-cols-3 gap-6">
+                <!-- Ближайший визит -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h2 class="text-lg font-semibold mb-4">Ближайший визит</h2>
+                    <p class="font-medium">5 августа 2025, 14:00</p>
+                    <p class="text-sm text-gray-600">Гель-лак · Мария Иванова</p>
+                    <div class="mt-4 flex gap-4">
+                        <button class="text-red-600 hover:underline text-sm">Отменить</button>
+                        <button class="text-indigo-600 hover:underline text-sm">Перенести</button>
+                    </div>
+                </div>
+
+                <!-- Статистика -->
+                <div class="bg-white rounded-xl shadow p-6 lg:col-span-2">
+                    <h2 class="text-lg font-semibold mb-4">Статистика</h2>
+                    <canvas id="stats_chart" class="w-full h-56"></canvas>
+                </div>
+            </div>
+
+            <!-- Последние визиты -->
+            <div class="bg-white rounded-xl shadow p-6 mt-8">
+                <h2 class="text-lg font-semibold mb-4">Последние визиты</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                        <tr class="text-left text-gray-500 border-b">
+                            <th class="py-2 pr-4">Дата</th>
+                            <th class="py-2 pr-4">Услуга</th>
+                            <th class="py-2 pr-4">Мастер</th>
+                            <th class="py-2 pr-4">Статус</th>
+                            <th class="py-2">Сумма</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- DEMO-данные: замените на цикл Django -->
+                        <tr class="border-b">
+                            <td class="py-2 pr-4 whitespace-nowrap">15.07.2025 12:00</td>
+                            <td class="py-2 pr-4">Маникюр классический</td>
+                            <td class="py-2 pr-4">Мария Иванова</td>
+                            <td class="py-2 pr-4">Завершён</td>
+                            <td class="py-2">2 000 ₽</td>
+                        </tr>
+                        <tr class="border-b">
+                            <td class="py-2 pr-4">01.06.2025 10:30</td>
+                            <td class="py-2 pr-4">Педикюр</td>
+                            <td class="py-2 pr-4">Ольга Сидорова</td>
+                            <td class="py-2 pr-4">Завершён</td>
+                            <td class="py-2">2 500 ₽</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 pr-4">20.04.2025 09:00</td>
+                            <td class="py-2 pr-4">Укрепление гелем</td>
+                            <td class="py-2 pr-4">Мария Иванова</td>
+                            <td class="py-2 pr-4">Завершён</td>
+                            <td class="py-2">3 000 ₽</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- APPOINTMENTS -->
+        <section x-show="tab==='appointments'" x-cloak>
+            <div class="flex items-center mb-6">
+                <h2 class="text-2xl font-semibold">Мои записи</h2>
+                <button class="ml-auto px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+                    + Записаться
+                </button>
+            </div>
+
+            <!-- Демонстрационный список -->
+            <div class="space-y-4">
+                <div class="bg-white shadow rounded-lg p-4 flex justify-between items-center">
+                    <div>
+                        <p class="font-medium">10 сентября 2025, 11:00</p>
+                        <p class="text-sm text-gray-600">Снятие покрытия · Ольга Сидорова</p>
+                    </div>
+                    <div class="flex gap-3 text-sm">
+                        <button class="text-red-600 hover:underline">Отменить</button>
+                        <button class="text-indigo-600 hover:underline">Перенести</button>
+                    </div>
+                </div>
+                <div class="bg-white shadow rounded-lg p-4 flex justify-between items-center opacity-50">
+                    <div>
+                        <p class="font-medium">15 июля 2025, 12:00</p>
+                        <p class="text-sm text-gray-600">Маникюр классический · Мария Иванова</p>
+                    </div>
+                    <span class="text-xs text-gray-500">Завершён</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- FILES -->
+        <section x-show="tab==='files'" x-cloak>
+            <h2 class="text-2xl font-semibold mb-6">Файлы</h2>
+
+            <!-- Загрузка (демо-кнопка) -->
+            <div class="flex items-center gap-4 mb-8">
+                <input type="file" class="grow rounded-lg border border-gray-300 text-sm
+                       file:bg-indigo-600 file:text-white file:border-0 file:px-4 file:py-2 file:mr-4">
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    Загрузить
+                </button>
+            </div>
+
+            <!-- Сетка файлов -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-sm">
+                <div class="flex flex-col items-center">
+                    <img src="https://via.placeholder.com/120x160" class="rounded-lg shadow">
+                    <span class="mt-2">price_list.pdf</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <img src="https://via.placeholder.com/120x160/EEE" class="rounded-lg shadow">
+                    <span class="mt-2">contract.docx</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <img src="https://via.placeholder.com/120x160/DDD" class="rounded-lg shadow">
+                    <span class="mt-2">design.png</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- NOTIFICATIONS -->
+        <section x-show="tab==='notifications'" x-cloak>
+            <h2 class="text-2xl font-semibold mb-6">Уведомления</h2>
+
+            <div class="bg-white shadow rounded-xl divide-y">
+                <div class="p-4">
+                    <p class="font-medium">Запись подтверждена</p>
+                    <p class="text-xs text-gray-500">4 ч назад</p>
+                </div>
+                <div class="p-4">
+                    <p class="font-medium">Приглашаем оставить отзыв</p>
+                    <p class="text-xs text-gray-500">1 день назад</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROFILE -->
+        <section x-show="tab==='profile'" x-cloak>
+            <h2 class="text-2xl font-semibold mb-6">Профиль</h2>
+
+            <form class="grid md:grid-cols-2 gap-6 bg-white shadow rounded-xl p-6">
+                <div>
+                    <label class="block text-sm font-medium">Имя</label>
+                    <input type="text" value="Анна" class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Фамилия</label>
+                    <input type="text" value="Петрова" class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Телефон</label>
+                    <input type="text" value="+7 900 123-45-67" class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">E-mail</label>
+                    <input type="email" value="anna@example.com" class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Дата рождения</label>
+                    <input type="date" value="1995-04-12" class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
+                </div>
+
+                <div class="md:col-span-2 text-right">
+                    <button type="button"
+                            class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        Сохранить
+                    </button>
+                </div>
+            </form>
+        </section>
+
+    </main>
+</div>
+
+<!-- ▸▸ JS ◂◂ : инициализация графика -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('stats_chart');
+    if (!el) return;
+
+    /* DEMO-данные: месяцы + количество визитов */
+    const labels = ['Янв','Фев','Мар','Апр','Май','Июн','Июл'];
+    const values = [1,2,2,3,4,3,2];
+
+    new Chart(el, {
+        type: 'bar',
+        data: {labels, datasets:[{data:values, label:'Визиты'}]},
+        options: {
+            plugins:{legend:{display:false}},
+            scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}
+        }
+    });
+});
+</script>
+</body>
+</html>
+
