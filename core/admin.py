@@ -88,7 +88,7 @@ def custom_index(request):
     recent_appointments = Appointment.objects.select_related("client", "master", "service").order_by("-start_time")[:20]
     today_appointments = Appointment.objects.filter(
         start_time__date=today,
-        # start_time__gte=timezone.now()
+        start_time__gte=timezone.now()
     ).order_by("start_time")
 
     daily_counts = []
@@ -224,8 +224,12 @@ class MasterSelectorMixing:
 # -----------------------------
 @admin.register(MasterProfile)
 class MasterProfileAdmin(admin.ModelAdmin):
+
+
     list_display = ("user", "profession", "work_start", "work_end")
-    search_fields = ("user__first_name", "user__last_name", "profession")
+    search_fields = ("user__user__first_name", "user__user__last_name", "profession")
+
+
 
 
 @admin.register(MasterAvailability)

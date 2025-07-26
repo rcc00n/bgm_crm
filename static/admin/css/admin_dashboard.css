@@ -19,11 +19,13 @@
     max-width: 1200px;
     width: 100%;
 }
-.dashboard-card {
+.dashboard-card{
     background: #fff;
     border-radius: 12px;
-    /*padding: 20px;*/
     box-shadow: 0 0 8px rgba(0,0,0,0.05);
+}
+.dashboard-card  > *:not(.appt-list) {
+ padding: 20px;
 }
 .dashboard-card h3{
     padding: 20px;
