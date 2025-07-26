@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+  <h1 class="text-3xl font-semibold mb-4">Добро пожаловать, {{ request.user.first_name|default:request.user.username }}!</h1>
+
+  <div class="grid md:grid-cols-2 gap-6">
+
+    <!-- Ближайшая запись -->
+    <section class="bg-white shadow rounded-xl p-4">
+      <h2 class="text-xl font-medium mb-2">Ближайшая запись</h2>
+      {% if next_appointment %}
+        <p class="text-gray-700">{{ next_appointment.service.name }} — {{ next_appointment.start_time|date:"d E Y H:i" }}</p>
+      {% else %}
+        <p class="text-gray-500">У вас пока нет запланированных услуг.</p>
+      {% endif %}
+      <a href="{% url 'client_appointments' %}" class="inline-block mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg">Посмотреть все</a>
+    </section>
+
+    <!-- История посещений -->
+    <section class="bg-white shadow rounded-xl p-4">
+      <h2 class="text-xl font-medium mb-2">История посещений</h2>
+      {% if past_appointments %}
+        <ul class="list-disc list-inside space-y-1 max-h-48 overflow-y-auto">
+          {% for appointment in past_appointments %}
+            <li>{{ appointment.start_time|date:"d.m.Y" }} — {{ appointment.service.name }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-gray-500">Пока пусто.</p>
+      {% endif %}
+    </section>
+
+  </div>
+</div>
+{% endblock %}

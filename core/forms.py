@@ -74,7 +74,7 @@ class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True)
     first_name = forms.CharField(required=False)
     last_name = forms.CharField(required=False)
-    phone = forms.CharField(required=False)
+    phone = forms.CharField(required=True)
     birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
     roles = forms.ModelMultipleChoiceField(
         queryset=Role.objects.all(),
@@ -143,7 +143,7 @@ class CustomUserChangeForm(UserChangeForm):
     email = forms.EmailField(required=True)
     first_name = forms.CharField(required=False)
     last_name = forms.CharField(required=False)
-    phone = forms.CharField(required=False)
+    phone = forms.CharField(required=True)
     birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
     roles = forms.ModelMultipleChoiceField(
         queryset=Role.objects.all(),

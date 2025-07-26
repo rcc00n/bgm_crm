@@ -48,7 +48,7 @@ class UserProfile(models.Model):
     Additional user information extending the Django User model.
     """
     user = models.OneToOneField(CustomUserDisplay, on_delete=models.CASCADE)
-    phone = models.CharField(max_length=20, unique=True)
+    phone = models.CharField(max_length=20, unique=True, blank=False)
     birth_date = models.DateField(null=True, blank=True)
     source = models.CharField(max_length=25, default="In-store")
 

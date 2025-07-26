@@ -17,10 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from core.autocomplete import ServiceAutocomplete
+from django.urls import include
 
 # Перерегистрируй модели
 urlpatterns = [
     path('admin/',  admin.site.urls),
     path('autocomplete/service/', ServiceAutocomplete.as_view(), name='service-autocomplete'),
-
+     path('accounts/', include('accounts.urls'))
 ]

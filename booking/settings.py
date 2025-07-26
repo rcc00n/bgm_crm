@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'accounts',
     'core',
     'dal',
     'dal_select2',
@@ -276,3 +277,8 @@ JAZZMIN_UI_TWEAKS = {
     },
     "custom_css": "admin/css/admin_custom.css"
 }
+
+# booking/settings.py
+LOGIN_URL = 'login'               # где лежит форма
+LOGIN_REDIRECT_URL = '/'          # fallback
+LOGOUT_REDIRECT_URL = 'login'     # опционально
