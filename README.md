@@ -1,5 +1,7 @@
 Commands:
+Command to activate the enviroment:
 
+\n source venv/bin/activate
 Command to start the server:  
 python manage.py runserver
 
