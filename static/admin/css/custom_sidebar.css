@@ -2,7 +2,12 @@
 .content {
     margin-left: 60px !important;
 }
-
+.content-wrapper{
+    margin-left: 0 !important;
+}
+.main-header{
+margin-left: 0 !important;
+}
 /* Sidebar */
 .icon-sidebar {
     background-color: #3d3d43;

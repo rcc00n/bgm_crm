@@ -3,7 +3,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.core.exceptions import ValidationError
-from .models import Appointment, Role, User, UserProfile, AppointmentStatus, AppointmentStatusHistory, ClientFile, MasterProfile
+from .models import *
 
 # -----------------------------
 # Appointment Form
@@ -225,3 +225,6 @@ class CustomUserChangeForm(UserChangeForm):
     def clean(self):
         # Optional debug print to inspect cleaned data
         print(self.cleaned_data)
+
+
+
