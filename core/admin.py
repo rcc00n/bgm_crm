@@ -14,9 +14,8 @@ from itertools import cycle
 from django.utils.timezone import localtime, make_aware, localdate
 from django.utils.html import escape
 from django.utils import timezone
-from django.urls import path
-from django.shortcuts import redirect, render
-from django.contrib import messages
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from .filters import *
 from .models import *
 from .forms import *
@@ -242,7 +241,14 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
                 return form(*args, **kwargs_inner)
 
         return WrappedForm
+    def has_add_permission(self, request):
+        return not hasattr(request.user, "master_profile")
 
+    def has_change_permission(self, request, obj=None):
+        return not hasattr(request.user, "master_profile")
+
+    def has_delete_permission(self, request, obj=None):
+        return not hasattr(request.user, "master_profile")
 
     def changelist_view(self, request, extra_context=None):
 
@@ -261,9 +267,12 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         payment_statuses = PaymentStatus.objects.all()
 
         appointments = Appointment.objects.select_related('client', 'service', 'master')
-        masters = CustomUserDisplay.objects.filter(
-            id__in=appointments.values_list('master_id', flat=True)
-        ).distinct()
+        if hasattr(request.user, "master_profile"):
+            masters = CustomUserDisplay.objects.filter(id=request.user.id)
+        else:
+            masters = CustomUserDisplay.objects.filter(
+                id__in=appointments.values_list('master_id', flat=True)
+            ).distinct()
         start_of_day = make_aware(datetime.combine(selected_date, datetime.min.time()))
         end_of_day = make_aware(datetime.combine(selected_date, datetime.max.time()))
 
@@ -461,6 +470,7 @@ class ClientFileAdmin(admin.ModelAdmin):
 admin.site.register(Role)
 admin.site.register(UserRole)
 admin.site.register(AppointmentStatus)
+admin.site.register(ServiceCategory)
 admin.site.register(PaymentMethod)
 admin.site.register(PrepaymentOption)
 admin.site.register(PaymentStatus)
@@ -628,12 +638,6 @@ class MasterProfileAdmin(admin.ModelAdmin):
     readonly_fields = ['password_display']  # ← используем в fieldsets
     form = MasterCreateFullForm  # на редактирование тоже можно оставить ту же
 
-    # def get_form(self, request, obj=None, **kwargs):
-    #     if obj is None:
-    #         kwargs['form'] = self.add_form
-    #     else:
-    #         kwargs['form'] = self.form
-    #     return super().get_form(request, obj, **kwargs)
 
     list_display = ("get_name", "profession", "work_start", "work_end")
 
@@ -670,3 +674,14 @@ class MasterProfileAdmin(admin.ModelAdmin):
 
     def get_name(self, obj):
         return obj.user.get_full_name() or obj.user.username
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        # 1. Забираем все текущие разрешения
+        obj.user.user_permissions.clear()
+
+        # 2. Добавляем только view_appointment
+        ct = ContentType.objects.get_for_model(Appointment)
+        view_perm = Permission.objects.get(codename='view_appointment', content_type=ct)
+        obj.user.user_permissions.add(view_perm)

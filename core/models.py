@@ -57,6 +57,17 @@ class UserProfile(models.Model):
 
 # --- 2. SERVICES ---
 
+class ServiceCategory(models.Model):
+    """
+    Represents a service offered in the system (e.g., haircut, massage).
+    """
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+
+
 class Service(models.Model):
     """
     Represents a service offered in the system (e.g., haircut, massage).
@@ -64,12 +75,14 @@ class Service(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, blank=True, null=True)
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
     duration_min = models.IntegerField()
     extra_time_min = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return self.name
+
 
 
 class ServiceMaster(models.Model):
