@@ -4,6 +4,12 @@ from django.views.generic import TemplateView
 from django.urls import reverse
 from core.models import Role
 from core.models import Service
+from django.views.generic.edit import CreateView
+from django.urls import reverse_lazy
+from .forms import ClientRegistrationForm
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
+
+
 
 class RoleBasedLoginView(LoginView):
     template_name = 'registration/login.html'  # путь совпадает с Django-вским стандартом
@@ -86,3 +92,33 @@ from django.views.generic import TemplateView
 class MainMenuView(RoleRequiredMixin, TemplateView):
     required_role = 'Client'            # пускаем только клиентов
     template_name = "client/mainmenu.html"
+
+
+# accounts/views.py
+from django.urls import reverse
+from django.http import JsonResponse, HttpResponse
+from django.views.generic.edit import CreateView
+from .forms import ClientRegistrationForm
+
+class ClientRegisterView(CreateView):
+    form_class = ClientRegistrationForm
+    template_name = "registration/register_popup.html"   # запасной шаблон
+    success_url = None                                   # ❶ ничего здесь!
+
+    # ---------- успешный POST ----------
+    def form_valid(self, form):
+        form.save()
+        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return HttpResponse("OK")
+        return super().form_valid(form)
+
+    # ---------- ошибки валидации ----------
+    def form_invalid(self, form):
+        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse(form.errors, status=400)
+        return super().form_invalid(form)
+
+    # ---------- куда редиректить при обычном POST ----------
+    def get_success_url(self):
+        # ❷ reverse вызывается ТОЛЬКО сейчас, когда URL-ы уже загружены
+        return f"{reverse('login')}?registered=1"

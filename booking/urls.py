@@ -1,21 +1,31 @@
-# booking/urls.py
+"""
+URL configuration for the *booking* project.
+
+Routes hierarchy:
+  /                 → Главное меню (только для клиентов)
+  /dashboard/       → Личный кабинет клиента
+  /accounts/...     → login / logout / register (accounts.urls)
+  /admin/           → Django‑admin
+  /autocomplete/... → Select2 endpoints
+"""
 from django.contrib import admin
 from django.urls import path, include
+
+from accounts.views import MainMenuView, ClientDashboardView
 from core.autocomplete import ServiceAutocomplete
-from accounts.views import MainMenuView, ClientDashboardView   # ← ваши CBV
 
 urlpatterns = [
-    # — административный раздел —
-    path('admin/', admin.site.urls),
+    # --- Admin ---
+    path("admin/", admin.site.urls),
 
-    # — клиентская часть —
-    path('', MainMenuView.as_view(),            name='mainmenu'),        # главное меню
-    path('dashboard/', ClientDashboardView.as_view(), name='client_dashboard'),  # личный кабинет
+    # --- Клиентская часть ---
+    path("", MainMenuView.as_view(),          name="mainmenu"),
+    path("dashboard/", ClientDashboardView.as_view(), name="client_dashboard"),
 
-    # — аутентификация —
-    path('accounts/', include('accounts.urls')),  # login / logout / password-reset и т.д.
+    # --- Auth / Accounts ---
+    path("accounts/", include("accounts.urls")),
 
-    # — autocomplete —
-    path('autocomplete/service/',        ServiceAutocomplete.as_view(),        name='service-autocomplete'),
-
+    # --- Autocomplete API ---
+    path("autocomplete/service/",        ServiceAutocomplete.as_view(),        name="service-autocomplete"),
+   
 ]
