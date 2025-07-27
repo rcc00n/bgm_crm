@@ -7,7 +7,6 @@ site-packages
 venv
 #booking/__pycache__
 
-
 ### Django ###
 *.log
 *.pot
@@ -114,6 +113,7 @@ ipython_config.py
 #Pipfile.lock
 
 # Environments
+env.json
 .env
 .venv
 env/
