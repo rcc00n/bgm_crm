@@ -71,7 +71,11 @@ def custom_index(request):
             start_time__date=day,
             appointmentstatushistory__status=confirmed
         ).count()
-
+        # print(day)
+        # print(Appointment.objects.filter(
+        #     start_time__date=day,
+        #     appointmentstatushistory__status=confirmed
+        # ))
         cancelled_appts =  Appointment.objects.filter(
             start_time__date=day,
             appointmentstatushistory__status=cancelled
@@ -339,12 +343,12 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
-        if 'status' in form.cleaned_data and form.cleaned_data['status']:
-            AppointmentStatusHistory.objects.create(
-                appointment=obj,
-                status=form.cleaned_data['status'],
-                set_by=request.user
-            )
+        # if 'status' in form.cleaned_data and form.cleaned_data['status']:
+        #     AppointmentStatusHistory.objects.create(
+        #         appointment=obj,
+        #         status=form.cleaned_data['status'],
+        #         set_by=request.user
+        #     )
 
 
 # -----------------------------

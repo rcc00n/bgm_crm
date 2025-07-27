@@ -85,14 +85,13 @@ WSGI_APPLICATION = 'booking.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT'),
+        'NAME': 'Malva', # Change to your local DB name
+        'USER': 'postgres', # Change to your local user name
+        'PASSWORD': 'admin', # Change to your local user password
+        'HOST': 'localhost',
+        'PORT': '5433', # Change to the port that PostgreSQL is using
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
