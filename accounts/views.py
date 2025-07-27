@@ -3,6 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from django.urls import reverse
 from core.models import Role
+from core.models import Service
 
 class RoleBasedLoginView(LoginView):
     template_name = 'registration/login.html'  # путь совпадает с Django-вским стандартом
@@ -20,7 +21,7 @@ class RoleBasedLoginView(LoginView):
         if 'Master' in role_names:
             return reverse('master_dashboard')
         if 'Client' in role_names:
-            return reverse('client_dashboard')
+            return reverse('mainmenu')
 
         # запасной вариант
         return super().get_success_url()
@@ -38,9 +39,24 @@ class RoleRequiredMixin(LoginRequiredMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
-class ClientDashboardView(RoleRequiredMixin, TemplateView):
-    required_role = 'Client'
-    template_name = 'client/dashboard.html'
+class MainMenuView(LoginRequiredMixin, TemplateView):
+    """
+    Главное меню после логина.
+    """
+    template_name = "client/mainmenu.html"
+
+
+class ClientDashboardView(LoginRequiredMixin, TemplateView):
+    """
+    Личный кабинет клиента («дешборд»).
+    Пока выводим каталог услуг заглушкой.
+    """
+    template_name = "client/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["services"] = Service.objects.all().order_by("name")  # позже добавим фильтры
+        return ctx
 
 
 class MasterDashboardView(RoleRequiredMixin, TemplateView):
@@ -62,3 +78,11 @@ class ClientAppointmentsListView(RoleRequiredMixin, ListView):
                 .filter(client=self.request.user)
                 .select_related('service')
                 .order_by('-start_time'))
+
+# accounts/views.py
+from django.views.generic import TemplateView
+# RoleRequiredMixin уже должен быть объявлен выше в этом же файле
+
+class MainMenuView(RoleRequiredMixin, TemplateView):
+    required_role = 'Client'            # пускаем только клиентов
+    template_name = "client/mainmenu.html"
