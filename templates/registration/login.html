@@ -4,9 +4,9 @@
 <head>
 <meta charset="utf-8">
 <title>Вход • Malva Booking</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<!-- СТИЛИ: фон, карточка, форма, модалка -->
+<!-- ===== С Т И Л И ===== -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 :root{
@@ -22,59 +22,152 @@
   --error-bg:#ffe5e5;
   --error-text:#c30000;
 }
-/* фон */
-html,body{height:100%;margin:0;font-family:"Poppins",sans-serif;color:var(--text-1);background:linear-gradient(160deg,var(--bg-1) 0%,var(--bg-2) 100%);overflow:hidden;}
-.halo{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(circle at 80% 20%,rgba(255,94,178,.35) 0%,transparent 45%),radial-gradient(circle at 20% 80%,rgba(0,204,255,.35) 0%,transparent 45%);filter:blur(90px);transform:scale(1.2);}#particles{position:fixed;inset:0;z-index:0;}
-/* центр + карточка */
-.wrapper{position:relative;z-index:1;min-height:100%;display:flex;align-items:center;justify-content:center;padding:2rem;perspective:1200px;}
-.card{width:100%;max-width:460px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:28px;padding:64px 56px 52px;backdrop-filter:blur(32px) saturate(160%);-webkit-backdrop-filter:blur(32px) saturate(160%);box-shadow:0 28px 60px rgba(0,0,0,.15);transform-style:preserve-3d;transition:transform .35s cubic-bezier(.03,.98,.52,.99);} .card::before{content:"";position:absolute;inset:-2px;border-radius:inherit;background:linear-gradient(135deg,#ff7ab6 0%,#7a5bff 45%,#4b5bff 55%,#29d4ff 100%);z-index:-1;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;}
+
+/* ——— Фон ——— */
+html,body{
+  height:100%;margin:0;font-family:"Poppins",sans-serif;
+  color:var(--text-1);
+  background:linear-gradient(160deg,var(--bg-1) 0%,var(--bg-2) 100%);
+  overflow:hidden;                 /* остаётся, скролл не нужен */
+}
+.halo{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(circle at 80% 20%,rgba(255,94,178,.35) 0%,transparent 45%),
+    radial-gradient(circle at 20% 80%,rgba(0,204,255,.35) 0%,transparent 45%);
+  filter:blur(90px);transform:scale(1.2);}
+#particles{position:fixed;inset:0;z-index:0;}
+
+/* ——— Контейнер + масштабирование ——— */
+.wrapper{
+  --card-scale:1;                  /* значение меняет JS */
+  position:relative;z-index:1;
+  min-height:100%;
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:2rem;
+  perspective:1200px;
+  transform-origin:top center;     /* // SCALE */
+  transform:scale(var(--card-scale)); /* // SCALE */
+  transition:transform .25s ease;  /* плавное подстраивание */
+}
+
+/* ——— Карточка ——— */
+.card{
+  width:100%;max-width:460px;
+  background:var(--card-bg);
+  border:1px solid var(--card-border);
+  border-radius:28px;
+  padding:64px 56px 52px;
+  backdrop-filter:blur(32px) saturate(160%);
+  -webkit-backdrop-filter:blur(32px) saturate(160%);
+  box-shadow:0 28px 60px rgba(0,0,0,.15);
+  transform-style:preserve-3d;
+  transition:transform .35s cubic-bezier(.03,.98,.52,.99);
+}
+.card::before{
+  content:"";position:absolute;inset:-2px;border-radius:inherit;
+  background:linear-gradient(135deg,#ff7ab6 0%,#7a5bff 45%,#4b5bff 55%,#29d4ff 100%);
+  z-index:-1;
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
 h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;letter-spacing:-.02em;}
-/* форма входа */
+
+/* ——— Форма ——— */
 .login-form{display:flex;flex-direction:column;gap:1.6rem;}
 .field{position:relative;}
-.field svg{position:absolute;left:22px;top:50%;transform:translateY(-50%);width:22px;height:22px;fill:var(--primary);opacity:.9;}
-.field input{width:100%;box-sizing:border-box;height:64px;padding:0 22px 0 64px;line-height:64px;font-size:16px;font-weight:500;border:none;border-radius:18px;background:var(--field-bg);box-shadow:inset 0 0 0 2px rgba(0,0,0,.04);transition:box-shadow .3s,background .3s;}
-.field input:focus{outline:none;background:#fff;box-shadow:inset 0 0 0 3px var(--primary);} .field input::placeholder{color:transparent;}
-.field label{position:absolute;left:64px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:16px;font-weight:500;opacity:.6;transition:all .25s;}
-.field input:focus+label,.field input:not(:placeholder-shown)+label{top:10px;transform:none;font-size:12px;opacity:.9;}
-/* кнопки */
-.btn{position:relative;overflow:hidden;width:100%;padding:18px;border:none;border-radius:999px;font-size:16px;font-weight:600;letter-spacing:.05em;color:#fff;background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);cursor:pointer;transition:transform .2s,box-shadow .25s;}
-.btn:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(0,0,0,.25);} .btn:active{transform:translateY(0);box-shadow:0 8px 16px rgba(0,0,0,.25);} .btn::after{content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(255,255,255,.35);opacity:0;transform:scale(0);transition:opacity .6s,transform .6s;} .btn:active::after{opacity:1;transform:scale(2);transition:0s;}
+.field svg{position:absolute;left:22px;top:50%;transform:translateY(-50%);
+  width:22px;height:22px;fill:var(--primary);opacity:.9;}
+.field input{
+  width:100%;box-sizing:border-box;height:64px;
+  padding:0 22px 0 64px;line-height:64px;font-size:16px;font-weight:500;
+  border:none;border-radius:18px;background:var(--field-bg);
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.04);
+  transition:box-shadow .3s,background .3s;
+}
+.field input:focus{outline:none;background:#fff;box-shadow:inset 0 0 0 3px var(--primary);}
+.field input::placeholder{color:transparent;}
+.field label{
+  position:absolute;left:64px;top:50%;transform:translateY(-50%);
+  pointer-events:none;font-size:16px;font-weight:500;opacity:.6;
+  transition:all .25s;
+}
+.field input:focus+label,
+.field input:not(:placeholder-shown)+label{
+  top:10px;transform:none;font-size:12px;opacity:.9;
+}
+
+/* ——— Кнопки ——— */
+.btn{position:relative;overflow:hidden;width:100%;padding:18px;
+  border:none;border-radius:999px;font-size:16px;font-weight:600;
+  letter-spacing:.05em;color:#fff;
+  background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
+  cursor:pointer;transition:transform .2s,box-shadow .25s;}
+.btn:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(0,0,0,.25);}
+.btn:active{transform:translateY(0);box-shadow:0 8px 16px rgba(0,0,0,.25);}
+.btn::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:rgba(255,255,255,.35);opacity:0;transform:scale(0);
+  transition:opacity .6s,transform .6s;}
+.btn:active::after{opacity:1;transform:scale(2);transition:0s;}
 .btn--ghost{background:#fff;color:var(--primary);box-shadow:inset 0 0 0 2px var(--primary);}
-/* ошибки */
-.errorlist{margin:0;padding:14px 18px;list-style:none;font-size:14px;border-radius:14px;background:var(--error-bg);color:var(--error-text);} 
-/* модалка регистрации */
-.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;}
+
+/* ——— Ошибки ——— */
+.errorlist{
+  margin:0 0 14px;padding:14px 18px;         /* добавлен нижний отступ */
+  list-style:none;font-size:14px;border-radius:14px;
+  background:var(--error-bg);color:var(--error-text);}
+
+/* ——— Модалка регистрации (без изменений) ——— */
+.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.45);z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;}
 .modal.show{opacity:1;pointer-events:auto;}
-.modal__dialog{width:100%;max-width:480px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:24px;padding:48px 40px 40px;position:relative;backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);}
-.modal__close{position:absolute;top:18px;right:22px;border:none;background:none;font-size:26px;font-weight:600;cursor:pointer;color:#666;}
+.modal__dialog{width:100%;max-width:480px;background:var(--card-bg);
+  border:1px solid var(--card-border);border-radius:24px;
+  padding:48px 40px 40px;position:relative;
+  backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);}
+.modal__close{position:absolute;top:18px;right:22px;border:none;background:none;
+  font-size:26px;font-weight:600;cursor:pointer;color:#666;}
 .modal h2{margin:0 0 1.4rem;font-size:1.9rem;font-weight:600;text-align:center;}
 .reg-form{display:flex;flex-direction:column;gap:1.2rem;}
 .reg-form .field input{height:56px;padding:0 20px;font-size:15px;}
-/* адаптив */
-@media(max-width:500px){.card{padding:52px 34px 46px;} h1.title{font-size:2.2rem;}}
+
+/* ——— Адаптив ——— */
+@media(max-width:500px){
+  .card{padding:52px 34px 46px;}
+  h1.title{font-size:2.2rem;}
+}
 </style>
 </head>
+
 <body>
 <div class="halo"></div><canvas id="particles"></canvas>
+
 <div class="wrapper">
   <div class="card" data-tilt>
     <h1 class="title">Вход в Malva Booking</h1>
+
     <form method="post" class="login-form">
       {% csrf_token %}
       {{ form.non_field_errors }}
-      <div class="field">{{ form.username }}<label for="{{ form.username.id_for_label }}">Username</label>
+
+      <div class="field">
+        {{ form.username }}
+        <label for="{{ form.username.id_for_label }}">Username</label>
         <svg viewBox="0 0 24 24"><path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5zm0 2c-3.859 0-7 3.141-7 7 0 .552.448 1 1 1h12c.552 0 1-.448 1-1 0-3.859-3.141-7-7-7z"/></svg>
       </div>
-      <div class="field">{{ form.password }}<label for="{{ form.password.id_for_label }}">Password</label>
+
+      <div class="field">
+        {{ form.password }}
+        <label for="{{ form.password.id_for_label }}">Password</label>
         <svg viewBox="0 0 24 24"><path d="M17 9h-1V6a4 4 0 00-8 0v3H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2v-9a2 2 0 00-2-2zm-6 7.73V18a1 1 0 002 0v-1.27a2 2 0 10-2 0zM9 6a3 3 0 016 0v3H9V6z"/></svg>
       </div>
+
       <button type="submit" class="btn">Войти</button>
       <button type="button" id="openReg" class="btn btn--ghost" style="margin-top:12px;">Регистрация</button>
     </form>
   </div>
 </div>
-<!-- ===== МОДАЛЬНОЕ ОКНО РЕГИСТРАЦИИ ===== -->
+
+<!-- ===== М О Д А Л К А  Р Е Г И С Т Р А Ц И И ===== -->
 <div id="regModal" class="modal">
   <div class="modal__dialog">
     <button class="modal__close" id="regClose">&times;</button>
@@ -92,17 +185,87 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
   </div>
 </div>
 
-<!-- === Скрипты: частицы, tilt, модалка, AJAX-регистрация === -->
+<!-- ===== С К Р И П Т Ы ===== -->
 <script>
-/* particles */
-(function(){const c=document.createElement('canvas');c.id='particles';document.body.appendChild(c);const ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;let w,h,parts=[],opt={amt:120,size:2,speed:.4,line:140};function resize(){w=c.width=innerWidth*dpr;h=c.height=innerHeight*dpr;c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';}addEventListener('resize',resize);resize();function init(){parts=[];for(let i=0;i<opt.amt;i++)parts.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*opt.speed*dpr,vy:(Math.random()-.5)*opt.speed*dpr});}init();(function tick(){ctx.clearRect(0,0,w,h);for(const p of parts){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>w)p.vx*=-1;if(p.y<0||p.y>h)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,opt.size*dpr,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.8)';ctx.fill();}for(let i=0;i<parts.length;i++)for(let j=i+1;j<parts.length;j++){const p=parts[i],q=parts[j],dx=p.x-q.x,dy=p.y-q.y,d=Math.hypot(dx,dy);if(d<opt.line*dpr){ctx.strokeStyle='rgba(255,255,255,'+(1-d/(opt.line*dpr))+')';ctx.lineWidth=1*dpr;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}}requestAnimationFrame(tick);})();})();
-/* 3D tilt */
-(function(){const card=document.querySelector('.card[data-tilt]'),d=20;card.addEventListener('mousemove',e=>{const r=card.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2;card.style.transform=`rotateX(${(-y/d)}deg) rotateY(${(x/d)}deg)`;});card.addEventListener('mouseleave',()=>card.style.transform='rotateX(0) rotateY(0)');})();
-/* modal toggle */
-const modal=document.getElementById('regModal');document.getElementById('openReg').onclick=()=>modal.classList.add('show');document.getElementById('regClose').onclick=()=>modal.classList.remove('show');addEventListener('keydown',e=>e.key==='Escape'&&modal.classList.remove('show'));
-/* AJAX registration */
-document.getElementById('regForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.target,data=new FormData(f);const r=await fetch(f.action,{method:'POST',body:data,headers:{'X-Requested-With':'XMLHttpRequest'}});if(r.ok){const t=await r.text();if(t.trim()==='OK'){modal.classList.remove('show');document.querySelector('input[name="username"]').value=data.get('username');}else showErrors(JSON.parse(t));}else{showErrors(await r.json());}});
-function showErrors(obj){const box=document.getElementById('regErrors');box.innerHTML='';Object.values(obj).flat().forEach(m=>box.innerHTML+=`<li>${m}</li>`);box.style.display='block';}
+/* particles (не менялся) */
+(function(){
+  const c=document.createElement('canvas');c.id='particles';document.body.appendChild(c);
+  const ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
+  let w,h,parts=[],opt={amt:120,size:2,speed:.4,line:140};
+  function resize(){w=c.width=innerWidth*dpr;h=c.height=innerHeight*dpr;
+    c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';}
+  addEventListener('resize',resize);resize();
+  function init(){parts=[];for(let i=0;i<opt.amt;i++)
+    parts.push({x:Math.random()*w,y:Math.random()*h,
+                vx:(Math.random()-.5)*opt.speed*dpr,
+                vy:(Math.random()-.5)*opt.speed*dpr});}
+  init();
+  (function tick(){
+    ctx.clearRect(0,0,w,h);
+    for(const p of parts){
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0||p.x>w)p.vx*=-1;
+      if(p.y<0||p.y>h)p.vy*=-1;
+      ctx.beginPath();ctx.arc(p.x,p.y,opt.size*dpr,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,.8)';ctx.fill();}
+    for(let i=0;i<parts.length;i++)for(let j=i+1;j<parts.length;j++){
+      const p=parts[i],q=parts[j],dx=p.x-q.x,dy=p.y-q.y,d=Math.hypot(dx,dy);
+      if(d<opt.line*dpr){
+        ctx.strokeStyle='rgba(255,255,255,'+(1-d/(opt.line*dpr))+')';
+        ctx.lineWidth=1*dpr;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}}
+    requestAnimationFrame(tick);
+  })();
+})();
+
+/* 3D tilt (как было) */
+(function(){
+  const card=document.querySelector('.card[data-tilt]'),d=20;
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect(),
+          x=e.clientX-r.left-r.width/2,
+          y=e.clientY-r.top-r.height/2;
+    card.style.transform=`rotateX(${(-y/d)}deg) rotateY(${(x/d)}deg)`;
+  });
+  card.addEventListener('mouseleave',()=>card.style.transform='rotateX(0) rotateY(0)');
+})();
+
+/* modal toggle (без изменений) */
+const modal=document.getElementById('regModal');
+document.getElementById('openReg').onclick=()=>modal.classList.add('show');
+document.getElementById('regClose').onclick=()=>modal.classList.remove('show');
+addEventListener('keydown',e=>e.key==='Escape'&&modal.classList.remove('show'));
+
+/* AJAX registration (как было) */
+document.getElementById('regForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const f=e.target,data=new FormData(f);
+  const r=await fetch(f.action,{method:'POST',body:data,headers:{'X-Requested-With':'XMLHttpRequest'}});
+  if(r.ok){
+    const t=await r.text();
+    if(t.trim()==='OK'){
+      modal.classList.remove('show');
+      document.querySelector('input[name="username"]').value=data.get('username');
+    }else showErrors(JSON.parse(t));
+  }else showErrors(await r.json());
+});
+function showErrors(obj){
+  const box=document.getElementById('regErrors');
+  box.innerHTML='';Object.values(obj).flat().forEach(m=>box.innerHTML+=`<li>${m}</li>`);
+  box.style.display='block';
+}
+
+/* ===== АВТО-МАСШТАБ КАРТОЧКИ ===== */
+function fitCard(){
+  const wrapper=document.querySelector('.wrapper');
+  const card   =wrapper.querySelector('.card');
+  const gap    =40;                               // отступы сверху/снизу
+  const avail  =window.innerHeight-gap;
+  const scale  =Math.min(1, avail/card.offsetHeight);
+  wrapper.style.setProperty('--card-scale',scale.toFixed(3));
+}
+addEventListener('load',fitCard);
+addEventListener('resize',fitCard);
+setTimeout(fitCard,0);                            // на случай динамических ошибок
 </script>
 </body>
 </html>
