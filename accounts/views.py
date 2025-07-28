@@ -86,13 +86,21 @@ class ClientAppointmentsListView(RoleRequiredMixin, ListView):
                 .order_by('-start_time'))
 
 # accounts/views.py
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import redirect
+from django.urls import reverse_lazy
+from django.core.exceptions import PermissionDenied
 from django.views.generic import TemplateView
-# RoleRequiredMixin уже должен быть объявлен выше в этом же файле
-
-class MainMenuView(RoleRequiredMixin, TemplateView):
-    required_role = 'Client'            # пускаем только клиентов
+class MainMenuView(LoginRequiredMixin, TemplateView):
     template_name = "client/mainmenu.html"
+    login_url = reverse_lazy("login")          # куда перенаправлять анонимов
+    redirect_field_name = "next"               # ?next=/  сохранит старый адрес
 
+    def dispatch(self, request, *args, **kwargs):
+        # уже отфильтровали анонимов миксином LoginRequiredMixin
+        if not request.user.userrole_set.filter(role__name="Client").exists():
+            raise PermissionDenied           # оставить 403 для «не-клиентов»
+        return super().dispatch(request, *args, **kwargs)
 
 # accounts/views.py
 from django.urls import reverse

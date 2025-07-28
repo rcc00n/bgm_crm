@@ -11,16 +11,16 @@ Routes hierarchy:
 from django.contrib import admin
 from django.urls import path, include
 
-from accounts.views import MainMenuView, ClientDashboardView
+# from accounts.views import MainMenuView, ClientDashboardView
 from core.autocomplete import ServiceAutocomplete
 
 urlpatterns = [
     # --- Admin ---
     path("admin/", admin.site.urls),
 
-    # --- Клиентская часть ---
-    path("", MainMenuView.as_view(),          name="mainmenu"),
-    path("dashboard/", ClientDashboardView.as_view(), name="client_dashboard"),
+    # # --- Клиентская часть ---
+    # path("", MainMenuView.as_view(),          name="mainmenu"),
+    # path("dashboard/", ClientDashboardView.as_view(), name="client_dashboard"),
 
     # --- Auth / Accounts ---
     path("accounts/", include("accounts.urls")),

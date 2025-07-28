@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'phonenumbers',
     'accounts',
     'core',
     'dal',
@@ -284,3 +285,7 @@ JAZZMIN_UI_TWEAKS = {
 LOGIN_URL = 'login'               # где лежит форма
 LOGIN_REDIRECT_URL = '/'          # fallback
 LOGOUT_REDIRECT_URL = 'login'     # опционально
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",      # админы / мастера
+    "core.auth_backends.EmailPhoneBackend",           # клиенты: username / e-mail / телефон
+]

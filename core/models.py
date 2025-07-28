@@ -42,16 +42,16 @@ class UserRole(models.Model):
     def __str__(self):
         return f"{self.user} → {self.role.name}"
 
-
+from core.validators import clean_phone
 class UserProfile(models.Model):
     """
     Additional user information extending the Django User model.
     """
     user = models.OneToOneField(CustomUserDisplay, on_delete=models.CASCADE)
-    phone = models.CharField(max_length=20, unique=True, blank=False)
+    phone = models.CharField(max_length=20, unique=True, blank=False,  validators=[clean_phone] )
     birth_date = models.DateField(null=True, blank=True)
     source = models.CharField(max_length=25, default="In-store")
-
+    
     def __str__(self):
         return f"{self.user} Profile"
 
