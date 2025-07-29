@@ -77,11 +77,7 @@ class CustomUserCreationForm(UserCreationForm):
     last_name = forms.CharField(required=False)
     phone = forms.CharField(required=True)
     birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
-    roles = forms.ModelMultipleChoiceField(
-        queryset=Role.objects.all(),
-        widget=forms.CheckboxSelectMultiple,
-        required=False
-    )
+
 
     class Meta:
         model = User
@@ -90,7 +86,7 @@ class CustomUserCreationForm(UserCreationForm):
             'phone', 'birth_date',
             'password1', 'password2',
             'is_staff', 'is_active', 'is_superuser',
-            'groups', 'roles'
+            'groups'
         ]
 
     def save(self, commit=True):
@@ -112,17 +108,6 @@ class CustomUserCreationForm(UserCreationForm):
         profile.birth_date = birth_date
         profile.save()
 
-        # Assign roles
-        roles = self.cleaned_data.get('roles')
-
-        if roles:
-            user.userrole_set.all().delete()
-            for role in roles:
-                user.userrole_set.create(role=role)
-
-            # Автосоздание MasterProfile
-            if any(role.name == "Master" for role in roles):
-                MasterProfile.objects.get_or_create(user=user)
 
         return user
 
@@ -146,11 +131,7 @@ class CustomUserChangeForm(UserChangeForm):
     last_name = forms.CharField(required=False)
     phone = forms.CharField(required=True)
     birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
-    roles = forms.ModelMultipleChoiceField(
-        queryset=Role.objects.all(),
-        widget=forms.CheckboxSelectMultiple,
-        required=False
-    )
+
 
     files = forms.FileField(
         required=False,
@@ -170,7 +151,6 @@ class CustomUserChangeForm(UserChangeForm):
             'groups',
             'user_permissions',
             'password',
-            'roles',
             'files'
         ]
 
@@ -184,7 +164,6 @@ class CustomUserChangeForm(UserChangeForm):
             self.fields['phone'].initial = self.instance.userprofile.phone
             self.fields['birth_date'].initial = self.instance.userprofile.birth_date
 
-        self.fields['roles'].initial = Role.objects.filter(userrole__user=self.instance)
 
     def save(self, commit=True):
         """
@@ -203,16 +182,6 @@ class CustomUserChangeForm(UserChangeForm):
         profile.birth_date = birth_date
         profile.save()
 
-        # Sync roles
-        roles = self.cleaned_data.get('roles', [])
-        if roles:
-            user.userrole_set.all().delete()
-            for role in roles:
-                user.userrole_set.create(role=role)
-
-            # Автосоздание MasterProfile
-            if any(role.name == "Master" for role in roles):
-                MasterProfile.objects.get_or_create(user=user)
 
         uploaded_files = self.files.getlist('files')
         for f in uploaded_files:

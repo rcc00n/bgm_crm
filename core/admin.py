@@ -31,7 +31,7 @@ def custom_index(request):
     week = [today + timedelta(days=i) for i in range(7)]
     appointments_qs = Appointment.objects.filter(start_time__date__range=[week_ago, today])
     payments_qs = Payment.objects.filter(appointment__start_time__date__range=[week_ago, today])
-
+    is_master = request.user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
     chart_data = []
     total_sales = 0
     for i in range(7):
@@ -54,15 +54,28 @@ def custom_index(request):
     top_services = Service.objects.annotate(count=Count("appointment")).order_by("-count")[:5]
 
     master_role = Role.objects.filter(name="Master").first()
-    masters = CustomUserDisplay.objects.filter(userrole__role=master_role)
-    top_masters = masters.annotate(
-        total=Sum("appointments_as_master__service__base_price")
-    ).order_by("-total")[:1]
+
+    today = timezone.now().date()
+    first_day = today.replace(day=1)
+    masters = CustomUserDisplay.objects.filter(userrole__role=master_role).annotate(
+        total=Sum(
+            "appointments_as_master__service__base_price",
+            filter=models.Q(appointments_as_master__start_time__date__gte=first_day)
+        )
+    )
+
+    top_masters = sorted(masters, key=lambda m: m.total or 0, reverse=True)[:3]
+
+
     recent_appointments = Appointment.objects.select_related("client", "master", "service").order_by("-start_time")[:20]
     today_appointments = Appointment.objects.filter(
         start_time__date=today,
         start_time__gte=timezone.now()
-    ).order_by("start_time")
+    )
+    if is_master:
+        today_appointments = today_appointments.filter(master=request.user)
+
+    today_appointments = today_appointments.order_by("start_time")
 
     daily_counts = []
 
@@ -88,6 +101,7 @@ def custom_index(request):
         })
     context = admin.site.each_context(request)
     context.update({
+        "is_master": is_master,
         "daily_appointments": daily_counts,
         "chart_data": chart_data,
         "total_sales": total_sales,
@@ -121,7 +135,7 @@ class CustomUserAdmin(BaseUserAdmin):
         (None, {
             'classes': ('wide',),
             'fields': ('username', 'email', 'first_name', 'last_name', 'phone', 'birth_date',
-                       'password1', 'password2', 'is_staff', 'is_active', 'is_superuser', 'roles'),
+                       'password1', 'password2', 'is_staff', 'is_active', 'is_superuser'),
         }),
     )
 
@@ -135,7 +149,6 @@ class CustomUserAdmin(BaseUserAdmin):
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'birth_date')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Roles', {'fields': ('roles',)}),
         ('Files', {'fields': ('files',)}),
     )
 
@@ -150,10 +163,6 @@ class CustomUserAdmin(BaseUserAdmin):
     def save_model(self, request, obj, form, change):
         # Save user and assign roles
         super().save_model(request, obj, form, change)
-        if form.cleaned_data.get('roles'):
-            UserRole.objects.filter(user=obj).delete()
-            for role in form.cleaned_data['roles']:
-                UserRole.objects.create(user=obj, role=role)
 
     # Custom display methods for user profile fields
     def phone(self, instance):
