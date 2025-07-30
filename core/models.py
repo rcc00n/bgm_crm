@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 import uuid
 from django.core.exceptions import ValidationError
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, time
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
 
@@ -135,6 +135,14 @@ class Appointment(models.Model):
         return f"{self.client} for {self.service} at {formatted}"
 
     def clean(self):
+        if self.start_time and self.start_time.time() > time(23, 59):
+            raise ValidationError({
+                "start_time": "Время начала не может быть позже 23:59."
+            })
+
+    # Остальная логика…
+        if not self.master or not self.service or not self.start_time:
+            return
         # Проверка на пересечение с другими записями
         overlapping = Appointment.objects.filter(
             master=self.master,
@@ -302,3 +310,24 @@ class MasterAvailability(models.Model):
 
     def __str__(self):
         return f"{self.master} → {self.get_reason_display()} from {self.start_time} to {self.end_time}"
+
+    def clean(self):
+        super().clean()
+
+        if not self.master or not self.start_time or not self.end_time:
+            return  # Не валидируем, если что-то не заполнено
+
+        # Найдём все записи мастера, которые пересекаются с отпуском
+        overlapping_appointments = Appointment.objects.filter(
+            master=self.master,
+            start_time__lt=self.end_time,
+            start_time__gte=self.start_time - timedelta(hours=3)  # захватываем буфер
+        )
+
+        for appt in overlapping_appointments:
+            appt_end = appt.start_time + timedelta(minutes=appt.service.duration_min)
+            if self.start_time < appt_end and self.end_time > appt.start_time:
+                raise ValidationError({
+                    "start_time": "Vacation overlaps with existing appointments",
+                })
+
