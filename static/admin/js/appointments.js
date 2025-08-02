@@ -100,7 +100,7 @@ filterForm.addEventListener("submit", function (e) {
 });
 let popup = document.getElementById("addPopup");
 let popupTime = document.getElementById("popupTime");
-let popupAddBtn = document.getElementById("popupAddBtn");
+
 
 let lastActiveCell = null;
 
@@ -110,18 +110,22 @@ function showAddPopup(event, time, label) {
     const cell = event.currentTarget;
     cell.innerHTML = `<span class="cell-label">${label}</span>`;
     const rect = cell.getBoundingClientRect();
+    const masterId = cell.dataset.master;
     cell.value = time;
-    // Пометить активной
-    cell.classList.add("active");
-    lastActiveCell = cell;
+    // Обновить текст времени
+    const popupTimeEl = document.getElementById("popupTime");
+    popupTimeEl.textContent = label;
 
-    popupTime.textContent = label;
-    popupAddBtn.onclick = function () {
-        const selectedDate = document.getElementById("realDateInput").value;
-        const masterId = cell.dataset.master;
-        const url = `/admin/core/appointment/add/?date=${selectedDate}&time=${time}&master=${masterId}`;
-        window.location.href = url;
-    };
+    lastActiveCell = cell;
+    cell.classList.add("active");
+
+    // Заполняем тело popup-а новыми действиями
+    const popupBody = popup.querySelector(".popup-body");
+    popupBody.innerHTML = `
+        <div class="popup-action" onclick="handleAdd('appointment', '${time}', '${masterId}')">📅 Add appointment</div>
+        <div class="popup-action" onclick="handleAdd('vacation', '${time}', '${masterId}')">🗓️ Add time off</div>
+    `;
+
     if ((rect.left + window.scrollX - 230) < 0 || rect.width < 100) {
         // либо слишком близко к левому краю, либо слишком узкая ячейка
         popup.style.left = `${rect.left + window.scrollX + rect.width + 10}px`;

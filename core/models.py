@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 import uuid
 from django.core.exceptions import ValidationError
 from datetime import timedelta, datetime, time
+from django.utils.timezone import localtime
+from core.validators import clean_phone
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
 
@@ -42,7 +44,12 @@ class UserRole(models.Model):
     def __str__(self):
         return f"{self.user} → {self.role.name}"
 
-from core.validators import clean_phone
+class ClientSource(models.Model):
+    source = models.CharField()
+
+    def __str__(self):
+        return f"{self.source}%"
+
 class UserProfile(models.Model):
     """
     Additional user information extending the Django User model.
@@ -50,7 +57,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(CustomUserDisplay, on_delete=models.CASCADE)
     phone = models.CharField(max_length=20, unique=True, blank=False,  validators=[clean_phone] )
     birth_date = models.DateField(null=True, blank=True)
-    source = models.CharField(max_length=25, default="In-store")
+    source = models.ForeignKey(ClientSource, on_delete=models.CASCADE, blank=True, null=True)
     
     def __str__(self):
         return f"{self.user} Profile"
@@ -66,7 +73,14 @@ class ServiceCategory(models.Model):
     def __str__(self):
         return self.name
 
+class PrepaymentOption(models.Model):
+    """
+    Defines available prepayment percentage options.
+    """
+    percent = models.IntegerField()
 
+    def __str__(self):
+        return f"{self.percent}%"
 
 class Service(models.Model):
     """
@@ -76,6 +90,7 @@ class Service(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, blank=True, null=True)
+    prepayment_option = models.ForeignKey(PrepaymentOption, on_delete=models.CASCADE, blank=True, null=True)
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
     duration_min = models.IntegerField()
     extra_time_min = models.IntegerField(null=True, blank=True)
@@ -130,8 +145,8 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        dt = datetime.fromisoformat(str(self.start_time))  # автоматически распознаёт +00:00
-        formatted = dt.strftime("%Y-%m-%d %H:%M")
+
+        formatted = localtime(self.start_time).strftime("%Y-%m-%d %H:%M")
         return f"{self.client} for {self.service} at {formatted}"
 
     def clean(self):
@@ -200,15 +215,6 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 # --- 5. PREPAYMENTS ---
-
-class PrepaymentOption(models.Model):
-    """
-    Defines available prepayment percentage options.
-    """
-    percent = models.IntegerField()
-
-    def __str__(self):
-        return f"{self.percent}%"
 
 
 class AppointmentPrepayment(models.Model):

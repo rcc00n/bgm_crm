@@ -14,8 +14,14 @@ from itertools import cycle
 from django.utils.timezone import localtime, make_aware, localdate
 from django.utils.html import escape
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import json
+from django.urls import path
 from .filters import *
 from .models import *
 from .forms import *
@@ -140,7 +146,7 @@ class CustomUserAdmin(BaseUserAdmin):
     )
 
     # Fields shown in user list
-    list_display = ('username', 'email', 'first_name', 'last_name', 'staff_status', 'phone', 'birth_date', 'user_roles')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'staff_status', 'phone', 'birth_date', 'user_roles', 'send_notify_button')
     list_filter = ('is_staff', 'is_superuser', 'is_active', RoleFilter)
     search_fields = ('username', 'email', 'first_name', 'last_name', 'userprofile__phone')
 
@@ -171,6 +177,37 @@ class CustomUserAdmin(BaseUserAdmin):
     def birth_date(self, instance):
         return instance.userprofile.birth_date if hasattr(instance, 'userprofile') else '-'
 
+    @admin.display(description="")
+    def send_notify_button(self, obj):
+        return mark_safe(
+            f'<button type="button" class="send-notify-btn" '
+            f'data-user-id="{obj.id}" '
+            f'data-user-name="{obj.get_full_name() or obj.username}">Send Notification</button>'
+        )
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('send_notification/', self.admin_site.admin_view(self.send_notification_view), name='send_notification'),
+        ]
+        return custom_urls + urls
+
+    @method_decorator(csrf_exempt)
+    def send_notification_view(self, request):
+        if request.method == "POST":
+            data = json.loads(request.body)
+            user_id = data.get("user_id")
+            message = data.get("message")
+
+            user = CustomUserDisplay.objects.filter(id=user_id).first()
+            if user:
+                Notification.objects.create(
+                    user=user,
+                    message=message,
+                    channel="email"  # или sms
+                )
+                return JsonResponse({"status": "ok"})
+
+        return JsonResponse({"status": "error"}, status=400)
     @admin.display(boolean=True, description="Staff Status")
     def staff_status(self, instance):
         return instance.is_staff
@@ -210,6 +247,25 @@ class MasterAvailabilityAdmin(MasterSelectorMixing, admin.ModelAdmin):
     list_display = ("master", "start_time", "end_time", "reason")
     list_filter = ("master",)
     search_fields = ("master__first_name", "master__last_name", "reason")
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+
+        date_str = request.GET.get("date")
+        time_str = request.GET.get("time")
+        const_master = request.GET.get("master")
+
+        if date_str and time_str:
+            try:
+                combined = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+                initial["start_time"] = make_aware(combined)
+
+            except ValueError:
+                pass
+        if const_master:
+            initial["master"] = const_master
+
+
+        return initial
 
 
 # -----------------------------
@@ -352,13 +408,6 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
-        # if 'status' in form.cleaned_data and form.cleaned_data['status']:
-        #     AppointmentStatusHistory.objects.create(
-        #         appointment=obj,
-        #         status=form.cleaned_data['status'],
-        #         set_by=request.user
-        #     )
-
 
 # -----------------------------
 # Appointment Status History Admin
@@ -436,9 +485,9 @@ class ServiceAdmin(MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface for services.
     """
-    list_display = ('name', 'base_price', 'duration_min')
+    list_display = ('name', 'base_price', 'category', 'duration_min')
     search_fields = ('name',)
-
+    list_filter = ('category',)
 
 # -----------------------------
 # Notification Admin
@@ -483,8 +532,9 @@ class ClientFileAdmin(admin.ModelAdmin):
 admin.site.register(Role)
 admin.site.register(UserRole)
 admin.site.register(AppointmentStatus)
-admin.site.register(ServiceCategory)
 admin.site.register(PaymentMethod)
+admin.site.register(ClientSource)
+admin.site.register(ServiceCategory)
 admin.site.register(PrepaymentOption)
 admin.site.register(PaymentStatus)
 
