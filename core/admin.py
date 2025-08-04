@@ -1,11 +1,8 @@
 from bisect import bisect_left
-from datetime import timedelta, datetime, time
 
 from django.contrib.admin import DateFieldListFilter
-from django.contrib import admin
 
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
 from django.contrib import admin
@@ -21,7 +18,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
-from django.urls import path
+import csv
+from django.urls import path, reverse, NoReverseMatch
+from django.http import HttpResponse
 from .filters import *
 from .models import *
 from .forms import *
@@ -90,11 +89,7 @@ def custom_index(request):
             start_time__date=day,
             appointmentstatushistory__status=confirmed
         ).count()
-        # print(day)
-        # print(Appointment.objects.filter(
-        #     start_time__date=day,
-        #     appointmentstatushistory__status=confirmed
-        # ))
+
         cancelled_appts =  Appointment.objects.filter(
             start_time__date=day,
             appointmentstatushistory__status=cancelled
@@ -125,17 +120,78 @@ def custom_index(request):
 
 # Переопределить главную страницу
 admin.site.index = custom_index
+class ExportCsvMixin:
+    export_fields = None  # список полей; можно переопределить в admin
 
+    def get_urls(self):
+        opts = self.model._meta
+        return [
+            path(
+                "export-csv/",
+                self.admin_site.admin_view(self.export_all_csv),
+                name=f"{opts.app_label}_{opts.model_name}_export_csv"
+            )
+        ] + super().get_urls()
+
+    def export_all_csv(self, request):
+        queryset = self.get_queryset(request)
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename={self.model._meta.model_name}.csv'
+
+        fields = self.export_fields or [field.name for field in self.model._meta.fields]
+        writer = csv.writer(response)
+        writer.writerow(fields)
+
+        for obj in queryset:
+            if hasattr(self, 'get_export_row'):
+                row = self.get_export_row(obj)
+            else:
+                row = [getattr(obj, field) for field in fields]
+            writer.writerow(row)
+
+        return response
+
+    def changelist_view(self, request, extra_context=None):
+        # Попробуем reverse без краша
+        extra_context = extra_context or {}
+        try:
+            opts = self.model._meta
+            export_url = reverse(f'admin:{opts.app_label}_{opts.model_name}_export_csv')
+            export_url += f"?{request.GET.urlencode()}"
+            extra_context['export_url'] = export_url
+        except NoReverseMatch:
+            extra_context['export_url'] = None
+
+        return super().changelist_view(request, extra_context=extra_context)
 # -----------------------------
 # Customized User Admin
 # -----------------------------
-class CustomUserAdmin(BaseUserAdmin):
+class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
     """
     Custom admin interface for Django's User model, enhanced with roles and profile fields.
     """
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
+    export_fields = ['username', 'email', 'first_name', 'last_name', 'phone', 'birth_date', 'user_roles','is_staff', 'is_superuser', 'is_active']
 
+    def get_export_row(self, obj):
+        phone = obj.userprofile.phone if hasattr(obj, 'userprofile') else ''
+        birth_date = obj.userprofile.birth_date if hasattr(obj, 'userprofile') else ''
+        roles = ", ".join([ur.role.name for ur in obj.userrole_set.all()])
+
+        return [
+            obj.username,
+            obj.email,
+            obj.first_name,
+            obj.last_name,
+            phone,
+            birth_date,
+            roles,
+            obj.is_staff,
+            obj.is_superuser,
+            obj.is_active,
+        ]
     # Fields shown when adding a new user
     add_fieldsets = (
         (None, {
@@ -243,10 +299,11 @@ class MasterSelectorMixing:
 
 
 @admin.register(MasterAvailability)
-class MasterAvailabilityAdmin(MasterSelectorMixing, admin.ModelAdmin):
+class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
     list_display = ("master", "start_time", "end_time", "reason")
     list_filter = ("master",)
     search_fields = ("master__first_name", "master__last_name", "reason")
+    export_fields = ["master", "start_time", "end_time", "reason"]
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
 
@@ -413,13 +470,13 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
 # Appointment Status History Admin
 # -----------------------------
 @admin.register(AppointmentStatusHistory)
-class AppointmentStatusHistoryAdmin(admin.ModelAdmin):
+class AppointmentStatusHistoryAdmin(ExportCsvMixin,admin.ModelAdmin):
     """
     Admin interface for tracking status changes of appointments.
     """
     exclude = ('set_by',)
     list_display = ('appointment', 'status', 'set_by', 'set_at')
-
+    export_fields = ['appointment', 'status', 'set_by', 'set_at']
     def save_model(self, request, obj, form, change):
         if not obj.set_by_id:
             obj.set_by = request.user
@@ -430,12 +487,13 @@ class AppointmentStatusHistoryAdmin(admin.ModelAdmin):
 # Payment Admin
 # -----------------------------
 @admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(ExportCsvMixin ,admin.ModelAdmin):
     """
     Admin interface for payments.
     """
     list_display = ('appointment', 'amount', 'method')
     list_filter = ('method',)
+    export_fields = ['appointment', 'amount', 'method']
     search_fields = (
         'appointment__client__first_name', 'appointment__client__last_name',
         'appointment__master__first_name', 'appointment__master__last_name',
@@ -447,12 +505,12 @@ class PaymentAdmin(admin.ModelAdmin):
 # Appointment Prepayment Admin
 # -----------------------------
 @admin.register(AppointmentPrepayment)
-class AppointmentPrepaymentAdmin(admin.ModelAdmin):
+class AppointmentPrepaymentAdmin(ExportCsvMixin,admin.ModelAdmin):
     """
     Admin interface for prepayment options tied to appointments.
     """
     list_display = ('appointment', 'option')
-
+    export_fields = ['appointment', 'option']
 
 # -----------------------------
 # Hidden Proxy Admin for CustomUserDisplay
@@ -469,26 +527,26 @@ class CustomUserAdmin(admin.ModelAdmin):
 # Service Master Admin
 # -----------------------------
 @admin.register(ServiceMaster)
-class ServiceMasterAdmin(MasterSelectorMixing, admin.ModelAdmin):
+class ServiceMasterAdmin(ExportCsvMixin,MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface to assign masters to services.
     """
     list_display = ('master', 'service')
     search_fields = ('master__first_name', 'master__last_name', 'service__name')
-
+    export_fields = ['master', 'service']
 
 # -----------------------------
 # Service Admin
 # -----------------------------
 @admin.register(Service)
-class ServiceAdmin(MasterSelectorMixing, admin.ModelAdmin):
+class ServiceAdmin(ExportCsvMixin,MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface for services.
     """
     list_display = ('name', 'base_price', 'category', 'duration_min')
     search_fields = ('name',)
     list_filter = ('category',)
-
+    export_fields = ['name', 'description','base_price', 'category','prepayment_option', 'duration_min', 'extra_time_min']
 # -----------------------------
 # Notification Admin
 # -----------------------------
@@ -696,9 +754,31 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
     return calendar_table
 
 @admin.register(MasterProfile)
-class MasterProfileAdmin(admin.ModelAdmin):
+class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
     add_form = MasterCreateFullForm
-    readonly_fields = ['password_display']  # ← используем в fieldsets
+    readonly_fields = ['password_display']
+    export_fields = ["first_name","last_name","email","username" ,"phone","birth_date","profession", 'bio',"work_start", "work_end", "is_staff", "is_superuser", 'is_active']
+
+    def get_export_row(self, obj):
+        phone = obj.user.userprofile.phone if hasattr(obj, 'user') else ''
+        birth_date = obj.user.userprofile.birth_date if hasattr(obj, 'user') else ''
+
+
+        return [
+            obj.user.first_name,
+            obj.user.last_name,
+            obj.user.email,
+            obj.user.username,
+            phone,
+            birth_date,
+            obj.profession,
+            obj.bio,
+            obj.work_start,
+            obj.work_end,
+            obj.user.is_staff,
+            obj.user.is_superuser,
+            obj.user.is_active,
+        ]
     form = MasterCreateFullForm  # на редактирование тоже можно оставить ту же
 
 
