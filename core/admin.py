@@ -378,8 +378,6 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
 
-        today = datetime.today().date()
-
         selected_date = request.GET.get('date')
 
         if selected_date:
@@ -393,6 +391,18 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         payment_statuses = PaymentStatus.objects.all()
 
         appointments = Appointment.objects.select_related('client', 'service', 'master')
+        cancelled_status = AppointmentStatus.objects.filter(name="Cancelled").first()
+        if not request.GET.get("status"):
+            appointments = appointments.exclude(
+                appointmentstatushistory__status=cancelled_status
+            )
+        else:
+            # Если выбран какой-либо статус
+            selected_status = request.GET.get("status")
+            if str(cancelled_status.id) != selected_status:
+                appointments = appointments.exclude(
+                    appointmentstatushistory__status=cancelled_status
+                )
         if hasattr(request.user, "master_profile"):
             masters = CustomUserDisplay.objects.filter(id=request.user.id)
         else:

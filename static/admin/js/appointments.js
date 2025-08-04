@@ -30,13 +30,15 @@ function changeDateByDays(days) {
 
 function onDateChange(value) {
     const display = document.getElementById("displayDate");
-
     display.textContent = value;
-    const params = new URLSearchParams();
-    params.append("date", value);
-    params.append("action", "calendar");
 
-    fetch(`/admin/core/appointment/?${params.toString()}`, {
+    const formData = new FormData(document.getElementById("filterForm"));
+    formData.append("action", "calendar");
+    formData.set("date", value);  // заменяем дату
+
+    const params = new URLSearchParams(formData).toString();
+
+    fetch(`/admin/core/appointment/?${params}`, {
         headers: { 'x-requested-with': 'XMLHttpRequest' }
     })
         .then(res => res.json())

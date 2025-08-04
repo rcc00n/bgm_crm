@@ -158,12 +158,18 @@ class Appointment(models.Model):
     # Остальная логика…
         if not self.master or not self.service or not self.start_time:
             return
+
+        cancelled_status = AppointmentStatus.objects.filter(name="Cancelled").first()
         # Проверка на пересечение с другими записями
         overlapping = Appointment.objects.filter(
             master=self.master,
             start_time__lt=self.start_time + timedelta(minutes=self.service.duration_min),
             start_time__gte=self.start_time - timedelta(hours=3)
         ).exclude(id=self.id)
+
+        overlapping = overlapping.exclude(
+            appointmentstatushistory__status=cancelled_status
+        )
 
         this_end = self.start_time + timedelta(minutes=self.service.duration_min)
         for appt in overlapping:
