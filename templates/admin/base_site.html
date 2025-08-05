@@ -29,6 +29,7 @@
                         <li><a href="{% url 'admin:core_appointment_changelist' %}">All Appointments</a></li>
                         {% if not request.user.master_profile %}
                         <li><a href="{% url 'admin:core_appointmentstatushistory_changelist' %}">Status History</a></li>
+                        <li><a href="{% url 'admin:core_appointmentpromocode_changelist' %}">Appointment Promocode</a></li>
                         {% endif %}
                     </ul>
                 </li>
@@ -58,6 +59,7 @@
                         <li><a href="{% url 'admin:core_payment_changelist' %}">All Payments</a></li>
                         <li><a href="{% url 'admin:core_appointmentprepayment_changelist' %}">Prepayment</a></li>
                         <li><a href="{% url 'admin:core_servicediscount_changelist' %}">Discounts</a></li>
+                        <li><a href="{% url 'admin:core_promocode_changelist' %}">Promo Codes</a></li>
                     </ul>
                 </li>
                 <li class="dropdown">

@@ -20,7 +20,7 @@ class AppointmentForm(forms.ModelForm):
         required=True,
         label="Appointment status"
     )
-
+    promocode = forms.CharField(required=False, label="Promocode")
     class Meta:
         model = Appointment
         fields = '__all__'
@@ -39,15 +39,36 @@ class AppointmentForm(forms.ModelForm):
         instance.master = cleaned_data.get("master")
         instance.start_time = cleaned_data.get("start_time")
         instance.service = cleaned_data.get("service")
-
+        promocode_str = cleaned_data.get("promocode")
+        service = cleaned_data.get("service")
         try:
             instance.clean()
         except ValidationError as e:
             raise forms.ValidationError(e)
 
+        if promocode_str:
+            try:
+                code = PromoCode.objects.get(code=promocode_str.upper())
+                if not code.is_valid_for(service):
+                    raise forms.ValidationError("Этот промокод недействителен для выбранной услуги или срока.")
+                cleaned_data["applied_promocode"] = code
+            except PromoCode.DoesNotExist:
+                raise forms.ValidationError("Неверный промокод.")
+
+        return cleaned_data
+
     def save(self, commit=True):
         instance = super().save(commit=False)
         instance.save()
+
+        promocode = self.cleaned_data.get("applied_promocode")
+        if promocode:
+            discount = instance.service.base_price * (promocode.discount_percent / 100)
+            AppointmentPromoCode.objects.create(
+                appointment=instance,
+                promocode=promocode,
+                discount_applied=discount
+            )
 
         new_status = self.cleaned_data['status']
 

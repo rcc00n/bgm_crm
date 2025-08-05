@@ -427,3 +427,27 @@ class ServiceDiscount(models.Model):
     def is_active(self):
         today = timezone.now().date()
         return self.start_date <= today <= self.end_date
+
+
+class PromoCode(models.Model):
+    code = models.CharField(max_length=20, unique=True)
+    discount_percent = models.PositiveIntegerField(help_text="discount in percents(0-100)")
+    active = models.BooleanField(default=True)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    applicable_services = models.ManyToManyField(Service, blank=True, help_text="leave empty to apply to all services")
+
+    def is_valid_for(self, service, today=None):
+        today = today or timezone.now().date()
+        return (
+                self.active and
+                self.start_date <= today <= self.end_date and
+                (self.applicable_services.count() == 0 or self.applicable_services.filter(pk=service.pk).exists())
+        )
+
+    def __str__(self):
+        return self.code
+
+class AppointmentPromoCode(models.Model):
+    appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE)
+    promocode = models.ForeignKey(PromoCode, on_delete=models.CASCADE)

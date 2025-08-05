@@ -624,6 +624,31 @@ class ServiceDiscountAdmin(ExportCsvMixin ,admin.ModelAdmin):
     def is_active(self, obj):
         return obj.is_active()
 
+#-----------------------------
+# Promocode Admin
+#-----------------------------
+@admin.register(PromoCode)
+class PromoCodeAdmin(ExportCsvMixin ,admin.ModelAdmin):
+    list_display = ('code', 'discount_percent', 'start_date', 'end_date',)
+    list_filter = ('start_date', 'end_date')
+
+    export_fields = ['code', 'applicable_services', 'discount_percent', 'start_date', 'end_date']
+
+    @admin.display(boolean=True)
+    def is_active(self, obj):
+        return obj.is_active()
+
+
+#-----------------------------
+# Appointments Promocode Admin
+#-----------------------------
+@admin.register(AppointmentPromoCode)
+class PromoCodeAdmin(ExportCsvMixin ,admin.ModelAdmin):
+    list_display = ('appointment', 'promocode')
+
+    export_fields = ['appointment', 'promocode']
+
+
 # -----------------------------
 # Register remaining models directly
 # -----------------------------
@@ -826,6 +851,8 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
             if master_id in slot_map and time_str in slot_map[master_id]:
                 data = slot_map[master_id][time_str]
                 appt = data["appointment"]
+                appt_promocode = getattr(appt, 'appointmentpromocode', None)
+
                 local_start = localtime(appt.start_time)
                 local_end = local_start + timedelta(minutes=appt.service.duration_min) + timedelta(minutes=appt.service.extra_time_min)
                 last_status = appt.appointmentstatushistory_set.order_by('-set_at').first()
@@ -852,6 +879,7 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                     "master": escape(master.get_full_name()),
                     "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
                     "duration": f"{appt.service.duration_min}min",
+                    "discount": f"-{appt_promocode.promocode.discount_percent}" if appt_promocode else "",
                     "price_discounted": f"${appt.service.get_discounted_price()}",
                     "price": f"${appt.service.base_price}",
                     "background": MASTER_COLORS.get(master_id),
