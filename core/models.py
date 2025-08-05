@@ -1,10 +1,14 @@
+from decimal import Decimal
+
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
 from django.core.exceptions import ValidationError
 from datetime import timedelta, datetime, time
+from django.utils import timezone
 from django.utils.timezone import localtime
 from core.validators import clean_phone
+
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
 
@@ -97,6 +101,22 @@ class Service(models.Model):
 
     def __str__(self):
         return self.name
+
+
+    def get_active_discount(self):
+        today = timezone.now().date()
+        return self.discounts.filter(start_date__lte=today, end_date__gte=today).first()
+
+    def get_discounted_price(self):
+        """
+        Call instead of price to get discounted price or base_price if discount is not set
+        :return:
+        """
+        discount = self.get_active_discount()
+        if discount:
+            discount_multiplier = Decimal(1) - (Decimal(discount.discount_percent) / Decimal(100))
+            return (self.base_price * discount_multiplier).quantize(Decimal('0.01'))
+        return self.base_price
 
 class MasterRoom(models.Model):
     """
@@ -367,3 +387,43 @@ class MasterAvailability(models.Model):
                     "start_time": "Vacation overlaps with existing appointments",
                 })
 
+
+class ClientReview(models.Model):
+    appointment = models.OneToOneField(
+        Appointment,
+        on_delete=models.CASCADE,
+        related_name='review',
+        help_text="One review per one appointment"
+    )
+    rating = models.PositiveSmallIntegerField(
+        choices=[(i, f"{i} ★") for i in range(1, 6)],
+        help_text="Rating 1 to 5"
+    )
+    comment = models.TextField(blank=True, help_text="Not obligatory text comment")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Review {self.rating}★ for {self.appointment}"
+
+    class Meta:
+        verbose_name = "Client Review"
+        verbose_name_plural = "Client Reviews"
+
+
+class ServiceDiscount(models.Model):
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='discounts')
+    discount_percent = models.PositiveIntegerField(help_text="Percent of discount")
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    class Meta:
+        verbose_name = "Service Discount"
+        verbose_name_plural = "Service Discounts"
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return f"{self.discount_percent}% off on {self.service.name} ({self.start_date} – {self.end_date})"
+
+    def is_active(self):
+        today = timezone.now().date()
+        return self.start_date <= today <= self.end_date

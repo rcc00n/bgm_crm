@@ -10,7 +10,7 @@ from django.db.models import Sum, Count
 from itertools import cycle
 from django.utils.timezone import localtime, make_aware, localdate
 from django.utils.html import escape
-from django.utils import timezone
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -593,6 +593,36 @@ class ClientFileAdmin(admin.ModelAdmin):
     search_fields = ('user__first_name', 'user__last_name')
     ordering = ['-uploaded_at']
 
+# -----------------------------
+# Client Review Admin
+# -----------------------------
+@admin.register(ClientReview)
+class ClientReviewAdmin(ExportCsvMixin ,admin.ModelAdmin):
+    list_display = ("appointment", "get_client", "get_master", "rating", "created_at")
+    search_fields = ("appointment__client__first_name", "appointment__client__last_name", "comment")
+    list_filter = ("rating", "created_at")
+    export_fields = ["appointment", "get_client", "get_master", "rating", "created_at"]
+    @admin.display(description="Client")
+    def get_client(self, obj):
+        return obj.appointment.client.get_full_name()
+
+    @admin.display(description="Master")
+    def get_master(self, obj):
+        return obj.appointment.master.get_full_name()
+
+
+#-----------------------------
+# Discounts Admin
+#-----------------------------
+@admin.register(ServiceDiscount)
+class ServiceDiscountAdmin(ExportCsvMixin ,admin.ModelAdmin):
+    list_display = ('service', 'discount_percent', 'start_date', 'end_date', 'is_active')
+    list_filter = ('start_date', 'end_date', 'service')
+    search_fields = ('service__name',)
+    export_fields = ['service', 'discount_percent', 'start_date', 'end_date', 'is_active']
+    @admin.display(boolean=True)
+    def is_active(self, obj):
+        return obj.is_active()
 
 # -----------------------------
 # Register remaining models directly
@@ -607,6 +637,94 @@ admin.site.register(ServiceCategory)
 admin.site.register(PrepaymentOption)
 admin.site.register(PaymentStatus)
 
+@admin.register(MasterProfile)
+class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
+    add_form = MasterCreateFullForm
+    readonly_fields = ['password_display']
+    export_fields = ["first_name","last_name","email","username" ,"phone","birth_date","profession", 'bio',"work_start", "work_end", "room", "is_staff", "is_superuser", 'is_active']
+
+    def get_export_row(self, obj):
+        phone = obj.user.userprofile.phone if hasattr(obj, 'user') else ''
+        birth_date = obj.user.userprofile.birth_date if hasattr(obj, 'user') else ''
+
+
+        return [
+            obj.user.first_name,
+            obj.user.last_name,
+            obj.user.email,
+            obj.user.username,
+            phone,
+            birth_date,
+            obj.profession,
+            obj.bio,
+            obj.work_start,
+            obj.work_end,
+            obj.room,
+            obj.user.is_staff,
+            obj.user.is_superuser,
+            obj.user.is_active,
+        ]
+    form = MasterCreateFullForm  # на редактирование тоже можно оставить ту же
+
+
+    list_display = ("get_name", "room", "profession", "work_start", "work_end")
+
+    def get_fieldsets(self, request, obj=None):
+        form = self.form(instance=obj if obj else None)
+        fields = list(form.fields.keys())
+
+        if obj:
+            # редактирование
+            fields = [f for f in fields if f not in ['password1', 'password2', 'password']]  # ← обязательно убрать 'password'
+            if 'email' in fields and 'password_display' not in fields:
+                fields.insert(fields.index('email') + 1, 'password_display')
+            elif 'password_display' not in fields:
+                fields.append('password_display')
+        else:
+            # создание
+            fields = [f for f in fields if f != 'password_display']
+
+        return [(None, {'fields': fields})]
+
+    def password_display(self, obj):
+        from django.utils.html import format_html
+        reset_url = f"/admin/auth/user/{obj.user.id}/password/"
+        return format_html(
+            '<div style="word-break: break-all;">'
+            '<strong>algorithm:</strong> pbkdf2_sha256<br>'
+            '<strong>hash:</strong> {}<br><br>'
+            '<a href="{}" class="button" style="color: #fff; background: #007bff; padding: 4px 8px; text-decoration: none; border-radius: 4px;">Reset password</a>'
+            '</div>',
+            obj.user.password,
+            reset_url
+        )
+    password_display.short_description = "Password"
+
+    def get_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        # 1. Забираем все текущие разрешения
+        obj.user.user_permissions.clear()
+
+        # 2. Добавляем только view_appointment
+        ct = ContentType.objects.get_for_model(Appointment)
+        view_perm = Permission.objects.get(codename='view_appointment', content_type=ct)
+        obj.user.user_permissions.add(view_perm)
+
+
+def get_price_html(service):
+    discount = service.get_active_discount()
+    if discount:
+        discounted = service.get_discounted_price()
+        return format_html(
+            '<span style="text-decoration: line-through; color: grey;">${}</span><br><strong>${}</strong>',
+            service.base_price,
+            discounted
+        )
+    return format_html("<strong>${}</strong>", service.base_price)
 
 def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities):
     COLOR_PALETTE = ["#E4D08A", "#EDC2A2", "#CEAEC6", "#A3C1C9", "#C3CEA3", "#E7B3C3"]
@@ -734,6 +852,7 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                     "master": escape(master.get_full_name()),
                     "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
                     "duration": f"{appt.service.duration_min}min",
+                    "price_discounted": f"${appt.service.get_discounted_price()}",
                     "price": f"${appt.service.base_price}",
                     "background": MASTER_COLORS.get(master_id),
                 })
@@ -764,79 +883,3 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
     return calendar_table
 
-@admin.register(MasterProfile)
-class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
-    add_form = MasterCreateFullForm
-    readonly_fields = ['password_display']
-    export_fields = ["first_name","last_name","email","username" ,"phone","birth_date","profession", 'bio',"work_start", "work_end", "room", "is_staff", "is_superuser", 'is_active']
-
-    def get_export_row(self, obj):
-        phone = obj.user.userprofile.phone if hasattr(obj, 'user') else ''
-        birth_date = obj.user.userprofile.birth_date if hasattr(obj, 'user') else ''
-
-
-        return [
-            obj.user.first_name,
-            obj.user.last_name,
-            obj.user.email,
-            obj.user.username,
-            phone,
-            birth_date,
-            obj.profession,
-            obj.bio,
-            obj.work_start,
-            obj.work_end,
-            obj.room,
-            obj.user.is_staff,
-            obj.user.is_superuser,
-            obj.user.is_active,
-        ]
-    form = MasterCreateFullForm  # на редактирование тоже можно оставить ту же
-
-
-    list_display = ("get_name", "room", "profession", "work_start", "work_end")
-
-    def get_fieldsets(self, request, obj=None):
-        form = self.form(instance=obj if obj else None)
-        fields = list(form.fields.keys())
-
-        if obj:
-            # редактирование
-            fields = [f for f in fields if f not in ['password1', 'password2', 'password']]  # ← обязательно убрать 'password'
-            if 'email' in fields and 'password_display' not in fields:
-                fields.insert(fields.index('email') + 1, 'password_display')
-            elif 'password_display' not in fields:
-                fields.append('password_display')
-        else:
-            # создание
-            fields = [f for f in fields if f != 'password_display']
-
-        return [(None, {'fields': fields})]
-
-    def password_display(self, obj):
-        from django.utils.html import format_html
-        reset_url = f"/admin/auth/user/{obj.user.id}/password/"
-        return format_html(
-            '<div style="word-break: break-all;">'
-            '<strong>algorithm:</strong> pbkdf2_sha256<br>'
-            '<strong>hash:</strong> {}<br><br>'
-            '<a href="{}" class="button" style="color: #fff; background: #007bff; padding: 4px 8px; text-decoration: none; border-radius: 4px;">Reset password</a>'
-            '</div>',
-            obj.user.password,
-            reset_url
-        )
-    password_display.short_description = "Password"
-
-    def get_name(self, obj):
-        return obj.user.get_full_name() or obj.user.username
-
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-
-        # 1. Забираем все текущие разрешения
-        obj.user.user_permissions.clear()
-
-        # 2. Добавляем только view_appointment
-        ct = ContentType.objects.get_for_model(Appointment)
-        view_perm = Permission.objects.get(codename='view_appointment', content_type=ct)
-        obj.user.user_permissions.add(view_perm)

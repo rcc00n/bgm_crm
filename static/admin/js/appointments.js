@@ -193,11 +193,12 @@ function showTooltip(box) {
     const status = box.dataset.status || "";
     const duration = box.dataset.duration || "";
     const price = box.dataset.price || "";
+    const price_discounted = box.dataset.pricedisc || "";
     const master = box.dataset.master || "";
 
     const firstLetter = client.trim().charAt(0).toUpperCase();
-
-    tooltip.innerHTML = `
+    if (price === price_discounted) {
+        tooltip.innerHTML = `
         <div class="tooltip-card">
             <div class="tooltip-header">
                 <span>${time}</span>
@@ -220,7 +221,35 @@ function showTooltip(box) {
             </div>
         </div>
     `;
+    }
+    else {
+        tooltip.innerHTML = `
+        <div class="tooltip-card">
+            <div class="tooltip-header">
+                <span>${time}</span>
+                <span>${status}</span>
+            </div>
+            <div class="tooltip-body">
+                <div class="tooltip-client">
+                    <div class="tooltip-avatar">${firstLetter}</div>
+                    <div class="tooltip-client-info">
+                        <div class="tooltip-client-name">${client}</div>
+                        <div class="tooltip-client-phone">${phone}</div>
+                    </div>
+                </div>
 
+                <div class="tooltip-footer">
+                    <div class="tooltip-service">${service}</div>
+                    <div>
+                    <div class="tooltip-price" style="opacity: 0.5; text-decoration: line-through;">${price}</div>
+                    <div class="tooltip-price">${price_discounted}</div>
+                    </div>
+                </div>
+                <div class="tooltip-meta">${master} · ${duration}</div>
+            </div>
+        </div>
+    `;
+    }
     const tooltipWidth = 375;
     const tooltipHeight = 210;
 
