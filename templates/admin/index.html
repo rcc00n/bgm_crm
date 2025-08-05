@@ -78,6 +78,7 @@
                         <img src="{% static 'admin/icons/calendar_empty.png' %}" style="width:40px;" alt="No appts">
                         <br>No More Appointments Today<br><a href="/admin/core/appointment/">Go to calendar</a>
                     </p>
+                {% endif %}
 
             </div>
             <!-- Block 5: Top Services -->
@@ -92,7 +93,7 @@
                     </tbody>
                 </table>
             </div>
-                {% endif %}
+
 
         {% if not is_master %}
             <!-- Block 6: Top Team Member -->

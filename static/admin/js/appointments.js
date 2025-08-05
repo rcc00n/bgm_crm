@@ -30,13 +30,15 @@ function changeDateByDays(days) {
 
 function onDateChange(value) {
     const display = document.getElementById("displayDate");
-
     display.textContent = value;
-    const params = new URLSearchParams();
-    params.append("date", value);
-    params.append("action", "calendar");
 
-    fetch(`/admin/core/appointment/?${params.toString()}`, {
+    const formData = new FormData(document.getElementById("filterForm"));
+    formData.append("action", "calendar");
+    formData.set("date", value);  // заменяем дату
+
+    const params = new URLSearchParams(formData).toString();
+
+    fetch(`/admin/core/appointment/?${params}`, {
         headers: { 'x-requested-with': 'XMLHttpRequest' }
     })
         .then(res => res.json())
@@ -100,7 +102,7 @@ filterForm.addEventListener("submit", function (e) {
 });
 let popup = document.getElementById("addPopup");
 let popupTime = document.getElementById("popupTime");
-let popupAddBtn = document.getElementById("popupAddBtn");
+
 
 let lastActiveCell = null;
 
@@ -110,18 +112,22 @@ function showAddPopup(event, time, label) {
     const cell = event.currentTarget;
     cell.innerHTML = `<span class="cell-label">${label}</span>`;
     const rect = cell.getBoundingClientRect();
+    const masterId = cell.dataset.master;
     cell.value = time;
-    // Пометить активной
-    cell.classList.add("active");
-    lastActiveCell = cell;
+    // Обновить текст времени
+    const popupTimeEl = document.getElementById("popupTime");
+    popupTimeEl.textContent = label;
 
-    popupTime.textContent = label;
-    popupAddBtn.onclick = function () {
-        const selectedDate = document.getElementById("realDateInput").value;
-        const masterId = cell.dataset.master;
-        const url = `/admin/core/appointment/add/?date=${selectedDate}&time=${time}&master=${masterId}`;
-        window.location.href = url;
-    };
+    lastActiveCell = cell;
+    cell.classList.add("active");
+
+    // Заполняем тело popup-а новыми действиями
+    const popupBody = popup.querySelector(".popup-body");
+    popupBody.innerHTML = `
+        <div class="popup-action" onclick="handleAdd('appointment', '${time}', '${masterId}')">📅 Add appointment</div>
+        <div class="popup-action" onclick="handleAdd('vacation', '${time}', '${masterId}')">🗓️ Add time off</div>
+    `;
+
     if ((rect.left + window.scrollX - 230) < 0 || rect.width < 100) {
         // либо слишком близко к левому краю, либо слишком узкая ячейка
         popup.style.left = `${rect.left + window.scrollX + rect.width + 10}px`;
@@ -187,11 +193,12 @@ function showTooltip(box) {
     const status = box.dataset.status || "";
     const duration = box.dataset.duration || "";
     const price = box.dataset.price || "";
+    const price_discounted = box.dataset.pricedisc || "";
     const master = box.dataset.master || "";
 
     const firstLetter = client.trim().charAt(0).toUpperCase();
-
-    tooltip.innerHTML = `
+    if (price === price_discounted) {
+        tooltip.innerHTML = `
         <div class="tooltip-card">
             <div class="tooltip-header">
                 <span>${time}</span>
@@ -214,7 +221,35 @@ function showTooltip(box) {
             </div>
         </div>
     `;
+    }
+    else {
+        tooltip.innerHTML = `
+        <div class="tooltip-card">
+            <div class="tooltip-header">
+                <span>${time}</span>
+                <span>${status}</span>
+            </div>
+            <div class="tooltip-body">
+                <div class="tooltip-client">
+                    <div class="tooltip-avatar">${firstLetter}</div>
+                    <div class="tooltip-client-info">
+                        <div class="tooltip-client-name">${client}</div>
+                        <div class="tooltip-client-phone">${phone}</div>
+                    </div>
+                </div>
 
+                <div class="tooltip-footer">
+                    <div class="tooltip-service">${service}</div>
+                    <div>
+                    <div class="tooltip-price" style="opacity: 0.5; text-decoration: line-through;">${price}</div>
+                    <div class="tooltip-price">${price_discounted}</div>
+                    </div>
+                </div>
+                <div class="tooltip-meta">${master} · ${duration}</div>
+            </div>
+        </div>
+    `;
+    }
     const tooltipWidth = 375;
     const tooltipHeight = 210;
 

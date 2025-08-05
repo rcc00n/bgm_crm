@@ -50,8 +50,9 @@
                             data-master="{{ cell.master }}"
                             data-time-label="{{ cell.time_label }}"
                             data-duration="{{ cell.duration }}"
-                            data-price="{{ cell.price }}">
-                            <div style="background-color: {{ cell.background }};">{{ cell.html|safe }}</div>
+                            data-price="{{ cell.price }}"
+                            data-pricedisc="{{ cell.price_discounted }}">
+                            <div style="background-color: {{ cell.background }}; {% if cell.status == "Cancelled" %} opacity: 50%; {% endif %}">{{ cell.html|safe }}</div>
                         </td>
 
                     {% else %}

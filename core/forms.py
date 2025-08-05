@@ -73,8 +73,8 @@ class CustomUserCreationForm(UserCreationForm):
     - Assigns roles after saving the user
     """
     email = forms.EmailField(required=True)
-    first_name = forms.CharField(required=False)
-    last_name = forms.CharField(required=False)
+    first_name = forms.CharField(required=True)
+    last_name = forms.CharField(required=True)
     phone = forms.CharField(required=True)
     birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
 
@@ -108,6 +108,8 @@ class CustomUserCreationForm(UserCreationForm):
         profile.birth_date = birth_date
         profile.save()
 
+        client_role, _ = Role.objects.get_or_create(name="Client")
+        UserRole.objects.get_or_create(user=user, role=client_role)
 
         return user
 
@@ -115,6 +117,11 @@ class CustomUserCreationForm(UserCreationForm):
         # Optional debug print to inspect cleaned data
         print(self.cleaned_data)
 
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        if UserProfile.objects.filter(phone=phone).exists():
+            raise forms.ValidationError("User with such phone number already exists.")
+        return phone
 # -----------------------------
 # Custom User Change Form
 # -----------------------------
@@ -196,14 +203,23 @@ class CustomUserChangeForm(UserChangeForm):
         # Optional debug print to inspect cleaned data
         print(self.cleaned_data)
 
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        qs = UserProfile.objects.filter(phone=phone)
+        if self.instance.pk:
+            qs = qs.exclude(user=self.instance)
+        if qs.exists():
+            raise forms.ValidationError("User with such phone number already exists.")
+        return phone
+
 
 class MasterCreateFullForm(forms.ModelForm):
     # Общие поля
     username = forms.CharField()
     email = forms.EmailField()
-    first_name = forms.CharField(required=False)
-    last_name = forms.CharField(required=False)
-    phone = forms.CharField(required=False)
+    first_name = forms.CharField(required=True)
+    last_name = forms.CharField(required=True)
+    phone = forms.CharField(required=True)
     birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
 
     password1 = forms.CharField(widget=forms.PasswordInput, required=False)
@@ -211,7 +227,7 @@ class MasterCreateFullForm(forms.ModelForm):
 
     class Meta:
         model = MasterProfile
-        fields = ['profession', 'bio', 'work_start', 'work_end']
+        fields = ['profession', 'bio', 'work_start', 'work_end', 'room']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -231,6 +247,7 @@ class MasterCreateFullForm(forms.ModelForm):
             self.fields['email'].initial = user.email
             self.fields['first_name'].initial = user.first_name
             self.fields['last_name'].initial = user.last_name
+            self.fields['room'].initial = user.room
 
             if hasattr(user, 'userprofile'):
                 self.fields['phone'].initial = user.userprofile.phone
@@ -250,6 +267,20 @@ class MasterCreateFullForm(forms.ModelForm):
         validate_password(password2)
         return password2
 
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+
+        qs = UserProfile.objects.filter(phone=phone)
+
+        if self.instance.pk:
+            # если редактируем, исключаем текущего пользователя
+            qs = qs.exclude(user=self.instance.user)
+
+        if qs.exists():
+            raise forms.ValidationError("This phone number is already registered!")
+
+        return phone
+
     def save(self, commit=True):
         if not self.instance.pk:
             # Создание нового пользователя
@@ -268,6 +299,7 @@ class MasterCreateFullForm(forms.ModelForm):
             UserProfile.objects.create(
                 user=user,
                 phone=self.cleaned_data.get('phone'),
+
                 birth_date=self.cleaned_data.get('birth_date')
             )
 

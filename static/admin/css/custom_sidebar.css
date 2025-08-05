@@ -2,6 +2,9 @@
 .content {
     margin-left: 6.6vh !important;
 }
+.actions{
+    display: none !important;
+}
 .content-wrapper{
     margin-left: 0 !important;
 }
@@ -29,7 +32,7 @@ margin-left: 0 !important;
 /* List styling */
 .icon-sidebar ul {
     list-style: none;
-    padding: 6.6vh 0 0 0;  /* 👈 отступ сверху под header */
+    padding: 6.6vh 0 0 0; 
     margin: 0;
 }
 
@@ -123,4 +126,17 @@ margin-left: 0 !important;
 
 .icon-sidebar .submenu li a:hover {
     background-color: rgba(82, 82, 110, 0.7);
+}
+
+.send-notify-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 6px;
+    background-color: #5f5fc4;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+}
+.send-notify-btn:hover {
+    background-color: #4b44a7;
 }

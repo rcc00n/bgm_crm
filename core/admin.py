@@ -1,11 +1,8 @@
 from bisect import bisect_left
-from datetime import timedelta, datetime, time
 
 from django.contrib.admin import DateFieldListFilter
-from django.contrib import admin
 
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
 from django.contrib import admin
@@ -13,9 +10,17 @@ from django.db.models import Sum, Count
 from itertools import cycle
 from django.utils.timezone import localtime, make_aware, localdate
 from django.utils.html import escape
-from django.utils import timezone
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import json
+import csv
+from django.urls import path, reverse, NoReverseMatch
+from django.http import HttpResponse
 from .filters import *
 from .models import *
 from .forms import *
@@ -84,11 +89,7 @@ def custom_index(request):
             start_time__date=day,
             appointmentstatushistory__status=confirmed
         ).count()
-        # print(day)
-        # print(Appointment.objects.filter(
-        #     start_time__date=day,
-        #     appointmentstatushistory__status=confirmed
-        # ))
+
         cancelled_appts =  Appointment.objects.filter(
             start_time__date=day,
             appointmentstatushistory__status=cancelled
@@ -119,17 +120,78 @@ def custom_index(request):
 
 # Переопределить главную страницу
 admin.site.index = custom_index
+class ExportCsvMixin:
+    export_fields = None  # список полей; можно переопределить в admin
 
+    def get_urls(self):
+        opts = self.model._meta
+        return [
+            path(
+                "export-csv/",
+                self.admin_site.admin_view(self.export_all_csv),
+                name=f"{opts.app_label}_{opts.model_name}_export_csv"
+            )
+        ] + super().get_urls()
+
+    def export_all_csv(self, request):
+        queryset = self.get_queryset(request)
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename={self.model._meta.model_name}.csv'
+
+        fields = self.export_fields or [field.name for field in self.model._meta.fields]
+        writer = csv.writer(response)
+        writer.writerow(fields)
+
+        for obj in queryset:
+            if hasattr(self, 'get_export_row'):
+                row = self.get_export_row(obj)
+            else:
+                row = [getattr(obj, field) for field in fields]
+            writer.writerow(row)
+
+        return response
+
+    def changelist_view(self, request, extra_context=None):
+        # Попробуем reverse без краша
+        extra_context = extra_context or {}
+        try:
+            opts = self.model._meta
+            export_url = reverse(f'admin:{opts.app_label}_{opts.model_name}_export_csv')
+            export_url += f"?{request.GET.urlencode()}"
+            extra_context['export_url'] = export_url
+        except NoReverseMatch:
+            extra_context['export_url'] = None
+
+        return super().changelist_view(request, extra_context=extra_context)
 # -----------------------------
 # Customized User Admin
 # -----------------------------
-class CustomUserAdmin(BaseUserAdmin):
+class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
     """
     Custom admin interface for Django's User model, enhanced with roles and profile fields.
     """
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
+    export_fields = ['username', 'email', 'first_name', 'last_name', 'phone', 'birth_date', 'user_roles','is_staff', 'is_superuser', 'is_active']
 
+    def get_export_row(self, obj):
+        phone = obj.userprofile.phone if hasattr(obj, 'userprofile') else ''
+        birth_date = obj.userprofile.birth_date if hasattr(obj, 'userprofile') else ''
+        roles = ", ".join([ur.role.name for ur in obj.userrole_set.all()])
+
+        return [
+            obj.username,
+            obj.email,
+            obj.first_name,
+            obj.last_name,
+            phone,
+            birth_date,
+            roles,
+            obj.is_staff,
+            obj.is_superuser,
+            obj.is_active,
+        ]
     # Fields shown when adding a new user
     add_fieldsets = (
         (None, {
@@ -140,7 +202,7 @@ class CustomUserAdmin(BaseUserAdmin):
     )
 
     # Fields shown in user list
-    list_display = ('username', 'email', 'first_name', 'last_name', 'staff_status', 'phone', 'birth_date', 'user_roles')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'staff_status', 'phone', 'birth_date', 'user_roles', 'send_notify_button')
     list_filter = ('is_staff', 'is_superuser', 'is_active', RoleFilter)
     search_fields = ('username', 'email', 'first_name', 'last_name', 'userprofile__phone')
 
@@ -171,6 +233,37 @@ class CustomUserAdmin(BaseUserAdmin):
     def birth_date(self, instance):
         return instance.userprofile.birth_date if hasattr(instance, 'userprofile') else '-'
 
+    @admin.display(description="")
+    def send_notify_button(self, obj):
+        return mark_safe(
+            f'<button type="button" class="send-notify-btn" '
+            f'data-user-id="{obj.id}" '
+            f'data-user-name="{obj.get_full_name() or obj.username}">Send Notification</button>'
+        )
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('send_notification/', self.admin_site.admin_view(self.send_notification_view), name='send_notification'),
+        ]
+        return custom_urls + urls
+
+    @method_decorator(csrf_exempt)
+    def send_notification_view(self, request):
+        if request.method == "POST":
+            data = json.loads(request.body)
+            user_id = data.get("user_id")
+            message = data.get("message")
+
+            user = CustomUserDisplay.objects.filter(id=user_id).first()
+            if user:
+                Notification.objects.create(
+                    user=user,
+                    message=message,
+                    channel="email"  # или sms
+                )
+                return JsonResponse({"status": "ok"})
+
+        return JsonResponse({"status": "error"}, status=400)
     @admin.display(boolean=True, description="Staff Status")
     def staff_status(self, instance):
         return instance.is_staff
@@ -206,10 +299,30 @@ class MasterSelectorMixing:
 
 
 @admin.register(MasterAvailability)
-class MasterAvailabilityAdmin(MasterSelectorMixing, admin.ModelAdmin):
+class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
     list_display = ("master", "start_time", "end_time", "reason")
     list_filter = ("master",)
     search_fields = ("master__first_name", "master__last_name", "reason")
+    export_fields = ["master", "start_time", "end_time", "reason"]
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+
+        date_str = request.GET.get("date")
+        time_str = request.GET.get("time")
+        const_master = request.GET.get("master")
+
+        if date_str and time_str:
+            try:
+                combined = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+                initial["start_time"] = make_aware(combined)
+
+            except ValueError:
+                pass
+        if const_master:
+            initial["master"] = const_master
+
+
+        return initial
 
 
 # -----------------------------
@@ -265,8 +378,6 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
 
-        today = datetime.today().date()
-
         selected_date = request.GET.get('date')
 
         if selected_date:
@@ -280,6 +391,18 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         payment_statuses = PaymentStatus.objects.all()
 
         appointments = Appointment.objects.select_related('client', 'service', 'master')
+        cancelled_status = AppointmentStatus.objects.filter(name="Cancelled").first()
+        if not request.GET.get("status"):
+            appointments = appointments.exclude(
+                appointmentstatushistory__status=cancelled_status
+            )
+        else:
+            # Если выбран какой-либо статус
+            selected_status = request.GET.get("status")
+            if str(cancelled_status.id) != selected_status:
+                appointments = appointments.exclude(
+                    appointmentstatushistory__status=cancelled_status
+                )
         if hasattr(request.user, "master_profile"):
             masters = CustomUserDisplay.objects.filter(id=request.user.id)
         else:
@@ -352,25 +475,18 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
-        # if 'status' in form.cleaned_data and form.cleaned_data['status']:
-        #     AppointmentStatusHistory.objects.create(
-        #         appointment=obj,
-        #         status=form.cleaned_data['status'],
-        #         set_by=request.user
-        #     )
-
 
 # -----------------------------
 # Appointment Status History Admin
 # -----------------------------
 @admin.register(AppointmentStatusHistory)
-class AppointmentStatusHistoryAdmin(admin.ModelAdmin):
+class AppointmentStatusHistoryAdmin(ExportCsvMixin,admin.ModelAdmin):
     """
     Admin interface for tracking status changes of appointments.
     """
     exclude = ('set_by',)
     list_display = ('appointment', 'status', 'set_by', 'set_at')
-
+    export_fields = ['appointment', 'status', 'set_by', 'set_at']
     def save_model(self, request, obj, form, change):
         if not obj.set_by_id:
             obj.set_by = request.user
@@ -381,12 +497,13 @@ class AppointmentStatusHistoryAdmin(admin.ModelAdmin):
 # Payment Admin
 # -----------------------------
 @admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(ExportCsvMixin ,admin.ModelAdmin):
     """
     Admin interface for payments.
     """
     list_display = ('appointment', 'amount', 'method')
     list_filter = ('method',)
+    export_fields = ['appointment', 'amount', 'method']
     search_fields = (
         'appointment__client__first_name', 'appointment__client__last_name',
         'appointment__master__first_name', 'appointment__master__last_name',
@@ -398,12 +515,12 @@ class PaymentAdmin(admin.ModelAdmin):
 # Appointment Prepayment Admin
 # -----------------------------
 @admin.register(AppointmentPrepayment)
-class AppointmentPrepaymentAdmin(admin.ModelAdmin):
+class AppointmentPrepaymentAdmin(ExportCsvMixin,admin.ModelAdmin):
     """
     Admin interface for prepayment options tied to appointments.
     """
     list_display = ('appointment', 'option')
-
+    export_fields = ['appointment', 'option']
 
 # -----------------------------
 # Hidden Proxy Admin for CustomUserDisplay
@@ -420,26 +537,26 @@ class CustomUserAdmin(admin.ModelAdmin):
 # Service Master Admin
 # -----------------------------
 @admin.register(ServiceMaster)
-class ServiceMasterAdmin(MasterSelectorMixing, admin.ModelAdmin):
+class ServiceMasterAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface to assign masters to services.
     """
     list_display = ('master', 'service')
-    search_fields = ('master__first_name', 'master__last_name', 'service__name')
-
+    search_fields = ('master__user__first_name', 'master__user__last_name', 'service__name')
+    export_fields = ['master', 'service']
 
 # -----------------------------
 # Service Admin
 # -----------------------------
 @admin.register(Service)
-class ServiceAdmin(MasterSelectorMixing, admin.ModelAdmin):
+class ServiceAdmin(ExportCsvMixin,MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface for services.
     """
-    list_display = ('name', 'base_price', 'duration_min')
+    list_display = ('name', 'base_price', 'category', 'duration_min')
     search_fields = ('name',)
-
-
+    list_filter = ('category',)
+    export_fields = ['name', 'description','base_price', 'category','prepayment_option', 'duration_min', 'extra_time_min']
 # -----------------------------
 # Notification Admin
 # -----------------------------
@@ -476,6 +593,36 @@ class ClientFileAdmin(admin.ModelAdmin):
     search_fields = ('user__first_name', 'user__last_name')
     ordering = ['-uploaded_at']
 
+# -----------------------------
+# Client Review Admin
+# -----------------------------
+@admin.register(ClientReview)
+class ClientReviewAdmin(ExportCsvMixin ,admin.ModelAdmin):
+    list_display = ("appointment", "get_client", "get_master", "rating", "created_at")
+    search_fields = ("appointment__client__first_name", "appointment__client__last_name", "comment")
+    list_filter = ("rating", "created_at")
+    export_fields = ["appointment", "get_client", "get_master", "rating", "created_at"]
+    @admin.display(description="Client")
+    def get_client(self, obj):
+        return obj.appointment.client.get_full_name()
+
+    @admin.display(description="Master")
+    def get_master(self, obj):
+        return obj.appointment.master.get_full_name()
+
+
+#-----------------------------
+# Discounts Admin
+#-----------------------------
+@admin.register(ServiceDiscount)
+class ServiceDiscountAdmin(ExportCsvMixin ,admin.ModelAdmin):
+    list_display = ('service', 'discount_percent', 'start_date', 'end_date', 'is_active')
+    list_filter = ('start_date', 'end_date', 'service')
+    search_fields = ('service__name',)
+    export_fields = ['service', 'discount_percent', 'start_date', 'end_date', 'is_active']
+    @admin.display(boolean=True)
+    def is_active(self, obj):
+        return obj.is_active()
 
 # -----------------------------
 # Register remaining models directly
@@ -483,11 +630,101 @@ class ClientFileAdmin(admin.ModelAdmin):
 admin.site.register(Role)
 admin.site.register(UserRole)
 admin.site.register(AppointmentStatus)
-admin.site.register(ServiceCategory)
 admin.site.register(PaymentMethod)
+admin.site.register(ClientSource)
+admin.site.register(MasterRoom)
+admin.site.register(ServiceCategory)
 admin.site.register(PrepaymentOption)
 admin.site.register(PaymentStatus)
 
+@admin.register(MasterProfile)
+class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
+    add_form = MasterCreateFullForm
+    readonly_fields = ['password_display']
+    export_fields = ["first_name","last_name","email","username" ,"phone","birth_date","profession", 'bio',"work_start", "work_end", "room", "is_staff", "is_superuser", 'is_active']
+
+    def get_export_row(self, obj):
+        phone = obj.user.userprofile.phone if hasattr(obj, 'user') else ''
+        birth_date = obj.user.userprofile.birth_date if hasattr(obj, 'user') else ''
+
+
+        return [
+            obj.user.first_name,
+            obj.user.last_name,
+            obj.user.email,
+            obj.user.username,
+            phone,
+            birth_date,
+            obj.profession,
+            obj.bio,
+            obj.work_start,
+            obj.work_end,
+            obj.room,
+            obj.user.is_staff,
+            obj.user.is_superuser,
+            obj.user.is_active,
+        ]
+    form = MasterCreateFullForm  # на редактирование тоже можно оставить ту же
+
+
+    list_display = ("get_name", "room", "profession", "work_start", "work_end")
+
+    def get_fieldsets(self, request, obj=None):
+        form = self.form(instance=obj if obj else None)
+        fields = list(form.fields.keys())
+
+        if obj:
+            # редактирование
+            fields = [f for f in fields if f not in ['password1', 'password2', 'password']]  # ← обязательно убрать 'password'
+            if 'email' in fields and 'password_display' not in fields:
+                fields.insert(fields.index('email') + 1, 'password_display')
+            elif 'password_display' not in fields:
+                fields.append('password_display')
+        else:
+            # создание
+            fields = [f for f in fields if f != 'password_display']
+
+        return [(None, {'fields': fields})]
+
+    def password_display(self, obj):
+        from django.utils.html import format_html
+        reset_url = f"/admin/auth/user/{obj.user.id}/password/"
+        return format_html(
+            '<div style="word-break: break-all;">'
+            '<strong>algorithm:</strong> pbkdf2_sha256<br>'
+            '<strong>hash:</strong> {}<br><br>'
+            '<a href="{}" class="button" style="color: #fff; background: #007bff; padding: 4px 8px; text-decoration: none; border-radius: 4px;">Reset password</a>'
+            '</div>',
+            obj.user.password,
+            reset_url
+        )
+    password_display.short_description = "Password"
+
+    def get_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        # 1. Забираем все текущие разрешения
+        obj.user.user_permissions.clear()
+
+        # 2. Добавляем только view_appointment
+        ct = ContentType.objects.get_for_model(Appointment)
+        view_perm = Permission.objects.get(codename='view_appointment', content_type=ct)
+        obj.user.user_permissions.add(view_perm)
+
+
+def get_price_html(service):
+    discount = service.get_active_discount()
+    if discount:
+        discounted = service.get_discounted_price()
+        return format_html(
+            '<span style="text-decoration: line-through; color: grey;">${}</span><br><strong>${}</strong>',
+            service.base_price,
+            discounted
+        )
+    return format_html("<strong>${}</strong>", service.base_price)
 
 def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities):
     COLOR_PALETTE = ["#E4D08A", "#EDC2A2", "#CEAEC6", "#A3C1C9", "#C3CEA3", "#E7B3C3"]
@@ -615,6 +852,7 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                     "master": escape(master.get_full_name()),
                     "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
                     "duration": f"{appt.service.duration_min}min",
+                    "price_discounted": f"${appt.service.get_discounted_price()}",
                     "price": f"${appt.service.base_price}",
                     "background": MASTER_COLORS.get(master_id),
                 })
@@ -645,56 +883,3 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
     return calendar_table
 
-@admin.register(MasterProfile)
-class MasterProfileAdmin(admin.ModelAdmin):
-    add_form = MasterCreateFullForm
-    readonly_fields = ['password_display']  # ← используем в fieldsets
-    form = MasterCreateFullForm  # на редактирование тоже можно оставить ту же
-
-
-    list_display = ("get_name", "profession", "work_start", "work_end")
-
-    def get_fieldsets(self, request, obj=None):
-        form = self.form(instance=obj if obj else None)
-        fields = list(form.fields.keys())
-
-        if obj:
-            # редактирование
-            fields = [f for f in fields if f not in ['password1', 'password2', 'password']]  # ← обязательно убрать 'password'
-            if 'email' in fields and 'password_display' not in fields:
-                fields.insert(fields.index('email') + 1, 'password_display')
-            elif 'password_display' not in fields:
-                fields.append('password_display')
-        else:
-            # создание
-            fields = [f for f in fields if f != 'password_display']
-
-        return [(None, {'fields': fields})]
-
-    def password_display(self, obj):
-        from django.utils.html import format_html
-        reset_url = f"/admin/auth/user/{obj.user.id}/password/"
-        return format_html(
-            '<div style="word-break: break-all;">'
-            '<strong>algorithm:</strong> pbkdf2_sha256<br>'
-            '<strong>hash:</strong> {}<br><br>'
-            '<a href="{}" class="button" style="color: #fff; background: #007bff; padding: 4px 8px; text-decoration: none; border-radius: 4px;">Reset password</a>'
-            '</div>',
-            obj.user.password,
-            reset_url
-        )
-    password_display.short_description = "Password"
-
-    def get_name(self, obj):
-        return obj.user.get_full_name() or obj.user.username
-
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-
-        # 1. Забираем все текущие разрешения
-        obj.user.user_permissions.clear()
-
-        # 2. Добавляем только view_appointment
-        ct = ContentType.objects.get_for_model(Appointment)
-        view_perm = Permission.objects.get(codename='view_appointment', content_type=ct)
-        obj.user.user_permissions.add(view_perm)
