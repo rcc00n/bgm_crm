@@ -227,7 +227,7 @@ class MasterCreateFullForm(forms.ModelForm):
 
     class Meta:
         model = MasterProfile
-        fields = ['profession', 'bio', 'work_start', 'work_end']
+        fields = ['profession', 'bio', 'work_start', 'work_end', 'room']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -247,6 +247,7 @@ class MasterCreateFullForm(forms.ModelForm):
             self.fields['email'].initial = user.email
             self.fields['first_name'].initial = user.first_name
             self.fields['last_name'].initial = user.last_name
+            self.fields['room'].initial = user.room
 
             if hasattr(user, 'userprofile'):
                 self.fields['phone'].initial = user.userprofile.phone
@@ -266,6 +267,20 @@ class MasterCreateFullForm(forms.ModelForm):
         validate_password(password2)
         return password2
 
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+
+        qs = UserProfile.objects.filter(phone=phone)
+
+        if self.instance.pk:
+            # если редактируем, исключаем текущего пользователя
+            qs = qs.exclude(user=self.instance.user)
+
+        if qs.exists():
+            raise forms.ValidationError("This phone number is already registered!")
+
+        return phone
+
     def save(self, commit=True):
         if not self.instance.pk:
             # Создание нового пользователя
@@ -284,6 +299,7 @@ class MasterCreateFullForm(forms.ModelForm):
             UserProfile.objects.create(
                 user=user,
                 phone=self.cleaned_data.get('phone'),
+
                 birth_date=self.cleaned_data.get('birth_date')
             )
 

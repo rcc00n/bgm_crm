@@ -98,7 +98,28 @@ class Service(models.Model):
     def __str__(self):
         return self.name
 
+class MasterRoom(models.Model):
+    """
+    Rooms where Master will operate
+    """
+    room = models.CharField(max_length=20)
 
+    def __str__(self):
+        return self.room
+
+class MasterProfile(models.Model):
+    """
+    Дополнительная информация о мастере: профессия, график работы, цвет и т.д.
+    """
+    user = models.OneToOneField(CustomUserDisplay, on_delete=models.CASCADE, related_name="master_profile")
+    profession = models.CharField(max_length=100, blank=True)
+    bio = models.TextField(blank=True)
+    room = models.ForeignKey(MasterRoom, on_delete=models.CASCADE, blank=True, null=True)
+    work_start = models.TimeField(default="08:00")
+    work_end = models.TimeField(default="21:00")
+
+    def __str__(self):
+        return f"{self.user.get_full_name()}"
 
 class ServiceMaster(models.Model):
     """
@@ -179,7 +200,21 @@ class Appointment(models.Model):
                     "start_time": "This appointment overlaps with another appointment for the same master."
                 })
 
+            # --- 🔒 Проверка пересечения по комнате ---
+        master_profile = getattr(self.master, "master_profile", None)
+        if master_profile and master_profile.room:
+            overlapping_room = Appointment.objects.filter(
+                master__master_profile__room=master_profile.room,
+                start_time__lt=this_end,
+                start_time__gte=self.start_time - timedelta(hours=3)
+            ).exclude(id=self.id)
 
+            for appt in overlapping_room:
+                appt_end = appt.start_time + timedelta(minutes=appt.service.duration_min)
+                if self.start_time < appt_end and this_end > appt.start_time:
+                    raise ValidationError({
+                        "start_time": f"Room '{master_profile.room}' is occupied at this time."
+                    })
         # Проверка на отпуск / отгулы
         unavailable_periods = MasterAvailability.objects.filter(master=self.master)
 
@@ -282,18 +317,7 @@ class Notification(models.Model):
         print(f"[SMS] To {self.user}: {self.message}")
 
 # --- 8. MASTERS ---
-class MasterProfile(models.Model):
-    """
-    Дополнительная информация о мастере: профессия, график работы, цвет и т.д.
-    """
-    user = models.OneToOneField(CustomUserDisplay, on_delete=models.CASCADE, related_name="master_profile")
-    profession = models.CharField(max_length=100, blank=True)
-    bio = models.TextField(blank=True)
-    work_start = models.TimeField(default="08:00")
-    work_end = models.TimeField(default="21:00")
 
-    def __str__(self):
-        return f"Master: {self.user.get_full_name()}"
 
 class MasterAvailability(models.Model):
     VACATION = 'vacation'

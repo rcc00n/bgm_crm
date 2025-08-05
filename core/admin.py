@@ -537,12 +537,12 @@ class CustomUserAdmin(admin.ModelAdmin):
 # Service Master Admin
 # -----------------------------
 @admin.register(ServiceMaster)
-class ServiceMasterAdmin(ExportCsvMixin,MasterSelectorMixing, admin.ModelAdmin):
+class ServiceMasterAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface to assign masters to services.
     """
     list_display = ('master', 'service')
-    search_fields = ('master__first_name', 'master__last_name', 'service__name')
+    search_fields = ('master__user__first_name', 'master__user__last_name', 'service__name')
     export_fields = ['master', 'service']
 
 # -----------------------------
@@ -602,6 +602,7 @@ admin.site.register(UserRole)
 admin.site.register(AppointmentStatus)
 admin.site.register(PaymentMethod)
 admin.site.register(ClientSource)
+admin.site.register(MasterRoom)
 admin.site.register(ServiceCategory)
 admin.site.register(PrepaymentOption)
 admin.site.register(PaymentStatus)
@@ -767,7 +768,7 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
     add_form = MasterCreateFullForm
     readonly_fields = ['password_display']
-    export_fields = ["first_name","last_name","email","username" ,"phone","birth_date","profession", 'bio',"work_start", "work_end", "is_staff", "is_superuser", 'is_active']
+    export_fields = ["first_name","last_name","email","username" ,"phone","birth_date","profession", 'bio',"work_start", "work_end", "room", "is_staff", "is_superuser", 'is_active']
 
     def get_export_row(self, obj):
         phone = obj.user.userprofile.phone if hasattr(obj, 'user') else ''
@@ -785,6 +786,7 @@ class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
             obj.bio,
             obj.work_start,
             obj.work_end,
+            obj.room,
             obj.user.is_staff,
             obj.user.is_superuser,
             obj.user.is_active,
@@ -792,7 +794,7 @@ class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
     form = MasterCreateFullForm  # на редактирование тоже можно оставить ту же
 
 
-    list_display = ("get_name", "profession", "work_start", "work_end")
+    list_display = ("get_name", "room", "profession", "work_start", "work_end")
 
     def get_fieldsets(self, request, obj=None):
         form = self.form(instance=obj if obj else None)
