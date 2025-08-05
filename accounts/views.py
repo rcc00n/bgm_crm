@@ -130,3 +130,53 @@ class ClientRegisterView(CreateView):
     def get_success_url(self):
         # ❷ reverse вызывается ТОЛЬКО сейчас, когда URL-ы уже загружены
         return f"{reverse('login')}?registered=1"
+
+# accounts/views.py   (или где у вас MainMenuView)
+
+from django.db.models import OuterRef, Subquery, Count
+from django.db.models.functions import TruncMonth 
+from django.utils import timezone
+from django.views.generic import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from core.models import Appointment, AppointmentStatusHistory
+
+
+class ClientDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = "client/dashboard.html"          # ⬅️ новый шаблон
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        now  = timezone.now()
+
+        # профиль (One-to-One). может отсутствовать → None
+        ctx["profile"] = getattr(user, "userprofile", None)
+
+        # быстрый подзапрос на последний статус
+        latest_status = AppointmentStatusHistory.objects.filter(
+            appointment_id=OuterRef("pk")
+        ).order_by("-set_at").values("status__name")[:1]
+
+        # все записи пользователя
+        qs = (Appointment.objects
+              .filter(client=user)
+              .select_related("service", "master")
+              .annotate(current_status=Subquery(latest_status))
+              .order_by("-start_time"))
+
+        ctx["appointments"]       = qs
+        ctx["next_appointment"]   = qs.filter(start_time__gte=now).first()
+        ctx["recent_appointments"] = qs.filter(start_time__lt=now)[:5]
+
+        # статистика визитов по месяцам (для Chart.js)
+        month_counts = (qs
+            .filter(start_time__year=now.year)
+            .annotate(month=TruncMonth("start_time"))
+            .values("month")
+            .annotate(cnt=Count("id"))
+            .order_by("month"))
+        # ['янв', 'фев', …], [2,1,…]
+        ctx["chart_labels"] = [m["month"].strftime("%b") for m in month_counts]
+        ctx["chart_data"]   = [m["cnt"] for m in month_counts]
+
+        return ctx

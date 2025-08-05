@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load i18n tz %}<!DOCTYPE html>
 <html lang="ru" class="h-full">
 <head>
     <meta charset="utf-8">
@@ -7,7 +7,7 @@
     <!-- Tailwind CSS JIT CDN -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
 
-    <!-- Chart.js для графика -->
+    <!-- Chart.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="h-full bg-gray-100 text-gray-800">
@@ -15,95 +15,117 @@
 <div class="min-h-screen flex">
 
     <!-- ▸▸ SIDEBAR ◂◂ -->
-    <aside class="w-64 bg-white shadow-lg">
-        <div class="p-6 font-bold text-indigo-600 text-xl">Malva</div>
+<aside class="w-64 bg-white shadow-lg">
+    <div class="p-6 font-bold text-indigo-600 text-xl">Malva</div>
 
-        <!-- Навигация -->
-        <nav id="sidebar" class="space-y-1 px-4 text-sm">
-            <a href="#" data-tab="dashboard" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-                🏠 <span>Обзор</span>
-            </a>
-            <a href="#" data-tab="appointments" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-                📅 <span>Записи</span>
-            </a>
-            <a href="#" data-tab="files" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-                📂 <span>Файлы</span>
-            </a>
-            <a href="#" data-tab="notifications" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-                🔔 <span>Уведомления</span>
-            </a>
-            <a href="#" data-tab="profile" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-                👤 <span>Профиль</span>
-            </a>
-        </nav>
-    </aside>
+    <nav id="sidebar" class="space-y-1 px-4 text-sm">
+        <a href="#" data-tab="dashboard"
+           class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+            🏠 <span>Обзор</span>
+        </a>
+        <a href="#" data-tab="appointments"
+           class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+            📅 <span>Записи</span>
+        </a>
+        <a href="#" data-tab="files"
+           class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+            📂 <span>Файлы</span>
+        </a>
+        <a href="#" data-tab="notifications"
+           class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+            🔔 <span>Уведомления</span>
+        </a>
+        <a href="#" data-tab="profile"
+           class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+            👤 <span>Профиль</span>
+        </a>
+
+        <!-- кнопка «На главную» → /accounts/ -->
+        <a href="/accounts/"
+           class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
+            ⬅️ <span>На&nbsp;главную</span>
+        </a>
+    </nav>
+</aside>
 
     <!-- ▸▸ MAIN ◂◂ -->
     <main class="flex-1 p-8 overflow-y-auto">
 
         <!-- DASHBOARD -->
         <section id="tab-dashboard" class="tab">
-            <h1 class="text-3xl font-bold mb-8">Здравствуйте, Анна!</h1>
+            <h1 class="text-3xl font-bold mb-8">
+                {% if request.user.first_name %}
+                    Здравствуйте, {{ request.user.first_name }}!
+                {% else %}
+                    Здравствуйте, {{ request.user.username }}!
+                {% endif %}
+            </h1>
 
             <div class="grid lg:grid-cols-3 gap-6">
+
                 <!-- Ближайший визит -->
                 <div class="bg-white rounded-xl shadow p-6">
                     <h2 class="text-lg font-semibold mb-4">Ближайший визит</h2>
-                    <p class="font-medium">5 августа 2025, 14:00</p>
-                    <p class="text-sm text-gray-600">Гель-лак · Мария Иванова</p>
-                    <div class="mt-4 flex gap-4">
-                        <button class="text-red-600 hover:underline text-sm">Отменить</button>
-                        <button class="text-indigo-600 hover:underline text-sm">Перенести</button>
-                    </div>
+                    {% if next_appointment %}
+                        <p class="font-medium">
+                            {{ next_appointment.start_time|localtime|date:"d E Y, H:i" }}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            {{ next_appointment.service.name }} ·
+                            {{ next_appointment.master.get_full_name }}
+                        </p>
+                        <div class="mt-4 flex gap-4 text-sm">
+                            <a href="#" class="text-red-600 hover:underline">Отменить</a>
+                            <a href="#" class="text-indigo-600 hover:underline">Перенести</a>
+                        </div>
+                    {% else %}
+                        <p class="text-gray-500">Ближайших визитов нет.</p>
+                    {% endif %}
                 </div>
 
                 <!-- Статистика -->
                 <div class="bg-white rounded-xl shadow p-6 lg:col-span-2">
                     <h2 class="text-lg font-semibold mb-4">Статистика</h2>
-                    <canvas id="stats_chart" class="w-full h-56"></canvas>
+                    <canvas id="stats_chart"
+                            data-labels="{{ chart_labels|join:',' }}"
+                            data-data="{{ chart_data|join:',' }}"
+                            class="w-full h-56"></canvas>
                 </div>
             </div>
 
             <!-- Последние визиты -->
             <div class="bg-white rounded-xl shadow p-6 mt-8">
                 <h2 class="text-lg font-semibold mb-4">Последние визиты</h2>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                        <tr class="text-left text-gray-500 border-b">
-                            <th class="py-2 pr-4">Дата</th>
-                            <th class="py-2 pr-4">Услуга</th>
-                            <th class="py-2 pr-4">Мастер</th>
-                            <th class="py-2 pr-4">Статус</th>
-                            <th class="py-2">Сумма</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <!-- DEMO-данные -->
-                        <tr class="border-b">
-                            <td class="py-2 pr-4 whitespace-nowrap">15.07.2025 12:00</td>
-                            <td class="py-2 pr-4">Маникюр классический</td>
-                            <td class="py-2 pr-4">Мария Иванова</td>
-                            <td class="py-2 pr-4">Завершён</td>
-                            <td class="py-2">2 000 ₽</td>
-                        </tr>
-                        <tr class="border-b">
-                            <td class="py-2 pr-4">01.06.2025 10:30</td>
-                            <td class="py-2 pr-4">Педикюр</td>
-                            <td class="py-2 pr-4">Ольга Сидорова</td>
-                            <td class="py-2 pr-4">Завершён</td>
-                            <td class="py-2">2 500 ₽</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 pr-4">20.04.2025 09:00</td>
-                            <td class="py-2 pr-4">Укрепление гелем</td>
-                            <td class="py-2 pr-4">Мария Иванова</td>
-                            <td class="py-2 pr-4">Завершён</td>
-                            <td class="py-2">3 000 ₽</td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
+                {% if recent_appointments %}
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                            <tr class="text-left text-gray-500 border-b">
+                                <th class="py-2 pr-4">Дата</th>
+                                <th class="py-2 pr-4">Услуга</th>
+                                <th class="py-2 pr-4">Мастер</th>
+                                <th class="py-2 pr-4">Статус</th>
+                                <th class="py-2">Сумма</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for a in recent_appointments %}
+                                <tr class="border-b">
+                                    <td class="py-2 pr-4 whitespace-nowrap">
+                                        {{ a.start_time|localtime|date:"d.m.Y H:i" }}
+                                    </td>
+                                    <td class="py-2 pr-4">{{ a.service.name }}</td>
+                                    <td class="py-2 pr-4">{{ a.master.get_full_name }}</td>
+                                    <td class="py-2 pr-4">{{ a.current_status }}</td>
+                                    <td class="py-2">{{ a.price|default:"—" }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-gray-500">Пока нет завершённых визитов.</p>
+                {% endif %}
             </div>
         </section>
 
@@ -116,100 +138,88 @@
                 </button>
             </div>
 
-            <!-- демо-список -->
-            <div class="space-y-4">
-                <div class="bg-white shadow rounded-lg p-4 flex justify-between items-center">
-                    <div>
-                        <p class="font-medium">10 сентября 2025, 11:00</p>
-                        <p class="text-sm text-gray-600">Снятие покрытия · Ольга Сидорова</p>
-                    </div>
-                    <div class="flex gap-3 text-sm">
-                        <button class="text-red-600 hover:underline">Отменить</button>
-                        <button class="text-indigo-600 hover:underline">Перенести</button>
-                    </div>
+            {% if appointments %}
+                <div class="space-y-4">
+                    {% for a in appointments %}
+                        <div class="bg-white shadow rounded-lg p-4 flex justify-between items-center
+                                    {% if a.start_time < now %}opacity-50{% endif %}">
+                            <div>
+                                <p class="font-medium">
+                                    {{ a.start_time|localtime|date:"d E Y, H:i" }}
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    {{ a.service.name }} · {{ a.master.get_full_name }}
+                                </p>
+                            </div>
+
+                            {% if a.start_time >= now %}
+                                <div class="flex gap-3 text-sm">
+                                    <a href="#" class="text-red-600 hover:underline">Отменить</a>
+                                    <a href="#" class="text-indigo-600 hover:underline">Перенести</a>
+                                </div>
+                            {% else %}
+                                <span class="text-xs text-gray-500">Завершён</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
                 </div>
-                <div class="bg-white shadow rounded-lg p-4 flex justify-between items-center opacity-50">
-                    <div>
-                        <p class="font-medium">15 июля 2025, 12:00</p>
-                        <p class="text-sm text-gray-600">Маникюр классический · Мария Иванова</p>
-                    </div>
-                    <span class="text-xs text-gray-500">Завершён</span>
-                </div>
-            </div>
+            {% else %}
+                <p class="text-gray-500">Записей нет.</p>
+            {% endif %}
         </section>
 
-        <!-- FILES -->
+        <!-- FILES (пока статично) -->
         <section id="tab-files" class="tab hidden">
             <h2 class="text-2xl font-semibold mb-6">Файлы</h2>
-
-            <div class="flex items-center gap-4 mb-8">
-                <input type="file" class="grow rounded-lg border border-gray-300 text-sm
-                       file:bg-indigo-600 file:text-white file:border-0 file:px-4 file:py-2 file:mr-4">
-                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                    Загрузить
-                </button>
-            </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-sm">
-                <div class="flex flex-col items-center">
-                    <img src="https://via.placeholder.com/120x160" class="rounded-lg shadow">
-                    <span class="mt-2">price_list.pdf</span>
-                </div>
-                <div class="flex flex-col items-center">
-                    <img src="https://via.placeholder.com/120x160/EEE" class="rounded-lg shadow">
-                    <span class="mt-2">contract.docx</span>
-                </div>
-                <div class="flex flex-col items-center">
-                    <img src="https://via.placeholder.com/120x160/DDD" class="rounded-lg shadow">
-                    <span class="mt-2">design.png</span>
-                </div>
-            </div>
+            <!-- позже подключим реальные данные -->
+            <p class="text-gray-500">Раздел в разработке.</p>
         </section>
 
-        <!-- NOTIFICATIONS -->
+        <!-- NOTIFICATIONS (пока статично) -->
         <section id="tab-notifications" class="tab hidden">
             <h2 class="text-2xl font-semibold mb-6">Уведомления</h2>
-
-            <div class="bg-white shadow rounded-xl divide-y">
-                <div class="p-4">
-                    <p class="font-medium">Запись подтверждена</p>
-                    <p class="text-xs text-gray-500">4 ч назад</p>
-                </div>
-                <div class="p-4">
-                    <p class="font-medium">Приглашаем оставить отзыв</p>
-                    <p class="text-xs text-gray-500">1 день назад</p>
-                </div>
-            </div>
+            <p class="text-gray-500">Раздел в разработке.</p>
         </section>
 
         <!-- PROFILE -->
         <section id="tab-profile" class="tab hidden">
             <h2 class="text-2xl font-semibold mb-6">Профиль</h2>
 
-            <form class="grid md:grid-cols-2 gap-6 bg-white shadow rounded-xl p-6">
+            <form method="post" class="grid md:grid-cols-2 gap-6 bg-white shadow rounded-xl p-6">
+                {% csrf_token %}
                 <div>
                     <label class="block text-sm font-medium">Имя</label>
-                    <input type="text" value="Анна" class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
+                    <input type="text" name="first_name"
+                           value="{{ request.user.first_name }}"
+                           class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="block text-sm font-medium">Фамилия</label>
-                    <input type="text" value="Петрова" class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
+                    <input type="text" name="last_name"
+                           value="{{ request.user.last_name }}"
+                           class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="block text-sm font-medium">Телефон</label>
-                    <input type="text" value="+7 900 123-45-67" class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
+                    <input type="text" name="phone"
+                           value="{{ profile.phone }}"
+                           class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="block text-sm font-medium">E-mail</label>
-                    <input type="email" value="anna@example.com" class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
+                    <input type="email" name="email"
+                           value="{{ request.user.email }}"
+                           class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="block text-sm font-medium">Дата рождения</label>
-                    <input type="date" value="1995-04-12" class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
+                    <input type="date" name="birth_date"
+                           value="{{ profile.birth_date|date:'Y-m-d' }}"
+                           class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
                 </div>
 
                 <div class="md:col-span-2 text-right">
-                    <button type="button"
+                    <button type="submit"
                             class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
                         Сохранить
                     </button>
@@ -222,16 +232,13 @@
 
 <!-- ▸▸ JS ◂◂ -->
 <script>
-/* --- переключение вкладок --- */
 document.addEventListener('DOMContentLoaded', () => {
+    /* --- переключение вкладок --- */
     const links = document.querySelectorAll('.sidebar-link');
     const tabs  = document.querySelectorAll('.tab');
 
     function activate(tabName) {
-        // показать нужную секцию
         tabs.forEach(t => t.classList.toggle('hidden', t.id !== 'tab-' + tabName));
-
-        // подсветить ссылку
         links.forEach(l => {
             const active = l.dataset.tab === tabName;
             l.classList.toggle('bg-indigo-50', active);
@@ -245,19 +252,16 @@ document.addEventListener('DOMContentLoaded', () => {
             activate(link.dataset.tab);
         });
     });
-
-    /* стартовая вкладка */
     activate('dashboard');
 
-    /* --- инициализация графика (демо-данные) --- */
+    /* --- Chart.js из реальных данных --- */
     const el = document.getElementById('stats_chart');
     if (el) {
+        const labels = el.dataset.labels ? el.dataset.labels.split(',') : [];
+        const data   = el.dataset.data   ? el.dataset.data.split(',').map(Number) : [];
         new Chart(el, {
             type: 'bar',
-            data: {
-                labels: ['Янв','Фев','Мар','Апр','Май','Июн','Июл'],
-                datasets: [{ data: [1,2,2,3,4,3,2], label: 'Визиты' }]
-            },
+            data: { labels, datasets: [{ data, label: 'Визиты' }] },
             options: {
                 plugins: { legend: { display: false }},
                 scales : { y: { beginAtZero: true, ticks: { stepSize: 1 }}}

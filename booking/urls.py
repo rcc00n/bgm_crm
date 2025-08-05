@@ -28,4 +28,6 @@ urlpatterns = [
     # --- Autocomplete API ---
     path("autocomplete/service/",        ServiceAutocomplete.as_view(),        name="service-autocomplete"),
    
+     path("", include("core.urls")),
 ]
+
