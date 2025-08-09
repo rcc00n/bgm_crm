@@ -8,7 +8,7 @@ from django.template.response import TemplateResponse
 from django.contrib import admin
 from django.db.models import Sum, Count
 from itertools import cycle
-from django.utils.timezone import localtime, make_aware, localdate
+from django.utils.timezone import localtime, datetime, make_aware, localdate
 from django.utils.html import escape
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -587,11 +587,15 @@ class ClientFileAdmin(admin.ModelAdmin):
     """
     Admin interface for managing user-uploaded files.
     """
-    list_display = ('user', 'file_type', 'file')
-    fields = ('user', 'file', 'file_type')
+    list_display = ('user', "uploaded_by" ,'file_type', 'file')
+    fields = ('user', 'file',"uploaded_by", 'file_type')
+    readonly_fields = ('file_type',)  # 👈 делаем только для чтения
+    exclude = ('file_type',)  # 👈 скрываем из формы создания
     list_filter = (('uploaded_at', DateFieldListFilter), 'file_type')
     search_fields = ('user__first_name', 'user__last_name')
     ordering = ['-uploaded_at']
+
+
 
 # -----------------------------
 # Client Review Admin

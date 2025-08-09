@@ -4,7 +4,8 @@ from django.db import models
 from django.contrib.auth.models import User
 import uuid
 from django.core.exceptions import ValidationError
-from datetime import timedelta, datetime, time
+from datetime import timedelta, time
+import os
 from django.utils import timezone
 from django.utils.timezone import localtime
 from core.validators import clean_phone
@@ -291,11 +292,35 @@ class ClientFile(models.Model):
     """
     Represents a file uploaded for a user, such as a document or image.
     """
+    USER = 'user'
+    ADMIN = 'admin'
+
+    OWNER_CHOICES = [
+        (USER, 'User'),
+        (ADMIN, 'Admin'),
+    ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
     file = models.FileField(upload_to='client_files/', storage=S3Boto3Storage()) # stored in S3!
-    file_type = models.CharField(max_length=50)
+    file_type = models.CharField(max_length=50, editable=False)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.CharField(
+        max_length=10,
+        choices=OWNER_CHOICES,
+        default=USER,
+        help_text="Who uploaded the file: admin or user"
+    )
+
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Optional description (e.g., 'Form before procedure')"
+    )
+    def save(self, *args, **kwargs):
+        if self.file and not self.file_type:
+            name, extension = os.path.splitext(self.file.name)
+            self.file_type = extension.lower().lstrip('.')  # без точки
+        super().save(*args, **kwargs)
 
 # --- 7. NOTIFICATIONS ---
 
@@ -451,3 +476,20 @@ class PromoCode(models.Model):
 class AppointmentPromoCode(models.Model):
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE)
     promocode = models.ForeignKey(PromoCode, on_delete=models.CASCADE)
+
+    def clean(self):
+        if self.promocode.end_date < timezone.now().date():
+            raise ValidationError({
+                "promocode": "This promocode is expired."
+            })
+        now = timezone.now()
+        discounts = ServiceDiscount.objects.filter(
+            service=self.appointment.service,
+            start_date__lte=now,
+            end_date__gte=now
+        ).exists()
+        if discounts:
+            raise ValidationError({
+                "promocode": "This Service already has a discount. Promocode can't be applied"
+            })
+

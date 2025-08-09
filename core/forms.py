@@ -216,7 +216,7 @@ class CustomUserChangeForm(UserChangeForm):
             ClientFile.objects.create(
                 user=user,
                 file=f,
-                file_type=f.content_type
+                file_type=""
             )
         return user
 
