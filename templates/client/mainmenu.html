@@ -16,7 +16,8 @@
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4em;padding:.75rem 1.75rem;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;transition:.25s all;white-space:nowrap;user-select:none}
     .btn--primary{background:var(--brand);color:#fff;border:none;}
     .btn--primary:hover{background:var(--brand-dark);transform:translateY(-2px);}
-    .btn--ghost{background:transparent;color:var(--brand);border:2px solid {--brand};}
+    .btn--ghost{background:transparent;color:var(--brand);border:2px solid var(--brand);}
+    .btn--ghost:hover{color:var(--brand-dark);border-color:var(--brand-dark);background:rgba(126,87,194,.08);transform:translateY(-2px);}
     .btn--ghost[disabled]{opacity:.45;cursor:not-allowed}
     .site-header{background:#fff;box-shadow:var(--shadow);position:sticky;top:0;z-index:100;padding-block:.75rem;}
     .site-header__inner{display:flex;align-items:center;justify-content:space-between;}
@@ -39,6 +40,27 @@
     .debug{background:#fff7cd;border:1px dashed #e2a400;border-radius:10px;padding:.75rem 1rem;margin:1rem 0;font-size:.9rem;color:#715100}
     .debug code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
     .site-footer{text-align:center;font-size:.875rem;color:var(--text-muted);padding:2rem 1rem}
+
+    /* ===== modal booking ===== */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000}
+    .modal--open{display:flex}
+    .modal__dialog{background:#fff;border-radius:1rem;box-shadow:0 12px 30px rgba(0,0,0,.18);width:min(720px,96vw);padding:1.25rem 1.25rem 1rem}
+    .modal__header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
+    .modal__title{font-weight:800;font-size:1.15rem}
+    .modal__close{background:transparent;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:#666}
+    .grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:1rem}
+    .field{display:flex;flex-direction:column;gap:.35rem}
+    .field label{font-size:.9rem;color:#555}
+    .field input,.field select{padding:.6rem .8rem;border:1px solid #ccc;border-radius:.6rem;font-size:.95rem}
+    .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem;margin-top:.5rem;max-height:240px;overflow:auto;border:1px dashed #eee;padding:.5rem;border-radius:.5rem}
+    .slot{padding:.5rem .65rem;border:1px solid #ddd;border-radius:.6rem;cursor:pointer;text-align:center}
+    .slot--active{border-color:var(--brand);background:#f3effd;color:#2b2060;font-weight:700}
+    .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
+    .hint{font-size:.85rem;color:#666}
+    .error{color:#b00020;font-size:.9rem;margin-top:.5rem}
+    .success{color:#0a7a3b;font-size:.95rem;margin-top:.5rem}
+    .skeleton{background:linear-gradient(90deg,#eee, #f6f6f6, #eee);background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;border-radius:.5rem;height:36px}
+    @keyframes sh {0%{background-position:200% 0}100%{background-position:-200% 0}}
   </style>
 </head>
 <body>
@@ -48,10 +70,8 @@
       <span class="logo">Malva Booking</span>
       <nav>
         {% if user.is_authenticated %}
-          <!-- ведём напрямую в кабинет -->
           <a href="{% url 'dashboard' %}" class="btn btn--ghost">Личный кабинет</a>
         {% else %}
-          <!-- для гостей: на логин с next=dashboard -->
           <a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Личный кабинет</a>
         {% endif %}
       </nav>
@@ -98,7 +118,6 @@
       </select>
       <button class="btn btn--primary" type="submit">Найти</button>
       {% if q or active_category %}
-        <!-- сбрасываем фильтры на каталог -->
         <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Сбросить</a>
       {% endif %}
     </form>
@@ -125,7 +144,10 @@
               {% endwith %}
               · {{ s.duration_min }} мин
             </div>
-            <button class="btn btn--primary" disabled title="Скоро">Выбрать время</button>
+            <button class="btn btn--primary book-btn"
+                    data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+              Выбрать время
+            </button>
           </article>
         {% empty %}
           <div class="stub">По запросу «{{ q }}» ничего не найдено.</div>
@@ -155,7 +177,10 @@
               {% endwith %}
               · {{ s.duration_min }} мин
             </div>
-            <button class="btn btn--primary" disabled title="Скоро">Выбрать время</button>
+            <button class="btn btn--primary book-btn"
+                    data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+              Выбрать время
+            </button>
           </article>
         {% empty %}
           <div class="stub">В категории пока нет услуг.</div>
@@ -183,7 +208,10 @@
               {% endwith %}
               · {{ s.duration_min }} мин
             </div>
-            <button class="btn btn--primary" disabled title="Скоро">Выбрать время</button>
+            <button class="btn btn--primary book-btn"
+                    data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+              Выбрать время
+            </button>
           </article>
         {% endfor %}
       </div>
@@ -195,5 +223,220 @@
   </main>
 
   <footer class="site-footer">© 2025 Malva Booking</footer>
+
+  <!-- ===== Modal: booking ===== -->
+  <div class="modal" id="bookModal" aria-hidden="true">
+    <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
+      <div class="modal__header">
+        <div class="modal__title" id="bookTitle">Запись на <span id="bookServiceName"></span></div>
+        <button class="modal__close" id="bookClose" aria-label="Закрыть">×</button>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="field">
+            <label for="bookDate">Дата</label>
+            <input type="date" id="bookDate">
+          </div>
+          <div class="field" style="margin-top:.5rem">
+            <label for="bookMaster">Мастер</label>
+            <select id="bookMaster"></select>
+          </div>
+          <div class="field" style="margin-top:.5rem">
+            <label>Свободные слоты</label>
+            <div class="slots" id="bookSlots">
+              <div class="skeleton"></div>
+            </div>
+            <div class="hint">Выберите удобное время. Слоты учитывают длительность услуги и занятость мастера.</div>
+          </div>
+        </div>
+        <div>
+          <div class="field">
+            <label>Сводка</label>
+            <div class="muted" id="bookSummary">Выберите дату, мастера и время.</div>
+          </div>
+          <div class="error" id="bookError" style="display:none;"></div>
+          <div class="success" id="bookSuccess" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="modal__footer">
+        <button class="btn btn--ghost" id="bookCancel">Отмена</button>
+        <button class="btn btn--primary" id="bookSubmit" disabled>Подтвердить запись</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const isAuth = {{ user.is_authenticated|yesno:"true,false" }};
+      const loginUrl = "{% url 'login' %}?next={{ request.path }}";
+      const apiAvail = "/accounts/api/availability/";
+      const apiBook = "/accounts/api/book/";
+
+      // helpers
+      function getCookie(name){
+        const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return m ? m.pop() : '';
+      }
+      function fmtTime(iso){
+        try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+        catch(e){ return iso; }
+      }
+      function todayStr(){
+        const d = new Date();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        return `${d.getFullYear()}-${m}-${day}`;
+      }
+
+      // modal elements
+      const modal = document.getElementById('bookModal');
+      const btnClose = document.getElementById('bookClose');
+      const btnCancel = document.getElementById('bookCancel');
+      const btnSubmit = document.getElementById('bookSubmit');
+      const elServiceName = document.getElementById('bookServiceName');
+      const elDate = document.getElementById('bookDate');
+      const elMaster = document.getElementById('bookMaster');
+      const elSlots = document.getElementById('bookSlots');
+      const elSummary = document.getElementById('bookSummary');
+      const elError = document.getElementById('bookError');
+      const elSuccess = document.getElementById('bookSuccess');
+
+      let current = { serviceId: null, serviceName: '', masterId: null, slot: null, mastersData: [] };
+
+      function openModal(serviceId, serviceName){
+        if(!isAuth){ window.location = loginUrl; return; }
+        current = { serviceId, serviceName, masterId: null, slot: null, mastersData: [] };
+        elServiceName.textContent = serviceName;
+        elError.style.display = 'none';
+        elSuccess.style.display = 'none';
+        btnSubmit.disabled = true;
+        elDate.min = todayStr();
+        elDate.value = todayStr();
+        elMaster.innerHTML = '';
+        elSlots.innerHTML = '<div class="skeleton"></div>';
+        elSummary.textContent = 'Выберите дату, мастера и время.';
+        modal.classList.add('modal--open');
+        loadAvailability(); // initial
+      }
+      function closeModal(){
+        modal.classList.remove('modal--open');
+      }
+
+      async function loadAvailability(){
+        elError.style.display = 'none';
+        elSlots.innerHTML = '<div class="skeleton"></div>';
+        btnSubmit.disabled = true;
+        current.slot = null;
+
+        const params = new URLSearchParams({ service: current.serviceId, date: elDate.value });
+        try{
+          const resp = await fetch(`${apiAvail}?` + params.toString(), { credentials:'same-origin' });
+          if(!resp.ok){ throw new Error('Ошибка загрузки слотов'); }
+          const data = await resp.json();
+          current.mastersData = data.masters || [];
+
+          // fill masters
+          elMaster.innerHTML = '';
+          if(current.mastersData.length === 0){
+            const opt = document.createElement('option');
+            opt.value = ''; opt.textContent = 'Мастера не найдены';
+            elMaster.appendChild(opt);
+            elSlots.innerHTML = '<div class="hint">Нет мастеров для этой услуги.</div>';
+            return;
+          }
+          current.mastersData.forEach(m=>{
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = `${m.name}`;
+            elMaster.appendChild(opt);
+          });
+
+          // choose default master: первый с доступными слотами, иначе первый
+          const withSlots = current.mastersData.find(m => (m.slots||[]).length);
+          elMaster.value = (withSlots ? withSlots.id : current.mastersData[0].id);
+          renderSlots();
+        }catch(err){
+          elError.textContent = err.message || 'Не удалось получить доступность';
+          elError.style.display = 'block';
+          elSlots.innerHTML = '';
+        }
+      }
+
+      function renderSlots(){
+        const mId = Number(elMaster.value);
+        current.masterId = mId;
+        const m = current.mastersData.find(x => Number(x.id) === mId);
+        const slots = (m && m.slots) ? m.slots : [];
+        elSlots.innerHTML = '';
+        if(slots.length === 0){
+          elSlots.innerHTML = '<div class="hint">Нет свободных слотов на выбранную дату.</div>';
+          btnSubmit.disabled = true;
+          elSummary.textContent = 'Свободных слотов нет. Попробуйте другую дату.';
+          return;
+        }
+        slots.forEach(iso=>{
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'slot';
+          b.textContent = fmtTime(iso);
+          b.dataset.iso = iso;
+          b.addEventListener('click', ()=>{
+            [...elSlots.querySelectorAll('.slot')].forEach(x=>x.classList.remove('slot--active'));
+            b.classList.add('slot--active');
+            current.slot = iso;
+            btnSubmit.disabled = false;
+            elSummary.textContent = `Мастер: ${m.name}. Время: ${fmtTime(iso)}.`;
+          });
+          elSlots.appendChild(b);
+        });
+      }
+
+      async function submitBooking(){
+        if(!current.serviceId || !current.masterId || !current.slot) return;
+        btnSubmit.disabled = true;
+        elError.style.display = 'none';
+        elSuccess.style.display = 'none';
+
+        try{
+          const resp = await fetch(apiBook, {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            credentials:'same-origin',
+            body: JSON.stringify({ service: current.serviceId, master: current.masterId, start_time: current.slot })
+          });
+          const data = await resp.json().catch(()=> ({}));
+          if(!resp.ok){
+            const msg = data && (data.error || data.detail) ? (data.error || data.detail) : 'Не удалось создать запись';
+            throw new Error(msg);
+          }
+          elSuccess.textContent = 'Запись создана! ' + (data.appointment?.start_time ? ('Время: ' + fmtTime(data.appointment.start_time)) : '');
+          elSuccess.style.display = 'block';
+          setTimeout(()=>{ window.location.reload(); }, 700);
+        }catch(err){
+          elError.textContent = err.message || 'Ошибка бронирования';
+          elError.style.display = 'block';
+          btnSubmit.disabled = false;
+        }
+      }
+
+      // events
+      document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.book-btn');
+        if(btn){
+          const id = btn.dataset.serviceId;
+          const name = btn.dataset.serviceName || 'услугу';
+          openModal(id, name);
+        }
+      });
+      btnClose.addEventListener('click', closeModal);
+      btnCancel.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e)=> { if(e.target === modal) closeModal(); });
+      elDate.addEventListener('change', loadAvailability);
+      elMaster.addEventListener('change', renderSlots);
+      btnSubmit.addEventListener('click', submitBooking);
+    })();
+  </script>
 </body>
 </html>
