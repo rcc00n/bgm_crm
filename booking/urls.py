@@ -1,33 +1,22 @@
 """
-URL configuration for the *booking* project.
+URL configuration for the booking project.
 
-Routes hierarchy:
-  /                 → Главное меню (только для клиентов)
-  /dashboard/       → Личный кабинет клиента
-  /accounts/...     → login / logout / register (accounts.urls)
-  /admin/           → Django‑admin
-  /autocomplete/... → Select2 endpoints
+Routes:
+  /admin/                 → Django admin
+  /accounts/              → модуль аккаунтов (login/register/dashboard/...) + каталог (на корне)
+  /autocomplete/...       → Select2 endpoints
 """
 from django.contrib import admin
 from django.urls import path, include
-
-# from accounts.views import MainMenuView, ClientDashboardView
 from core.autocomplete import ServiceAutocomplete
 
 urlpatterns = [
-    # --- Admin ---
     path("admin/", admin.site.urls),
 
-    # # --- Клиентская часть ---
-    # path("", MainMenuView.as_view(),          name="mainmenu"),
-    # path("dashboard/", ClientDashboardView.as_view(), name="client_dashboard"),
-
-    # --- Auth / Accounts ---
+    # ВАЖНО: подключаем accounts БЕЗ namespace, чтобы {% url 'register' %} и т.п. работали
     path("accounts/", include("accounts.urls")),
 
-    # --- Autocomplete API ---
-    path("autocomplete/service/",        ServiceAutocomplete.as_view(),        name="service-autocomplete"),
-   
-     path("", include("core.urls")),
-]
+    path("autocomplete/service/", ServiceAutocomplete.as_view(), name="service-autocomplete"),
 
+    # Ничего из core тут не монтируем, чтобы не перехватывать /accounts/
+]
