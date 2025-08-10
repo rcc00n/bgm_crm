@@ -243,7 +243,44 @@ class Appointment(models.Model):
             if self.start_time < period.end_time and this_end > period.start_time:
                 raise ValidationError({"start_time": "This appointment falls within the master's time off or vacation."})
 
+        master_profile = getattr(self.master, "master_profile", None)
+        if master_profile and self.start_time:
+            local_start_dt = localtime(self.start_time)
 
+            # длительность услуги с учётом extra_time_min
+            extra_min = self.service.extra_time_min or 0
+            total_minutes = self.service.duration_min + extra_min
+            local_end_dt = local_start_dt + timedelta(minutes=total_minutes)
+
+            # рабочее окно мастера на ДАННУЮ дату
+            ws: time = master_profile.work_start
+            we: time = master_profile.work_end
+
+            work_start_dt = local_start_dt.replace(hour=ws.hour, minute=ws.minute, second=0, microsecond=0)
+            work_end_dt   = local_start_dt.replace(hour=we.hour, minute=we.minute, second=0, microsecond=0)
+
+            # Если смена «через полночь» (например, 22:00–06:00), расширяем конец на следующий день
+            if work_end_dt <= work_start_dt:
+                work_end_dt += timedelta(days=1)
+                # если встреча начинается после полуночи (т.е. до work_end), тоже считаем её «следующим днём»
+                if local_end_dt <= work_start_dt:
+                    local_end_dt += timedelta(days=1)
+                if local_start_dt <= work_start_dt:
+                    local_start_dt += timedelta(days=1)
+
+            # 1) старт раньше начала смены
+            if local_start_dt < work_start_dt:
+                raise ValidationError({
+                    "start_time": f"Start time ({local_start_dt.strftime('%H:%M')}) earlier than masters shift starts  "
+                                  f"({work_start_dt.strftime('%H:%M')})."
+                })
+
+            # 2) конец позже конца смены
+            if local_end_dt > work_end_dt:
+                raise ValidationError({
+                    "start_time": f"The appointment ends at ({local_end_dt.strftime('%H:%M')}) which is later then master's end of shift "
+                                  f"({work_end_dt.strftime('%H:%M')})."
+                })
 
 class AppointmentStatusHistory(models.Model):
     """
