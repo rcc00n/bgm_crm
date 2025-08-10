@@ -9,6 +9,7 @@ Routes:
 from django.contrib import admin
 from django.urls import path, include
 from core.autocomplete import ServiceAutocomplete
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -18,5 +19,6 @@ urlpatterns = [
 
     path("autocomplete/service/", ServiceAutocomplete.as_view(), name="service-autocomplete"),
 
+     path("", RedirectView.as_view(pattern_name="client-dashboard", permanent=False)),
     # Ничего из core тут не монтируем, чтобы не перехватывать /accounts/
 ]

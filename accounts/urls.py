@@ -8,6 +8,7 @@ from .views import (
     MainMenuView,  # можно оставить, если где-то используется
 )
 from core.views import public_mainmenu, api_availability, api_book
+from django.contrib.auth.views import LogoutView
 
 urlpatterns = [
     # Публичная главная (каталог) для всех
@@ -26,4 +27,5 @@ urlpatterns = [
     # API бронирования (требует логина)
     path("api/availability/", api_availability, name="api-availability"),
     path("api/book/",         api_book,         name="api-book"),
+    path("logout/", LogoutView.as_view(next_page="/accounts/"), name="logout"),
 ]

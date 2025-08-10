@@ -40,11 +40,28 @@
             👤 <span>Профиль</span>
         </a>
 
-        <!-- кнопка «На главную» → /accounts/ -->
+                <!-- кнопка «На главную» → /accounts/ -->
         <a href="/accounts/"
            class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
             ⬅️ <span>На&nbsp;главную</span>
         </a>
+
+        <!-- разделитель -->
+        <div class="my-3 border-t border-gray-100"></div>
+
+        <!-- Выйти (POST), стилизовано как пункт меню -->
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit"
+                  class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-md
+                         text-rose-600 hover:text-rose-700 hover:bg-rose-50
+                         focus:outline-none focus:ring-2 focus:ring-rose-300 transition">
+            🚪 <span>Выйти</span>
+          </button>
+        </form>
+
+
+
     </nav>
 </aside>
 
