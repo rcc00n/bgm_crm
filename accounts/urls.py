@@ -9,7 +9,10 @@ from .views import (
 )
 from core.views import public_mainmenu, api_availability, api_book
 from django.contrib.auth.views import LogoutView
-
+from core.views import (
+    public_mainmenu, api_availability, api_book,
+    api_appointment_cancel, api_appointment_reschedule,   # ← добавить
+)
 urlpatterns = [
     # Публичная главная (каталог) для всех
     path("", public_mainmenu, name="client-dashboard"),
@@ -28,4 +31,8 @@ urlpatterns = [
     path("api/availability/", api_availability, name="api-availability"),
     path("api/book/",         api_book,         name="api-book"),
     path("logout/", LogoutView.as_view(next_page="/accounts/"), name="logout"),
+    
+    path("api/appointment/<uuid:appt_id>/cancel/",     api_appointment_cancel,     name="api-appt-cancel"),
+    path("api/appointment/<uuid:appt_id>/reschedule/", api_appointment_reschedule, name="api-appt-reschedule"),
+
 ]

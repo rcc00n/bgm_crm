@@ -166,3 +166,97 @@ def api_book(request):
             "start_time": appt.start_time.isoformat(),
         }
     }, status=201)
+
+# --- API: отмена/перенос записи ---
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+
+from core.models import (
+    Appointment, AppointmentStatus, AppointmentStatusHistory,
+    CustomUserDisplay, ServiceMaster
+)
+
+def _status(name: str) -> AppointmentStatus:
+    obj, _ = AppointmentStatus.objects.get_or_create(name=name)
+    return obj
+
+@login_required
+@require_POST
+@csrf_protect
+def api_appointment_cancel(request, appt_id):
+    appt = get_object_or_404(Appointment.objects.select_related("client", "service", "master"), pk=appt_id)
+    # только владелец или staff
+    if not (request.user.is_staff or appt.client_id == request.user.id):
+        return HttpResponseForbidden("not allowed")
+
+    cancelled = _status("Cancelled")
+    # уже отменена?
+    if appt.appointmentstatushistory_set.filter(status=cancelled).exists():
+        return JsonResponse({"ok": True, "already": True})
+
+    with transaction.atomic():
+        AppointmentStatusHistory.objects.create(
+            appointment=appt,
+            status=cancelled,
+            set_by=request.user,
+        )
+    return JsonResponse({"ok": True})
+
+@login_required
+@require_POST
+@csrf_protect
+def api_appointment_reschedule(request, appt_id):
+    """
+    JSON: { "start_time": "<ISO8601>", "master": <user_id optional> }
+    Меняет время (и по желанию мастера) с валидацией Appointment.clean().
+    """
+    appt = get_object_or_404(Appointment.objects.select_related("client", "service", "master"), pk=appt_id)
+    if not (request.user.is_staff or appt.client_id == request.user.id):
+        return HttpResponseForbidden("not allowed")
+
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return HttpResponseBadRequest("invalid json")
+
+    start_iso = payload.get("start_time")
+    if not start_iso:
+        return HttpResponseBadRequest("start_time required")
+
+    # разбираем дату/время
+    try:
+        new_start = parse_datetime(start_iso) or _tz_aware(datetime.fromisoformat(start_iso))
+        if not timezone.is_aware(new_start):
+            new_start = _tz_aware(new_start)
+    except Exception:
+        return HttpResponseBadRequest("invalid start_time")
+
+    # смена мастера (опционально)
+    master_id = payload.get("master")
+    if master_id:
+        new_master = get_object_or_404(CustomUserDisplay, pk=master_id)
+        # мастер должен уметь услугу
+        if not ServiceMaster.objects.filter(service=appt.service, master=new_master).exists():
+            return HttpResponseBadRequest("master can't perform this service")
+        appt.master = new_master
+
+    appt.start_time = new_start
+
+    # валидация пересечений/комнат/отпусков
+    appt.full_clean()
+    with transaction.atomic():
+        appt.save()
+        # история статусов
+        AppointmentStatusHistory.objects.create(
+            appointment=appt,
+            status=_status("Rescheduled"),
+            set_by=request.user,
+        )
+
+    return JsonResponse({"ok": True, "appointment": {
+        "id": str(appt.pk),
+        "start_time": appt.start_time.isoformat(),
+        "master": appt.master.get_full_name() or appt.master.username
+    }})
