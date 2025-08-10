@@ -1,5 +1,11 @@
 ### Commands:
 
+
+Kill the port:
+```
+fuser -k 8000/tcp
+```
+
 Command to activate the enviroment and install dependencies:
 ```bash
 python -m venv venv
