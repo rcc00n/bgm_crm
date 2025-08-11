@@ -23,7 +23,7 @@ from core.models import (
 
 from .forms import (
     ClientRegistrationForm,
-    ClientProfileForm,   # ← форма профиля (должна быть определена в accounts/forms.py)
+    ClientProfileForm,
 )
 
 
@@ -52,16 +52,12 @@ class RoleBasedLoginView(LoginView):
         if "Client" in role_names:
             return reverse("mainmenu")
 
-        # запасной вариант — поведение по умолчанию LoginView
         return super().get_success_url()
 
 
 class RoleRequiredMixin(LoginRequiredMixin):
     """
-    Миксин для ограничения доступа по конкретной роли.
-    Использование:
-        class SomeView(RoleRequiredMixin, TemplateView):
-            required_role = "Client"
+    Ограничение доступа по конкретной роли.
     """
     required_role: str | None = None
 
@@ -72,12 +68,9 @@ class RoleRequiredMixin(LoginRequiredMixin):
 
 
 # =========================
-# Главная клиента (публичное меню)
+# Главная клиента (каталог)
 # =========================
 class MainMenuView(LoginRequiredMixin, TemplateView):
-    """
-    Публичный каталог услуг (главное меню для клиента) — доступ только пользователям с ролью Client.
-    """
     template_name = "client/mainmenu.html"
     login_url = reverse_lazy("login")
     redirect_field_name = "next"
@@ -93,9 +86,8 @@ class MainMenuView(LoginRequiredMixin, TemplateView):
 # =========================
 class ClientDashboardView(LoginRequiredMixin, TemplateView):
     """
-    Личный кабинет клиента (dashboard) с возможностью редактировать профиль.
-    GET  → отдаёт страницу и данные
-    POST → обрабатывает форму профиля, сохраняет User + UserProfile
+    GET  → страница и данные
+    POST → сохранение профиля (User + UserProfile)
     """
     template_name = "client/dashboard.html"
 
@@ -107,17 +99,17 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         # профиль может отсутствовать → None
         ctx["profile"] = getattr(user, "userprofile", None)
 
-        # для секции «Каталог/Быстрые действия» — список услуг
+        # быстрые действия — список услуг
         ctx["services"] = Service.objects.all().order_by("name")
 
-        # быстрый подзапрос на последний статус записи
+        # подзапрос на последний статус записи
         latest_status = (
             AppointmentStatusHistory.objects.filter(appointment_id=OuterRef("pk"))
             .order_by("-set_at")
             .values("status__name")[:1]
         )
 
-        # все записи текущего клиента
+        # все записи клиента (для статистики/истории)
         qs = (
             Appointment.objects
             .filter(client=user)
@@ -125,10 +117,19 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
             .annotate(current_status=Subquery(latest_status))
             .order_by("-start_time")
         )
-
         ctx["appointments"] = qs
-        ctx["next_appointment"] = qs.filter(start_time__gte=now).first()
+
+        # прошлые и будущие
         ctx["recent_appointments"] = qs.filter(start_time__lt=now)[:5]
+
+        # 🔹 все будущие (по возрастанию), исключая отменённые
+        upcoming_qs = (
+            qs.filter(start_time__gte=now)
+              .exclude(current_status="Cancelled")
+              .order_by("start_time")
+        )
+        ctx["upcoming_appointments"] = upcoming_qs
+        ctx["next_appointment"] = upcoming_qs.first()  # для обратной совместимости
 
         # статистика по месяцам (для графика)
         month_counts = (
@@ -145,17 +146,15 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         """
-        Обработка формы профиля на вкладке Profile.
-        Ожидаются поля: first_name, last_name, email, phone, birth_date (YYYY-MM-DD).
+        Форма профиля (вкладка Profile).
+        Поля: first_name, last_name, email, phone, birth_date (YYYY-MM-DD).
         """
         form = ClientProfileForm(request.POST, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, "Профиль обновлён.")
-            # Вернём пользователя на вкладку Profile
             return redirect(reverse("dashboard") + "#profile")
 
-        # В случае ошибок — отрисуем ту же страницу с сообщениями об ошибках
         ctx = self.get_context_data()
         ctx["profile_form_errors"] = form.errors
         return self.render_to_response(ctx, status=400)
@@ -173,9 +172,6 @@ class MasterDashboardView(RoleRequiredMixin, TemplateView):
 # Список записей клиента
 # =========================
 class ClientAppointmentsListView(RoleRequiredMixin, ListView):
-    """
-    Пагинированный список всех записей клиента.
-    """
     required_role = "Client"
     model = Appointment
     template_name = "client/appointments_list.html"
@@ -194,13 +190,6 @@ class ClientAppointmentsListView(RoleRequiredMixin, ListView):
 # Регистрация клиента (AJAX-friendly)
 # =========================
 class ClientRegisterView(CreateView):
-    """
-    Регистрация клиента.
-    Если запрос AJAX:
-        • form_valid  → HttpResponse("OK")
-        • form_invalid → JsonResponse(errors, 400)
-    Иначе — стандартный redirect на страницу логина.
-    """
     form_class = ClientRegistrationForm
     template_name = "registration/register_popup.html"
     success_url = None  # вычисляем в get_success_url()
@@ -217,5 +206,4 @@ class ClientRegisterView(CreateView):
         return super().form_invalid(form)
 
     def get_success_url(self):
-        # вызывать reverse только здесь, когда URLConf уже загружен
         return f"{reverse('login')}?registered=1"

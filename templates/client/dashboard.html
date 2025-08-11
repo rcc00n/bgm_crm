@@ -70,26 +70,33 @@
       </h1>
 
       <div class="grid lg:grid-cols-3 gap-6">
-        <!-- Next appointment -->
-        <div class="bg-white rounded-2xl shadow p-6 border border-[#DAD3C1]">
-          <h2 class="text-lg font-semibold mb-4">Next appointment</h2>
-          {% if next_appointment %}
-            <p class="font-semibold text-[#204029]">
-              {{ next_appointment.start_time|localtime|date:"d M Y, H:i" }}
-            </p>
-            <p class="text-sm text-[#4D4D4D]">
-              {{ next_appointment.service.name }} · {{ next_appointment.master.get_full_name }}
-            </p>
-            <div class="mt-4 flex gap-4 text-sm">
-              <a href="#" class="appt-cancel text-[#4D4D4D] hover:text-[#AF9525] underline-offset-4 hover:underline"
-                 data-appt-id="{{ next_appointment.id }}">Cancel</a>
-              <a href="#" class="appt-reschedule text-[#AF9525] hover:opacity-90 underline-offset-4 hover:underline"
-                 data-appt-id="{{ next_appointment.id }}" data-service-id="{{ next_appointment.service.id }}">Reschedule</a>
-            </div>
-          {% else %}
-            <p class="text-[#4D4D4D]/70">No upcoming appointments.</p>
-          {% endif %}
-        </div>
+        <!-- Next appointment → Upcoming appointments -->
+<div class="bg-white rounded-2xl shadow p-6 border border-[#DAD3C1]">
+  <h2 class="text-lg font-semibold mb-4">Upcoming appointments</h2>
+
+  {% if upcoming_appointments %}
+    <ul class="space-y-4 max-h-64 overflow-y-auto pr-1">
+      {% for a in upcoming_appointments %}
+        <li>
+          <p class="font-semibold text-[#204029]">
+            {{ a.start_time|localtime|date:"d M Y, H:i" }}
+          </p>
+          <p class="text-sm text-[#4D4D4D]">
+            {{ a.service.name }} · {{ a.master.get_full_name }}
+          </p>
+          <div class="mt-2 flex gap-4 text-sm">
+            <a href="#" class="appt-cancel text-[#4D4D4D] hover:text-[#AF9525] underline-offset-4 hover:underline"
+               data-appt-id="{{ a.id }}">Cancel</a>
+            <a href="#" class="appt-reschedule text-[#AF9525] hover:opacity-90 underline-offset-4 hover:underline"
+               data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">Reschedule</a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-[#4D4D4D]/70">No upcoming appointments.</p>
+  {% endif %}
+</div>
 
         <!-- Stats -->
         <div class="bg-white rounded-2xl shadow p-6 lg:col-span-2 border border-[#DAD3C1]">
