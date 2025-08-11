@@ -10,7 +10,7 @@ from django.contrib import admin
 from django.urls import path, include
 from core.autocomplete import ServiceAutocomplete
 from django.views.generic import RedirectView
-
+from core.views import service_search
 urlpatterns = [
     path("admin/", admin.site.urls),
 
@@ -21,4 +21,5 @@ urlpatterns = [
 
      path("", RedirectView.as_view(pattern_name="client-dashboard", permanent=False)),
     # Ничего из core тут не монтируем, чтобы не перехватывать /accounts/
+    path('accounts/api/services/search/', service_search, name='service-search'),
 ]

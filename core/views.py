@@ -260,3 +260,39 @@ def api_appointment_reschedule(request, appt_id):
         "start_time": appt.start_time.isoformat(),
         "master": appt.master.get_full_name() or appt.master.username
     }})
+
+
+# core/views.py
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+from django.db.models import Q
+from .models import Service
+
+@require_GET
+def service_search(request):
+    q = (request.GET.get('q') or '').strip()
+    cat = request.GET.get('cat') or ''
+    qs = Service.objects.select_related('category')
+
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    if cat:
+        qs = qs.filter(category_id=cat)
+
+    qs = qs.order_by('name')[:60]  # ограничим выдачу
+
+    results = []
+    for s in qs:
+        disc = s.get_active_discount()
+        price = str(s.get_discounted_price()) if disc else str(s.base_price)
+        results.append({
+            "id": str(s.id),
+            "name": s.name,
+            "category": s.category.name if s.category_id else "",
+            "description": (s.description or "")[:280],
+            "base_price": str(s.base_price),
+            "price": price,
+            "discount_percent": disc.discount_percent if disc else None,
+            "duration_min": s.duration_min,
+        })
+    return JsonResponse({"results": results})

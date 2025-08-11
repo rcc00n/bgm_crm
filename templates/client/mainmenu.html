@@ -99,10 +99,6 @@
     /* ===== Footer ===== */
     .site-footer{text-align:center;font-size:.875rem;color:#666;padding:2rem 1rem}
 
-    /* ===== Debug (optional) ===== */
-    .debug{background:#fff7cd;border:1px dashed #e2a400;border-radius:10px;padding:.75rem 1rem;margin:1rem 0;font-size:.9rem;color:#715100}
-    .debug code{font-family:ui-monospace,Menlo,Consolas,monospace}
-
     /* ===== Modal: booking ===== */
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000}
     .modal--open{display:flex}
@@ -154,25 +150,6 @@
   <main id="services" class="container" style="padding-block:3rem;">
     <h2 style="font-size:1.75rem;font-weight:800;margin-bottom:1.5rem;color:var(--green);">Services</h2>
 
-    <!-- 🔎 DEBUG (optional)
-    <div class="debug">
-      <div><strong>DEBUG:</strong>
-        categories=<code>{{ categories|length }}</code>,
-        filter_categories=<code>{{ filter_categories|length }}</code>,
-        has_any_services=<code>{{ has_any_services }}</code>,
-        q=<code>{{ q }}</code>,
-        active_category=<code>{{ active_category }}</code>,
-        uncategorized=<code>{% if uncategorized %}yes{% else %}no{% endif %}</code>
-      </div>
-      {% if categories %}
-        <div style="margin-top:.5rem">
-          {% for c in categories %}
-            <div>cat “{{ c.name }}”: <code>{{ c.service_set.all|length }}</code> items</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    </div> -->
-
     <!-- Filters -->
     <form method="get" class="filters" role="search">
       <input type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
@@ -188,104 +165,109 @@
       {% endif %}
     </form>
 
-    <!-- Search results -->
-    {% if search_results %}
-      <h3 style="margin:.5rem 0 1rem;">Search results</h3>
-      <div class="services-grid">
-        {% for s in search_results %}
-          <article class="service-card">
-            <div class="service-card__img">IMG</div>
-            <div class="muted">{{ s.category.name }}</div>
-            <h3>{{ s.name }}</h3>
-            {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
-            <div class="service-meta">
-              {% with disc=s.get_active_discount %}
-                {% if disc %}
-                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                  <span class="badge">-{{ disc.discount_percent }}%</span>
-                {% else %}
-                  <strong>${{ s.base_price|floatformat:2 }}</strong>
-                {% endif %}
-              {% endwith %}
-              · {{ s.duration_min }} min
-            </div>
-            <button class="btn btn--primary book-btn"
-                    data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-              Pick a time
-            </button>
-          </article>
-        {% empty %}
-          <div class="stub">No results for “{{ q }}”.</div>
-        {% endfor %}
-      </div>
-      <hr style="margin:2rem 0;border:none;border-top:1px solid var(--lgray)">
-    {% endif %}
+    <!-- Live results (JS) -->
+    <h3 id="liveTitle" style="margin:.5rem 0 1rem; display:none;">Search results</h3>
+    <div id="liveGrid" class="services-grid" style="display:none;"></div>
 
-    <!-- Categories & services -->
-    {% for c in categories %}
-      <h3 style="margin:1.5rem 0 .75rem;color:var(--green);font-weight:800">{{ c.name }}</h3>
-      <div class="services-grid">
-        {% for s in c.service_set.all %}
-          <article class="service-card">
-            <div class="service-card__img">IMG</div>
-            <h3>{{ s.name }}</h3>
-            {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
-            <div class="service-meta">
-              {% with disc=s.get_active_discount %}
-                {% if disc %}
-                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                  <span class="badge">-{{ disc.discount_percent }}%</span>
-                {% else %}
-                  <strong>${{ s.base_price|floatformat:2 }}</strong>
-                {% endif %}
-              {% endwith %}
-              · {{ s.duration_min }} min
-            </div>
-            <button class="btn btn--primary book-btn"
-                    data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-              Pick a time
-            </button>
-          </article>
-        {% empty %}
-          <div class="stub">No services in this category yet.</div>
-        {% endfor %}
-      </div>
-    {% endfor %}
+    <!-- Server-rendered fallback/results -->
+    <div id="serverContent">
+      {% if search_results %}
+        <h3 style="margin:.5rem 0 1rem;">Search results</h3>
+        <div class="services-grid">
+          {% for s in search_results %}
+            <article class="service-card">
+              <div class="service-card__img">IMG</div>
+              <div class="muted">{{ s.category.name }}</div>
+              <h3>{{ s.name }}</h3>
+              {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
+              <div class="service-meta">
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <strong>${{ s.base_price|floatformat:2 }}</strong>
+                  {% endif %}
+                {% endwith %}
+                · {{ s.duration_min }} min
+              </div>
+              <button class="btn btn--primary book-btn"
+                      data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                Pick a time
+              </button>
+            </article>
+          {% empty %}
+            <div class="stub">No results for “{{ q }}”.</div>
+          {% endfor %}
+        </div>
+        <hr style="margin:2rem 0;border:none;border-top:1px solid var(--lgray)">
+      {% endif %}
 
-    {% if uncategorized %}
-      <h3 style="margin:1.5rem 0 .75rem;color:var(--green);font-weight:800">Uncategorized</h3>
-      <div class="services-grid">
-        {% for s in uncategorized %}
-          <article class="service-card">
-            <div class="service-card__img">IMG</div>
-            <h3>{{ s.name }}</h3>
-            {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
-            <div class="service-meta">
-              {% with disc=s.get_active_discount %}
-                {% if disc %}
-                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                  <span class="badge">-{{ disc.discount_percent }}%</span>
-                {% else %}
-                  <strong>${{ s.base_price|floatformat:2 }}</strong>
-                {% endif %}
-              {% endwith %}
-              · {{ s.duration_min }} min
-            </div>
-            <button class="btn btn--primary book-btn"
-                    data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-              Pick a time
-            </button>
-          </article>
-        {% endfor %}
-      </div>
-    {% endif %}
+      {% for c in categories %}
+        <h3 style="margin:1.5rem 0 .75rem;color:var(--green);font-weight:800">{{ c.name }}</h3>
+        <div class="services-grid">
+          {% for s in c.service_set.all %}
+            <article class="service-card">
+              <div class="service-card__img">IMG</div>
+              <h3>{{ s.name }}</h3>
+              {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
+              <div class="service-meta">
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <strong>${{ s.base_price|floatformat:2 }}</strong>
+                  {% endif %}
+                {% endwith %}
+                · {{ s.duration_min }} min
+              </div>
+              <button class="btn btn--primary book-btn"
+                      data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                Pick a time
+              </button>
+            </article>
+          {% empty %}
+            <div class="stub">No services in this category yet.</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
 
-    {% if not has_any_services %}
-      <div class="stub">The catalog will be available soon 👍</div>
-    {% endif %}
+      {% if uncategorized %}
+        <h3 style="margin:1.5rem 0 .75rem;color:var(--green);font-weight:800">Uncategorized</h3>
+        <div class="services-grid">
+          {% for s in uncategorized %}
+            <article class="service-card">
+              <div class="service-card__img">IMG</div>
+              <h3>{{ s.name }}</h3>
+              {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
+              <div class="service-meta">
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <strong>${{ s.base_price|floatformat:2 }}</strong>
+                  {% endif %}
+                {% endwith %}
+                · {{ s.duration_min }} min
+              </div>
+              <button class="btn btn--primary book-btn"
+                      data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                Pick a time
+              </button>
+            </article>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if not has_any_services %}
+        <div class="stub">The catalog will be available soon 👍</div>
+      {% endif %}
+    </div>
   </main>
 
   <footer class="site-footer">© 2025 Malva Booking</footer>
@@ -464,7 +446,7 @@
         }
       }
 
-      // events
+      // events (booking)
       document.addEventListener('click',(e)=>{
         const btn=e.target.closest('.book-btn'); if(btn){
           const id=btn.dataset.serviceId; const name=btn.dataset.serviceName||'service';
@@ -477,6 +459,93 @@
       elDate.addEventListener('change',loadAvailability);
       elMaster.addEventListener('change',renderSlots);
       btnSubmit.addEventListener('click',submitBooking);
+
+      /* ===== Live search ===== */
+      const qInput = document.querySelector('input[name="q"]');
+      const catSel = document.querySelector('select[name="cat"]');
+      const liveTitle = document.getElementById('liveTitle');
+      const liveGrid  = document.getElementById('liveGrid');
+      const serverContent = document.getElementById('serverContent');
+      const resetLink = document.querySelector('a.btn.btn--ghost[href*="client-dashboard"]');
+
+      function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+      function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+      function showLive(){ liveTitle.style.display='block'; liveGrid.style.display='grid'; serverContent.style.display='none'; }
+      function hideLive(){ liveTitle.style.display='none'; liveGrid.style.display='none'; serverContent.style.display='block'; }
+      function skeleton(n=8){
+        return Array.from({length:n}).map(()=>`
+          <article class="service-card">
+            <div class="service-card__img skeleton"></div>
+            <div class="skeleton" style="height:18px;margin-top:10px;border-radius:6px;"></div>
+            <div class="skeleton" style="height:14px;margin-top:6px;border-radius:6px;"></div>
+            <div class="skeleton" style="height:36px;margin-top:12px;border-radius:10px;"></div>
+          </article>`).join('');
+      }
+      function cardHTML(s){
+        const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
+        const priceBlock = hasDisc
+          ? `<span class="old">$${escapeHtml(s.base_price)}</span>
+             <strong>$${escapeHtml(s.price)}</strong>
+             <span class="badge">-${escapeHtml(String(s.discount_percent))}%</span>`
+          : `<strong>$${escapeHtml(s.price || s.base_price)}</strong>`;
+        const desc = s.description ? `<p class="muted">${escapeHtml(s.description)}</p>` : '';
+        const cat  = s.category ? `<div class="muted">${escapeHtml(s.category)}</div>` : '';
+        return `
+          <article class="service-card">
+            <div class="service-card__img">IMG</div>
+            ${cat}
+            <h3>${escapeHtml(s.name)}</h3>
+            ${desc}
+            <div class="service-meta">${priceBlock} · ${escapeHtml(String(s.duration_min))} min</div>
+            <button class="btn btn--primary book-btn"
+              data-service-id="${escapeHtml(s.id)}"
+              data-service-name="${escapeHtml(s.name)}">Pick a time</button>
+          </article>`;
+      }
+
+      let aborter = null;
+      async function fetchServices(q, cat){
+        if (aborter) aborter.abort();
+        aborter = new AbortController();
+        const params = new URLSearchParams();
+        if (q)   params.set('q', q);
+        if (cat) params.set('cat', cat);
+        const url = `/accounts/api/services/search/?${params.toString()}`;
+        const r = await fetch(url, { signal: aborter.signal, credentials: 'same-origin' });
+        if (!r.ok) throw new Error('Failed to load');
+        return r.json();
+      }
+
+      const runSearch = debounce(async ()=>{
+        const q   = qInput?.value?.trim() || '';
+        const cat = catSel?.value || '';
+        if (!q && !cat) { hideLive(); return; }
+        showLive();
+        liveGrid.innerHTML = skeleton();
+        try{
+          const data = await fetchServices(q, cat);
+          const items = (data && data.results) || [];
+          if (items.length === 0){
+            liveGrid.innerHTML = `<div class="stub">No services found.</div>`;
+            return;
+          }
+          liveGrid.innerHTML = items.map(cardHTML).join('');
+        }catch(e){
+          liveGrid.innerHTML = `<div class="stub">Could not load results. Please try again.</div>`;
+        }
+      }, 300);
+
+      if (qInput) qInput.addEventListener('input', runSearch);
+      if (catSel) catSel.addEventListener('change', runSearch);
+      if (resetLink){
+        resetLink.addEventListener('click', (e)=>{
+          e.preventDefault();
+          if (qInput) qInput.value = '';
+          if (catSel) catSel.value = '';
+          hideLive();
+          document.getElementById('services')?.scrollIntoView({behavior:'smooth', block:'start'});
+        });
+      }
     })();
   </script>
 </body>
