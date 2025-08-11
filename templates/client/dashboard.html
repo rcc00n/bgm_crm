@@ -138,11 +138,14 @@
     <!-- APPOINTMENTS -->
     <section id="tab-appointments" class="tab hidden">
       <div class="flex items-center mb-6">
-        <h2 class="text-2xl font-semibold text-[#204029]">My appointments</h2>
-        <button class="ml-auto px-4 py-2 rounded-lg text-white bg-[#AF9525] hover:bg-[#9b8521] shadow">
-          + Book
-        </button>
-      </div>
+    <h2 class="text-2xl font-semibold text-[#204029]">My appointments</h2>
+
+    <!-- было: <button ...>+ Book</button> -->
+    <a href="/accounts/#services"
+       class="ml-auto px-4 py-2 rounded-lg text-white bg-[#AF9525] hover:bg-[#9b8521] shadow">
+      + Book
+    </a>
+  </div>
 
       {% if appointments %}
         <div class="space-y-4">
