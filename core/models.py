@@ -63,7 +63,7 @@ class UserProfile(models.Model):
     phone = models.CharField(max_length=20, unique=True, blank=False,  validators=[clean_phone] )
     birth_date = models.DateField(null=True, blank=True)
     source = models.ForeignKey(ClientSource, on_delete=models.CASCADE, blank=True, null=True)
-    
+
     def __str__(self):
         return f"{self.user} Profile"
 
@@ -197,7 +197,7 @@ class Appointment(models.Model):
                 "start_time": "Время начала не может быть позже 23:59."
             })
 
-    # Остальная логика…
+        # Остальная логика…
         if not self.master or not self.service or not self.start_time:
             return
 
@@ -271,7 +271,7 @@ class Appointment(models.Model):
             # 1) старт раньше начала смены
             if local_start_dt < work_start_dt:
                 raise ValidationError({
-                    "start_time": f"Start time ({local_start_dt.strftime('%H:%M')}) earlier than masters shift starts  "
+                    "start_time": f"Start time ({local_start_dt.strftime('%H:%M')}) earlier than masters shift starts git st "
                                   f"({work_start_dt.strftime('%H:%M')})."
                 })
 

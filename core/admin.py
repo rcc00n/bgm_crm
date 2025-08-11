@@ -304,6 +304,38 @@ class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelA
     list_filter = ("master",)
     search_fields = ("master__first_name", "master__last_name", "reason")
     export_fields = ["master", "start_time", "end_time", "reason"]
+
+    def has_add_permission(self, request):
+        return request.user.has_perm("core.add_masteravailability")
+
+    def has_change_permission(self, request, obj=None):
+        if not request.user.has_perm("core.change_masteravailability"):
+            return False
+        if obj is None or not hasattr(request.user, "master_profile") or request.user.is_superuser:
+            return True
+        return obj.master_id == request.user.id
+
+    def has_delete_permission(self, request, obj=None):
+        if not request.user.has_perm("core.delete_masteravailability"):
+            return False
+        if obj is None or not hasattr(request.user, "master_profile") or request.user.is_superuser:
+            return True
+        return obj.master_id == request.user.id
+
+    # --- только свои time off ---
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if hasattr(request.user, "master_profile") and not request.user.is_superuser:
+            return qs.filter(master=request.user)
+        return qs
+
+    # --- мастер фиксируется для мастера ---
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "master" and hasattr(request.user, "master_profile") and not request.user.is_superuser:
+            kwargs["queryset"] = CustomUserDisplay.objects.filter(id=request.user.id)
+            kwargs["initial"] = request.user.id
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
 
@@ -340,6 +372,9 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         time_str = request.GET.get("time")
         const_master = request.GET.get("master")
 
+        if hasattr(request.user, "master_profile") and not request.user.is_superuser:
+            initial["master"] = request.user.id
+
         if date_str and time_str:
             try:
                 combined = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
@@ -367,14 +402,41 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
                 return form(*args, **kwargs_inner)
 
         return WrappedForm
+
+    # --- права ---
     def has_add_permission(self, request):
-        return not hasattr(request.user, "master_profile")
+        return request.user.has_perm("core.add_appointment")
 
     def has_change_permission(self, request, obj=None):
-        return not hasattr(request.user, "master_profile")
+        if not request.user.has_perm("core.change_appointment"):
+            return False
+        if obj is None or not hasattr(request.user, "master_profile") or request.user.is_superuser:
+            return True
+        return obj.master_id == request.user.id
 
     def has_delete_permission(self, request, obj=None):
-        return not hasattr(request.user, "master_profile")
+        if not request.user.has_perm("core.delete_appointment"):
+            return False
+        if obj is None or not hasattr(request.user, "master_profile") or request.user.is_superuser:
+            return True
+        return obj.master_id == request.user.id
+
+    # --- только свои записи мастеру ---
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if hasattr(request.user, "master_profile") and not request.user.is_superuser:
+            return qs.filter(master=request.user)
+        return qs
+
+    # --- поле master фиксируем для мастера ---
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "master" and hasattr(request.user, "master_profile") and not request.user.is_superuser:
+            kwargs["queryset"] = CustomUserDisplay.objects.filter(id=request.user.id)
+            kwargs["initial"] = request.user.id
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+
 
     def changelist_view(self, request, extra_context=None):
 
@@ -474,6 +536,9 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         return response
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
+        if hasattr(request.user, "master_profile") and not request.user.is_superuser:
+            if obj.master_id is None:
+                obj.master = request.user
 
 
 # -----------------------------
@@ -487,6 +552,14 @@ class AppointmentStatusHistoryAdmin(ExportCsvMixin,admin.ModelAdmin):
     exclude = ('set_by',)
     list_display = ('appointment', 'status', 'set_by', 'set_at')
     export_fields = ['appointment', 'status', 'set_by', 'set_at']
+    def has_delete_permission(self, request, obj=None):
+        # Суперадмин может всегда
+        if request.user.is_superuser:
+            return True
+        # Мастер может удалять
+        if hasattr(request.user, "master_profile"):
+            return True
+        return False
     def save_model(self, request, obj, form, change):
         if not obj.set_by_id:
             obj.set_by = request.user
@@ -736,12 +809,18 @@ class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
         # 1. Забираем все текущие разрешения
-        obj.user.user_permissions.clear()
+        user = obj.user
+        user.user_permissions.clear()
 
         # 2. Добавляем только view_appointment
-        ct = ContentType.objects.get_for_model(Appointment)
-        view_perm = Permission.objects.get(codename='view_appointment', content_type=ct)
-        obj.user.user_permissions.add(view_perm)
+        needed = [
+            # Appointment
+            "view_appointment", "add_appointment", "change_appointment", "delete_appointment",
+            # MasterAvailability (time off)
+            "view_masteravailability", "add_masteravailability", "change_masteravailability", "delete_masteravailability",
+        ]
+        perms = Permission.objects.filter(codename__in=needed)
+        user.user_permissions.add(*perms)
 
 
 def get_price_html(service):
