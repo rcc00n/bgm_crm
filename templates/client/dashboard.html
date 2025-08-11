@@ -1,300 +1,265 @@
 {% load i18n tz %}<!DOCTYPE html>
-<html lang="ru" class="h-full">
+<html lang="en" class="h-full">
 <head>
-    <meta charset="utf-8">
-    <title>Личный кабинет | Malva Booking</title>
+  <meta charset="utf-8" />
+  <title>Client Portal | Malva Booking</title>
 
-    <!-- Tailwind CSS JIT CDN -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
 
-    <!-- Chart.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Chart.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-<body class="h-full bg-gray-100 text-gray-800">
-
+<body class="h-full bg-[#DEDEDE] text-[#4D4D4D]">
 <div class="min-h-screen flex">
 
-    <!-- ▸▸ SIDEBAR ◂◂ -->
-<aside class="w-64 bg-white shadow-lg">
-    <div class="p-6 font-bold text-indigo-600 text-xl">Malva</div>
+  <!-- ▸▸ SIDEBAR ◂◂ -->
+  <aside class="w-64 bg-[#204029] text-[#DAD3C1] shadow-xl">
+    <div class="p-6 font-extrabold text-xl tracking-wide flex items-center gap-2">
+      <span class="text-[#AF9525]">MB</span> Malva Booking
+    </div>
 
-    <nav id="sidebar" class="space-y-1 px-4 text-sm">
-        <a href="#" data-tab="dashboard"
-           class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-            🏠 <span>Обзор</span>
-        </a>
-        <a href="#" data-tab="appointments"
-           class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-            📅 <span>Записи</span>
-        </a>
-        <a href="#" data-tab="files"
-           class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-            📂 <span>Файлы</span>
-        </a>
-        <a href="#" data-tab="notifications"
-           class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-            🔔 <span>Уведомления</span>
-        </a>
-        <a href="#" data-tab="profile"
-           class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-            👤 <span>Профиль</span>
-        </a>
+    <nav id="sidebar" class="space-y-1 px-3 text-sm">
+      <a href="#" data-tab="dashboard"
+         class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
+        🏠 <span>Overview</span>
+      </a>
+      <a href="#" data-tab="appointments"
+         class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
+        📅 <span>Appointments</span>
+      </a>
+      <a href="#" data-tab="files"
+         class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
+        📂 <span>Files</span>
+      </a>
+      <a href="#" data-tab="notifications"
+         class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
+        🔔 <span>Notifications</span>
+      </a>
+      <a href="#" data-tab="profile"
+         class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
+        👤 <span>Profile</span>
+      </a>
 
-        <!-- кнопка «На главную» → /accounts/ -->
-        <a href="/accounts/"
-           class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-indigo-50">
-            ⬅️ <span>На&nbsp;главную</span>
-        </a>
+      <a href="/accounts/"
+         class="mt-1 flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
+        ⬅️ <span>Back to Home</span>
+      </a>
 
-        <!-- разделитель -->
-        <div class="my-3 border-t border-gray-100"></div>
+      <div class="my-3 border-t border-white/10"></div>
 
-        <!-- Выйти (POST), стилизовано как пункт меню -->
-        <form method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit"
-                  class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-md
-                         text-rose-600 hover:text-rose-700 hover:bg-rose-50
-                         focus:outline-none focus:ring-2 focus:ring-rose-300 transition">
-            🚪 <span>Выйти</span>
-          </button>
-        </form>
+      <form method="post" action="{% url 'logout' %}" class="pb-4">
+        {% csrf_token %}
+        <button type="submit"
+                class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-md
+                       text-[#DAD3C1] border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white
+                       focus:outline-none focus:ring-2 focus:ring-[#AF9525] transition">
+          🚪 <span>Sign out</span>
+        </button>
+      </form>
     </nav>
-</aside>
+  </aside>
 
-    <!-- ▸▸ MAIN ◂◂ -->
-    <main class="flex-1 p-8 overflow-y-auto">
+  <!-- ▸▸ MAIN ◂◂ -->
+  <main class="flex-1 p-8 overflow-y-auto">
 
-        <!-- DASHBOARD -->
-        <section id="tab-dashboard" class="tab">
-            <h1 class="text-3xl font-bold mb-8">
-                {% if request.user.first_name %}
-                    Здравствуйте, {{ request.user.first_name }}!
-                {% else %}
-                    Здравствуйте, {{ request.user.username }}!
-                {% endif %}
-            </h1>
+    <!-- DASHBOARD -->
+    <section id="tab-dashboard" class="tab">
+      <h1 class="text-4xl font-extrabold mb-8 text-[#204029]">
+        {% if request.user.first_name %}Hello, {{ request.user.first_name }}!{% else %}Hello, {{ request.user.username }}!{% endif %}
+      </h1>
 
-            <div class="grid lg:grid-cols-3 gap-6">
-
-                <!-- Ближайший визит -->
-                <div class="bg-white rounded-xl shadow p-6">
-                    <h2 class="text-lg font-semibold mb-4">Ближайший визит</h2>
-                    {% if next_appointment %}
-                        <p class="font-medium">
-                            {{ next_appointment.start_time|localtime|date:"d E Y, H:i" }}
-                        </p>
-                        <p class="text-sm text-gray-600">
-                            {{ next_appointment.service.name }} ·
-                            {{ next_appointment.master.get_full_name }}
-                        </p>
-                        <div class="mt-4 flex gap-4 text-sm">
-                            <!-- ДОБАВЛЕНО: data-* и классы для JS -->
-                            <a href="#"
-                               class="text-red-600 hover:underline appt-cancel"
-                               data-appt-id="{{ next_appointment.id }}">
-                               Отменить
-                            </a>
-                            <a href="#"
-                               class="text-indigo-600 hover:underline appt-reschedule"
-                               data-appt-id="{{ next_appointment.id }}"
-                               data-service-id="{{ next_appointment.service.id }}">
-                               Перенести
-                            </a>
-                        </div>
-                    {% else %}
-                        <p class="text-gray-500">Ближайших визитов нет.</p>
-                    {% endif %}
-                </div>
-
-                <!-- Статистика -->
-                <div class="bg-white rounded-xl shadow p-6 lg:col-span-2">
-                    <h2 class="text-lg font-semibold mb-4">Статистика</h2>
-                    <canvas id="stats_chart"
-                            data-labels="{{ chart_labels|join:',' }}"
-                            data-data="{{ chart_data|join:',' }}"
-                            class="w-full h-56"></canvas>
-                </div>
+      <div class="grid lg:grid-cols-3 gap-6">
+        <!-- Next appointment -->
+        <div class="bg-white rounded-2xl shadow p-6 border border-[#DAD3C1]">
+          <h2 class="text-lg font-semibold mb-4">Next appointment</h2>
+          {% if next_appointment %}
+            <p class="font-semibold text-[#204029]">
+              {{ next_appointment.start_time|localtime|date:"d M Y, H:i" }}
+            </p>
+            <p class="text-sm text-[#4D4D4D]">
+              {{ next_appointment.service.name }} · {{ next_appointment.master.get_full_name }}
+            </p>
+            <div class="mt-4 flex gap-4 text-sm">
+              <a href="#" class="appt-cancel text-[#4D4D4D] hover:text-[#AF9525] underline-offset-4 hover:underline"
+                 data-appt-id="{{ next_appointment.id }}">Cancel</a>
+              <a href="#" class="appt-reschedule text-[#AF9525] hover:opacity-90 underline-offset-4 hover:underline"
+                 data-appt-id="{{ next_appointment.id }}" data-service-id="{{ next_appointment.service.id }}">Reschedule</a>
             </div>
+          {% else %}
+            <p class="text-[#4D4D4D]/70">No upcoming appointments.</p>
+          {% endif %}
+        </div>
 
-            <!-- Последние визиты -->
-            <div class="bg-white rounded-xl shadow p-6 mt-8">
-                <h2 class="text-lg font-semibold mb-4">Последние визиты</h2>
-                {% if recent_appointments %}
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm">
-                            <thead>
-                            <tr class="text-left text-gray-500 border-b">
-                                <th class="py-2 pr-4">Дата</th>
-                                <th class="py-2 pr-4">Услуга</th>
-                                <th class="py-2 pr-4">Мастер</th>
-                                <th class="py-2 pr-4">Статус</th>
-                                <th class="py-2">Сумма</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for a in recent_appointments %}
-                                <tr class="border-b">
-                                    <td class="py-2 pr-4 whitespace-nowrap">
-                                        {{ a.start_time|localtime|date:"d.m.Y H:i" }}
-                                    </td>
-                                    <td class="py-2 pr-4">{{ a.service.name }}</td>
-                                    <td class="py-2 pr-4">{{ a.master.get_full_name }}</td>
-                                    <td class="py-2 pr-4">{{ a.current_status }}</td>
-                                    <td class="py-2">{{ a.price|default:"—" }}</td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <p class="text-gray-500">Пока нет завершённых визитов.</p>
-                {% endif %}
+        <!-- Stats -->
+        <div class="bg-white rounded-2xl shadow p-6 lg:col-span-2 border border-[#DAD3C1]">
+          <h2 class="text-lg font-semibold mb-4">Stats</h2>
+          <canvas id="stats_chart"
+                  data-labels="{{ chart_labels|join:',' }}"
+                  data-data="{{ chart_data|join:',' }}"
+                  class="w-full h-56"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent appointments -->
+      <div class="bg-white rounded-2xl shadow p-6 mt-8 border border-[#DAD3C1]">
+        <h2 class="text-lg font-semibold mb-4">Recent appointments</h2>
+        {% if recent_appointments %}
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="text-left bg-[#DAD3C1] text-[#204029]">
+                  <th class="py-2 pl-3 pr-4 rounded-l-lg">Date</th>
+                  <th class="py-2 pr-4">Service</th>
+                  <th class="py-2 pr-4">Master</th>
+                  <th class="py-2 pr-4">Status</th>
+                  <th class="py-2 pr-3 rounded-r-lg">Amount</th>
+                </tr>
+              </thead>
+              <tbody class="[&>tr]:border-b [&>tr]:border-[#DEDEDE]">
+                {% for a in recent_appointments %}
+                  <tr class="bg-white">
+                    <td class="py-2 pr-4 pl-3 whitespace-nowrap">{{ a.start_time|localtime|date:"d.m.Y H:i" }}</td>
+                    <td class="py-2 pr-4">{{ a.service.name }}</td>
+                    <td class="py-2 pr-4">{{ a.master.get_full_name }}</td>
+                    <td class="py-2 pr-4">{{ a.current_status }}</td>
+                    <td class="py-2 pr-3">{{ a.price|default:"—" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-[#4D4D4D]/70">No completed appointments yet.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- APPOINTMENTS -->
+    <section id="tab-appointments" class="tab hidden">
+      <div class="flex items-center mb-6">
+        <h2 class="text-2xl font-semibold text-[#204029]">My appointments</h2>
+        <button class="ml-auto px-4 py-2 rounded-lg text-white bg-[#AF9525] hover:bg-[#9b8521] shadow">
+          + Book
+        </button>
+      </div>
+
+      {% if appointments %}
+        <div class="space-y-4">
+          {% for a in appointments %}
+            <div class="bg-white shadow rounded-xl p-4 flex justify-between items-center border border-[#DAD3C1]
+                        {% if a.start_time < now %}opacity-70{% endif %}">
+              <div>
+                <p class="font-medium text-[#204029]">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
+                <p class="text-sm text-[#4D4D4D]">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
+              </div>
+
+              {% if a.start_time >= now %}
+                <div class="flex gap-3 text-sm">
+                  <a href="#" class="appt-cancel text-[#4D4D4D] hover:text-[#AF9525] underline-offset-4 hover:underline"
+                     data-appt-id="{{ a.id }}">Cancel</a>
+                  <a href="#" class="appt-reschedule text-[#AF9525] hover:opacity-90 underline-offset-4 hover:underline"
+                     data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">Reschedule</a>
+                </div>
+              {% else %}
+                <span class="text-xs text-[#4D4D4D]/70">Completed</span>
+              {% endif %}
             </div>
-        </section>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-[#4D4D4D]/70">No appointments.</p>
+      {% endif %}
+    </section>
 
-        <!-- APPOINTMENTS -->
-        <section id="tab-appointments" class="tab hidden">
-            <div class="flex items-center mb-6">
-                <h2 class="text-2xl font-semibold">Мои записи</h2>
-                <button class="ml-auto px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
-                    + Записаться
-                </button>
-            </div>
+    <!-- FILES -->
+    <section id="tab-files" class="tab hidden">
+      <h2 class="text-2xl font-semibold mb-6 text-[#204029]">Files</h2>
+      <p class="text-[#4D4D4D]/70">Coming soon.</p>
+    </section>
 
-            {% if appointments %}
-                <div class="space-y-4">
-                    {% for a in appointments %}
-                        <div class="bg-white shadow rounded-lg p-4 flex justify-between items-center
-                                    {% if a.start_time < now %}opacity-50{% endif %}">
-                            <div>
-                                <p class="font-medium">
-                                    {{ a.start_time|localtime|date:"d E Y, H:i" }}
-                                </p>
-                                <p class="text-sm text-gray-600">
-                                    {{ a.service.name }} · {{ a.master.get_full_name }}
-                                </p>
-                            </div>
+    <!-- NOTIFICATIONS -->
+    <section id="tab-notifications" class="tab hidden">
+      <h2 class="text-2xl font-semibold mb-6 text-[#204029]">Notifications</h2>
+      <p class="text-[#4D4D4D]/70">Coming soon.</p>
+    </section>
 
-                            {% if a.start_time >= now %}
-                                <div class="flex gap-3 text-sm">
-                                    <!-- ДОБАВЛЕНО: data-* и классы для JS -->
-                                    <a href="#"
-                                       class="text-red-600 hover:underline appt-cancel"
-                                       data-appt-id="{{ a.id }}">
-                                       Отменить
-                                    </a>
-                                    <a href="#"
-                                       class="text-indigo-600 hover:underline appt-reschedule"
-                                       data-appt-id="{{ a.id }}"
-                                       data-service-id="{{ a.service.id }}">
-                                       Перенести
-                                    </a>
-                                </div>
-                            {% else %}
-                                <span class="text-xs text-gray-500">Завершён</span>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="text-gray-500">Записей нет.</p>
-            {% endif %}
-        </section>
+    <!-- PROFILE -->
+    <section id="tab-profile" class="tab hidden">
+      <h2 class="text-2xl font-semibold mb-6 text-[#204029]">Profile</h2>
 
-        <!-- FILES (пока статично) -->
-        <section id="tab-files" class="tab hidden">
-            <h2 class="text-2xl font-semibold mb-6">Файлы</h2>
-            <!-- позже подключим реальные данные -->
-            <p class="text-gray-500">Раздел в разработке.</p>
-        </section>
+      <form method="post" class="grid md:grid-cols-2 gap-6 bg-white shadow rounded-2xl p-6 border border-[#DAD3C1]">
+        {% csrf_token %}
+        <div>
+          <label class="block text-sm font-medium">First name</label>
+          <input type="text" name="first_name" value="{{ request.user.first_name }}"
+                 class="w-full mt-1 rounded-lg border-[#DEDEDE] px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Last name</label>
+          <input type="text" name="last_name" value="{{ request.user.last_name }}"
+                 class="w-full mt-1 rounded-lg border-[#DEDEDE] px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Phone</label>
+          <input type="text" name="phone" value="{{ profile.phone }}"
+                 class="w-full mt-1 rounded-lg border-[#DEDEDE] px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium">E-mail</label>
+          <input type="email" name="email" value="{{ request.user.email }}"
+                 class="w-full mt-1 rounded-lg border-[#DEDEDE] px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Birth date</label>
+          <input type="date" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}"
+                 class="w-full mt-1 rounded-lg border-[#DEDEDE] px-3 py-2 text-sm">
+        </div>
 
-        <!-- NOTIFICATIONS (пока статично) -->
-        <section id="tab-notifications" class="tab hidden">
-            <h2 class="text-2xl font-semibold mb-6">Уведомления</h2>
-            <p class="text-gray-500">Раздел в разработке.</p>
-        </section>
+        <div class="md:col-span-2 text-right">
+          <button type="submit" class="px-6 py-2 bg-[#204029] text-white rounded-lg hover:bg-[#1b3626]">
+            Save changes
+          </button>
+        </div>
+      </form>
+    </section>
 
-        <!-- PROFILE -->
-        <section id="tab-profile" class="tab hidden">
-            <h2 class="text-2xl font-semibold mb-6">Профиль</h2>
-
-            <form method="post" class="grid md:grid-cols-2 gap-6 bg-white shadow rounded-xl p-6">
-                {% csrf_token %}
-                <div>
-                    <label class="block text-sm font-medium">Имя</label>
-                    <input type="text" name="first_name"
-                           value="{{ request.user.first_name }}"
-                           class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium">Фамилия</label>
-                    <input type="text" name="last_name"
-                           value="{{ request.user.last_name }}"
-                           class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium">Телефон</label>
-                    <input type="text" name="phone"
-                           value="{{ profile.phone }}"
-                           class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium">E-mail</label>
-                    <input type="email" name="email"
-                           value="{{ request.user.email }}"
-                           class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium">Дата рождения</label>
-                    <input type="date" name="birth_date"
-                           value="{{ profile.birth_date|date:'Y-m-d' }}"
-                           class="w-full mt-1 rounded-lg border-gray-300 px-3 py-2 text-sm">
-                </div>
-
-                <div class="md:col-span-2 text-right">
-                    <button type="submit"
-                            class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                        Сохранить
-                    </button>
-                </div>
-            </form>
-        </section>
-
-    </main>
+  </main>
 </div>
 
-<!-- ▸▸ MODAL: перенести запись ◂◂ -->
+<!-- ▸▸ MODAL: Reschedule ◂◂ -->
 <div id="resModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center p-4 z-50">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl p-5 border border-[#DAD3C1]">
     <div class="flex items-center justify-between mb-3">
-      <h3 class="font-bold text-lg">Перенести запись</h3>
-      <button id="resClose" class="text-gray-500 text-2xl leading-none">&times;</button>
+      <h3 class="font-bold text-lg text-[#204029]">Reschedule appointment</h3>
+      <button id="resClose" class="text-2xl leading-none">&times;</button>
     </div>
 
     <div class="space-y-3">
       <div>
-        <label class="text-sm text-gray-600">Дата</label>
-        <input type="date" id="resDate" class="w-full border rounded-md px-3 py-2">
+        <label class="text-sm">Date</label>
+        <input type="date" id="resDate" class="w-full border border-[#DEDEDE] rounded-md px-3 py-2">
       </div>
       <div>
-        <label class="text-sm text-gray-600">Мастер</label>
-        <select id="resMaster" class="w-full border rounded-md px-3 py-2"></select>
+        <label class="text-sm">Master</label>
+        <select id="resMaster" class="w-full border border-[#DEDEDE] rounded-md px-3 py-2"></select>
       </div>
       <div>
-        <label class="text-sm text-gray-600">Свободные слоты</label>
-        <div id="resSlots" class="grid grid-cols-3 gap-2 max-h-56 overflow-auto border rounded-md p-2">
-          <div class="animate-pulse h-9 bg-gray-100 rounded"></div>
+        <label class="text-sm">Available slots</label>
+        <div id="resSlots" class="grid grid-cols-3 gap-2 max-h-56 overflow-auto border border-[#DEDEDE] rounded-md p-2">
+          <div class="animate-pulse h-9 bg-[#DEDEDE] rounded"></div>
         </div>
-        <p class="text-sm text-gray-500 mt-1" id="resHint">Выберите время</p>
+        <p class="text-sm mt-1" id="resHint">Select a time</p>
         <p class="text-sm text-red-600 mt-1 hidden" id="resErr"></p>
         <p class="text-sm text-emerald-700 mt-1 hidden" id="resOk"></p>
       </div>
     </div>
 
     <div class="flex justify-end gap-2 mt-4">
-      <button id="resCancel" class="px-4 py-2 rounded-md border">Отмена</button>
-      <button id="resSubmit" class="px-4 py-2 rounded-md bg-indigo-600 text-white disabled:opacity-50" disabled>Сохранить</button>
+      <button id="resCancel" class="px-4 py-2 rounded-md border border-[#DEDEDE]">Cancel</button>
+      <button id="resSubmit" class="px-4 py-2 rounded-md bg-[#AF9525] text-white hover:bg-[#9b8521] disabled:opacity-50" disabled>
+        Save
+      </button>
     </div>
   </div>
 </div>
@@ -302,169 +267,152 @@
 <!-- ▸▸ JS ◂◂ -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    /* --- переключение вкладок --- */
-    const links = document.querySelectorAll('.sidebar-link');
-    const tabs  = document.querySelectorAll('.tab');
+  /* tabs */
+  const links = document.querySelectorAll('.sidebar-link');
+  const tabs  = document.querySelectorAll('.tab');
 
-    function activate(tabName) {
-        tabs.forEach(t => t.classList.toggle('hidden', t.id !== 'tab-' + tabName));
-        links.forEach(l => {
-            const active = l.dataset.tab === tabName;
-            l.classList.toggle('bg-indigo-50', active);
-            l.classList.toggle('text-indigo-700', active);
-        });
-    }
+  function setActive(link, active) {
+    link.classList.toggle('bg-[#1b3626]', active);
+    link.classList.toggle('text-white', active);
+    link.classList.toggle('border-[#AF9525]', active);
+    link.classList.toggle('border-transparent', !active);
+  }
+  function activate(tabName) {
+    tabs.forEach(t => t.classList.toggle('hidden', t.id !== 'tab-' + tabName));
+    links.forEach(l => setActive(l, l.dataset.tab === tabName));
+  }
+  links.forEach(link => link.addEventListener('click', e => { e.preventDefault(); activate(link.dataset.tab); }));
+  activate('dashboard');
 
-    links.forEach(link => {
-        link.addEventListener('click', e => {
-            e.preventDefault();
-            activate(link.dataset.tab);
-        });
-    });
-    activate('dashboard');
-
-    /* --- Chart.js из реальных данных --- */
-    const el = document.getElementById('stats_chart');
-    if (el) {
-        const labels = el.dataset.labels ? el.dataset.labels.split(',') : [];
-        const data   = el.dataset.data   ? el.dataset.data.split(',').map(Number) : [];
-        new Chart(el, {
-            type: 'bar',
-            data: { labels, datasets: [{ data, label: 'Визиты' }] },
-            options: {
-                plugins: { legend: { display: false }},
-                scales : { y: { beginAtZero: true, ticks: { stepSize: 1 }}}
-            }
-        });
-    }
-
-    /* ====== ДОБАВЛЕНО: отмена и перенос записи ====== */
-    const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
-    function fmtTime(iso){
-      try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
-      catch(e){ return iso; }
-    }
-    function todayStr(){
-      const d=new Date(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
-      return `${d.getFullYear()}-${m}-${day}`;
-    }
-
-    // --- Cancel ---
-    document.addEventListener('click', async (e)=>{
-      const a = e.target.closest('.appt-cancel');
-      if(!a) return;
-      e.preventDefault();
-      const id = a.dataset.apptId;
-      if(!id) return;
-      if(!confirm('Отменить запись?')) return;
-      const r = await fetch(`/accounts/api/appointment/${id}/cancel/`, {
-        method:'POST', headers:{'X-CSRFToken': csrftoken}, credentials:'same-origin'
-      });
-      if(r.ok) location.reload();
-      else alert('Ошибка отмены: ' + (await r.text()));
-    });
-
-    // --- Reschedule modal ---
-    const resModal  = document.getElementById('resModal');
-    const resClose  = document.getElementById('resClose');
-    const resCancel = document.getElementById('resCancel');
-    const resSubmit = document.getElementById('resSubmit');
-    const resDate   = document.getElementById('resDate');
-    const resMaster = document.getElementById('resMaster');
-    const resSlots  = document.getElementById('resSlots');
-    const resErr    = document.getElementById('resErr');
-    const resOk     = document.getElementById('resOk');
-    let current = { apptId:null, serviceId:null, masterId:null, slot:null, masters:[] };
-
-    function openRes(apptId, serviceId){
-      current = { apptId, serviceId, masterId:null, slot:null, masters:[] };
-      resDate.min = todayStr();
-      resDate.value = todayStr();
-      resMaster.innerHTML = '';
-      resSlots.innerHTML = '<div class="animate-pulse h-9 bg-gray-100 rounded"></div>';
-      resSubmit.disabled = true;
-      resErr.classList.add('hidden'); resOk.classList.add('hidden');
-      resModal.classList.remove('hidden');
-      loadAvail();
-    }
-    function closeRes(){ resModal.classList.add('hidden'); }
-
-    async function loadAvail(){
-      const params = new URLSearchParams({ service: current.serviceId, date: resDate.value });
-      const r = await fetch(`/accounts/api/availability/?` + params.toString(), {credentials:'same-origin'});
-      if(!r.ok){ resErr.textContent='Ошибка загрузки слотов'; resErr.classList.remove('hidden'); return; }
-      const data = await r.json();
-      current.masters = data.masters || [];
-      resMaster.innerHTML = '';
-      if(current.masters.length === 0){
-        resMaster.innerHTML = '<option>Нет мастеров</option>';
-        resSlots.innerHTML = '<div class="text-sm text-gray-500">Нет слотов</div>';
-        return;
+  /* chart */
+  const el = document.getElementById('stats_chart');
+  if (el) {
+    const labels = el.dataset.labels ? el.dataset.labels.split(',') : [];
+    const data   = el.dataset.data   ? el.dataset.data.split(',').map(Number) : [];
+    new Chart(el, {
+      type: 'bar',
+      data: { labels, datasets: [{ data, label: 'Appointments', backgroundColor: '#AF9525', borderRadius: 6 }] },
+      options: {
+        plugins: { legend: { display: false }},
+        scales : {
+          x: { ticks: { color: '#4D4D4D' }, grid: { color: '#DAD3C1' } },
+          y: { beginAtZero: true, ticks: { stepSize: 1, color: '#4D4D4D' }, grid: { color: '#DAD3C1' } }
+        }
       }
-      current.masters.forEach(m=>{
-        const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; resMaster.appendChild(opt);
-      });
-      const m = current.masters.find(x => (x.slots||[]).length) || current.masters[0];
-      resMaster.value = m.id;
-      renderSlots();
-    }
-
-    function renderSlots(){
-      resSubmit.disabled = true; current.slot = null;
-      const mId = Number(resMaster.value);
-      const m = current.masters.find(x=> Number(x.id)===mId);
-      const slots = (m && m.slots) ? m.slots : [];
-      resSlots.innerHTML = '';
-      if(slots.length === 0){
-        resSlots.innerHTML = '<div class="text-sm text-gray-500">Нет слотов на выбранную дату</div>';
-        return;
-      }
-      slots.forEach(iso=>{
-        const b=document.createElement('button');
-        b.type='button';
-        b.className='px-3 py-2 border rounded-md hover:bg-indigo-50';
-        b.textContent = fmtTime(iso);
-        b.addEventListener('click', ()=>{
-          [...resSlots.children].forEach(el=>el.classList.remove('ring','ring-indigo-300','bg-indigo-50'));
-          b.classList.add('ring','ring-indigo-300','bg-indigo-50');
-          current.slot = iso; current.masterId = mId; resSubmit.disabled = false;
-        });
-        resSlots.appendChild(b);
-      });
-    }
-
-    async function submitRes(){
-      if(!current.apptId || !current.slot) return;
-      resSubmit.disabled = true; resErr.classList.add('hidden'); resOk.classList.add('hidden');
-      const r = await fetch(`/accounts/api/appointment/${current.apptId}/reschedule/`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRFToken': csrftoken},
-        credentials:'same-origin',
-        body: JSON.stringify({ start_time: current.slot, master: current.masterId })
-      });
-      const data = await r.json().catch(()=> ({}));
-      if(r.ok){
-        resOk.textContent = 'Запись перенесена на ' + (data.appointment?.start_time || '');
-        resOk.classList.remove('hidden');
-        setTimeout(()=> location.reload(), 600);
-      }else{
-        resErr.textContent = data.error || data.detail || 'Ошибка переноса';
-        resErr.classList.remove('hidden'); resSubmit.disabled = false;
-      }
-    }
-
-    document.addEventListener('click', (e)=>{
-      const a = e.target.closest('.appt-reschedule');
-      if(!a) return;
-      e.preventDefault();
-      openRes(a.dataset.apptId, a.dataset.serviceId);
     });
-    resClose.addEventListener('click', closeRes);
-    resCancel.addEventListener('click', closeRes);
-    resModal.addEventListener('click', (e)=>{ if(e.target===resModal) closeRes(); });
-    resDate.addEventListener('change', loadAvail);
-    resMaster.addEventListener('change', renderSlots);
-    resSubmit.addEventListener('click', submitRes);
+  }
+
+  /* cancel / reschedule */
+  const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
+  const fmtTime = iso => { try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});} catch(e){ return iso; } };
+  const todayStr = () => { const d=new Date(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
+
+  document.addEventListener('click', async (e)=>{
+    const a = e.target.closest('.appt-cancel'); if(!a) return; e.preventDefault();
+    const id = a.dataset.apptId; if(!id) return;
+    if(!confirm('Cancel this appointment?')) return;
+    const r = await fetch(`/accounts/api/appointment/${id}/cancel/`, { method:'POST', headers:{'X-CSRFToken': csrftoken}, credentials:'same-origin' });
+    if(r.ok) location.reload(); else alert('Cancel error: ' + (await r.text()));
+  });
+
+  const resModal  = document.getElementById('resModal');
+  const resClose  = document.getElementById('resClose');
+  const resCancel = document.getElementById('resCancel');
+  const resSubmit = document.getElementById('resSubmit');
+  const resDate   = document.getElementById('resDate');
+  const resMaster = document.getElementById('resMaster');
+  const resSlots  = document.getElementById('resSlots');
+  const resErr    = document.getElementById('resErr');
+  const resOk     = document.getElementById('resOk');
+  let current = { apptId:null, serviceId:null, masterId:null, slot:null, masters:[] };
+
+  function openRes(apptId, serviceId){
+    current = { apptId, serviceId, masterId:null, slot:null, masters:[] };
+    resDate.min = todayStr(); resDate.value = todayStr();
+    resMaster.innerHTML = '';
+    resSlots.innerHTML = '<div class="animate-pulse h-9 bg-[#DEDEDE] rounded"></div>';
+    resSubmit.disabled = true;
+    resErr.classList.add('hidden'); resOk.classList.add('hidden');
+    resModal.classList.remove('hidden'); resModal.classList.add('flex');
+    loadAvail();
+  }
+  function closeRes(){ resModal.classList.add('hidden'); resModal.classList.remove('flex'); }
+
+  async function loadAvail(){
+    const params = new URLSearchParams({ service: current.serviceId, date: resDate.value });
+    const r = await fetch(`/accounts/api/availability/?` + params.toString(), {credentials:'same-origin'});
+    if(!r.ok){ resErr.textContent='Failed to load slots'; resErr.classList.remove('hidden'); return; }
+    const data = await r.json();
+    current.masters = data.masters || [];
+    resMaster.innerHTML = '';
+    if(current.masters.length === 0){
+      resMaster.innerHTML = '<option>No masters available</option>';
+      resSlots.innerHTML = '<div class="text-sm text-[#4D4D4D]">No slots</div>';
+      return;
+    }
+    current.masters.forEach(m=>{
+      const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; resMaster.appendChild(opt);
+    });
+    const m = current.masters.find(x => (x.slots||[]).length) || current.masters[0];
+    resMaster.value = m.id;
+    renderSlots();
+  }
+
+  function renderSlots(){
+    resSubmit.disabled = true; current.slot = null;
+    const mId = Number(resMaster.value);
+    const m = current.masters.find(x=> Number(x.id)===mId);
+    const slots = (m && m.slots) ? m.slots : [];
+    resSlots.innerHTML = '';
+    if(slots.length === 0){
+      resSlots.innerHTML = '<div class="text-sm text-[#4D4D4D]">No slots for this date</div>';
+      return;
+    }
+    slots.forEach(iso=>{
+      const b=document.createElement('button');
+      b.type='button';
+      b.className='px-3 py-2 border border-[#DEDEDE] rounded-md hover:bg-[#DAD3C1]';
+      b.textContent = fmtTime(iso);
+      b.addEventListener('click', ()=>{
+        [...resSlots.children].forEach(el=>el.classList.remove('ring','ring-[#AF9525]','bg-[#DAD3C1]'));
+        b.classList.add('ring','ring-[#AF9525]','bg-[#DAD3C1]');
+        current.slot = iso; current.masterId = mId; resSubmit.disabled = false;
+      });
+      resSlots.appendChild(b);
+    });
+  }
+
+  async function submitRes(){
+    if(!current.apptId || !current.slot) return;
+    resSubmit.disabled = true; resErr.classList.add('hidden'); resOk.classList.add('hidden');
+    const r = await fetch(`/accounts/api/appointment/${current.apptId}/reschedule/`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken': csrftoken},
+      credentials:'same-origin',
+      body: JSON.stringify({ start_time: current.slot, master: current.masterId })
+    });
+    const data = await r.json().catch(()=> ({}));
+    if(r.ok){
+      resOk.textContent = 'Rescheduled to ' + (data.appointment?.start_time || '');
+      resOk.classList.remove('hidden');
+      setTimeout(()=> location.reload(), 600);
+    }else{
+      resErr.textContent = data.error || data.detail || 'Reschedule failed';
+      resErr.classList.remove('hidden'); resSubmit.disabled = false;
+    }
+  }
+
+  document.addEventListener('click', (e)=>{
+    const a = e.target.closest('.appt-reschedule');
+    if(!a) return; e.preventDefault();
+    openRes(a.dataset.apptId, a.dataset.serviceId);
+  });
+  resClose.addEventListener('click', closeRes);
+  resCancel.addEventListener('click', closeRes);
+  resModal.addEventListener('click', (e)=>{ if(e.target===resModal) closeRes(); });
+  resDate.addEventListener('change', loadAvail);
+  resMaster.addEventListener('change', renderSlots);
+  resSubmit.addEventListener('click', submitRes);
 });
 </script>
 </body>

@@ -1,78 +1,144 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Malva Booking — Главное меню</title>
+  <title>Malva Booking — Services</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
-    :root { --brand:#7e57c2; --brand-dark:#6546b4; --bg-light:#fafafa; --text-main:#333; --text-muted:#666; --radius-lg:1.25rem; --radius-sm:.5rem; --shadow:0 6px 18px rgba(0,0,0,.08); --container:clamp(280px,90vw,1180px); }
+    /* ===== Brand palette ===== */
+    :root{
+      --green:#204029;        /* deep green */
+      --gold:#AF9525;         /* accent gold */
+      --taupe:#DAD3C1;        /* soft taupe */
+      --lgray:#DEDEDE;        /* light gray (page bg) */
+      --dgray:#4D4D4D;        /* text */
+      --white:#FFFFFF;
+
+      --radius-lg:1.25rem;
+      --radius-sm:.6rem;
+      --shadow:0 8px 20px rgba(0,0,0,.10);
+      --container:clamp(280px,92vw,1160px);
+    }
+
+    /* ===== Base ===== */
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
-    body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Open Sans","Helvetica Neue",sans-serif;background:var(--bg-light);color:var(--text-main);line-height:1.45;}
+    body{
+      font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Open Sans","Helvetica Neue",sans-serif;
+      background:var(--lgray);
+      color:var(--dgray);
+      line-height:1.5;
+    }
     img{max-width:100%;display:block}
     a{color:inherit;text-decoration:none}
-    .container{width:var(--container);margin-inline:auto;padding-inline:1rem;}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4em;padding:.75rem 1.75rem;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;transition:.25s all;white-space:nowrap;user-select:none}
-    .btn--primary{background:var(--brand);color:#fff;border:none;}
-    .btn--primary:hover{background:var(--brand-dark);transform:translateY(-2px);}
-    .btn--ghost{background:transparent;color:var(--brand);border:2px solid var(--brand);}
-    .btn--ghost:hover{color:var(--brand-dark);border-color:var(--brand-dark);background:rgba(126,87,194,.08);transform:translateY(-2px);}
-    .btn--ghost[disabled]{opacity:.45;cursor:not-allowed}
-    .site-header{background:#fff;box-shadow:var(--shadow);position:sticky;top:0;z-index:100;padding-block:.75rem;}
-    .site-header__inner{display:flex;align-items:center;justify-content:space-between;}
-    .logo{font-size:1.25rem;font-weight:700;color:var(--brand)}
-    .hero{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:1.5rem;padding:6rem 1rem;background:linear-gradient(135deg,#f7f7ff 0%,#ebe2ff 100%);}
-    .hero h1{font-size:clamp(2rem,4vw,3.5rem);font-weight:800;color:var(--brand)}
-    .hero p{font-size:1.125rem;color:var(--text-muted)}
-    .filters{display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem}
-    .filters input,.filters select{padding:.6rem 1rem;border:1px solid #ccc;border-radius:var(--radius-sm);font-size:.9rem;min-width:160px;background:#fff;}
-    .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;}
-    .service-card{background:#fff;border-radius:var(--radius-lg);padding:1.5rem;display:flex;flex-direction:column;gap:1rem;box-shadow:var(--shadow);transition:.25s}
-    .service-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,.12)}
-    .service-card__img{aspect-ratio:16/9;background:#e6e1f5;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#aaa}
-    .service-card h3{font-size:1.1rem;font-weight:700;color:var(--text-main)}
-    .service-meta{font-size:.85rem;color:var(--text-muted);}
-    .stub{font-style:italic;color:var(--text-muted);padding:1rem}
-    .muted{color:#666;font-size:.85rem}
-    .old{color:#999;text-decoration:line-through}
-    .badge{font-size:.75rem;background:#ffe7ec;color:#c1003f;border-radius:999px;padding:.15rem .5rem}
-    .debug{background:#fff7cd;border:1px dashed #e2a400;border-radius:10px;padding:.75rem 1rem;margin:1rem 0;font-size:.9rem;color:#715100}
-    .debug code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-    .site-footer{text-align:center;font-size:.875rem;color:var(--text-muted);padding:2rem 1rem}
+    .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
 
-    /* ===== modal booking ===== */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000}
+    /* ===== Buttons ===== */
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:.5em;
+      padding:.75rem 1.25rem;border-radius:var(--radius-sm);
+      font-weight:700;cursor:pointer;transition:.25s all;white-space:nowrap;user-select:none
+    }
+    .btn--primary{background:var(--gold);color:var(--white);border:none}
+    .btn--primary:hover{filter:brightness(.95);transform:translateY(-2px)}
+    .btn--ghost{
+      background:transparent;color:var(--gold);border:2px solid var(--gold);
+    }
+    .btn--ghost:hover{background:rgba(175,149,37,.08);transform:translateY(-2px)}
+    .btn--ghost[disabled]{opacity:.45;cursor:not-allowed}
+
+    /* ===== Header ===== */
+    .site-header{background:var(--green);box-shadow:var(--shadow);position:sticky;top:0;z-index:100;padding-block:.75rem}
+    .site-header__inner{display:flex;align-items:center;justify-content:space-between}
+    .logo{font-size:1.25rem;font-weight:800;color:var(--gold);letter-spacing:.3px}
+
+    /* ===== Hero ===== */
+    .hero{
+      display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:1.25rem;
+      padding:5.5rem 1rem;
+      background:
+        radial-gradient(60% 120% at 80% -10%, rgba(32,64,41,.18) 0%, rgba(32,64,41,0) 60%),
+        linear-gradient(135deg, var(--taupe) 0%, var(--lgray) 100%);
+    }
+    .hero h1{font-size:clamp(2rem,4vw,3.2rem);font-weight:900;color:var(--green)}
+    .hero p{font-size:1.125rem;max-width:52ch;color:var(--dgray)}
+
+    /* ===== Filters ===== */
+    .filters{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.25rem 0 1.75rem}
+    .filters input,.filters select{
+      padding:.6rem 1rem;border:1px solid var(--taupe);border-radius:var(--radius-sm);
+      font-size:.95rem;min-width:170px;background:var(--white)
+    }
+
+    /* ===== Cards ===== */
+    .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem}
+    .service-card{
+      background:var(--white);border-radius:var(--radius-lg);padding:1.25rem;
+      display:flex;flex-direction:column;gap:.85rem;box-shadow:var(--shadow);
+      border:1px solid color-mix(in srgb, var(--taupe) 70%, transparent);
+      transition:.25s
+    }
+    .service-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,.14)}
+    .service-card__img{
+      aspect-ratio:16/9;background:color-mix(in srgb, var(--taupe) 40%, var(--white));
+      border-radius:.75rem;display:flex;align-items:center;justify-content:center;
+      font-size:.9rem;color:#8a8a8a
+    }
+    .service-card h3{font-size:1.08rem;font-weight:800;color:var(--dgray)}
+    .service-meta{font-size:.9rem;color:#636363}
+    .stub{font-style:italic;color:#666;padding:1rem}
+    .muted{color:#666;font-size:.92rem}
+    .old{color:#999;text-decoration:line-through}
+    .badge{
+      font-size:.75rem;background:var(--gold);color:var(--white);
+      border-radius:999px;padding:.18rem .55rem;margin-left:.35rem
+    }
+
+    /* ===== Footer ===== */
+    .site-footer{text-align:center;font-size:.875rem;color:#666;padding:2rem 1rem}
+
+    /* ===== Debug (optional) ===== */
+    .debug{background:#fff7cd;border:1px dashed #e2a400;border-radius:10px;padding:.75rem 1rem;margin:1rem 0;font-size:.9rem;color:#715100}
+    .debug code{font-family:ui-monospace,Menlo,Consolas,monospace}
+
+    /* ===== Modal: booking ===== */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000}
     .modal--open{display:flex}
-    .modal__dialog{background:#fff;border-radius:1rem;box-shadow:0 12px 30px rgba(0,0,0,.18);width:min(720px,96vw);padding:1.25rem 1.25rem 1rem}
+    .modal__dialog{background:var(--white);border-radius:1rem;box-shadow:0 14px 36px rgba(0,0,0,.22);width:min(760px,96vw);padding:1.25rem 1.25rem 1rem;border:1px solid var(--taupe)}
     .modal__header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
-    .modal__title{font-weight:800;font-size:1.15rem}
+    .modal__title{font-weight:900;font-size:1.15rem;color:var(--green)}
     .modal__close{background:transparent;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:#666}
     .grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:1rem}
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:#555}
-    .field input,.field select{padding:.6rem .8rem;border:1px solid #ccc;border-radius:.6rem;font-size:.95rem}
-    .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem;margin-top:.5rem;max-height:240px;overflow:auto;border:1px dashed #eee;padding:.5rem;border-radius:.5rem}
-    .slot{padding:.5rem .65rem;border:1px solid #ddd;border-radius:.6rem;cursor:pointer;text-align:center}
-    .slot--active{border-color:var(--brand);background:#f3effd;color:#2b2060;font-weight:700}
+    .field input,.field select{padding:.6rem .8rem;border:1px solid var(--lgray);border-radius:.6rem;font-size:.95rem}
+    .slots{
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem;margin-top:.5rem;
+      max-height:240px;overflow:auto;border:1px dashed var(--lgray);padding:.5rem;border-radius:.5rem
+    }
+    .slot{padding:.5rem .65rem;border:1px solid #ddd;border-radius:.6rem;cursor:pointer;text-align:center;background:var(--white)}
+    .slot--active{border-color:var(--gold);background:var(--taupe);color:var(--green);font-weight:800}
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
     .hint{font-size:.85rem;color:#666}
     .error{color:#b00020;font-size:.9rem;margin-top:.5rem}
     .success{color:#0a7a3b;font-size:.95rem;margin-top:.5rem}
-    .skeleton{background:linear-gradient(90deg,#eee, #f6f6f6, #eee);background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;border-radius:.5rem;height:36px}
-    @keyframes sh {0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .skeleton{background:linear-gradient(90deg,#eee,#f6f6f6,#eee);background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;border-radius:.5rem;height:36px}
+    @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
   </style>
 </head>
 <body>
+
   <!-- header -->
   <header class="site-header">
     <div class="container site-header__inner">
       <span class="logo">Malva Booking</span>
       <nav>
         {% if user.is_authenticated %}
-          <a href="{% url 'dashboard' %}" class="btn btn--ghost">Личный кабинет</a>
+          <a href="{% url 'dashboard' %}" class="btn btn--ghost">Client Portal</a>
         {% else %}
-          <a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Личный кабинет</a>
+          <a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Client Portal</a>
         {% endif %}
       </nav>
     </div>
@@ -80,15 +146,15 @@
 
   <!-- hero -->
   <section class="hero">
-    <h1>Онлайн-запись к специалисту за 2 клика</h1>
-    <p>Выберите услугу, мастера и удобное время — мы позаботимся обо всём остальном</p>
-    <a href="#services" class="btn btn--primary">Каталог услуг ↓</a>
+    <h1>Book your appointment in 2 clicks</h1>
+    <p>Pick a service, a specialist, and a time — we’ll handle the rest.</p>
+    <a href="#services" class="btn btn--primary">Browse services ↓</a>
   </section>
 
   <main id="services" class="container" style="padding-block:3rem;">
-    <h2 style="font-size:1.75rem;font-weight:700;margin-bottom:1.5rem;">Каталог услуг</h2>
+    <h2 style="font-size:1.75rem;font-weight:800;margin-bottom:1.5rem;color:var(--green);">Services</h2>
 
-    <!-- 🔎 Диагностика контекста
+    <!-- 🔎 DEBUG (optional)
     <div class="debug">
       <div><strong>DEBUG:</strong>
         categories=<code>{{ categories|length }}</code>,
@@ -101,30 +167,30 @@
       {% if categories %}
         <div style="margin-top:.5rem">
           {% for c in categories %}
-            <div>cat «{{ c.name }}»: <code>{{ c.service_set.all|length }}</code> услуг</div>
+            <div>cat “{{ c.name }}”: <code>{{ c.service_set.all|length }}</code> items</div>
           {% endfor %}
         </div>
       {% endif %}
     </div> -->
 
-    <!-- Фильтры -->
+    <!-- Filters -->
     <form method="get" class="filters" role="search">
-      <input type="search" name="q" placeholder="Поиск услуги…" value="{{ q|default:'' }}">
+      <input type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
       <select name="cat">
-        <option value="">Все категории</option>
+        <option value="">All categories</option>
         {% for c in filter_categories %}
           <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
         {% endfor %}
       </select>
-      <button class="btn btn--primary" type="submit">Найти</button>
+      <button class="btn btn--primary" type="submit">Search</button>
       {% if q or active_category %}
-        <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Сбросить</a>
+        <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Reset</a>
       {% endif %}
     </form>
 
-    <!-- Результаты поиска -->
+    <!-- Search results -->
     {% if search_results %}
-      <h3 style="margin:.5rem 0 1rem;">Результаты поиска</h3>
+      <h3 style="margin:.5rem 0 1rem;">Search results</h3>
       <div class="services-grid">
         {% for s in search_results %}
           <article class="service-card">
@@ -142,23 +208,23 @@
                   <strong>${{ s.base_price|floatformat:2 }}</strong>
                 {% endif %}
               {% endwith %}
-              · {{ s.duration_min }} мин
+              · {{ s.duration_min }} min
             </div>
             <button class="btn btn--primary book-btn"
                     data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-              Выбрать время
+              Pick a time
             </button>
           </article>
         {% empty %}
-          <div class="stub">По запросу «{{ q }}» ничего не найдено.</div>
+          <div class="stub">No results for “{{ q }}”.</div>
         {% endfor %}
       </div>
-      <hr style="margin:2rem 0;border:none;border-top:1px solid #eee">
+      <hr style="margin:2rem 0;border:none;border-top:1px solid var(--lgray)">
     {% endif %}
 
-    <!-- Категории + услуги -->
+    <!-- Categories & services -->
     {% for c in categories %}
-      <h3 style="margin:1.5rem 0 .75rem;">{{ c.name }}</h3>
+      <h3 style="margin:1.5rem 0 .75rem;color:var(--green);font-weight:800">{{ c.name }}</h3>
       <div class="services-grid">
         {% for s in c.service_set.all %}
           <article class="service-card">
@@ -175,21 +241,21 @@
                   <strong>${{ s.base_price|floatformat:2 }}</strong>
                 {% endif %}
               {% endwith %}
-              · {{ s.duration_min }} мин
+              · {{ s.duration_min }} min
             </div>
             <button class="btn btn--primary book-btn"
                     data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-              Выбрать время
+              Pick a time
             </button>
           </article>
         {% empty %}
-          <div class="stub">В категории пока нет услуг.</div>
+          <div class="stub">No services in this category yet.</div>
         {% endfor %}
       </div>
     {% endfor %}
 
     {% if uncategorized %}
-      <h3 style="margin:1.5rem 0 .75rem;">Без категории</h3>
+      <h3 style="margin:1.5rem 0 .75rem;color:var(--green);font-weight:800">Uncategorized</h3>
       <div class="services-grid">
         {% for s in uncategorized %}
           <article class="service-card">
@@ -206,11 +272,11 @@
                   <strong>${{ s.base_price|floatformat:2 }}</strong>
                 {% endif %}
               {% endwith %}
-              · {{ s.duration_min }} мин
+              · {{ s.duration_min }} min
             </div>
             <button class="btn btn--primary book-btn"
                     data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-              Выбрать время
+              Pick a time
             </button>
           </article>
         {% endfor %}
@@ -218,7 +284,7 @@
     {% endif %}
 
     {% if not has_any_services %}
-      <div class="stub">Каталог скоро будет доступен 👍</div>
+      <div class="stub">The catalog will be available soon 👍</div>
     {% endif %}
   </main>
 
@@ -228,32 +294,32 @@
   <div class="modal" id="bookModal" aria-hidden="true">
     <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
       <div class="modal__header">
-        <div class="modal__title" id="bookTitle">Запись на <span id="bookServiceName"></span></div>
-        <button class="modal__close" id="bookClose" aria-label="Закрыть">×</button>
+        <div class="modal__title" id="bookTitle">Booking for <span id="bookServiceName"></span></div>
+        <button class="modal__close" id="bookClose" aria-label="Close">×</button>
       </div>
 
       <div class="grid-2">
         <div>
           <div class="field">
-            <label for="bookDate">Дата</label>
+            <label for="bookDate">Date</label>
             <input type="date" id="bookDate">
           </div>
           <div class="field" style="margin-top:.5rem">
-            <label for="bookMaster">Мастер</label>
+            <label for="bookMaster">Master</label>
             <select id="bookMaster"></select>
           </div>
           <div class="field" style="margin-top:.5rem">
-            <label>Свободные слоты</label>
+            <label>Available slots</label>
             <div class="slots" id="bookSlots">
               <div class="skeleton"></div>
             </div>
-            <div class="hint">Выберите удобное время. Слоты учитывают длительность услуги и занятость мастера.</div>
+            <div class="hint">Choose a convenient time. Slots respect the service duration and master’s schedule.</div>
           </div>
         </div>
         <div>
           <div class="field">
-            <label>Сводка</label>
-            <div class="muted" id="bookSummary">Выберите дату, мастера и время.</div>
+            <label>Summary</label>
+            <div class="muted" id="bookSummary">Pick a date, master, and time.</div>
           </div>
           <div class="error" id="bookError" style="display:none;"></div>
           <div class="success" id="bookSuccess" style="display:none;"></div>
@@ -261,8 +327,8 @@
       </div>
 
       <div class="modal__footer">
-        <button class="btn btn--ghost" id="bookCancel">Отмена</button>
-        <button class="btn btn--primary" id="bookSubmit" disabled>Подтвердить запись</button>
+        <button class="btn btn--ghost" id="bookCancel">Cancel</button>
+        <button class="btn btn--primary" id="bookSubmit" disabled>Confirm booking</button>
       </div>
     </div>
   </div>
@@ -276,166 +342,141 @@
 
       // helpers
       function getCookie(name){
-        const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-        return m ? m.pop() : '';
+        const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)'); return m ? m.pop() : '';
       }
       function fmtTime(iso){
         try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
         catch(e){ return iso; }
       }
       function todayStr(){
-        const d = new Date();
-        const m = String(d.getMonth()+1).padStart(2,'0');
-        const day = String(d.getDate()).padStart(2,'0');
+        const d=new Date(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
         return `${d.getFullYear()}-${m}-${day}`;
       }
 
       // modal elements
-      const modal = document.getElementById('bookModal');
-      const btnClose = document.getElementById('bookClose');
-      const btnCancel = document.getElementById('bookCancel');
-      const btnSubmit = document.getElementById('bookSubmit');
-      const elServiceName = document.getElementById('bookServiceName');
-      const elDate = document.getElementById('bookDate');
-      const elMaster = document.getElementById('bookMaster');
-      const elSlots = document.getElementById('bookSlots');
-      const elSummary = document.getElementById('bookSummary');
-      const elError = document.getElementById('bookError');
-      const elSuccess = document.getElementById('bookSuccess');
+      const modal=document.getElementById('bookModal');
+      const btnClose=document.getElementById('bookClose');
+      const btnCancel=document.getElementById('bookCancel');
+      const btnSubmit=document.getElementById('bookSubmit');
+      const elServiceName=document.getElementById('bookServiceName');
+      const elDate=document.getElementById('bookDate');
+      const elMaster=document.getElementById('bookMaster');
+      const elSlots=document.getElementById('bookSlots');
+      const elSummary=document.getElementById('bookSummary');
+      const elError=document.getElementById('bookError');
+      const elSuccess=document.getElementById('bookSuccess');
 
-      let current = { serviceId: null, serviceName: '', masterId: null, slot: null, mastersData: [] };
+      let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
 
       function openModal(serviceId, serviceName){
-        if(!isAuth){ window.location = loginUrl; return; }
-        current = { serviceId, serviceName, masterId: null, slot: null, mastersData: [] };
-        elServiceName.textContent = serviceName;
-        elError.style.display = 'none';
-        elSuccess.style.display = 'none';
-        btnSubmit.disabled = true;
-        elDate.min = todayStr();
-        elDate.value = todayStr();
-        elMaster.innerHTML = '';
-        elSlots.innerHTML = '<div class="skeleton"></div>';
-        elSummary.textContent = 'Выберите дату, мастера и время.';
+        if(!isAuth){ window.location=loginUrl; return; }
+        current={ serviceId, serviceName, masterId:null, slot:null, mastersData:[] };
+        elServiceName.textContent=serviceName;
+        elError.style.display='none'; elSuccess.style.display='none';
+        btnSubmit.disabled=true;
+        elDate.min=todayStr(); elDate.value=todayStr();
+        elMaster.innerHTML=''; elSlots.innerHTML='<div class="skeleton"></div>';
+        elSummary.textContent='Pick a date, master, and time.';
         modal.classList.add('modal--open');
-        loadAvailability(); // initial
+        loadAvailability();
       }
-      function closeModal(){
-        modal.classList.remove('modal--open');
-      }
+      function closeModal(){ modal.classList.remove('modal--open'); }
 
       async function loadAvailability(){
-        elError.style.display = 'none';
-        elSlots.innerHTML = '<div class="skeleton"></div>';
-        btnSubmit.disabled = true;
-        current.slot = null;
+        elError.style.display='none';
+        elSlots.innerHTML='<div class="skeleton"></div>';
+        btnSubmit.disabled=true; current.slot=null;
 
-        const params = new URLSearchParams({ service: current.serviceId, date: elDate.value });
+        const params=new URLSearchParams({ service: current.serviceId, date: elDate.value });
         try{
-          const resp = await fetch(`${apiAvail}?` + params.toString(), { credentials:'same-origin' });
-          if(!resp.ok){ throw new Error('Ошибка загрузки слотов'); }
-          const data = await resp.json();
-          current.mastersData = data.masters || [];
+          const resp=await fetch(`${apiAvail}?`+params.toString(),{credentials:'same-origin'});
+          if(!resp.ok) throw new Error('Failed to load available slots');
+          const data=await resp.json();
+          current.mastersData=data.masters||[];
 
           // fill masters
-          elMaster.innerHTML = '';
-          if(current.mastersData.length === 0){
-            const opt = document.createElement('option');
-            opt.value = ''; opt.textContent = 'Мастера не найдены';
+          elMaster.innerHTML='';
+          if(current.mastersData.length===0){
+            const opt=document.createElement('option'); opt.value=''; opt.textContent='No masters available';
             elMaster.appendChild(opt);
-            elSlots.innerHTML = '<div class="hint">Нет мастеров для этой услуги.</div>';
+            elSlots.innerHTML='<div class="hint">No masters for this service.</div>';
             return;
           }
           current.mastersData.forEach(m=>{
-            const opt = document.createElement('option');
-            opt.value = m.id;
-            opt.textContent = `${m.name}`;
-            elMaster.appendChild(opt);
+            const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; elMaster.appendChild(opt);
           });
 
-          // choose default master: первый с доступными слотами, иначе первый
-          const withSlots = current.mastersData.find(m => (m.slots||[]).length);
-          elMaster.value = (withSlots ? withSlots.id : current.mastersData[0].id);
+          // default master: first with slots else first
+          const withSlots=current.mastersData.find(m=>(m.slots||[]).length);
+          elMaster.value=(withSlots?withSlots.id:current.mastersData[0].id);
           renderSlots();
         }catch(err){
-          elError.textContent = err.message || 'Не удалось получить доступность';
-          elError.style.display = 'block';
-          elSlots.innerHTML = '';
+          elError.textContent=err.message||'Unable to fetch availability';
+          elError.style.display='block'; elSlots.innerHTML='';
         }
       }
 
       function renderSlots(){
-        const mId = Number(elMaster.value);
-        current.masterId = mId;
-        const m = current.mastersData.find(x => Number(x.id) === mId);
-        const slots = (m && m.slots) ? m.slots : [];
-        elSlots.innerHTML = '';
-        if(slots.length === 0){
-          elSlots.innerHTML = '<div class="hint">Нет свободных слотов на выбранную дату.</div>';
-          btnSubmit.disabled = true;
-          elSummary.textContent = 'Свободных слотов нет. Попробуйте другую дату.';
+        const mId=Number(elMaster.value);
+        current.masterId=mId;
+        const m=current.mastersData.find(x=>Number(x.id)===mId);
+        const slots=(m&&m.slots)?m.slots:[];
+        elSlots.innerHTML='';
+        if(slots.length===0){
+          elSlots.innerHTML='<div class="hint">No free slots for the selected date.</div>';
+          btnSubmit.disabled=true; elSummary.textContent='Try another date.';
           return;
         }
         slots.forEach(iso=>{
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'slot';
-          b.textContent = fmtTime(iso);
-          b.dataset.iso = iso;
+          const b=document.createElement('button');
+          b.type='button'; b.className='slot'; b.textContent=fmtTime(iso); b.dataset.iso=iso;
           b.addEventListener('click', ()=>{
             [...elSlots.querySelectorAll('.slot')].forEach(x=>x.classList.remove('slot--active'));
-            b.classList.add('slot--active');
-            current.slot = iso;
-            btnSubmit.disabled = false;
-            elSummary.textContent = `Мастер: ${m.name}. Время: ${fmtTime(iso)}.`;
+            b.classList.add('slot--active'); current.slot=iso; btnSubmit.disabled=false;
+            elSummary.textContent=`Master: ${m.name}. Time: ${fmtTime(iso)}.`;
           });
           elSlots.appendChild(b);
         });
       }
 
       async function submitBooking(){
-        if(!current.serviceId || !current.masterId || !current.slot) return;
-        btnSubmit.disabled = true;
-        elError.style.display = 'none';
-        elSuccess.style.display = 'none';
+        if(!current.serviceId||!current.masterId||!current.slot) return;
+        btnSubmit.disabled=true; elError.style.display='none'; elSuccess.style.display='none';
 
         try{
-          const resp = await fetch(apiBook, {
+          const resp=await fetch(apiBook,{
             method:'POST',
-            headers:{ 'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
             credentials:'same-origin',
-            body: JSON.stringify({ service: current.serviceId, master: current.masterId, start_time: current.slot })
+            body:JSON.stringify({ service:current.serviceId, master:current.masterId, start_time:current.slot })
           });
-          const data = await resp.json().catch(()=> ({}));
+          const data=await resp.json().catch(()=>({}));
           if(!resp.ok){
-            const msg = data && (data.error || data.detail) ? (data.error || data.detail) : 'Не удалось создать запись';
+            const msg=(data&&(data.error||data.detail))?(data.error||data.detail):'Could not create an appointment';
             throw new Error(msg);
           }
-          elSuccess.textContent = 'Запись создана! ' + (data.appointment?.start_time ? ('Время: ' + fmtTime(data.appointment.start_time)) : '');
-          elSuccess.style.display = 'block';
+          elSuccess.textContent='Appointment created! '+(data.appointment?.start_time?('Time: '+fmtTime(data.appointment.start_time)):'');
+          elSuccess.style.display='block';
           setTimeout(()=>{ window.location.reload(); }, 700);
         }catch(err){
-          elError.textContent = err.message || 'Ошибка бронирования';
-          elError.style.display = 'block';
-          btnSubmit.disabled = false;
+          elError.textContent=err.message||'Booking error';
+          elError.style.display='block'; btnSubmit.disabled=false;
         }
       }
 
       // events
-      document.addEventListener('click', (e)=>{
-        const btn = e.target.closest('.book-btn');
-        if(btn){
-          const id = btn.dataset.serviceId;
-          const name = btn.dataset.serviceName || 'услугу';
-          openModal(id, name);
+      document.addEventListener('click',(e)=>{
+        const btn=e.target.closest('.book-btn'); if(btn){
+          const id=btn.dataset.serviceId; const name=btn.dataset.serviceName||'service';
+          openModal(id,name);
         }
       });
-      btnClose.addEventListener('click', closeModal);
-      btnCancel.addEventListener('click', closeModal);
-      modal.addEventListener('click', (e)=> { if(e.target === modal) closeModal(); });
-      elDate.addEventListener('change', loadAvailability);
-      elMaster.addEventListener('change', renderSlots);
-      btnSubmit.addEventListener('click', submitBooking);
+      btnClose.addEventListener('click',closeModal);
+      btnCancel.addEventListener('click',closeModal);
+      modal.addEventListener('click',(e)=>{ if(e.target===modal) closeModal(); });
+      elDate.addEventListener('change',loadAvailability);
+      elMaster.addEventListener('change',renderSlots);
+      btnSubmit.addEventListener('click',submitBooking);
     })();
   </script>
 </body>
