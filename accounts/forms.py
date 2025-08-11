@@ -98,3 +98,50 @@ class ClientLoginForm(AuthenticationForm):
             raise forms.ValidationError("Неверные учётные данные.")
         self.confirm_login_allowed(self.user_cache)
         return self.cleaned_data
+
+# accounts/forms.py
+from django import forms
+from django.core.exceptions import ValidationError
+from core.models import CustomUserDisplay, UserProfile
+import phonenumbers
+
+class ClientProfileForm(forms.Form):
+    first_name = forms.CharField(required=False, max_length=150, label="Имя")
+    last_name  = forms.CharField(required=False, max_length=150, label="Фамилия")
+    email      = forms.EmailField(required=True, label="E-mail")
+    phone      = forms.CharField(required=True, max_length=20, label="Телефон")
+    birth_date = forms.DateField(required=False, input_formats=["%Y-%m-%d"], label="Дата рождения")
+
+    def __init__(self, *args, **kwargs):
+        self.user: CustomUserDisplay = kwargs.pop("user")
+        super().__init__(*args, **kwargs)
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].lower()
+        if CustomUserDisplay.objects.filter(email__iexact=email).exclude(pk=self.user.pk).exists():
+            raise ValidationError("Этот e-mail уже используется.")
+        return email
+
+    def clean_phone(self):
+        raw = self.cleaned_data["phone"]
+        try:
+            parsed = phonenumbers.parse(raw, None)
+            phone_e164 = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+        except phonenumbers.NumberParseException:
+            raise ValidationError("Неверный формат телефона.")
+        if UserProfile.objects.filter(phone=phone_e164).exclude(user=self.user).exists():
+            raise ValidationError("Этот телефон уже используется.")
+        return phone_e164
+
+    def save(self):
+        u = self.user
+        u.first_name = self.cleaned_data.get("first_name", "") or ""
+        u.last_name  = self.cleaned_data.get("last_name", "") or ""
+        u.email      = self.cleaned_data["email"]
+        u.save()
+
+        prof, _ = UserProfile.objects.get_or_create(user=u)
+        prof.phone      = self.cleaned_data["phone"]
+        prof.birth_date = self.cleaned_data.get("birth_date")
+        prof.save()
+        return u

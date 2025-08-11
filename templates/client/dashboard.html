@@ -188,6 +188,23 @@
     </section>
 
     <!-- PROFILE -->
+     {% if messages %}
+  <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 text-sm">
+    {% for m in messages %}{{ m }}{% endfor %}
+  </div>
+{% endif %}
+    {% if profile_form_errors %}
+  <div class="md:col-span-2 rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">
+    <ul class="list-disc ms-5">
+      {% for field, errs in profile_form_errors.items %}
+        {% for e in errs %}
+          <li>{{ e }}</li>
+        {% endfor %}
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
     <section id="tab-profile" class="tab hidden">
       <h2 class="text-2xl font-semibold mb-6 text-[#204029]">Profile</h2>
 
@@ -270,7 +287,6 @@
 <!-- ▸▸ JS ◂◂ -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  /* tabs */
   const links = document.querySelectorAll('.sidebar-link');
   const tabs  = document.querySelectorAll('.tab');
 
@@ -284,9 +300,14 @@ document.addEventListener('DOMContentLoaded', () => {
     tabs.forEach(t => t.classList.toggle('hidden', t.id !== 'tab-' + tabName));
     links.forEach(l => setActive(l, l.dataset.tab === tabName));
   }
-  links.forEach(link => link.addEventListener('click', e => { e.preventDefault(); activate(link.dataset.tab); }));
-  activate('dashboard');
 
+  // NEW: читаем хэш из URL
+  const allowed = ['dashboard','appointments','files','notifications','profile'];
+  const initial = allowed.includes(location.hash.replace('#','')) ? location.hash.replace('#','') : 'dashboard';
+  activate(initial);
+
+  links.forEach(link => link.addEventListener('click', e => { e.preventDefault(); activate(link.dataset.tab); history.replaceState(null, '', '#'+link.dataset.tab); }));
+  
   /* chart */
   const el = document.getElementById('stats_chart');
   if (el) {
