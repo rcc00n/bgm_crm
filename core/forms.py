@@ -268,7 +268,7 @@ class MasterCreateFullForm(forms.ModelForm):
             self.fields['email'].initial = user.email
             self.fields['first_name'].initial = user.first_name
             self.fields['last_name'].initial = user.last_name
-            self.fields['room'].initial = user.room
+            # self.fields['room'].initial = user.room
 
             if hasattr(user, 'userprofile'):
                 self.fields['phone'].initial = user.userprofile.phone
