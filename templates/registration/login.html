@@ -128,6 +128,17 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
   .card{padding:52px 34px 46px;}
   h1.title{font-size:2.2rem;}
 }
+
+/* === Password toggle (eye) === */
+.field .toggle-eye{
+  position:absolute; right:1px; top:50%; transform:translateY(-50%);
+  border:none; background:transparent; cursor:pointer; padding:6px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+}
+.field .toggle-eye:focus{ outline: none; box-shadow:0 0 0 3px rgba(175,149,37,.35); }
+.field input.has-eye{ padding-right:64px; } /* место под глаз */
+.field .toggle-eye svg{ width:22px; height:22px; fill:var(--primary); opacity:.95; }
+
 </style>
 </head>
 
@@ -149,10 +160,19 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
       </div>
 
       <div class="field">
-        {{ form.password }}
-        <label for="{{ form.password.id_for_label }}">Password</label>
-        <svg viewBox="0 0 24 24"><path d="M17 9h-1V6a4 4 0 00-8 0v3H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2v-9a2 2 0 00-2-2zm-6 7.73V18a1 1 0 002 0v-1.27a2 2 0 10-2 0zM9 6a3 3 0 016 0v3H9V6z"/></svg>
-      </div>
+  {{ form.password }}
+  <label for="{{ form.password.id_for_label }}">Password</label>
+  <svg viewBox="0 0 24 24"><path d="M17 9h-1V6a4 4 0 00-8 0v3H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2v-9a2 2 0 00-2-2zm-6 7.73V18a1 1 0 002 0v-1.27a2 2 0 10-2 0zM9 6a3 3 0 016 0v3H9V6z"/></svg>
+
+  <!-- eye -->
+  <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+    <!-- eye open -->
+    <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+    <!-- eye off (скрыта по умолчанию) -->
+    <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+  </button>
+</div>
+
 
       <button type="submit" class="btn">Sign in</button>
       <button type="button" id="openReg" class="btn btn--ghost" style="margin-top:12px;">Create account</button>
@@ -182,8 +202,24 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
   />
   <label for="regPhone">Phone</label>
 </div>
-      <div class="field"><input type="password" name="password1" placeholder=" " required><label>Password</label></div>
-      <div class="field"><input type="password" name="password2" placeholder=" " required><label>Confirm password</label></div>
+      <div class="field">
+  <input type="password" name="password1" placeholder=" " required>
+  <label>Password</label>
+  <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+    <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+    <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+  </button>
+</div>
+
+      <div class="field">
+  <input type="password" name="password2" placeholder=" " required>
+  <label>Confirm password</label>
+  <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+    <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+    <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+  </button>
+</div>
+
       <ul class="errorlist" id="regErrors" style="display:none;"></ul>
       <button type="submit" class="btn">Sign up</button>
     </form>
@@ -329,6 +365,52 @@ function fitCard(){
 addEventListener('load',fitCard);
 addEventListener('resize',fitCard);
 setTimeout(fitCard,0);
+
+/* Password eyes: login + registration */
+(function(){
+  function attachEye(btn){
+    const field = btn.closest('.field');
+    if (!field) return;
+    const input = field.querySelector('input[type="password"], input[type="text"]');
+    if (!input) return;
+
+    // место под кнопку
+    input.classList.add('has-eye');
+
+    function setVisible(on){
+      input.type = on ? 'text' : 'password';
+      btn.setAttribute('aria-label', on ? 'Hide password' : 'Show password');
+      const open = btn.querySelector('.eye-open');
+      const off  = btn.querySelector('.eye-off');
+      if (open && off){ open.style.display = on ? 'none' : ''; off.style.display = on ? '' : 'none'; }
+    }
+
+    let visible = false;
+    btn.addEventListener('click', ()=>{
+      visible = !visible;
+      setVisible(visible);
+      // курсор в конец
+      try{
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+        input.focus();
+      }catch(e){}
+    });
+  }
+
+  // 1) Логин: сделать поле пароля "has-eye"
+  const loginPwd = document.querySelector('.login-form .field input[name="password"]') ||
+                   document.querySelector('.login-form .field input[type="password"]');
+  if (loginPwd){
+    loginPwd.classList.add('has-eye');
+    const loginBtn = document.querySelector('.login-form .field .toggle-eye');
+    if (loginBtn) attachEye(loginBtn);
+  }
+
+  // 2) Регистрация: оба поля
+  document.querySelectorAll('#regModal .field .toggle-eye').forEach(attachEye);
+})();
+
 </script>
 </body>
 </html>
