@@ -169,7 +169,19 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
       {% csrf_token %}
       <div class="field"><input type="text" name="username" placeholder=" " required><label>Username</label></div>
       <div class="field"><input type="email" name="email" placeholder=" " required><label>E-mail</label></div>
-      <div class="field"><input type="text" name="phone" placeholder=" " required><label>Phone</label></div>
+      <div class="field">
+  <input
+    type="tel"
+    id="regPhone"
+    name="phone"
+    placeholder="(555) 123‑4567"
+    value="+1 "
+    required
+    inputmode="tel"
+    autocomplete="tel"
+  />
+  <label for="regPhone">Phone</label>
+</div>
       <div class="field"><input type="password" name="password1" placeholder=" " required><label>Password</label></div>
       <div class="field"><input type="password" name="password2" placeholder=" " required><label>Confirm password</label></div>
       <ul class="errorlist" id="regErrors" style="display:none;"></ul>
@@ -249,6 +261,62 @@ function showErrors(obj){
   box.innerHTML='';Object.values(obj).flat().forEach(m=>box.innerHTML+=`<li>${m}</li>`);
   box.style.display='block';
 }
+
+
+/* Phone: keep +1 visually and format as (555) 123‑4567 */
+(function(){
+  const input = document.getElementById('regPhone');
+  if (!input) return;
+
+  const PREFIX = '+1 ';
+  // форматируем 10 цифр в (XXX) XXX‑XXXX
+  function fmtUS(d){
+    d = d.replace(/\D/g, '');
+    // если пользователь вставил с ведущей '1', уберём её — префикс мы подставляем сами
+    if (d.startsWith('1')) d = d.slice(1);
+    d = d.slice(0, 10);
+    const a = d.slice(0,3), b = d.slice(3,6), c = d.slice(6,10);
+    let s = '';
+    if (a) s += '(' + a;
+    if (a.length === 3) s += ')';
+    if (b) s += (a.length === 3 ? ' ' : '') + b;
+    if (c) s += '-' + c;
+    return s;
+  }
+
+  function ensurePrefixAndFormat(){
+    // убираем возможные '+1', чтобы не копить их
+    let v = input.value.replace(/^\s*\+?\s*1[\s-]*/, '');
+    input.value = PREFIX + fmtUS(v);
+  }
+
+  // Инициализация
+  if (!input.value.trim()) input.value = PREFIX;
+  ensurePrefixAndFormat();
+
+  // Поддержка префикса и форматирования
+  input.addEventListener('input', ensurePrefixAndFormat);
+  input.addEventListener('paste', () => setTimeout(ensurePrefixAndFormat, 0));
+
+  // Не даём удалить префикс Backspace/ArrowLeft
+  input.addEventListener('keydown', (e) => {
+    const start = input.selectionStart ?? 0;
+    if ((e.key === 'Backspace' || e.key === 'ArrowLeft') && start <= PREFIX.length) {
+      e.preventDefault();
+      input.setSelectionRange(PREFIX.length, PREFIX.length);
+    }
+  });
+
+  // На фокус — ставим курсор в конец (после +1 )
+  input.addEventListener('focus', () => {
+    if (!input.value.startsWith(PREFIX)) ensurePrefixAndFormat();
+    requestAnimationFrame(() => {
+      const pos = input.value.length;
+      input.setSelectionRange(pos, pos);
+    });
+  });
+})();
+
 
 /* auto scale card to viewport height */
 function fitCard(){
