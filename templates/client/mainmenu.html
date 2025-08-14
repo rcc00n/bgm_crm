@@ -6,167 +6,193 @@
   <title>Malva Booking — Services</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-
   <style>
-    /* ===== Brand palette (в рамках предоставленных цветов) ===== */
+    /* =========================
+       Design tokens
+       ========================= */
     :root{
-      /* Брендовые базовые */
-      --green-dark:#204029;  /* из гайда */
-      --green:#1F5C3A;
-      --green-light:#3D8B5C;
-      --gold:#AF9525;        /* бережно используем как вторичный акцент */
-      --taupe:#DAD3C1;
-      --lgray:#DEDEDE;
-      --dgray:#4D4D4D;
-      --white:#FFFFFF;
+      --green-dark:#204029; --green:#1F5C3A; --green-600:#2e5a3a;
+      --gold:#AF9525; --taupe:#DAD3C1; --lgray:#DEDEDE; --dgray:#4D4D4D; --white:#FFF;
 
-      /* Производные для темы (смеси на базе бренда) */
-      --mint-light: color-mix(in srgb, var(--green) 7%, #EFF4F2);  /* мягкий фон страницы */
-      --mint:       color-mix(in srgb, var(--green) 22%, #F6FBF8); /* светло‑зелёный фон секций/героя */
-      --ink:        color-mix(in srgb, var(--green-dark) 80%, #000); /* текст почти чёрный с зелёным оттенком */
-      --muted:      color-mix(in srgb, var(--dgray) 70%, var(--green-dark) 20%);
+      --bg-grad-1:#EFF4F2; --bg-grad-2:#EEF3F0;
+      --ink: color-mix(in srgb, var(--green-dark) 80%, #000);
+      --muted: color-mix(in srgb, var(--dgray) 70%, var(--green-dark) 20%);
 
-      --radius-lg:1.25rem;
-      --radius-sm:.6rem;
+      --free:#1F5C3A; --busy:#D32F2F; --today-bg:#FAFDFB; --grid-border:#E6E7E7; --chip-bg:#F3F7F5;
+
+      --radius-lg:1.25rem; --radius-md:.75rem; --radius-sm:.55rem;
       --shadow:0 8px 20px rgba(0,0,0,.10);
       --container:clamp(280px,92vw,1160px);
 
-      --font-ui:"Source Sans 3",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif;
-      --font-heading:"Manrope","Source Sans 3",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      /* >>> ШРИФТЫ: как в твоём примере (Inter) <<< */
+      --font-ui:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Open Sans","Helvetica Neue",sans-serif;
+      --font-heading:var(--font-ui);
     }
 
-    /* ===== Base ===== */
+    /* =========================
+       Base
+       ========================= */
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
     body{
-      font-family:var(--font-ui);
+      font-family:var(--font-ui); color:var(--ink); line-height:1.5;
       background:
         radial-gradient(60% 120% at 15% 110%, color-mix(in srgb, var(--green) 10%, transparent) 0%, transparent 62%),
         radial-gradient(60% 120% at 80% -10%,  color-mix(in srgb, var(--green) 12%, transparent) 0%, transparent 62%),
-        linear-gradient(135deg, var(--mint-light) 0%, #EEF3F0 100%);
-      color:var(--ink);
-      line-height:1.5;
+        linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
     }
     img{max-width:100%;display:block}
     a{color:inherit;text-decoration:none}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
 
-    /* ===== Buttons ===== */
+    /* =========================
+       Buttons
+       ========================= */
     .btn{
-      display:inline-flex;align-items:center;justify-content:center;gap:.5em;
-      padding:.75rem 1.25rem;border-radius:var(--radius-sm);
-      font-weight:700;cursor:pointer;transition:.25s all;white-space:nowrap;user-select:none
+      display:inline-flex; align-items:center; justify-content:center; gap:.5em;
+      padding:.7rem 1.15rem; border-radius:var(--radius-sm);
+      font-weight:800; cursor:pointer; transition:.2s ease; white-space:nowrap; user-select:none; line-height:1;
+      font-family:var(--font-heading);
     }
-    .btn--primary {
-  background: linear-gradient(135deg, #2e5a3a 0%, #AF9525 100%);
-  color: #fff;
-  font-weight: 700;
-  border: none;
-  transition: all 0.25s ease;
-}
-.btn--primary:hover {
-  filter: brightness(1.05);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 4px 15px rgba(175, 149, 37, 0.4);
-}
+    .btn:focus-visible{outline:2px solid color-mix(in srgb, var(--gold) 70%, #fff); outline-offset:2px}
+    .btn--primary{background:linear-gradient(135deg, var(--green-600) 0%, var(--gold) 100%); color:#fff; border:0}
+    .btn--primary:hover{transform:translateY(-1px); filter:brightness(1.03); box-shadow:0 4px 14px rgba(175,149,37,.35)}
+    .btn--ghost{background:linear-gradient(135deg, var(--green-600) 0%, var(--gold) 100%); color:#fff; border:0}
+    .btn--ghost:hover{transform:translateY(-1px); filter:brightness(1.03); box-shadow:0 4px 14px rgba(175,149,37,.35)}
+    .btn--ghost[disabled], .btn--primary[disabled]{opacity:.5;cursor:not-allowed}
 
-   .btn--ghost {
-  background: linear-gradient(135deg, #2e5a3a 0%, #AF9525 100%);
-  color: #fff;
-  border: none;
-}
-.btn--ghost:hover {
-  filter: brightness(1.05);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 4px 15px rgba(175, 149, 37, 0.4);
-}
-
-    .btn--ghost[disabled]{opacity:.45;cursor:not-allowed}
-
-    /* ===== Header ===== */
+    /* =========================
+       Header & Hero
+       ========================= */
     .site-header{background:var(--green-dark);box-shadow:var(--shadow);position:sticky;top:0;z-index:100;padding-block:.75rem}
     .site-header__inner{display:flex;align-items:center;justify-content:space-between}
-    .logo{font-size:1.25rem;font-weight:800;color:var(--gold);letter-spacing:.3px}
+    .logo{font:900 1.25rem/1 var(--font-heading);color:var(--gold);letter-spacing:.3px}
 
-    /* ===== Hero ===== */
     .hero{
-      display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:1.25rem;
-      padding:5.5rem 1rem;
+      display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:1.1rem;
+      padding:5.25rem 1rem;
       background:
         radial-gradient(60% 120% at 82% -10%, color-mix(in srgb, var(--green) 18%, transparent) 0%, transparent 60%),
-        linear-gradient(135deg, var(--mint) 0%, color-mix(in srgb, var(--mint-light) 90%, #fff) 100%);
+        linear-gradient(135deg, color-mix(in srgb, #fff 90%, var(--bg-grad-1) 10%) 0%, color-mix(in srgb, var(--bg-grad-2) 90%, #fff 10%) 100%);
       border-bottom:1px solid color-mix(in srgb, var(--green) 12%, transparent);
     }
-    .hero h1{font-size:clamp(2rem,4vw,3.2rem);font-weight:800;color:var(--green-dark)}
-    .hero p{font-size:1.125rem;max-width:52ch;color:var(--muted)}
+    .hero h1{font:900 clamp(2rem,4vw,3.2rem)/1.1 var(--font-heading); color:var(--green-dark)}
+    .hero p{font-size:1.08rem; max-width:52ch; color:var(--muted)}
 
-    /* Заголовки и элементы акцента */
-    .hero h1, h2, h3, .logo, .btn{font-family:var(--font-heading);letter-spacing:.2px}
-    h2{font-weight:800}
-    h3{font-weight:700}
+    h2{font:900 1.5rem/1.2 var(--font-heading)}
+    h3{font:800 1.1rem/1.2 var(--font-heading)}
 
-    /* ===== Filters ===== */
+    /* =========================
+       Filters & Cards
+       ========================= */
     .filters{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.25rem 0 1.75rem}
     .filters input,.filters select{
-      padding:.6rem 1rem;border:1px solid color-mix(in srgb, var(--green) 22%, var(--lgray));
-      border-radius:var(--radius-sm);
-      font-size:.95rem;min-width:170px;background:var(--white)
+      padding:.6rem 1rem; border:1px solid color-mix(in srgb, var(--green) 22%, var(--lgray));
+      border-radius:var(--radius-sm); font-size:.95rem; min-width:170px; background:#fff
     }
-
-    /* ===== Cards ===== */
     .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem}
     .service-card{
-      background:var(--white);border-radius:var(--radius-lg);padding:1.25rem;
-      display:flex;flex-direction:column;gap:.85rem;box-shadow:var(--shadow);
-      border:1px solid color-mix(in srgb, var(--green) 18%, transparent);
-      transition:.25s
+      background:#fff;border-radius:var(--radius-lg);padding:1.1rem;display:flex;flex-direction:column;gap:.75rem;
+      box-shadow:var(--shadow);border:1px solid color-mix(in srgb, var(--green) 18%, transparent);transition:.18s ease;
     }
-    .service-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px color-mix(in srgb, var(--green) 20%, rgba(0,0,0,.14))}
-    .service-card__img{
-      aspect-ratio:16/9;background:color-mix(in srgb, var(--green) 10%, #ffffff);
-      border-radius:.75rem;display:flex;align-items:center;justify-content:center;
-      font-size:.9rem;color:#6f7a75
-    }
-    .service-card h3{font-size:1.08rem;font-weight:800;color:var(--ink)}
-    .service-meta{font-size:.9rem;color:var(--muted)}
+    .service-card:hover{transform:translateY(-3px);box-shadow:0 10px 22px color-mix(in srgb, var(--green) 18%, rgba(0,0,0,.16))}
+    .service-card__img{aspect-ratio:16/9;background:color-mix(in srgb, var(--green) 10%, #fff);border-radius:.7rem;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#6f7a75}
+    .service-card h3{font-size:1.06rem;font-weight:900;color:var(--ink)}
+    .service-meta{font-size:.92rem;color:var(--muted)}
     .stub{font-style:italic;color:#667;padding:1rem}
     .muted{color:var(--muted);font-size:.92rem}
     .old{color:#9aa0a0;text-decoration:line-through}
-    .badge{
-      font-size:.75rem;background:var(--gold);color:var(--white);
-      border-radius:999px;padding:.18rem .55rem;margin-left:.35rem
-    }
+    .badge{font-size:.75rem;background:var(--gold);color:#fff;border-radius:999px;padding:.18rem .55rem;margin-left:.35rem}
 
-    /* ===== Footer ===== */
+    /* =========================
+       Footer
+       ========================= */
     .site-footer{text-align:center;font-size:.875rem;color:var(--muted);padding:2rem 1rem}
 
-    /* ===== Modal: booking ===== */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000}
+    /* =========================
+       Modal
+       ========================= */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000;overscroll-behavior:contain}
     .modal--open{display:flex}
-    .modal__dialog{background:var(--white);border-radius:1rem;box-shadow:0 14px 36px rgba(0,0,0,.22);width:min(760px,96vw);padding:1.25rem 1.25rem 1rem;border:1px solid color-mix(in srgb, var(--green) 14%, var(--lgray))}
+    .modal__dialog{
+      background:#fff;border-radius:1rem;box-shadow:0 14px 36px rgba(0,0,0,.22);
+      width:min(940px,96vw); border:1px solid color-mix(in srgb, var(--green) 14%, var(--lgray));
+      padding:1.2rem 1.25rem 1rem; max-height:92vh; display:flex; flex-direction:column; overflow:hidden;
+    }
     .modal__header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
-    .modal__title{font-weight:900;font-size:1.15rem;color:var(--green)}
-    .modal__close{background:transparent;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:var(--muted)}
-    .grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:1rem}
+    .modal__title{font:900 1.18rem/1 var(--font-heading); color:var(--green)}
+    .modal__close{background:transparent;border:none;font-size:1.4rem;line-height:1;cursor:pointer;color:var(--muted)}
+    .grid-2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:1rem;flex:1 1 auto;min-height:0}
+    .grid-2 > div{min-height:0}
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:#555}
-    .field input,.field select{padding:.6rem .8rem;border:1px solid var(--lgray);border-radius:.6rem;font-size:.95rem}
-    .slots{
-      display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem;margin-top:.5rem;
-      max-height:240px;overflow:auto;border:1px dashed var(--lgray);padding:.5rem;border-radius:.5rem
-    }
-    .slot{padding:.5rem .65rem;border:1px solid #ddd;border-radius:.6rem;cursor:pointer;text-align:center;background:var(--white)}
-    .slot--active{border-color:var(--green);background:color-mix(in srgb, var(--green) 10%, #fff);color:var(--green-dark);font-weight:800}
+    .field input,.field select{padding:.6rem .8rem;border:1px solid var(--lgray);border-radius:.6rem;font-size:.95rem;background:#fff}
+
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
     .hint{font-size:.85rem;color:var(--muted)}
     .error{color:#b00020;font-size:.9rem;margin-top:.5rem}
     .success{color:#0a7a3b;font-size:.95rem;margin-top:.5rem}
     .skeleton{background:linear-gradient(90deg,#eee,#f6f6f6,#eee);background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;border-radius:.5rem;height:36px}
     @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+    /* =========================
+       Outlook grid
+       ========================= */
+    .outlook{display:flex;flex-direction:column;min-height:0;border:1px solid var(--grid-border);border-radius:var(--radius-md);overflow:visible;background:#fff;margin-top:.45rem}
+    .outlook__toolbar{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .75rem;border-bottom:1px solid var(--grid-border)}
+    .outlook__toolbar .controls{display:flex;gap:.4rem}
+    .outlook__toolbar .range{font-weight:900;color:var(--green-dark)}
+    .outlook__toolbar button{border:1px solid var(--grid-border);background:#fff;border-radius:.5rem;padding:.35rem .65rem;cursor:pointer;line-height:1; font-weight:700}
+
+    .outlook__wrap{
+      flex:1 1 auto;
+      overflow-x: scroll; overflow-y: auto;
+      max-height:56vh; min-height:300px; max-width:100%;
+      padding-bottom:10px;
+      scrollbar-gutter:stable both-edges; -webkit-overflow-scrolling:touch;
+    }
+    .outlook__grid{
+      display:grid; min-width:calc(96px + (var(--days,14) * 160px) + 1px);
+      grid-auto-rows:minmax(36px, auto);
+      grid-template-columns: 96px repeat(var(--days, 14), 160px);
+      font-family:var(--font-ui);
+    }
+    .outlook__cell{border-bottom:1px solid var(--grid-border); border-right:1px solid var(--grid-border); padding:.25rem .4rem; background:#fff; white-space:nowrap; text-overflow:ellipsis}
+    .outlook__cell.time{position:sticky;left:0;background:#fff;z-index:2;font-size:.85rem;color:#666}
+    .outlook__head{position:sticky;top:0;background:#fff;z-index:3;border-bottom:2px solid var(--grid-border);box-shadow:0 1px 0 rgba(0,0,0,.04); padding:.4rem .45rem}
+    .day-head{display:flex;flex-direction:column}
+    .day-title{font:800 .92rem/1.1 var(--font-heading); color:var(--green-dark); text-transform:capitalize}
+    .day-sub{font-size:.75rem;color:#666;margin-top:.15rem}
+    .day--today{background:var(--today-bg)}
+
+    .slot-chip{
+      display:inline-flex;align-items:center;justify-content:center;
+      height:1.7rem; min-width:3.6rem; padding:0 .5rem; border-radius:.5rem;
+      border:1.6px solid transparent; font-weight:900; font-size:.9rem; user-select:none; line-height:1;
+      font-family:var(--font-heading);
+    }
+    .slot-free{color:var(--free);border-color:color-mix(in srgb, var(--free) 55%, #fff);background:var(--chip-bg);cursor:pointer}
+    .slot-free:hover{filter:brightness(.98)}
+    .slot-busy{color:#fff;background:var(--busy);opacity:.92}
+    .slot-selected{background:var(--free)!important;color:#fff;border-color:var(--free)!important;box-shadow:0 0 0 2px color-mix(in srgb, var(--free) 20%, transparent)}
+
+    .legend{display:flex;gap:.75rem;margin-top:.5rem;font-size:.85rem;color:#666}
+    .legend > span{display:inline-flex;align-items:center;gap:.35rem}
+    .legend i{display:inline-block;width:14px;height:14px;border-radius:4px}
+    .legend .lg-free i{background:var(--chip-bg);border:2px solid color-mix(in srgb, var(--free) 60%, #fff)}
+    .legend .lg-busy i{background:var(--busy)}
+
+    /* Zoom-proof modal sizes */
+    .modal__dialog{ width:min(940px, calc(100dvw - 2rem)); max-height:calc(100dvh - 2rem); }
+    @supports not (height: 100dvh){
+      .modal__dialog{ width:min(940px, calc(100vw - 2rem)); max-height:calc(100vh - 2rem); }
+    }
+
+    @media (max-width: 900px){
+      .modal__dialog{width:min(96vw, 720px)}
+      .grid-2{grid-template-columns:1fr}
+      .outlook__wrap{max-height:50vh}
+    }
   </style>
 </head>
 <body>
@@ -237,10 +263,7 @@
                 {% endwith %}
                 · {{ s.duration_min }} min
               </div>
-              <button class="btn btn--primary book-btn"
-                      data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-                Pick a time
-              </button>
+              <button class="btn btn--primary book-btn" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
             </article>
           {% empty %}
             <div class="stub">No results for “{{ q }}”.</div>
@@ -269,10 +292,7 @@
                 {% endwith %}
                 · {{ s.duration_min }} min
               </div>
-              <button class="btn btn--primary book-btn"
-                      data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-                Pick a time
-              </button>
+              <button class="btn btn--primary book-btn" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
             </article>
           {% empty %}
             <div class="stub">No services in this category yet.</div>
@@ -300,10 +320,7 @@
                 {% endwith %}
                 · {{ s.duration_min }} min
               </div>
-              <button class="btn btn--primary book-btn"
-                      data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-                Pick a time
-              </button>
+              <button class="btn btn--primary book-btn" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
             </article>
           {% endfor %}
         </div>
@@ -327,26 +344,42 @@
 
       <div class="grid-2">
         <div>
+          <!-- Master -->
           <div class="field">
-            <label for="bookDate">Date</label>
-            <input type="date" id="bookDate">
-          </div>
-          <div class="field" style="margin-top:.5rem">
             <label for="bookMaster">Master</label>
             <select id="bookMaster"></select>
           </div>
+
+          <!-- Outlook grid -->
           <div class="field" style="margin-top:.5rem">
-            <label>Available slots</label>
-            <div class="slots" id="bookSlots">
-              <div class="skeleton"></div>
+            <label>Choose time</label>
+
+            <div class="outlook" id="ol">
+              <div class="outlook__toolbar">
+                <div class="controls">
+                  <button id="olPrev" type="button">← Prev</button>
+                  <button id="olToday" type="button">Today</button>
+                  <button id="olNext" type="button">Next →</button>
+                </div>
+                <div class="range" id="olRange">—</div>
+              </div>
+              <div class="outlook__wrap" id="olWrap">
+                <div class="outlook__grid" id="olGrid" tabindex="0" aria-live="polite"></div>
+              </div>
             </div>
-            <div class="hint">Choose a convenient time. Slots respect the service duration and master’s schedule.</div>
+
+            <div class="legend">
+              <span class="lg-free"><i></i> free</span>
+              <span class="lg-busy"><i></i> busy</span>
+            </div>
+            <div class="hint">Прокручивайте горизонтально. Красные слоты показаны как занятые и не кликаются.</div>
           </div>
         </div>
+
         <div>
           <div class="field">
             <label>Summary</label>
-            <div class="muted" id="bookSummary">Pick a date, master, and time.</div>
+            <div class="muted" id="bookSummary">Pick a master and time.</div>
           </div>
           <div class="error" id="bookError" style="display:none;"></div>
           <div class="success" id="bookSuccess" style="display:none;"></div>
@@ -362,114 +395,232 @@
 
   <script>
     (function(){
-      const isAuth = {{ user.is_authenticated|yesno:"true,false" }};
-      const loginUrl = "{% url 'login' %}?next={{ request.path }}";
-      const apiAvail = "/accounts/api/availability/";
+      const isAuth  = {{ user.is_authenticated|yesno:"true,false" }};
+      const loginUrl= "{% url 'login' %}?next={{ request.path }}";
+      const apiAvail= "/accounts/api/availability/";
       const apiBook = "/accounts/api/book/";
 
-      // helpers
-      function getCookie(name){
-        const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)'); return m ? m.pop() : '';
-      }
-      function fmtTime(iso){
-        try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
-        catch(e){ return iso; }
-      }
-      function todayStr(){
-        const d=new Date(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
-        return `${d.getFullYear()}-${m}-${day}`;
-      }
+      // ===== helpers =====
+      function getCookie(name){ const m=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)'); return m?m.pop():''; }
+      function ymd(d){ const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; }
+      function parseISO(iso){ try{return new Date(iso);}catch(_){return null;} }
+      function fmtHM(d){ return d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }
+      function fmtTime(iso){ try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); } catch(e){ return iso; } }
 
-      // modal elements
+      // ===== modal nodes =====
       const modal=document.getElementById('bookModal');
       const btnClose=document.getElementById('bookClose');
       const btnCancel=document.getElementById('bookCancel');
       const btnSubmit=document.getElementById('bookSubmit');
       const elServiceName=document.getElementById('bookServiceName');
-      const elDate=document.getElementById('bookDate');
       const elMaster=document.getElementById('bookMaster');
-      const elSlots=document.getElementById('bookSlots');
       const elSummary=document.getElementById('bookSummary');
       const elError=document.getElementById('bookError');
       const elSuccess=document.getElementById('bookSuccess');
 
-      let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
+      // outlook
+      const olGrid=document.getElementById('olGrid');
+      const olWrap=document.getElementById('olWrap');
+      const olRange=document.getElementById('olRange');
+      const olPrev=document.getElementById('olPrev');
+      const olNext=document.getElementById('olNext');
+      const olToday=document.getElementById('olToday');
 
+      // ===== state =====
+      const WINDOW_DAYS = 14;
+      const START_HOUR  = 6;
+      const END_HOUR    = 23;
+      const STEP_MIN    = 30;
+
+      let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
+      let baseStart = new Date(); baseStart.setHours(0,0,0,0);
+      let availabilityCache = new Map(); // dateStr -> { set:Set(HH:MM), iso:Map(HH:MM->ISO) }
+
+      // ===== open/close =====
       function openModal(serviceId, serviceName){
         if(!isAuth){ window.location=loginUrl; return; }
         current={ serviceId, serviceName, masterId:null, slot:null, mastersData:[] };
         elServiceName.textContent=serviceName;
         elError.style.display='none'; elSuccess.style.display='none';
         btnSubmit.disabled=true;
-        elDate.min=todayStr(); elDate.value=todayStr();
-        elMaster.innerHTML=''; elSlots.innerHTML='<div class="skeleton"></div>';
-        elSummary.textContent='Pick a date, master, and time.';
+        elSummary.textContent='Pick a master and time.';
+
+        availabilityCache.clear();
+        baseStart = new Date(); baseStart.setHours(0,0,0,0);
+
         modal.classList.add('modal--open');
-        loadAvailability();
+        loadMastersAndRender();
       }
       function closeModal(){ modal.classList.remove('modal--open'); }
 
-      async function loadAvailability(){
-        elError.style.display='none';
-        elSlots.innerHTML='<div class="skeleton"></div>';
-        btnSubmit.disabled=true; current.slot=null;
+      // ===== availability by day/master =====
+      async function fetchAvailability(dayISO, masterId){
+        const params = new URLSearchParams({ service: current.serviceId, date: dayISO });
+        if (masterId) params.set('master', masterId);
+        const r = await fetch(`${apiAvail}?${params.toString()}`, {credentials:'same-origin'});
+        if(!r.ok) throw new Error('Failed to load available slots');
+        const data = await r.json();
 
-        const params=new URLSearchParams({ service: current.serviceId, date: elDate.value });
+        let slots = [];
+        if (masterId){
+          const m = (data.masters||[]).find(x => Number(x.id)===Number(masterId));
+          slots = m ? (m.slots||[]) : [];
+        }else{
+          slots = (data.masters && data.masters[0] && data.masters[0].slots) ? data.masters[0].slots : [];
+        }
+
+        const set = new Set(); const map = new Map();
+        slots.forEach(iso=>{
+          const d=parseISO(iso); if(!d) return;
+          const key=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+          set.add(key); if(!map.has(key)) map.set(key, iso);
+        });
+        return {set, map, raw:data};
+      }
+
+      async function ensureRangeLoaded(startDate, daysCount){
+        const tasks=[];
+        for(let i=0;i<daysCount;i++){
+          const d=new Date(startDate); d.setDate(d.getDate()+i);
+          const ds=ymd(d);
+          if(!availabilityCache.has(ds)){
+            tasks.push((async()=>{
+              availabilityCache.set(ds, {loading:true});
+              const res=await fetchAvailability(ds, Number(elMaster.value||current.masterId));
+              availabilityCache.set(ds,{set:res.set, iso:res.map});
+            })());
+          }
+        }
+        if (tasks.length) await Promise.allSettled(tasks);
+      }
+
+      function buildTimeRows(extraSets){
+        const out=[];
+        for(let h=START_HOUR;h<=END_HOUR;h++){
+          for(let m=0;m<60;m+=STEP_MIN){
+            out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+          }
+        }
+        (extraSets||[]).forEach(s=>s && s.forEach(t=>{ if(!out.includes(t)) out.push(t); }));
+        return out.sort();
+      }
+
+      async function loadMastersAndRender(){
+        elError.style.display='none'; btnSubmit.disabled=true; current.slot=null;
         try{
-          const resp=await fetch(`${apiAvail}?`+params.toString(),{credentials:'same-origin'});
-          if(!resp.ok) throw new Error('Failed to load available slots');
-          const data=await resp.json();
-          current.mastersData=data.masters||[];
+          const first = await fetchAvailability(ymd(baseStart), null);
+          const masters = (first.raw && first.raw.masters) || [];
+          current.mastersData = masters;
 
-          // fill masters
           elMaster.innerHTML='';
-          if(current.mastersData.length===0){
+          if(masters.length===0){
             const opt=document.createElement('option'); opt.value=''; opt.textContent='No masters available';
             elMaster.appendChild(opt);
-            elSlots.innerHTML='<div class="hint">No masters for this service.</div>';
+            olGrid.innerHTML='<div class="skeleton" style="height:240px;margin:.5rem;"></div>';
             return;
           }
-          current.mastersData.forEach(m=>{
+          masters.forEach(m=>{
             const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; elMaster.appendChild(opt);
           });
+          const withSlots=masters.find(m=>(m.slots||[]).length);
+          elMaster.value=(withSlots?withSlots.id:masters[0].id);
+          current.masterId=Number(elMaster.value);
 
-          // default master: first with slots else first
-          const withSlots=current.mastersData.find(m=>(m.slots||[]).length);
-          elMaster.value=(withSlots?withSlots.id:current.mastersData[0].id);
-          renderSlots();
+          availabilityCache.clear();
+          await renderWindow();
         }catch(err){
           elError.textContent=err.message||'Unable to fetch availability';
-          elError.style.display='block'; elSlots.innerHTML='';
+          elError.style.display='block';
         }
       }
 
-      function renderSlots(){
-        const mId=Number(elMaster.value);
-        current.masterId=mId;
-        const m=current.mastersData.find(x=>Number(x.id)===mId);
-        const slots=(m&&m.slots)?m.slots:[];
-        elSlots.innerHTML='';
-        if(slots.length===0){
-          elSlots.innerHTML='<div class="hint">No free slots for the selected date.</div>';
-          btnSubmit.disabled=true; elSummary.textContent='Try another date.';
-          return;
-        }
-        slots.forEach(iso=>{
-          const b=document.createElement('button');
-          b.type='button'; b.className='slot'; b.textContent=fmtTime(iso); b.dataset.iso=iso;
-          b.addEventListener('click', ()=>{
-            [...elSlots.querySelectorAll('.slot')].forEach(x=>x.classList.remove('slot--active'));
-            b.classList.add('slot--active'); current.slot=iso; btnSubmit.disabled=false;
-            elSummary.textContent=`Master: ${m.name}. Time: ${fmtTime(iso)}.`;
-          });
-          elSlots.appendChild(b);
+      async function renderWindow(){
+        await ensureRangeLoaded(baseStart, WINDOW_DAYS);
+
+        const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(baseStart); d.setDate(d.getDate()+i); return d;});
+        const dayStrs=days.map(ymd);
+        const dayData = dayStrs.map(ds => availabilityCache.get(ds));
+        const timeRows = buildTimeRows(dayData.map(x=>x?.set));
+
+        const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
+        const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
+        olRange.textContent = `${from} – ${to}`;
+        olGrid.style.setProperty('--days', String(WINDOW_DAYS));
+
+        olGrid.innerHTML='';
+        const headTime = document.createElement('div');
+        headTime.className='outlook__cell outlook__head time';
+        olGrid.appendChild(headTime);
+
+        days.forEach(d=>{
+          const h=document.createElement('div');
+          h.className='outlook__cell outlook__head';
+          if (new Date().toDateString()===d.toDateString()) h.classList.add('day--today');
+          h.innerHTML = `<div class="day-head">
+            <div class="day-title">${d.toLocaleDateString([], {weekday:'long'})}</div>
+            <div class="day-sub">${d.toLocaleDateString([], {month:'short', day:'numeric'})}</div>
+          </div>`;
+          olGrid.appendChild(h);
         });
+
+        timeRows.forEach(t=>{
+          const [hh,mm]=t.split(':').map(n=>parseInt(n,10)); const fake=new Date(); fake.setHours(hh,mm,0,0);
+          const tcell=document.createElement('div'); tcell.className='outlook__cell time'; tcell.textContent=fmtHM(fake);
+          olGrid.appendChild(tcell);
+
+          days.forEach((d,idx)=>{
+            const c=document.createElement('div'); c.className='outlook__cell';
+            const data = dayData[idx]; const isFree = data?.set?.has(t);
+            const chip=document.createElement('button');
+            chip.type='button'; chip.className='slot-chip ' + (isFree?'slot-free':'slot-busy');
+            chip.textContent=fmtHM(fake);
+
+            if (isFree){
+              chip.addEventListener('click', ()=>{
+                olGrid.querySelectorAll('.slot-selected').forEach(el=>el.classList.remove('slot-selected'));
+                chip.classList.add('slot-selected');
+
+                current.masterId = Number(elMaster.value);
+                current.slot     = data.iso.get(t);
+                elSummary.textContent = `Master: ${elMaster.selectedOptions[0]?.text || ''}. Time: ${chip.textContent}, ${d.toLocaleDateString()}.`;
+                btnSubmit.disabled=false;
+              });
+            }else{
+              chip.disabled=true;
+            }
+
+            c.appendChild(chip);
+            olGrid.appendChild(c);
+          });
+        });
+
+        const todayIdx = days.findIndex(x=>x.toDateString()===new Date().toDateString());
+        if (todayIdx>0){
+          const colWidth = 160;
+          olWrap.scrollLeft = todayIdx * colWidth - colWidth;
+        }
       }
 
+      async function shiftWindow(deltaDays){
+        baseStart = new Date(baseStart); baseStart.setDate(baseStart.getDate() + deltaDays);
+        await renderWindow();
+      }
+      olPrev.addEventListener('click', ()=>shiftWindow(-WINDOW_DAYS));
+      olNext.addEventListener('click', ()=>shiftWindow(WINDOW_DAYS));
+      olToday.addEventListener('click', async ()=>{ baseStart = new Date(); baseStart.setHours(0,0,0,0); await renderWindow(); });
+
+      elMaster.addEventListener('change', async ()=>{
+        current.masterId = Number(elMaster.value);
+        current.slot = null; btnSubmit.disabled = true;
+        elSummary.textContent='Pick a master and time.';
+        availabilityCache.clear();
+        await renderWindow();
+      });
+
+      // ===== submit booking =====
       async function submitBooking(){
         if(!current.serviceId||!current.masterId||!current.slot) return;
         btnSubmit.disabled=true; elError.style.display='none'; elSuccess.style.display='none';
-
         try{
           const resp=await fetch(apiBook,{
             method:'POST',
@@ -482,7 +633,7 @@
             const msg=(data&&(data.error||data.detail))?(data.error||data.detail):'Could not create an appointment';
             throw new Error(msg);
           }
-          elSuccess.textContent='Appointment created! '+(data.appointment?.start_time?('Time: '+fmtTime(data.appointment.start_time)):'');
+          elSuccess.textContent='Appointment created! ' + (data.appointment?.start_time?('Time: '+new Date(data.appointment.start_time).toLocaleString()):'');
           elSuccess.style.display='block';
           setTimeout(()=>{ window.location.reload(); }, 700);
         }catch(err){
@@ -491,21 +642,25 @@
         }
       }
 
-      // events (booking)
+      // ===== wire up =====
       document.addEventListener('click',(e)=>{
         const btn=e.target.closest('.book-btn'); if(btn){
-          const id=btn.dataset.serviceId; const name=btn.dataset.serviceName||'service';
-          openModal(id,name);
+          openModal(btn.dataset.serviceId, btn.dataset.serviceName || 'service');
         }
       });
       btnClose.addEventListener('click',closeModal);
       btnCancel.addEventListener('click',closeModal);
       modal.addEventListener('click',(e)=>{ if(e.target===modal) closeModal(); });
-      elDate.addEventListener('change',loadAvailability);
-      elMaster.addEventListener('change',renderSlots);
       btnSubmit.addEventListener('click',submitBooking);
 
-      /* ===== Live search ===== */
+      // UX: Shift+wheel горизонтально
+      olWrap.addEventListener('wheel', (e)=>{
+        if (e.shiftKey && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          e.preventDefault(); olWrap.scrollLeft += e.deltaY;
+        }
+      }, { passive:false });
+
+      /* ===== Live search (как было) ===== */
       const qInput = document.querySelector('input[name="q"]');
       const catSel = document.querySelector('select[name="cat"]');
       const liveTitle = document.getElementById('liveTitle');
@@ -548,7 +703,7 @@
           </article>`;
       }
 
-      let aborter = null;
+      let aborter=null;
       async function fetchServices(q, cat){
         if (aborter) aborter.abort();
         aborter = new AbortController();
