@@ -9,6 +9,31 @@
 
   <!-- Chart.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Мини-стили для горизонтального дейтпикера (в модалке) -->
+  <style>
+    :root{
+      --free:#1F5C3A; --busy:#D32F2F; --grid:#E6E7E7; --today:#FAFDFB; --chip:#F3F7F5;
+    }
+    .ol2{display:flex;flex-direction:column;border:1px solid var(--grid);border-radius:.75rem;background:#fff;overflow:visible}
+    .ol2__toolbar{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border-bottom:1px solid var(--grid)}
+    .ol2__wrap{flex:1 1 auto;overflow-x:auto;overflow-y:auto;max-height:56vh;min-height:300px;padding-bottom:10px;scrollbar-gutter:stable both-edges}
+    .ol2__grid{display:grid;grid-auto-rows:36px;grid-template-columns:100px repeat(var(--days,14),140px);min-width:calc(100px + var(--days,14)*140px + 1px)}
+    .ol2__cell{border-bottom:1px solid var(--grid);border-right:1px solid var(--grid);padding:.25rem .35rem;background:#fff;white-space:nowrap}
+    .ol2__cell.time{position:sticky;left:0;background:#fff;z-index:2;font-size:.85rem;color:#666}
+    .ol2__head{position:sticky;top:0;background:#fff;z-index:3;border-bottom:2px solid var(--grid)}
+    .ol2__day{display:flex;flex-direction:column;padding:.4rem .45rem}
+    .ol2__day .t{font-weight:800;font-size:.92rem;color:#204029;text-transform:capitalize}
+    .ol2__day .s{font-size:.75rem;color:#666;margin-top:.15rem}
+    .ol2__day.today{background:var(--today)}
+
+    .chip{display:inline-flex;align-items:center;justify-content:center;height:1.7rem;min-width:3.4rem;padding:0 .45rem;border-radius:.5rem;border:1.6px solid transparent;font-weight:800;font-size:.9rem;line-height:1;user-select:none}
+    .chip--free{color:var(--free);border-color:color-mix(in srgb, var(--free) 55%, #fff);background:var(--chip);cursor:pointer}
+    .chip--free:hover{filter:brightness(.98)}
+    .chip--busy{color:#fff;background:var(--busy);opacity:.92}
+    .chip--sel{background:var(--free)!important;color:#fff;border-color:var(--free)!important;box-shadow:0 0 0 2px color-mix(in srgb, var(--free) 20%, transparent)}
+    @media (max-width: 900px){ .ol2__wrap{max-height:50vh} }
+  </style>
 </head>
 <body class="h-full bg-[#DEDEDE] text-[#4D4D4D]">
 <div class="min-h-screen flex">
@@ -70,33 +95,33 @@
       </h1>
 
       <div class="grid lg:grid-cols-3 gap-6">
-        <!-- Next appointment → Upcoming appointments -->
-<div class="bg-white rounded-2xl shadow p-6 border border-[#DAD3C1]">
-  <h2 class="text-lg font-semibold mb-4">Upcoming appointments</h2>
+        <!-- Upcoming appointments -->
+        <div class="bg-white rounded-2xl shadow p-6 border border-[#DAD3C1]">
+          <h2 class="text-lg font-semibold mb-4">Upcoming appointments</h2>
 
-  {% if upcoming_appointments %}
-    <ul class="space-y-4 max-h-64 overflow-y-auto pr-1">
-      {% for a in upcoming_appointments %}
-        <li>
-          <p class="font-semibold text-[#204029]">
-            {{ a.start_time|localtime|date:"d M Y, H:i" }}
-          </p>
-          <p class="text-sm text-[#4D4D4D]">
-            {{ a.service.name }} · {{ a.master.get_full_name }}
-          </p>
-          <div class="mt-2 flex gap-4 text-sm">
-            <a href="#" class="appt-cancel text-[#4D4D4D] hover:text-[#AF9525] underline-offset-4 hover:underline"
-               data-appt-id="{{ a.id }}">Cancel</a>
-            <a href="#" class="appt-reschedule text-[#AF9525] hover:opacity-90 underline-offset-4 hover:underline"
-               data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">Reschedule</a>
-          </div>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-[#4D4D4D]/70">No upcoming appointments.</p>
-  {% endif %}
-</div>
+          {% if upcoming_appointments %}
+            <ul class="space-y-4 max-h-64 overflow-y-auto pr-1">
+              {% for a in upcoming_appointments %}
+                <li data-appt-id="{{ a.id }}">
+                  <p class="font-semibold text-[#204029]">
+                    {{ a.start_time|localtime|date:"d M Y, H:i" }}
+                  </p>
+                  <p class="text-sm text-[#4D4D4D]">
+                    {{ a.service.name }} · {{ a.master.get_full_name }}
+                  </p>
+                  <div class="mt-2 flex gap-4 text-sm">
+                    <a href="#" class="appt-cancel text-[#4D4D4D] hover:text-[#AF9525] underline-offset-4 hover:underline"
+                       data-appt-id="{{ a.id }}">Cancel</a>
+                    <a href="#" class="appt-reschedule text-[#AF9525] hover:opacity-90 underline-offset-4 hover:underline"
+                       data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">Reschedule</a>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-[#4D4D4D]/70">No upcoming appointments.</p>
+          {% endif %}
+        </div>
 
         <!-- Stats -->
         <div class="bg-white rounded-2xl shadow p-6 lg:col-span-2 border border-[#DAD3C1]">
@@ -125,7 +150,7 @@
               </thead>
               <tbody class="[&>tr]:border-b [&>tr]:border-[#DEDEDE]">
                 {% for a in recent_appointments %}
-                  <tr class="bg-white">
+                  <tr class="bg-white" data-appt-id="{{ a.id }}">
                     <td class="py-2 pr-4 pl-3 whitespace-nowrap">{{ a.start_time|localtime|date:"d.m.Y H:i" }}</td>
                     <td class="py-2 pr-4">{{ a.service.name }}</td>
                     <td class="py-2 pr-4">{{ a.master.get_full_name }}</td>
@@ -145,27 +170,25 @@
     <!-- APPOINTMENTS -->
     <section id="tab-appointments" class="tab hidden">
       <div class="flex items-center mb-6">
-    <h2 class="text-2xl font-semibold text-[#204029]">My appointments</h2>
-
-    <!-- было: <button ...>+ Book</button> -->
-    <a href="/accounts/#services"
-       class="ml-auto px-4 py-2 rounded-lg text-white bg-[#AF9525] hover:bg-[#9b8521] shadow">
-      + Book
-    </a>
-  </div>
+        <h2 class="text-2xl font-semibold text-[#204029]">My appointments</h2>
+        <a href="/accounts/#services"
+           class="ml-auto px-4 py-2 rounded-lg text-white bg-[#AF9525] hover:bg-[#9b8521] shadow">
+          + Book
+        </a>
+      </div>
 
       {% if appointments %}
         <div class="space-y-4">
           {% for a in appointments %}
             <div class="bg-white shadow rounded-xl p-4 flex justify-between items-center border border-[#DAD3C1]
-                        {% if a.start_time < now %}opacity-70{% endif %}">
-              <div>
-                <p class="font-medium text-[#204029]">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
+                        {% if a.start_time < now %}opacity-70{% endif %}" data-appt-id="{{ a.id }}">
+              <div class="appt-main">
+                <p class="font-medium text-[#204029] appt-dt">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
                 <p class="text-sm text-[#4D4D4D]">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
               </div>
 
               {% if a.start_time >= now %}
-                <div class="flex gap-3 text-sm">
+                <div class="flex gap-3 text-sm appt-actions">
                   <a href="#" class="appt-cancel text-[#4D4D4D] hover:text-[#AF9525] underline-offset-4 hover:underline"
                      data-appt-id="{{ a.id }}">Cancel</a>
                   <a href="#" class="appt-reschedule text-[#AF9525] hover:opacity-90 underline-offset-4 hover:underline"
@@ -195,22 +218,22 @@
     </section>
 
     <!-- PROFILE -->
-     {% if messages %}
-  <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 text-sm">
-    {% for m in messages %}{{ m }}{% endfor %}
-  </div>
-{% endif %}
+    {% if messages %}
+      <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 text-sm">
+        {% for m in messages %}{{ m }}{% endfor %}
+      </div>
+    {% endif %}
     {% if profile_form_errors %}
-  <div class="md:col-span-2 rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">
-    <ul class="list-disc ms-5">
-      {% for field, errs in profile_form_errors.items %}
-        {% for e in errs %}
-          <li>{{ e }}</li>
-        {% endfor %}
-      {% endfor %}
-    </ul>
-  </div>
-{% endif %}
+      <div class="md:col-span-2 rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">
+        <ul class="list-disc ms-5">
+          {% for field, errs in profile_form_errors.items %}
+            {% for e in errs %}
+              <li>{{ e }}</li>
+            {% endfor %}
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
 
     <section id="tab-profile" class="tab hidden">
       <h2 class="text-2xl font-semibold mb-6 text-[#204029]">Profile</h2>
@@ -256,7 +279,7 @@
 
 <!-- ▸▸ MODAL: Reschedule ◂◂ -->
 <div id="resModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center p-4 z-50">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl p-5 border border-[#DAD3C1]">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-5 border border-[#DAD3C1]">
     <div class="flex items-center justify-between mb-3">
       <h3 class="font-bold text-lg text-[#204029]">Reschedule appointment</h3>
       <button id="resClose" class="text-2xl leading-none">&times;</button>
@@ -264,19 +287,28 @@
 
     <div class="space-y-3">
       <div>
-        <label class="text-sm">Date</label>
-        <input type="date" id="resDate" class="w-full border border-[#DEDEDE] rounded-md px-3 py-2">
-      </div>
-      <div>
         <label class="text-sm">Master</label>
         <select id="resMaster" class="w-full border border-[#DEDEDE] rounded-md px-3 py-2"></select>
       </div>
+
+      <!-- Новый горизонтальный выбор даты/времени -->
       <div>
-        <label class="text-sm">Available slots</label>
-        <div id="resSlots" class="grid grid-cols-3 gap-2 max-h-56 overflow-auto border border-[#DEDEDE] rounded-md p-2">
-          <div class="animate-pulse h-9 bg-[#DEDEDE] rounded"></div>
+        <label class="text-sm">Choose time</label>
+        <div class="ol2 mt-1" id="rsOl">
+          <div class="ol2__toolbar">
+            <div class="flex gap-2">
+              <button id="rsPrev" type="button" class="px-2 py-1 border rounded-md">← Prev</button>
+              <button id="rsToday" type="button" class="px-2 py-1 border rounded-md">Today</button>
+              <button id="rsNext" type="button" class="px-2 py-1 border rounded-md">Next →</button>
+            </div>
+            <div id="rsRange" class="font-bold text-[#204029]">—</div>
+          </div>
+          <div class="ol2__wrap" id="rsWrap">
+            <div class="ol2__grid" id="rsGrid" style="--days:14" tabindex="0"></div>
+          </div>
         </div>
-        <p class="text-sm mt-1" id="resHint">Select a time</p>
+
+        <p class="text-xs text-[#4D4D4D]/80 mt-2">Scroll horizontally. Red slots are busy.</p>
         <p class="text-sm text-red-600 mt-1 hidden" id="resErr"></p>
         <p class="text-sm text-emerald-700 mt-1 hidden" id="resOk"></p>
       </div>
@@ -308,13 +340,12 @@ document.addEventListener('DOMContentLoaded', () => {
     links.forEach(l => setActive(l, l.dataset.tab === tabName));
   }
 
-  // NEW: читаем хэш из URL
+  /* hash-навигация */
   const allowed = ['dashboard','appointments','files','notifications','profile'];
   const initial = allowed.includes(location.hash.replace('#','')) ? location.hash.replace('#','') : 'dashboard';
   activate(initial);
-
   links.forEach(link => link.addEventListener('click', e => { e.preventDefault(); activate(link.dataset.tab); history.replaceState(null, '', '#'+link.dataset.tab); }));
-  
+
   /* chart */
   const el = document.getElementById('stats_chart');
   if (el) {
@@ -333,100 +364,229 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* cancel / reschedule */
+  /* helpers */
   const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
+  const fmtHM = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   const fmtTime = iso => { try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});} catch(e){ return iso; } };
-  const todayStr = () => { const d=new Date(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
+  const ymd = d => { const m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
 
+  /* ===== отмена с подтверждением + «перечёркивание» без перезагрузки ===== */
+  async function cancelAppointment(id){
+    if(!confirm('Cancel this appointment?')) return;
+    const r = await fetch(`/accounts/api/appointment/${id}/cancel/`, { method:'POST', headers:{'X-CSRFToken': csrftoken}, credentials:'same-origin' });
+    if(!r.ok){ alert('Cancel error: ' + (await r.text())); return; }
+    strikeOut(id);
+  }
+  function strikeOut(id){
+    // блоки в разделе "Upcoming" (li)
+    document.querySelectorAll(`[data-appt-id="${id}"]`).forEach(node=>{
+      node.classList.add('opacity-60');
+      node.querySelectorAll('.appt-actions a').forEach(a=>{ a.classList.add('pointer-events-none','opacity-50'); a.removeAttribute('href'); });
+      // текст перечёркнут
+      node.querySelectorAll('.appt-dt, .appt-main, p, td').forEach(el=> el.classList.add('line-through'));
+    });
+  }
   document.addEventListener('click', async (e)=>{
     const a = e.target.closest('.appt-cancel'); if(!a) return; e.preventDefault();
     const id = a.dataset.apptId; if(!id) return;
-    if(!confirm('Cancel this appointment?')) return;
-    const r = await fetch(`/accounts/api/appointment/${id}/cancel/`, { method:'POST', headers:{'X-CSRFToken': csrftoken}, credentials:'same-origin' });
-    if(r.ok) location.reload(); else alert('Cancel error: ' + (await r.text()));
+    cancelAppointment(id);
   });
 
+  /* ===== RESCHEDULE: новый горизонтальный пикер ===== */
   const resModal  = document.getElementById('resModal');
   const resClose  = document.getElementById('resClose');
   const resCancel = document.getElementById('resCancel');
   const resSubmit = document.getElementById('resSubmit');
-  const resDate   = document.getElementById('resDate');
   const resMaster = document.getElementById('resMaster');
-  const resSlots  = document.getElementById('resSlots');
   const resErr    = document.getElementById('resErr');
   const resOk     = document.getElementById('resOk');
-  let current = { apptId:null, serviceId:null, masterId:null, slot:null, masters:[] };
+
+  const rsGrid = document.getElementById('rsGrid');
+  const rsWrap = document.getElementById('rsWrap');
+  const rsRange= document.getElementById('rsRange');
+  const rsPrev = document.getElementById('rsPrev');
+  const rsNext = document.getElementById('rsNext');
+  const rsToday= document.getElementById('rsToday');
+
+  const WINDOW_DAYS = 14, START=6, END=23, STEP=30;
+
+  let resState = {
+    apptId:null, serviceId:null, masterId:null, slot:null, masters:[],
+    baseStart: (()=>{const d=new Date(); d.setHours(0,0,0,0); return d;})(),
+    cache: new Map() // dateStr -> { set:Set('HH:MM'), iso:Map('HH:MM'->iso) }
+  };
 
   function openRes(apptId, serviceId){
-    current = { apptId, serviceId, masterId:null, slot:null, masters:[] };
-    resDate.min = todayStr(); resDate.value = todayStr();
+    resState = { ...resState, apptId, serviceId, masterId:null, slot:null, masters:[], cache:new Map() };
     resMaster.innerHTML = '';
-    resSlots.innerHTML = '<div class="animate-pulse h-9 bg-[#DEDEDE] rounded"></div>';
     resSubmit.disabled = true;
     resErr.classList.add('hidden'); resOk.classList.add('hidden');
     resModal.classList.remove('hidden'); resModal.classList.add('flex');
-    loadAvail();
+    loadMastersAndRender();
   }
   function closeRes(){ resModal.classList.add('hidden'); resModal.classList.remove('flex'); }
 
-  async function loadAvail(){
-    const params = new URLSearchParams({ service: current.serviceId, date: resDate.value });
-    const r = await fetch(`/accounts/api/availability/?` + params.toString(), {credentials:'same-origin'});
-    if(!r.ok){ resErr.textContent='Failed to load slots'; resErr.classList.remove('hidden'); return; }
+  async function fetchAvail(dayISO, masterId){
+    const params = new URLSearchParams({ service: resState.serviceId, date: dayISO });
+    if (masterId) params.set('master', masterId);
+    const r = await fetch(`/accounts/api/availability/?${params.toString()}`, {credentials:'same-origin'});
+    if(!r.ok) throw new Error('Failed to load slots');
     const data = await r.json();
-    current.masters = data.masters || [];
-    resMaster.innerHTML = '';
-    if(current.masters.length === 0){
-      resMaster.innerHTML = '<option>No masters available</option>';
-      resSlots.innerHTML = '<div class="text-sm text-[#4D4D4D]">No slots</div>';
-      return;
+
+    let slots=[];
+    if (masterId){
+      const m=(data.masters||[]).find(x=>Number(x.id)===Number(masterId)); slots = m ? (m.slots||[]) : [];
+    }else{
+      // возьмём слоты первого мастера только чтобы понять список мастеров
+      slots = (data.masters && data.masters[0] && data.masters[0].slots) ? data.masters[0].slots : [];
     }
-    current.masters.forEach(m=>{
-      const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; resMaster.appendChild(opt);
-    });
-    const m = current.masters.find(x => (x.slots||[]).length) || current.masters[0];
-    resMaster.value = m.id;
-    renderSlots();
+    const set=new Set(), map=new Map();
+    (slots||[]).forEach(iso=>{ const d=new Date(iso); const key=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; set.add(key); if(!map.has(key)) map.set(key, iso); });
+    return { raw:data, set, map };
   }
 
-  function renderSlots(){
-    resSubmit.disabled = true; current.slot = null;
-    const mId = Number(resMaster.value);
-    const m = current.masters.find(x=> Number(x.id)===mId);
-    const slots = (m && m.slots) ? m.slots : [];
-    resSlots.innerHTML = '';
-    if(slots.length === 0){
-      resSlots.innerHTML = '<div class="text-sm text-[#4D4D4D]">No slots for this date</div>';
-      return;
+  async function ensureRangeLoaded(start, days){
+    const jobs=[];
+    for(let i=0;i<days;i++){
+      const d=new Date(start); d.setDate(d.getDate()+i); const ds=ymd(d);
+      if(!resState.cache.has(ds)){
+        jobs.push((async()=>{
+          resState.cache.set(ds, {loading:true});
+          const {set,map}=await fetchAvail(ds, resState.masterId);
+          resState.cache.set(ds,{set,iso:map});
+        })());
+      }
     }
-    slots.forEach(iso=>{
-      const b=document.createElement('button');
-      b.type='button';
-      b.className='px-3 py-2 border border-[#DEDEDE] rounded-md hover:bg-[#DAD3C1]';
-      b.textContent = fmtTime(iso);
-      b.addEventListener('click', ()=>{
-        [...resSlots.children].forEach(el=>el.classList.remove('ring','ring-[#AF9525]','bg-[#DAD3C1]'));
-        b.classList.add('ring','ring-[#AF9525]','bg-[#DAD3C1]');
-        current.slot = iso; current.masterId = mId; resSubmit.disabled = false;
-      });
-      resSlots.appendChild(b);
-    });
+    if (jobs.length) await Promise.allSettled(jobs);
   }
+
+  function buildTimeRows(extraSets){
+    const out=[];
+    for(let h=START;h<=END;h++) for(let m=0;m<60;m+=STEP) out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+    (extraSets||[]).forEach(s=>s && s.forEach(t=>{ if(!out.includes(t)) out.push(t); }));
+    return out.sort();
+  }
+
+  async function loadMastersAndRender(){
+    try{
+      const first = await fetchAvail(ymd(resState.baseStart), null);
+      resState.masters = (first.raw && first.raw.masters) || [];
+      resMaster.innerHTML = '';
+      if(resState.masters.length===0){
+        resMaster.innerHTML = '<option>No masters available</option>';
+        rsGrid.innerHTML = '<div class="p-4 text-sm">No availability</div>';
+        return;
+      }
+      resState.masters.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; resMaster.appendChild(opt); });
+      const withSlots = resState.masters.find(m=>(m.slots||[]).length) || resState.masters[0];
+      resMaster.value = withSlots.id;
+      resState.masterId = Number(resMaster.value);
+      resState.cache.clear();
+      await renderWindow();
+    }catch(e){
+      resErr.textContent = e.message || 'Unable to fetch availability';
+      resErr.classList.remove('hidden');
+    }
+  }
+
+  async function renderWindow(){
+    await ensureRangeLoaded(resState.baseStart, WINDOW_DAYS);
+
+    const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(resState.baseStart); d.setDate(d.getDate()+i); return d;});
+    const dayStrs = days.map(ymd);
+    const dayData = dayStrs.map(ds => resState.cache.get(ds));
+    const timeRows = buildTimeRows(dayData.map(x=>x?.set));
+
+    const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
+    const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
+    rsRange.textContent = `${from} – ${to}`;
+    rsGrid.style.setProperty('--days', String(WINDOW_DAYS));
+    rsGrid.innerHTML='';
+
+    // head corner
+    const corner=document.createElement('div'); corner.className='ol2__cell ol2__head time'; rsGrid.appendChild(corner);
+
+    // day headers
+    days.forEach(d=>{
+      const h=document.createElement('div');
+      h.className='ol2__cell ol2__head';
+      const today = (new Date()).toDateString()===d.toDateString();
+      h.innerHTML = `<div class="ol2__day ${today?'today':''}">
+        <div class="t">${d.toLocaleDateString([], {weekday:'long'})}</div>
+        <div class="s">${d.toLocaleDateString([], {month:'short', day:'numeric'})}</div>
+      </div>`;
+      rsGrid.appendChild(h);
+    });
+
+    // rows
+    timeRows.forEach(t=>{
+      const [hh,mm]=t.split(':').map(Number);
+      const fake=new Date(); fake.setHours(hh,mm,0,0);
+      const timeCell=document.createElement('div');
+      timeCell.className='ol2__cell time'; timeCell.textContent = fmtHM(fake);
+      rsGrid.appendChild(timeCell);
+
+      days.forEach((d, idx)=>{
+        const cell=document.createElement('div'); cell.className='ol2__cell';
+        const data = dayData[idx]; const isFree = data?.set?.has(t);
+        const chip=document.createElement('button');
+        chip.type='button'; chip.className='chip ' + (isFree?'chip--free':'chip--busy');
+        chip.textContent = fmtHM(fake);
+
+        if(isFree){
+          chip.addEventListener('click', ()=>{
+            rsGrid.querySelectorAll('.chip--sel').forEach(x=>x.classList.remove('chip--sel'));
+            chip.classList.add('chip--sel');
+            resState.slot = data.iso.get(t);
+            resSubmit.disabled=false;
+          });
+        }else{
+          chip.disabled=true;
+        }
+        cell.appendChild(chip);
+        rsGrid.appendChild(cell);
+      });
+    });
+
+    const todayIdx = days.findIndex(x=>x.toDateString()===(new Date()).toDateString());
+    if (todayIdx>0){ rsWrap.scrollLeft = todayIdx*140 - 140; }
+  }
+
+  async function shiftWindow(delta){
+    const d=new Date(resState.baseStart); d.setDate(d.getDate()+delta); d.setHours(0,0,0,0); resState.baseStart = d;
+    await renderWindow();
+  }
+
+  resMaster.addEventListener('change', async ()=>{
+    resState.masterId = Number(resMaster.value);
+    resState.slot = null; resSubmit.disabled=true; resState.cache.clear();
+    await renderWindow();
+  });
+  rsPrev.addEventListener('click', ()=>shiftWindow(-WINDOW_DAYS));
+  rsNext.addEventListener('click', ()=>shiftWindow(WINDOW_DAYS));
+  rsToday.addEventListener('click', async ()=>{ const d=new Date(); d.setHours(0,0,0,0); resState.baseStart=d; await renderWindow(); });
+
+  // UX: Shift+Wheel — горизонтальный скролл
+  rsWrap.addEventListener('wheel', (e)=>{ if(e.shiftKey && Math.abs(e.deltaY)>Math.abs(e.deltaX)){ e.preventDefault(); rsWrap.scrollLeft += e.deltaY; } }, {passive:false});
 
   async function submitRes(){
-    if(!current.apptId || !current.slot) return;
+    if(!resState.apptId || !resState.slot) return;
     resSubmit.disabled = true; resErr.classList.add('hidden'); resOk.classList.add('hidden');
-    const r = await fetch(`/accounts/api/appointment/${current.apptId}/reschedule/`, {
+    const r = await fetch(`/accounts/api/appointment/${resState.apptId}/reschedule/`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-CSRFToken': csrftoken},
       credentials:'same-origin',
-      body: JSON.stringify({ start_time: current.slot, master: current.masterId })
+      body: JSON.stringify({ start_time: resState.slot, master: resState.masterId })
     });
     const data = await r.json().catch(()=> ({}));
     if(r.ok){
       resOk.textContent = 'Rescheduled to ' + (data.appointment?.start_time || '');
       resOk.classList.remove('hidden');
-      setTimeout(()=> location.reload(), 600);
+      // мгновенно обновим дату в карточке (если она на странице)
+      document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
+        try{ dt.textContent = new Date(data.appointment.start_time).toLocaleString(); }catch(_){}
+      });
+      setTimeout(()=> location.reload(), 700);
     }else{
       resErr.textContent = data.error || data.detail || 'Reschedule failed';
       resErr.classList.remove('hidden'); resSubmit.disabled = false;
@@ -441,8 +601,6 @@ document.addEventListener('DOMContentLoaded', () => {
   resClose.addEventListener('click', closeRes);
   resCancel.addEventListener('click', closeRes);
   resModal.addEventListener('click', (e)=>{ if(e.target===resModal) closeRes(); });
-  resDate.addEventListener('change', loadAvail);
-  resMaster.addEventListener('change', renderSlots);
   resSubmit.addEventListener('click', submitRes);
 });
 </script>
