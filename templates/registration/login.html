@@ -138,6 +138,54 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
 .field .toggle-eye:focus{ outline: none; box-shadow:0 0 0 3px rgba(175,149,37,.35); }
 .field input.has-eye{ padding-right:64px; } /* место под глаз */
 .field .toggle-eye svg{ width:22px; height:22px; fill:var(--primary); opacity:.95; }
+/* === Modal: scroll & sizing === */
+.modal__dialog{
+  max-height:92vh;           /* не выше экрана */
+  overflow:auto;             /* собственный скролл */
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-height:680px){
+  .modal__dialog{ max-height:96vh; }
+}
+
+/* === Registration form (modal) field styles === */
+/* В модалке нет левой иконки, поэтому подправляем отступы/лейблы отдельно */
+.reg-form .field input,
+.reg-form .field select,
+.reg-form .field textarea{
+  width:100%;
+  box-sizing:border-box;
+  border:none;
+  border-radius:18px;
+  background:var(--field-bg);
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.04);
+  font-size:15px;
+}
+
+/* высоты и паддинги по типам */
+.reg-form .field input{ height:56px; padding:0 20px; }
+.reg-form .field select{ height:56px; padding:0 20px; appearance:none; background-position:right 14px center; }
+.reg-form .field textarea{ min-height:88px; padding:14px 20px; line-height:1.4; resize:vertical; }
+
+/* плавающий лейбл в модалке (слева 20px, без иконки) */
+.reg-form .field label{ left:20px; }
+
+/* input/textarea: лейбл «всплывает», когда есть фокус или текст */
+.reg-form .field input:focus + label,
+.reg-form .field input:not(:placeholder-shown) + label,
+.reg-form .field textarea:focus + label,
+.reg-form .field textarea:not(:placeholder-shown) + label{
+  top:10px; transform:none; font-size:12px; opacity:.9;
+}
+
+/* select не умеет placeholder-shown — держим лейбл всегда «маленьким» сверху */
+.reg-form .field select + label{
+  top:10px; transform:none; font-size:12px; opacity:.9; left:20px;
+}
+
+/* глазик: чуть внутрь и больше паддинг справа под кнопку */
+.field .toggle-eye{ right:12px; }      /* было 18px */
+.field input.has-eye{ padding-right:68px; } /* было 58px/64px — делаем запас */
 
 </style>
 </head>
@@ -219,6 +267,33 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
     <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
   </button>
 </div>
+<!-- Address -->
+<div class="field">
+  <textarea name="address" placeholder=" " rows="2"></textarea>
+  <label>Address</label>
+</div>
+
+<!-- How did you hear about us -->
+<div class="field">
+  <select name="how_heard" placeholder=" ">
+    <option value="">— Select —</option>
+    <option value="google">Google search</option>
+    <option value="instagram">Instagram</option>
+    <option value="tiktok">TikTok</option>
+    <option value="friend">Friends/Family</option>
+    <option value="other">Other</option>
+  </select>
+  <label>How did you hear about us?</label>
+</div>
+
+<!-- Consent -->
+<div class="field" style="display:flex;align-items:center;gap:.6rem;">
+  <input id="consentEmail" type="checkbox" name="email_marketing_consent" style="width:auto;height:auto;">
+  <label for="consentEmail" style="position:static;transform:none;opacity:1;font-size:14px;">
+    I agree to receive e‑mail updates and offers
+  </label>
+</div>
+
 
       <ul class="errorlist" id="regErrors" style="display:none;"></ul>
       <button type="submit" class="btn">Sign up</button>

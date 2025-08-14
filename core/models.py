@@ -9,6 +9,8 @@ import os
 from django.utils import timezone
 from django.utils.timezone import localtime
 from core.validators import clean_phone
+from django.conf import settings
+
 
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
@@ -55,15 +57,33 @@ class ClientSource(models.Model):
     def __str__(self):
         return f"{self.source}%"
 
+class HowHeard(models.TextChoices):
+    GOOGLE = "google", "Google search"
+    INSTAGRAM = "instagram", "Instagram"
+    TIKTOK = "tiktok", "TikTok"
+    FRIEND = "friend", "Friends/Family"
+    OTHER = "other", "Other"
+    
 class UserProfile(models.Model):
-    """
-    Additional user information extending the Django User model.
-    """
-    user = models.OneToOneField(CustomUserDisplay, on_delete=models.CASCADE)
-    phone = models.CharField(max_length=20, unique=True, blank=False,  validators=[clean_phone] )
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    phone = models.CharField(max_length=32, unique=True)
     birth_date = models.DateField(null=True, blank=True)
-    source = models.ForeignKey(ClientSource, on_delete=models.CASCADE, blank=True, null=True)
 
+    # === NEW ===
+    address = models.TextField(blank=True)                         # одна строка/много строк — на твой вкус
+    email_marketing_consent = models.BooleanField(default=False)   # согласие на рассылки
+    email_marketing_consented_at = models.DateTimeField(null=True, blank=True)
+    how_heard = models.CharField(max_length=32, choices=HowHeard.choices, blank=True)
+
+    def set_marketing_consent(self, value: bool):
+        """Удобный метод: при выставлении True заполнит timestamp, при снятии — очистит."""
+        if value and not self.email_marketing_consent:
+            self.email_marketing_consent = True
+            self.email_marketing_consented_at = timezone.now()
+        elif not value and self.email_marketing_consent:
+            self.email_marketing_consent = False
+            self.email_marketing_consented_at = None
+            
     def __str__(self):
         return f"{self.user} Profile"
 
