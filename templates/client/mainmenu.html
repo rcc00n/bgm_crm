@@ -131,12 +131,13 @@
     <div class="container site-header__inner">
       <span class="logo">Malva Booking</span>
       <nav>
-        {% if user.is_authenticated %}
-          <a href="{% url 'dashboard' %}" class="btn btn--ghost">Client Portal</a>
-        {% else %}
-          <a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Client Portal</a>
-        {% endif %}
-      </nav>
+  {% if user.is_authenticated %}
+    <a href="{% url 'dashboard' %}" class="btn btn--ghost">Client Profile</a>
+  {% else %}
+    <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="btn btn--ghost">Login</a>
+  {% endif %}
+</nav>
+
     </div>
   </header>
 
