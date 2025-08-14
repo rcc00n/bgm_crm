@@ -5,29 +5,38 @@
   <meta charset="utf-8">
   <title>Malva Booking — Services</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 
   <style>
-    /* ===== Brand palette ===== */
+    /* ===== Brand palette (в рамках предоставленных цветов) ===== */
     :root{
-      --green:#204029;        /* deep green */
-      --gold:#AF9525;         /* accent gold */
-      --taupe:#DAD3C1;        /* soft taupe */
-      --lgray:#DEDEDE;        /* light gray (page bg) */
-      --dgray:#4D4D4D;        /* text */
+      /* Брендовые базовые */
+      --green-dark:#204029;  /* из гайда */
+      --green:#1F5C3A;
+      --green-light:#3D8B5C;
+      --gold:#AF9525;        /* бережно используем как вторичный акцент */
+      --taupe:#DAD3C1;
+      --lgray:#DEDEDE;
+      --dgray:#4D4D4D;
       --white:#FFFFFF;
+
+      /* Производные для темы (смеси на базе бренда) */
+      --mint-light: color-mix(in srgb, var(--green) 7%, #EFF4F2);  /* мягкий фон страницы */
+      --mint:       color-mix(in srgb, var(--green) 22%, #F6FBF8); /* светло‑зелёный фон секций/героя */
+      --ink:        color-mix(in srgb, var(--green-dark) 80%, #000); /* текст почти чёрный с зелёным оттенком */
+      --muted:      color-mix(in srgb, var(--dgray) 70%, var(--green-dark) 20%);
 
       --radius-lg:1.25rem;
       --radius-sm:.6rem;
       --shadow:0 8px 20px rgba(0,0,0,.10);
       --container:clamp(280px,92vw,1160px);
 
-      --font-ui: "Source Sans 3", system-ui, -apple-system, "Segoe UI",
-             Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  --font-heading: "Manrope", "Source Sans 3", system-ui, -apple-system, "Segoe UI",
-                  Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-ui:"Source Sans 3",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif;
+      --font-heading:"Manrope","Source Sans 3",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
     }
 
     /* ===== Base ===== */
@@ -35,11 +44,11 @@
     html{font-size:16px;scroll-behavior:smooth}
     body{
       font-family:var(--font-ui);
-  background:var(--lgray);
-  color:var(--dgray);
-  line-height:1.5;
-      background:var(--lgray);
-      color:var(--dgray);
+      background:
+        radial-gradient(60% 120% at 15% 110%, color-mix(in srgb, var(--green) 10%, transparent) 0%, transparent 62%),
+        radial-gradient(60% 120% at 80% -10%,  color-mix(in srgb, var(--green) 12%, transparent) 0%, transparent 62%),
+        linear-gradient(135deg, var(--mint-light) 0%, #EEF3F0 100%);
+      color:var(--ink);
       line-height:1.5;
     }
     img{max-width:100%;display:block}
@@ -52,16 +61,34 @@
       padding:.75rem 1.25rem;border-radius:var(--radius-sm);
       font-weight:700;cursor:pointer;transition:.25s all;white-space:nowrap;user-select:none
     }
-    .btn--primary{background:var(--gold);color:var(--white);border:none}
-    .btn--primary:hover{filter:brightness(.95);transform:translateY(-2px)}
-    .btn--ghost{
-      background:transparent;color:var(--gold);border:2px solid var(--gold);
-    }
-    .btn--ghost:hover{background:rgba(175,149,37,.08);transform:translateY(-2px)}
+    .btn--primary {
+  background: linear-gradient(135deg, #2e5a3a 0%, #AF9525 100%);
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  transition: all 0.25s ease;
+}
+.btn--primary:hover {
+  filter: brightness(1.05);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 15px rgba(175, 149, 37, 0.4);
+}
+
+   .btn--ghost {
+  background: linear-gradient(135deg, #2e5a3a 0%, #AF9525 100%);
+  color: #fff;
+  border: none;
+}
+.btn--ghost:hover {
+  filter: brightness(1.05);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 15px rgba(175, 149, 37, 0.4);
+}
+
     .btn--ghost[disabled]{opacity:.45;cursor:not-allowed}
 
     /* ===== Header ===== */
-    .site-header{background:var(--green);box-shadow:var(--shadow);position:sticky;top:0;z-index:100;padding-block:.75rem}
+    .site-header{background:var(--green-dark);box-shadow:var(--shadow);position:sticky;top:0;z-index:100;padding-block:.75rem}
     .site-header__inner{display:flex;align-items:center;justify-content:space-between}
     .logo{font-size:1.25rem;font-weight:800;color:var(--gold);letter-spacing:.3px}
 
@@ -70,43 +97,23 @@
       display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:1.25rem;
       padding:5.5rem 1rem;
       background:
-        radial-gradient(60% 120% at 80% -10%, rgba(32,64,41,.18) 0%, rgba(32,64,41,0) 60%),
-        linear-gradient(135deg, var(--taupe) 0%, var(--lgray) 100%);
+        radial-gradient(60% 120% at 82% -10%, color-mix(in srgb, var(--green) 18%, transparent) 0%, transparent 60%),
+        linear-gradient(135deg, var(--mint) 0%, color-mix(in srgb, var(--mint-light) 90%, #fff) 100%);
+      border-bottom:1px solid color-mix(in srgb, var(--green) 12%, transparent);
     }
-    .hero h1{font-size:clamp(2rem,4vw,3.2rem);font-weight:900;color:var(--green)}
-    .hero p{font-size:1.125rem;max-width:52ch;color:var(--dgray)}
-/* Заголовки и элементы акцента */
-.hero h1,
-h2, h3,
-.logo,
-.btn{
-  font-family:var(--font-heading);
-  letter-spacing:.2px;
-}
-body {
-  font-family: 'Manrope', sans-serif;
-}
-.service-card h3,
-h2, h3 {
-  font-family: 'Poppins', sans-serif;
-  font-weight: 700;
-}
-.service-meta,
-p.muted {
-  font-family: 'Manrope', sans-serif;
-  font-weight: 400;
-}
+    .hero h1{font-size:clamp(2rem,4vw,3.2rem);font-weight:800;color:var(--green-dark)}
+    .hero p{font-size:1.125rem;max-width:52ch;color:var(--muted)}
 
-/* Немного скорректируем веса для новой пары */
-.hero h1{ font-weight:800; }
-h2{ font-weight:800; }
-h3{ font-weight:700; }
-.btn{ font-weight:700; }
+    /* Заголовки и элементы акцента */
+    .hero h1, h2, h3, .logo, .btn{font-family:var(--font-heading);letter-spacing:.2px}
+    h2{font-weight:800}
+    h3{font-weight:700}
 
     /* ===== Filters ===== */
     .filters{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.25rem 0 1.75rem}
     .filters input,.filters select{
-      padding:.6rem 1rem;border:1px solid var(--taupe);border-radius:var(--radius-sm);
+      padding:.6rem 1rem;border:1px solid color-mix(in srgb, var(--green) 22%, var(--lgray));
+      border-radius:var(--radius-sm);
       font-size:.95rem;min-width:170px;background:var(--white)
     }
 
@@ -115,35 +122,35 @@ h3{ font-weight:700; }
     .service-card{
       background:var(--white);border-radius:var(--radius-lg);padding:1.25rem;
       display:flex;flex-direction:column;gap:.85rem;box-shadow:var(--shadow);
-      border:1px solid color-mix(in srgb, var(--taupe) 70%, transparent);
+      border:1px solid color-mix(in srgb, var(--green) 18%, transparent);
       transition:.25s
     }
-    .service-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,.14)}
+    .service-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px color-mix(in srgb, var(--green) 20%, rgba(0,0,0,.14))}
     .service-card__img{
-      aspect-ratio:16/9;background:color-mix(in srgb, var(--taupe) 40%, var(--white));
+      aspect-ratio:16/9;background:color-mix(in srgb, var(--green) 10%, #ffffff);
       border-radius:.75rem;display:flex;align-items:center;justify-content:center;
-      font-size:.9rem;color:#8a8a8a
+      font-size:.9rem;color:#6f7a75
     }
-    .service-card h3{font-size:1.08rem;font-weight:800;color:var(--dgray)}
-    .service-meta{font-size:.9rem;color:#636363}
-    .stub{font-style:italic;color:#666;padding:1rem}
-    .muted{color:#666;font-size:.92rem}
-    .old{color:#999;text-decoration:line-through}
+    .service-card h3{font-size:1.08rem;font-weight:800;color:var(--ink)}
+    .service-meta{font-size:.9rem;color:var(--muted)}
+    .stub{font-style:italic;color:#667;padding:1rem}
+    .muted{color:var(--muted);font-size:.92rem}
+    .old{color:#9aa0a0;text-decoration:line-through}
     .badge{
       font-size:.75rem;background:var(--gold);color:var(--white);
       border-radius:999px;padding:.18rem .55rem;margin-left:.35rem
     }
 
     /* ===== Footer ===== */
-    .site-footer{text-align:center;font-size:.875rem;color:#666;padding:2rem 1rem}
+    .site-footer{text-align:center;font-size:.875rem;color:var(--muted);padding:2rem 1rem}
 
     /* ===== Modal: booking ===== */
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000}
     .modal--open{display:flex}
-    .modal__dialog{background:var(--white);border-radius:1rem;box-shadow:0 14px 36px rgba(0,0,0,.22);width:min(760px,96vw);padding:1.25rem 1.25rem 1rem;border:1px solid var(--taupe)}
+    .modal__dialog{background:var(--white);border-radius:1rem;box-shadow:0 14px 36px rgba(0,0,0,.22);width:min(760px,96vw);padding:1.25rem 1.25rem 1rem;border:1px solid color-mix(in srgb, var(--green) 14%, var(--lgray))}
     .modal__header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
     .modal__title{font-weight:900;font-size:1.15rem;color:var(--green)}
-    .modal__close{background:transparent;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:#666}
+    .modal__close{background:transparent;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:var(--muted)}
     .grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:1rem}
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:#555}
@@ -153,9 +160,9 @@ h3{ font-weight:700; }
       max-height:240px;overflow:auto;border:1px dashed var(--lgray);padding:.5rem;border-radius:.5rem
     }
     .slot{padding:.5rem .65rem;border:1px solid #ddd;border-radius:.6rem;cursor:pointer;text-align:center;background:var(--white)}
-    .slot--active{border-color:var(--gold);background:var(--taupe);color:var(--green);font-weight:800}
+    .slot--active{border-color:var(--green);background:color-mix(in srgb, var(--green) 10%, #fff);color:var(--green-dark);font-weight:800}
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
-    .hint{font-size:.85rem;color:#666}
+    .hint{font-size:.85rem;color:var(--muted)}
     .error{color:#b00020;font-size:.9rem;margin-top:.5rem}
     .success{color:#0a7a3b;font-size:.95rem;margin-top:.5rem}
     .skeleton{background:linear-gradient(90deg,#eee,#f6f6f6,#eee);background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;border-radius:.5rem;height:36px}
@@ -169,13 +176,12 @@ h3{ font-weight:700; }
     <div class="container site-header__inner">
       <span class="logo">Malva Booking</span>
       <nav>
-  {% if user.is_authenticated %}
-    <a href="{% url 'dashboard' %}" class="btn btn--ghost">Client Profile</a>
-  {% else %}
-    <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="btn btn--ghost">Login</a>
-  {% endif %}
-</nav>
-
+        {% if user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="btn btn--ghost">Client Profile</a>
+        {% else %}
+          <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="btn btn--ghost">Login</a>
+        {% endif %}
+      </nav>
     </div>
   </header>
 
