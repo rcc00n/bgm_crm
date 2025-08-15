@@ -4,7 +4,7 @@ from django.urls import path, include
 from accounts.views import HomeView
 from core.autocomplete import ServiceAutocomplete
 from core.views import service_search
-
+from accounts.views import StorePlaceholderView, MerchPlaceholderView
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
@@ -13,4 +13,6 @@ urlpatterns = [
     path("", HomeView.as_view(), name="home"),  # ← главная
 
     path("accounts/api/services/search/", service_search, name="service-search"),
+    path("store/", StorePlaceholderView.as_view(), name="store"),
+    path("merch/", MerchPlaceholderView.as_view(), name="merch"),
 ]

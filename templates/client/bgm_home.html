@@ -184,8 +184,9 @@
         {% endif %}
 
         <!-- Coming soon -->
-        <li><a href="#" class="nav--soon" aria-disabled="true">Store <span class="badge" aria-hidden="true">Soon</span></a></li>
-        <li><a href="#" class="nav--soon" aria-disabled="true">Merch <span class="badge" aria-hidden="true">Soon</span></a></li>
+        <li><a href="{% url 'store' %}">Store <span class="badge">Soon</span></a></li>
+<li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
+
         <li><a href="#" class="nav--soon" aria-disabled="true">Dealers <span class="badge" aria-hidden="true">Soon</span></a></li>
       </ul>
     </nav>
@@ -451,8 +452,9 @@
       {% else %}
         <a href="{% url 'login' %}?next={% url 'dashboard' %}">Login</a>
       {% endif %}
-      <a href="#" class="nav--soon" aria-disabled="true">Store</a>
-      <a href="#" class="nav--soon" aria-disabled="true">Merch</a>
+      <li><a href="{% url 'store' %}">Store <span class="badge">Soon</span></a></li>
+<li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
+
       <a href="#" class="nav--soon" aria-disabled="true">Dealers</a>
     </nav>
   </div>

@@ -222,3 +222,13 @@ class HomeView(TemplateView):
         ctx["uncategorized"] = Service.objects.filter(category__isnull=True)
         ctx["has_any_services"] = Service.objects.exists()
         return ctx
+    
+# accounts/views.py
+from django.views.generic import TemplateView
+
+class StorePlaceholderView(TemplateView):
+    template_name = "client/store.html"
+
+class MerchPlaceholderView(TemplateView):
+    template_name = "client/merch.html"
+
