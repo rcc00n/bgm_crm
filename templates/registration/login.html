@@ -3,45 +3,41 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Sign in • Malva Booking</title>
+<title>Sign in • Bad Guy Motors</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
 <!-- ===== S T Y L E S ===== -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
-/* ===== Brand palette ===== */
+/* ===== BGM palette (dark + red) ===== */
 :root{
-  --green:#204029;          /* deep green */
-  --gold:#AF9525;           /* accent gold */
-  --taupe:#DAD3C1;          /* soft taupe */
-  --lgray:#DEDEDE;          /* light gray */
-  --dgray:#4D4D4D;          /* dark gray */
+  --bg:#0a0a0a;            /* page bg */
+  --ink:#eaeaea;           /* base text on dark */
+  --muted:#bdbdbd;
 
-  --card-bg:hsla(0 0% 100%/.58);
-  --card-border:hsla(0 0% 100%/.35);
+  --red:#d50000;           /* accent red */
+  --red-dark:#b60000;
 
-  --primary:var(--gold);
-  --primary-dark:#9b8521;
-  --field-bg:hsla(0 0% 100%/.9);
-  --error-bg:#ffe5e5;
-  --error-text:#c30000;
+  --card-bg:rgba(18,18,18,.75);
+  --card-border:rgba(255,255,255,.08);
+
+  --field-bg:rgba(255,255,255,.06);
+
+  --error-bg:#3b0000;
+  --error-text:#ff8a80;
 }
 
 /* ===== Background ===== */
 html,body{
   height:100%;margin:0;font-family:"Poppins",sans-serif;
-  color:var(--dgray);
+  color:var(--ink);
   background:
-    radial-gradient(60% 120% at 90% -20%, color-mix(in srgb, var(--green) 26%, transparent) 0%, transparent 60%),
-    linear-gradient(160deg, var(--taupe) 0%, var(--lgray) 100%);
+    radial-gradient(60% 120% at 85% -20%, rgba(213,0,0,.16) 0%, transparent 60%),
+    radial-gradient(60% 120% at 10% 120%, rgba(255,255,255,.06) 0%, transparent 60%),
+    #000;
   overflow:hidden;
 }
-.halo{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(circle at 80% 20%, rgba(32,64,41,.30) 0%, transparent 45%),
-    radial-gradient(circle at 20% 80%, rgba(175,149,37,.30) 0%, transparent 45%);
-  filter:blur(90px);transform:scale(1.2);}
 #particles{position:fixed;inset:0;z-index:0;}
 
 /* ===== Layout & responsive scale ===== */
@@ -58,50 +54,51 @@ html,body{
   width:100%;max-width:460px;background:var(--card-bg);
   border:1px solid var(--card-border);
   border-radius:28px;padding:64px 56px 52px;
-  backdrop-filter:blur(32px) saturate(160%);-webkit-backdrop-filter:blur(32px) saturate(160%);
-  box-shadow:0 28px 60px rgba(0,0,0,.15);
+  backdrop-filter:blur(28px) saturate(140%);-webkit-backdrop-filter:blur(28px) saturate(140%);
+  box-shadow:0 28px 60px rgba(0,0,0,.45);
   transform-style:preserve-3d;transition:transform .35s cubic-bezier(.03,.98,.52,.99);
 }
 .card::before{
   content:"";position:absolute;inset:-2px;border-radius:inherit;
-  background:linear-gradient(135deg,#c5b78a 0%, #AF9525 45%, #9b8521 55%, #204029 100%);
+  background:linear-gradient(135deg,#ff5555 0%, #d50000 45%, #b60000 55%, #630000 100%);
   z-index:-1;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;
 }
-h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;letter-spacing:-.02em;color:var(--green);}
+h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;letter-spacing:-.02em;color:#fff}
 
 /* ===== Form ===== */
-.login-form{display:flex;flex-direction:column;gap:1.6rem;}
+.login-form{display:flex;flex-direction:column;gap:1.1rem;}
 .field{position:relative;}
 .field svg{position:absolute;left:22px;top:50%;transform:translateY(-50%);
-  width:22px;height:22px;fill:var(--primary);opacity:.95;}
+  width:22px;height:22px;fill:var(--red);opacity:.95;}
 .field input{
-  width:100%;box-sizing:border-box;height:64px;padding:0 22px 0 64px;line-height:64px;
-  font-size:16px;font-weight:500;border:none;border-radius:18px;background:var(--field-bg);
-  box-shadow:inset 0 0 0 2px rgba(0,0,0,.04);transition:box-shadow .3s,background .3s;
+  width:100%;box-sizing:border-box;height:62px;padding:0 22px 0 64px;line-height:62px;
+  font-size:16px;font-weight:500;border:none;border-radius:18px;background:var(--field-bg);color:var(--ink);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);transition:box-shadow .3s,background .3s;
 }
-.field input:focus{outline:none;background:#fff;box-shadow:inset 0 0 0 3px var(--primary);}
+.field input:focus{outline:none;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 3px var(--red);}
 .field input::placeholder{color:transparent;}
 .field label{
   position:absolute;left:64px;top:50%;transform:translateY(-50%);pointer-events:none;
-  font-size:16px;font-weight:500;opacity:.6;transition:all .25s;
+  font-size:16px;font-weight:500;opacity:.6;color:var(--muted);transition:all .25s;
 }
 .field input:focus+label,
-.field input:not(:placeholder-shown)+label{ top:10px;transform:none;font-size:12px;opacity:.9; }
+.field input:not(:placeholder-shown)+label{ top:10px;transform:none;font-size:12px;opacity:.95; color:#fff; }
 
 /* ===== Buttons ===== */
 .btn{
-  position:relative;overflow:hidden;width:100%;padding:18px;border:none;border-radius:999px;
-  font-size:16px;font-weight:600;letter-spacing:.05em;color:#fff;
-  background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
-  cursor:pointer;transition:transform .2s,box-shadow .25s;
+  position:relative;overflow:hidden;width:100%;padding:16px;border:none;border-radius:999px;
+  font-size:16px;font-weight:700;letter-spacing:.05em;color:#fff;
+  background:linear-gradient(135deg,var(--red) 0%,var(--red-dark) 100%);
+  cursor:pointer;transition:transform .2s,box-shadow .25s,filter .2s;
 }
-.btn:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(0,0,0,.25);}
-.btn:active{transform:translateY(0);box-shadow:0 8px 16px rgba(0,0,0,.25);}
-.btn::after{content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(255,255,255,.35);
+.btn:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(213,0,0,.35);filter:saturate(1.05);}
+.btn:active{transform:translateY(0);box-shadow:0 8px 16px rgba(213,0,0,.35);}
+.btn::after{content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(255,255,255,.18);
   opacity:0;transform:scale(0);transition:opacity .6s,transform .6s;}
 .btn:active::after{opacity:1;transform:scale(2);transition:0s;}
-.btn--ghost{background:#fff;color:var(--primary);box-shadow:inset 0 0 0 2px var(--primary);}
+.btn--ghost{background:transparent;color:#fff;box-shadow:inset 0 0 0 2px var(--red);}
+.btn--ghost:hover{background:rgba(213,0,0,.08);}
 
 /* ===== Errors ===== */
 .errorlist{
@@ -111,91 +108,57 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
 
 /* ===== Registration modal ===== */
 .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-  background:rgba(0,0,0,.45);z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;}
+  background:rgba(0,0,0,.55);z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;}
 .modal.show{opacity:1;pointer-events:auto;}
 .modal__dialog{
   width:100%;max-width:480px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:24px;
-  padding:48px 40px 40px;position:relative;
-  backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);
+  padding:48px 40px 40px;position:relative;color:var(--ink);
+  backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);
 }
-.modal__close{position:absolute;top:18px;right:22px;border:none;background:none;font-size:26px;font-weight:600;cursor:pointer;color:#666;}
-.modal h2{margin:0 0 1.4rem;font-size:1.9rem;font-weight:600;text-align:center;color:var(--green);}
-.reg-form{display:flex;flex-direction:column;gap:1.2rem;}
-.reg-form .field input{height:56px;padding:0 20px;font-size:15px;}
+.modal__close{position:absolute;top:18px;right:22px;border:none;background:none;font-size:26px;font-weight:600;cursor:pointer;color:var(--muted);}
+.modal h2{margin:0 0 1.2rem;font-size:1.9rem;font-weight:700;text-align:center;color:#fff;}
+.reg-form{display:flex;flex-direction:column;gap:1rem;}
+.reg-form .field input{height:56px;padding:0 20px;font-size:15px;background:var(--field-bg);color:var(--ink);}
+.reg-form .field select,.reg-form .field textarea{background:var(--field-bg);color:var(--ink);border:none;border-radius:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);}
 
 /* ===== Responsive ===== */
 @media(max-width:500px){
   .card{padding:52px 34px 46px;}
-  h1.title{font-size:2.2rem;}
+  h1.title{font-size:2.1rem;}
 }
 
 /* === Password toggle (eye) === */
 .field .toggle-eye{
-  position:absolute; right:1px; top:50%; transform:translateY(-50%);
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
   border:none; background:transparent; cursor:pointer; padding:6px; border-radius:10px;
   display:flex; align-items:center; justify-content:center;
 }
-.field .toggle-eye:focus{ outline: none; box-shadow:0 0 0 3px rgba(175,149,37,.35); }
-.field input.has-eye{ padding-right:64px; } /* место под глаз */
-.field .toggle-eye svg{ width:22px; height:22px; fill:var(--primary); opacity:.95; }
-/* === Modal: scroll & sizing === */
-.modal__dialog{
-  max-height:92vh;           /* не выше экрана */
-  overflow:auto;             /* собственный скролл */
-  -webkit-overflow-scrolling: touch;
-}
-@media (max-height:680px){
-  .modal__dialog{ max-height:96vh; }
-}
+.field .toggle-eye:focus{ outline: none; box-shadow:0 0 0 3px rgba(213,0,0,.35); }
+.field input.has-eye{ padding-right:70px; }
+.field .toggle-eye svg{ width:22px; height:22px; fill:var(--red); opacity:.95; }
 
-/* === Registration form (modal) field styles === */
-/* В модалке нет левой иконки, поэтому подправляем отступы/лейблы отдельно */
-.reg-form .field input,
-.reg-form .field select,
-.reg-form .field textarea{
-  width:100%;
-  box-sizing:border-box;
-  border:none;
-  border-radius:18px;
-  background:var(--field-bg);
-  box-shadow:inset 0 0 0 2px rgba(0,0,0,.04);
-  font-size:15px;
-}
+/* Modal: scroll & sizing */
+.modal__dialog{ max-height:92vh; overflow:auto; -webkit-overflow-scrolling: touch; }
+@media (max-height:680px){ .modal__dialog{ max-height:96vh; } }
 
-/* высоты и паддинги по типам */
-.reg-form .field input{ height:56px; padding:0 20px; }
-.reg-form .field select{ height:56px; padding:0 20px; appearance:none; background-position:right 14px center; }
-.reg-form .field textarea{ min-height:88px; padding:14px 20px; line-height:1.4; resize:vertical; }
-
-/* плавающий лейбл в модалке (слева 20px, без иконки) */
-.reg-form .field label{ left:20px; }
-
-/* input/textarea: лейбл «всплывает», когда есть фокус или текст */
+/* Floating labels inside modal */
+.reg-form .field label{ left:20px; color:var(--muted); }
 .reg-form .field input:focus + label,
 .reg-form .field input:not(:placeholder-shown) + label,
 .reg-form .field textarea:focus + label,
 .reg-form .field textarea:not(:placeholder-shown) + label{
-  top:10px; transform:none; font-size:12px; opacity:.9;
+  top:10px; transform:none; font-size:12px; opacity:.95; color:#fff;
 }
-
-/* select не умеет placeholder-shown — держим лейбл всегда «маленьким» сверху */
-.reg-form .field select + label{
-  top:10px; transform:none; font-size:12px; opacity:.9; left:20px;
-}
-
-/* глазик: чуть внутрь и больше паддинг справа под кнопку */
-.field .toggle-eye{ right:12px; }      /* было 18px */
-.field input.has-eye{ padding-right:68px; } /* было 58px/64px — делаем запас */
-
+.reg-form .field select + label{ top:10px; transform:none; font-size:12px; opacity:.95; left:20px; color:#fff; }
 </style>
 </head>
 
 <body>
-<div class="halo"></div><canvas id="particles"></canvas>
+<canvas id="particles"></canvas>
 
 <div class="wrapper">
   <div class="card" data-tilt>
-    <h1 class="title">Sign in to Malva Booking</h1>
+    <h1 class="title">Sign in to Bad Guy Motors</h1>
 
     <form method="post" class="login-form">
       {% csrf_token %}
@@ -208,19 +171,16 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
       </div>
 
       <div class="field">
-  {{ form.password }}
-  <label for="{{ form.password.id_for_label }}">Password</label>
-  <svg viewBox="0 0 24 24"><path d="M17 9h-1V6a4 4 0 00-8 0v3H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2v-9a2 2 0 00-2-2zm-6 7.73V18a1 1 0 002 0v-1.27a2 2 0 10-2 0zM9 6a3 3 0 016 0v3H9V6z"/></svg>
+        {{ form.password }}
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        <svg viewBox="0 0 24 24"><path d="M17 9h-1V6a4 4 0 00-8 0v3H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2v-9a2 2 0 00-2-2zm-6 7.73V18a1 1 0 002 0v-1.27a2 2 0 10-2 0zM9 6a3 3 0 016 0v3H9V6z"/></svg>
 
-  <!-- eye -->
-  <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
-    <!-- eye open -->
-    <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-    <!-- eye off (скрыта по умолчанию) -->
-    <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
-  </button>
-</div>
-
+        <!-- eye -->
+        <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+          <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+          <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+        </button>
+      </div>
 
       <button type="submit" class="btn">Sign in</button>
       <button type="button" id="openReg" class="btn btn--ghost" style="margin-top:12px;">Create account</button>
@@ -238,62 +198,62 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
       <div class="field"><input type="text" name="username" placeholder=" " required><label>Username</label></div>
       <div class="field"><input type="email" name="email" placeholder=" " required><label>E-mail</label></div>
       <div class="field">
-  <input
-    type="tel"
-    id="regPhone"
-    name="phone"
-    placeholder="(555) 123‑4567"
-    value="+1 "
-    required
-    inputmode="tel"
-    autocomplete="tel"
-  />
-  <label for="regPhone">Phone</label>
-</div>
+        <input
+          type="tel"
+          id="regPhone"
+          name="phone"
+          placeholder="(555) 123‑4567"
+          value="+1 "
+          required
+          inputmode="tel"
+          autocomplete="tel"
+        />
+        <label for="regPhone">Phone</label>
+      </div>
       <div class="field">
-  <input type="password" name="password1" placeholder=" " required>
-  <label>Password</label>
-  <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
-    <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-    <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
-  </button>
-</div>
+        <input type="password" name="password1" placeholder=" " required>
+        <label>Password</label>
+        <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+          <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+          <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+        </button>
+      </div>
 
       <div class="field">
-  <input type="password" name="password2" placeholder=" " required>
-  <label>Confirm password</label>
-  <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
-    <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-    <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
-  </button>
-</div>
-<!-- Address -->
-<div class="field">
-  <textarea name="address" placeholder=" " rows="2"></textarea>
-  <label>Address</label>
-</div>
+        <input type="password" name="password2" placeholder=" " required>
+        <label>Confirm password</label>
+        <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+          <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+          <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+        </button>
+      </div>
 
-<!-- How did you hear about us -->
-<div class="field">
-  <select name="how_heard" placeholder=" ">
-    <option value="">— Select —</option>
-    <option value="google">Google search</option>
-    <option value="instagram">Instagram</option>
-    <option value="tiktok">TikTok</option>
-    <option value="friend">Friends/Family</option>
-    <option value="other">Other</option>
-  </select>
-  <label>How did you hear about us?</label>
-</div>
+      <!-- Address -->
+      <div class="field">
+        <textarea name="address" placeholder=" " rows="2"></textarea>
+        <label>Address</label>
+      </div>
 
-<!-- Consent -->
-<div class="field" style="display:flex;align-items:center;gap:.6rem;">
-  <input id="consentEmail" type="checkbox" name="email_marketing_consent" style="width:auto;height:auto;">
-  <label for="consentEmail" style="position:static;transform:none;opacity:1;font-size:14px;">
-    I agree to receive e‑mail updates and offers
-  </label>
-</div>
+      <!-- How did you hear about us -->
+      <div class="field">
+        <select name="how_heard" placeholder=" ">
+          <option value="">— Select —</option>
+          <option value="google">Google search</option>
+          <option value="instagram">Instagram</option>
+          <option value="tiktok">TikTok</option>
+          <option value="friend">Friends/Family</option>
+          <option value="other">Other</option>
+        </select>
+        <label>How did you hear about us?</label>
+      </div>
 
+      <!-- Consent -->
+      <div class="field" style="display:flex;align-items:center;gap:.6rem;">
+        <input id="consentEmail" type="checkbox" name="email_marketing_consent" style="width:auto;height:auto;">
+        <label for="consentEmail" style="position:static;transform:none;opacity:1;font-size:14px;color:var(--muted);">
+          I agree to receive e‑mail updates and offers
+        </label>
+      </div>
 
       <ul class="errorlist" id="regErrors" style="display:none;"></ul>
       <button type="submit" class="btn">Sign up</button>
@@ -303,11 +263,11 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
 
 <!-- ===== S C R I P T S ===== -->
 <script>
-/* particles */
+/* particles (LINES + RED NODES) */
 (function(){
   const c=document.createElement('canvas');c.id='particles';document.body.appendChild(c);
   const ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
-  let w,h,parts=[],opt={amt:120,size:2,speed:.4,line:140};
+  let w,h,parts=[],opt={amt:120,size:2,speed:.45,line:140};
   function resize(){w=c.width=innerWidth*dpr;h=c.height=innerHeight*dpr;c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';}
   addEventListener('resize',resize);resize();
   function init(){parts=[];for(let i=0;i<opt.amt;i++)
@@ -315,16 +275,19 @@ h1.title{margin:0 0 2.4rem;font-size:2.6rem;font-weight:700;text-align:center;le
   init();
   (function tick(){
     ctx.clearRect(0,0,w,h);
+    // nodes
     for(const p of parts){
       p.x+=p.vx;p.y+=p.vy;
       if(p.x<0||p.x>w)p.vx*=-1;
       if(p.y<0||p.y>h)p.vy*=-1;
       ctx.beginPath();ctx.arc(p.x,p.y,opt.size*dpr,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.85)';ctx.fill();}
+      ctx.fillStyle='rgba(213,0,0,.85)';ctx.fill();}   // RED nodes
+    // lines
     for(let i=0;i<parts.length;i++)for(let j=i+1;j<parts.length;j++){
       const p=parts[i],q=parts[j],dx=p.x-q.x,dy=p.y-q.y,d=Math.hypot(dx,dy);
       if(d<opt.line*dpr){
-        ctx.strokeStyle='rgba(255,255,255,'+(1-d/(opt.line*dpr))+')';
+        const a=(1-d/(opt.line*dpr));
+        ctx.strokeStyle=`rgba(213,0,0,${a*0.55})`;   // RED lines with fade
         ctx.lineWidth=1*dpr;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}}
     requestAnimationFrame(tick);
   })();
@@ -354,7 +317,7 @@ addEventListener('keydown',e=>e.key==='Escape'&&modal.classList.remove('show'));
   if(p && !p.placeholder) p.placeholder=' ';
 })();
 
-/* AJAX registration */
+/* AJAX registration (без изменений API) */
 document.getElementById('regForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const f=e.target,data=new FormData(f);
@@ -373,17 +336,14 @@ function showErrors(obj){
   box.style.display='block';
 }
 
-
 /* Phone: keep +1 visually and format as (555) 123‑4567 */
 (function(){
   const input = document.getElementById('regPhone');
   if (!input) return;
 
   const PREFIX = '+1 ';
-  // форматируем 10 цифр в (XXX) XXX‑XXXX
   function fmtUS(d){
     d = d.replace(/\D/g, '');
-    // если пользователь вставил с ведущей '1', уберём её — префикс мы подставляем сами
     if (d.startsWith('1')) d = d.slice(1);
     d = d.slice(0, 10);
     const a = d.slice(0,3), b = d.slice(3,6), c = d.slice(6,10);
@@ -394,22 +354,14 @@ function showErrors(obj){
     if (c) s += '-' + c;
     return s;
   }
-
   function ensurePrefixAndFormat(){
-    // убираем возможные '+1', чтобы не копить их
     let v = input.value.replace(/^\s*\+?\s*1[\s-]*/, '');
     input.value = PREFIX + fmtUS(v);
   }
-
-  // Инициализация
   if (!input.value.trim()) input.value = PREFIX;
   ensurePrefixAndFormat();
-
-  // Поддержка префикса и форматирования
   input.addEventListener('input', ensurePrefixAndFormat);
   input.addEventListener('paste', () => setTimeout(ensurePrefixAndFormat, 0));
-
-  // Не даём удалить префикс Backspace/ArrowLeft
   input.addEventListener('keydown', (e) => {
     const start = input.selectionStart ?? 0;
     if ((e.key === 'Backspace' || e.key === 'ArrowLeft') && start <= PREFIX.length) {
@@ -417,8 +369,6 @@ function showErrors(obj){
       input.setSelectionRange(PREFIX.length, PREFIX.length);
     }
   });
-
-  // На фокус — ставим курсор в конец (после +1 )
   input.addEventListener('focus', () => {
     if (!input.value.startsWith(PREFIX)) ensurePrefixAndFormat();
     requestAnimationFrame(() => {
@@ -427,7 +377,6 @@ function showErrors(obj){
     });
   });
 })();
-
 
 /* auto scale card to viewport height */
 function fitCard(){
@@ -444,14 +393,9 @@ setTimeout(fitCard,0);
 /* Password eyes: login + registration */
 (function(){
   function attachEye(btn){
-    const field = btn.closest('.field');
-    if (!field) return;
-    const input = field.querySelector('input[type="password"], input[type="text"]');
-    if (!input) return;
-
-    // место под кнопку
+    const field = btn.closest('.field'); if (!field) return;
+    const input = field.querySelector('input[type="password"], input[type="text"]'); if (!input) return;
     input.classList.add('has-eye');
-
     function setVisible(on){
       input.type = on ? 'text' : 'password';
       btn.setAttribute('aria-label', on ? 'Hide password' : 'Show password');
@@ -459,21 +403,12 @@ setTimeout(fitCard,0);
       const off  = btn.querySelector('.eye-off');
       if (open && off){ open.style.display = on ? 'none' : ''; off.style.display = on ? '' : 'none'; }
     }
-
     let visible = false;
     btn.addEventListener('click', ()=>{
-      visible = !visible;
-      setVisible(visible);
-      // курсор в конец
-      try{
-        const len = input.value.length;
-        input.setSelectionRange(len, len);
-        input.focus();
-      }catch(e){}
+      visible = !visible; setVisible(visible);
+      try{ const len = input.value.length; input.setSelectionRange(len, len); input.focus(); }catch(e){}
     });
   }
-
-  // 1) Логин: сделать поле пароля "has-eye"
   const loginPwd = document.querySelector('.login-form .field input[name="password"]') ||
                    document.querySelector('.login-form .field input[type="password"]');
   if (loginPwd){
@@ -481,11 +416,8 @@ setTimeout(fitCard,0);
     const loginBtn = document.querySelector('.login-form .field .toggle-eye');
     if (loginBtn) attachEye(loginBtn);
   }
-
-  // 2) Регистрация: оба поля
   document.querySelectorAll('#regModal .field .toggle-eye').forEach(attachEye);
 })();
-
 </script>
 </body>
 </html>

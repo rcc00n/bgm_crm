@@ -3,31 +3,42 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Malva Booking — Services</title>
+  <title>Bad Guy Motors — Upgrades & Booking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Performance hints -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 
   <style>
     /* =========================
-       Design tokens
+       BAD GUY MOTORS — Design tokens
        ========================= */
     :root{
-      --green-dark:#204029; --green:#1F5C3A; --green-600:#2e5a3a;
-      --gold:#AF9525; --taupe:#DAD3C1; --lgray:#DEDEDE; --dgray:#4D4D4D; --white:#FFF;
+      --bg:#000000;        /* main background */
+      --fg:#FFFFFF;        /* main text */
+      --muted:rgba(255,255,255,.72);
+      --muted-2:rgba(255,255,255,.55);
+      --line:rgba(255,255,255,.12);
+      --panel:#0E0E0E;     /* dark panel */
+      --panel-2:#131313;   /* darker panel */
+      --accent:#d50000;    /* blood red */
+      --accent-2:#ff1a1a;  /* hot red for glow */
+      --busy:#d50000;
+      --ok:#17d45b;
 
-      --bg-grad-1:#EFF4F2; --bg-grad-2:#EEF3F0;
-      --ink: color-mix(in srgb, var(--green-dark) 80%, #000);
-      --muted: color-mix(in srgb, var(--dgray) 70%, var(--green-dark) 20%);
-
-      --free:#1F5C3A; --busy:#D32F2F; --today-bg:#FAFDFB; --grid-border:#E6E7E7; --chip-bg:#F3F7F5;
-
-      --radius-lg:1.25rem; --radius-md:.75rem; --radius-sm:.55rem;
-      --shadow:0 8px 20px rgba(0,0,0,.10);
+      --radius-lg:1.1rem; --radius-md:.75rem; --radius-sm:.55rem;
+      --shadow:0 12px 28px rgba(0,0,0,.55);
+      --glow:0 0 0 0 rgba(213,0,0,0), 0 0 24px rgba(213,0,0,.35), 0 0 48px rgba(213,0,0,.18);
       --container:clamp(280px,92vw,1160px);
 
-      /* >>> ШРИФТЫ: как в твоём примере (Inter) <<< */
-      --font-ui:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Open Sans","Helvetica Neue",sans-serif;
+      --font-ui:"Barlow", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
       --font-heading:var(--font-ui);
     }
+
+    /* Selection */
+    ::selection{ background:var(--accent); color:#fff; }
 
     /* =========================
        Base
@@ -35,152 +46,240 @@
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
     body{
-      font-family:var(--font-ui); color:var(--ink); line-height:1.5;
-      background:
-        radial-gradient(60% 120% at 15% 110%, color-mix(in srgb, var(--green) 10%, transparent) 0%, transparent 62%),
-        radial-gradient(60% 120% at 80% -10%,  color-mix(in srgb, var(--green) 12%, transparent) 0%, transparent 62%),
-        linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
+      font-family:var(--font-ui);
+      background:var(--bg);
+      color:var(--fg);
+      line-height:1.5;
+      min-height:100dvh;
+      overflow-x:hidden;
     }
     img{max-width:100%;display:block}
     a{color:inherit;text-decoration:none}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
 
     /* =========================
+       SMOKE layer (like your BGM page)
+       ========================= */
+    .smoke{position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:1;}
+    .smoke span{
+      position:absolute; bottom:-220px; left:50%; transform:translateX(-50%);
+      border-radius:50%;
+      background:radial-gradient(rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 70%);
+      filter:blur(28px);
+      opacity:0;
+      animation:rise 24s linear infinite;
+      will-change:transform,opacity;
+      mix-blend-mode:screen;
+    }
+    @keyframes rise{
+      0%  {transform:translateX(-50%) translateY(0)    scale(.4); opacity:0}
+      10% {opacity:.45}
+      50% {opacity:.22}
+      100%{transform:translateX(-50%) translateY(-120vh) scale(1.8); opacity:0}
+    }
+    @media (prefers-reduced-motion:reduce){
+      .smoke span{animation:none; opacity:.12}
+    }
+
+    /* =========================
        Buttons
        ========================= */
     .btn{
       display:inline-flex; align-items:center; justify-content:center; gap:.5em;
-      padding:.7rem 1.15rem; border-radius:var(--radius-sm);
-      font-weight:800; cursor:pointer; transition:.2s ease; white-space:nowrap; user-select:none; line-height:1;
-      font-family:var(--font-heading);
+      padding:.75rem 1.15rem; border-radius:var(--radius-sm);
+      font-weight:900; letter-spacing:.25px;
+      cursor:pointer; transition:.2s ease; white-space:nowrap; user-select:none; line-height:1;
+      border:1px solid transparent;
+      text-transform:uppercase;
     }
-    .btn:focus-visible{outline:2px solid color-mix(in srgb, var(--gold) 70%, #fff); outline-offset:2px}
-    .btn--primary{background:linear-gradient(135deg, var(--green-600) 0%, var(--gold) 100%); color:#fff; border:0}
-    .btn--primary:hover{transform:translateY(-1px); filter:brightness(1.03); box-shadow:0 4px 14px rgba(175,149,37,.35)}
-    .btn--ghost{background:linear-gradient(135deg, var(--green-600) 0%, var(--gold) 100%); color:#fff; border:0}
-    .btn--ghost:hover{transform:translateY(-1px); filter:brightness(1.03); box-shadow:0 4px 14px rgba(175,149,37,.35)}
-    .btn--ghost[disabled], .btn--primary[disabled]{opacity:.5;cursor:not-allowed}
+    .btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
+    .btn--primary{
+      background:linear-gradient(180deg, var(--accent) 0%, #9f0000 100%);
+      color:#fff; border:1px solid rgba(255,255,255,.08);
+      box-shadow:var(--glow);
+    }
+    .btn--primary:hover{ transform:translateY(-1px); filter:brightness(1.02); }
+    .btn--ghost{
+      background:transparent; color:var(--fg);
+      border:1px solid var(--accent);
+      box-shadow:0 0 0 0 rgba(213,0,0,0);
+    }
+    .btn--ghost:hover{ box-shadow:0 0 18px rgba(213,0,0,.35); transform:translateY(-1px); }
+    .btn[disabled]{opacity:.55;cursor:not-allowed}
 
     /* =========================
-       Header & Hero
+       Header
        ========================= */
-    .site-header{background:var(--green-dark);box-shadow:var(--shadow);position:sticky;top:0;z-index:100;padding-block:.75rem}
-    .site-header__inner{display:flex;align-items:center;justify-content:space-between}
-    .logo{font:900 1.25rem/1 var(--font-heading);color:var(--gold);letter-spacing:.3px}
+    .site-header{
+      position:sticky; top:0; z-index:3;
+      background:rgba(0,0,0,.85);
+      backdrop-filter:saturate(120%) blur(6px);
+      border-bottom:1px solid var(--line);
+    }
+    .site-header__inner{display:flex;align-items:center;justify-content:space-between; padding:.75rem 0}
+    .logo{
+      font:900 1.2rem/1 var(--font-heading);
+      letter-spacing:.5px;
+      display:inline-flex; gap:.5rem; align-items:center;
+    }
+    .logo b{color:var(--accent)}
+    .tagline{font-weight:700; font-size:.85rem; color:var(--muted-2); margin-left:.35rem}
 
+    /* =========================
+       Hero
+       ========================= */
     .hero{
-      display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:1.1rem;
-      padding:5.25rem 1rem;
+      position:relative; z-index:2;
+      display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; gap:1.15rem;
+      padding:5.2rem 1rem 4.2rem;
       background:
-        radial-gradient(60% 120% at 82% -10%, color-mix(in srgb, var(--green) 18%, transparent) 0%, transparent 60%),
-        linear-gradient(135deg, color-mix(in srgb, #fff 90%, var(--bg-grad-1) 10%) 0%, color-mix(in srgb, var(--bg-grad-2) 90%, #fff 10%) 100%);
-      border-bottom:1px solid color-mix(in srgb, var(--green) 12%, transparent);
+        radial-gradient(60% 120% at 82% -10%, rgba(213,0,0,.18) 0%, rgba(213,0,0,0) 60%),
+        radial-gradient(60% 120% at 12% 110%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%);
+      border-bottom:1px solid var(--line);
     }
-    .hero h1{font:900 clamp(2rem,4vw,3.2rem)/1.1 var(--font-heading); color:var(--green-dark)}
-    .hero p{font-size:1.08rem; max-width:52ch; color:var(--muted)}
-
-    h2{font:900 1.5rem/1.2 var(--font-heading)}
-    h3{font:800 1.1rem/1.2 var(--font-heading)}
+    .hero h1{
+      font:900 clamp(2.2rem,4.5vw,3.4rem)/1.05 var(--font-heading);
+      text-transform:uppercase; letter-spacing:.8px;
+      text-shadow:0 0 18px rgba(213,0,0,.25);
+    }
+    .hero p{font-size:1.05rem; max-width:60ch; color:var(--muted)}
+    .hero .cta{margin-top:.35rem}
 
     /* =========================
-       Filters & Cards
+       Filters & Cards (dark metal)
        ========================= */
+    main{ position:relative; z-index:2; }
+    h2{font:900 1.6rem/1.2 var(--font-heading); text-transform:uppercase; letter-spacing:.6px; margin-bottom:1.25rem}
     .filters{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.25rem 0 1.75rem}
     .filters input,.filters select{
-      padding:.6rem 1rem; border:1px solid color-mix(in srgb, var(--green) 22%, var(--lgray));
-      border-radius:var(--radius-sm); font-size:.95rem; min-width:170px; background:#fff
+      padding:.65rem 1rem; border:1px solid var(--line); border-radius:var(--radius-sm);
+      font-size:.95rem; min-width:170px; background:var(--panel-2); color:var(--fg);
     }
-    .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem}
+    .filters ::placeholder{color:var(--muted-2)}
+    .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.1rem}
     .service-card{
-      background:#fff;border-radius:var(--radius-lg);padding:1.1rem;display:flex;flex-direction:column;gap:.75rem;
-      box-shadow:var(--shadow);border:1px solid color-mix(in srgb, var(--green) 18%, transparent);transition:.18s ease;
+      background:linear-gradient(160deg, var(--panel-2), var(--panel));
+      border-radius:var(--radius-lg);
+      padding:1rem; display:flex; flex-direction:column; gap:.75rem;
+      border:1px solid var(--line);
+      box-shadow:0 10px 24px rgba(0,0,0,.35);
+      transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
-    .service-card:hover{transform:translateY(-3px);box-shadow:0 10px 22px color-mix(in srgb, var(--green) 18%, rgba(0,0,0,.16))}
-    .service-card__img{aspect-ratio:16/9;background:color-mix(in srgb, var(--green) 10%, #fff);border-radius:.7rem;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#6f7a75}
-    .service-card h3{font-size:1.06rem;font-weight:900;color:var(--ink)}
+    .service-card:hover{
+      transform:translateY(-4px);
+      border-color:rgba(213,0,0,.35);
+      box-shadow:0 14px 36px rgba(213,0,0,.16), 0 10px 22px rgba(0,0,0,.5);
+    }
+    .service-card__img{
+      aspect-ratio:16/9;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+        repeating-linear-gradient(0deg, rgba(255,255,255,.06), rgba(255,255,255,.06) 2px, transparent 2px, transparent 6px);
+      border-radius:.7rem; display:flex; align-items:center; justify-content:center;
+      font-size:.85rem; color:var(--muted-2); text-transform:uppercase; letter-spacing:.6px;
+    }
+    .service-card h3{font-size:1.06rem;font-weight:900;letter-spacing:.2px}
     .service-meta{font-size:.92rem;color:var(--muted)}
-    .stub{font-style:italic;color:#667;padding:1rem}
-    .muted{color:var(--muted);font-size:.92rem}
-    .old{color:#9aa0a0;text-decoration:line-through}
-    .badge{font-size:.75rem;background:var(--gold);color:#fff;border-radius:999px;padding:.18rem .55rem;margin-left:.35rem}
+    .stub{font-style:italic;color:var(--muted);padding:1rem;border:1px dashed var(--line);border-radius:.5rem;background:rgba(255,255,255,.02)}
+    .muted{color:var(--muted);font-size:.95rem}
+    .old{color:rgba(255,255,255,.35);text-decoration:line-through}
+    .badge{
+      font-size:.72rem; background:var(--accent);
+      color:#fff; border-radius:999px; padding:.18rem .55rem; margin-left:.35rem;
+      border:1px solid rgba(255,255,255,.14);
+    }
 
     /* =========================
        Footer
        ========================= */
-    .site-footer{text-align:center;font-size:.875rem;color:var(--muted);padding:2rem 1rem}
+    .site-footer{
+      position:relative; z-index:2;
+      text-align:center; font-size:.9rem; color:var(--muted);
+      padding:2rem 1rem; border-top:1px solid var(--line);
+      background:rgba(0,0,0,.6);
+    }
 
     /* =========================
-       Modal
+       Modal (dark)
        ========================= */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000;overscroll-behavior:contain}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000;overscroll-behavior:contain}
     .modal--open{display:flex}
     .modal__dialog{
-      background:#fff;border-radius:1rem;box-shadow:0 14px 36px rgba(0,0,0,.22);
-      width:min(940px,96vw); border:1px solid color-mix(in srgb, var(--green) 14%, var(--lgray));
-      padding:1.2rem 1.25rem 1rem; max-height:92vh; display:flex; flex-direction:column; overflow:hidden;
+      background:linear-gradient(180deg, #0c0c0c, #121212);
+      border-radius:1rem;
+      box-shadow:0 14px 36px rgba(0,0,0,.75), 0 0 32px rgba(213,0,0,.18);
+      width:min(940px,96vw);
+      border:1px solid var(--line);
+      padding:1.2rem 1.25rem 1rem; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; color:var(--fg);
     }
     .modal__header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
-    .modal__title{font:900 1.18rem/1 var(--font-heading); color:var(--green)}
-    .modal__close{background:transparent;border:none;font-size:1.4rem;line-height:1;cursor:pointer;color:var(--muted)}
+    .modal__title{font:900 1.18rem/1 var(--font-heading); text-transform:uppercase; letter-spacing:.6px}
+    .modal__title span{color:var(--accent)}
+    .modal__close{background:transparent;border:1px solid var(--line);font-size:1.2rem;line-height:1;cursor:pointer;color:var(--muted);border-radius:.5rem;width:36px;height:36px}
     .grid-2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:1rem;flex:1 1 auto;min-height:0}
     .grid-2 > div{min-height:0}
     .field{display:flex;flex-direction:column;gap:.35rem}
-    .field label{font-size:.9rem;color:#555}
-    .field input,.field select{padding:.6rem .8rem;border:1px solid var(--lgray);border-radius:.6rem;font-size:.95rem;background:#fff}
+    .field label{font-size:.9rem;color:var(--muted)}
+    .field input,.field select{
+      padding:.6rem .8rem;border:1px solid var(--line);border-radius:.6rem;font-size:.95rem;background:#0a0a0a;color:var(--fg)
+    }
 
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
     .hint{font-size:.85rem;color:var(--muted)}
-    .error{color:#b00020;font-size:.9rem;margin-top:.5rem}
-    .success{color:#0a7a3b;font-size:.95rem;margin-top:.5rem}
-    .skeleton{background:linear-gradient(90deg,#eee,#f6f6f6,#eee);background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;border-radius:.5rem;height:36px}
+    .error{color:#ff5c72;font-size:.9rem;margin-top:.5rem}
+    .success{color:var(--ok);font-size:.95rem;margin-top:.5rem}
+    .skeleton{
+      background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
+      background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;border-radius:.5rem;height:36px
+    }
     @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
     /* =========================
-       Outlook grid
+       Outlook grid (dark)
        ========================= */
-    .outlook{display:flex;flex-direction:column;min-height:0;border:1px solid var(--grid-border);border-radius:var(--radius-md);overflow:visible;background:#fff;margin-top:.45rem}
-    .outlook__toolbar{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .75rem;border-bottom:1px solid var(--grid-border)}
+    .outlook{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:var(--radius-md);overflow:visible;background:#0a0a0a;margin-top:.45rem}
+    .outlook__toolbar{
+      display:flex;align-items:center;justify-content:space-between;gap:.75rem;
+      padding:.55rem .75rem;border-bottom:1px solid var(--line); background:#0c0c0c
+    }
     .outlook__toolbar .controls{display:flex;gap:.4rem}
-    .outlook__toolbar .range{font-weight:900;color:var(--green-dark)}
-    .outlook__toolbar button{border:1px solid var(--grid-border);background:#fff;border-radius:.5rem;padding:.35rem .65rem;cursor:pointer;line-height:1; font-weight:700}
+    .outlook__toolbar .range{font-weight:900;letter-spacing:.4px}
+    .outlook__toolbar button{
+      border:1px solid var(--line);background:#111;border-radius:.5rem;padding:.35rem .65rem;
+      cursor:pointer;line-height:1; font-weight:800; color:var(--fg); text-transform:uppercase; letter-spacing:.4px
+    }
+    .outlook__toolbar button:hover{border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.2)}
 
     .outlook__wrap{
-      flex:1 1 auto;
-      overflow-x: scroll; overflow-y: auto;
-      max-height:56vh; min-height:300px; max-width:100%;
-      padding-bottom:10px;
-      scrollbar-gutter:stable both-edges; -webkit-overflow-scrolling:touch;
+      flex:1 1 auto; overflow-x: auto; overflow-y: auto; max-height:56vh; min-height:300px; max-width:100%;
+      padding-bottom:10px; scrollbar-gutter:stable both-edges; -webkit-overflow-scrolling:touch;
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
     }
     .outlook__grid{
       display:grid; min-width:calc(96px + (var(--days,14) * 160px) + 1px);
       grid-auto-rows:minmax(36px, auto);
       grid-template-columns: 96px repeat(var(--days, 14), 160px);
-      font-family:var(--font-ui);
+      font-family:var(--font-ui); color:var(--fg);
     }
-    .outlook__cell{border-bottom:1px solid var(--grid-border); border-right:1px solid var(--grid-border); padding:.25rem .4rem; background:#fff; white-space:nowrap; text-overflow:ellipsis}
-    .outlook__cell.time{position:sticky;left:0;background:#fff;z-index:2;font-size:.85rem;color:#666}
-    .outlook__head{position:sticky;top:0;background:#fff;z-index:3;border-bottom:2px solid var(--grid-border);box-shadow:0 1px 0 rgba(0,0,0,.04); padding:.4rem .45rem}
+    .outlook__cell{border-bottom:1px solid var(--line); border-right:1px solid var(--line); padding:.25rem .4rem; background:#0a0a0a; white-space:nowrap; text-overflow:ellipsis}
+    .outlook__cell.time{position:sticky;left:0;background:#0c0c0c;z-index:2;font-size:.85rem;color:var(--muted)}
+    .outlook__head{position:sticky;top:0;background:#0c0c0c;z-index:3;border-bottom:2px solid var(--line);box-shadow:0 1px 0 rgba(255,255,255,.04); padding:.45rem .5rem}
     .day-head{display:flex;flex-direction:column}
-    .day-title{font:800 .92rem/1.1 var(--font-heading); color:var(--green-dark); text-transform:capitalize}
-    .day-sub{font-size:.75rem;color:#666;margin-top:.15rem}
-    .day--today{background:var(--today-bg)}
+    .day-title{font:900 .95rem/1.1 var(--font-heading); text-transform:capitalize; letter-spacing:.3px}
+    .day-sub{font-size:.78rem;color:var(--muted);margin-top:.15rem}
+    .day--today{background:linear-gradient(180deg, rgba(213,0,0,.08), rgba(213,0,0,0))}
 
     .slot-chip{
       display:inline-flex;align-items:center;justify-content:center;
       height:1.7rem; min-width:3.6rem; padding:0 .5rem; border-radius:.5rem;
       border:1.6px solid transparent; font-weight:900; font-size:.9rem; user-select:none; line-height:1;
-      font-family:var(--font-heading);
+      text-transform:uppercase; letter-spacing:.3px;
     }
-    .slot-free{color:var(--free);border-color:color-mix(in srgb, var(--free) 55%, #fff);background:var(--chip-bg);cursor:pointer}
-    .slot-free:hover{filter:brightness(.98)}
-    .slot-busy{color:#fff;background:var(--busy);opacity:.92}
-    .slot-selected{background:var(--free)!important;color:#fff;border-color:var(--free)!important;box-shadow:0 0 0 2px color-mix(in srgb, var(--free) 20%, transparent)}
-
-    .legend{display:flex;gap:.75rem;margin-top:.5rem;font-size:.85rem;color:#666}
-    .legend > span{display:inline-flex;align-items:center;gap:.35rem}
-    .legend i{display:inline-block;width:14px;height:14px;border-radius:4px}
-    .legend .lg-free i{background:var(--chip-bg);border:2px solid color-mix(in srgb, var(--free) 60%, #fff)}
-    .legend .lg-busy i{background:var(--busy)}
+    .slot-free{color:#fff;border-color:rgba(255,255,255,.22);background:#131313;cursor:pointer}
+    .slot-free:hover{border-color:rgba(213,0,0,.55); box-shadow:0 0 16px rgba(213,0,0,.25)}
+    .slot-busy{color:#fff;background:var(--busy);opacity:.9}
+    .slot-selected{background:var(--accent)!important;color:#fff;border-color:var(--accent)!important;box-shadow:0 0 0 2px rgba(213,0,0,.35)}
 
     /* Zoom-proof modal sizes */
     .modal__dialog{ width:min(940px, calc(100dvw - 2rem)); max-height:calc(100dvh - 2rem); }
@@ -197,13 +296,16 @@
 </head>
 <body>
 
+  <!-- Smoke Layer -->
+  <div class="smoke" id="smoke-layer" aria-hidden="true"></div>
+
   <!-- header -->
   <header class="site-header">
     <div class="container site-header__inner">
-      <span class="logo">Malva Booking</span>
+      <span class="logo">Bad Guy <b>Motors</b> <span class="tagline">custom builds • installs • upgrades</span></span>
       <nav>
         {% if user.is_authenticated %}
-          <a href="{% url 'dashboard' %}" class="btn btn--ghost">Client Profile</a>
+          <a href="{% url 'dashboard' %}" class="btn btn--ghost">Client Portal</a>
         {% else %}
           <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="btn btn--ghost">Login</a>
         {% endif %}
@@ -213,13 +315,15 @@
 
   <!-- hero -->
   <section class="hero">
-    <h1>Book your appointment in 2 clicks</h1>
-    <p>Pick a service, a specialist, and a time — we’ll handle the rest.</p>
-    <a href="#services" class="btn btn--primary">Browse services ↓</a>
+    <h1>Book your upgrade. Make it brutal.</h1>
+    <p>Pick a service, choose your master tech, lock the time. We’ll do the dirty work — fast, clean, loud.</p>
+    <div class="cta">
+      <a href="#services" class="btn btn--primary">Browse services ↓</a>
+    </div>
   </section>
 
   <main id="services" class="container" style="padding-block:3rem;">
-    <h2 style="font-size:1.75rem;font-weight:800;margin-bottom:1.5rem;color:var(--green);">Services</h2>
+    <h2>Upgrades & Services</h2>
 
     <!-- Filters -->
     <form method="get" class="filters" role="search">
@@ -247,7 +351,7 @@
         <div class="services-grid">
           {% for s in search_results %}
             <article class="service-card">
-              <div class="service-card__img">IMG</div>
+              <div class="service-card__img">BGM • SERVICE</div>
               <div class="muted">{{ s.category.name }}</div>
               <h3>{{ s.name }}</h3>
               {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
@@ -269,15 +373,15 @@
             <div class="stub">No results for “{{ q }}”.</div>
           {% endfor %}
         </div>
-        <hr style="margin:2rem 0;border:none;border-top:1px solid var(--lgray)">
+        <hr style="margin:2rem 0;border:none;border-top:1px solid var(--line)">
       {% endif %}
 
       {% for c in categories %}
-        <h3 style="margin:1.5rem 0 .75rem;color:var(--green);font-weight:800">{{ c.name }}</h3>
+        <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 var(--font-heading); text-transform:uppercase; letter-spacing:.5px">{{ c.name }}</h3>
         <div class="services-grid">
           {% for s in c.service_set.all %}
             <article class="service-card">
-              <div class="service-card__img">IMG</div>
+              <div class="service-card__img">BGM • SERVICE</div>
               <h3>{{ s.name }}</h3>
               {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
               <div class="service-meta">
@@ -301,11 +405,11 @@
       {% endfor %}
 
       {% if uncategorized %}
-        <h3 style="margin:1.5rem 0 .75rem;color:var(--green);font-weight:800">Uncategorized</h3>
+        <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 var(--font-heading); text-transform:uppercase; letter-spacing:.5px">Uncategorized</h3>
         <div class="services-grid">
           {% for s in uncategorized %}
             <article class="service-card">
-              <div class="service-card__img">IMG</div>
+              <div class="service-card__img">BGM • SERVICE</div>
               <h3>{{ s.name }}</h3>
               {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
               <div class="service-meta">
@@ -332,9 +436,9 @@
     </div>
   </main>
 
-  <footer class="site-footer">© 2025 Malva Booking</footer>
+  <footer class="site-footer">© 2025 Bad Guy Motors</footer>
 
-  <!-- ===== Modal: booking ===== -->
+  <!-- ===== Modal: booking (same API, dark UI) ===== -->
   <div class="modal" id="bookModal" aria-hidden="true">
     <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
       <div class="modal__header">
@@ -368,11 +472,7 @@
               </div>
             </div>
 
-            <div class="legend">
-              <span class="lg-free"><i></i> free</span>
-              <span class="lg-busy"><i></i> busy</span>
-            </div>
-            <div class="hint">Прокручивайте горизонтально. Красные слоты показаны как занятые и не кликаются.</div>
+            <div class="hint" style="margin-top:.5rem">Shift + scroll for horizontal scroll. Red = busy (unclickable).</div>
           </div>
         </div>
 
@@ -392,6 +492,23 @@
       </div>
     </div>
   </div>
+
+  <script>
+    // ==== Smoke generation (20 puffs), randomized like your BGM page ====
+    (function(){
+      const smokeLayer = document.getElementById("smoke-layer");
+      const PUFFS = 20;
+      for (let i = 0; i < PUFFS; i++) {
+        const puff = document.createElement("span");
+        const size = 90 + Math.random() * 240;
+        puff.style.width = puff.style.height = `${size}px`;
+        puff.style.left  = `${Math.random() * 100}vw`;
+        puff.style.animationDelay = `${-Math.random() * 24}s`;
+        puff.style.animationDuration = `${18 + Math.random() * 14}s`;
+        smokeLayer.appendChild(puff);
+      }
+    })();
+  </script>
 
   <script>
     (function(){
@@ -648,9 +765,9 @@
           openModal(btn.dataset.serviceId, btn.dataset.serviceName || 'service');
         }
       });
-      btnClose.addEventListener('click',closeModal);
-      btnCancel.addEventListener('click',closeModal);
-      modal.addEventListener('click',(e)=>{ if(e.target===modal) closeModal(); });
+      btnClose.addEventListener('click',()=>modal.classList.remove('modal--open'));
+      btnCancel.addEventListener('click',()=>modal.classList.remove('modal--open'));
+      modal.addEventListener('click',(e)=>{ if(e.target===modal) modal.classList.remove('modal--open'); });
       btnSubmit.addEventListener('click',submitBooking);
 
       // UX: Shift+wheel горизонтально
@@ -660,7 +777,7 @@
         }
       }, { passive:false });
 
-      /* ===== Live search (как было) ===== */
+      /* ===== Live search (same logic) ===== */
       const qInput = document.querySelector('input[name="q"]');
       const catSel = document.querySelector('select[name="cat"]');
       const liveTitle = document.getElementById('liveTitle');
@@ -692,7 +809,7 @@
         const cat  = s.category ? `<div class="muted">${escapeHtml(s.category)}</div>` : '';
         return `
           <article class="service-card">
-            <div class="service-card__img">IMG</div>
+            <div class="service-card__img">BGM • SERVICE</div>
             ${cat}
             <h3>${escapeHtml(s.name)}</h3>
             ${desc}

@@ -2,83 +2,166 @@
 <html lang="en" class="h-full">
 <head>
   <meta charset="utf-8" />
-  <title>Client Portal | Malva Booking</title>
+  <title>Bad Guy Motors | Client Portal</title>
 
-  <!-- Tailwind CDN -->
+  <!-- Tailwind (можно оставить — мы не ломаем классы) -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
 
   <!-- Chart.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-  <!-- Мини-стили для горизонтального дейтпикера (в модалке) -->
+  <!-- ===== BGM: ядро темы + дым ===== -->
   <style>
     :root{
-      --free:#1F5C3A; --busy:#D32F2F; --grid:#E6E7E7; --today:#FAFDFB; --chip:#F3F7F5;
+      --bg:#000;           /* чёрный фон */
+      --ink:#fff;          /* белый текст */
+      --muted:rgba(255,255,255,.70);
+      --muted-2:rgba(255,255,255,.55);
+      --red:#d50000;       /* акцент */
+      --grid:rgba(255,255,255,.12);
+      --panel:rgba(255,255,255,.03);
+      --panel-2:rgba(255,255,255,.06);
+      --ring:rgba(213,0,0,.5);
+      --chip:rgba(255,255,255,.06);
+      --busy:#444;         /* занятый слот – тёмно-серый */
+      --radius:14px;
+      --shadow:0 12px 28px rgba(0,0,0,.6);
     }
-    .ol2{display:flex;flex-direction:column;border:1px solid var(--grid);border-radius:.75rem;background:#fff;overflow:visible}
+
+    html, body{height:100%}
+    body{
+      background:var(--bg); color:var(--ink);
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+      letter-spacing:.2px;
+    }
+
+    /* ===== ДЫМ поверх фона (фиксированный, клики пропускает) */
+    .smoke{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden}
+    .smoke span{
+      position:absolute; bottom:-220px; border-radius:50%;
+      background:radial-gradient(rgba(255,255,255,.35), rgba(255,255,255,0) 70%);
+      filter:blur(28px); opacity:0; will-change:transform,opacity;
+      animation:rise 24s linear infinite;
+    }
+    @keyframes rise{
+      0%,100%{transform:translateY(0) scale(.4); opacity:0}
+      10%{opacity:.45}
+      50%{opacity:.25}
+      100%{transform:translateY(-120vh) scale(1.8); opacity:0}
+    }
+
+    /* ===== Лэйаут ===== */
+    .app-wrap{position:relative; z-index:1; min-height:100vh; display:flex}
+
+    /* ===== Сайдбар ===== */
+    .sidebar{width:16rem; background:linear-gradient(180deg, #070707 0%, #0b0b0b 100%); border-right:1px solid var(--grid); box-shadow:var(--shadow)}
+    .brand{padding:1.25rem 1.5rem; display:flex; align-items:center; gap:.6rem; font-weight:900; letter-spacing:.8px; text-transform:uppercase}
+    .brand .mark{color:var(--ink); background:var(--red); padding:.15rem .45rem; border-radius:10px; font-size:.95rem}
+    .brand .name{color:#fff; opacity:.9}
+    #sidebar a, #sidebar button{color:var(--muted); }
+    .sidebar-link{display:flex; align-items:center; gap:.8rem; padding:.6rem .9rem; border-left:3px solid transparent; border-radius:10px; transition:.2s}
+    .sidebar-link:hover{background:rgba(255,255,255,.04); color:#fff}
+    .sidebar-link.is-active{background:rgba(213,0,0,.18); border-left-color:var(--red); color:#fff}
+    .logout-btn{width:100%; text-align:left; border-left:3px solid transparent; border-radius:10px; padding:.6rem .9rem}
+    .logout-btn:hover{background:rgba(255,255,255,.04); color:#fff}
+
+    /* ===== Главная колонка ===== */
+    main{flex:1; padding:2rem; overflow-y:auto; background:
+      radial-gradient(1200px 60vh at 80% -10%, rgba(213,0,0,.10), transparent 60%),
+      radial-gradient(1000px 50vh at 10% 110%, rgba(255,255,255,.05), transparent 60%)
+    }
+    h1,h2,h3{color:#fff}
+    .kicker{color:var(--muted)}
+
+    /* ===== Карточки / таблицы ===== */
+    .panel{background:var(--panel); border:1px solid var(--grid); border-radius:var(--radius); box-shadow:var(--shadow)}
+    .panel-strong{background:var(--panel-2)}
+    .panel-pad{padding:1.25rem}
+    .table th{background:rgba(213,0,0,.18); color:#fff}
+    .table td, .table th{border-bottom:1px solid var(--grid)}
+    .muted{color:var(--muted)}
+    .muted-2{color:var(--muted-2)}
+    .ink{color:#fff}
+
+    /* ===== Кнопки ===== */
+    .btn{display:inline-flex; align-items:center; gap:.5rem; padding:.6rem 1rem; border-radius:10px; font-weight:800; transition:.18s; white-space:nowrap}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+    .btn-primary{background:var(--red); color:#fff; border:1px solid rgba(255,255,255,.1)}
+    .btn-primary:hover{filter:brightness(1.03); transform:translateY(-1px); box-shadow:0 8px 16px rgba(213,0,0,.35)}
+    .btn-ghost{background:transparent; color:#fff; border:1px solid var(--grid)}
+    .btn-ghost:hover{background:rgba(255,255,255,.06)}
+    .link{color:#fff; text-underline-offset:4px}
+    .link:hover{color:var(--red); text-decoration:underline}
+
+    /* ===== Горизонтальный дейтпикер в модалке ===== */
+    .ol2{display:flex;flex-direction:column;border:1px solid var(--grid);border-radius:12px;background:rgba(0,0,0,.35);backdrop-filter:saturate(1.2) blur(2px);overflow:visible}
     .ol2__toolbar{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border-bottom:1px solid var(--grid)}
     .ol2__wrap{flex:1 1 auto;overflow-x:auto;overflow-y:auto;max-height:56vh;min-height:300px;padding-bottom:10px;scrollbar-gutter:stable both-edges}
     .ol2__grid{display:grid;grid-auto-rows:36px;grid-template-columns:100px repeat(var(--days,14),140px);min-width:calc(100px + var(--days,14)*140px + 1px)}
-    .ol2__cell{border-bottom:1px solid var(--grid);border-right:1px solid var(--grid);padding:.25rem .35rem;background:#fff;white-space:nowrap}
-    .ol2__cell.time{position:sticky;left:0;background:#fff;z-index:2;font-size:.85rem;color:#666}
-    .ol2__head{position:sticky;top:0;background:#fff;z-index:3;border-bottom:2px solid var(--grid)}
+    .ol2__cell{border-bottom:1px solid var(--grid);border-right:1px solid var(--grid);padding:.25rem .35rem;background:transparent;color:#fff;white-space:nowrap}
+    .ol2__cell.time{position:sticky;left:0;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);z-index:2;font-size:.85rem;color:var(--muted)}
+    .ol2__head{position:sticky;top:0;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);z-index:3;border-bottom:2px solid var(--grid)}
     .ol2__day{display:flex;flex-direction:column;padding:.4rem .45rem}
-    .ol2__day .t{font-weight:800;font-size:.92rem;color:#204029;text-transform:capitalize}
-    .ol2__day .s{font-size:.75rem;color:#666;margin-top:.15rem}
-    .ol2__day.today{background:var(--today)}
+    .ol2__day .t{font-weight:900;font-size:.92rem;color:#fff;text-transform:capitalize}
+    .ol2__day .s{font-size:.75rem;color:var(--muted)}
+    .ol2__day.today{background:rgba(213,0,0,.12)}
 
-    .chip{display:inline-flex;align-items:center;justify-content:center;height:1.7rem;min-width:3.4rem;padding:0 .45rem;border-radius:.5rem;border:1.6px solid transparent;font-weight:800;font-size:.9rem;line-height:1;user-select:none}
-    .chip--free{color:var(--free);border-color:color-mix(in srgb, var(--free) 55%, #fff);background:var(--chip);cursor:pointer}
-    .chip--free:hover{filter:brightness(.98)}
-    .chip--busy{color:#fff;background:var(--busy);opacity:.92}
-    .chip--sel{background:var(--free)!important;color:#fff;border-color:var(--free)!important;box-shadow:0 0 0 2px color-mix(in srgb, var(--free) 20%, transparent)}
-    @media (max-width: 900px){ .ol2__wrap{max-height:50vh} }
+    .chip{display:inline-flex;align-items:center;justify-content:center;height:1.7rem;min-width:3.4rem;padding:0 .45rem;border-radius:.5rem;border:1.6px solid transparent;font-weight:900;font-size:.9rem;line-height:1;user-select:none}
+    .chip--free{color:#fff;border-color:rgba(255,255,255,.35);background:var(--chip);cursor:pointer}
+    .chip--free:hover{filter:brightness(1.05)}
+    .chip--busy{color:#aaa;background:var(--busy);opacity:.9; cursor:not-allowed}
+    .chip--sel{background:var(--red)!important;color:#fff;border-color:var(--red)!important;box-shadow:0 0 0 2px var(--ring)}
+
+    /* ===== Модалка ===== */
+    .modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:1rem; z-index:50}
+    .modal--open{display:flex}
+    .modal__dialog{background:linear-gradient(180deg, rgba(15,15,15,.98), rgba(10,10,10,.98)); border:1px solid var(--grid); border-radius:16px; width:min(64rem, 96vw); padding:1rem; color:#fff; box-shadow:var(--shadow)}
+    .modal__header{display:flex; align-items:center; justify-content:space-between; padding:.25rem .25rem .5rem .25rem; border-bottom:1px solid var(--grid)}
+    .modal__title{font-weight:900; letter-spacing:.6px; color:#fff}
+    .modal__close{background:transparent;color:var(--muted); border:none; font-size:1.6rem; line-height:1; cursor:pointer}
+    .grid-2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:1rem; padding:1rem 0}
+    .field{display:flex;flex-direction:column;gap:.35rem}
+    .field label{font-size:.9rem;color:var(--muted)}
+    .field input,.field select, .field textarea{
+      background:#0b0b0b; color:#fff; border:1px solid var(--grid); border-radius:10px; padding:.6rem .8rem; font-size:.95rem;
+    }
+    .hint{color:var(--muted-2); font-size:.85rem}
+    .error{color:#ff6b6b; font-size:.9rem; margin-top:.5rem}
+    .success{color:#33d17a; font-size:.95rem; margin-top:.5rem}
+
+    @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .ol2__wrap{max-height:50vh} }
+
+    /* Таблица в «Recent appointments» */
+    table.min-w-full{color:#fff}
   </style>
 </head>
-<body class="h-full bg-[#DEDEDE] text-[#4D4D4D]">
-<div class="min-h-screen flex">
+<body class="h-full">
 
+<!-- ДЫМ -->
+<div class="smoke" id="smoke-layer"></div>
+
+<div class="app-wrap">
   <!-- ▸▸ SIDEBAR ◂◂ -->
-  <aside class="w-64 bg-[#204029] text-[#DAD3C1] shadow-xl">
-    <div class="p-6 font-extrabold text-xl tracking-wide flex items-center gap-2">
-      <span class="text-[#AF9525]">MB</span> Malva Booking
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="mark">BGM</span>
+      <span class="name">Client Portal</span>
     </div>
 
     <nav id="sidebar" class="space-y-1 px-3 text-sm">
-      <a href="#" data-tab="dashboard"
-         class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
-        🏠 <span>Overview</span>
-      </a>
-      <a href="#" data-tab="appointments"
-         class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
-        📅 <span>Appointments</span>
-      </a>
-      <a href="#" data-tab="files"
-         class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
-        📂 <span>Files</span>
-      </a>
-      <a href="#" data-tab="notifications"
-         class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
-        🔔 <span>Notifications</span>
-      </a>
-      <a href="#" data-tab="profile"
-         class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
-        👤 <span>Profile</span>
-      </a>
+      <a href="#" data-tab="dashboard"      class="sidebar-link">🏁 <span>Overview</span></a>
+      <a href="#" data-tab="appointments"   class="sidebar-link">🗓️ <span>Appointments</span></a>
+      <a href="#" data-tab="files"          class="sidebar-link">📂 <span>Files</span></a>
+      <a href="#" data-tab="notifications"  class="sidebar-link">🔔 <span>Notifications</span></a>
+      <a href="#" data-tab="profile"        class="sidebar-link">🧾 <span>Profile</span></a>
 
-      <a href="/accounts/"
-         class="mt-1 flex items-center gap-3 px-3 py-2 rounded-md border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white transition">
-        ⬅️ <span>Back to Home</span>
-      </a>
+      <a href="/accounts/" class="mt-2 sidebar-link">⬅️ <span>Back to Services</span></a>
 
-      <div class="my-3 border-t border-white/10"></div>
+      <div class="my-3" style="border-top:1px solid var(--grid)"></div>
 
       <form method="post" action="{% url 'logout' %}" class="pb-4">
         {% csrf_token %}
-        <button type="submit"
-                class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-md
-                       text-[#DAD3C1] border-l-4 border-transparent hover:bg-[#1b3626] hover:text-white
-                       focus:outline-none focus:ring-2 focus:ring-[#AF9525] transition">
+        <button type="submit" class="logout-btn focus:outline-none">
           🚪 <span>Sign out</span>
         </button>
       </form>
@@ -86,46 +169,44 @@
   </aside>
 
   <!-- ▸▸ MAIN ◂◂ -->
-  <main class="flex-1 p-8 overflow-y-auto">
+  <main>
 
     <!-- DASHBOARD -->
     <section id="tab-dashboard" class="tab">
-      <h1 class="text-4xl font-extrabold mb-8 text-[#204029]">
-        {% if request.user.first_name %}Hello, {{ request.user.first_name }}!{% else %}Hello, {{ request.user.username }}!{% endif %}
+      <h1 class="text-4xl font-black mb-2 tracking-wide">
+        {% if request.user.first_name %}Welcome back, {{ request.user.first_name }}.{% else %}Welcome back, {{ request.user.username }}.{% endif %}
       </h1>
+      <p class="kicker mb-8">Keep your builds on schedule. No mercy for missed slots.</p>
 
       <div class="grid lg:grid-cols-3 gap-6">
         <!-- Upcoming appointments -->
-        <div class="bg-white rounded-2xl shadow p-6 border border-[#DAD3C1]">
-          <h2 class="text-lg font-semibold mb-4">Upcoming appointments</h2>
-
+        <div class="panel panel-pad">
+          <h2 class="text-lg font-bold mb-4">Upcoming</h2>
           {% if upcoming_appointments %}
             <ul class="space-y-4 max-h-64 overflow-y-auto pr-1">
               {% for a in upcoming_appointments %}
                 <li data-appt-id="{{ a.id }}">
-                  <p class="font-semibold text-[#204029]">
+                  <p class="font-semibold ink">
                     {{ a.start_time|localtime|date:"d M Y, H:i" }}
                   </p>
-                  <p class="text-sm text-[#4D4D4D]">
+                  <p class="text-sm muted">
                     {{ a.service.name }} · {{ a.master.get_full_name }}
                   </p>
                   <div class="mt-2 flex gap-4 text-sm">
-                    <a href="#" class="appt-cancel text-[#4D4D4D] hover:text-[#AF9525] underline-offset-4 hover:underline"
-                       data-appt-id="{{ a.id }}">Cancel</a>
-                    <a href="#" class="appt-reschedule text-[#AF9525] hover:opacity-90 underline-offset-4 hover:underline"
-                       data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">Reschedule</a>
+                    <a href="#" class="appt-cancel link" data-appt-id="{{ a.id }}">Cancel</a>
+                    <a href="#" class="appt-reschedule link" data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">Reschedule</a>
                   </div>
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <p class="text-[#4D4D4D]/70">No upcoming appointments.</p>
+            <p class="muted-2">No upcoming appointments.</p>
           {% endif %}
         </div>
 
         <!-- Stats -->
-        <div class="bg-white rounded-2xl shadow p-6 lg:col-span-2 border border-[#DAD3C1]">
-          <h2 class="text-lg font-semibold mb-4">Stats</h2>
+        <div class="panel panel-pad lg:col-span-2 panel-strong">
+          <h2 class="text-lg font-bold mb-4">Stats</h2>
           <canvas id="stats_chart"
                   data-labels="{{ chart_labels|join:',' }}"
                   data-data="{{ chart_data|join:',' }}"
@@ -134,24 +215,24 @@
       </div>
 
       <!-- Recent appointments -->
-      <div class="bg-white rounded-2xl shadow p-6 mt-8 border border-[#DAD3C1]">
-        <h2 class="text-lg font-semibold mb-4">Recent appointments</h2>
+      <div class="panel panel-pad mt-8">
+        <h2 class="text-lg font-bold mb-4">Recent appointments</h2>
         {% if recent_appointments %}
           <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
+            <table class="min-w-full text-sm table rounded-lg overflow-hidden">
               <thead>
-                <tr class="text-left bg-[#DAD3C1] text-[#204029]">
-                  <th class="py-2 pl-3 pr-4 rounded-l-lg">Date</th>
+                <tr class="text-left">
+                  <th class="py-2 pl-3 pr-4">Date</th>
                   <th class="py-2 pr-4">Service</th>
                   <th class="py-2 pr-4">Master</th>
                   <th class="py-2 pr-4">Status</th>
-                  <th class="py-2 pr-3 rounded-r-lg">Amount</th>
+                  <th class="py-2 pr-3">Amount</th>
                 </tr>
               </thead>
-              <tbody class="[&>tr]:border-b [&>tr]:border-[#DEDEDE]">
+              <tbody>
                 {% for a in recent_appointments %}
-                  <tr class="bg-white" data-appt-id="{{ a.id }}">
-                    <td class="py-2 pr-4 pl-3 whitespace-nowrap">{{ a.start_time|localtime|date:"d.m.Y H:i" }}</td>
+                  <tr class="bg-transparent" data-appt-id="{{ a.id }}">
+                    <td class="py-2 pr-4 pl-3 whitespace-nowrap muted">{{ a.start_time|localtime|date:"d.m.Y H:i" }}</td>
                     <td class="py-2 pr-4">{{ a.service.name }}</td>
                     <td class="py-2 pr-4">{{ a.master.get_full_name }}</td>
                     <td class="py-2 pr-4">{{ a.current_status }}</td>
@@ -162,7 +243,7 @@
             </table>
           </div>
         {% else %}
-          <p class="text-[#4D4D4D]/70">No completed appointments yet.</p>
+          <p class="muted-2">No completed appointments yet.</p>
         {% endif %}
       </div>
     </section>
@@ -170,61 +251,55 @@
     <!-- APPOINTMENTS -->
     <section id="tab-appointments" class="tab hidden">
       <div class="flex items-center mb-6">
-        <h2 class="text-2xl font-semibold text-[#204029]">My appointments</h2>
-        <a href="/accounts/#services"
-           class="ml-auto px-4 py-2 rounded-lg text-white bg-[#AF9525] hover:bg-[#9b8521] shadow">
-          + Book
-        </a>
+        <h2 class="text-2xl font-bold">My appointments</h2>
+        <a href="/accounts/#services" class="ml-auto btn btn-primary shadow">+ Book</a>
       </div>
 
       {% if appointments %}
         <div class="space-y-4">
           {% for a in appointments %}
-            <div class="bg-white shadow rounded-xl p-4 flex justify-between items-center border border-[#DAD3C1]
-                        {% if a.start_time < now %}opacity-70{% endif %}" data-appt-id="{{ a.id }}">
+            <div class="panel panel-pad flex justify-between items-center {% if a.start_time < now %}opacity-70{% endif %}" data-appt-id="{{ a.id }}">
               <div class="appt-main">
-                <p class="font-medium text-[#204029] appt-dt">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
-                <p class="text-sm text-[#4D4D4D]">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
+                <p class="font-semibold ink appt-dt">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
+                <p class="text-sm muted">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
               </div>
 
               {% if a.start_time >= now %}
                 <div class="flex gap-3 text-sm appt-actions">
-                  <a href="#" class="appt-cancel text-[#4D4D4D] hover:text-[#AF9525] underline-offset-4 hover:underline"
-                     data-appt-id="{{ a.id }}">Cancel</a>
-                  <a href="#" class="appt-reschedule text-[#AF9525] hover:opacity-90 underline-offset-4 hover:underline"
-                     data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">Reschedule</a>
+                  <a href="#" class="appt-cancel link" data-appt-id="{{ a.id }}">Cancel</a>
+                  <a href="#" class="appt-reschedule link" data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">Reschedule</a>
                 </div>
               {% else %}
-                <span class="text-xs text-[#4D4D4D]/70">Completed</span>
+                <span class="text-xs muted-2">Completed</span>
               {% endif %}
             </div>
           {% endfor %}
         </div>
       {% else %}
-        <p class="text-[#4D4D4D]/70">No appointments.</p>
+        <p class="muted-2">No appointments.</p>
       {% endif %}
     </section>
 
     <!-- FILES -->
     <section id="tab-files" class="tab hidden">
-      <h2 class="text-2xl font-semibold mb-6 text-[#204029]">Files</h2>
-      <p class="text-[#4D4D4D]/70">Coming soon.</p>
+      <h2 class="text-2xl font-bold mb-6">Files</h2>
+      <p class="muted-2">Coming soon.</p>
     </section>
 
     <!-- NOTIFICATIONS -->
     <section id="tab-notifications" class="tab hidden">
-      <h2 class="text-2xl font-semibold mb-6 text-[#204029]">Notifications</h2>
-      <p class="text-[#4D4D4D]/70">Coming soon.</p>
+      <h2 class="text-2xl font-bold mb-6">Notifications</h2>
+      <p class="muted-2">Coming soon.</p>
     </section>
 
     <!-- PROFILE -->
     {% if messages %}
-      <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 text-sm">
+      <div class="mb-4 rounded-lg border border-[color:var(--ring)] bg-[rgba(213,0,0,.1)] text-white px-4 py-3 text-sm">
         {% for m in messages %}{{ m }}{% endfor %}
       </div>
     {% endif %}
     {% if profile_form_errors %}
-      <div class="md:col-span-2 rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">
+      <div class="md:col-span-2 rounded-lg border border-red-500/50 bg-red-500/10 text-white px-4 py-3 text-sm">
         <ul class="list-disc ms-5">
           {% for field, errs in profile_form_errors.items %}
             {% for e in errs %}
@@ -236,40 +311,33 @@
     {% endif %}
 
     <section id="tab-profile" class="tab hidden">
-      <h2 class="text-2xl font-semibold mb-6 text-[#204029]">Profile</h2>
+      <h2 class="text-2xl font-bold mb-6">Profile</h2>
 
-      <form method="post" class="grid md:grid-cols-2 gap-6 bg-white shadow rounded-2xl p-6 border border-[#DAD3C1]">
+      <form method="post" class="grid md:grid-cols-2 gap-6 panel panel-pad">
         {% csrf_token %}
         <div>
-          <label class="block text-sm font-medium">First name</label>
-          <input type="text" name="first_name" value="{{ request.user.first_name }}"
-                 class="w-full mt-1 rounded-lg border-[#DEDEDE] px-3 py-2 text-sm">
+          <label class="block text-sm muted">First name</label>
+          <input type="text" name="first_name" value="{{ request.user.first_name }}">
         </div>
         <div>
-          <label class="block text-sm font-medium">Last name</label>
-          <input type="text" name="last_name" value="{{ request.user.last_name }}"
-                 class="w-full mt-1 rounded-lg border-[#DEDEDE] px-3 py-2 text-sm">
+          <label class="block text-sm muted">Last name</label>
+          <input type="text" name="last_name" value="{{ request.user.last_name }}">
         </div>
         <div>
-          <label class="block text-sm font-medium">Phone</label>
-          <input type="text" name="phone" value="{{ profile.phone }}"
-                 class="w-full mt-1 rounded-lg border-[#DEDEDE] px-3 py-2 text-sm">
+          <label class="block text-sm muted">Phone</label>
+          <input type="text" name="phone" value="{{ profile.phone }}">
         </div>
         <div>
-          <label class="block text-sm font-medium">E-mail</label>
-          <input type="email" name="email" value="{{ request.user.email }}"
-                 class="w-full mt-1 rounded-lg border-[#DEDEDE] px-3 py-2 text-sm">
+          <label class="block text-sm muted">E-mail</label>
+          <input type="email" name="email" value="{{ request.user.email }}">
         </div>
         <div>
-          <label class="block text-sm font-medium">Birth date</label>
-          <input type="date" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}"
-                 class="w-full mt-1 rounded-lg border-[#DEDEDE] px-3 py-2 text-sm">
+          <label class="block text-sm muted">Birth date</label>
+          <input type="date" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}">
         </div>
 
         <div class="md:col-span-2 text-right">
-          <button type="submit" class="px-6 py-2 bg-[#204029] text-white rounded-lg hover:bg-[#1b3626]">
-            Save changes
-          </button>
+          <button type="submit" class="btn btn-ghost">Save changes</button>
         </div>
       </form>
     </section>
@@ -277,48 +345,45 @@
   </main>
 </div>
 
-<!-- ▸▸ MODAL: Reschedule ◂◂ -->
-<div id="resModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center p-4 z-50">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-5 border border-[#DAD3C1]">
-    <div class="flex items-center justify-between mb-3">
-      <h3 class="font-bold text-lg text-[#204029]">Reschedule appointment</h3>
-      <button id="resClose" class="text-2xl leading-none">&times;</button>
+<!-- ▸▸ MODAL: Reschedule (горизонтальный пикер слотов) ◂◂ -->
+<div id="resModal" class="modal">
+  <div class="modal__dialog">
+    <div class="modal__header">
+      <h3 class="modal__title">Reschedule appointment</h3>
+      <button id="resClose" class="modal__close" aria-label="Close">&times;</button>
     </div>
 
-    <div class="space-y-3">
+    <div class="space-y-3" style="padding-top:.75rem">
       <div>
-        <label class="text-sm">Master</label>
-        <select id="resMaster" class="w-full border border-[#DEDEDE] rounded-md px-3 py-2"></select>
+        <label class="text-sm muted">Master</label>
+        <select id="resMaster" class="w-full"></select>
       </div>
 
-      <!-- Новый горизонтальный выбор даты/времени -->
       <div>
-        <label class="text-sm">Choose time</label>
+        <label class="text-sm muted">Choose time</label>
         <div class="ol2 mt-1" id="rsOl">
           <div class="ol2__toolbar">
             <div class="flex gap-2">
-              <button id="rsPrev" type="button" class="px-2 py-1 border rounded-md">← Prev</button>
-              <button id="rsToday" type="button" class="px-2 py-1 border rounded-md">Today</button>
-              <button id="rsNext" type="button" class="px-2 py-1 border rounded-md">Next →</button>
+              <button id="rsPrev"  type="button" class="btn btn-ghost px-2 py-1">← Prev</button>
+              <button id="rsToday" type="button" class="btn btn-ghost px-2 py-1">Today</button>
+              <button id="rsNext"  type="button" class="btn btn-ghost px-2 py-1">Next →</button>
             </div>
-            <div id="rsRange" class="font-bold text-[#204029]">—</div>
+            <div id="rsRange" class="font-bold">—</div>
           </div>
           <div class="ol2__wrap" id="rsWrap">
             <div class="ol2__grid" id="rsGrid" style="--days:14" tabindex="0"></div>
           </div>
         </div>
 
-        <p class="text-xs text-[#4D4D4D]/80 mt-2">Scroll horizontally. Red slots are busy.</p>
-        <p class="text-sm text-red-600 mt-1 hidden" id="resErr"></p>
-        <p class="text-sm text-emerald-700 mt-1 hidden" id="resOk"></p>
+        <p class="text-xs muted-2 mt-2">Shift+Scroll — горизонтальная прокрутка. Серые слоты заняты.</p>
+        <p class="text-sm" style="color:#ff6b6b; display:none" id="resErr"></p>
+        <p class="text-sm" style="color:#33d17a; display:none" id="resOk"></p>
       </div>
     </div>
 
     <div class="flex justify-end gap-2 mt-4">
-      <button id="resCancel" class="px-4 py-2 rounded-md border border-[#DEDEDE]">Cancel</button>
-      <button id="resSubmit" class="px-4 py-2 rounded-md bg-[#AF9525] text-white hover:bg-[#9b8521] disabled:opacity-50" disabled>
-        Save
-      </button>
+      <button id="resCancel" class="btn btn-ghost">Cancel</button>
+      <button id="resSubmit" class="btn btn-primary disabled:opacity-50" disabled>Save</button>
     </div>
   </div>
 </div>
@@ -326,51 +391,60 @@
 <!-- ▸▸ JS ◂◂ -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  /* ==== ДЫМ (20 «клубов») ==== */
+  const smokeLayer = document.getElementById("smoke-layer");
+  const PUFFS = 20;
+  for (let i = 0; i < PUFFS; i++) {
+    const puff = document.createElement("span");
+    const size = 80 + Math.random() * 220;
+    puff.style.width = puff.style.height = size + "px";
+    puff.style.left  = Math.random() * 100 + "vw";
+    puff.style.animationDelay = (-Math.random() * 24) + "s";
+    puff.style.animationDuration = (18 + Math.random() * 14) + "s";
+    smokeLayer.appendChild(puff);
+  }
+
+  /* ==== Табы ==== */
   const links = document.querySelectorAll('.sidebar-link');
   const tabs  = document.querySelectorAll('.tab');
-
-  function setActive(link, active) {
-    link.classList.toggle('bg-[#1b3626]', active);
-    link.classList.toggle('text-white', active);
-    link.classList.toggle('border-[#AF9525]', active);
-    link.classList.toggle('border-transparent', !active);
+  function setActive(el, yes){ el.classList.toggle('is-active', !!yes); }
+  function activate(name){
+    tabs.forEach(t => t.classList.toggle('hidden', t.id !== 'tab-' + name));
+    links.forEach(l => setActive(l, l.dataset.tab === name));
   }
-  function activate(tabName) {
-    tabs.forEach(t => t.classList.toggle('hidden', t.id !== 'tab-' + tabName));
-    links.forEach(l => setActive(l, l.dataset.tab === tabName));
-  }
-
-  /* hash-навигация */
   const allowed = ['dashboard','appointments','files','notifications','profile'];
   const initial = allowed.includes(location.hash.replace('#','')) ? location.hash.replace('#','') : 'dashboard';
   activate(initial);
-  links.forEach(link => link.addEventListener('click', e => { e.preventDefault(); activate(link.dataset.tab); history.replaceState(null, '', '#'+link.dataset.tab); }));
+  links.forEach(link => link.addEventListener('click', e => {
+    const tab = link.dataset.tab; if(!tab) return;
+    e.preventDefault(); activate(tab); history.replaceState(null, '', '#'+tab);
+  }));
 
-  /* chart */
+  /* ==== Chart.js (тёмная тема + красный акцент) ==== */
   const el = document.getElementById('stats_chart');
   if (el) {
     const labels = el.dataset.labels ? el.dataset.labels.split(',') : [];
     const data   = el.dataset.data   ? el.dataset.data.split(',').map(Number) : [];
     new Chart(el, {
       type: 'bar',
-      data: { labels, datasets: [{ data, label: 'Appointments', backgroundColor: '#AF9525', borderRadius: 6 }] },
+      data: { labels, datasets: [{ data, label: 'Appointments', backgroundColor: '#d50000', borderRadius: 8 }] },
       options: {
         plugins: { legend: { display: false }},
         scales : {
-          x: { ticks: { color: '#4D4D4D' }, grid: { color: '#DAD3C1' } },
-          y: { beginAtZero: true, ticks: { stepSize: 1, color: '#4D4D4D' }, grid: { color: '#DAD3C1' } }
+          x: { ticks: { color: '#cccccc' }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y: { beginAtZero: true, ticks: { stepSize: 1, color: '#cccccc' }, grid: { color: 'rgba(255,255,255,.06)' } }
         }
       }
     });
   }
 
-  /* helpers */
+  /* ==== Helpers ==== */
   const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
   const fmtHM = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   const fmtTime = iso => { try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});} catch(e){ return iso; } };
   const ymd = d => { const m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
 
-  /* ===== отмена с подтверждением + «перечёркивание» без перезагрузки ===== */
+  /* ==== Cancel (+ визуальное перечёркивание без перезагрузки) ==== */
   async function cancelAppointment(id){
     if(!confirm('Cancel this appointment?')) return;
     const r = await fetch(`/accounts/api/appointment/${id}/cancel/`, { method:'POST', headers:{'X-CSRFToken': csrftoken}, credentials:'same-origin' });
@@ -378,11 +452,9 @@ document.addEventListener('DOMContentLoaded', () => {
     strikeOut(id);
   }
   function strikeOut(id){
-    // блоки в разделе "Upcoming" (li)
     document.querySelectorAll(`[data-appt-id="${id}"]`).forEach(node=>{
       node.classList.add('opacity-60');
       node.querySelectorAll('.appt-actions a').forEach(a=>{ a.classList.add('pointer-events-none','opacity-50'); a.removeAttribute('href'); });
-      // текст перечёркнут
       node.querySelectorAll('.appt-dt, .appt-main, p, td').forEach(el=> el.classList.add('line-through'));
     });
   }
@@ -392,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelAppointment(id);
   });
 
-  /* ===== RESCHEDULE: новый горизонтальный пикер ===== */
+  /* ==== RESCHEDULE: горизонтальный пикер ==== */
   const resModal  = document.getElementById('resModal');
   const resClose  = document.getElementById('resClose');
   const resCancel = document.getElementById('resCancel');
@@ -420,11 +492,11 @@ document.addEventListener('DOMContentLoaded', () => {
     resState = { ...resState, apptId, serviceId, masterId:null, slot:null, masters:[], cache:new Map() };
     resMaster.innerHTML = '';
     resSubmit.disabled = true;
-    resErr.classList.add('hidden'); resOk.classList.add('hidden');
-    resModal.classList.remove('hidden'); resModal.classList.add('flex');
+    resErr.style.display='none'; resOk.style.display='none';
+    resModal.classList.add('modal--open');
     loadMastersAndRender();
   }
-  function closeRes(){ resModal.classList.add('hidden'); resModal.classList.remove('flex'); }
+  function closeRes(){ resModal.classList.remove('modal--open'); }
 
   async function fetchAvail(dayISO, masterId){
     const params = new URLSearchParams({ service: resState.serviceId, date: dayISO });
@@ -437,7 +509,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (masterId){
       const m=(data.masters||[]).find(x=>Number(x.id)===Number(masterId)); slots = m ? (m.slots||[]) : [];
     }else{
-      // возьмём слоты первого мастера только чтобы понять список мастеров
       slots = (data.masters && data.masters[0] && data.masters[0].slots) ? data.masters[0].slots : [];
     }
     const set=new Set(), map=new Map();
@@ -474,7 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
       resMaster.innerHTML = '';
       if(resState.masters.length===0){
         resMaster.innerHTML = '<option>No masters available</option>';
-        rsGrid.innerHTML = '<div class="p-4 text-sm">No availability</div>';
+        rsGrid.innerHTML = '<div class="p-4 text-sm muted-2">No availability</div>';
         return;
       }
       resState.masters.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; resMaster.appendChild(opt); });
@@ -485,7 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await renderWindow();
     }catch(e){
       resErr.textContent = e.message || 'Unable to fetch availability';
-      resErr.classList.remove('hidden');
+      resErr.style.display='block';
     }
   }
 
@@ -503,10 +574,8 @@ document.addEventListener('DOMContentLoaded', () => {
     rsGrid.style.setProperty('--days', String(WINDOW_DAYS));
     rsGrid.innerHTML='';
 
-    // head corner
     const corner=document.createElement('div'); corner.className='ol2__cell ol2__head time'; rsGrid.appendChild(corner);
 
-    // day headers
     days.forEach(d=>{
       const h=document.createElement('div');
       h.className='ol2__cell ol2__head';
@@ -518,7 +587,6 @@ document.addEventListener('DOMContentLoaded', () => {
       rsGrid.appendChild(h);
     });
 
-    // rows
     timeRows.forEach(t=>{
       const [hh,mm]=t.split(':').map(Number);
       const fake=new Date(); fake.setHours(hh,mm,0,0);
@@ -566,12 +634,12 @@ document.addEventListener('DOMContentLoaded', () => {
   rsNext.addEventListener('click', ()=>shiftWindow(WINDOW_DAYS));
   rsToday.addEventListener('click', async ()=>{ const d=new Date(); d.setHours(0,0,0,0); resState.baseStart=d; await renderWindow(); });
 
-  // UX: Shift+Wheel — горизонтальный скролл
+  // Shift+Wheel — горизонтальный скролл
   rsWrap.addEventListener('wheel', (e)=>{ if(e.shiftKey && Math.abs(e.deltaY)>Math.abs(e.deltaX)){ e.preventDefault(); rsWrap.scrollLeft += e.deltaY; } }, {passive:false});
 
   async function submitRes(){
     if(!resState.apptId || !resState.slot) return;
-    resSubmit.disabled = true; resErr.classList.add('hidden'); resOk.classList.add('hidden');
+    resSubmit.disabled = true; resErr.style.display='none'; resOk.style.display='none';
     const r = await fetch(`/accounts/api/appointment/${resState.apptId}/reschedule/`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-CSRFToken': csrftoken},
@@ -581,15 +649,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = await r.json().catch(()=> ({}));
     if(r.ok){
       resOk.textContent = 'Rescheduled to ' + (data.appointment?.start_time || '');
-      resOk.classList.remove('hidden');
-      // мгновенно обновим дату в карточке (если она на странице)
+      resOk.style.display='block';
       document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
         try{ dt.textContent = new Date(data.appointment.start_time).toLocaleString(); }catch(_){}
       });
       setTimeout(()=> location.reload(), 700);
     }else{
       resErr.textContent = data.error || data.detail || 'Reschedule failed';
-      resErr.classList.remove('hidden'); resSubmit.disabled = false;
+      resErr.style.display='block'; resSubmit.disabled = false;
     }
   }
 
