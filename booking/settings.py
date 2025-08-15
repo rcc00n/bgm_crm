@@ -290,5 +290,5 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",      # админы / мастера
     "core.auth_backends.EmailPhoneBackend",           # клиенты: username / e-mail / телефон
 ]
-LOGIN_REDIRECT_URL = "/accounts/" 
-LOGOUT_REDIRECT_URL = "/accounts/"
+LOGIN_REDIRECT_URL = "/home/" 
+LOGOUT_REDIRECT_URL = "/home/"

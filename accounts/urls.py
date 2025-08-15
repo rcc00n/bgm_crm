@@ -32,7 +32,7 @@ urlpatterns = [
     # API бронирования (требует логина)
     path("api/availability/", api_availability, name="api-availability"),
     path("api/book/",         api_book,         name="api-book"),
-    path("logout/", LogoutView.as_view(next_page="/accounts/"), name="logout"),
+    path("logout/", LogoutView.as_view(next_page="/home/"), name="logout"),
     
     path("api/appointment/<uuid:appt_id>/cancel/",     api_appointment_cancel,     name="api-appt-cancel"),
     path("api/appointment/<uuid:appt_id>/reschedule/", api_appointment_reschedule, name="api-appt-reschedule"),

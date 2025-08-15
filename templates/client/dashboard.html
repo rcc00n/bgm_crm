@@ -155,7 +155,9 @@
       <a href="#" data-tab="notifications"  class="sidebar-link">🔔 <span>Notifications</span></a>
       <a href="#" data-tab="profile"        class="sidebar-link">🧾 <span>Profile</span></a>
 
-      <a href="/accounts/" class="mt-2 sidebar-link">⬅️ <span>Back to Services</span></a>
+      {% url 'home' as home_url %}
+<a href="{{ home_url|default:'/' }}" class="mt-2 sidebar-link">⬅️ <span>Back to Home</span></a>
+
 
       <div class="my-3" style="border-top:1px solid var(--grid)"></div>
 

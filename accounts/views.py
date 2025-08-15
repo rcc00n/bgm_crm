@@ -207,3 +207,18 @@ class ClientRegisterView(CreateView):
 
     def get_success_url(self):
         return f"{reverse('login')}?registered=1"
+
+# accounts/views.py
+from django.views.generic import TemplateView
+from core.models import ServiceCategory, Service
+
+class HomeView(TemplateView):
+    template_name = "client/bgm_home.html"   # ← было site/home_bgm.html
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["categories"] = ServiceCategory.objects.prefetch_related("service_set").all()
+        ctx["filter_categories"] = ctx["categories"]
+        ctx["uncategorized"] = Service.objects.filter(category__isnull=True)
+        ctx["has_any_services"] = Service.objects.exists()
+        return ctx

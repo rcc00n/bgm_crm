@@ -1,0 +1,526 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>BGM Customs — Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    /* =========================
+       BGM — палитра и токены
+       ========================= */
+    :root{
+      --bg:#000000;        /* main background */
+      --fg:#FFFFFF;        /* main text */
+      --muted:rgba(255,255,255,.72);
+      --muted-2:rgba(255,255,255,.55);
+      --line:rgba(255,255,255,.12);
+      --panel:#0E0E0E;     /* dark panel */
+      --panel-2:#131313;   /* darker panel */
+      --accent:#d50000;    /* blood red */
+      --accent-2:#ff1a1a;  /* hot red for glow */
+      --busy:#d50000;
+      --ok:#17d45b;
+
+      --radius-lg:1.25rem;
+      --radius-sm:.6rem;
+      --shadow:0 10px 30px rgba(0,0,0,.45);
+      --container:clamp(320px, 92vw, 1280px);
+    }
+
+    /* ===== Base ===== */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:16px;scroll-behavior:smooth}
+    body{
+      background:var(--bg);
+      color:var(--fg);
+      font-family:Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+      line-height:1.55;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    img{max-width:100%;display:block}
+    .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
+    a{color:inherit;text-decoration:none}
+    .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+
+    /* ===== Buttons ===== */
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:.6em;
+      padding:.78rem 1.15rem;border-radius:var(--radius-sm);
+      font-weight:800;letter-spacing:.3px;cursor:pointer;transition:.24s all;
+      border:1px solid transparent; user-select:none;
+    }
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .btn--primary{background:var(--accent);color:#fff;box-shadow:0 0 0 0 rgba(213,0,0,.4)}
+    .btn--primary:hover{transform:translateY(-2px);box-shadow:0 12px 22px rgba(213,0,0,.25)}
+    .btn--ghost{background:transparent;border-color:var(--line);color:var(--fg)}
+    .btn--ghost:hover{border-color:var(--accent);color:var(--accent)}
+    .btn--link{padding:0;border:none;background:transparent;color:var(--accent)}
+    .badge{display:inline-block;font-size:.78rem;padding:.15rem .55rem;border-radius:999px;background:var(--accent);color:#fff}
+
+    /* ===== Header ===== */
+    .site-header{
+      position:sticky;top:0;z-index:1000;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);
+      border-bottom:1px solid var(--line);
+    }
+    .site-header__inner{display:flex;align-items:center;gap:1rem;justify-content:space-between;padding:.8rem 0}
+    .brand{display:flex;align-items:center;gap:.75rem;font-weight:900;letter-spacing:.5px}
+    .brand__logo{
+      width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent));
+      box-shadow:0 0 40px -6px var(--accent-2);
+    }
+    nav ul{display:flex;align-items:center;gap:.75rem;list-style:none}
+    nav a{display:inline-flex;align-items:center;gap:.45rem;padding:.55rem .8rem;border-radius:.55rem}
+    nav a[aria-current="page"]{background:var(--panel);border:1px solid var(--line)}
+    .nav--soon{opacity:.55;pointer-events:none}
+    .nav--soon .badge{background:transparent;border:1px solid var(--line);color:var(--muted-2)}
+
+    /* ===== Hero ===== */
+    .hero{
+      position:relative;isolation:isolate;overflow:hidden;
+      background:
+        radial-gradient(1000px 420px at 10% -10%, rgba(255,26,26,.15), transparent 60%),
+        radial-gradient(800px 360px at 90% 0%, rgba(213,0,0,.18), transparent 65%),
+        linear-gradient(180deg, #070707 0%, #000 100%);
+    }
+    .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(2rem,6vw,4.5rem) 0;align-items:center}
+    .hero__title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15;letter-spacing:.2px}
+    .hero__lead{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);max-width:54ch;margin-top:1rem}
+    .hero__cta{display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap}
+    .stat{
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);
+      border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow)
+    }
+    .stat b{font-size:1.35rem}
+
+    .frame{
+      border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), 0 14px 28px rgba(0,0,0,.45);
+      aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted-2)
+    }
+
+    /* ===== Sections ===== */
+    .section{padding:clamp(2rem,6vw,4rem) 0;border-top:1px solid var(--line)}
+    .section__head{display:flex;align-items:end;justify-content:space-between;margin-bottom:1.1rem;gap:1rem}
+    .section__title{font-size:1.6rem;font-weight:900}
+    .section__desc{color:var(--muted-2)}
+
+    /* ===== Filters/Search ===== */
+    .filters{display:flex;flex-wrap:wrap;gap:.65rem;margin:1rem 0 1.25rem}
+    .input,.select{
+      background:var(--panel);border:1px solid var(--line);color:var(--fg);
+      padding:.65rem .85rem;border-radius:.55rem;font:inherit;min-width:210px;
+    }
+
+    /* ===== Service cards ===== */
+    .grid{display:grid;gap:1rem}
+    .grid--services{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+    .card{
+      display:flex;flex-direction:column;gap:.75rem;padding:1rem;border-radius:1rem;
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));
+      border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .22s ease;
+    }
+    .card:hover{transform:translateY(-3px)}
+    .card__img{aspect-ratio:16/9;border-radius:.8rem;background:#0b0b0b;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-size:.95rem}
+    .card__head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+    .price{display:flex;align-items:center;gap:.5rem}
+    .old{color:var(--muted-2);text-decoration:line-through}
+    .dur{color:var(--muted-2);font-size:.92rem}
+    .empty{color:var(--muted-2);font-style:italic;padding:1rem}
+
+    /* ===== Process & benefits ===== */
+    .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+    .tile{
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:1rem;padding:1rem
+    }
+    .tile__icon{font-size:1.4rem;color:var(--accent);margin-bottom:.25rem}
+
+    /* ===== FAQ ===== */
+    details{background:var(--panel);border:1px solid var(--line);border-radius:.8rem;padding:.8rem}
+    summary{cursor:pointer;font-weight:700}
+    details p{margin-top:.5rem;color:var(--muted)}
+
+    /* ===== Footer ===== */
+    .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted-2);font-size:.95rem}
+    .footer__grid{display:grid;grid-template-columns:1.2fr .8fr;gap:1rem}
+    .footer__nav{display:flex;gap:.75rem;flex-wrap:wrap}
+    .kicker{color:var(--muted-2);font-weight:800;letter-spacing:.18em;text-transform:uppercase;font-size:.78rem}
+
+    /* ===== Skeleton for live search ===== */
+    .sk{height:140px;border-radius:.8rem;background:
+      linear-gradient(90deg, #111, #151515, #111);background-size:200% 100%;animation:sh 1.1s ease-in-out infinite}
+    @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none!important;transition:none!important}
+    }
+  </style>
+</head>
+<body>
+<a href="#main" class="visually-hidden">Skip to main content</a>
+
+<!-- =========================
+     HEADER
+     ========================= -->
+<header class="site-header" role="banner">
+  <div class="container site-header__inner">
+    <a class="brand" href="/">
+      <span class="brand__logo" aria-hidden="true"></span>
+      <span>BGM Customs</span>
+    </a>
+
+    <nav aria-label="Main navigation">
+      <ul>
+        <!-- Services page (catalog) -->
+        <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
+
+        <!-- Client portal / Login -->
+        {% if user.is_authenticated %}
+          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+        {% else %}
+          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
+        {% endif %}
+
+        <!-- Coming soon -->
+        <li><a href="#" class="nav--soon" aria-disabled="true">Store <span class="badge" aria-hidden="true">Soon</span></a></li>
+        <li><a href="#" class="nav--soon" aria-disabled="true">Merch <span class="badge" aria-hidden="true">Soon</span></a></li>
+        <li><a href="#" class="nav--soon" aria-disabled="true">Dealers <span class="badge" aria-hidden="true">Soon</span></a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<!-- =========================
+     HERO
+     ========================= -->
+<section class="hero" id="top">
+  <div class="container hero__inner">
+    <div>
+      <p class="kicker">Premium custom shop</p>
+      <h1 class="hero__title">Turnkey builds: from idea to a legendary result</h1>
+      <p class="hero__lead">
+        BGM fuses engineering precision and bold design. Book online, choose a service, a master, and a time—we’ll handle the rest.
+      </p>
+      <div class="hero__cta">
+        <a class="btn btn--primary" href="#services">Explore services</a>
+        <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Booking</a>
+      </div>
+
+      <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
+        <div class="stat"><b>2000+</b><br><span class="muted">completed builds</span></div>
+        <div class="stat"><b>4.9/5</b><br><span class="muted">client rating</span></div>
+        <div class="stat"><b>24/7</b><br><span class="muted">online booking</span></div>
+      </div>
+    </div>
+
+    <div class="frame">Project video preview / gallery — coming soon</div>
+  </div>
+</section>
+
+<main id="main">
+  <!-- =========================
+       SERVICES (catalog on home)
+       ========================= -->
+  <section id="services" class="section">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <h2 class="section__title">Our services</h2>
+          <p class="section__desc">Full range of BGM custom shop work. Prices, duration, and a fast start.</p>
+        </div>
+        <div>
+          <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Open services page</a>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
+        <input class="input" type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
+        <select class="select" name="cat" aria-label="Category">
+          <option value="">All categories</option>
+          {% for c in filter_categories %}
+            <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn--ghost" type="submit">Search</button>
+        {% if q or active_category %}
+          <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">Reset filters</a>
+        {% endif %}
+      </form>
+
+      <!-- Live search (JS) -->
+      <h3 id="liveTitle" class="kicker" style="display:none">Search results</h3>
+      <div id="liveGrid" class="grid grid--services" style="display:none"></div>
+
+      <!-- Server-rendered by categories -->
+      <div id="serverContent">
+        {% if search_results %}
+          <h3 class="kicker" style="margin:.5rem 0 1rem">Results</h3>
+          <div class="grid grid--services">
+            {% for s in search_results %}
+              <article class="card">
+                <div class="card__img">IMG</div>
+                <div class="card__head">
+                  <h3 style="font-weight:900">{{ s.name }}</h3>
+                  <div class="price">
+                    {% with disc=s.get_active_discount %}
+                      {% if disc %}
+                        <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                        <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                        <span class="badge">-{{ disc.discount_percent }}%</span>
+                      {% else %}
+                        <strong>${{ s.base_price|floatformat:2 }}</strong>
+                      {% endif %}
+                    {% endwith %}
+                  </div>
+                </div>
+                {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
+                <div class="dur">Duration: {{ s.duration_min }} min</div>
+                <div style="margin-top:.4rem">
+                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a>
+                </div>
+              </article>
+            {% empty %}
+              <div class="empty">No results for your query.</div>
+            {% endfor %}
+          </div>
+          <hr style="margin:1.5rem 0;border:0;border-top:1px solid var(--line)">
+        {% endif %}
+
+        {% for c in categories %}
+          <h3 style="margin:1.2rem 0 .6rem;font-weight:900">{{ c.name }}</h3>
+          <div class="grid grid--services">
+            {% for s in c.service_set.all %}
+              <article class="card">
+                <div class="card__img">IMG</div>
+                <div class="card__head">
+                  <h3 style="font-weight:900">{{ s.name }}</h3>
+                  <div class="price">
+                    {% with disc=s.get_active_discount %}
+                      {% if disc %}
+                        <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                        <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                        <span class="badge">-{{ disc.discount_percent }}%</span>
+                      {% else %}
+                        <strong>${{ s.base_price|floatformat:2 }}</strong>
+                      {% endif %}
+                    {% endwith %}
+                  </div>
+                </div>
+                {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
+                <div class="dur">Duration: {{ s.duration_min }} min</div>
+                <div style="margin-top:.4rem">
+                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a>
+                </div>
+              </article>
+            {% empty %}
+              <div class="empty">No services in this category yet.</div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+
+        {% if uncategorized %}
+          <h3 style="margin:1.2rem 0 .6rem;font-weight:900">Uncategorized</h3>
+          <div class="grid grid--services">
+            {% for s in uncategorized %}
+              <article class="card">
+                <div class="card__img">IMG</div>
+                <div class="card__head">
+                  <h3 style="font-weight:900">{{ s.name }}</h3>
+                  <div class="price">
+                    {% with disc=s.get_active_discount %}
+                      {% if disc %}
+                        <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                        <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                        <span class="badge">-{{ disc.discount_percent }}%</span>
+                      {% else %}
+                        <strong>${{ s.base_price|floatformat:2 }}</strong>
+                      {% endif %}
+                    {% endwith %}
+                  </div>
+                </div>
+                {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
+                <div class="dur">Duration: {{ s.duration_min }} min</div>
+                <div style="margin-top:.4rem">
+                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% if not has_any_services %}
+          <div class="empty">The catalog will be available soon 👍</div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================
+       HOW IT WORKS
+       ========================= -->
+  <section class="section">
+    <div class="container">
+      <div class="section__head">
+        <h2 class="section__title">How it works</h2>
+        <p class="section__desc">A transparent cycle—from booking to delivery.</p>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="tile__icon">①</div><b>Select service & master</b><p class="muted">Pick the service, a master, and a free calendar slot.</p></div>
+        <div class="tile"><div class="tile__icon">②</div><b>Design & estimate</b><p class="muted">We lock the scope, approve the budget and the timeline.</p></div>
+        <div class="tile"><div class="tile__icon">③</div><b>Work & control</b><p class="muted">Status updates in the client portal and notifications.</p></div>
+        <div class="tile"><div class="tile__icon">④</div><b>Handover & warranty</b><p class="muted">Final check, care recommendations, and support.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================
+       WHY BGM
+       ========================= -->
+  <section class="section">
+    <div class="container">
+      <div class="section__head">
+        <h2 class="section__title">Why choose BGM</h2>
+        <p class="section__desc">We combine aesthetics with engineering discipline.</p>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="tile__icon">★</div><b>Premium quality</b><p class="muted">Grade-A materials and control at every stage.</p></div>
+        <div class="tile"><div class="tile__icon">⏱</div><b>On-time delivery</b><p class="muted">Project plan, transparent statuses, prompt responses.</p></div>
+        <div class="tile"><div class="tile__icon">🔒</div><b>Security</b><p class="muted">Data and payment standards you can trust.</p></div>
+        <div class="tile"><div class="tile__icon">💬</div><b>Support 7/7</b><p class="muted">Personal manager and chat notifications.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================
+       FAQ
+       ========================= -->
+  <section class="section">
+    <div class="container">
+      <div class="section__head">
+        <h2 class="section__title">FAQ</h2>
+        <p class="section__desc">Short and sweet</p>
+      </div>
+      <div class="grid">
+        <details><summary>Do I need a prepayment?</summary><p>For some services — yes (the “prepayment” option in the service card). Others — pay upon completion.</p></details>
+        <details><summary>Can I reschedule?</summary><p>Yes. In the client portal you can cancel or reschedule, and we’ll auto-suggest free slots.</p></details>
+        <details><summary>Do you work with companies and dealers?</summary><p>Yes. The “Dealers” section is coming soon. Leave a request via the contact form.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================
+       FINAL CTA
+       ========================= -->
+  <section class="section" aria-labelledby="cta">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div>
+        <h2 id="cta" class="section__title">Ready to upgrade?</h2>
+        <p class="section__desc">We’ll secure your slot and lock the terms today.</p>
+      </div>
+      <div style="display:flex;gap:.6rem">
+        <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Explore services</a>
+        {% if user.is_authenticated %}
+          <a class="btn btn--ghost" href="{% url 'dashboard' %}">Client Portal</a>
+        {% else %}
+          <a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dashboard' %}">Login</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- =========================
+     FOOTER
+     ========================= -->
+<footer class="site-footer">
+  <div class="container footer__grid">
+    <div>
+      <div class="brand" style="margin-bottom:.3rem">
+        <span class="brand__logo" aria-hidden="true"></span>
+        <span>BGM Customs</span>
+      </div>
+      <div class="section__desc">© {{ now|date:"Y" }} BGM. All rights reserved.</div>
+    </div>
+    <nav class="footer__nav" aria-label="Footer">
+      <a href="{% url 'client-dashboard' %}">Services</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard' %}">Client Portal</a>
+      {% else %}
+        <a href="{% url 'login' %}?next={% url 'dashboard' %}">Login</a>
+      {% endif %}
+      <a href="#" class="nav--soon" aria-disabled="true">Store</a>
+      <a href="#" class="nav--soon" aria-disabled="true">Merch</a>
+      <a href="#" class="nav--soon" aria-disabled="true">Dealers</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- =========================
+     JS — live search (API: /accounts/api/services/search/)
+     ========================= -->
+<script>
+(function(){
+  const qInput = document.querySelector('input[name="q"]');
+  const catSel = document.querySelector('select[name="cat"]');
+  const liveTitle = document.getElementById('liveTitle');
+  const liveGrid  = document.getElementById('liveGrid');
+  const server    = document.getElementById('serverContent');
+  if(!qInput || !catSel) return;
+
+  const skel = (n=8)=> Array.from({length:n}).map(()=>'<div class="sk"></div>').join('');
+  const showLive = ()=>{ liveTitle.style.display='block'; liveGrid.style.display='grid'; server.style.display='none'; }
+  const hideLive = ()=>{ liveTitle.style.display='none'; liveGrid.style.display='none'; server.style.display='block'; }
+
+  function cardHTML(s){
+    const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent>0;
+    const price = hasDisc
+      ? `<span class="old">$${s.base_price}</span> <strong>$${s.price}</strong> <span class="badge">-${s.discount_percent}%</span>`
+      : `<strong>$${s.price||s.base_price}</strong>`;
+    const desc  = s.description ? `<p class="muted">${s.description}</p>` : '';
+    const cat   = s.category ? `<div class="muted">${s.category}</div>` : '';
+    return `
+      <article class="card">
+        <div class="card__img">IMG</div>
+        <div class="card__head">
+          <h3 style="font-weight:900">${s.name}</h3>
+          <div class="price">${price}</div>
+        </div>
+        ${desc}
+        <div class="dur">Duration: ${s.duration_min} min</div>
+        <div style="margin-top:.4rem">
+          <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a>
+        </div>
+      </article>`;
+  }
+
+  function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+  let aborter = null;
+  async function fetchServices(q,cat){
+    if(aborter) aborter.abort();
+    aborter = new AbortController();
+    const p = new URLSearchParams(); if(q) p.set('q', q); if(cat) p.set('cat', cat);
+    const r = await fetch(`/accounts/api/services/search/?${p.toString()}`, {signal: aborter.signal, credentials:'same-origin'});
+    if(!r.ok) throw new Error('Load error');
+    return r.json();
+  }
+
+  const run = debounce(async ()=>{
+    const q = qInput.value.trim(), cat = catSel.value;
+    if(!q && !cat){ hideLive(); return; }
+    showLive(); liveGrid.className='grid grid--services'; liveGrid.innerHTML = skel(8);
+    try{
+      const data = await fetchServices(q,cat);
+      const items = (data && data.results) || [];
+      liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="empty">Nothing found.</div>`;
+    }catch(e){ liveGrid.innerHTML = `<div class="empty">Failed to load. Please try again.</div>`; }
+  }, 300);
+
+  qInput.addEventListener('input', run);
+  catSel.addEventListener('change', run);
+})();
+</script>
+</body>
+</html>

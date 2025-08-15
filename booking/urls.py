@@ -1,25 +1,16 @@
-"""
-URL configuration for the booking project.
-
-Routes:
-  /admin/                 → Django admin
-  /accounts/              → модуль аккаунтов (login/register/dashboard/...) + каталог (на корне)
-  /autocomplete/...       → Select2 endpoints
-"""
+# booking/urls.py
 from django.contrib import admin
 from django.urls import path, include
+from accounts.views import HomeView
 from core.autocomplete import ServiceAutocomplete
-from django.views.generic import RedirectView
 from core.views import service_search
+
 urlpatterns = [
     path("admin/", admin.site.urls),
-
-    # ВАЖНО: подключаем accounts БЕЗ namespace, чтобы {% url 'register' %} и т.п. работали
     path("accounts/", include("accounts.urls")),
-
     path("autocomplete/service/", ServiceAutocomplete.as_view(), name="service-autocomplete"),
 
-     path("", RedirectView.as_view(pattern_name="client-dashboard", permanent=False)),
-    # Ничего из core тут не монтируем, чтобы не перехватывать /accounts/
-    path('accounts/api/services/search/', service_search, name='service-search'),
+    path("", HomeView.as_view(), name="home"),  # ← главная
+
+    path("accounts/api/services/search/", service_search, name="service-search"),
 ]

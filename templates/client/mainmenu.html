@@ -302,8 +302,11 @@
   <!-- header -->
   <header class="site-header">
     <div class="container site-header__inner">
-      <span class="logo">Bad Guy <b>Motors</b> <span class="tagline">custom builds • installs • upgrades</span></span>
-      <nav>
+      <a class="logo" href="{% url 'home' %}">
+   Bad Guy <b>Motors</b> <span class="tagline">custom builds • installs • upgrades</span>
+ </a>
+<nav>
+    <a href="{% url 'home' %}" class="btn btn--ghost" aria-label="Go to home">Home</a>
         {% if user.is_authenticated %}
           <a href="{% url 'dashboard' %}" class="btn btn--ghost">Client Portal</a>
         {% else %}
