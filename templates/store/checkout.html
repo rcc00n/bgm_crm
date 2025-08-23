@@ -1,0 +1,169 @@
+{% extends "store/_base_store.html" %}
+{% block title %}Checkout — BGM Store{% endblock %}
+
+{% block body %}
+<section class="section">
+  <div class="container">
+    <div class="section__head" style="align-items:center;justify-content:space-between;gap:1rem">
+      <h1 class="section__title">Оформление</h1>
+      <a class="btn btn--ghost" href="{% url 'store-cart' %}">← Назад в корзину</a>
+    </div>
+
+    {% if messages %}
+      {% for m in messages %}
+        <div class="card" style="border-left:4px solid {% if m.tags == 'success' %}#17d45b{% else %}#d50000{% endif %}; margin-bottom:1rem;">
+          <div style="padding:.9rem 1rem">{{ m }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="grid" style="grid-template-columns:2fr 1fr; gap:1.2rem">
+      <!-- ФОРМА -->
+      <form class="card" method="post" novalidate>
+        {% csrf_token %}
+        <div class="grid" style="gap:1rem">
+          <!-- Контакты -->
+          <div>
+            <h3 style="font-weight:800;margin-bottom:.6rem">Контакты</h3>
+            <div class="grid" style="grid-template-columns:1fr 1fr; gap:.8rem">
+              <div>
+                <label class="section__desc">Имя и фамилия</label>
+                <input type="text" name="customer_name" value="{{ form.customer_name|default_if_none:'' }}" class="input">
+                {% if errors.customer_name %}<div class="err">{{ errors.customer_name }}</div>{% endif %}
+              </div>
+              <div>
+                <label class="section__desc">Телефон</label>
+                <input type="text" name="phone" value="{{ form.phone|default_if_none:'' }}" class="input">
+                {% if errors.phone %}<div class="err">{{ errors.phone }}</div>{% endif %}
+              </div>
+              <div>
+                <label class="section__desc">Email</label>
+                <input type="email" name="email" value="{{ form.email|default_if_none:'' }}" class="input">
+                {% if errors.email %}<div class="err">{{ errors.email }}</div>{% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Доставка / Самовывоз -->
+          <div>
+            <h3 style="font-weight:800;margin-bottom:.6rem">Доставка</h3>
+            <div class="grid" style="grid-template-columns:1fr 1fr; gap:.8rem">
+              <label class="radio">
+                <input type="radio" name="delivery_method" value="shipping" {% if form.delivery_method != 'pickup' %}checked{% endif %}>
+                <span>Доставка</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="delivery_method" value="pickup" {% if form.delivery_method == 'pickup' %}checked{% endif %}>
+                <span>Самовывоз</span>
+              </label>
+            </div>
+
+            <div id="addr" style="margin-top:.8rem">
+              <div class="grid" style="grid-template-columns:2fr 1fr; gap:.8rem">
+                <div>
+                  <label class="section__desc">Адрес — улица, дом</label>
+                  <input type="text" name="address_line1" value="{{ form.address_line1|default_if_none:'' }}" class="input">
+                  {% if errors.address_line1 %}<div class="err">{{ errors.address_line1 }}</div>{% endif %}
+                </div>
+                <div>
+                  <label class="section__desc">Квартира / офис (необязательно)</label>
+                  <input type="text" name="address_line2" value="{{ form.address_line2|default_if_none:'' }}" class="input">
+                </div>
+              </div>
+              <div class="grid" style="grid-template-columns:1fr 1fr 1fr; gap:.8rem; margin-top:.8rem">
+                <div>
+                  <label class="section__desc">Город</label>
+                  <input type="text" name="city" value="{{ form.city|default_if_none:'' }}" class="input">
+                  {% if errors.city %}<div class="err">{{ errors.city }}</div>{% endif %}
+                </div>
+                <div>
+                  <label class="section__desc">Регион / Штат / Провинция</label>
+                  <input type="text" name="region" value="{{ form.region|default_if_none:'' }}" class="input">
+                  {% if errors.region %}<div class="err">{{ errors.region }}</div>{% endif %}
+                </div>
+                <div>
+                  <label class="section__desc">Индекс / ZIP</label>
+                  <input type="text" name="postal_code" value="{{ form.postal_code|default_if_none:'' }}" class="input">
+                  {% if errors.postal_code %}<div class="err">{{ errors.postal_code }}</div>{% endif %}
+                </div>
+              </div>
+              <div style="margin-top:.8rem">
+                <label class="section__desc">Страна</label>
+                <input type="text" name="country" value="{{ form.country|default_if_none:'Canada' }}" class="input">
+                {% if errors.country %}<div class="err">{{ errors.country }}</div>{% endif %}
+              </div>
+            </div>
+
+            <div id="pickup" style="margin-top:.8rem; display:none">
+              <label class="section__desc">Пожелания по самовывозу (время, контакт и т.п.)</label>
+              <input type="text" name="pickup_notes" value="{{ form.pickup_notes|default_if_none:'' }}" class="input">
+            </div>
+          </div>
+
+          <!-- Комментарий -->
+          <div>
+            <h3 style="font-weight:800;margin-bottom:.6rem">Комментарий к заказу</h3>
+            <textarea name="comment" rows="4" class="input">{{ form.comment|default_if_none:'' }}</textarea>
+          </div>
+
+          <!-- Согласие -->
+          <label class="checkbox">
+            <input type="checkbox" name="agree" value="1" {% if form.agree %}checked{% endif %}>
+            <span>Я подтверждаю корректность данных и согласен(а) с условиями покупки</span>
+          </label>
+          {% if errors.agree %}<div class="err">{{ errors.agree }}</div>{% endif %}
+
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+            <button class="btn btn--primary" type="submit">Купить</button>
+            <a class="btn btn--ghost" href="{% url 'store-cart' %}">Вернуться в корзину</a>
+          </div>
+        </div>
+      </form>
+
+      <!-- САММАРИ -->
+      <aside class="card">
+        <h3 style="font-weight:800;margin-bottom:.6rem">Ваш заказ</h3>
+        {% if positions %}
+          <ul style="list-style:none;display:grid;gap:.6rem">
+            {% for it in positions %}
+              <li style="display:flex;justify-content:space-between;gap:.8rem;border-bottom:1px dashed var(--line);padding-bottom:.4rem">
+                <div>
+                  <div style="font-weight:700">{{ it.product.name }}</div>
+                  <div class="section__desc">x{{ it.qty }} • {{ it.product.category.name }}</div>
+                </div>
+                <div style="white-space:nowrap">
+                  ${{ it.line_total|floatformat:2 }}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+          <div style="display:flex;justify-content:space-between; margin-top:1rem; font-weight:900">
+            <span>Итого</span><span>${{ total|floatformat:2 }}</span>
+          </div>
+        {% else %}
+          <p class="section__desc">Корзина пуста. <a href="{% url 'store-home' %}">Вернуться в каталог</a></p>
+        {% endif %}
+      </aside>
+    </div>
+  </div>
+</section>
+
+<style>
+  .input{width:100%;padding:.7rem .8rem;border-radius:.6rem;border:1px solid var(--line);background:var(--panel);color:var(--fg)}
+  .radio,.checkbox{display:flex;align-items:center;gap:.55rem;padding:.5rem .6rem;border:1px solid var(--line);border-radius:.6rem;background:var(--panel)}
+  .err{color:#ff7777;font-size:.9rem;margin-top:.25rem}
+</style>
+
+<script>
+  const methodInputs = document.querySelectorAll('input[name="delivery_method"]');
+  const addr = document.getElementById('addr');
+  const pickup = document.getElementById('pickup');
+  function sync() {
+    const val = document.querySelector('input[name="delivery_method"]:checked')?.value;
+    if (val === 'pickup') { addr.style.display='none'; pickup.style.display='block'; }
+    else { addr.style.display='block'; pickup.style.display='none'; }
+  }
+  methodInputs.forEach(i => i.addEventListener('change', sync));
+  document.addEventListener('DOMContentLoaded', sync);
+</script>
+{% endblock %}

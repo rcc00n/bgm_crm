@@ -1,0 +1,84 @@
+{% extends "store/_base_store.html" %}
+{% block title %}{{ product.name }} — BGM Store{% endblock %}
+{% block body %}
+<section class="section">
+  <div class="container">
+    <div class="section__head">
+      <div>
+        <h1 class="section__title">{{ product.name }}</h1>
+        <p class="section__desc">{{ product.short_description }}</p>
+      </div>
+      <a class="btn btn--ghost" href="{% url 'store-cart' %}">Cart</a>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:1.25rem">
+      <div>
+        {% if product.main_image %}
+          <img class="card__img" style="aspect-ratio:auto;border-radius:1rem" src="{{ product.main_image.url }}" alt="{{ product.name }}">
+        {% else %}
+          <div class="card__img"></div>
+        {% endif %}
+        {% if product.gallery.all %}
+          <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin-top:.8rem">
+            {% for img in product.gallery.all %}
+              <img class="card__img" style="aspect-ratio:1;border-radius:.6rem" src="{{ img.image.url }}" alt="{{ product.name }} photo {{ forloop.counter }}">
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div>
+        <div class="card" style="padding:1.2rem">
+          <div class="price"><strong style="font-size:1.4rem">${{ product.price }}</strong>
+            {% if product.old_price %}<span class="old">${{ product.old_price }}</span>{% endif %}
+          </div>
+          {% if product.sku %}<div class="section__desc" style="margin-top:.3rem">SKU: {{ product.sku }}</div>{% endif %}
+
+          <form method="post" action="{% url 'store-cart-add' slug=product.slug %}" style="margin-top:1rem">
+            {% csrf_token %}
+            <label class="section__desc" for="qty">Количество</label>
+            <div style="display:flex;gap:.5rem;align-items:center;margin-top:.35rem">
+              <input class="field" id="qty" name="qty" type="number" min="1" value="1" style="width:110px">
+              <button class="btn btn--primary" type="submit">Добавить в корзину</button>
+              <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Купить сейчас</button>
+            </div>
+          </form>
+        </div>
+
+        {% if product.specs %}
+          <div class="card" style="margin-top:1rem">
+            <h3 style="font-weight:900;margin-bottom:.4rem">Характеристики</h3>
+            <div class="section__desc">
+              {{ product.specs|linebreaks }} {# или отрисуй JSON/Markdown как хранится #}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if product.compatibility %}
+          <div class="card" style="margin-top:1rem">
+            <h3 style="font-weight:900;margin-bottom:.4rem">Совместимость</h3>
+            <div class="section__desc">{{ product.compatibility|linebreaks }}</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if related %}
+    <div class="section__head" style="margin-top:1.6rem">
+      <h3 class="section__title">Похожие товары</h3>
+    </div>
+    <div class="grid grid--cards">
+      {% for p in related %}
+        <article class="card">
+          <a href="{% url 'store-product' slug=p.slug %}">
+            {% if p.main_image %}<img class="card__img" src="{{ p.main_image.url }}" alt="{{ p.name }}">{% else %}<div class="card__img"></div>{% endif %}
+            <h4 style="margin-top:.6rem">{{ p.name }}</h4>
+            <div class="price" style="margin-top:.2rem"><strong>${{ p.price }}</strong></div>
+          </a>
+        </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "store/_base_store.html" %}
+{% block title %}Cart — BGM Store{% endblock %}
+{% block body %}
+<section class="section">
+  <div class="container">
+    <div class="section__head">
+      <h1 class="section__title">Корзина</h1>
+      <a class="btn btn--ghost" href="{% url 'store' %}">Продолжить покупки</a>
+    </div>
+
+    {% if positions %}
+      <div class="card">
+        {% for row in positions %}
+          <div style="display:grid;grid-template-columns:1fr 140px 140px;gap:.8rem;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--line)">
+            <div style="display:flex;gap:.8rem;align-items:center">
+              {% if row.product.main_image %}
+                <img src="{{ row.product.main_image.url }}" alt="{{ row.product.name }}" style="width:64px;height:64px;object-fit:cover;border-radius:.6rem">
+              {% endif %}
+              <div>
+                <a href="{% url 'store-product' slug=row.product.slug %}"><b>{{ row.product.name }}</b></a>
+                {% if row.product.sku %}<div class="section__desc">SKU: {{ row.product.sku }}</div>{% endif %}
+              </div>
+            </div>
+            <div class="section__desc">x {{ row.qty }}</div>
+            <div><b>${{ row.line_total|floatformat:2 }}</b></div>
+            <form method="post" action="{% url 'store-cart-remove' slug=row.product.slug %}">
+              {% csrf_token %}
+              <button class="btn btn--ghost" type="submit">Удалить</button>
+            </form>
+          </div>
+        {% endfor %}
+        <div style="display:flex;justify-content:flex-end;gap:1rem;padding-top:1rem">
+          <div class="section__desc">Итого:</div>
+          <div><b>${{ total|floatformat:2 }}</b></div>
+        </div>
+      </div>
+
+      <div style="margin-top:1rem;display:flex;gap:.6rem;justify-content:flex-end">
+        <a class="btn btn--primary" href="{% url 'store-checkout' %}">Перейти к оформлению</a>
+      </div>
+    {% else %}
+      <p class="section__desc">Корзина пуста.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

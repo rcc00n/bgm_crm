@@ -1,0 +1,98 @@
+{% extends "store/_base_store.html" %}
+{% block title %}BGM — Store{% endblock %}
+
+{% block body %}
+<section class="hero">
+  <div class="container hero__inner">
+    <div>
+      <h1 class="title">Parts & Upgrades</h1>
+      <p class="lead">Performance parts curated by BGM.</p>
+      <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
+        <a class="btn btn--primary" href="{% url 'client-dashboard' %}">Book install</a>
+        <a class="btn btn--ghost" href="{% url 'store-cart' %}">Open cart</a>
+      </div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;justify-content:center">Live catalog</div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <!-- CATEGORIES -->
+    <div class="section__head">
+      <div>
+        <h2 class="section__title">Categories</h2>
+        <p class="section__desc">Выбери раздел</p>
+      </div>
+    </div>
+
+    <div class="grid grid--cards">
+      {% for c in categories %}
+        <a class="card cat" href="{% url 'store-category' slug=c.slug %}" title="{{ c.name }}">
+          <div class="card__img cat__img">
+            {% if c.image %}
+              <img src="{{ c.image.url }}" alt="{{ c.name }}" loading="lazy">
+            {% else %}
+              <div class="ph" aria-hidden="true"></div>
+            {% endif %}
+          </div>
+          <h3 style="margin-top:.6rem">{{ c.name }}</h3>
+          {% if c.description %}
+            <p class="section__desc">{{ c.description|truncatewords:18 }}</p>
+          {% endif %}
+        </a>
+      {% empty %}
+        <p class="section__desc">Категорий пока нет.</p>
+      {% endfor %}
+    </div>
+
+    <!-- NEW ARRIVALS -->
+    <div class="section__head" style="margin-top:2rem">
+      <div><h2 class="section__title">New arrivals</h2></div>
+      <a class="btn btn--ghost" href="{% url 'store-cart' %}">Cart</a>
+    </div>
+
+    <div class="grid grid--cards">
+      {% for p in products %}
+        <article class="card">
+          <a href="{% url 'store-product' slug=p.slug %}">
+            <div class="card__img">
+              {% if p.main_image %}
+                <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;aspect-ratio:16/9">
+              {% elif p.image %}
+                <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;aspect-ratio:16/9">
+              {% else %}
+                <div class="ph" aria-hidden="true" style="aspect-ratio:16/9"></div>
+              {% endif %}
+            </div>
+            <h3 style="margin-top:.6rem">{{ p.name }}</h3>
+            <p class="section__desc">{{ p.short_description|default:p.category.name }}</p>
+            <div class="price" style="margin-top:.4rem">
+              <strong>${{ p.price }}</strong>
+              {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+              {% if p.sku %}<span class="badge">SKU {{ p.sku }}</span>{% endif %}
+            </div>
+          </a>
+        </article>
+      {% empty %}
+        <p class="section__desc">Товаров пока нет.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- Небольшая стилизация для обложек -->
+<style>
+  .cat { display:block; }
+  .cat__img{ position:relative; overflow:hidden; border-radius:.8rem; }
+  .cat__img img{ width:100%; height:100%; object-fit:cover; aspect-ratio:16/9; display:block; }
+  .ph{
+    border-radius:.8rem; width:100%; height:100%; aspect-ratio:16/9;
+    background:
+      radial-gradient(600px 260px at 10% -10%, rgba(213,0,0,.18), transparent 60%),
+      linear-gradient(90deg,#111,#151515,#111);
+    background-size:200% 100%; animation:sh 1.2s ease-in-out infinite;
+  }
+  @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+{% endblock %}

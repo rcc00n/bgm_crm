@@ -226,8 +226,17 @@ class HomeView(TemplateView):
 # accounts/views.py
 from django.views.generic import TemplateView
 
-class StorePlaceholderView(TemplateView):
+from django.views.generic import TemplateView
+from core.models import ServiceCategory  # или ProductCategory если уже создал
+
+class StoreView(TemplateView):
     template_name = "client/store.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["categories"] = ServiceCategory.objects.prefetch_related("service_set")
+        return ctx
+
 
 class MerchPlaceholderView(TemplateView):
     template_name = "client/merch.html"
