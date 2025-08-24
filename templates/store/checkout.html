@@ -4,144 +4,180 @@
 {% block body %}
 <section class="section">
   <div class="container">
+
+    <!-- Progress -->
+    <nav class="steps" aria-label="Checkout progress">
+      <a class="steps__item" href="{% url 'store-cart' %}">Cart</a>
+      <span class="steps__sep" aria-hidden="true">›</span>
+      <span class="steps__item steps__item--current" aria-current="step">Checkout</span>
+      <span class="steps__sep" aria-hidden="true">›</span>
+      <span class="steps__item steps__item--muted">Done</span>
+    </nav>
+
     <div class="section__head" style="align-items:center;justify-content:space-between;gap:1rem">
-      <h1 class="section__title">Оформление</h1>
-      <a class="btn btn--ghost" href="{% url 'store-cart' %}">← Назад в корзину</a>
+      <h1 class="section__title">Checkout</h1>
+      <a class="btn btn--ghost" href="{% url 'store-cart' %}">← Back to cart</a>
     </div>
 
     {% if messages %}
-      {% for m in messages %}
-        <div class="card" style="border-left:4px solid {% if m.tags == 'success' %}#17d45b{% else %}#d50000{% endif %}; margin-bottom:1rem;">
-          <div style="padding:.9rem 1rem">{{ m }}</div>
-        </div>
-      {% endfor %}
+      <div aria-live="polite">
+        {% for m in messages %}
+          <div class="callout {% if m.tags == 'success' %}callout--ok{% else %}callout--err{% endif %}">
+            <div class="callout__body">{{ m }}</div>
+          </div>
+        {% endfor %}
+      </div>
     {% endif %}
 
-    <div class="grid" style="grid-template-columns:2fr 1fr; gap:1.2rem">
-      <!-- ФОРМА -->
-      <form class="card" method="post" novalidate>
+    <div class="checkout-grid">
+      <!-- FORM -->
+      <form class="card checkout-form" method="post" novalidate>
         {% csrf_token %}
-        <div class="grid" style="gap:1rem">
-          <!-- Контакты -->
-          <div>
-            <h3 style="font-weight:800;margin-bottom:.6rem">Контакты</h3>
-            <div class="grid" style="grid-template-columns:1fr 1fr; gap:.8rem">
+        <div class="form-grid">
+
+          <!-- Contact -->
+          <section>
+            <h3 class="block-title">Contact</h3>
+            <div class="fields-2">
               <div>
-                <label class="section__desc">Имя и фамилия</label>
-                <input type="text" name="customer_name" value="{{ form.customer_name|default_if_none:'' }}" class="input">
+                <label class="label" for="customer_name">Full name*</label>
+                <input id="customer_name" class="input{% if errors.customer_name %} input--invalid{% endif %}"
+                       type="text" name="customer_name" autocomplete="name"
+                       placeholder="John Doe" value="{{ form.customer_name|default_if_none:'' }}">
                 {% if errors.customer_name %}<div class="err">{{ errors.customer_name }}</div>{% endif %}
               </div>
               <div>
-                <label class="section__desc">Телефон</label>
-                <input type="text" name="phone" value="{{ form.phone|default_if_none:'' }}" class="input">
+                <label class="label" for="phone">Phone*</label>
+                <input id="phone" class="input{% if errors.phone %} input--invalid{% endif %}"
+                       type="text" name="phone" autocomplete="tel"
+                       placeholder="+1 (555) 123-4567" value="{{ form.phone|default_if_none:'' }}">
                 {% if errors.phone %}<div class="err">{{ errors.phone }}</div>{% endif %}
               </div>
               <div>
-                <label class="section__desc">Email</label>
-                <input type="email" name="email" value="{{ form.email|default_if_none:'' }}" class="input">
+                <label class="label" for="email">Email*</label>
+                <input id="email" class="input{% if errors.email %} input--invalid{% endif %}"
+                       type="email" name="email" autocomplete="email"
+                       placeholder="you@example.com" value="{{ form.email|default_if_none:'' }}">
                 {% if errors.email %}<div class="err">{{ errors.email }}</div>{% endif %}
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- Доставка / Самовывоз -->
-          <div>
-            <h3 style="font-weight:800;margin-bottom:.6rem">Доставка</h3>
-            <div class="grid" style="grid-template-columns:1fr 1fr; gap:.8rem">
-              <label class="radio">
+          <!-- Delivery -->
+          <section>
+            <h3 class="block-title">Delivery</h3>
+            <fieldset class="options">
+              <label class="opt">
                 <input type="radio" name="delivery_method" value="shipping" {% if form.delivery_method != 'pickup' %}checked{% endif %}>
-                <span>Доставка</span>
+                <span>Shipping</span>
               </label>
-              <label class="radio">
+              <label class="opt">
                 <input type="radio" name="delivery_method" value="pickup" {% if form.delivery_method == 'pickup' %}checked{% endif %}>
-                <span>Самовывоз</span>
+                <span>Pickup</span>
               </label>
-            </div>
+            </fieldset>
 
-            <div id="addr" style="margin-top:.8rem">
-              <div class="grid" style="grid-template-columns:2fr 1fr; gap:.8rem">
+            <!-- Address -->
+            <div id="addr" class="addr">
+              <div class="fields-2">
                 <div>
-                  <label class="section__desc">Адрес — улица, дом</label>
-                  <input type="text" name="address_line1" value="{{ form.address_line1|default_if_none:'' }}" class="input">
+                  <label class="label" for="address_line1">Address — street, number*</label>
+                  <input id="address_line1" class="input{% if errors.address_line1 %} input--invalid{% endif %}"
+                         type="text" name="address_line1" autocomplete="address-line1"
+                         placeholder="123 Main St" value="{{ form.address_line1|default_if_none:'' }}">
                   {% if errors.address_line1 %}<div class="err">{{ errors.address_line1 }}</div>{% endif %}
                 </div>
                 <div>
-                  <label class="section__desc">Квартира / офис (необязательно)</label>
-                  <input type="text" name="address_line2" value="{{ form.address_line2|default_if_none:'' }}" class="input">
+                  <label class="label" for="address_line2">Apt / suite (optional)</label>
+                  <input id="address_line2" class="input" type="text" name="address_line2"
+                         autocomplete="address-line2" placeholder="Apt 4B"
+                         value="{{ form.address_line2|default_if_none:'' }}">
                 </div>
               </div>
-              <div class="grid" style="grid-template-columns:1fr 1fr 1fr; gap:.8rem; margin-top:.8rem">
+
+              <div class="fields-3">
                 <div>
-                  <label class="section__desc">Город</label>
-                  <input type="text" name="city" value="{{ form.city|default_if_none:'' }}" class="input">
+                  <label class="label" for="city">City*</label>
+                  <input id="city" class="input{% if errors.city %} input--invalid{% endif %}"
+                         type="text" name="city" autocomplete="address-level2"
+                         placeholder="Calgary" value="{{ form.city|default_if_none:'' }}">
                   {% if errors.city %}<div class="err">{{ errors.city }}</div>{% endif %}
                 </div>
                 <div>
-                  <label class="section__desc">Регион / Штат / Провинция</label>
-                  <input type="text" name="region" value="{{ form.region|default_if_none:'' }}" class="input">
+                  <label class="label" for="region">State / Province*</label>
+                  <input id="region" class="input{% if errors.region %} input--invalid{% endif %}"
+                         type="text" name="region" autocomplete="address-level1"
+                         placeholder="AB" value="{{ form.region|default_if_none:'' }}">
                   {% if errors.region %}<div class="err">{{ errors.region }}</div>{% endif %}
                 </div>
                 <div>
-                  <label class="section__desc">Индекс / ZIP</label>
-                  <input type="text" name="postal_code" value="{{ form.postal_code|default_if_none:'' }}" class="input">
+                  <label class="label" for="postal_code">Postal / ZIP*</label>
+                  <input id="postal_code" class="input{% if errors.postal_code %} input--invalid{% endif %}"
+                         type="text" name="postal_code" autocomplete="postal-code"
+                         placeholder="T2X 1A1" value="{{ form.postal_code|default_if_none:'' }}">
                   {% if errors.postal_code %}<div class="err">{{ errors.postal_code }}</div>{% endif %}
                 </div>
               </div>
-              <div style="margin-top:.8rem">
-                <label class="section__desc">Страна</label>
-                <input type="text" name="country" value="{{ form.country|default_if_none:'Canada' }}" class="input">
+
+              <div>
+                <label class="label" for="country">Country*</label>
+                <input id="country" class="input{% if errors.country %} input--invalid{% endif %}"
+                       type="text" name="country" autocomplete="country-name"
+                       placeholder="Canada" value="{{ form.country|default_if_none:'Canada' }}">
                 {% if errors.country %}<div class="err">{{ errors.country }}</div>{% endif %}
               </div>
             </div>
 
-            <div id="pickup" style="margin-top:.8rem; display:none">
-              <label class="section__desc">Пожелания по самовывозу (время, контакт и т.п.)</label>
-              <input type="text" name="pickup_notes" value="{{ form.pickup_notes|default_if_none:'' }}" class="input">
+            <!-- Pickup notes -->
+            <div id="pickup" class="pickup">
+              <label class="label" for="pickup_notes">Pickup preferences (time, contact, etc.)</label>
+              <input id="pickup_notes" class="input" type="text" name="pickup_notes"
+                     placeholder="Tomorrow after 3 PM" value="{{ form.pickup_notes|default_if_none:'' }}">
             </div>
-          </div>
+          </section>
 
-          <!-- Комментарий -->
-          <div>
-            <h3 style="font-weight:800;margin-bottom:.6rem">Комментарий к заказу</h3>
-            <textarea name="comment" rows="4" class="input">{{ form.comment|default_if_none:'' }}</textarea>
-          </div>
+          <!-- Order notes -->
+          <section>
+            <h3 class="block-title">Order notes</h3>
+            <textarea class="input" name="comment" rows="4" placeholder="Anything we should know?">{{ form.comment|default_if_none:'' }}</textarea>
+          </section>
 
-          <!-- Согласие -->
-          <label class="checkbox">
-            <input type="checkbox" name="agree" value="1" {% if form.agree %}checked{% endif %}>
-            <span>Я подтверждаю корректность данных и согласен(а) с условиями покупки</span>
+          <!-- Consent + actions -->
+          <label class="check">
+            <input id="agree" type="checkbox" name="agree" value="1" {% if form.agree %}checked{% endif %}>
+            <span>I confirm my details are correct and agree to the purchase terms</span>
           </label>
           {% if errors.agree %}<div class="err">{{ errors.agree }}</div>{% endif %}
 
-          <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
-            <button class="btn btn--primary" type="submit">Купить</button>
-            <a class="btn btn--ghost" href="{% url 'store-cart' %}">Вернуться в корзину</a>
+          <div class="actions">
+            <button id="submitBtn" class="btn btn--primary" type="submit">Place order</button>
+            <a class="btn btn--ghost" href="{% url 'store-cart' %}">Return to cart</a>
           </div>
         </div>
       </form>
 
-      <!-- САММАРИ -->
-      <aside class="card">
-        <h3 style="font-weight:800;margin-bottom:.6rem">Ваш заказ</h3>
+      <!-- SUMMARY -->
+      <aside class="card summary">
+        <h3 class="block-title">Order summary</h3>
+
         {% if positions %}
-          <ul style="list-style:none;display:grid;gap:.6rem">
+          <ul class="summary__list">
             {% for it in positions %}
-              <li style="display:flex;justify-content:space-between;gap:.8rem;border-bottom:1px dashed var(--line);padding-bottom:.4rem">
+              <li class="summary__row">
                 <div>
-                  <div style="font-weight:700">{{ it.product.name }}</div>
+                  <div class="summary__title">{{ it.product.name }}</div>
                   <div class="section__desc">x{{ it.qty }} • {{ it.product.category.name }}</div>
                 </div>
-                <div style="white-space:nowrap">
-                  ${{ it.line_total|floatformat:2 }}
-                </div>
+                <div class="summary__amount">${{ it.line_total|floatformat:2 }}</div>
               </li>
             {% endfor %}
           </ul>
-          <div style="display:flex;justify-content:space-between; margin-top:1rem; font-weight:900">
-            <span>Итого</span><span>${{ total|floatformat:2 }}</span>
+          <div class="summary__total">
+            <span>Total</span>
+            <span>${{ total|floatformat:2 }}</span>
           </div>
         {% else %}
-          <p class="section__desc">Корзина пуста. <a href="{% url 'store-home' %}">Вернуться в каталог</a></p>
+          <p class="section__desc">Your cart is empty. <a href="{% url 'store' %}">Browse catalog</a></p>
         {% endif %}
       </aside>
     </div>
@@ -149,21 +185,109 @@
 </section>
 
 <style>
-  .input{width:100%;padding:.7rem .8rem;border-radius:.6rem;border:1px solid var(--line);background:var(--panel);color:var(--fg)}
-  .radio,.checkbox{display:flex;align-items:center;gap:.55rem;padding:.5rem .6rem;border:1px solid var(--line);border-radius:.6rem;background:var(--panel)}
-  .err{color:#ff7777;font-size:.9rem;margin-top:.25rem}
+  /* Layout */
+  .checkout-grid{
+    display:grid; gap:1.2rem;
+    grid-template-columns: 2fr 1fr;
+  }
+  @media (max-width: 960px){
+    .checkout-grid{ grid-template-columns: 1fr; }
+    .summary{ position: static; top:auto; }
+  }
+  .form-grid{ display:grid; gap:1rem; }
+  .fields-2{ display:grid; gap:.8rem; grid-template-columns:1fr 1fr; }
+  .fields-3{ display:grid; gap:.8rem; grid-template-columns:1fr 1fr 1fr; }
+  @media (max-width: 720px){
+    .fields-2, .fields-3{ grid-template-columns:1fr; }
+  }
+
+  /* Steps */
+  .steps{ display:flex; align-items:center; gap:.5rem; margin-bottom:.6rem; color:var(--muted); }
+  .steps__item{ padding:.2rem .45rem; border-radius:.45rem; background:rgba(255,255,255,.04); }
+  .steps__item--current{ color:var(--ink); background:rgba(213,0,0,.12); border:1px solid rgba(213,0,0,.35); }
+  .steps__item--muted{ opacity:.7; }
+  .steps__sep{ opacity:.5; }
+
+  /* Cards & controls */
+  .checkout-form{ padding:1rem; }
+  .summary{ padding:1rem; position:sticky; top:1rem; height:max-content; }
+  .block-title{ font-weight:800; margin: .2rem 0 .6rem; }
+  .label{ display:block; margin:0 0 .35rem .1rem; color:var(--muted); font-size:.9rem; }
+  .input{
+    width:100%; padding:.7rem .8rem; border-radius:.6rem;
+    border:1px solid var(--card-border); background:var(--field-bg); color:var(--ink);
+    outline:none; transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .input:focus{ border-color:var(--red); box-shadow:0 0 0 2px rgba(213,0,0,.28); }
+  .input--invalid{ border-color:var(--error-text); box-shadow:0 0 0 2px rgba(255,138,128,.25); }
+  textarea.input{ resize:vertical; min-height:110px; }
+
+  .options{ display:grid; grid-template-columns:1fr 1fr; gap:.8rem; border:0; padding:0; margin:0 0 .6rem; }
+  .opt{
+    display:flex; align-items:center; gap:.55rem; padding:.6rem .7rem;
+    border:1px solid var(--card-border); border-radius:.6rem; background:var(--field-bg);
+  }
+  .opt input{ accent-color:var(--red); }
+
+  .addr, .pickup{ margin-top:.8rem; }
+  .pickup{ display:none; }
+
+  .check{ display:flex; align-items:flex-start; gap:.55rem; padding:.6rem .7rem; border:1px solid var(--card-border); border-radius:.6rem; background:var(--field-bg); }
+  .check input{ margin-top:.2rem; accent-color:var(--red); }
+
+  .actions{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
+
+  .summary__list{ list-style:none; display:grid; gap:.6rem; margin:0; padding:0; }
+  .summary__row{
+    display:flex; justify-content:space-between; gap:.8rem;
+    border-bottom:1px dashed var(--card-border); padding-bottom:.45rem;
+  }
+  .summary__title{ font-weight:700; }
+  .summary__amount{ white-space:nowrap; }
+  .summary__total{
+    display:flex; justify-content:space-between; margin-top:1rem; font-weight:900;
+  }
+
+  .callout{ border-left:4px solid; background:var(--card-bg); border:1px solid var(--card-border); border-left-color:#d50000; border-radius:.6rem; margin-bottom:1rem; }
+  .callout--ok{ border-left-color:#17d45b; }
+  .callout__body{ padding:.9rem 1rem; }
+  .err{ color:#ff8a80; font-size:.9rem; margin-top:.25rem; }
 </style>
 
 <script>
-  const methodInputs = document.querySelectorAll('input[name="delivery_method"]');
-  const addr = document.getElementById('addr');
-  const pickup = document.getElementById('pickup');
-  function sync() {
-    const val = document.querySelector('input[name="delivery_method"]:checked')?.value;
-    if (val === 'pickup') { addr.style.display='none'; pickup.style.display='block'; }
-    else { addr.style.display='block'; pickup.style.display='none'; }
-  }
-  methodInputs.forEach(i => i.addEventListener('change', sync));
-  document.addEventListener('DOMContentLoaded', sync);
+  (function(){
+    const methodInputs = document.querySelectorAll('input[name="delivery_method"]');
+    const addr   = document.getElementById('addr');
+    const pickup = document.getElementById('pickup');
+    const agree  = document.getElementById('agree');
+    const submit = document.getElementById('submitBtn');
+    const postal = document.getElementById('postal_code');
+
+    function syncDelivery(){
+      const val = document.querySelector('input[name="delivery_method"]:checked')?.value;
+      const ship = val !== 'pickup';
+      addr.style.display   = ship ? 'block' : 'none';
+      pickup.style.display = ship ? 'none'  : 'block';
+    }
+    function syncAgree(){
+      if (!submit) return;
+      submit.disabled = !agree.checked;
+      submit.style.opacity = submit.disabled ? .6 : 1;
+      submit.style.cursor = submit.disabled ? 'not-allowed' : 'pointer';
+    }
+    function normalizePostal(){
+      if (!postal) return;
+      postal.value = postal.value.toUpperCase().replace(/\s+/g,'').replace(/(.{3})/,'$1 ');
+    }
+
+    methodInputs.forEach(i => i.addEventListener('change', syncDelivery));
+    if (agree)  agree.addEventListener('change', syncAgree);
+    if (postal) postal.addEventListener('blur', normalizePostal);
+
+    document.addEventListener('DOMContentLoaded', function(){
+      syncDelivery();
+      syncAgree();
+    });
+  })();
 </script>
 {% endblock %}

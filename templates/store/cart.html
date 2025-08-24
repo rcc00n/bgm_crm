@@ -1,46 +1,178 @@
 {% extends "store/_base_store.html" %}
 {% block title %}Cart — BGM Store{% endblock %}
+
 {% block body %}
 <section class="section">
   <div class="container">
+
+    <!-- Progress -->
+    <nav class="steps" aria-label="Checkout progress">
+      <span class="steps__item steps__item--current" aria-current="step">Cart</span>
+      <span class="steps__sep" aria-hidden="true">›</span>
+      <a class="steps__item" href="{% url 'store-checkout' %}">Checkout</a>
+      <span class="steps__sep" aria-hidden="true">›</span>
+      <span class="steps__item steps__item--muted">Done</span>
+    </nav>
+
     <div class="section__head">
-      <h1 class="section__title">Корзина</h1>
-      <a class="btn btn--ghost" href="{% url 'store' %}">Продолжить покупки</a>
+      <h1 class="section__title">Cart</h1>
+      <a class="btn btn--ghost" href="{% url 'store' %}">Continue shopping</a>
     </div>
 
     {% if positions %}
-      <div class="card">
+      <div class="card cart">
+        <!-- Header row (hidden on small screens) -->
+        <div class="cart__head" role="row">
+          <div class="cart__col cart__col--product" role="columnheader">Product</div>
+          <div class="cart__col cart__col--qty" role="columnheader">Qty</div>
+          <div class="cart__col cart__col--sum" role="columnheader">Subtotal</div>
+          <div class="cart__col cart__col--act" role="columnheader" aria-label="Actions"></div>
+        </div>
+
         {% for row in positions %}
-          <div style="display:grid;grid-template-columns:1fr 140px 140px;gap:.8rem;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--line)">
-            <div style="display:flex;gap:.8rem;align-items:center">
-              {% if row.product.main_image %}
-                <img src="{{ row.product.main_image.url }}" alt="{{ row.product.name }}" style="width:64px;height:64px;object-fit:cover;border-radius:.6rem">
-              {% endif %}
-              <div>
-                <a href="{% url 'store-product' slug=row.product.slug %}"><b>{{ row.product.name }}</b></a>
-                {% if row.product.sku %}<div class="section__desc">SKU: {{ row.product.sku }}</div>{% endif %}
+          <div class="cart__row" role="row">
+            <div class="cart__col cart__col--product" role="cell">
+              <a class="cart__thumb" href="{% url 'store-product' slug=row.product.slug %}">
+                {% if row.product.main_image %}
+                  <img src="{{ row.product.main_image.url }}" alt="{{ row.product.name }}">
+                {% else %}
+                  <div class="thumb-ph" aria-hidden="true"></div>
+                {% endif %}
+              </a>
+              <div class="cart__meta">
+                <a class="cart__title" href="{% url 'store-product' slug=row.product.slug %}">{{ row.product.name }}</a>
+                {% if row.product.sku %}
+                  <div class="section__desc">SKU: {{ row.product.sku }}</div>
+                {% endif %}
+                {% if row.product.category %}
+                  <div class="section__desc">Category: {{ row.product.category.name }}</div>
+                {% endif %}
               </div>
             </div>
-            <div class="section__desc">x {{ row.qty }}</div>
-            <div><b>${{ row.line_total|floatformat:2 }}</b></div>
-            <form method="post" action="{% url 'store-cart-remove' slug=row.product.slug %}">
-              {% csrf_token %}
-              <button class="btn btn--ghost" type="submit">Удалить</button>
-            </form>
+
+            <div class="cart__col cart__col--qty" role="cell">
+              <span class="badge">x {{ row.qty }}</span>
+            </div>
+
+            <div class="cart__col cart__col--sum" role="cell">
+              <strong>${{ row.line_total|floatformat:2 }}</strong>
+            </div>
+
+            <div class="cart__col cart__col--act" role="cell">
+              <form method="post" action="{% url 'store-cart-remove' slug=row.product.slug %}">
+                {% csrf_token %}
+                <button class="btn btn--ghost cart__remove" type="submit" aria-label="Remove {{ row.product.name }}">
+                  Remove
+                </button>
+              </form>
+            </div>
           </div>
         {% endfor %}
-        <div style="display:flex;justify-content:flex-end;gap:1rem;padding-top:1rem">
-          <div class="section__desc">Итого:</div>
-          <div><b>${{ total|floatformat:2 }}</b></div>
+
+        <div class="cart__foot">
+          <div class="cart__note section__desc">Estimated shipping & taxes are calculated at checkout.</div>
+          <div class="cart__total">
+            <span class="cart__total-label">Total</span>
+            <span class="cart__total-sum">${{ total|floatformat:2 }}</span>
+          </div>
         </div>
       </div>
 
-      <div style="margin-top:1rem;display:flex;gap:.6rem;justify-content:flex-end">
-        <a class="btn btn--primary" href="{% url 'store-checkout' %}">Перейти к оформлению</a>
+      <div class="cart__actions">
+        <a class="btn btn--ghost" href="{% url 'store' %}">Continue shopping</a>
+        <a class="btn btn--primary" href="{% url 'store-checkout' %}">Proceed to checkout</a>
       </div>
+
     {% else %}
-      <p class="section__desc">Корзина пуста.</p>
+      <!-- Empty state -->
+      <div class="card empty">
+        <div class="empty__icon" aria-hidden="true">🧺</div>
+        <h3 class="empty__title">Your cart is empty</h3>
+        <p class="section__desc">Looks like you haven’t added anything yet.</p>
+        <a class="btn btn--primary" href="{% url 'store' %}">Browse catalog</a>
+      </div>
     {% endif %}
   </div>
 </section>
+
+<style>
+  /* Steps */
+  .steps{ display:flex; align-items:center; gap:.5rem; margin-bottom:.6rem; color:var(--muted); }
+  .steps__item{ padding:.2rem .45rem; border-radius:.45rem; background:rgba(255,255,255,.04); }
+  .steps__item--current{ color:var(--ink); background:rgba(213,0,0,.12); border:1px solid rgba(213,0,0,.35); }
+  .steps__item--muted{ opacity:.7; }
+  .steps__sep{ opacity:.5; }
+
+  /* Cart layout */
+  .cart{ padding:.6rem .8rem; }
+  .cart__head{
+    display:grid; grid-template-columns: 1fr 140px 140px 120px; gap:.8rem;
+    padding:.4rem 0 .6rem; border-bottom:1px solid var(--card-border);
+    font-size:.92rem; color:var(--muted);
+  }
+  .cart__row{
+    display:grid; grid-template-columns: 1fr 140px 140px 120px; gap:.8rem;
+    align-items:center; padding:.6rem 0; border-bottom:1px solid var(--card-border);
+  }
+  .cart__foot{
+    display:flex; align-items:center; justify-content:space-between; gap:1rem; padding-top:.8rem;
+  }
+  .cart__note{ opacity:.9; }
+  .cart__total{ display:flex; align-items:baseline; gap:.8rem; }
+  .cart__total-label{ font-weight:800; }
+  .cart__total-sum{ font-weight:900; font-size:1.1rem; }
+
+  .cart__col--product{ display:flex; align-items:center; gap:.8rem; min-width:0; }
+  .cart__thumb{
+    width:64px; height:64px; flex:0 0 auto; border-radius:.6rem; overflow:hidden; background:var(--field-bg);
+    display:block;
+  }
+  .cart__thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb-ph{ width:100%; height:100%; background:
+      radial-gradient(600px 260px at 10% -10%, rgba(213,0,0,.18), transparent 60%),
+      linear-gradient(90deg,#111,#151515,#111);
+    background-size:200% 100%; animation:sh 1.2s ease-in-out infinite; }
+  @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  .cart__meta{ min-width:0; }
+  .cart__title{
+    font-weight:700; color:var(--ink); display:inline-block; text-overflow:ellipsis; white-space:nowrap; overflow:hidden;
+    max-width: 100%;
+  }
+
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:2.2rem; padding:.2rem .5rem; border-radius:.5rem;
+    background:var(--field-bg); border:1px solid var(--card-border); color:var(--ink);
+  }
+
+  .cart__remove{ padding:.4rem .6rem; }
+  .cart__remove:hover{ transform:translateY(-1px); }
+
+  .cart__actions{
+    margin-top:1rem; display:flex; gap:.6rem; justify-content:flex-end; flex-wrap:wrap;
+  }
+
+  /* Empty */
+  .empty{
+    display:flex; flex-direction:column; align-items:center; text-align:center; padding:2rem 1.2rem;
+  }
+  .empty__icon{ font-size:2.2rem; margin-bottom:.4rem; }
+  .empty__title{ margin:.3rem 0 .2rem; }
+
+  /* Responsive */
+  @media (max-width: 960px){
+    .cart__head{ display:none; }
+    .cart__row{
+      grid-template-columns: 1fr; gap:.5rem;
+      padding:.8rem 0; border-bottom:1px solid var(--card-border);
+    }
+    .cart__col--qty, .cart__col--sum, .cart__col--act{ display:flex; justify-content:space-between; }
+    .cart__col--qty::before{ content:"Qty"; color:var(--muted); }
+    .cart__col--sum::before{ content:"Subtotal"; color:var(--muted); }
+    .cart__col--act::before{ content:""; }
+    .cart__foot{ flex-direction:column; align-items:flex-start; gap:.6rem; }
+    .cart__total{ align-self:flex-end; }
+  }
+</style>
 {% endblock %}
