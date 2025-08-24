@@ -6,18 +6,14 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from .models import Category, Order, OrderItem, Product
+from .models import Category, Order, OrderItem, Product, CarMake, CarModel
+from .forms_store import ProductFilterForm
 
 # ────────────────────────── Публичные страницы ──────────────────────────
-
-from django.db.models import Q
-from django.shortcuts import render, get_object_or_404
-from .models import Product, Category, CarMake, CarModel
-from .forms_store import ProductFilterForm
 
 def _apply_filters(qs, form: ProductFilterForm):
     """
@@ -66,15 +62,12 @@ def store_home(request):
     filters_active = form.is_valid() and any(form.cleaned_data.values())
     new_arrivals = None if filters_active else base_qs[:8]
 
-    # Секции по всем категориям (по очереди, например по 8 товаров на секцию)
+    # Секции по всем категориям
     sections = []
     for c in categories:
-        cat_qs = (
-            Product.objects.filter(is_active=True, category=c)
-            .order_by("-created_at")[:8]
-        )
-        if cat_qs:
-            sections.append((c, cat_qs))
+        cat_base = Product.objects.filter(is_active=True, category=c).order_by("-created_at")
+        if cat_base.exists():
+            sections.append((c, cat_base[:8]))
 
     context = {
         "categories": categories,
@@ -108,9 +101,12 @@ def category_list(request, slug):
     return render(request, "store/category_list.html", context)
 
 
-
 def product_detail(request, slug: str):
-    product = get_object_or_404(Product.objects.select_related("category"), slug=slug, is_active=True)
+    product = get_object_or_404(
+        Product.objects.select_related("category"),
+        slug=slug,
+        is_active=True
+    )
     related = (
         Product.objects.filter(is_active=True, category=product.category)
         .exclude(pk=product.pk)
@@ -268,13 +264,16 @@ def checkout(request):
                 if key in o_fields:
                     order_kwargs[key] = form[key]
 
+            # Если в модели есть поле total — положим туда сумму (иначе total будет считаться @property)
             if "total" in o_fields:
                 order_kwargs["total"] = total
 
+            # способ доставки
             name = _first_present(o_fields, ["delivery_method", "shipping_method"])
             if name:
                 order_kwargs[name] = form["delivery_method"]
 
+            # адресные поля (маппинг на разные варианты имен полей)
             mapping = {
                 "address_line1": ["address_line1", "address1", "shipping_address1", "address", "shipping_address"],
                 "address_line2": ["address_line2", "address2", "shipping_address2"],
@@ -288,7 +287,11 @@ def checkout(request):
                 if dst and form[src]:
                     order_kwargs[dst] = form[src]
 
-            comment_field = _first_present(o_fields, ["comment", "comments", "notes", "note", "customer_note", "customer_notes"])
+            # комментарии/примечания
+            comment_field = _first_present(
+                o_fields,
+                ["comment", "comments", "notes", "note", "customer_note", "customer_notes"]
+            )
             if comment_field:
                 extra_blocks = []
                 if form["comment"]:
@@ -297,15 +300,25 @@ def checkout(request):
                     extra_blocks.append(f"[Самовывоз] {form['pickup_notes']}")
                 if not is_pickup:
                     addr_pushed = all(
-                        _first_present(o_fields, mapping[k]) for k in ["address_line1", "city", "region", "postal_code", "country"]
+                        _first_present(o_fields, mapping[k])
+                        for k in ["address_line1", "city", "region", "postal_code", "country"]
                     )
                     if not addr_pushed:
                         addr_text = ", ".join(
-                            [form["address_line1"], form["address_line2"], form["city"], form["region"], form["postal_code"], form["country"]]
+                            [form["address_line1"], form["address_line2"], form["city"],
+                             form["region"], form["postal_code"], form["country"]]
                         ).strip(", ").replace("  ", " ")
                         extra_blocks.append(f"[Доставка] {addr_text}")
                 if extra_blocks:
                     order_kwargs[comment_field] = "\n".join(extra_blocks)
+
+            # <<< ВАЖНО: Привязка к текущему пользователю, если он вошёл в систему >>>
+            if request.user.is_authenticated:
+                if "user" in o_fields:
+                    order_kwargs["user"] = request.user
+                # для совместимости также проставим created_by, если есть и пусто
+                if "created_by" in o_fields:
+                    order_kwargs.setdefault("created_by", request.user)
 
             with transaction.atomic():
                 order = Order.objects.create(**order_kwargs)
