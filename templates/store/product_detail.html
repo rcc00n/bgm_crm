@@ -32,7 +32,7 @@
           <div class="price"><strong style="font-size:1.4rem">${{ product.price }}</strong>
             {% if product.old_price %}<span class="old">${{ product.old_price }}</span>{% endif %}
           </div>
-          {% if product.sku %}<div class="section__desc" style="margin-top:.3rem">SKU: {{ product.sku }}</div>{% endif %}
+         
 
           <form method="post" action="{% url 'store-cart-add' slug=product.slug %}" style="margin-top:1rem">
             {% csrf_token %}
