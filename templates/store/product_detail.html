@@ -1,5 +1,6 @@
 {% extends "store/_base_store.html" %}
 {% block title %}{{ product.name }} — BGM Store{% endblock %}
+
 {% block body %}
 <section class="section">
   <div class="container">
@@ -16,10 +17,12 @@
         {% if product.main_image %}
           <img class="card__img" style="aspect-ratio:auto;border-radius:1rem" src="{{ product.main_image.url }}" alt="{{ product.name }}">
         {% else %}
-          <div class="card__img"></div>
+          <div class="card__img" style="aspect-ratio:16/9;border-radius:1rem"></div>
         {% endif %}
+
+        {# галерея; если есть свой related_name=gallery — он сработает; иначе просто не отрисуется #}
         {% if product.gallery.all %}
-          <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin-top:.8rem">
+          <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin-top:.8rem;gap:.6rem">
             {% for img in product.gallery.all %}
               <img class="card__img" style="aspect-ratio:1;border-radius:.6rem" src="{{ img.image.url }}" alt="{{ product.name }} photo {{ forloop.counter }}">
             {% endfor %}
@@ -29,56 +32,152 @@
 
       <div>
         <div class="card" style="padding:1.2rem">
-          <div class="price"><strong style="font-size:1.4rem">${{ product.price }}</strong>
+          <div class="price">
+            <strong style="font-size:1.4rem">${{ product.price }}</strong>
             {% if product.old_price %}<span class="old">${{ product.old_price }}</span>{% endif %}
           </div>
-         
 
           <form method="post" action="{% url 'store-cart-add' slug=product.slug %}" style="margin-top:1rem">
             {% csrf_token %}
-            <label class="section__desc" for="qty">Количество</label>
+            <label class="section__desc" for="qty">Quantity</label>
             <div style="display:flex;gap:.5rem;align-items:center;margin-top:.35rem">
               <input class="field" id="qty" name="qty" type="number" min="1" value="1" style="width:110px">
-              <button class="btn btn--primary" type="submit">Добавить в корзину</button>
-              <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Купить сейчас</button>
+              <button class="btn btn--primary" type="submit">Add to cart</button>
+              <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Buy now</button>
             </div>
           </form>
         </div>
 
         {% if product.specs %}
           <div class="card" style="margin-top:1rem">
-            <h3 style="font-weight:900;margin-bottom:.4rem">Характеристики</h3>
-            <div class="section__desc">
-              {{ product.specs|linebreaks }} {# или отрисуй JSON/Markdown как хранится #}
-            </div>
+            <h3 style="font-weight:900;margin-bottom:.4rem">Specifications</h3>
+
+            <!-- контейнер, куда JS отрисует таблицу -->
+            <div id="specs-table"></div>
+
+            <!-- фоллбек без JS -->
+            <noscript>
+              <dl class="specs">
+                {% for k, v in product.specs.items %}
+                  <div class="specs__row">
+                    <dt class="specs__k">{{ k|title }}</dt>
+                    <dd class="specs__v">{{ v }}</dd>
+                  </div>
+                {% endfor %}
+              </dl>
+            </noscript>
+
+            {# безопасный JSON прямо в шаблоне (встроенный фильтр Django) #}
+            {{ product.specs|json_script:"product-specs-json" }}
           </div>
         {% endif %}
 
-        {% if product.compatibility %}
-          <div class="card" style="margin-top:1rem">
-            <h3 style="font-weight:900;margin-bottom:.4rem">Совместимость</h3>
-            <div class="section__desc">{{ product.compatibility|linebreaks }}</div>
-          </div>
-        {% endif %}
+        {# Compatibility: сначала из M2M, иначе из текстового поля (если есть) #}
+        {% with compat_qs=product.compatible_models.all %}
+          {% if compat_qs %}
+            <div class="card" style="margin-top:1rem">
+              <h3 style="font-weight:900;margin-bottom:.4rem">Compatibility</h3>
+              <ul class="compat">
+                {% for cm in compat_qs %}
+                  <li>{{ cm.make.name }} {{ cm.name }}{% if cm.year_from %} {{ cm.year_from }}{% if cm.year_to %}–{{ cm.year_to }}{% endif %}{% endif %}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% elif product.compatibility %}
+            <div class="card" style="margin-top:1rem">
+              <h3 style="font-weight:900;margin-bottom:.4rem">Compatibility</h3>
+              <div class="section__desc">{{ product.compatibility|linebreaks }}</div>
+            </div>
+          {% endif %}
+        {% endwith %}
       </div>
     </div>
 
     {% if related %}
-    <div class="section__head" style="margin-top:1.6rem">
-      <h3 class="section__title">Похожие товары</h3>
-    </div>
-    <div class="grid grid--cards">
-      {% for p in related %}
-        <article class="card">
-          <a href="{% url 'store-product' slug=p.slug %}">
-            {% if p.main_image %}<img class="card__img" src="{{ p.main_image.url }}" alt="{{ p.name }}">{% else %}<div class="card__img"></div>{% endif %}
-            <h4 style="margin-top:.6rem">{{ p.name }}</h4>
-            <div class="price" style="margin-top:.2rem"><strong>${{ p.price }}</strong></div>
-          </a>
-        </article>
-      {% endfor %}
-    </div>
+      <div class="section__head" style="margin-top:1.6rem">
+        <h3 class="section__title">Related products</h3>
+      </div>
+      <div class="grid grid--cards">
+        {% for p in related %}
+          <article class="card">
+            <a href="{% url 'store-product' slug=p.slug %}">
+              {% if p.main_image %}
+                <img class="card__img" src="{{ p.main_image.url }}" alt="{{ p.name }}">
+              {% else %}
+                <div class="card__img" style="aspect-ratio:16/9"></div>
+              {% endif %}
+              <h4 style="margin-top:.6rem">{{ p.name }}</h4>
+              <div class="price" style="margin-top:.2rem"><strong>${{ p.price }}</strong></div>
+            </a>
+          </article>
+        {% endfor %}
+      </div>
     {% endif %}
   </div>
 </section>
+
+<style>
+  .specs{margin:0; padding:.4rem .6rem}
+  .specs__row{display:grid; grid-template-columns: 180px 1fr; gap:.6rem; padding:.35rem 0; border-bottom:1px solid var(--card-border)}
+  .specs__row:last-child{border-bottom:none}
+  .specs__k{font-weight:700; color:var(--ink)}
+  .specs__v{color:var(--muted)}
+  .compat{margin:.2rem 0 0;padding-left:1.1rem}
+  .compat li{margin:.2rem 0}
+</style>
+
+<script>
+  (function () {
+    var el = document.getElementById('product-specs-json');
+    var mount = document.getElementById('specs-table');
+    if (!el || !mount) return;
+
+    try {
+      var specs = JSON.parse(el.textContent || '{}');
+      if (!specs || typeof specs !== 'object') return;
+
+      // build table
+      var table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.style.background = 'rgba(255,255,255,.03)';
+      table.style.borderRadius = '8px';
+
+      Object.keys(specs).forEach(function (key) {
+        var tr = document.createElement('tr');
+
+        var th = document.createElement('th');
+        th.textContent = key.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+        th.style.textAlign = 'left';
+        th.style.padding = '.35rem .6rem';
+        th.style.whiteSpace = 'nowrap';
+
+        var td = document.createElement('td');
+        var val = specs[key];
+
+        // pretty print value (list/dict/scalar)
+        var text;
+        if (Array.isArray(val)) {
+          text = val.join(', ');
+        } else if (val && typeof val === 'object') {
+          text = Object.keys(val).map(function(k){ return k + ': ' + val[k]; }).join('; ');
+        } else {
+          text = String(val);
+        }
+        td.textContent = text;
+        td.style.padding = '.35rem .6rem';
+        td.style.color = 'var(--ink)';
+        td.style.opacity = .9;
+
+        tr.appendChild(th);
+        tr.appendChild(td);
+        table.appendChild(tr);
+      });
+
+      mount.appendChild(table);
+    } catch (e) {
+      // silent fail — оставим noscript-версию/ничего
+    }
+  })();
+</script>
 {% endblock %}
