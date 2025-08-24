@@ -269,7 +269,7 @@ def checkout(request):
                 request.session.modified = True
 
             messages.success(request, f"Заказ успешно создан. Спасибо! Номер: #{order.id}")
-            return redirect("store:store-home")
+            return redirect("store:store")
 
     return render(
         request,
