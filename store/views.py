@@ -14,24 +14,99 @@ from .models import Category, Order, OrderItem, Product
 
 # ────────────────────────── Публичные страницы ──────────────────────────
 
+from django.db.models import Q
+from django.shortcuts import render, get_object_or_404
+from .models import Product, Category, CarMake, CarModel
+from .forms_store import ProductFilterForm
+
+def _apply_filters(qs, form: ProductFilterForm):
+    """
+    Применяет фильтры категории/совместимости к QuerySet продуктов.
+    """
+    if not form.is_valid():
+        return qs
+
+    cat   = form.cleaned_data.get("category")
+    make  = form.cleaned_data.get("make")
+    model = form.cleaned_data.get("model")
+    year  = form.cleaned_data.get("year")
+
+    if cat:
+        qs = qs.filter(category=cat)
+
+    if model:
+        qs = qs.filter(compatible_models=model)
+    elif make:
+        qs = qs.filter(compatible_models__make=make)
+
+    if year:
+        qs = qs.filter(
+            compatible_models__year_from__lte=year
+        ).filter(
+            Q(compatible_models__year_to__isnull=True) | Q(compatible_models__year_to__gte=year)
+        )
+
+    return qs.distinct()
+
+
 def store_home(request):
-    categories = Category.objects.annotate(product_count=Count("products")).order_by("name")
-    products = (
+    categories = Category.objects.all()  # Meta.ordering = ["name"]
+    form = ProductFilterForm(request.GET or None)
+
+    base_qs = (
         Product.objects.filter(is_active=True)
         .select_related("category")
-        .order_by("-created_at")[:12]
+        .prefetch_related("compatible_models")
+        .order_by("-created_at")
     )
-    return render(request, "store/store_home.html", {"categories": categories, "products": products})
+
+    filtered_qs = _apply_filters(base_qs, form)
+
+    # Блок "New arrivals" показываем только если фильтр НЕ применён
+    filters_active = form.is_valid() and any(form.cleaned_data.values())
+    new_arrivals = None if filters_active else base_qs[:8]
+
+    # Секции по всем категориям (по очереди, например по 8 товаров на секцию)
+    sections = []
+    for c in categories:
+        cat_qs = (
+            Product.objects.filter(is_active=True, category=c)
+            .order_by("-created_at")[:8]
+        )
+        if cat_qs:
+            sections.append((c, cat_qs))
+
+    context = {
+        "categories": categories,
+        "filter_form": form,
+        "filters_active": filters_active,
+        "products": filtered_qs[:24],  # общий грид результатов при активных фильтрах
+        "new_arrivals": new_arrivals,
+        "sections": sections,
+    }
+    return render(request, "store/store_home.html", context)
 
 
-def category_list(request, slug: str):
+def category_list(request, slug):
     category = get_object_or_404(Category, slug=slug)
-    products = (
+    form = ProductFilterForm(request.GET or None, initial={"category": category.id})
+
+    base_qs = (
         Product.objects.filter(is_active=True, category=category)
         .select_related("category")
-        .order_by("name")
+        .prefetch_related("compatible_models")
+        .order_by("-created_at")
     )
-    return render(request, "store/category_list.html", {"category": category, "products": products})
+    products = _apply_filters(base_qs, form)
+
+    context = {
+        "category": category,
+        "filter_form": form,
+        "products": products,
+        "filters_active": True,
+    }
+    return render(request, "store/category_list.html", context)
+
 
 
 def product_detail(request, slug: str):

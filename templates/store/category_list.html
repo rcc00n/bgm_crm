@@ -3,14 +3,14 @@
 
 {% block body %}
 {% if category.image %}
-<section class="hero" style="background:
+<section class="hero hero--cat" style="background:
   linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.85)),
   url('{{ category.image.url }}') center/cover no-repeat;">
-  <div class="container" style="padding:2.2rem 0">
-    <h1 class="title">{{ category.name }}</h1>
-    {% if category.description %}<p class="lead">{{ category.description }}</p>{% endif %}
-    <div style="margin-top:1rem">
-      <a class="btn btn--ghost" href="{% url 'store' %}">← All categories</a>
+  <div class="container hero__inner hero__inner--tight">
+    <div>
+      <h1 class="title">{{ category.name }}</h1>
+      {% if category.description %}<p class="lead">{{ category.description }}</p>{% endif %}
+      <div class="btn-row"><a class="btn btn--ghost" href="{% url 'store' %}">← All categories</a></div>
     </div>
   </div>
 </section>
@@ -28,50 +28,69 @@
   <div class="container">
     <div class="grid grid--cards">
       {% for p in products %}
-        <article class="card">
-          <a href="{% url 'store-product' slug=p.slug %}">
+        <article class="card product">
+          <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
             <div class="card__img">
               {% if p.main_image %}
-                <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;aspect-ratio:16/9">
+                <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
               {% elif p.image %}
-                <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;aspect-ratio:16/9">
+                <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
               {% else %}
-                <div class="ph" aria-hidden="true" style="aspect-ratio:16/9"></div>
+                <div class="ph" aria-hidden="true"></div>
               {% endif %}
             </div>
           </a>
-          <h3 style="margin-top:.6rem"><a href="{% url 'store-product' slug=p.slug %}">{{ p.name }}</a></h3>
-          {% if p.short_description %}<p class="section__desc">{{ p.short_description }}</p>{% endif %}
-          <div class="price" style="margin-top:.4rem">
-            <strong>${{ p.price }}</strong>
-            {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
-          </div>
 
-          <!-- быстрые кнопки -->
-          <div style="margin-top:.6rem;display:flex;gap:.5rem;flex-wrap:wrap">
-            <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
-              <button class="btn btn--primary" type="submit">Add to cart</button>
-            </form>
-            <form method="post" action="{% url 'store-checkout' %}">{% csrf_token %}
-              <input type="hidden" name="buy_now_slug" value="{{ p.slug }}">
-              <button class="btn btn--ghost" type="submit">Buy now</button>
-            </form>
+          <div class="product__meta">
+            <h3 class="product__title"><a href="{% url 'store-product' slug=p.slug %}">{{ p.name }}</a></h3>
+            {% if p.short_description %}<p class="section__desc">{{ p.short_description }}</p>{% endif %}
+            <div class="price">
+              <strong>${{ p.price }}</strong>
+              {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+            </div>
+
+            <!-- quick actions -->
+            <div class="quick row">
+              <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
+                <button class="btn btn--primary" type="submit">Add to cart</button>
+              </form>
+              <form method="post" action="{% url 'store-checkout' %}">{% csrf_token %}
+                <input type="hidden" name="buy_now_slug" value="{{ p.slug }}">
+                <button class="btn btn--ghost" type="submit">Buy now</button>
+              </form>
+            </div>
           </div>
         </article>
       {% empty %}
-        <div class="empty">В этой категории пока нет товаров.</div>
+        <div class="empty">No products in this category yet.</div>
       {% endfor %}
     </div>
   </div>
 </section>
 
 <style>
+  .hero--cat{box-shadow:inset 0 -80px 120px rgba(0,0,0,.35)}
+  .hero__inner--tight{padding:2.2rem 0}
+  .btn-row{display:flex;gap:.6rem;margin-top:.9rem;flex-wrap:wrap}
+
+  .grid--cards{--min:260px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--min),1fr));gap:1rem}
+  .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:transform .18s ease, box-shadow .18s ease}
+  .card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.33)}
+  .card__img{position:relative;overflow:hidden;border-radius:.9rem}
+  .img-fit{width:100%;height:100%;object-fit:cover;aspect-ratio:16/9;display:block}
+
+  .product__meta{padding:.8rem}
+  .product__title{margin:.6rem 0 0}
+  .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
+  .price .old{color:var(--muted);text-decoration:line-through}
+  .quick.row{margin-top:.7rem;display:flex;gap:.5rem;flex-wrap:wrap}
+
   .ph{
-    border-radius:.8rem; width:100%; height:100%; aspect-ratio:16/9;
+    border-radius:.8rem;width:100%;height:100%;aspect-ratio:16/9;
     background:
       radial-gradient(600px 260px at 10% -10%, rgba(213,0,0,.18), transparent 60%),
       linear-gradient(90deg,#111,#151515,#111);
-    background-size:200% 100%; animation:sh 1.2s ease-in-out infinite;
+    background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;
   }
   @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 </style>

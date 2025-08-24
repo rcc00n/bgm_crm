@@ -2,27 +2,54 @@
 {% block title %}BGM — Store{% endblock %}
 
 {% block body %}
-<section class="hero">
+<section class="hero hero--store">
   <div class="container hero__inner">
-    <div>
-      <h1 class="title">Parts & Upgrades</h1>
+    <div class="hero__copy">
+      <h1 class="title">Parts &amp; Upgrades</h1>
       <p class="lead">Performance parts curated by BGM.</p>
-      <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
+      <div class="btn-row">
         <a class="btn btn--primary" href="{% url 'client-dashboard' %}">Book install</a>
         <a class="btn btn--ghost" href="{% url 'store-cart' %}">Open cart</a>
       </div>
     </div>
-    <div class="card" style="display:flex;align-items:center;justify-content:center">Live catalog</div>
+    <div class="hero__live card">Live catalog</div>
   </div>
 </section>
 
 <section class="section">
   <div class="container">
-    <!-- CATEGORIES -->
+
+    {# ================== FILTERS ================== #}
+    <form method="get" class="card filters">
+      <div class="filters__grid">
+        <div class="filters__item">
+          <label>Category</label>
+          {{ filter_form.category }}
+        </div>
+        <div class="filters__item">
+          <label>Make</label>
+          {{ filter_form.make }}
+        </div>
+        <div class="filters__item">
+          <label>Model</label>
+          {{ filter_form.model }}
+        </div>
+        <div class="filters__item">
+          <label>Year</label>
+          {{ filter_form.year }}
+        </div>
+      </div>
+      <div class="filters__actions">
+        <button class="btn btn--primary" type="submit">Apply filters</button>
+        <a class="btn btn--ghost" href="{% url 'store' %}">Clear</a>
+      </div>
+    </form>
+
+    {# ================== CATEGORIES ================== #}
     <div class="section__head">
       <div>
         <h2 class="section__title">Categories</h2>
-        <p class="section__desc">Выбери раздел</p>
+        <p class="section__desc">Pick a category to explore</p>
       </div>
     </div>
 
@@ -35,63 +62,182 @@
             {% else %}
               <div class="ph" aria-hidden="true"></div>
             {% endif %}
+            <div class="cat__overlay">
+              <span class="cat__title">{{ c.name }}</span>
+              <span class="cat__arrow" aria-hidden="true">→</span>
+            </div>
           </div>
-          <h3 style="margin-top:.6rem">{{ c.name }}</h3>
           {% if c.description %}
-            <p class="section__desc">{{ c.description|truncatewords:18 }}</p>
+            <p class="section__desc cat__desc">{{ c.description|truncatewords:18 }}</p>
           {% endif %}
         </a>
       {% empty %}
-        <p class="section__desc">Категорий пока нет.</p>
+        <p class="section__desc">No categories yet.</p>
       {% endfor %}
     </div>
 
-    <!-- NEW ARRIVALS -->
-    <div class="section__head" style="margin-top:2rem">
-      <div><h2 class="section__title">New arrivals</h2></div>
-      <a class="btn btn--ghost" href="{% url 'store-cart' %}">Cart</a>
+    {# ================== RESULTS (visible when filters are active) ================== #}
+    {% if filters_active %}
+      <div class="section__head" style="margin-top:1.6rem">
+        <div>
+          <h2 class="section__title">Results</h2>
+          <p class="section__desc">Filtered products</p>
+        </div>
+      </div>
+
+      <div class="grid grid--cards">
+        {% for p in products %}
+          <article class="card product">
+            <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
+              <div class="card__img">
+                {% if p.main_image %}
+                  <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                {% elif p.image %}
+                  <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                {% else %}
+                  <div class="ph" aria-hidden="true"></div>
+                {% endif %}
+              </div>
+              <div class="product__meta">
+                <h3 class="product__title">{{ p.name }}</h3>
+                <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
+                <div class="price">
+                  <strong>${{ p.price }}</strong>
+                  {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                </div>
+              </div>
+            </a>
+          </article>
+        {% empty %}
+          <p class="section__desc">No products found.</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# ================== NEW ARRIVALS ================== #}
+    {% if new_arrivals %}
+      <div class="section__head" style="margin-top:2rem">
+        <div><h2 class="section__title">New arrivals</h2></div>
+        <a class="btn btn--ghost" href="{% url 'store-cart' %}">Cart</a>
+      </div>
+
+      <div class="grid grid--cards">
+        {% for p in new_arrivals %}
+          <article class="card product">
+            <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
+              <div class="card__img">
+                {% if p.main_image %}
+                  <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                {% elif p.image %}
+                  <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                {% else %}
+                  <div class="ph" aria-hidden="true"></div>
+                {% endif %}
+              </div>
+              <div class="product__meta">
+                <h3 class="product__title">{{ p.name }}</h3>
+                <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
+                <div class="price">
+                  <strong>${{ p.price }}</strong>
+                  {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                </div>
+              </div>
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# ================== BROWSE BY CATEGORY (sections) ================== #}
+    <div class="section__head" style="margin-top:1.8rem">
+      <div>
+        <h2 class="section__title">Browse by category</h2>
+        <p class="section__desc">Explore all categories</p>
+      </div>
     </div>
 
-    <div class="grid grid--cards">
-      {% for p in products %}
-        <article class="card">
-          <a href="{% url 'store-product' slug=p.slug %}">
-            <div class="card__img">
-              {% if p.main_image %}
-                <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;aspect-ratio:16/9">
-              {% elif p.image %}
-                <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;aspect-ratio:16/9">
-              {% else %}
-                <div class="ph" aria-hidden="true" style="aspect-ratio:16/9"></div>
-              {% endif %}
-            </div>
-            <h3 style="margin-top:.6rem">{{ p.name }}</h3>
-            <p class="section__desc">{{ p.short_description|default:p.category.name }}</p>
-            <div class="price" style="margin-top:.4rem">
-              <strong>${{ p.price }}</strong>
-              {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
-             
-            </div>
-          </a>
-        </article>
-      {% empty %}
-        <p class="section__desc">Товаров пока нет.</p>
-      {% endfor %}
-    </div>
+    {% for cat, items in sections %}
+      <div class="section__head" style="margin-top:1rem">
+        <div><h3 class="section__title" style="font-size:1.1rem">{{ cat.name }}</h3></div>
+        <div><a class="btn btn--ghost" href="{% url 'store-category' slug=cat.slug %}">View all</a></div>
+      </div>
+      <div class="grid grid--cards">
+        {% for p in items %}
+          <article class="card product">
+            <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
+              <div class="card__img">
+                {% if p.main_image %}
+                  <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                {% elif p.image %}
+                  <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                {% else %}
+                  <div class="ph" aria-hidden="true"></div>
+                {% endif %}
+              </div>
+              <div class="product__meta">
+                <h3 class="product__title">{{ p.name }}</h3>
+                <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
+                <div class="price">
+                  <strong>${{ p.price }}</strong>
+                  {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                </div>
+              </div>
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
   </div>
 </section>
 
-<!-- Небольшая стилизация для обложек -->
 <style>
-  .cat { display:block; }
-  .cat__img{ position:relative; overflow:hidden; border-radius:.8rem; }
-  .cat__img img{ width:100%; height:100%; object-fit:cover; aspect-ratio:16/9; display:block; }
+  .hero--store {background: linear-gradient(180deg, rgba(213,0,0,.06), transparent 60%);}
+  .hero__copy .btn-row{display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap}
+  .hero__live{display:flex;align-items:center;justify-content:center;min-height:110px}
+
+  .grid--cards{--min:260px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--min),1fr));gap:1rem}
+  .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:transform .18s ease, box-shadow .18s ease}
+  .card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.33)}
+  .card__img{position:relative;overflow:hidden;border-radius:.9rem}
+  .img-fit{width:100%;height:100%;object-fit:cover;aspect-ratio:16/9;display:block}
+
+  /* Filters */
+  .filters{padding:1rem;background:var(--card-bg);border:1px solid var(--card-border);margin-bottom:1.2rem}
+  .filters__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}
+  .filters__item label{display:block;margin:0 0 .35rem .1rem;color:var(--muted);font-size:.9rem}
+  .filters__actions{display:flex;gap:.6rem;margin-top:.8rem}
+  .filters select,.filters input{
+    width:100%; background:var(--field-bg); color:var(--ink);
+    border:1px solid var(--card-border); border-radius:.6rem; padding:.55rem .7rem;
+  }
+
+  /* Categories */
+  .cat{display:block;padding:.6rem}
+  .cat__img img{width:100%;height:100%;object-fit:cover;aspect-ratio:16/9;display:block;filter:saturate(1.02)}
+  .cat__overlay{
+    position:absolute;inset:auto 0 0 0;display:flex;align-items:center;justify-content:space-between;
+    padding:.7rem .9rem;background:linear-gradient(180deg, transparent, rgba(0,0,0,.55));
+  }
+  .cat__title{font-weight:700;color:var(--ink)}
+  .cat__arrow{opacity:.9;transform:translateX(0);transition:transform .18s ease}
+  .cat:hover .cat__arrow{transform:translateX(3px)}
+  .cat__desc{margin:.5rem .25rem 0}
+
+  /* Product */
+  .product__link{display:block;color:inherit;text-decoration:none}
+  .product__meta{padding:.7rem .8rem}
+  .product__title{margin:.6rem 0 0}
+  .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
+  .price .old{color:var(--muted);text-decoration:line-through}
+
+  /* Skeleton */
   .ph{
-    border-radius:.8rem; width:100%; height:100%; aspect-ratio:16/9;
+    border-radius:.8rem;width:100%;height:100%;aspect-ratio:16/9;
     background:
       radial-gradient(600px 260px at 10% -10%, rgba(213,0,0,.18), transparent 60%),
       linear-gradient(90deg,#111,#151515,#111);
-    background-size:200% 100%; animation:sh 1.2s ease-in-out infinite;
+    background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;
   }
   @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 </style>
