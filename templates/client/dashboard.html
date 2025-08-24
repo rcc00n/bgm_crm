@@ -4,68 +4,36 @@
   <meta charset="utf-8" />
   <title>Bad Guy Motors | Client Portal</title>
 
-  <!-- Tailwind (можно оставить — мы не ломаем классы) -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
-
-  <!-- Chart.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-  <!-- ===== BGM: ядро темы + дым ===== -->
   <style>
     :root{
-      --bg:#000;           /* чёрный фон */
-      --ink:#fff;          /* белый текст */
-      --muted:rgba(255,255,255,.70);
-      --muted-2:rgba(255,255,255,.55);
-      --red:#d50000;       /* акцент */
-      --grid:rgba(255,255,255,.12);
-      --panel:rgba(255,255,255,.03);
-      --panel-2:rgba(255,255,255,.06);
-      --ring:rgba(213,0,0,.5);
-      --chip:rgba(255,255,255,.06);
-      --busy:#444;         /* занятый слот – тёмно-серый */
-      --radius:14px;
-      --shadow:0 12px 28px rgba(0,0,0,.6);
+      --bg:#000; --ink:#fff; --muted:rgba(255,255,255,.70); --muted-2:rgba(255,255,255,.55);
+      --red:#d50000; --grid:rgba(255,255,255,.12); --panel:rgba(255,255,255,.03); --panel-2:rgba(255,255,255,.06);
+      --ring:rgba(213,0,0,.5); --chip:rgba(255,255,255,.06); --busy:#444; --radius:14px; --shadow:0 12px 28px rgba(0,0,0,.6);
     }
-
     html, body{height:100%}
-    body{
-      background:var(--bg); color:var(--ink);
-      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
-      letter-spacing:.2px;
-    }
+    body{background:var(--bg); color:var(--ink); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif; letter-spacing:.2px}
 
-    /* ===== ДЫМ поверх фона (фиксированный, клики пропускает) */
     .smoke{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden}
-    .smoke span{
-      position:absolute; bottom:-220px; border-radius:50%;
-      background:radial-gradient(rgba(255,255,255,.35), rgba(255,255,255,0) 70%);
-      filter:blur(28px); opacity:0; will-change:transform,opacity;
-      animation:rise 24s linear infinite;
-    }
-    @keyframes rise{
-      0%,100%{transform:translateY(0) scale(.4); opacity:0}
-      10%{opacity:.45}
-      50%{opacity:.25}
-      100%{transform:translateY(-120vh) scale(1.8); opacity:0}
-    }
+    .smoke span{position:absolute; bottom:-220px; border-radius:50%; background:radial-gradient(rgba(255,255,255,.35), rgba(255,255,255,0) 70%);
+      filter:blur(28px); opacity:0; will-change:transform,opacity; animation:rise 24s linear infinite}
+    @keyframes rise{0%,100%{transform:translateY(0) scale(.4); opacity:0}10%{opacity:.45}50%{opacity:.25}100%{transform:translateY(-120vh) scale(1.8); opacity:0}}
 
-    /* ===== Лэйаут ===== */
     .app-wrap{position:relative; z-index:1; min-height:100vh; display:flex}
 
-    /* ===== Сайдбар ===== */
     .sidebar{width:16rem; background:linear-gradient(180deg, #070707 0%, #0b0b0b 100%); border-right:1px solid var(--grid); box-shadow:var(--shadow)}
     .brand{padding:1.25rem 1.5rem; display:flex; align-items:center; gap:.6rem; font-weight:900; letter-spacing:.8px; text-transform:uppercase}
     .brand .mark{color:var(--ink); background:var(--red); padding:.15rem .45rem; border-radius:10px; font-size:.95rem}
     .brand .name{color:#fff; opacity:.9}
-    #sidebar a, #sidebar button{color:var(--muted); }
+    #sidebar a, #sidebar button{color:var(--muted)}
     .sidebar-link{display:flex; align-items:center; gap:.8rem; padding:.6rem .9rem; border-left:3px solid transparent; border-radius:10px; transition:.2s}
     .sidebar-link:hover{background:rgba(255,255,255,.04); color:#fff}
     .sidebar-link.is-active{background:rgba(213,0,0,.18); border-left-color:var(--red); color:#fff}
     .logout-btn{width:100%; text-align:left; border-left:3px solid transparent; border-radius:10px; padding:.6rem .9rem}
     .logout-btn:hover{background:rgba(255,255,255,.04); color:#fff}
 
-    /* ===== Главная колонка ===== */
     main{flex:1; padding:2rem; overflow-y:auto; background:
       radial-gradient(1200px 60vh at 80% -10%, rgba(213,0,0,.10), transparent 60%),
       radial-gradient(1000px 50vh at 10% 110%, rgba(255,255,255,.05), transparent 60%)
@@ -73,27 +41,21 @@
     h1,h2,h3{color:#fff}
     .kicker{color:var(--muted)}
 
-    /* ===== Карточки / таблицы ===== */
     .panel{background:var(--panel); border:1px solid var(--grid); border-radius:var(--radius); box-shadow:var(--shadow)}
     .panel-strong{background:var(--panel-2)}
     .panel-pad{padding:1.25rem}
     .table th{background:rgba(213,0,0,.18); color:#fff}
     .table td, .table th{border-bottom:1px solid var(--grid)}
-    .muted{color:var(--muted)}
-    .muted-2{color:var(--muted-2)}
-    .ink{color:#fff}
+    .muted{color:var(--muted)} .muted-2{color:var(--muted-2)} .ink{color:#fff}
 
-    /* ===== Кнопки ===== */
     .btn{display:inline-flex; align-items:center; gap:.5rem; padding:.6rem 1rem; border-radius:10px; font-weight:800; transition:.18s; white-space:nowrap}
     .btn:disabled{opacity:.5; cursor:not-allowed}
     .btn-primary{background:var(--red); color:#fff; border:1px solid rgba(255,255,255,.1)}
     .btn-primary:hover{filter:brightness(1.03); transform:translateY(-1px); box-shadow:0 8px 16px rgba(213,0,0,.35)}
     .btn-ghost{background:transparent; color:#fff; border:1px solid var(--grid)}
     .btn-ghost:hover{background:rgba(255,255,255,.06)}
-    .link{color:#fff; text-underline-offset:4px}
-    .link:hover{color:var(--red); text-decoration:underline}
+    .link{color:#fff; text-underline-offset:4px} .link:hover{color:var(--red); text-decoration:underline}
 
-    /* ===== Горизонтальный дейтпикер в модалке ===== */
     .ol2{display:flex;flex-direction:column;border:1px solid var(--grid);border-radius:12px;background:rgba(0,0,0,.35);backdrop-filter:saturate(1.2) blur(2px);overflow:visible}
     .ol2__toolbar{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border-bottom:1px solid var(--grid)}
     .ol2__wrap{flex:1 1 auto;overflow-x:auto;overflow-y:auto;max-height:56vh;min-height:300px;padding-bottom:10px;scrollbar-gutter:stable both-edges}
@@ -105,14 +67,12 @@
     .ol2__day .t{font-weight:900;font-size:.92rem;color:#fff;text-transform:capitalize}
     .ol2__day .s{font-size:.75rem;color:var(--muted)}
     .ol2__day.today{background:rgba(213,0,0,.12)}
-
     .chip{display:inline-flex;align-items:center;justify-content:center;height:1.7rem;min-width:3.4rem;padding:0 .45rem;border-radius:.5rem;border:1.6px solid transparent;font-weight:900;font-size:.9rem;line-height:1;user-select:none}
     .chip--free{color:#fff;border-color:rgba(255,255,255,.35);background:var(--chip);cursor:pointer}
     .chip--free:hover{filter:brightness(1.05)}
     .chip--busy{color:#aaa;background:var(--busy);opacity:.9; cursor:not-allowed}
     .chip--sel{background:var(--red)!important;color:#fff;border-color:var(--red)!important;box-shadow:0 0 0 2px var(--ring)}
 
-    /* ===== Модалка ===== */
     .modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:1rem; z-index:50}
     .modal--open{display:flex}
     .modal__dialog{background:linear-gradient(180deg, rgba(15,15,15,.98), rgba(10,10,10,.98)); border:1px solid var(--grid); border-radius:16px; width:min(64rem, 96vw); padding:1rem; color:#fff; box-shadow:var(--shadow)}
@@ -122,57 +82,50 @@
     .grid-2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:1rem; padding:1rem 0}
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:var(--muted)}
-    .field input,.field select, .field textarea{
-      background:#0b0b0b; color:#fff; border:1px solid var(--grid); border-radius:10px; padding:.6rem .8rem; font-size:.95rem;
-    }
+    .field input,.field select, .field textarea{background:#0b0b0b; color:#fff; border:1px solid var(--grid); border-radius:10px; padding:.6rem .8rem; font-size:.95rem}
     .hint{color:var(--muted-2); font-size:.85rem}
     .error{color:#ff6b6b; font-size:.9rem; margin-top:.5rem}
     .success{color:#33d17a; font-size:.95rem; margin-top:.5rem}
 
-    @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .ol2__wrap{max-height:50vh} }
+    .badge{display:inline-block;padding:.18rem .55rem;border-radius:999px;font-weight:800;font-size:.78rem;color:#fff;border:1px solid rgba(255,255,255,.12)}
+    .st-processing{background:#f5a623}
+    .st-shipped{background:#2d9cdb}
+    .st-completed{background:#17d45b}
+    .st-cancelled{background:#ff5c72}
 
-    /* Таблица в «Recent appointments» */
+    @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .ol2__wrap{max-height:50vh} }
     table.min-w-full{color:#fff}
   </style>
 </head>
 <body class="h-full">
 
-<!-- ДЫМ -->
 <div class="smoke" id="smoke-layer"></div>
 
 <div class="app-wrap">
-  <!-- ▸▸ SIDEBAR ◂◂ -->
+  <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div class="brand">
-      <span class="mark">BGM</span>
-      <span class="name">Client Portal</span>
-    </div>
+    <div class="brand"><span class="mark">BGM</span><span class="name">Client Portal</span></div>
 
     <nav id="sidebar" class="space-y-1 px-3 text-sm">
-      <a href="#" data-tab="dashboard"      class="sidebar-link">🏁 <span>Overview</span></a>
-      <a href="#" data-tab="appointments"   class="sidebar-link">🗓️ <span>Appointments</span></a>
-      <a href="#" data-tab="files"          class="sidebar-link">📂 <span>Files</span></a>
-      <a href="#" data-tab="notifications"  class="sidebar-link">🔔 <span>Notifications</span></a>
-      <a href="#" data-tab="profile"        class="sidebar-link">🧾 <span>Profile</span></a>
+      <a href="#" data-tab="dashboard"     class="sidebar-link">🏁 <span>Overview</span></a>
+      <a href="#" data-tab="appointments"  class="sidebar-link">🗓️ <span>Appointments</span></a>
+      <a href="#" data-tab="orders"        class="sidebar-link">🛒 <span>Orders</span></a>
+      <a href="#" data-tab="files"         class="sidebar-link">📂 <span>Files</span></a>
+      <a href="#" data-tab="notifications" class="sidebar-link">🔔 <span>Notifications</span></a>
+      <a href="#" data-tab="profile"       class="sidebar-link">🧾 <span>Profile</span></a>
 
       {% url 'home' as home_url %}
-<a href="{{ home_url|default:'/' }}" class="mt-2 sidebar-link">⬅️ <span>Back to Home</span></a>
-
+      <a href="{{ home_url|default:'/' }}" class="mt-2 sidebar-link">⬅️ <span>Back to Home</span></a>
 
       <div class="my-3" style="border-top:1px solid var(--grid)"></div>
-
-      <form method="post" action="{% url 'logout' %}" class="pb-4">
-        {% csrf_token %}
-        <button type="submit" class="logout-btn focus:outline-none">
-          🚪 <span>Sign out</span>
-        </button>
+      <form method="post" action="{% url 'logout' %}" class="pb-4">{% csrf_token %}
+        <button type="submit" class="logout-btn focus:outline-none">🚪 <span>Sign out</span></button>
       </form>
     </nav>
   </aside>
 
-  <!-- ▸▸ MAIN ◂◂ -->
+  <!-- MAIN -->
   <main>
-
     <!-- DASHBOARD -->
     <section id="tab-dashboard" class="tab">
       <h1 class="text-4xl font-black mb-2 tracking-wide">
@@ -181,19 +134,15 @@
       <p class="kicker mb-8">Keep your builds on schedule. No mercy for missed slots.</p>
 
       <div class="grid lg:grid-cols-3 gap-6">
-        <!-- Upcoming appointments -->
+        <!-- Upcoming -->
         <div class="panel panel-pad">
           <h2 class="text-lg font-bold mb-4">Upcoming</h2>
           {% if upcoming_appointments %}
             <ul class="space-y-4 max-h-64 overflow-y-auto pr-1">
               {% for a in upcoming_appointments %}
                 <li data-appt-id="{{ a.id }}">
-                  <p class="font-semibold ink">
-                    {{ a.start_time|localtime|date:"d M Y, H:i" }}
-                  </p>
-                  <p class="text-sm muted">
-                    {{ a.service.name }} · {{ a.master.get_full_name }}
-                  </p>
+                  <p class="font-semibold ink">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
+                  <p class="text-sm muted">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
                   <div class="mt-2 flex gap-4 text-sm">
                     <a href="#" class="appt-cancel link" data-appt-id="{{ a.id }}">Cancel</a>
                     <a href="#" class="appt-reschedule link" data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">Reschedule</a>
@@ -210,13 +159,13 @@
         <div class="panel panel-pad lg:col-span-2 panel-strong">
           <h2 class="text-lg font-bold mb-4">Stats</h2>
           <canvas id="stats_chart"
-                  data-labels="{{ chart_labels|join:',' }}"
-                  data-data="{{ chart_data|join:',' }}"
+                  data-labels="{{ chart_labels|default:''|join:',' }}"
+                  data-data="{{ chart_data|default:''|join:',' }}"
                   class="w-full h-56"></canvas>
         </div>
       </div>
 
-      <!-- Recent appointments -->
+      <!-- Recent -->
       <div class="panel panel-pad mt-8">
         <h2 class="text-lg font-bold mb-4">Recent appointments</h2>
         {% if recent_appointments %}
@@ -282,6 +231,31 @@
       {% endif %}
     </section>
 
+    <!-- ORDERS -->
+    <section id="tab-orders" class="tab hidden">
+      <div class="flex items-center mb-6">
+        <h2 class="text-2xl font-bold">My orders</h2>
+        <a href="{% url 'store' %}" class="ml-auto btn btn-ghost">Go to products</a>
+      </div>
+
+      {# Чёткие фолбеки источника заказов #}
+      {% if orders %}
+        {% with orders_qs=orders %}
+          {% include "client/_orders_list.html" %}
+        {% endwith %}
+      {% elif request.user.is_authenticated and request.user.orders.all %}
+        {% with orders_qs=request.user.orders.all %}
+          {% include "client/_orders_list.html" %}
+        {% endwith %}
+      {% elif request.user.is_authenticated and request.user.order_set.all %}
+        {% with orders_qs=request.user.order_set.all %}
+          {% include "client/_orders_list.html" %}
+        {% endwith %}
+      {% else %}
+        <p class="muted-2">No orders yet.</p>
+      {% endif %}
+    </section>
+
     <!-- FILES -->
     <section id="tab-files" class="tab hidden">
       <h2 class="text-2xl font-bold mb-6">Files</h2>
@@ -304,9 +278,7 @@
       <div class="md:col-span-2 rounded-lg border border-red-500/50 bg-red-500/10 text-white px-4 py-3 text-sm">
         <ul class="list-disc ms-5">
           {% for field, errs in profile_form_errors.items %}
-            {% for e in errs %}
-              <li>{{ e }}</li>
-            {% endfor %}
+            {% for e in errs %}<li>{{ e }}</li>{% endfor %}
           {% endfor %}
         </ul>
       </div>
@@ -314,40 +286,79 @@
 
     <section id="tab-profile" class="tab hidden">
       <h2 class="text-2xl font-bold mb-6">Profile</h2>
-
       <form method="post" class="grid md:grid-cols-2 gap-6 panel panel-pad">
         {% csrf_token %}
-        <div>
-          <label class="block text-sm muted">First name</label>
-          <input type="text" name="first_name" value="{{ request.user.first_name }}">
-        </div>
-        <div>
-          <label class="block text-sm muted">Last name</label>
-          <input type="text" name="last_name" value="{{ request.user.last_name }}">
-        </div>
-        <div>
-          <label class="block text-sm muted">Phone</label>
-          <input type="text" name="phone" value="{{ profile.phone }}">
-        </div>
-        <div>
-          <label class="block text-sm muted">E-mail</label>
-          <input type="email" name="email" value="{{ request.user.email }}">
-        </div>
-        <div>
-          <label class="block text-sm muted">Birth date</label>
-          <input type="date" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}">
-        </div>
-
-        <div class="md:col-span-2 text-right">
-          <button type="submit" class="btn btn-ghost">Save changes</button>
-        </div>
+        <div><label class="block text-sm muted">First name</label><input type="text" name="first_name" value="{{ request.user.first_name }}"></div>
+        <div><label class="block text-sm muted">Last name</label><input type="text" name="last_name" value="{{ request.user.last_name }}"></div>
+        <div><label class="block text-sm muted">Phone</label><input type="text" name="phone" value="{{ profile.phone }}"></div>
+        <div><label class="block text-sm muted">E-mail</label><input type="email" name="email" value="{{ request.user.email }}"></div>
+        <div><label class="block text-sm muted">Birth date</label><input type="date" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}"></div>
+        <div class="md:col-span-2 text-right"><button type="submit" class="btn btn-ghost">Save changes</button></div>
       </form>
     </section>
-
   </main>
 </div>
 
-<!-- ▸▸ MODAL: Reschedule (горизонтальный пикер слотов) ◂◂ -->
+{# ===== ORDERS PARTIAL ===== #}
+{% comment %}
+Сохрани этот кусок как templates/client/_orders_list.html,
+или оставь ниже inline — я дублирую для самодостаточности.
+{% endcomment %}
+{% if False %}
+{% endif %}
+{% with _=1 %}
+<div hidden id="__orders_partial__"></div>
+{% endwith %}
+<script id="orders-partial-template" type="text/template">
+{% verbatim %}
+{% endverbatim %}
+</script>
+{% comment %} Inline render instead of partial include {% endcomment %}
+{% if orders_qs %}
+<div id="__orders_list">
+  <div class="space-y-3">
+    {% for o in orders_qs %}
+      <div class="panel panel-pad">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="text-sm muted">Order</div>
+          <div class="font-bold">#{{ o.id }}</div>
+          <div class="text-sm muted">
+            · {{
+              o.created_at|default:o.shipped_at|default:o.completed_at|default:o.cancelled_at
+              |localtime|date:"d M Y, H:i"
+            }}
+          </div>
+          <div class="ml-auto flex items-center gap-3">
+            <span class="badge st-{{ o.status|default:'processing' }}">
+              {{ o.status_label|default:o.get_status_display|default:o.status }}
+            </span>
+            <div class="font-bold">${{ o.total|floatformat:2 }}</div>
+          </div>
+        </div>
+
+        {% with items=o.items.all %}
+          {% if items %}
+            <div class="mt-3 border-t border-[color:var(--grid)] pt-3">
+              {% for it in items %}
+                <div class="flex items-center justify-between py-1 text-sm">
+                  <div class="truncate">
+                    <span class="font-semibold">{{ it.product.name }}</span>
+                    {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
+                  </div>
+                  <div class="muted-2">x {{ it.qty }}</div>
+                  <div class="font-semibold">${{ it.subtotal|floatformat:2 }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ===== MODAL: Reschedule (полная версия) ===== -->
 <div id="resModal" class="modal">
   <div class="modal__dialog">
     <div class="modal__header">
@@ -390,43 +401,43 @@
   </div>
 </div>
 
-<!-- ▸▸ JS ◂◂ -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  /* ==== ДЫМ (20 «клубов») ==== */
+  /* ==== дым ==== */
   const smokeLayer = document.getElementById("smoke-layer");
-  const PUFFS = 20;
-  for (let i = 0; i < PUFFS; i++) {
-    const puff = document.createElement("span");
-    const size = 80 + Math.random() * 220;
-    puff.style.width = puff.style.height = size + "px";
-    puff.style.left  = Math.random() * 100 + "vw";
-    puff.style.animationDelay = (-Math.random() * 24) + "s";
-    puff.style.animationDuration = (18 + Math.random() * 14) + "s";
-    smokeLayer.appendChild(puff);
+  for (let i=0;i<20;i++){ const s=document.createElement('span'); const size=80+Math.random()*220;
+    s.style.width=s.style.height=size+"px"; s.style.left=Math.random()*100+"vw";
+    s.style.animationDelay=(-Math.random()*24)+"s"; s.style.animationDuration=(18+Math.random()*14)+"s";
+    smokeLayer.appendChild(s);
   }
 
-  /* ==== Табы ==== */
+  /* ==== табы ==== */
   const links = document.querySelectorAll('.sidebar-link');
   const tabs  = document.querySelectorAll('.tab');
   function setActive(el, yes){ el.classList.toggle('is-active', !!yes); }
-  function activate(name){
-    tabs.forEach(t => t.classList.toggle('hidden', t.id !== 'tab-' + name));
-    links.forEach(l => setActive(l, l.dataset.tab === name));
-  }
-  const allowed = ['dashboard','appointments','files','notifications','profile'];
+  function activate(name){ tabs.forEach(t => t.classList.toggle('hidden', t.id !== 'tab-' + name));
+                           links.forEach(l => setActive(l, l.dataset.tab === name)); }
+  const allowed = ['dashboard','appointments','orders','files','notifications','profile'];
   const initial = allowed.includes(location.hash.replace('#','')) ? location.hash.replace('#','') : 'dashboard';
   activate(initial);
   links.forEach(link => link.addEventListener('click', e => {
-    const tab = link.dataset.tab; if(!tab) return;
-    e.preventDefault(); activate(tab); history.replaceState(null, '', '#'+tab);
+    const tab = link.dataset.tab; if(!tab) return; e.preventDefault(); activate(tab); history.replaceState(null, '', '#'+tab);
   }));
 
-  /* ==== Chart.js (тёмная тема + красный акцент) ==== */
+  /* ==== Chart.js (robust) ==== */
   const el = document.getElementById('stats_chart');
-  if (el) {
-    const labels = el.dataset.labels ? el.dataset.labels.split(',') : [];
-    const data   = el.dataset.data   ? el.dataset.data.split(',').map(Number) : [];
+  if (el && window.Chart){
+    const parseArr = (raw) => {
+      if(!raw) return [];
+      try{
+        const t = raw.trim();
+        if(t.startsWith('[')) return JSON.parse(t);
+      }catch(e){}
+      return String(raw).split(',').map(s=>s.trim()).filter(Boolean);
+    };
+    const labels = parseArr(el.dataset.labels);
+    const data   = parseArr(el.dataset.data).map(Number).filter(v=>!Number.isNaN(v));
+
     new Chart(el, {
       type: 'bar',
       data: { labels, datasets: [{ data, label: 'Appointments', backgroundColor: '#d50000', borderRadius: 8 }] },
@@ -440,13 +451,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ==== Helpers ==== */
+  /* ==== helpers ==== */
   const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
   const fmtHM = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-  const fmtTime = iso => { try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});} catch(e){ return iso; } };
   const ymd = d => { const m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
 
-  /* ==== Cancel (+ визуальное перечёркивание без перезагрузки) ==== */
+  /* ==== Cancel ==== */
   async function cancelAppointment(id){
     if(!confirm('Cancel this appointment?')) return;
     const r = await fetch(`/accounts/api/appointment/${id}/cancel/`, { method:'POST', headers:{'X-CSRFToken': csrftoken}, credentials:'same-origin' });
@@ -482,195 +492,197 @@ document.addEventListener('DOMContentLoaded', () => {
   const rsNext = document.getElementById('rsNext');
   const rsToday= document.getElementById('rsToday');
 
-  const WINDOW_DAYS = 14, START=6, END=23, STEP=30;
+  if (resModal) {
+    const WINDOW_DAYS = 14, START=6, END=23, STEP=30;
 
-  let resState = {
-    apptId:null, serviceId:null, masterId:null, slot:null, masters:[],
-    baseStart: (()=>{const d=new Date(); d.setHours(0,0,0,0); return d;})(),
-    cache: new Map() // dateStr -> { set:Set('HH:MM'), iso:Map('HH:MM'->iso) }
-  };
+    let resState = {
+      apptId:null, serviceId:null, masterId:null, slot:null, masters:[],
+      baseStart: (()=>{const d=new Date(); d.setHours(0,0,0,0); return d;})(),
+      cache: new Map() // dateStr -> { set:Set('HH:MM'), iso:Map('HH:MM'->iso) }
+    };
 
-  function openRes(apptId, serviceId){
-    resState = { ...resState, apptId, serviceId, masterId:null, slot:null, masters:[], cache:new Map() };
-    resMaster.innerHTML = '';
-    resSubmit.disabled = true;
-    resErr.style.display='none'; resOk.style.display='none';
-    resModal.classList.add('modal--open');
-    loadMastersAndRender();
-  }
-  function closeRes(){ resModal.classList.remove('modal--open'); }
-
-  async function fetchAvail(dayISO, masterId){
-    const params = new URLSearchParams({ service: resState.serviceId, date: dayISO });
-    if (masterId) params.set('master', masterId);
-    const r = await fetch(`/accounts/api/availability/?${params.toString()}`, {credentials:'same-origin'});
-    if(!r.ok) throw new Error('Failed to load slots');
-    const data = await r.json();
-
-    let slots=[];
-    if (masterId){
-      const m=(data.masters||[]).find(x=>Number(x.id)===Number(masterId)); slots = m ? (m.slots||[]) : [];
-    }else{
-      slots = (data.masters && data.masters[0] && data.masters[0].slots) ? data.masters[0].slots : [];
-    }
-    const set=new Set(), map=new Map();
-    (slots||[]).forEach(iso=>{ const d=new Date(iso); const key=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; set.add(key); if(!map.has(key)) map.set(key, iso); });
-    return { raw:data, set, map };
-  }
-
-  async function ensureRangeLoaded(start, days){
-    const jobs=[];
-    for(let i=0;i<days;i++){
-      const d=new Date(start); d.setDate(d.getDate()+i); const ds=ymd(d);
-      if(!resState.cache.has(ds)){
-        jobs.push((async()=>{
-          resState.cache.set(ds, {loading:true});
-          const {set,map}=await fetchAvail(ds, resState.masterId);
-          resState.cache.set(ds,{set,iso:map});
-        })());
-      }
-    }
-    if (jobs.length) await Promise.allSettled(jobs);
-  }
-
-  function buildTimeRows(extraSets){
-    const out=[];
-    for(let h=START;h<=END;h++) for(let m=0;m<60;m+=STEP) out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-    (extraSets||[]).forEach(s=>s && s.forEach(t=>{ if(!out.includes(t)) out.push(t); }));
-    return out.sort();
-  }
-
-  async function loadMastersAndRender(){
-    try{
-      const first = await fetchAvail(ymd(resState.baseStart), null);
-      resState.masters = (first.raw && first.raw.masters) || [];
+    function openRes(apptId, serviceId){
+      resState = { ...resState, apptId, serviceId, masterId:null, slot:null, masters:[], cache:new Map() };
       resMaster.innerHTML = '';
-      if(resState.masters.length===0){
-        resMaster.innerHTML = '<option>No masters available</option>';
-        rsGrid.innerHTML = '<div class="p-4 text-sm muted-2">No availability</div>';
-        return;
+      resSubmit.disabled = true;
+      resErr.style.display='none'; resOk.style.display='none';
+      resModal.classList.add('modal--open');
+      loadMastersAndRender();
+    }
+    function closeRes(){ resModal.classList.remove('modal--open'); }
+
+    async function fetchAvail(dayISO, masterId){
+      const params = new URLSearchParams({ service: resState.serviceId, date: dayISO });
+      if (masterId) params.set('master', masterId);
+      const r = await fetch(`/accounts/api/availability/?${params.toString()}`, {credentials:'same-origin'});
+      if(!r.ok) throw new Error('Failed to load slots');
+      const data = await r.json();
+
+      let slots=[];
+      if (masterId){
+        const m=(data.masters||[]).find(x=>Number(x.id)===Number(masterId)); slots = m ? (m.slots||[]) : [];
+      }else{
+        slots = (data.masters && data.masters[0] && data.masters[0].slots) ? data.masters[0].slots : [];
       }
-      resState.masters.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; resMaster.appendChild(opt); });
-      const withSlots = resState.masters.find(m=>(m.slots||[]).length) || resState.masters[0];
-      resMaster.value = withSlots.id;
-      resState.masterId = Number(resMaster.value);
-      resState.cache.clear();
-      await renderWindow();
-    }catch(e){
-      resErr.textContent = e.message || 'Unable to fetch availability';
-      resErr.style.display='block';
+      const set=new Set(), map=new Map();
+      (slots||[]).forEach(iso=>{ const d=new Date(iso); const key=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; set.add(key); if(!map.has(key)) map.set(key, iso); });
+      return { raw:data, set, map };
     }
-  }
 
-  async function renderWindow(){
-    await ensureRangeLoaded(resState.baseStart, WINDOW_DAYS);
-
-    const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(resState.baseStart); d.setDate(d.getDate()+i); return d;});
-    const dayStrs = days.map(ymd);
-    const dayData = dayStrs.map(ds => resState.cache.get(ds));
-    const timeRows = buildTimeRows(dayData.map(x=>x?.set));
-
-    const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
-    const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
-    rsRange.textContent = `${from} – ${to}`;
-    rsGrid.style.setProperty('--days', String(WINDOW_DAYS));
-    rsGrid.innerHTML='';
-
-    const corner=document.createElement('div'); corner.className='ol2__cell ol2__head time'; rsGrid.appendChild(corner);
-
-    days.forEach(d=>{
-      const h=document.createElement('div');
-      h.className='ol2__cell ol2__head';
-      const today = (new Date()).toDateString()===d.toDateString();
-      h.innerHTML = `<div class="ol2__day ${today?'today':''}">
-        <div class="t">${d.toLocaleDateString([], {weekday:'long'})}</div>
-        <div class="s">${d.toLocaleDateString([], {month:'short', day:'numeric'})}</div>
-      </div>`;
-      rsGrid.appendChild(h);
-    });
-
-    timeRows.forEach(t=>{
-      const [hh,mm]=t.split(':').map(Number);
-      const fake=new Date(); fake.setHours(hh,mm,0,0);
-      const timeCell=document.createElement('div');
-      timeCell.className='ol2__cell time'; timeCell.textContent = fmtHM(fake);
-      rsGrid.appendChild(timeCell);
-
-      days.forEach((d, idx)=>{
-        const cell=document.createElement('div'); cell.className='ol2__cell';
-        const data = dayData[idx]; const isFree = data?.set?.has(t);
-        const chip=document.createElement('button');
-        chip.type='button'; chip.className='chip ' + (isFree?'chip--free':'chip--busy');
-        chip.textContent = fmtHM(fake);
-
-        if(isFree){
-          chip.addEventListener('click', ()=>{
-            rsGrid.querySelectorAll('.chip--sel').forEach(x=>x.classList.remove('chip--sel'));
-            chip.classList.add('chip--sel');
-            resState.slot = data.iso.get(t);
-            resSubmit.disabled=false;
-          });
-        }else{
-          chip.disabled=true;
+    async function ensureRangeLoaded(start, days){
+      const jobs=[];
+      for(let i=0;i<days;i++){
+        const d=new Date(start); d.setDate(d.getDate()+i); const ds=ymd(d);
+        if(!resState.cache.has(ds)){
+          jobs.push((async()=>{
+            resState.cache.set(ds, {loading:true});
+            const {set,map}=await fetchAvail(ds, resState.masterId);
+            resState.cache.set(ds,{set,iso:map});
+          })());
         }
-        cell.appendChild(chip);
-        rsGrid.appendChild(cell);
-      });
-    });
-
-    const todayIdx = days.findIndex(x=>x.toDateString()===(new Date()).toDateString());
-    if (todayIdx>0){ rsWrap.scrollLeft = todayIdx*140 - 140; }
-  }
-
-  async function shiftWindow(delta){
-    const d=new Date(resState.baseStart); d.setDate(d.getDate()+delta); d.setHours(0,0,0,0); resState.baseStart = d;
-    await renderWindow();
-  }
-
-  resMaster.addEventListener('change', async ()=>{
-    resState.masterId = Number(resMaster.value);
-    resState.slot = null; resSubmit.disabled=true; resState.cache.clear();
-    await renderWindow();
-  });
-  rsPrev.addEventListener('click', ()=>shiftWindow(-WINDOW_DAYS));
-  rsNext.addEventListener('click', ()=>shiftWindow(WINDOW_DAYS));
-  rsToday.addEventListener('click', async ()=>{ const d=new Date(); d.setHours(0,0,0,0); resState.baseStart=d; await renderWindow(); });
-
-  // Shift+Wheel — горизонтальный скролл
-  rsWrap.addEventListener('wheel', (e)=>{ if(e.shiftKey && Math.abs(e.deltaY)>Math.abs(e.deltaX)){ e.preventDefault(); rsWrap.scrollLeft += e.deltaY; } }, {passive:false});
-
-  async function submitRes(){
-    if(!resState.apptId || !resState.slot) return;
-    resSubmit.disabled = true; resErr.style.display='none'; resOk.style.display='none';
-    const r = await fetch(`/accounts/api/appointment/${resState.apptId}/reschedule/`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-CSRFToken': csrftoken},
-      credentials:'same-origin',
-      body: JSON.stringify({ start_time: resState.slot, master: resState.masterId })
-    });
-    const data = await r.json().catch(()=> ({}));
-    if(r.ok){
-      resOk.textContent = 'Rescheduled to ' + (data.appointment?.start_time || '');
-      resOk.style.display='block';
-      document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
-        try{ dt.textContent = new Date(data.appointment.start_time).toLocaleString(); }catch(_){}
-      });
-      setTimeout(()=> location.reload(), 700);
-    }else{
-      resErr.textContent = data.error || data.detail || 'Reschedule failed';
-      resErr.style.display='block'; resSubmit.disabled = false;
+      }
+      if (jobs.length) await Promise.allSettled(jobs);
     }
-  }
 
-  document.addEventListener('click', (e)=>{
-    const a = e.target.closest('.appt-reschedule');
-    if(!a) return; e.preventDefault();
-    openRes(a.dataset.apptId, a.dataset.serviceId);
-  });
-  resClose.addEventListener('click', closeRes);
-  resCancel.addEventListener('click', closeRes);
-  resModal.addEventListener('click', (e)=>{ if(e.target===resModal) closeRes(); });
-  resSubmit.addEventListener('click', submitRes);
+    function buildTimeRows(extraSets){
+      const out=[];
+      for(let h=START;h<=END;h++) for(let m=0;m<60;m+=STEP) out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+      (extraSets||[]).forEach(s=>s && s.forEach(t=>{ if(!out.includes(t)) out.push(t); }));
+      return out.sort();
+    }
+
+    async function loadMastersAndRender(){
+      try{
+        const first = await fetchAvail(ymd(resState.baseStart), null);
+        resState.masters = (first.raw && first.raw.masters) || [];
+        resMaster.innerHTML = '';
+        if(resState.masters.length===0){
+          resMaster.innerHTML = '<option>No masters available</option>';
+          rsGrid.innerHTML = '<div class="p-4 text-sm muted-2">No availability</div>';
+          return;
+        }
+        resState.masters.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; resMaster.appendChild(opt); });
+        const withSlots = resState.masters.find(m=>(m.slots||[]).length) || resState.masters[0];
+        resMaster.value = withSlots.id;
+        resState.masterId = Number(resMaster.value);
+        resState.cache.clear();
+        await renderWindow();
+      }catch(e){
+        resErr.textContent = e.message || 'Unable to fetch availability';
+        resErr.style.display='block';
+      }
+    }
+
+    async function renderWindow(){
+      await ensureRangeLoaded(resState.baseStart, WINDOW_DAYS);
+
+      const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(resState.baseStart); d.setDate(d.getDate()+i); return d;});
+      const dayStrs = days.map(ymd);
+      const dayData = dayStrs.map(ds => resState.cache.get(ds));
+      const timeRows = buildTimeRows(dayData.map(x=>x?.set));
+
+      const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
+      const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
+      rsRange.textContent = `${from} – ${to}`;
+      rsGrid.style.setProperty('--days', String(WINDOW_DAYS));
+      rsGrid.innerHTML='';
+
+      const corner=document.createElement('div'); corner.className='ol2__cell ol2__head time'; rsGrid.appendChild(corner);
+
+      days.forEach(d=>{
+        const h=document.createElement('div');
+        h.className='ol2__cell ol2__head';
+        const today = (new Date()).toDateString()===d.toDateString();
+        h.innerHTML = `<div class="ol2__day ${today?'today':''}">
+          <div class="t">${d.toLocaleDateString([], {weekday:'long'})}</div>
+          <div class="s">${d.toLocaleDateString([], {month:'short', day:'numeric'})}</div>
+        </div>`;
+        rsGrid.appendChild(h);
+      });
+
+      timeRows.forEach(t=>{
+        const [hh,mm]=t.split(':').map(Number);
+        const fake=new Date(); fake.setHours(hh,mm,0,0);
+        const timeCell=document.createElement('div');
+        timeCell.className='ol2__cell time'; timeCell.textContent = fmtHM(fake);
+        rsGrid.appendChild(timeCell);
+
+        days.forEach((d, idx)=>{
+          const cell=document.createElement('div'); cell.className='ol2__cell';
+          const data = dayData[idx]; const isFree = data?.set?.has(t);
+          const chip=document.createElement('button');
+          chip.type='button'; chip.className='chip ' + (isFree?'chip--free':'chip--busy');
+          chip.textContent = fmtHM(fake);
+
+          if(isFree){
+            chip.addEventListener('click', ()=>{
+              rsGrid.querySelectorAll('.chip--sel').forEach(x=>x.classList.remove('chip--sel'));
+              chip.classList.add('chip--sel');
+              resState.slot = data.iso.get(t);
+              resSubmit.disabled=false;
+            });
+          }else{
+            chip.disabled=true;
+          }
+          cell.appendChild(chip);
+          rsGrid.appendChild(cell);
+        });
+      });
+
+      const todayIdx = days.findIndex(x=>x.toDateString()===(new Date()).toDateString());
+      if (todayIdx>0){ rsWrap.scrollLeft = todayIdx*140 - 140; }
+    }
+
+    async function shiftWindow(delta){
+      const d=new Date(resState.baseStart); d.setDate(d.getDate()+delta); d.setHours(0,0,0,0); resState.baseStart = d;
+      await renderWindow();
+    }
+
+    resMaster.addEventListener('change', async ()=>{
+      resState.masterId = Number(resMaster.value);
+      resState.slot = null; resSubmit.disabled=true; resState.cache.clear();
+      await renderWindow();
+    });
+    rsPrev.addEventListener('click', ()=>shiftWindow(-WINDOW_DAYS));
+    rsNext.addEventListener('click', ()=>shiftWindow(WINDOW_DAYS));
+    rsToday.addEventListener('click', async ()=>{ const d=new Date(); d.setHours(0,0,0,0); resState.baseStart=d; await renderWindow(); });
+
+    // Shift+Wheel — горизонтальный скролл
+    rsWrap.addEventListener('wheel', (e)=>{ if(e.shiftKey && Math.abs(e.deltaY)>Math.abs(e.deltaX)){ e.preventDefault(); rsWrap.scrollLeft += e.deltaY; } }, {passive:false});
+
+    async function submitRes(){
+      if(!resState.apptId || !resState.slot) return;
+      resSubmit.disabled = true; resErr.style.display='none'; resOk.style.display='none';
+      const r = await fetch(`/accounts/api/appointment/${resState.apptId}/reschedule/`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRFToken': csrftoken},
+        credentials:'same-origin',
+        body: JSON.stringify({ start_time: resState.slot, master: resState.masterId })
+      });
+      const data = await r.json().catch(()=> ({}));
+      if(r.ok){
+        resOk.textContent = 'Rescheduled to ' + (data.appointment?.start_time || '');
+        resOk.style.display='block';
+        document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
+          try{ dt.textContent = new Date(data.appointment.start_time).toLocaleString(); }catch(_){}
+        });
+        setTimeout(()=> location.reload(), 700);
+      }else{
+        resErr.textContent = data.error || data.detail || 'Reschedule failed';
+        resErr.style.display='block'; resSubmit.disabled = false;
+      }
+    }
+
+    document.addEventListener('click', (e)=>{
+      const a = e.target.closest('.appt-reschedule');
+      if(!a) return; e.preventDefault();
+      openRes(a.dataset.apptId, a.dataset.serviceId);
+    });
+    resClose.addEventListener('click', closeRes);
+    resCancel.addEventListener('click', closeRes);
+    resModal.addEventListener('click', (e)=>{ if(e.target===resModal) closeRes(); });
+    resSubmit.addEventListener('click', submitRes);
+  }
 });
 </script>
 </body>

@@ -1,3 +1,4 @@
+# store/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
 
@@ -60,10 +61,10 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     """
-    Product admin with:
-    - human-friendly specs editor (text -> JSON) via ProductAdminForm
-    - HTML preview for saved specs
-    - gallery inline
+    Product admin:
+    - specs_text (из формы) -> JSON в поле specs
+    - HTML preview для specs
+    - галерея через inline
     """
     form = ProductAdminForm
     list_display = ("name", "sku", "category", "price", "currency", "inventory", "is_active")
@@ -75,7 +76,6 @@ class ProductAdmin(admin.ModelAdmin):
     filter_horizontal = ("compatible_models",)
     readonly_fields = ("created_at", "updated_at", "specs_preview")
 
-    # Use explicit fields layout: text specs + HTML preview (read-only)
     fields = (
         "name", "slug", "sku", "category",
         "price", "currency", "inventory", "is_active",
@@ -87,7 +87,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
 
     def specs_preview(self, obj):
-        """Pretty HTML preview for stored JSON specs."""
+        """Pretty HTML preview для JSON specs."""
         if not getattr(obj, "specs", None):
             return "—"
         rows = []
@@ -117,14 +117,64 @@ class ProductAdmin(admin.ModelAdmin):
 
 # ──────────────────────────────── Orders ────────────────────────────────
 
+class StatusBadgeMixin:
+    @admin.display(description="Status", ordering="status")
+    def status_badge(self, obj):
+        label = getattr(obj, "status_label", getattr(obj, "get_status_display", lambda: obj.status)())
+        color = getattr(obj, "status_color", "#999")
+        return format_html(
+            "<span style='display:inline-block;padding:.18rem .55rem;border-radius:999px;"
+            "font-weight:700;font-size:.85rem;color:#fff;background:{}'>{}</span>",
+            color, label
+        )
+
+
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
+    autocomplete_fields = ["product"]
+    fields = ("product", "qty", "price_at_moment", "subtotal")
+    readonly_fields = ("subtotal",)
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
-    list_display = ("id", "created_at", "customer_name", "status", "total")
-    list_filter = ("status", "created_at")
-    search_fields = ("customer_name", "email", "phone")
+class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
+    # безопасный показ «даты создания» — если поля нет, покажем «—»
+    @admin.display(description="Created")
+    def created_display(self, obj):
+        for attr in ("created_at", "created", "created_on", "timestamp"):
+            if hasattr(obj, attr):
+                val = getattr(obj, attr)
+                return val if val else "—"
+        return "—"
+    
+    change_list_template = "admin/store/order/change_list.html"
+    list_display = ("id", "created_display", "customer_name", "status_badge", "status", "total")
+    list_display_links = ("id", "customer_name")
+    list_editable = ("status",)  # редактирование статуса прямо в списке
+
+    # убрали created_at из фильтров/иерархии, т.к. поле не гарантировано
+    list_filter = ("status",)
+    search_fields = ("customer_name", "email", "phone", "id")
+    ordering = ("-id",)  # вместо date_hierarchy
     inlines = [OrderItemInline]
+    readonly_fields = ("shipped_at", "completed_at", "cancelled_at")
+
+    actions = ("mark_processing", "mark_shipped", "mark_completed", "mark_cancelled")
+
+    def _bulk_set(self, request, queryset, status):
+        updated = 0
+        for o in queryset:
+            o.set_status(status, save=True)
+            updated += 1
+        self.message_user(request, f"Обновлено заказов: {updated}")
+
+    def mark_processing(self, request, qs): self._bulk_set(request, qs, Order.STATUS_PROCESSING)
+    def mark_shipped(self, request, qs):    self._bulk_set(request, qs, Order.STATUS_SHIPPED)
+    def mark_completed(self, request, qs):  self._bulk_set(request, qs, Order.STATUS_COMPLETED)
+    def mark_cancelled(self, request, qs):  self._bulk_set(request, qs, Order.STATUS_CANCELLED)
+
+    mark_processing.short_description = "Пометить: processing"
+    mark_shipped.short_description    = "Пометить: shipped"
+    mark_completed.short_description  = "Пометить: completed"
+    mark_cancelled.short_description  = "Пометить: cancelled"

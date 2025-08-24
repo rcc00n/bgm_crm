@@ -15,6 +15,7 @@ from core.views import (
     public_mainmenu, api_availability, api_book,
     api_appointment_cancel, api_appointment_reschedule,
 )
+from .views import OrdersListView, OrderDetailView
 
 urlpatterns = [
     # Публичная главная (каталог) под префиксом /accounts/ — без изменений
@@ -39,4 +40,7 @@ urlpatterns = [
     path("api/book/",         api_book,         name="api-book"),
     path("api/appointment/<uuid:appt_id>/cancel/",     api_appointment_cancel,     name="api-appt-cancel"),
     path("api/appointment/<uuid:appt_id>/reschedule/", api_appointment_reschedule, name="api-appt-reschedule"),
+    
+    path("dashboard/orders/", OrdersListView.as_view(), name="dashboard-orders"),
+    path("dashboard/orders/<uuid:pk>/", OrderDetailView.as_view(), name="dashboard-order"),
 ]

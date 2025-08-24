@@ -261,3 +261,34 @@ class StoreView(TemplateView):
 class MerchPlaceholderView(TemplateView):
     template_name = "client/merch.html"
 
+# accounts/views.py
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import ListView, DetailView
+from store.models import Order
+
+class OrdersListView(LoginRequiredMixin, ListView):
+    template_name = "client/orders_list.html"
+    context_object_name = "orders"
+    paginate_by = 20
+
+    def get_queryset(self):
+        qs = Order.objects.select_related("user").prefetch_related("orderitem_set__product").order_by("-created_at")
+        # лучший вариант — по FK на пользователя
+        qs_user = qs.filter(user=self.request.user)
+        if qs_user.exists():
+            return qs_user
+        # запасной план: по email пользователя (если совпадает)
+        email = getattr(self.request.user, "email", "") or ""
+        if email:
+            return qs.filter(email__iexact=email)
+        return qs.none()
+
+class OrderDetailView(LoginRequiredMixin, DetailView):
+    template_name = "client/order_detail.html"
+    model = Order
+    pk_url_kwarg = "pk"
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related("user").prefetch_related("orderitem_set__product")
+        # та же защита доступа
+        return qs.filter(models.Q(user=self.request.user) | models.Q(email__iexact=self.request.user.email))

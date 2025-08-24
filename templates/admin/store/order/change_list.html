@@ -1,0 +1,28 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{# Кнопка "Save" рядом с "Add order", c jazzmin-классами #}
+{% block object-tools-items %}
+  {{ block.super }}
+  <li>
+    <button type="submit"
+            form="changelist-form"
+            name="_save"
+            class="btn btn-success"
+            style="margin-left:.5rem">
+      <i class="fas fa-save"></i> {% trans "Save" %}
+    </button>
+  </li>
+{% endblock %}
+
+{# Делаем верхнюю панель «липкой» #}
+{% block extrahead %}
+  {{ block.super }}
+  <style>
+    .object-tools{
+      position: sticky; top: 0; z-index: 25;
+      background: var(--body-bg, #fff);
+      padding-top:.25rem; padding-bottom:.25rem;
+    }
+  </style>
+{% endblock %}
