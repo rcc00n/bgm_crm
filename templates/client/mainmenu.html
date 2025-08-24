@@ -12,286 +12,147 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 
   <style>
-    /* =========================
-       BAD GUY MOTORS — Design tokens
-       ========================= */
     :root{
-      --bg:#000000;        /* main background */
-      --fg:#FFFFFF;        /* main text */
-      --muted:rgba(255,255,255,.72);
-      --muted-2:rgba(255,255,255,.55);
-      --line:rgba(255,255,255,.12);
-      --panel:#0E0E0E;     /* dark panel */
-      --panel-2:#131313;   /* darker panel */
-      --accent:#d50000;    /* blood red */
-      --accent-2:#ff1a1a;  /* hot red for glow */
-      --busy:#d50000;
-      --ok:#17d45b;
-
+      --bg:#000000; --fg:#FFFFFF; --muted:rgba(255,255,255,.72); --muted-2:rgba(255,255,255,.55);
+      --line:rgba(255,255,255,.12); --panel:#0E0E0E; --panel-2:#131313; --accent:#d50000; --accent-2:#ff1a1a;
+      --busy:#d50000; --ok:#17d45b;
       --radius-lg:1.1rem; --radius-md:.75rem; --radius-sm:.55rem;
-      --shadow:0 12px 28px rgba(0,0,0,.55);
-      --glow:0 0 0 0 rgba(213,0,0,0), 0 0 24px rgba(213,0,0,.35), 0 0 48px rgba(213,0,0,.18);
+      --shadow:0 12px 28px rgba(0,0,0,.55); --glow:0 0 0 0 rgba(213,0,0,0), 0 0 24px rgba(213,0,0,.35), 0 0 48px rgba(213,0,0,.18);
       --container:clamp(280px,92vw,1160px);
-
-      --font-ui:"Barlow", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      --font-heading:var(--font-ui);
+      --font-ui:"Barlow", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; --font-heading:var(--font-ui);
     }
-
-    /* Selection */
     ::selection{ background:var(--accent); color:#fff; }
 
-    /* =========================
-       Base
-       ========================= */
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
-    body{
-      font-family:var(--font-ui);
-      background:var(--bg);
-      color:var(--fg);
-      line-height:1.5;
-      min-height:100dvh;
-      overflow-x:hidden;
-    }
+    body{font-family:var(--font-ui);background:var(--bg);color:var(--fg);line-height:1.5;min-height:100dvh;overflow-x:hidden}
     img{max-width:100%;display:block}
     a{color:inherit;text-decoration:none}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
 
-    /* =========================
-       SMOKE layer (like your BGM page)
-       ========================= */
+    /* Smoke */
     .smoke{position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:1;}
-    .smoke span{
-      position:absolute; bottom:-220px; left:50%; transform:translateX(-50%);
-      border-radius:50%;
-      background:radial-gradient(rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 70%);
-      filter:blur(28px);
-      opacity:0;
-      animation:rise 24s linear infinite;
-      will-change:transform,opacity;
-      mix-blend-mode:screen;
-    }
-    @keyframes rise{
-      0%  {transform:translateX(-50%) translateY(0)    scale(.4); opacity:0}
-      10% {opacity:.45}
-      50% {opacity:.22}
-      100%{transform:translateX(-50%) translateY(-120vh) scale(1.8); opacity:0}
-    }
-    @media (prefers-reduced-motion:reduce){
-      .smoke span{animation:none; opacity:.12}
-    }
+    .smoke span{position:absolute; bottom:-220px; left:50%; transform:translateX(-50%); border-radius:50%;
+      background:radial-gradient(rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 70%); filter:blur(28px); opacity:0;
+      animation:rise 24s linear infinite; will-change:transform,opacity; mix-blend-mode:screen;}
+    @keyframes rise{0%{transform:translateX(-50%) translateY(0) scale(.4);opacity:0}10%{opacity:.45}50%{opacity:.22}100%{transform:translateX(-50%) translateY(-120vh) scale(1.8);opacity:0}}
+    @media (prefers-reduced-motion:reduce){.smoke span{animation:none;opacity:.12}}
 
-    /* =========================
-       Buttons
-       ========================= */
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center; gap:.5em;
-      padding:.75rem 1.15rem; border-radius:var(--radius-sm);
-      font-weight:900; letter-spacing:.25px;
-      cursor:pointer; transition:.2s ease; white-space:nowrap; user-select:none; line-height:1;
-      border:1px solid transparent;
-      text-transform:uppercase;
-    }
-    .btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
-    .btn--primary{
-      background:linear-gradient(180deg, var(--accent) 0%, #9f0000 100%);
-      color:#fff; border:1px solid rgba(255,255,255,.08);
-      box-shadow:var(--glow);
-    }
-    .btn--primary:hover{ transform:translateY(-1px); filter:brightness(1.02); }
-    .btn--ghost{
-      background:transparent; color:var(--fg);
-      border:1px solid var(--accent);
-      box-shadow:0 0 0 0 rgba(213,0,0,0);
-    }
-    .btn--ghost:hover{ box-shadow:0 0 18px rgba(213,0,0,.35); transform:translateY(-1px); }
+    /* Buttons */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;padding:.75rem 1.15rem;border-radius:var(--radius-sm);
+      font-weight:900;letter-spacing:.25px;cursor:pointer;transition:.2s ease;white-space:nowrap;user-select:none;line-height:1;border:1px solid transparent;text-transform:uppercase}
+    .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .btn--primary{background:linear-gradient(180deg, var(--accent) 0%, #9f0000 100%);color:#fff;border:1px solid rgba(255,255,255,.08);box-shadow:var(--glow)}
+    .btn--primary:hover{transform:translateY(-1px);filter:brightness(1.02)}
+    .btn--ghost{background:transparent;color:var(--fg);border:1px solid var(--accent)}
+    .btn--ghost:hover{box-shadow:0 0 18px rgba(213,0,0,.35);transform:translateY(-1px)}
     .btn[disabled]{opacity:.55;cursor:not-allowed}
 
-    /* =========================
-       Header
-       ========================= */
-    .site-header{
-      position:sticky; top:0; z-index:3;
-      background:rgba(0,0,0,.85);
-      backdrop-filter:saturate(120%) blur(6px);
-      border-bottom:1px solid var(--line);
-    }
-    .site-header__inner{display:flex;align-items:center;justify-content:space-between; padding:.75rem 0}
-    .logo{
-      font:900 1.2rem/1 var(--font-heading);
-      letter-spacing:.5px;
-      display:inline-flex; gap:.5rem; align-items:center;
-    }
+    /* Header */
+    .site-header{position:sticky;top:0;z-index:3;background:rgba(0,0,0,.85);backdrop-filter:saturate(120%) blur(6px);border-bottom:1px solid var(--line)}
+    .site-header__inner{display:flex;align-items:center;justify-content:space-between;padding:.75rem 0}
+    .logo{font:900 1.2rem/1 var(--font-heading);letter-spacing:.5px;display:inline-flex;gap:.5rem;align-items:center}
     .logo b{color:var(--accent)}
-    .tagline{font-weight:700; font-size:.85rem; color:var(--muted-2); margin-left:.35rem}
+    .tagline{font-weight:700;font-size:.85rem;color:var(--muted-2);margin-left:.35rem}
 
-    /* =========================
-       Hero
-       ========================= */
-    .hero{
-      position:relative; z-index:2;
-      display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; gap:1.15rem;
-      padding:5.2rem 1rem 4.2rem;
-      background:
-        radial-gradient(60% 120% at 82% -10%, rgba(213,0,0,.18) 0%, rgba(213,0,0,0) 60%),
-        radial-gradient(60% 120% at 12% 110%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%);
-      border-bottom:1px solid var(--line);
-    }
-    .hero h1{
-      font:900 clamp(2.2rem,4.5vw,3.4rem)/1.05 var(--font-heading);
-      text-transform:uppercase; letter-spacing:.8px;
-      text-shadow:0 0 18px rgba(213,0,0,.25);
-    }
-    .hero p{font-size:1.05rem; max-width:60ch; color:var(--muted)}
+    /* Hero */
+    .hero{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:1.15rem;
+      padding:5.2rem 1rem 4.2rem;background:
+      radial-gradient(60% 120% at 82% -10%, rgba(213,0,0,.18) 0%, rgba(213,0,0,0) 60%),
+      radial-gradient(60% 120% at 12% 110%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%);border-bottom:1px solid var(--line)}
+    .hero h1{font:900 clamp(2.2rem,4.5vw,3.4rem)/1.05 var(--font-heading);text-transform:uppercase;letter-spacing:.8px;text-shadow:0 0 18px rgba(213,0,0,.25)}
+    .hero p{font-size:1.05rem;max-width:60ch;color:var(--muted)}
     .hero .cta{margin-top:.35rem}
 
-    /* =========================
-       Filters & Cards (dark metal)
-       ========================= */
-    main{ position:relative; z-index:2; }
-    h2{font:900 1.6rem/1.2 var(--font-heading); text-transform:uppercase; letter-spacing:.6px; margin-bottom:1.25rem}
+    /* Catalog */
+    main{position:relative;z-index:2}
+    h2{font:900 1.6rem/1.2 var(--font-heading);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1.25rem}
     .filters{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.25rem 0 1.75rem}
-    .filters input,.filters select{
-      padding:.65rem 1rem; border:1px solid var(--line); border-radius:var(--radius-sm);
-      font-size:.95rem; min-width:170px; background:var(--panel-2); color:var(--fg);
-    }
+    .filters input,.filters select{padding:.65rem 1rem;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:.95rem;min-width:170px;background:var(--panel-2);color:var(--fg)}
     .filters ::placeholder{color:var(--muted-2)}
     .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.1rem}
+
     .service-card{
       background:linear-gradient(160deg, var(--panel-2), var(--panel));
       border-radius:var(--radius-lg);
-      padding:1rem; display:flex; flex-direction:column; gap:.75rem;
-      border:1px solid var(--line);
-      box-shadow:0 10px 24px rgba(0,0,0,.35);
+      padding:1rem;display:flex;flex-direction:column;gap:.75rem;
+      border:1px solid var(--line);box-shadow:0 10px 24px rgba(0,0,0,.35);
       transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+      cursor:pointer;             /*  ← clickable box  */
     }
-    .service-card:hover{
-      transform:translateY(-4px);
-      border-color:rgba(213,0,0,.35);
-      box-shadow:0 14px 36px rgba(213,0,0,.16), 0 10px 22px rgba(0,0,0,.5);
-    }
-    .service-card__img{
-      aspect-ratio:16/9;
-      border:1px solid var(--line);
-      background:
-        linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
-        repeating-linear-gradient(0deg, rgba(255,255,255,.06), rgba(255,255,255,.06) 2px, transparent 2px, transparent 6px);
-      border-radius:.7rem; display:flex; align-items:center; justify-content:center;
-      font-size:.85rem; color:var(--muted-2); text-transform:uppercase; letter-spacing:.6px;
-    }
+    .service-card:hover{transform:translateY(-4px);border-color:rgba(213,0,0,.35);box-shadow:0 14px 36px rgba(213,0,0,.16), 0 10px 22px rgba(0,0,0,.5)}
+    .service-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+    .service-card__img{position:relative;aspect-ratio:16/9;border:1px solid var(--line);
+      background:linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+                 repeating-linear-gradient(0deg, rgba(255,255,255,.06), rgba(255,255,255,.06) 2px, transparent 2px, transparent 6px);
+      border-radius:.7rem;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--muted-2);
+      text-transform:uppercase;letter-spacing:.6px;overflow:hidden}
+    .service-card__img img{width:100%;height:100%;object-fit:cover;display:block;border-radius:.7rem}
+    .service-card__badge{position:absolute;left:.6rem;bottom:.6rem;z-index:2;font-size:.72rem;background:rgba(0,0,0,.55);
+      color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
+
     .service-card h3{font-size:1.06rem;font-weight:900;letter-spacing:.2px}
     .service-meta{font-size:.92rem;color:var(--muted)}
     .stub{font-style:italic;color:var(--muted);padding:1rem;border:1px dashed var(--line);border-radius:.5rem;background:rgba(255,255,255,.02)}
     .muted{color:var(--muted);font-size:.95rem}
     .old{color:rgba(255,255,255,.35);text-decoration:line-through}
-    .badge{
-      font-size:.72rem; background:var(--accent);
-      color:#fff; border-radius:999px; padding:.18rem .55rem; margin-left:.35rem;
-      border:1px solid rgba(255,255,255,.14);
-    }
+    .badge{font-size:.72rem;background:var(--accent);color:#fff;border-radius:999px;padding:.18rem .55rem;margin-left:.35rem;border:1px solid rgba(255,255,255,.14)}
 
-    /* =========================
-       Footer
-       ========================= */
-    .site-footer{
-      position:relative; z-index:2;
-      text-align:center; font-size:.9rem; color:var(--muted);
-      padding:2rem 1rem; border-top:1px solid var(--line);
-      background:rgba(0,0,0,.6);
-    }
+    /* Skeleton */
+    .skeleton{background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
+      background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;border-radius:.5rem;height:36px}
+    .ph{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
+      background-size:200% 100%;animation:sh 1.2s ease-in-out infinite}
+    @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-    /* =========================
-       Modal (dark)
-       ========================= */
+    /* Footer */
+    .site-footer{position:relative;z-index:2;text-align:center;font-size:.9rem;color:var(--muted);padding:2rem 1rem;border-top:1px solid var(--line);background:rgba(0,0,0,.6)}
+
+    /* Modal */
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000;overscroll-behavior:contain}
     .modal--open{display:flex}
-    .modal__dialog{
-      background:linear-gradient(180deg, #0c0c0c, #121212);
-      border-radius:1rem;
-      box-shadow:0 14px 36px rgba(0,0,0,.75), 0 0 32px rgba(213,0,0,.18);
-      width:min(940px,96vw);
-      border:1px solid var(--line);
-      padding:1.2rem 1.25rem 1rem; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; color:var(--fg);
-    }
+    .modal__dialog{background:linear-gradient(180deg, #0c0c0c, #121212);border-radius:1rem;box-shadow:0 14px 36px rgba(0,0,0,.75), 0 0 32px rgba(213,0,0,.18);
+      width:min(940px,96vw);border:1px solid var(--line);padding:1.2rem 1.25rem 1rem;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:var(--fg)}
     .modal__header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
-    .modal__title{font:900 1.18rem/1 var(--font-heading); text-transform:uppercase; letter-spacing:.6px}
+    .modal__title{font:900 1.18rem/1 var(--font-heading);text-transform:uppercase;letter-spacing:.6px}
     .modal__title span{color:var(--accent)}
     .modal__close{background:transparent;border:1px solid var(--line);font-size:1.2rem;line-height:1;cursor:pointer;color:var(--muted);border-radius:.5rem;width:36px;height:36px}
     .grid-2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:1rem;flex:1 1 auto;min-height:0}
-    .grid-2 > div{min-height:0}
+    .grid-2>div{min-height:0}
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:var(--muted)}
-    .field input,.field select{
-      padding:.6rem .8rem;border:1px solid var(--line);border-radius:.6rem;font-size:.95rem;background:#0a0a0a;color:var(--fg)
-    }
+    .field input,.field select{padding:.6rem .8rem;border:1px solid var(--line);border-radius:.6rem;font-size:.95rem;background:#0a0a0a;color:var(--fg)}
 
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
     .hint{font-size:.85rem;color:var(--muted)}
     .error{color:#ff5c72;font-size:.9rem;margin-top:.5rem}
     .success{color:var(--ok);font-size:.95rem;margin-top:.5rem}
-    .skeleton{
-      background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
-      background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;border-radius:.5rem;height:36px
-    }
-    @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-    /* =========================
-       Outlook grid (dark)
-       ========================= */
+    /* Outlook grid */
     .outlook{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:var(--radius-md);overflow:visible;background:#0a0a0a;margin-top:.45rem}
-    .outlook__toolbar{
-      display:flex;align-items:center;justify-content:space-between;gap:.75rem;
-      padding:.55rem .75rem;border-bottom:1px solid var(--line); background:#0c0c0c
-    }
+    .outlook__toolbar{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .75rem;border-bottom:1px solid var(--line);background:#0c0c0c}
     .outlook__toolbar .controls{display:flex;gap:.4rem}
     .outlook__toolbar .range{font-weight:900;letter-spacing:.4px}
-    .outlook__toolbar button{
-      border:1px solid var(--line);background:#111;border-radius:.5rem;padding:.35rem .65rem;
-      cursor:pointer;line-height:1; font-weight:800; color:var(--fg); text-transform:uppercase; letter-spacing:.4px
-    }
-    .outlook__toolbar button:hover{border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.2)}
-
-    .outlook__wrap{
-      flex:1 1 auto; overflow-x: auto; overflow-y: auto; max-height:56vh; min-height:300px; max-width:100%;
-      padding-bottom:10px; scrollbar-gutter:stable both-edges; -webkit-overflow-scrolling:touch;
-      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
-    }
-    .outlook__grid{
-      display:grid; min-width:calc(96px + (var(--days,14) * 160px) + 1px);
-      grid-auto-rows:minmax(36px, auto);
-      grid-template-columns: 96px repeat(var(--days, 14), 160px);
-      font-family:var(--font-ui); color:var(--fg);
-    }
-    .outlook__cell{border-bottom:1px solid var(--line); border-right:1px solid var(--line); padding:.25rem .4rem; background:#0a0a0a; white-space:nowrap; text-overflow:ellipsis}
+    .outlook__toolbar button{border:1px solid var(--line);background:#111;border-radius:.5rem;padding:.35rem .65rem;cursor:pointer;line-height:1;font-weight:800;color:var(--fg);text-transform:uppercase;letter-spacing:.4px}
+    .outlook__toolbar button:hover{border-color:rgba(213,0,0,.45);box-shadow:0 0 16px rgba(213,0,0,.2)}
+    .outlook__wrap{flex:1 1 auto;overflow-x:auto;overflow-y:auto;max-height:56vh;min-height:300px;max-width:100%;padding-bottom:10px;scrollbar-gutter:stable both-edges;-webkit-overflow-scrolling:touch;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0))}
+    .outlook__grid{display:grid;min-width:calc(96px + (var(--days,14) * 160px) + 1px);grid-auto-rows:minmax(36px, auto);grid-template-columns:96px repeat(var(--days, 14), 160px);font-family:var(--font-ui);color:var(--fg)}
+    .outlook__cell{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:.25rem .4rem;background:#0a0a0a;white-space:nowrap;text-overflow:ellipsis}
     .outlook__cell.time{position:sticky;left:0;background:#0c0c0c;z-index:2;font-size:.85rem;color:var(--muted)}
-    .outlook__head{position:sticky;top:0;background:#0c0c0c;z-index:3;border-bottom:2px solid var(--line);box-shadow:0 1px 0 rgba(255,255,255,.04); padding:.45rem .5rem}
+    .outlook__head{position:sticky;top:0;background:#0c0c0c;z-index:3;border-bottom:2px solid var(--line);box-shadow:0 1px 0 rgba(255,255,255,.04);padding:.45rem .5rem}
     .day-head{display:flex;flex-direction:column}
-    .day-title{font:900 .95rem/1.1 var(--font-heading); text-transform:capitalize; letter-spacing:.3px}
+    .day-title{font:900 .95rem/1.1 var(--font-heading);text-transform:capitalize;letter-spacing:.3px}
     .day-sub{font-size:.78rem;color:var(--muted);margin-top:.15rem}
     .day--today{background:linear-gradient(180deg, rgba(213,0,0,.08), rgba(213,0,0,0))}
-
-    .slot-chip{
-      display:inline-flex;align-items:center;justify-content:center;
-      height:1.7rem; min-width:3.6rem; padding:0 .5rem; border-radius:.5rem;
-      border:1.6px solid transparent; font-weight:900; font-size:.9rem; user-select:none; line-height:1;
-      text-transform:uppercase; letter-spacing:.3px;
-    }
+    .slot-chip{display:inline-flex;align-items:center;justify-content:center;height:1.7rem;min-width:3.6rem;padding:0 .5rem;border-radius:.5rem;border:1.6px solid transparent;font-weight:900;font-size:.9rem;user-select:none;line-height:1;text-transform:uppercase;letter-spacing:.3px}
     .slot-free{color:#fff;border-color:rgba(255,255,255,.22);background:#131313;cursor:pointer}
-    .slot-free:hover{border-color:rgba(213,0,0,.55); box-shadow:0 0 16px rgba(213,0,0,.25)}
+    .slot-free:hover{border-color:rgba(213,0,0,.55);box-shadow:0 0 16px rgba(213,0,0,.25)}
     .slot-busy{color:#fff;background:var(--busy);opacity:.9}
     .slot-selected{background:var(--accent)!important;color:#fff;border-color:var(--accent)!important;box-shadow:0 0 0 2px rgba(213,0,0,.35)}
-
-    /* Zoom-proof modal sizes */
-    .modal__dialog{ width:min(940px, calc(100dvw - 2rem)); max-height:calc(100dvh - 2rem); }
-    @supports not (height: 100dvh){
-      .modal__dialog{ width:min(940px, calc(100vw - 2rem)); max-height:calc(100vh - 2rem); }
-    }
-
-    @media (max-width: 900px){
-      .modal__dialog{width:min(96vw, 720px)}
-      .grid-2{grid-template-columns:1fr}
-      .outlook__wrap{max-height:50vh}
-    }
+    .modal__dialog{width:min(940px,calc(100dvw - 2rem));max-height:calc(100dvh - 2rem)}
+    @supports not (height:100dvh){.modal__dialog{width:min(940px,calc(100vw - 2rem));max-height:calc(100vh - 2rem)}}
+    @media (max-width:900px){.modal__dialog{width:min(96vw,720px)}.grid-2{grid-template-columns:1fr}.outlook__wrap{max-height:50vh}}
   </style>
 </head>
 <body>
@@ -303,10 +164,10 @@
   <header class="site-header">
     <div class="container site-header__inner">
       <a class="logo" href="{% url 'home' %}">
-   Bad Guy <b>Motors</b> <span class="tagline">custom builds • installs • upgrades</span>
- </a>
-<nav>
-    <a href="{% url 'home' %}" class="btn btn--ghost" aria-label="Go to home">Home</a>
+        Bad Guy <b>Motors</b> <span class="tagline">custom builds • installs • upgrades</span>
+      </a>
+      <nav>
+        <a href="{% url 'home' %}" class="btn btn--ghost" aria-label="Go to home">Home</a>
         {% if user.is_authenticated %}
           <a href="{% url 'dashboard' %}" class="btn btn--ghost">Client Portal</a>
         {% else %}
@@ -320,9 +181,7 @@
   <section class="hero">
     <h1>Book your upgrade. Make it brutal.</h1>
     <p>Pick a service, choose your master tech, lock the time. We’ll do the dirty work — fast, clean, loud.</p>
-    <div class="cta">
-      <a href="#services" class="btn btn--primary">Browse services ↓</a>
-    </div>
+    <div class="cta"><a href="#services" class="btn btn--primary">Browse services ↓</a></div>
   </section>
 
   <main id="services" class="container" style="padding-block:3rem;">
@@ -353,8 +212,19 @@
         <h3 style="margin:.5rem 0 1rem;">Search results</h3>
         <div class="services-grid">
           {% for s in search_results %}
-            <article class="service-card">
-              <div class="service-card__img">BGM • SERVICE</div>
+            <article class="service-card"
+                     data-service-id="{{ s.id }}"
+                     data-service-name="{{ s.name }}"
+                     tabindex="0" role="button" aria-label="Book {{ s.name }}">
+              <div class="service-card__img" aria-label="Service image">
+                {% if s.image %}
+                  <img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">
+                {% else %}
+                  <div class="ph" aria-hidden="true">BGM • SERVICE</div>
+                {% endif %}
+                {% if s.category %}<span class="service-card__badge">{{ s.category.name }}</span>{% endif %}
+              </div>
+
               <div class="muted">{{ s.category.name }}</div>
               <h3>{{ s.name }}</h3>
               {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
@@ -370,7 +240,10 @@
                 {% endwith %}
                 · {{ s.duration_min }} min
               </div>
-              <button class="btn btn--primary book-btn" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
+              <button class="btn btn--primary book-btn"
+                      type="button"
+                      data-service-id="{{ s.id }}"
+                      data-service-name="{{ s.name }}">Pick a time</button>
             </article>
           {% empty %}
             <div class="stub">No results for “{{ q }}”.</div>
@@ -383,8 +256,19 @@
         <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 var(--font-heading); text-transform:uppercase; letter-spacing:.5px">{{ c.name }}</h3>
         <div class="services-grid">
           {% for s in c.service_set.all %}
-            <article class="service-card">
-              <div class="service-card__img">BGM • SERVICE</div>
+            <article class="service-card"
+                     data-service-id="{{ s.id }}"
+                     data-service-name="{{ s.name }}"
+                     tabindex="0" role="button" aria-label="Book {{ s.name }}">
+              <div class="service-card__img" aria-label="Service image">
+                {% if s.image %}
+                  <img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">
+                {% else %}
+                  <div class="ph" aria-hidden="true">BGM • SERVICE</div>
+                {% endif %}
+                <span class="service-card__badge">{{ c.name }}</span>
+              </div>
+
               <h3>{{ s.name }}</h3>
               {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
               <div class="service-meta">
@@ -399,7 +283,10 @@
                 {% endwith %}
                 · {{ s.duration_min }} min
               </div>
-              <button class="btn btn--primary book-btn" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
+              <button class="btn btn--primary book-btn"
+                      type="button"
+                      data-service-id="{{ s.id }}"
+                      data-service-name="{{ s.name }}">Pick a time</button>
             </article>
           {% empty %}
             <div class="stub">No services in this category yet.</div>
@@ -411,8 +298,18 @@
         <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 var(--font-heading); text-transform:uppercase; letter-spacing:.5px">Uncategorized</h3>
         <div class="services-grid">
           {% for s in uncategorized %}
-            <article class="service-card">
-              <div class="service-card__img">BGM • SERVICE</div>
+            <article class="service-card"
+                     data-service-id="{{ s.id }}"
+                     data-service-name="{{ s.name }}"
+                     tabindex="0" role="button" aria-label="Book {{ s.name }}">
+              <div class="service-card__img" aria-label="Service image">
+                {% if s.image %}
+                  <img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">
+                {% else %}
+                  <div class="ph" aria-hidden="true">BGM • SERVICE</div>
+                {% endif %}
+              </div>
+
               <h3>{{ s.name }}</h3>
               {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
               <div class="service-meta">
@@ -427,7 +324,10 @@
                 {% endwith %}
                 · {{ s.duration_min }} min
               </div>
-              <button class="btn btn--primary book-btn" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
+              <button class="btn btn--primary book-btn"
+                      type="button"
+                      data-service-id="{{ s.id }}"
+                      data-service-name="{{ s.name }}">Pick a time</button>
             </article>
           {% endfor %}
         </div>
@@ -441,7 +341,7 @@
 
   <footer class="site-footer">© 2025 Bad Guy Motors</footer>
 
-  <!-- ===== Modal: booking (same API, dark UI) ===== -->
+  <!-- Modal -->
   <div class="modal" id="bookModal" aria-hidden="true">
     <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
       <div class="modal__header">
@@ -451,13 +351,11 @@
 
       <div class="grid-2">
         <div>
-          <!-- Master -->
           <div class="field">
             <label for="bookMaster">Master</label>
             <select id="bookMaster"></select>
           </div>
 
-          <!-- Outlook grid -->
           <div class="field" style="margin-top:.5rem">
             <label>Choose time</label>
 
@@ -497,7 +395,7 @@
   </div>
 
   <script>
-    // ==== Smoke generation (20 puffs), randomized like your BGM page ====
+    // Smoke
     (function(){
       const smokeLayer = document.getElementById("smoke-layer");
       const PUFFS = 20;
@@ -520,14 +418,11 @@
       const apiAvail= "/accounts/api/availability/";
       const apiBook = "/accounts/api/book/";
 
-      // ===== helpers =====
       function getCookie(name){ const m=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)'); return m?m.pop():''; }
       function ymd(d){ const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; }
       function parseISO(iso){ try{return new Date(iso);}catch(_){return null;} }
       function fmtHM(d){ return d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }
-      function fmtTime(iso){ try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); } catch(e){ return iso; } }
 
-      // ===== modal nodes =====
       const modal=document.getElementById('bookModal');
       const btnClose=document.getElementById('bookClose');
       const btnCancel=document.getElementById('bookCancel');
@@ -538,7 +433,6 @@
       const elError=document.getElementById('bookError');
       const elSuccess=document.getElementById('bookSuccess');
 
-      // outlook
       const olGrid=document.getElementById('olGrid');
       const olWrap=document.getElementById('olWrap');
       const olRange=document.getElementById('olRange');
@@ -546,17 +440,11 @@
       const olNext=document.getElementById('olNext');
       const olToday=document.getElementById('olToday');
 
-      // ===== state =====
-      const WINDOW_DAYS = 14;
-      const START_HOUR  = 6;
-      const END_HOUR    = 23;
-      const STEP_MIN    = 30;
-
+      const WINDOW_DAYS = 14, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
       let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
       let baseStart = new Date(); baseStart.setHours(0,0,0,0);
-      let availabilityCache = new Map(); // dateStr -> { set:Set(HH:MM), iso:Map(HH:MM->ISO) }
+      let availabilityCache = new Map();
 
-      // ===== open/close =====
       function openModal(serviceId, serviceName){
         if(!isAuth){ window.location=loginUrl; return; }
         current={ serviceId, serviceName, masterId:null, slot:null, mastersData:[] };
@@ -564,16 +452,13 @@
         elError.style.display='none'; elSuccess.style.display='none';
         btnSubmit.disabled=true;
         elSummary.textContent='Pick a master and time.';
-
         availabilityCache.clear();
         baseStart = new Date(); baseStart.setHours(0,0,0,0);
-
         modal.classList.add('modal--open');
         loadMastersAndRender();
       }
       function closeModal(){ modal.classList.remove('modal--open'); }
 
-      // ===== availability by day/master =====
       async function fetchAvailability(dayISO, masterId){
         const params = new URLSearchParams({ service: current.serviceId, date: dayISO });
         if (masterId) params.set('master', masterId);
@@ -617,9 +502,7 @@
       function buildTimeRows(extraSets){
         const out=[];
         for(let h=START_HOUR;h<=END_HOUR;h++){
-          for(let m=0;m<60;m+=STEP_MIN){
-            out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-          }
+          for(let m=0;m<60;m+=STEP_MIN){ out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`); }
         }
         (extraSets||[]).forEach(s=>s && s.forEach(t=>{ if(!out.includes(t)) out.push(t); }));
         return out.sort();
@@ -639,9 +522,7 @@
             olGrid.innerHTML='<div class="skeleton" style="height:240px;margin:.5rem;"></div>';
             return;
           }
-          masters.forEach(m=>{
-            const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; elMaster.appendChild(opt);
-          });
+          masters.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; elMaster.appendChild(opt); });
           const withSlots=masters.find(m=>(m.slots||[]).length);
           elMaster.value=(withSlots?withSlots.id:masters[0].id);
           current.masterId=Number(elMaster.value);
@@ -656,7 +537,6 @@
 
       async function renderWindow(){
         await ensureRangeLoaded(baseStart, WINDOW_DAYS);
-
         const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(baseStart); d.setDate(d.getDate()+i); return d;});
         const dayStrs=days.map(ymd);
         const dayData = dayStrs.map(ds => availabilityCache.get(ds));
@@ -699,7 +579,6 @@
               chip.addEventListener('click', ()=>{
                 olGrid.querySelectorAll('.slot-selected').forEach(el=>el.classList.remove('slot-selected'));
                 chip.classList.add('slot-selected');
-
                 current.masterId = Number(elMaster.value);
                 current.slot     = data.iso.get(t);
                 elSummary.textContent = `Master: ${elMaster.selectedOptions[0]?.text || ''}. Time: ${chip.textContent}, ${d.toLocaleDateString()}.`;
@@ -708,23 +587,16 @@
             }else{
               chip.disabled=true;
             }
-
             c.appendChild(chip);
             olGrid.appendChild(c);
           });
         });
 
         const todayIdx = days.findIndex(x=>x.toDateString()===new Date().toDateString());
-        if (todayIdx>0){
-          const colWidth = 160;
-          olWrap.scrollLeft = todayIdx * colWidth - colWidth;
-        }
+        if (todayIdx>0){ const colWidth = 160; olWrap.scrollLeft = todayIdx * colWidth - colWidth; }
       }
 
-      async function shiftWindow(deltaDays){
-        baseStart = new Date(baseStart); baseStart.setDate(baseStart.getDate() + deltaDays);
-        await renderWindow();
-      }
+      async function shiftWindow(deltaDays){ baseStart = new Date(baseStart); baseStart.setDate(baseStart.getDate() + deltaDays); await renderWindow(); }
       olPrev.addEventListener('click', ()=>shiftWindow(-WINDOW_DAYS));
       olNext.addEventListener('click', ()=>shiftWindow(WINDOW_DAYS));
       olToday.addEventListener('click', async ()=>{ baseStart = new Date(); baseStart.setHours(0,0,0,0); await renderWindow(); });
@@ -737,7 +609,6 @@
         await renderWindow();
       });
 
-      // ===== submit booking =====
       async function submitBooking(){
         if(!current.serviceId||!current.masterId||!current.slot) return;
         btnSubmit.disabled=true; elError.style.display='none'; elSuccess.style.display='none';
@@ -749,10 +620,7 @@
             body:JSON.stringify({ service:current.serviceId, master:current.masterId, start_time:current.slot })
           });
           const data=await resp.json().catch(()=>({}));
-          if(!resp.ok){
-            const msg=(data&&(data.error||data.detail))?(data.error||data.detail):'Could not create an appointment';
-            throw new Error(msg);
-          }
+          if(!resp.ok){ throw new Error((data&&(data.error||data.detail))||'Could not create an appointment'); }
           elSuccess.textContent='Appointment created! ' + (data.appointment?.start_time?('Time: '+new Date(data.appointment.start_time).toLocaleString()):'');
           elSuccess.style.display='block';
           setTimeout(()=>{ window.location.reload(); }, 700);
@@ -762,25 +630,44 @@
         }
       }
 
-      // ===== wire up =====
-      document.addEventListener('click',(e)=>{
-        const btn=e.target.closest('.book-btn'); if(btn){
-          openModal(btn.dataset.serviceId, btn.dataset.serviceName || 'service');
+      // === CLICK / KEY handlers: whole card opens modal ===
+      document.addEventListener('click', (e)=>{
+        // 1) Explicit button
+        const btn = e.target.closest('.book-btn');
+        if (btn){
+          openModal(btn.dataset.serviceId, btn.dataset.serviceName || 'service'); 
+          return;
+        }
+        // 2) Whole card (ignore native controls)
+        const isInteractive = e.target.closest('button, a, select, input, textarea, label');
+        if (isInteractive) return;
+        const card = e.target.closest('.service-card[data-service-id]');
+        if (card){
+          openModal(card.dataset.serviceId, card.dataset.serviceName || 'service');
         }
       });
+
+      // Keyboard accessibility (Enter / Space on focused card)
+      document.addEventListener('keydown', (e)=>{
+        if (!['Enter',' '].includes(e.key)) return;
+        const card = document.activeElement;
+        if (card && card.matches('.service-card[data-service-id]')){
+          e.preventDefault();
+          openModal(card.dataset.serviceId, card.dataset.serviceName || 'service');
+        }
+      });
+
       btnClose.addEventListener('click',()=>modal.classList.remove('modal--open'));
       btnCancel.addEventListener('click',()=>modal.classList.remove('modal--open'));
       modal.addEventListener('click',(e)=>{ if(e.target===modal) modal.classList.remove('modal--open'); });
       btnSubmit.addEventListener('click',submitBooking);
 
-      // UX: Shift+wheel горизонтально
+      // Horizontal scroll UX
       olWrap.addEventListener('wheel', (e)=>{
-        if (e.shiftKey && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-          e.preventDefault(); olWrap.scrollLeft += e.deltaY;
-        }
+        if (e.shiftKey && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); olWrap.scrollLeft += e.deltaY; }
       }, { passive:false });
 
-      /* ===== Live search (same logic) ===== */
+      /* ===== Live search with images ===== */
       const qInput = document.querySelector('input[name="q"]');
       const catSel = document.querySelector('select[name="cat"]');
       const liveTitle = document.getElementById('liveTitle');
@@ -794,8 +681,8 @@
       function hideLive(){ liveTitle.style.display='none'; liveGrid.style.display='none'; serverContent.style.display='block'; }
       function skeleton(n=8){
         return Array.from({length:n}).map(()=>`
-          <article class="service-card">
-            <div class="service-card__img skeleton"></div>
+          <article class="service-card" aria-hidden="true">
+            <div class="service-card__img skeleton" style="height:auto; aspect-ratio:16/9;"></div>
             <div class="skeleton" style="height:18px;margin-top:10px;border-radius:6px;"></div>
             <div class="skeleton" style="height:14px;margin-top:6px;border-radius:6px;"></div>
             <div class="skeleton" style="height:36px;margin-top:12px;border-radius:10px;"></div>
@@ -810,16 +697,27 @@
           : `<strong>$${escapeHtml(s.price || s.base_price)}</strong>`;
         const desc = s.description ? `<p class="muted">${escapeHtml(s.description)}</p>` : '';
         const cat  = s.category ? `<div class="muted">${escapeHtml(s.category)}</div>` : '';
+        const media = s.image
+          ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.name)}" loading="lazy" decoding="async">`
+          : `<div class="ph" aria-hidden="true">BGM • SERVICE</div>`;
+        const badge = s.category ? `<span class="service-card__badge">${escapeHtml(s.category)}</span>` : '';
         return `
-          <article class="service-card">
-            <div class="service-card__img">BGM • SERVICE</div>
+          <article class="service-card"
+                   data-service-id="${escapeHtml(s.id)}"
+                   data-service-name="${escapeHtml(s.name)}"
+                   tabindex="0" role="button" aria-label="Book ${escapeHtml(s.name)}">
+            <div class="service-card__img" aria-label="Service image">
+              ${media}
+              ${badge}
+            </div>
             ${cat}
             <h3>${escapeHtml(s.name)}</h3>
             ${desc}
             <div class="service-meta">${priceBlock} · ${escapeHtml(String(s.duration_min))} min</div>
             <button class="btn btn--primary book-btn"
-              data-service-id="${escapeHtml(s.id)}"
-              data-service-name="${escapeHtml(s.name)}">Pick a time</button>
+                    type="button"
+                    data-service-id="${escapeHtml(s.id)}"
+                    data-service-name="${escapeHtml(s.name)}">Pick a time</button>
           </article>`;
       }
 
@@ -845,11 +743,7 @@
         try{
           const data = await fetchServices(q, cat);
           const items = (data && data.results) || [];
-          if (items.length === 0){
-            liveGrid.innerHTML = `<div class="stub">No services found.</div>`;
-            return;
-          }
-          liveGrid.innerHTML = items.map(cardHTML).join('');
+          liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="stub">No services found.</div>`;
         }catch(e){
           liveGrid.innerHTML = `<div class="stub">Could not load results. Please try again.</div>`;
         }

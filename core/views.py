@@ -268,6 +268,12 @@ from django.views.decorators.http import require_GET
 from django.db.models import Q
 from .models import Service
 
+# imports вверху файла должны быть:
+# from django.http import JsonResponse
+# from django.views.decorators.http import require_GET
+# from django.db.models import Q
+# from .models import Service
+
 @require_GET
 def service_search(request):
     q = (request.GET.get('q') or '').strip()
@@ -279,7 +285,7 @@ def service_search(request):
     if cat:
         qs = qs.filter(category_id=cat)
 
-    qs = qs.order_by('name')[:60]  # ограничим выдачу
+    qs = qs.order_by('name')[:60]  # limit
 
     results = []
     for s in qs:
@@ -294,5 +300,7 @@ def service_search(request):
             "price": price,
             "discount_percent": disc.discount_percent if disc else None,
             "duration_min": s.duration_min,
+            # NEW: image url for cards
+            "image": s.image.url if getattr(s, "image", None) else "",
         })
     return JsonResponse({"results": results})

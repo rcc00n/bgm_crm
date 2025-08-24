@@ -107,6 +107,13 @@ class PrepaymentOption(models.Model):
     def __str__(self):
         return f"{self.percent}%"
 
+# imports должны уже быть в файле:
+# import uuid
+# from decimal import Decimal
+# from django.utils import timezone
+# from django.db import models
+# (и ваши ServiceCategory, PrepaymentOption)
+
 class Service(models.Model):
     """
     Represents a service offered in the system (e.g., haircut, massage).
@@ -120,9 +127,28 @@ class Service(models.Model):
     duration_min = models.IntegerField()
     extra_time_min = models.IntegerField(null=True, blank=True)
 
+    # NEW: cover image for service card
+    image = models.ImageField(
+        "Image",
+        upload_to="services/",
+        blank=True,
+        null=True,
+        help_text="Upload a service cover image (recommended ratio ~16:9).",
+    )
+
     def __str__(self):
         return self.name
 
+    # Admin inline preview (safe to call in admin)
+    def image_preview(self):
+        from django.utils.html import format_html
+        if getattr(self, "image", None):
+            try:
+                return format_html('<img src="{}" style="height:60px;border-radius:8px">', self.image.url)
+            except Exception:
+                return "—"
+        return "—"
+    image_preview.short_description = "Preview"
 
     def get_active_discount(self):
         today = timezone.now().date()
@@ -131,13 +157,13 @@ class Service(models.Model):
     def get_discounted_price(self):
         """
         Call instead of price to get discounted price or base_price if discount is not set
-        :return:
         """
         discount = self.get_active_discount()
         if discount:
             discount_multiplier = Decimal(1) - (Decimal(discount.discount_percent) / Decimal(100))
             return (self.base_price * discount_multiplier).quantize(Decimal('0.01'))
         return self.base_price
+
 
 class MasterRoom(models.Model):
     """

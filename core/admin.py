@@ -621,16 +621,30 @@ class ServiceMasterAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin)
 # -----------------------------
 # Service Admin
 # -----------------------------
+# вверху файла уже должен быть import:
+# from django.contrib import admin
+# from django.utils.html import format_html
+# и ваши миксины ExportCsvMixin, MasterSelectorMixing
+# и модель Service
+
 @admin.register(Service)
-class ServiceAdmin(ExportCsvMixin,MasterSelectorMixing, admin.ModelAdmin):
+class ServiceAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface for services.
     """
-    list_display = ('name', 'base_price', 'category', 'duration_min')
+    list_display = ('name', 'base_price', 'category', 'duration_min', 'image_preview')  # + preview
     search_fields = ('name',)
     list_filter = ('category',)
-    export_fields = ['name', 'description','base_price', 'category','prepayment_option', 'duration_min', 'extra_time_min']
-# -----------------------------
+    export_fields = ['name', 'description', 'base_price', 'category', 'prepayment_option', 'duration_min', 'extra_time_min']
+
+    # NEW: allow uploading image and show preview; keep previous fields
+    fields = (
+        'name', 'category', 'description',
+        'base_price', 'prepayment_option', 'duration_min', 'extra_time_min',
+        'image', 'image_preview',  # ← added
+    )
+    readonly_fields = ('image_preview',)
+
 # Notification Admin
 # -----------------------------
 @admin.register(Notification)

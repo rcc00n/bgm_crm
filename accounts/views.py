@@ -212,16 +212,36 @@ class ClientRegisterView(CreateView):
 from django.views.generic import TemplateView
 from core.models import ServiceCategory, Service
 
+# accounts/views.py (или где у вас HomeView)
+from django.views.generic import TemplateView
+from core.models import Service, ServiceCategory   # ваши модели услуг
+from store.models import Product                    # товары
+
 class HomeView(TemplateView):
-    template_name = "client/bgm_home.html"   # ← было site/home_bgm.html
+    template_name = "client/bgm_home.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["categories"] = ServiceCategory.objects.prefetch_related("service_set").all()
+        # это у вас уже есть:
+        ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]
         ctx["uncategorized"] = Service.objects.filter(category__isnull=True)
         ctx["has_any_services"] = Service.objects.exists()
+
+        # НОВОЕ: 8 услуг для главной (витрина)
+        ctx["home_services"] = (
+            Service.objects.select_related("category")
+            .order_by("-id")[:8]
+        )
+
+        # НОВОЕ: 8 товаров для главной (витрина)
+        ctx["home_products"] = (
+            Product.objects.filter(is_active=True)
+            .select_related("category")
+            .order_by("-created_at")[:8]
+        )
         return ctx
+
     
 # accounts/views.py
 from django.views.generic import TemplateView
