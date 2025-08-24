@@ -5,6 +5,8 @@ from django.views.generic import RedirectView
 from accounts.views import HomeView, MerchPlaceholderView
 from core.autocomplete import ServiceAutocomplete
 from core.views import service_search
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     # Admin
@@ -57,3 +59,6 @@ urlpatterns = [
     # Merch (заглушка)
     path("merch/", MerchPlaceholderView.as_view(), name="merch"),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

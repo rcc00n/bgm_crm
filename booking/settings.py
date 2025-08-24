@@ -138,27 +138,24 @@ STATICFILES_DIRS = [ BASE_DIR / "static" ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Use S3 as default storage for uploaded media
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-
-# AWS credentials
-AWS_ACCESS_KEY_ID = 'AKIAQCVSVAFK5ORP5EJH'
-AWS_SECRET_ACCESS_KEY = 'kzCeudgh7WN57v7nRtaWJ8WlaPR252mR/F6xRK55'
-AWS_S3_SIGNATURE_NAME  = 's3v4'
-# Your S3 bucket name
-AWS_STORAGE_BUCKET_NAME = 'malvatest1'
-AWS_S3_REGION_NAME = 'ca-central-1'
-# Optional: Make files public
-AWS_QUERYSTRING_AUTH = False
-
-# Optional: Customize file URLs
-AWS_S3_FILE_OVERWRITE = False
-AWS_DEFAULT_ACL = None
-# Optional: Specify custom domain (if you use CloudFront or static hosting)
-# AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
-
-# Media URL for S3
-MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.ca-central-1.amazonaws.com/'
+if DEBUG:
+    # локальная разработка
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+else:
+    # прод: S3
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    AWS_ACCESS_KEY_ID = 'AKIAQCVSVAFK5ORP5EJH'
+    AWS_SECRET_ACCESS_KEY = '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'
+    AWS_S3_SIGNATURE_NAME = 's3v4'
+    AWS_STORAGE_BUCKET_NAME = 'malvatest1'
+    AWS_S3_REGION_NAME = 'ca-central-1'
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
+    MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.ca-central-1.amazonaws.com/'
+    
 
 JAZZMIN_SETTINGS = {
     "site_title": "Malva Admin",
@@ -293,5 +290,3 @@ AUTHENTICATION_BACKENDS = [
 ]
 LOGIN_REDIRECT_URL = "/home/" 
 LOGOUT_REDIRECT_URL = "/home/"
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
