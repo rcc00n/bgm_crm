@@ -155,29 +155,12 @@
     .master-pill:hover{border-color:rgba(213,0,0,.45);box-shadow:0 0 18px rgba(213,0,0,.2)}
     .master-pill[aria-pressed="true"]{border-color:var(--red);box-shadow:0 0 0 2px rgba(213,0,0,.25)}
     .master-pill img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#111}
-    .master-name{font-weight:800;font-size:.92rem}
+    .master-name{font-weight:800;font-size:.92rem;color:#fff;} /* ← белый текст имени мастера */
     .sr-only{position:absolute;left:-9999px}
 
-     .master-option {
-    display: flex;
-    align-items: center;
-    gap: .6rem;
-    padding: .35rem .5rem;
-    background: var(--panel-2);
-    border-radius: .5rem;
-    margin-bottom: .35rem;
-    cursor: pointer;
-  }
-  .master-option img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-  .master-option span {
-    color: #fff;      /* 🔹 имя мастера всегда белым */
-    font-weight: 600;
-  }
+    .master-option{display:flex;align-items:center;gap:.6rem;padding:.35rem .5rem;background:var(--panel-2);border-radius:.5rem;margin-bottom:.35rem;cursor:pointer}
+    .master-option img{width:40px;height:40px;border-radius:50%;object-fit:cover}
+    .master-option span{color:#fff;font-weight:600}
   </style>
 </head>
 <body>
@@ -506,7 +489,7 @@
         btn.dataset.id=m.id;
 
         const img=document.createElement('img');
-        img.src = m.avatar || 'https://via.placeholder.com/56x56?text=%20';
+        img.src = m.photo || m.avatar || 'https://via.placeholder.com/56x56?text=%20'; /* поддержка поля photo из API */
         img.alt = '';
         const name=document.createElement('span');
         name.className='master-name';
@@ -515,11 +498,9 @@
         btn.appendChild(img);
         btn.appendChild(name);
         btn.addEventListener('click', async ()=>{
-          // визуально выделяем
           elMasterPicker.querySelectorAll('.master-pill[aria-pressed="true"]').forEach(x=>x.setAttribute('aria-pressed','false'));
           btn.setAttribute('aria-pressed','true');
 
-          // меняем текущего мастера
           elMaster.value = String(m.id);
           current.masterId = Number(m.id);
           current.slot = null; btnSubmit.disabled = true;
@@ -531,7 +512,6 @@
         elMasterPicker.appendChild(btn);
       });
 
-      // выберем первого с слотами, иначе первого
       const withSlots = masters.find(mm => (mm.slots||[]).length);
       const pickId = withSlots ? withSlots.id : masters[0].id;
       elMaster.value = pickId;
@@ -683,7 +663,7 @@
       if (e.shiftKey && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); olWrap.scrollLeft += e.deltaY; }
     }, { passive:false });
 
-    /* ===== Live search (без изменений в логике, только визуал) ===== */
+    /* ===== Live search ===== */
     const qInput = document.querySelector('input[name="q"]');
     const catSel = document.querySelector('select[name="cat"]');
     const liveTitle = document.getElementById('liveTitle');
