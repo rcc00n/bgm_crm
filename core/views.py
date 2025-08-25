@@ -97,9 +97,17 @@ def api_availability(request):
         "masters": []
     }
     for m in masters_qs:
+        mp = getattr(m, "master_profile", None)
+        avatar_url = ""
+        if mp and getattr(mp, "photo", None):
+            try:
+                avatar_url = mp.photo.url
+            except Exception:
+                avatar_url = ""
         resp["masters"].append({
             "id": m.id,
             "name": m.get_full_name() or m.username,
+            "avatar": avatar_url,
             "slots": [s.isoformat() for s in slots_map.get(m.id, [])]
         })
     from django.http import JsonResponse

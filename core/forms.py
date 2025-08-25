@@ -248,7 +248,7 @@ class MasterCreateFullForm(forms.ModelForm):
 
     class Meta:
         model = MasterProfile
-        fields = ['profession', 'bio', 'work_start', 'work_end', 'room']
+        fields = ['profession', 'bio', 'work_start', 'work_end', 'room', 'photo']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -6,13 +6,13 @@
   <title>Bad Guy Motors — Upgrades & Booking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Fonts -->
+  <!-- Performance hints -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Barlow:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <!-- Uniform UI font как в примере -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 
   <style>
-    /* ===== BGM palette (dark + red) ===== */
     :root{
       --bg:#0a0a0a; --ink:#eaeaea; --muted:#bdbdbd;
       --red:#d50000; --red-dark:#b60000;
@@ -20,26 +20,29 @@
       --field-bg:rgba(255,255,255,.06);
       --error-bg:#3b0000; --error-text:#ff8a80;
       --line:rgba(255,255,255,.12);
-      --radius-lg:1.25rem; --radius-md:.75rem; --radius-sm:.6rem;
+      --radius-lg:1.25rem; --radius-md:.9rem; --radius-sm:.6rem;
       --shadow:0 10px 30px rgba(0,0,0,.45);
       --container:clamp(320px,92vw,1280px);
     }
-    /* aliases used by legacy blocks */
-    :root{ --fg:var(--ink); --accent:var(--red); --accent-2:#ff1a1a; --ok:#17d45b; --busy:var(--red); }
-
     ::selection{ background:var(--red); color:#fff; }
+
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html{scroll-behavior:smooth}
-    body{
-      background:var(--bg); color:var(--ink);
-      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
-      line-height:1.55; font-size:16px; min-height:100dvh; overflow-x:hidden;
-    }
+    html{font-size:16px;scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55;min-height:100dvh;overflow-x:hidden}
     img{max-width:100%;display:block}
     a{color:inherit;text-decoration:none}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
 
-    /* ===== Header (unified) ===== */
+    /* Buttons */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;padding:.78rem 1.15rem;border-radius:var(--radius-sm);
+      font-weight:900;letter-spacing:.25px;cursor:pointer;transition:.2s ease;white-space:nowrap;user-select:none;line-height:1;border:1px solid transparent;text-transform:uppercase}
+    .btn--primary{background:linear-gradient(180deg, var(--red) 0%, var(--red-dark) 100%);color:#fff;border:1px solid rgba(255,255,255,.08);box-shadow:0 0 0 0 rgba(213,0,0,0), 0 0 24px rgba(213,0,0,.35), 0 0 48px rgba(213,0,0,.18)}
+    .btn--primary:hover{transform:translateY(-1px);filter:brightness(1.02)}
+    .btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--red)}
+    .btn--ghost:hover{box-shadow:0 0 18px rgba(213,0,0,.35);transform:translateY(-1px)}
+    .btn[disabled]{opacity:.55;cursor:not-allowed}
+
+    /* Header (как в «правильном примере») */
     .site-header{position:sticky;top:0;z-index:10;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
     .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
     .brand{display:flex;align-items:center;gap:.75rem;font-weight:900;letter-spacing:.5px}
@@ -47,713 +50,729 @@
     nav ul{display:flex;list-style:none;gap:.75rem}
     nav a{padding:.55rem .8rem;border-radius:.55rem}
     nav a[aria-current="page"]{background:rgba(255,255,255,.04);border:1px solid var(--line)}
-    .btn{display:inline-flex;align-items:center;gap:.6em;padding:.78rem 1.15rem;border-radius:var(--radius-sm);font-weight:800;letter-spacing:.3px;border:1px solid transparent;cursor:pointer;transition:.2s;line-height:1}
-    .btn--primary{background:var(--red);color:#fff}
-    .btn--primary:hover{transform:translateY(-2px);box-shadow:0 12px 22px rgba(213,0,0,.25)}
-    .btn--ghost{background:transparent;border-color:var(--line);color:var(--ink)}
-    .btn--ghost:hover{border-color:var(--red);color:var(--red)}
-    .badge{display:inline-block;font-size:.78rem;padding:.15rem .55rem;border-radius:999px;background:var(--red);color:#fff}
 
-    /* ===== Hero ===== */
-    .hero{
-      position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;gap:1.15rem;align-items:center;justify-content:center;
-      padding:5.2rem 1rem 4.2rem;
-      background:
-        radial-gradient(60% 120% at 82% -10%, rgba(213,0,0,.18) 0%, rgba(213,0,0,0) 60%),
-        radial-gradient(60% 120% at 12% 110%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%);
-      border-bottom:1px solid var(--line)
-    }
-    .hero h1{font:900 clamp(2.2rem,4.6vw,3.4rem)/1.1 Inter, sans-serif; text-transform:uppercase; letter-spacing:.6px}
-    .hero p{max-width:62ch;color:var(--muted)}
+    /* Hero */
+    .hero{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:1.15rem;
+      padding:5.2rem 1rem 3.2rem;background:
+      radial-gradient(60% 120% at 82% -10%, rgba(213,0,0,.18) 0%, rgba(213,0,0,0) 60%),
+      radial-gradient(60% 120% at 12% 110%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%);border-bottom:1px solid var(--line)}
+    .hero h1{font:900 clamp(2.2rem,4.5vw,3.4rem)/1.05 Inter;text-transform:uppercase;letter-spacing:.8px;text-shadow:0 0 18px rgba(213,0,0,.25)}
+    .hero p{font-size:1.05rem;max-width:60ch;color:var(--muted)}
     .hero .cta{margin-top:.35rem}
 
-    /* ===== Filters & grid ===== */
+    /* Catalog */
     main{position:relative;z-index:2}
-    h2{font:900 1.6rem/1.2 Inter, sans-serif; text-transform:uppercase; letter-spacing:.6px; margin-bottom:1.25rem}
+    h2{font:900 1.6rem/1.2 Inter;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1.25rem}
     .filters{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.25rem 0 1.75rem}
-    .filters input,.filters select{padding:.7rem 1rem;border:1px solid var(--line);border-radius:.6rem;font-size:.95rem;min-width:180px;background:var(--field-bg);color:var(--ink)}
+    .filters input,.filters select{padding:.65rem 1rem;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:.95rem;min-width:170px;background:var(--field-bg);color:var(--ink)}
     .filters ::placeholder{color:var(--muted)}
     .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.1rem}
 
-    /* ===== Card ===== */
     .service-card{
-      background:linear-gradient(180deg,rgba(18,18,18,.9),rgba(19,19,19,.9));
-      border:1px solid var(--card-border);
-      border-radius:1rem; padding:1rem; box-shadow:var(--shadow);
-      display:flex; flex-direction:column; gap:.75rem;
+      background:linear-gradient(160deg, rgba(18,18,18,.9), rgba(19,19,19,.9));
+      border-radius:var(--radius-lg);
+      padding:1rem;display:flex;flex-direction:column;gap:.75rem;
+      border:1px solid var(--card-border);box-shadow:var(--shadow);
       transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
       cursor:pointer;
     }
     .service-card:hover{transform:translateY(-4px);border-color:rgba(213,0,0,.35);box-shadow:0 14px 36px rgba(213,0,0,.16), 0 10px 22px rgba(0,0,0,.5)}
-    .service-card:focus-visible{outline:2px solid var(--red);outline-offset:3px}
-    .service-card__img{position:relative;aspect-ratio:16/9;border:1px solid var(--line);border-radius:.8rem;overflow:hidden;background:#0b0b0b}
-    .service-card__img img{width:100%;height:100%;object-fit:cover}
-    .service-card__badge{position:absolute;left:.6rem;bottom:.6rem;z-index:2;font-size:.72rem;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:.2rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
-    .service-card h3{font:800 1.08rem/1.2 Inter, sans-serif}
-    .service-meta{font-size:.95rem;color:var(--muted)}
-    .old{color:rgba(255,255,255,.45);text-decoration:line-through}
-    .muted{color:var(--muted)}
-    .stub{font-style:italic;color:var(--muted);padding:1rem;border:1px dashed var(--line);border-radius:.6rem;background:rgba(255,255,255,.02)}
+    .service-card:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+
+    .service-card__img{position:relative;aspect-ratio:16/9;border:1px solid var(--line);
+      background:linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+                 repeating-linear-gradient(0deg, rgba(255,255,255,.06), rgba(255,255,255,.06) 2px, transparent 2px, transparent 6px);
+      border-radius:.9rem;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--muted);
+      text-transform:uppercase;letter-spacing:.6px;overflow:hidden}
+    .service-card__img img{width:100%;height:100%;object-fit:cover;display:block;border-radius:.9rem}
+    .service-card__badge{position:absolute;left:.6rem;bottom:.6rem;z-index:2;font-size:.72rem;background:rgba(0,0,0,.55);
+      color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
+
+    .service-card h3{font-size:1.06rem;font-weight:900;letter-spacing:.2px}
+    .service-meta{font-size:.92rem;color:var(--muted)}
+    .stub{font-style:italic;color:var(--muted);padding:1rem;border:1px dashed var(--line);border-radius:.5rem;background:rgba(255,255,255,.02)}
+    .muted{color:var(--muted);font-size:.95rem}
+    .old{color:rgba(255,255,255,.35);text-decoration:line-through}
+    .badge{font-size:.72rem;background:var(--red);color:#fff;border-radius:999px;padding:.18rem .55rem;margin-left:.35rem;border:1px solid rgba(255,255,255,.14)}
 
     /* Skeleton */
-    .skeleton{background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06)); background-size:200% 100%; animation:sh 1.2s ease-in-out infinite; border-radius:.6rem; height:36px}
-    .ph{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06)); background-size:200% 100%; animation:sh 1.2s ease-in-out infinite}
+    .skeleton{background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
+      background-size:200% 100%;animation:sh 1.2s ease-in-out infinite;border-radius:.5rem;height:36px}
+    .ph{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
+      background-size:200% 100%;animation:sh 1.2s ease-in-out infinite}
     @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
     /* Footer */
-    .site-footer{position:relative;z-index:2;text-align:center;font-size:.95rem;color:var(--muted);padding:2rem 1rem;border-top:1px solid var(--line);background:rgba(0,0,0,.6)}
+    .site-footer{position:relative;z-index:2;text-align:center;font-size:.9rem;color:var(--muted);padding:2rem 1rem;border-top:1px solid var(--line);background:rgba(0,0,0,.6)}
 
-    /* Modal (без изменений по логике) */
+    /* Modal */
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000;overscroll-behavior:contain}
     .modal--open{display:flex}
     .modal__dialog{background:linear-gradient(180deg, #0c0c0c, #121212);border-radius:1rem;box-shadow:0 14px 36px rgba(0,0,0,.75), 0 0 32px rgba(213,0,0,.18);
-      width:min(940px,96vw);border:1px solid var(--line);padding:1.2rem 1.25rem 1rem;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:var(--fg)}
+      width:min(940px,96vw);border:1px solid var(--line);padding:1.2rem 1.25rem 1rem;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:var(--ink)}
     .modal__header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
-    .modal__title{font:900 1.18rem/1 Inter, sans-serif;text-transform:uppercase;letter-spacing:.6px}
+    .modal__title{font:900 1.18rem/1 Inter;text-transform:uppercase;letter-spacing:.6px}
     .modal__title span{color:var(--red)}
     .modal__close{background:transparent;border:1px solid var(--line);font-size:1.2rem;line-height:1;cursor:pointer;color:var(--muted);border-radius:.5rem;width:36px;height:36px}
     .grid-2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:1rem;flex:1 1 auto;min-height:0}
+    .grid-2>div{min-height:0}
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:var(--muted)}
-    .field input,.field select{padding:.6rem .8rem;border:1px solid var(--line);border-radius:.6rem;font-size:.95rem;background:#0a0a0a;color:var(--fg)}
+    .field input,.field select{padding:.6rem .8rem;border:1px solid var(--line);border-radius:.6rem;font-size:.95rem;background:#0a0a0a;color:var(--ink)}
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
     .hint{font-size:.85rem;color:var(--muted)}
     .error{color:#ff5c72;font-size:.9rem;margin-top:.5rem}
-    .success{color:var(--ok);font-size:.95rem;margin-top:.5rem}
+    .success{color:#17d45b;font-size:.95rem;margin-top:.5rem}
 
     /* Outlook grid */
     .outlook{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:var(--radius-md);overflow:visible;background:#0a0a0a;margin-top:.45rem}
     .outlook__toolbar{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .75rem;border-bottom:1px solid var(--line);background:#0c0c0c}
     .outlook__toolbar .controls{display:flex;gap:.4rem}
     .outlook__toolbar .range{font-weight:900;letter-spacing:.4px}
-    .outlook__toolbar button{border:1px solid var(--line);background:#111;border-radius:.5rem;padding:.35rem .65rem;cursor:pointer;line-height:1;font-weight:800;color:var(--fg);text-transform:uppercase;letter-spacing:.4px}
+    .outlook__toolbar button{border:1px solid var(--line);background:#111;border-radius:.5rem;padding:.35rem .65rem;cursor:pointer;line-height:1;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.4px}
     .outlook__toolbar button:hover{border-color:rgba(213,0,0,.45);box-shadow:0 0 16px rgba(213,0,0,.2)}
     .outlook__wrap{flex:1 1 auto;overflow-x:auto;overflow-y:auto;max-height:56vh;min-height:300px;max-width:100%;padding-bottom:10px;scrollbar-gutter:stable both-edges;-webkit-overflow-scrolling:touch;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0))}
-    .outlook__grid{display:grid;min-width:calc(96px + (var(--days,14) * 160px) + 1px);grid-auto-rows:minmax(36px, auto);grid-template-columns:96px repeat(var(--days, 14), 160px);font-family:Inter, sans-serif;color:var(--fg)}
-    .outlook__cell{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:.25rem .4rem;background:#0a0a0a;white-space:nowrap;text-overflow:ellipsis}
+    .outlook__grid{display:grid;min-width:calc(96px + (var(--days,14) * 160px) + 1px);grid-auto-rows:minmax(36px, auto);grid-template-columns:96px repeat(var(--days, 14), 160px)}
+    .outlook__cell{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:.25rem .4rem;background:#0a0a0a;white-space:nowrap;text-overflow:ellipsis;color:var(--ink)}
     .outlook__cell.time{position:sticky;left:0;background:#0c0c0c;z-index:2;font-size:.85rem;color:var(--muted)}
     .outlook__head{position:sticky;top:0;background:#0c0c0c;z-index:3;border-bottom:2px solid var(--line);box-shadow:0 1px 0 rgba(255,255,255,.04);padding:.45rem .5rem}
     .day-head{display:flex;flex-direction:column}
-    .day-title{font:900 .95rem/1.1 Inter, sans-serif;text-transform:capitalize;letter-spacing:.3px}
+    .day-title{font:900 .95rem/1.1 Inter;text-transform:capitalize;letter-spacing:.3px}
     .day-sub{font-size:.78rem;color:var(--muted);margin-top:.15rem}
     .day--today{background:linear-gradient(180deg, rgba(213,0,0,.08), rgba(213,0,0,0))}
     .slot-chip{display:inline-flex;align-items:center;justify-content:center;height:1.7rem;min-width:3.6rem;padding:0 .5rem;border-radius:.5rem;border:1.6px solid transparent;font-weight:900;font-size:.9rem;user-select:none;line-height:1;text-transform:uppercase;letter-spacing:.3px}
     .slot-free{color:#fff;border-color:rgba(255,255,255,.22);background:#131313;cursor:pointer}
     .slot-free:hover{border-color:rgba(213,0,0,.55);box-shadow:0 0 16px rgba(213,0,0,.25)}
-    .slot-busy{color:#fff;background:var(--busy);opacity:.9}
+    .slot-busy{color:#fff;background:var(--red);opacity:.9}
     .slot-selected{background:var(--red)!important;color:#fff;border-color:var(--red)!important;box-shadow:0 0 0 2px rgba(213,0,0,.35)}
     .modal__dialog{width:min(940px,calc(100dvw - 2rem));max-height:calc(100dvh - 2rem)}
     @supports not (height:100dvh){.modal__dialog{width:min(940px,calc(100vw - 2rem));max-height:calc(100vh - 2rem)}}
-    @media (max-width:900px){.grid-2{grid-template-columns:1fr}.outlook__wrap{max-height:50vh}}
+    @media (max-width:900px){.modal__dialog{width:min(96vw,720px)}.grid-2{grid-template-columns:1fr}.outlook__wrap{max-height:50vh}}
+
+    /* Master picker (аватарки) */
+    .masters{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.25rem}
+    .master-pill{display:flex;align-items:center;gap:.6rem;padding:.4rem .6rem;border:1px solid var(--line);border-radius:.8rem;background:#0b0b0b;cursor:pointer}
+    .master-pill:hover{border-color:rgba(213,0,0,.45);box-shadow:0 0 18px rgba(213,0,0,.2)}
+    .master-pill[aria-pressed="true"]{border-color:var(--red);box-shadow:0 0 0 2px rgba(213,0,0,.25)}
+    .master-pill img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#111}
+    .master-name{font-weight:800;font-size:.92rem}
+    .sr-only{position:absolute;left:-9999px}
+
+     .master-option {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .35rem .5rem;
+    background: var(--panel-2);
+    border-radius: .5rem;
+    margin-bottom: .35rem;
+    cursor: pointer;
+  }
+  .master-option img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .master-option span {
+    color: #fff;      /* 🔹 имя мастера всегда белым */
+    font-weight: 600;
+  }
   </style>
 </head>
 <body>
 
-  <!-- Smoke Layer -->
-  <div class="smoke" id="smoke-layer" aria-hidden="true"></div>
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="brand" href="{% url 'home' %}">
+      <span class="brand__logo" aria-hidden="true"></span><span>BGM Customs</span>
+    </a>
+    <nav aria-label="Main">
+      <ul>
+        <li><a href="{% url 'home' %}">Home</a></li>
+        <li><a href="{% url 'client-dashboard' %}" aria-current="page">Services</a></li>
+        <li><a href="{% url 'store' %}">Products</a></li>
+        <li><a href="{% url 'merch' %}">Merch</a></li>
+        {% if user.is_authenticated %}
+          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+        {% else %}
+          <li><a class="btn btn--ghost" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Login</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</header>
 
-  <!-- header -->
-  <header class="site-header">
-    <div class="container site-header__inner">
-      <a class="brand" href="{% url 'home' %}">
-        <span class="brand__logo" aria-hidden="true"></span><span>BGM Customs</span>
-      </a>
-      <nav aria-label="Main">
-        <ul>
-          <li><a href="{% url 'home' %}">Home</a></li>
-          <li><a href="{% url 'client-dashboard' %}" aria-current="page">Services</a></li>
-          <li><a href="{% url 'store' %}">Products</a></li>
-          <li><a href="{% url 'merch' %}">Merch</a></li>
-          {% if user.is_authenticated %}
-            <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
-          {% else %}
-            <li><a class="btn btn--ghost" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Login</a></li>
-          {% endif %}
-        </ul>
-      </nav>
-    </div>
-  </header>
+<section class="hero">
+  <h1>Book your upgrade. Make it brutal.</h1>
+  <p>Pick a service, choose your master tech, lock the time. We’ll do the dirty work — fast, clean, loud.</p>
+  <div class="cta"><a href="#services" class="btn btn--primary">Browse services ↓</a></div>
+</section>
 
-  <!-- hero -->
-  <section class="hero">
-    <h1>BOOK YOUR UPGRADE. MAKE IT BRUTAL.</h1>
-    <p>Pick a service, choose your master tech, lock the time. We’ll do the dirty work — fast, clean, loud.</p>
-    <div class="cta"><a href="#services" class="btn btn--primary">BROWSE SERVICES ↓</a></div>
-  </section>
+<main id="services" class="container" style="padding-block:3rem;">
+  <h2>Upgrades & Services</h2>
 
-  <main id="services" class="container" style="padding-block:3rem;">
-    <h2>Upgrades & Services</h2>
-
-    <!-- Filters -->
-    <form method="get" class="filters" role="search">
-      <input type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
-      <select name="cat">
-        <option value="">All categories</option>
-        {% for c in filter_categories %}
-          <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-      <button class="btn btn--primary" type="submit">Search</button>
-      {% if q or active_category %}
-        <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Reset</a>
-      {% endif %}
-    </form>
-
-    <!-- Live results (JS) -->
-    <h3 id="liveTitle" style="margin:.5rem 0 1rem; display:none;">Search results</h3>
-    <div id="liveGrid" class="services-grid" style="display:none;"></div>
-
-    <!-- Server-rendered fallback/results -->
-    <div id="serverContent">
-      {% if search_results %}
-        <h3 style="margin:.5rem 0 1rem;">Search results</h3>
-        <div class="services-grid">
-          {% for s in search_results %}
-            <article class="service-card"
-                     data-service-id="{{ s.id }}"
-                     data-service-name="{{ s.name }}"
-                     tabindex="0" role="button" aria-label="Book {{ s.name }}">
-              <div class="service-card__img" aria-label="Service image">
-                {% if s.image %}
-                  <img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">
-                {% else %}
-                  <div class="ph" aria-hidden="true">BGM • SERVICE</div>
-                {% endif %}
-                {% if s.category %}<span class="service-card__badge">{{ s.category.name }}</span>{% endif %}
-              </div>
-
-              <div class="muted">{{ s.category.name }}</div>
-              <h3>{{ s.name }}</h3>
-              {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
-              <div class="service-meta">
-                {% with disc=s.get_active_discount %}
-                  {% if disc %}
-                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                    <span class="badge">-{{ disc.discount_percent }}%</span>
-                  {% else %}
-                    <strong>${{ s.base_price|floatformat:2 }}</strong>
-                  {% endif %}
-                {% endwith %}
-                · {{ s.duration_min }} min
-              </div>
-              <button class="btn btn--primary book-btn"
-                      type="button"
-                      data-service-id="{{ s.id }}"
-                      data-service-name="{{ s.name }}">Pick a time</button>
-            </article>
-          {% empty %}
-            <div class="stub">No results for “{{ q }}”.</div>
-          {% endfor %}
-        </div>
-        <hr style="margin:2rem 0;border:none;border-top:1px solid var(--line)">
-      {% endif %}
-
-      {% for c in categories %}
-        <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 Inter, sans-serif; text-transform:uppercase; letter-spacing:.5px">{{ c.name }}</h3>
-        <div class="services-grid">
-          {% for s in c.service_set.all %}
-            <article class="service-card"
-                     data-service-id="{{ s.id }}"
-                     data-service-name="{{ s.name }}"
-                     tabindex="0" role="button" aria-label="Book {{ s.name }}">
-              <div class="service-card__img" aria-label="Service image">
-                {% if s.image %}
-                  <img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">
-                {% else %}
-                  <div class="ph" aria-hidden="true">BGM • SERVICE</div>
-                {% endif %}
-                <span class="service-card__badge">{{ c.name }}</span>
-              </div>
-
-              <h3>{{ s.name }}</h3>
-              {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
-              <div class="service-meta">
-                {% with disc=s.get_active_discount %}
-                  {% if disc %}
-                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                    <span class="badge">-{{ disc.discount_percent }}%</span>
-                  {% else %}
-                    <strong>${{ s.base_price|floatformat:2 }}</strong>
-                  {% endif %}
-                {% endwith %}
-                · {{ s.duration_min }} min
-              </div>
-              <button class="btn btn--primary book-btn"
-                      type="button"
-                      data-service-id="{{ s.id }}"
-                      data-service-name="{{ s.name }}">Pick a time</button>
-            </article>
-          {% empty %}
-            <div class="stub">No services in this category yet.</div>
-          {% endfor %}
-        </div>
+  <!-- Filters -->
+  <form method="get" class="filters" role="search">
+    <input type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
+    <select name="cat">
+      <option value="">All categories</option>
+      {% for c in filter_categories %}
+        <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
       {% endfor %}
+    </select>
+    <button class="btn btn--primary" type="submit">Search</button>
+    {% if q or active_category %}
+      <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Reset</a>
+    {% endif %}
+  </form>
 
-      {% if uncategorized %}
-        <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 Inter, sans-serif; text-transform:uppercase; letter-spacing:.5px">Uncategorized</h3>
-        <div class="services-grid">
-          {% for s in uncategorized %}
-            <article class="service-card"
-                     data-service-id="{{ s.id }}"
-                     data-service-name="{{ s.name }}"
-                     tabindex="0" role="button" aria-label="Book {{ s.name }}">
-              <div class="service-card__img" aria-label="Service image">
-                {% if s.image %}
-                  <img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">
-                {% else %}
-                  <div class="ph" aria-hidden="true">BGM • SERVICE</div>
-                {% endif %}
-              </div>
+  <!-- Live results (JS) -->
+  <h3 id="liveTitle" style="margin:.5rem 0 1rem; display:none;">Search results</h3>
+  <div id="liveGrid" class="services-grid" style="display:none;"></div>
 
-              <h3>{{ s.name }}</h3>
-              {% if s.description %}\n<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
-              <div class="service-meta">
-                {% with disc=s.get_active_discount %}
-                  {% if disc %}
-                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                    <span class="badge">-{{ disc.discount_percent }}%</span>
-                  {% else %}
-                    <strong>${{ s.base_price|floatformat:2 }}</strong>
-                  {% endif %}
-                {% endwith %}
-                · {{ s.duration_min }} min
-              </div>
-              <button class="btn btn--primary book-btn"
-                      type="button"
-                      data-service-id="{{ s.id }}"
-                      data-service-name="{{ s.name }}">Pick a time</button>
-            </article>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      {% if not has_any_services %}
-        <div class="stub">The catalog will be available soon 👍</div>
-      {% endif %}
-    </div>
-  </main>
-
-  <footer class="site-footer">© {{ now|date:"Y" }} Bad Guy Motors</footer>
-
-  <!-- Modal -->
-  <div class="modal" id="bookModal" aria-hidden="true">
-    <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
-      <div class="modal__header">
-        <div class="modal__title" id="bookTitle">Booking for <span id="bookServiceName"></span></div>
-        <button class="modal__close" id="bookClose" aria-label="Close">×</button>
-      </div>
-
-      <div class="grid-2">
-        <div>
-          <div class="field">
-            <label for="bookMaster">Master</label>
-            <select id="bookMaster"></select>
-          </div>
-
-          <div class="field" style="margin-top:.5rem">
-            <label>Choose time</label>
-
-            <div class="outlook" id="ol">
-              <div class="outlook__toolbar">
-                <div class="controls">
-                  <button id="olPrev" type="button">← Prev</button>
-                  <button id="olToday" type="button">Today</button>
-                  <button id="olNext" type="button">Next →</button>
-                </div>
-                <div class="range" id="olRange">—</div>
-              </div>
-              <div class="outlook__wrap" id="olWrap">
-                <div class="outlook__grid" id="olGrid" tabindex="0" aria-live="polite"></div>
-              </div>
+  <!-- Server-rendered fallback/results -->
+  <div id="serverContent">
+    {% if search_results %}
+      <h3 style="margin:.5rem 0 1rem;">Search results</h3>
+      <div class="services-grid">
+        {% for s in search_results %}
+          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}" tabindex="0" role="button" aria-label="Book {{ s.name }}">
+            <div class="service-card__img" aria-label="Service image">
+              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">BGM • SERVICE</div>{% endif %}
+              {% if s.category %}<span class="service-card__badge">{{ s.category.name }}</span>{% endif %}
             </div>
+            <div class="muted">{{ s.category.name }}</div>
+            <h3>{{ s.name }}</h3>
+            {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
+            <div class="service-meta">
+              {% with disc=s.get_active_discount %}
+                {% if disc %}
+                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                  <span class="badge">-{{ disc.discount_percent }}%</span>
+                {% else %}
+                  <strong>${{ s.base_price|floatformat:2 }}</strong>
+                {% endif %}
+              {% endwith %}
+              · {{ s.duration_min }} min
+            </div>
+            <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
+          </article>
+        {% empty %}
+          <div class="stub">No results for “{{ q }}”.</div>
+        {% endfor %}
+      </div>
+      <hr style="margin:2rem 0;border:none;border-top:1px solid var(--line)">
+    {% endif %}
 
-            <div class="hint" style="margin-top:.5rem">Shift + scroll for horizontal scroll. Red = busy (unclickable).</div>
-          </div>
+    {% for c in categories %}
+      <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 Inter; text-transform:uppercase; letter-spacing:.5px">{{ c.name }}</h3>
+      <div class="services-grid">
+        {% for s in c.service_set.all %}
+          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}" tabindex="0" role="button" aria-label="Book {{ s.name }}">
+            <div class="service-card__img" aria-label="Service image">
+              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">BGM • SERVICE</div>{% endif %}
+              <span class="service-card__badge">{{ c.name }}</span>
+            </div>
+            <h3>{{ s.name }}</h3>
+            {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
+            <div class="service-meta">
+              {% with disc=s.get_active_discount %}
+                {% if disc %}
+                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                  <span class="badge">-{{ disc.discount_percent }}%</span>
+                {% else %}
+                  <strong>${{ s.base_price|floatformat:2 }}</strong>
+                {% endif %}
+              {% endwith %}
+              · {{ s.duration_min }} min
+            </div>
+            <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
+          </article>
+        {% empty %}
+          <div class="stub">No services in this category yet.</div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    {% if uncategorized %}
+      <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 Inter; text-transform:uppercase; letter-spacing:.5px">Uncategorized</h3>
+      <div class="services-grid">
+        {% for s in uncategorized %}
+          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}" tabindex="0" role="button" aria-label="Book {{ s.name }}">
+            <div class="service-card__img" aria-label="Service image">
+              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">BGM • SERVICE</div>{% endif %}
+            </div>
+            <h3>{{ s.name }}</h3>
+            {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
+            <div class="service-meta">
+              {% with disc=s.get_active_discount %}
+                {% if disc %}
+                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                  <span class="badge">-{{ disc.discount_percent }}%</span>
+                {% else %}
+                  <strong>${{ s.base_price|floatformat:2 }}</strong>
+                {% endif %}
+              {% endwith %}
+              · {{ s.duration_min }} min
+            </div>
+            <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if not has_any_services %}
+      <div class="stub">The catalog will be available soon 👍</div>
+    {% endif %}
+  </div>
+</main>
+
+<footer class="site-footer">© {{ now|date:"Y" }} Bad Guy Motors</footer>
+
+<!-- Modal -->
+<div class="modal" id="bookModal" aria-hidden="true">
+  <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
+    <div class="modal__header">
+      <div class="modal__title" id="bookTitle">Booking for <span id="bookServiceName"></span></div>
+      <button class="modal__close" id="bookClose" aria-label="Close">×</button>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="field">
+          <label for="bookMaster">Master</label>
+          <!-- Скрытый/select для доступности -->
+          <select id="bookMaster" class="sr-only" aria-hidden="true"></select>
+          <!-- Пикер мастеров -->
+          <div id="masterPicker" class="masters" role="listbox" aria-label="Pick a master"></div>
         </div>
 
-        <div>
-          <div class="field">
-            <label>Summary</label>
-            <div class="muted" id="bookSummary">Pick a master and time.</div>
+        <div class="field" style="margin-top:.5rem">
+          <label>Choose time</label>
+
+          <div class="outlook" id="ol">
+            <div class="outlook__toolbar">
+              <div class="controls">
+                <button id="olPrev" type="button">← Prev</button>
+                <button id="olToday" type="button">Today</button>
+                <button id="olNext" type="button">Next →</button>
+              </div>
+              <div class="range" id="olRange">—</div>
+            </div>
+            <div class="outlook__wrap" id="olWrap">
+              <div class="outlook__grid" id="olGrid" tabindex="0" aria-live="polite"></div>
+            </div>
           </div>
-          <div class="error" id="bookError" style="display:none;"></div>
-          <div class="success" id="bookSuccess" style="display:none;"></div>
+
+          <div class="hint" style="margin-top:.5rem">Shift + scroll for horizontal scroll. Red = busy (unclickable).</div>
         </div>
       </div>
 
-      <div class="modal__footer">
-        <button class="btn btn--ghost" id="bookCancel">Cancel</button>
-        <button class="btn btn--primary" id="bookSubmit" disabled>Confirm booking</button>
+      <div>
+        <div class="field">
+          <label>Summary</label>
+          <div class="muted" id="bookSummary">Pick a master and time.</div>
+        </div>
+        <div class="error" id="bookError" style="display:none;"></div>
+        <div class="success" id="bookSuccess" style="display:none;"></div>
       </div>
+    </div>
+
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="bookCancel">Cancel</button>
+      <button class="btn btn--primary" id="bookSubmit" disabled>Confirm booking</button>
     </div>
   </div>
+</div>
 
-  <script>
-    // Smoke
-    (function(){
-      const smokeLayer = document.getElementById("smoke-layer");
-      const PUFFS = 20;
-      for (let i = 0; i < PUFFS; i++) {
-        const puff = document.createElement("span");
-        const size = 90 + Math.random() * 240;
-        puff.style.width = puff.style.height = `${size}px`;
-        puff.style.left  = `${Math.random() * 100}vw`;
-        puff.style.animationDelay = `${-Math.random() * 24}s`;
-        puff.style.animationDuration = `${18 + Math.random() * 14}s`;
-        smokeLayer.appendChild(puff);
+<script>
+  (function(){
+    const isAuth  = {{ user.is_authenticated|yesno:"true,false" }};
+    const loginUrl= "{% url 'login' %}?next={{ request.path }}";
+    const apiAvail= "/accounts/api/availability/";
+    const apiBook = "/accounts/api/book/";
+
+    function getCookie(name){ const m=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)'); return m?m.pop():''; }
+    function ymd(d){ const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; }
+    function parseISO(iso){ try{return new Date(iso);}catch(_){return null;} }
+    function fmtHM(d){ return d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }
+
+    const modal=document.getElementById('bookModal');
+    const btnClose=document.getElementById('bookClose');
+    const btnCancel=document.getElementById('bookCancel');
+    const btnSubmit=document.getElementById('bookSubmit');
+    const elServiceName=document.getElementById('bookServiceName');
+    const elMaster=document.getElementById('bookMaster');
+    const elMasterPicker=document.getElementById('masterPicker');
+    const elSummary=document.getElementById('bookSummary');
+    const elError=document.getElementById('bookError');
+    const elSuccess=document.getElementById('bookSuccess');
+
+    const olGrid=document.getElementById('olGrid');
+    const olWrap=document.getElementById('olWrap');
+    const olRange=document.getElementById('olRange');
+    const olPrev=document.getElementById('olPrev');
+    const olNext=document.getElementById('olNext');
+    const olToday=document.getElementById('olToday');
+
+    const WINDOW_DAYS = 14, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
+    let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
+    let baseStart = new Date(); baseStart.setHours(0,0,0,0);
+    let availabilityCache = new Map();
+
+    function openModal(serviceId, serviceName){
+      if(!isAuth){ window.location=loginUrl; return; }
+      current={ serviceId, serviceName, masterId:null, slot:null, mastersData:[] };
+      elServiceName.textContent=serviceName;
+      elError.style.display='none'; elSuccess.style.display='none';
+      btnSubmit.disabled=true;
+      elSummary.textContent='Pick a master and time.';
+      availabilityCache.clear();
+      baseStart = new Date(); baseStart.setHours(0,0,0,0);
+      modal.classList.add('modal--open');
+      loadMastersAndRender();
+    }
+
+    async function fetchAvailability(dayISO, masterId){
+      const params = new URLSearchParams({ service: current.serviceId, date: dayISO });
+      if (masterId) params.set('master', masterId);
+      const r = await fetch(`${apiAvail}?${params.toString()}`, {credentials:'same-origin'});
+      if(!r.ok) throw new Error('Failed to load available slots');
+      const data = await r.json();
+
+      let slots = [];
+      if (masterId){
+        const m = (data.masters||[]).find(x => Number(x.id)===Number(masterId));
+        slots = m ? (m.slots||[]) : [];
+      }else{
+        slots = (data.masters && data.masters[0] && data.masters[0].slots) ? data.masters[0].slots : [];
       }
-    })();
-  </script>
 
-  <script>
-    (function(){
-      const isAuth  = {{ user.is_authenticated|yesno:"true,false" }};
-      const loginUrl= "{% url 'login' %}?next={{ request.path }}";
-      const apiAvail= "/accounts/api/availability/";
-      const apiBook = "/accounts/api/book/";
+      const set = new Set(); const map = new Map();
+      slots.forEach(iso=>{
+        const d=parseISO(iso); if(!d) return;
+        const key=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        set.add(key); if(!map.has(key)) map.set(key, iso);
+      });
+      return {set, map, raw:data};
+    }
 
-      function getCookie(name){ const m=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)'); return m?m.pop():''; }
-      function ymd(d){ const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; }
-      function parseISO(iso){ try{return new Date(iso);}catch(_){return null;} }
-      function fmtHM(d){ return d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }
-
-      const modal=document.getElementById('bookModal');
-      const btnClose=document.getElementById('bookClose');
-      const btnCancel=document.getElementById('bookCancel');
-      const btnSubmit=document.getElementById('bookSubmit');
-      const elServiceName=document.getElementById('bookServiceName');
-      const elMaster=document.getElementById('bookMaster');
-      const elSummary=document.getElementById('bookSummary');
-      const elError=document.getElementById('bookError');
-      const elSuccess=document.getElementById('bookSuccess');
-
-      const olGrid=document.getElementById('olGrid');
-      const olWrap=document.getElementById('olWrap');
-      const olRange=document.getElementById('olRange');
-      const olPrev=document.getElementById('olPrev');
-      const olNext=document.getElementById('olNext');
-      const olToday=document.getElementById('olToday');
-
-      const WINDOW_DAYS = 14, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
-      let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
-      let baseStart = new Date(); baseStart.setHours(0,0,0,0);
-      let availabilityCache = new Map();
-
-      function openModal(serviceId, serviceName){
-        if(!isAuth){ window.location=loginUrl; return; }
-        current={ serviceId, serviceName, masterId:null, slot:null, mastersData:[] };
-        elServiceName.textContent=serviceName;
-        elError.style.display='none'; elSuccess.style.display='none';
-        btnSubmit.disabled=true;
-        elSummary.textContent='Pick a master and time.';
-        availabilityCache.clear();
-        baseStart = new Date(); baseStart.setHours(0,0,0,0);
-        modal.classList.add('modal--open');
-        loadMastersAndRender();
-      }
-
-      async function fetchAvailability(dayISO, masterId){
-        const params = new URLSearchParams({ service: current.serviceId, date: dayISO });
-        if (masterId) params.set('master', masterId);
-        const r = await fetch(`${apiAvail}?${params.toString()}`, {credentials:'same-origin'});
-        if(!r.ok) throw new Error('Failed to load available slots');
-        const data = await r.json();
-
-        let slots = [];
-        if (masterId){
-          const m = (data.masters||[]).find(x => Number(x.id)===Number(masterId));
-          slots = m ? (m.slots||[]) : [];
-        }else{
-          slots = (data.masters && data.masters[0] && data.masters[0].slots) ? data.masters[0].slots : [];
+    async function ensureRangeLoaded(startDate, daysCount){
+      const tasks=[];
+      for(let i=0;i<daysCount;i++){
+        const d=new Date(startDate); d.setDate(d.getDate()+i);
+        const ds=ymd(d);
+        if(!availabilityCache.has(ds)){
+          tasks.push((async()=>{
+            availabilityCache.set(ds, {loading:true});
+            const res=await fetchAvailability(ds, Number(elMaster.value||current.masterId));
+            availabilityCache.set(ds,{set:res.set, iso:res.map});
+          })());
         }
-
-        const set = new Set(); const map = new Map();
-        slots.forEach(iso=>{
-          const d=parseISO(iso); if(!d) return;
-          const key=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-          set.add(key); if(!map.has(key)) map.set(key, iso);
-        });
-        return {set, map, raw:data};
       }
+      if (tasks.length) await Promise.allSettled(tasks);
+    }
 
-      async function ensureRangeLoaded(startDate, daysCount){
-        const tasks=[];
-        for(let i=0;i<daysCount;i++){
-          const d=new Date(startDate); d.setDate(d.getDate()+i);
-          const ds=ymd(d);
-          if(!availabilityCache.has(ds)){
-            tasks.push((async()=>{
-              availabilityCache.set(ds, {loading:true});
-              const res=await fetchAvailability(ds, Number(elMaster.value||current.masterId));
-              availabilityCache.set(ds,{set:res.set, iso:res.map});
-            })());
-          }
-        }
-        if (tasks.length) await Promise.allSettled(tasks);
+    function buildTimeRows(extraSets){
+      const out=[];
+      for(let h=START_HOUR;h<=END_HOUR;h++){
+        for(let m=0;m<60;m+=STEP_MIN){ out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`); }
       }
+      (extraSets||[]).forEach(s=>s && s.forEach(t=>{ if(!out.includes(t)) out.push(t); }));
+      return out.sort();
+    }
 
-      function buildTimeRows(extraSets){
-        const out=[];
-        for(let h=START_HOUR;h<=END_HOUR;h++){
-          for(let m=0;m<60;m+=STEP_MIN){ out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`); }
-        }
-        (extraSets||[]).forEach(s=>s && s.forEach(t=>{ if(!out.includes(t)) out.push(t); }));
-        return out.sort();
-      }
+    function renderMasterPicker(masters){
+      elMaster.innerHTML = '';
+      elMasterPicker.innerHTML = '';
 
-      async function loadMastersAndRender(){
-        elError.style.display='none'; btnSubmit.disabled=true; current.slot=null;
-        try{
-          const first = await fetchAvailability(ymd(baseStart), null);
-          const masters = (first.raw && first.raw.masters) || [];
-          current.mastersData = masters;
+      masters.forEach(m=>{
+        // Заполняем скрытый select (для доступности)
+        const opt=document.createElement('option');
+        opt.value=m.id;
+        opt.textContent=m.name;
+        elMaster.appendChild(opt);
 
-          elMaster.innerHTML='';
-          if(masters.length===0){
-            const opt=document.createElement('option'); opt.value=''; opt.textContent='No masters available';
-            elMaster.appendChild(opt);
-            olGrid.innerHTML='<div class="skeleton" style="height:240px;margin:.5rem;"></div>';
-            return;
-          }
-          masters.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; elMaster.appendChild(opt); });
-          const withSlots=masters.find(m=>(m.slots||[]).length);
-          elMaster.value=(withSlots?withSlots.id:masters[0].id);
-          current.masterId=Number(elMaster.value);
+        // Плитка с аватаркой
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.className='master-pill';
+        btn.setAttribute('role','option');
+        btn.setAttribute('aria-pressed','false');
+        btn.dataset.id=m.id;
 
+        const img=document.createElement('img');
+        img.src = m.avatar || 'https://via.placeholder.com/56x56?text=%20';
+        img.alt = '';
+        const name=document.createElement('span');
+        name.className='master-name';
+        name.textContent=m.name;
+
+        btn.appendChild(img);
+        btn.appendChild(name);
+        btn.addEventListener('click', async ()=>{
+          // визуально выделяем
+          elMasterPicker.querySelectorAll('.master-pill[aria-pressed="true"]').forEach(x=>x.setAttribute('aria-pressed','false'));
+          btn.setAttribute('aria-pressed','true');
+
+          // меняем текущего мастера
+          elMaster.value = String(m.id);
+          current.masterId = Number(m.id);
+          current.slot = null; btnSubmit.disabled = true;
+          elSummary.textContent='Pick a master and time.';
           availabilityCache.clear();
           await renderWindow();
-        }catch(err){
-          elError.textContent=err.message||'Unable to fetch availability';
-          elError.style.display='block';
-        }
-      }
-
-      async function renderWindow(){
-        await ensureRangeLoaded(baseStart, WINDOW_DAYS);
-        const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(baseStart); d.setDate(d.getDate()+i); return d;});
-        const dayStrs=days.map(ymd);
-        const dayData = dayStrs.map(ds => availabilityCache.get(ds));
-        const timeRows = buildTimeRows(dayData.map(x=>x?.set));
-
-        const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
-        const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
-        olRange.textContent = `${from} – ${to}`;
-        olGrid.style.setProperty('--days', String(WINDOW_DAYS));
-
-        olGrid.innerHTML='';
-        const headTime = document.createElement('div');
-        headTime.className='outlook__cell outlook__head time';
-        olGrid.appendChild(headTime);
-
-        days.forEach(d=>{
-          const h=document.createElement('div');
-          h.className='outlook__cell outlook__head';
-          if (new Date().toDateString()===d.toDateString()) h.classList.add('day--today');
-          h.innerHTML = `<div class="day-head">
-            <div class="day-title">${d.toLocaleDateString([], {weekday:'long'})}</div>
-            <div class="day-sub">${d.toLocaleDateString([], {month:'short', day:'numeric'})}</div>
-          </div>`;
-          olGrid.appendChild(h);
         });
 
-        timeRows.forEach(t=>{
-          const [hh,mm]=t.split(':').map(n=>parseInt(n,10)); const fake=new Date(); fake.setHours(hh,mm,0,0);
-          const tcell=document.createElement('div'); tcell.className='outlook__cell time'; tcell.textContent=fmtHM(fake);
-          olGrid.appendChild(tcell);
-
-          days.forEach((d,idx)=>{
-            const c=document.createElement('div'); c.className='outlook__cell';
-            const data = dayData[idx]; const isFree = data?.set?.has(t);
-            const chip=document.createElement('button');
-            chip.type='button'; chip.className='slot-chip ' + (isFree?'slot-free':'slot-busy');
-            chip.textContent=fmtHM(fake);
-
-            if (isFree){
-              chip.addEventListener('click', ()=>{
-                olGrid.querySelectorAll('.slot-selected').forEach(el=>el.classList.remove('slot-selected'));
-                chip.classList.add('slot-selected');
-                current.masterId = Number(elMaster.value);
-                current.slot     = data.iso.get(t);
-                elSummary.textContent = `Master: ${elMaster.selectedOptions[0]?.text || ''}. Time: ${chip.textContent}, ${d.toLocaleDateString()}.`;
-                btnSubmit.disabled=false;
-              });
-            }else{
-              chip.disabled=true;
-            }
-            c.appendChild(chip);
-            olGrid.appendChild(c);
-          });
-        });
-
-        const todayIdx = days.findIndex(x=>x.toDateString()===new Date().toDateString());
-        if (todayIdx>0){ const colWidth = 160; olWrap.scrollLeft = todayIdx * colWidth - colWidth; }
-      }
-
-      async function shiftWindow(deltaDays){ baseStart = new Date(baseStart); baseStart.setDate(baseStart.getDate() + deltaDays); await renderWindow(); }
-      olPrev.addEventListener('click', ()=>shiftWindow(-WINDOW_DAYS));
-      olNext.addEventListener('click', ()=>shiftWindow(WINDOW_DAYS));
-      olToday.addEventListener('click', async ()=>{ baseStart = new Date(); baseStart.setHours(0,0,0,0); await renderWindow(); });
-
-      elMaster.addEventListener('change', async ()=>{
-        current.masterId = Number(elMaster.value);
-        current.slot = null; btnSubmit.disabled = true;
-        elSummary.textContent='Pick a master and time.';
-        availabilityCache.clear();
-        await renderWindow();
+        elMasterPicker.appendChild(btn);
       });
 
-      async function submitBooking(){
-        if(!current.serviceId||!current.masterId||!current.slot) return;
-        btnSubmit.disabled=true; elError.style.display='none'; elSuccess.style.display='none';
-        try{
-          const resp=await fetch(apiBook,{
-            method:'POST',
-            headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
-            credentials:'same-origin',
-            body:JSON.stringify({ service:current.serviceId, master:current.masterId, start_time:current.slot })
-          });
-          const data=await resp.json().catch(()=>({}));
-          if(!resp.ok){ throw new Error((data&&(data.error||data.detail))||'Could not create an appointment'); }
-          elSuccess.textContent='Appointment created! ' + (data.appointment?.start_time?('Time: '+new Date(data.appointment.start_time).toLocaleString()):'');
-          elSuccess.style.display='block';
-          setTimeout(()=>{ window.location.reload(); }, 700);
-        }catch(err){
-          elError.textContent=err.message||'Booking error';
-          elError.style.display='block'; btnSubmit.disabled=false;
-        }
-      }
+      // выберем первого с слотами, иначе первого
+      const withSlots = masters.find(mm => (mm.slots||[]).length);
+      const pickId = withSlots ? withSlots.id : masters[0].id;
+      elMaster.value = pickId;
+      current.masterId = Number(pickId);
+      const active = elMasterPicker.querySelector(`.master-pill[data-id="${pickId}"]`);
+      if (active) active.setAttribute('aria-pressed','true');
+    }
 
-      // CLICK / KEY handlers: whole card opens modal
-      document.addEventListener('click', (e)=>{
-        const btn = e.target.closest('.book-btn');
-        if (btn){
-          openModal(btn.dataset.serviceId, btn.dataset.serviceName || 'service');
+    async function loadMastersAndRender(){
+      elError.style.display='none'; btnSubmit.disabled=true; current.slot=null;
+      try{
+        const first = await fetchAvailability(ymd(baseStart), null);
+        const masters = (first.raw && first.raw.masters) || [];
+        current.mastersData = masters;
+
+        if(masters.length===0){
+          elMaster.innerHTML='';
+          elMasterPicker.innerHTML='<div class="stub">No masters available</div>';
+          olGrid.innerHTML='<div class="skeleton" style="height:240px;margin:.5rem;"></div>';
           return;
         }
-        const isInteractive = e.target.closest('button, a, select, input, textarea, label');
-        if (isInteractive) return;
-        const card = e.target.closest('.service-card[data-service-id]');
-        if (card){
-          openModal(card.dataset.serviceId, card.dataset.serviceName || 'service');
-        }
+
+        renderMasterPicker(masters);
+        availabilityCache.clear();
+        await renderWindow();
+      }catch(err){
+        elError.textContent=err.message||'Unable to fetch availability';
+        elError.style.display='block';
+      }
+    }
+
+    async function renderWindow(){
+      await ensureRangeLoaded(baseStart, WINDOW_DAYS);
+      const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(baseStart); d.setDate(d.getDate()+i); return d;});
+      const dayStrs=days.map(ymd);
+      const dayData = dayStrs.map(ds => availabilityCache.get(ds));
+      const timeRows = buildTimeRows(dayData.map(x=>x?.set));
+
+      const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
+      const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
+      olRange.textContent = `${from} – ${to}`;
+      olGrid.style.setProperty('--days', String(WINDOW_DAYS));
+
+      olGrid.innerHTML='';
+      const headTime = document.createElement('div');
+      headTime.className='outlook__cell outlook__head time';
+      olGrid.appendChild(headTime);
+
+      days.forEach(d=>{
+        const h=document.createElement('div');
+        h.className='outlook__cell outlook__head';
+        if (new Date().toDateString()===d.toDateString()) h.classList.add('day--today');
+        h.innerHTML = `<div class="day-head">
+          <div class="day-title">${d.toLocaleDateString([], {weekday:'long'})}</div>
+          <div class="day-sub">${d.toLocaleDateString([], {month:'short', day:'numeric'})}</div>
+        </div>`;
+        olGrid.appendChild(h);
       });
 
-      document.addEventListener('keydown', (e)=>{
-        if (!['Enter',' '].includes(e.key)) return;
-        const card = document.activeElement;
-        if (card && card.matches('.service-card[data-service-id]')){
-          e.preventDefault();
-          openModal(card.dataset.serviceId, card.dataset.serviceName || 'service');
-        }
-      });
+      timeRows.forEach(t=>{
+        const [hh,mm]=t.split(':').map(n=>parseInt(n,10)); const fake=new Date(); fake.setHours(hh,mm,0,0);
+        const tcell=document.createElement('div'); tcell.className='outlook__cell time'; tcell.textContent=fmtHM(fake);
+        olGrid.appendChild(tcell);
 
-      btnClose.addEventListener('click',()=>modal.classList.remove('modal--open'));
-      btnCancel.addEventListener('click',()=>modal.classList.remove('modal--open'));
-      modal.addEventListener('click',(e)=>{ if(e.target===modal) modal.classList.remove('modal--open'); });
-      btnSubmit.addEventListener('click',submitBooking);
+        days.forEach((d,idx)=>{
+          const c=document.createElement('div'); c.className='outlook__cell';
+          const data = dayData[idx]; const isFree = data?.set?.has(t);
+          const chip=document.createElement('button');
+          chip.type='button'; chip.className='slot-chip ' + (isFree?'slot-free':'slot-busy');
+          chip.textContent=fmtHM(fake);
 
-      // Horizontal scroll UX (важно: без повторного const!)
-      olWrap.addEventListener('wheel', (e)=>{
-        if (e.shiftKey && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); olWrap.scrollLeft += e.deltaY; }
-      }, { passive:false });
-
-      /* ===== Live search with images ===== */
-      const qInput = document.querySelector('input[name="q"]');
-      const catSel = document.querySelector('select[name="cat"]');
-      const liveTitle = document.getElementById('liveTitle');
-      const liveGrid  = document.getElementById('liveGrid');
-      const serverContent = document.getElementById('serverContent');
-      const resetLink = document.querySelector('a.btn.btn--ghost[href*="client-dashboard"]');
-
-      function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
-      function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
-      function showLive(){ liveTitle.style.display='block'; liveGrid.style.display='grid'; serverContent.style.display='none'; }
-      function hideLive(){ liveTitle.style.display='none'; liveGrid.style.display='none'; serverContent.style.display='block'; }
-      function skeleton(n=8){
-        return Array.from({length:n}).map(()=>`
-          <article class="service-card" aria-hidden="true">
-            <div class="service-card__img skeleton" style="height:auto; aspect-ratio:16/9;"></div>
-            <div class="skeleton" style="height:18px;margin-top:10px;border-radius:6px;"></div>
-            <div class="skeleton" style="height:14px;margin-top:6px;border-radius:6px;"></div>
-            <div class="skeleton" style="height:36px;margin-top:12px;border-radius:10px;"></div>
-          </article>`).join('');
-      }
-      function cardHTML(s){
-        const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
-        const priceBlock = hasDisc
-          ? `<span class="old">$${escapeHtml(s.base_price)}</span>
-             <strong>$${escapeHtml(s.price)}</strong>
-             <span class="badge">-${escapeHtml(String(s.discount_percent))}%</span>`
-          : `<strong>$${escapeHtml(s.price || s.base_price)}</strong>`;
-        const desc = s.description ? `<p class="muted">${escapeHtml(s.description)}</p>` : '';
-        const cat  = s.category ? `<div class="muted">${escapeHtml(s.category)}</div>` : '';
-        const media = s.image
-          ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.name)}" loading="lazy" decoding="async">`
-          : `<div class="ph" aria-hidden="true">BGM • SERVICE</div>`;
-        const badge = s.category ? `<span class="service-card__badge">${escapeHtml(s.category)}</span>` : '';
-        return `
-          <article class="service-card"
-                   data-service-id="${escapeHtml(s.id)}"
-                   data-service-name="${escapeHtml(s.name)}"
-                   tabindex="0" role="button" aria-label="Book ${escapeHtml(s.name)}">
-            <div class="service-card__img" aria-label="Service image">
-              ${media}
-              ${badge}
-            </div>
-            ${cat}
-            <h3>${escapeHtml(s.name)}</h3>
-            ${desc}
-            <div class="service-meta">${priceBlock} · ${escapeHtml(String(s.duration_min))} min</div>
-            <button class="btn btn--primary book-btn"
-                    type="button"
-                    data-service-id="${escapeHtml(s.id)}"
-                    data-service-name="${escapeHtml(s.name)}">Pick a time</button>
-          </article>`;
-      }
-
-      let aborter=null;
-      async function fetchServices(q, cat){
-        if (aborter) aborter.abort();
-        aborter = new AbortController();
-        const params = new URLSearchParams();
-        if (q)   params.set('q', q);
-        if (cat) params.set('cat', cat);
-        const url = `/accounts/api/services/search/?${params.toString()}`;
-        const r = await fetch(url, { signal: aborter.signal, credentials: 'same-origin' });
-        if (!r.ok) throw new Error('Failed to load');
-        return r.json();
-      }
-
-      const runSearch = debounce(async ()=>{
-        const q   = qInput?.value?.trim() || '';
-        const cat = catSel?.value || '';
-        if (!q && !cat) { hideLive(); return; }
-        showLive();
-        liveGrid.innerHTML = skeleton();
-        try{
-          const data = await fetchServices(q, cat);
-          const items = (data && data.results) || [];
-          liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="stub">No services found.</div>`;
-        }catch(e){
-          liveGrid.innerHTML = `<div class="stub">Could not load results. Please try again.</div>`;
-        }
-      }, 300);
-
-      if (qInput) qInput.addEventListener('input', runSearch);
-      if (catSel) catSel.addEventListener('change', runSearch);
-      if (resetLink){
-        resetLink.addEventListener('click', (e)=>{
-          e.preventDefault();
-          if (qInput) qInput.value = '';
-          if (catSel) catSel.value = '';
-          hideLive();
-          document.getElementById('services')?.scrollIntoView({behavior:'smooth', block:'start'});
+          if (isFree){
+            chip.addEventListener('click', ()=>{
+              olGrid.querySelectorAll('.slot-selected').forEach(el=>el.classList.remove('slot-selected'));
+              chip.classList.add('slot-selected');
+              current.masterId = Number(elMaster.value);
+              current.slot     = data.iso.get(t);
+              elSummary.textContent = `Master: ${elMaster.selectedOptions[0]?.text || (elMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent || '')}. Time: ${chip.textContent}, ${d.toLocaleDateString()}.`;
+              btnSubmit.disabled=false;
+            });
+          }else{
+            chip.disabled=true;
+          }
+          c.appendChild(chip);
+          olGrid.appendChild(c);
         });
+      });
+
+      const todayIdx = days.findIndex(x=>x.toDateString()===new Date().toDateString());
+      if (todayIdx>0){ const colWidth = 160; olWrap.scrollLeft = todayIdx * colWidth - colWidth; }
+    }
+
+    async function shiftWindow(deltaDays){ baseStart = new Date(baseStart); baseStart.setDate(baseStart.getDate() + deltaDays); await renderWindow(); }
+    olPrev.addEventListener('click', ()=>shiftWindow(-WINDOW_DAYS));
+    olNext.addEventListener('click', ()=>shiftWindow(WINDOW_DAYS));
+    olToday.addEventListener('click', async ()=>{ baseStart = new Date(); baseStart.setHours(0,0,0,0); await renderWindow(); });
+
+    async function submitBooking(){
+      if(!current.serviceId||!current.masterId||!current.slot) return;
+      btnSubmit.disabled=true; elError.style.display='none'; elSuccess.style.display='none';
+      try{
+        const resp=await fetch(apiBook,{
+          method:'POST',
+          headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
+          credentials:'same-origin',
+          body:JSON.stringify({ service:current.serviceId, master:current.masterId, start_time:current.slot })
+        });
+        const data=await resp.json().catch(()=>({}));
+        if(!resp.ok){ throw new Error((data&&(data.error||data.detail))||'Could not create an appointment'); }
+        elSuccess.textContent='Appointment created! ' + (data.appointment?.start_time?('Time: '+new Date(data.appointment.start_time).toLocaleString()):'');
+        elSuccess.style.display='block';
+        setTimeout(()=>{ window.location.reload(); }, 700);
+      }catch(err){
+        elError.textContent=err.message||'Booking error';
+        elError.style.display='block'; btnSubmit.disabled=false;
       }
-    })();
-  </script>
+    }
+
+    // Открытие модалки с карточек/кнопок
+    document.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.book-btn');
+      if (btn){
+        openModal(btn.dataset.serviceId, btn.dataset.serviceName || 'service');
+        return;
+      }
+      const isInteractive = e.target.closest('button, a, select, input, textarea, label');
+      if (isInteractive) return;
+      const card = e.target.closest('.service-card[data-service-id]');
+      if (card){
+        openModal(card.dataset.serviceId, card.dataset.serviceName || 'service');
+      }
+    });
+    document.addEventListener('keydown', (e)=>{
+      if (!['Enter',' '].includes(e.key)) return;
+      const card = document.activeElement;
+      if (card && card.matches('.service-card[data-service-id]')){
+        e.preventDefault();
+        openModal(card.dataset.serviceId, card.dataset.serviceName || 'service');
+      }
+    });
+
+    btnClose.addEventListener('click',()=>modal.classList.remove('modal--open'));
+    btnCancel.addEventListener('click',()=>modal.classList.remove('modal--open'));
+    modal.addEventListener('click',(e)=>{ if(e.target===modal) modal.classList.remove('modal--open'); });
+    btnSubmit.addEventListener('click',submitBooking);
+
+    // Горизонтальный скролл
+    olWrap.addEventListener('wheel', (e)=>{
+      if (e.shiftKey && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); olWrap.scrollLeft += e.deltaY; }
+    }, { passive:false });
+
+    /* ===== Live search (без изменений в логике, только визуал) ===== */
+    const qInput = document.querySelector('input[name="q"]');
+    const catSel = document.querySelector('select[name="cat"]');
+    const liveTitle = document.getElementById('liveTitle');
+    const liveGrid  = document.getElementById('liveGrid');
+    const serverContent = document.getElementById('serverContent');
+    const resetLink = document.querySelector('a.btn.btn--ghost[href*="client-dashboard"]');
+
+    function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+    function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+    function showLive(){ liveTitle.style.display='block'; liveGrid.style.display='grid'; serverContent.style.display='none'; }
+    function hideLive(){ liveTitle.style.display='none'; liveGrid.style.display='none'; serverContent.style.display='block'; }
+    function skeleton(n=8){
+      return Array.from({length:n}).map(()=>`
+        <article class="service-card" aria-hidden="true">
+          <div class="service-card__img skeleton" style="height:auto; aspect-ratio:16/9;"></div>
+          <div class="skeleton" style="height:18px;margin-top:10px;border-radius:6px;"></div>
+          <div class="skeleton" style="height:14px;margin-top:6px;border-radius:6px;"></div>
+          <div class="skeleton" style="height:36px;margin-top:12px;border-radius:10px;"></div>
+        </article>`).join('');
+    }
+    function cardHTML(s){
+      const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
+      const priceBlock = hasDisc
+        ? `<span class="old">$${escapeHtml(s.base_price)}</span>
+           <strong>$${escapeHtml(s.price)}</strong>
+           <span class="badge">-${escapeHtml(String(s.discount_percent))}%</span>`
+        : `<strong>$${escapeHtml(s.price || s.base_price)}</strong>`;
+      const desc = s.description ? `<p class="muted">${escapeHtml(s.description)}</p>` : '';
+      const cat  = s.category ? `<div class="muted">${escapeHtml(s.category)}</div>` : '';
+      const media = `<div class="ph" aria-hidden="true">BGM • SERVICE</div>`;
+      return `
+        <article class="service-card"
+                 data-service-id="${escapeHtml(s.id)}"
+                 data-service-name="${escapeHtml(s.name)}"
+                 tabindex="0" role="button" aria-label="Book ${escapeHtml(s.name)}">
+          <div class="service-card__img" aria-label="Service image">
+            ${media}
+          </div>
+          ${cat}
+          <h3>${escapeHtml(s.name)}</h3>
+          ${desc}
+          <div class="service-meta">${priceBlock} · ${escapeHtml(String(s.duration_min))} min</div>
+          <button class="btn btn--primary book-btn"
+                  type="button"
+                  data-service-id="${escapeHtml(s.id)}"
+                  data-service-name="${escapeHtml(s.name)}">Pick a time</button>
+        </article>`;
+    }
+
+    let aborter=null;
+    async function fetchServices(q, cat){
+      if (aborter) aborter.abort();
+      aborter = new AbortController();
+      const params = new URLSearchParams();
+      if (q)   params.set('q', q);
+      if (cat) params.set('cat', cat);
+      const url = `/accounts/api/services/search/?${params.toString()}`;
+      const r = await fetch(url, { signal: aborter.signal, credentials: 'same-origin' });
+      if (!r.ok) throw new Error('Failed to load');
+      return r.json();
+    }
+
+    const runSearch = debounce(async ()=>{
+      const q   = qInput?.value?.trim() || '';
+      const cat = catSel?.value || '';
+      if (!q && !cat) { hideLive(); return; }
+      showLive();
+      liveGrid.innerHTML = skeleton();
+      try{
+        const data = await fetchServices(q, cat);
+        const items = (data && data.results) || [];
+        liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="stub">No services found.</div>`;
+      }catch(e){
+        liveGrid.innerHTML = `<div class="stub">Could not load results. Please try again.</div>`;
+      }
+    }, 300);
+
+    if (qInput) qInput.addEventListener('input', runSearch);
+    if (catSel) catSel.addEventListener('change', runSearch);
+    if (resetLink){
+      resetLink.addEventListener('click', (e)=>{
+        e.preventDefault();
+        if (qInput) qInput.value = '';
+        if (catSel) catSel.value = '';
+        hideLive();
+        document.getElementById('services')?.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    }
+  })();
+</script>
 </body>
 </html>

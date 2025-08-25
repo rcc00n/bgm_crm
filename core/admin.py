@@ -756,9 +756,9 @@ admin.site.register(PaymentStatus)
 @admin.register(MasterProfile)
 class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
     add_form = MasterCreateFullForm
-    readonly_fields = ['password_display']
+    readonly_fields = ['password_display', 'photo_preview']
     export_fields = ["first_name","last_name","email","username" ,"phone","birth_date","profession", 'bio',"work_start", "work_end", "room", "is_staff", "is_superuser", 'is_active']
-
+    
     def get_export_row(self, obj):
         phone = obj.user.userprofile.phone if hasattr(obj, 'user') else ''
         birth_date = obj.user.userprofile.birth_date if hasattr(obj, 'user') else ''
@@ -789,6 +789,9 @@ class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
         form = self.form(instance=obj if obj else None)
         fields = list(form.fields.keys())
 
+        if 'photo' in fields and 'photo_preview' not in fields:
+            fields.insert(fields.index('photo') + 1, 'photo_preview')
+            
         if obj:
             # редактирование
             fields = [f for f in fields if f not in ['password1', 'password2', 'password']]  # ← обязательно убрать 'password'
@@ -802,6 +805,12 @@ class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
 
         return [(None, {'fields': fields})]
 
+    def photo_preview(self, obj):
+        if getattr(obj, "photo", None):
+            return format_html('<img src="{}" style="max-width:120px;border-radius:8px;"/>', obj.photo.url)
+        return "—"
+    photo_preview.short_description = "Preview"
+    
     def password_display(self, obj):
         from django.utils.html import format_html
         reset_url = f"/admin/auth/user/{obj.user.id}/password/"

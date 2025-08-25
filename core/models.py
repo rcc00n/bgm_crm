@@ -14,7 +14,25 @@ from django.conf import settings
 
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
+from django.core.files.storage import FileSystemStorage
+from django.conf import settings
 
+from storages.backends.s3boto3 import S3Boto3Storage
+
+def _s3_configured() -> bool:
+    required = [
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_STORAGE_BUCKET_NAME",
+        "AWS_S3_REGION_NAME",
+    ]
+    return all(bool(getattr(settings, key, None)) for key in required)
+
+# не инициализируем S3, если он не настроен, чтобы не получать ValueError
+try:
+    MASTER_PHOTO_STORAGE = S3Boto3Storage() if _s3_configured() else FileSystemStorage()
+except Exception:
+    MASTER_PHOTO_STORAGE = FileSystemStorage()
 class Role(models.Model):
     """
     Represents a role that can be assigned to a user (e.g., Master, Client, Admin).
@@ -184,6 +202,8 @@ class MasterProfile(models.Model):
     room = models.ForeignKey(MasterRoom, on_delete=models.CASCADE, blank=True, null=True)
     work_start = models.TimeField(default="08:00")
     work_end = models.TimeField(default="21:00")
+    photo = models.ImageField(upload_to="masters/", storage=MASTER_PHOTO_STORAGE, blank=True, null=True)
+
 
     def __str__(self):
         return f"{self.user.get_full_name()}"
