@@ -1,0 +1,54 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Dealer Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{
+      --bg:#0a0a0a; --ink:#eaeaea; --muted:#bdbdbd;
+      --red:#d50000; --red-dark:#b60000;
+      --card-bg:rgba(18,18,18,.75); --card-border:rgba(255,255,255,.08);
+      --field-bg:rgba(255,255,255,.06);
+    }
+    body{background:var(--bg); color:var(--ink); font-family:Inter,system-ui,Arial,sans-serif; padding:24px;}
+    .card{background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; padding:24px; max-width:720px; margin:0 auto;}
+    .h{font-weight:900; font-size:28px; margin:0 0 8px;}
+    .muted{color:var(--muted); margin:0 0 16px;}
+    .badge{display:inline-block; padding:8px 12px; border-radius:999px; background:var(--field-bg);}
+    a.btn{display:inline-block; background:var(--red); color:#fff; padding:10px 14px; border-radius:12px; text-decoration:none; font-weight:700;}
+    a.btn:hover{background:var(--red-dark);}
+  </style>
+</head>
+<body>
+  <div class="card">
+    {% if is_dealer and userprofile %}
+      <h1 class="h">Dealer Program</h1>
+      <p class="muted">You are an approved dealer.</p>
+      <p>
+        <span class="badge">Tier: {{ userprofile.get_dealer_tier_display }}</span>
+        <span class="badge">Discount: {{ userprofile.dealer_discount_percent }}%</span>
+      </p>
+      <p class="muted">Total spent: ${{ userprofile.total_spent_usd|floatformat:2 }}</p>
+      <p class="muted">Next tiers:
+        ≥ $1,000 → 5%, ≥ $5,000 → 10%, ≥ $20,000 → 15%.
+      </p>
+    {% else %}
+      <h1 class="h">Dealers Only</h1>
+      <p class="muted">This page is available to dealers only.</p>
+
+      {% if dealer_application %}
+        {% if dealer_application.status == "pending" %}
+          <p class="muted">Your application is under review. We will notify you once it is approved.</p>
+        {% elif dealer_application.status == "rejected" %}
+          <p class="muted">Your application was rejected. You can re‑apply later.</p>
+          <a class="btn" href="{% url 'dealer-apply' %}">Apply again</a>
+        {% endif %}
+      {% else %}
+        <a class="btn" href="{% url 'dealer-apply' %}">Apply to become a dealer</a>
+      {% endif %}
+    {% endif %}
+  </div>
+</body>
+</html>

@@ -351,3 +351,30 @@ class MasterCreateFullForm(forms.ModelForm):
             profile.save()
 
             return super().save(commit=commit)
+        
+from django import forms
+from core.models import DealerApplication
+
+class DealerApplicationForm(forms.ModelForm):
+    class Meta:
+        model = DealerApplication
+        fields = ["business_name", "website", "phone", "notes"]
+        widgets = {
+            "business_name": forms.TextInput(attrs={"placeholder": "Business name"}),
+            "website": forms.URLInput(attrs={"placeholder": "Website (optional)"}),
+            "phone": forms.TextInput(attrs={"placeholder": "Phone"}),
+            "notes": forms.Textarea(attrs={"placeholder": "Tell us about your business...", "rows": 4}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        user = self.initial.get("user") or self.current_user
+        # Защита: одна заявка на пользователя
+        if user and DealerApplication.objects.filter(user=user).exclude(status=DealerApplication.Status.REJECTED).exists():
+            raise forms.ValidationError("You already have an application in progress or approved.")
+        return cleaned
+
+    # Удобно прокидывать текущего пользователя во время инициализации формы
+    def __init__(self, *args, **kwargs):
+        self.current_user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)

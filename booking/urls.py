@@ -7,6 +7,7 @@ from core.autocomplete import ServiceAutocomplete
 from core.views import service_search
 from django.conf import settings
 from django.conf.urls.static import static
+from core.views import DealerApplyView, DealerStatusView
 
 urlpatterns = [
     # Admin
@@ -58,6 +59,9 @@ urlpatterns = [
 
     # Merch (заглушка)
     path("merch/", MerchPlaceholderView.as_view(), name="merch"),
+    
+    path("dealer/apply/", DealerApplyView.as_view(), name="dealer-apply"),
+    path("dealer/status/", DealerStatusView.as_view(), name="dealer-status"),
 ]
 
 if settings.DEBUG:

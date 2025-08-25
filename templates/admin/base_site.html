@@ -27,6 +27,22 @@
     <li><a href="{% url 'admin:store_order_changelist' %}">Orders</a></li>
   </ul>
 </li>
+
+{% if not request.user.master_profile %}
+<li class="dropdown">
+  <a href="javascript:void(0);" onclick="toggleDropdown(this)">
+    <img src="{% static 'admin/icons/users.png' %}" alt="Dealers">
+    <span class="sidebar-label">Dealers
+      <span class="dropdown-arrow"><img src="{% static 'admin/icons/arrow.png' %}" alt="Pointer"></span>
+    </span>
+  </a>
+  <ul class="submenu">
+    <li><a href="{% url 'admin:core_dealerapplication_changelist' %}">Dealer Applications</a></li>
+    <li><a href="{% url 'admin:core_userprofile_changelist' %}">Dealer Profiles</a></li>
+  </ul>
+</li>
+{% endif %}
+
                 <li>
                     <a href="/admin/">
                         <img src="{% static 'admin/icons/home.png' %}" alt="Dashboard">

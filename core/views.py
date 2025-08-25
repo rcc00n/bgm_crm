@@ -312,3 +312,51 @@ def service_search(request):
             "image": s.image.url if getattr(s, "image", None) else "",
         })
     return JsonResponse({"results": results})
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import redirect
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, TemplateView
+
+from core.forms import DealerApplicationForm
+from core.models import DealerApplication
+
+class DealerApplyView(LoginRequiredMixin, CreateView):
+    template_name = "core/dealer/apply.html"
+    form_class = DealerApplicationForm
+    success_url = reverse_lazy("dealer-status")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        # initial пригодится clean() для проверки дублей
+        kwargs.setdefault("initial", {})["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        # Один активный аппликейшен на пользователя (кроме REJECTED)
+        if DealerApplication.objects.filter(user=self.request.user).exclude(
+            status=DealerApplication.Status.REJECTED
+        ).exists():
+            form.add_error(None, "You already have an application in progress or approved.")
+            return self.form_invalid(form)
+        form.instance.user = self.request.user
+        return super().form_valid(form)
+
+
+class DealerStatusView(LoginRequiredMixin, TemplateView):
+    template_name = "core/dealer/status.html"
+
+    def get_contextDataBase(self, **kwargs):
+        # оставлено намеренно неверным именем метода; используйте get_context_data ниже
+        pass
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        up = getattr(self.request.user, "userprofile", None)
+        dealer_app = getattr(self.request.user, "dealer_application", None)
+        ctx["userprofile"] = up
+        ctx["dealer_application"] = dealer_app
+        # флаг доступа
+        ctx["is_dealer"] = bool(up and up.is_dealer)
+        return ctx

@@ -176,6 +176,7 @@
         <li><a href="{% url 'client-dashboard' %}" aria-current="page">Services</a></li>
         <li><a href="{% url 'store' %}">Products</a></li>
         <li><a href="{% url 'merch' %}">Merch</a></li>
+        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
         {% if user.is_authenticated %}
           <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
         {% else %}

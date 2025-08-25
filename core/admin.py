@@ -1017,3 +1017,86 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
     return calendar_table
 
+from django.contrib import admin
+from django.utils import timezone
+from core.models import DealerApplication, UserProfile
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Dealer Applications
+# ──────────────────────────────────────────────────────────────────────────────
+
+@admin.register(DealerApplication)
+class DealerApplicationAdmin(admin.ModelAdmin):
+    list_display = (
+        "user", "business_name", "status",
+        "created_at", "reviewed_by", "reviewed_at",
+    )
+    list_filter = ("status", "created_at")
+    search_fields = ("user__email", "user__username", "business_name", "phone", "website")
+    readonly_fields = ("created_at", "reviewed_at", "reviewed_by")
+
+    actions = ["approve_selected", "reject_selected"]
+
+    @admin.action(description="Approve selected applications")
+    def approve_selected(self, request, queryset):
+        count = 0
+        for app in queryset.select_related("user"):
+            if app.status != DealerApplication.Status.APPROVED:
+                app.approve(admin_user=request.user)
+                count += 1
+        self.message_user(request, f"Approved {count} application(s).")
+
+    @admin.action(description="Reject selected applications")
+    def reject_selected(self, request, queryset):
+        count = 0
+        for app in queryset:
+            if app.status != DealerApplication.Status.REJECTED:
+                app.reject(admin_user=request.user)
+                count += 1
+        self.message_user(request, f"Rejected {count} application(s).")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Dealers (UserProfile)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        "user", "is_dealer", "dealer_tier", "dealer_since",
+        "total_spent_display", "dealer_discount_display",
+    )
+    list_filter = ("is_dealer", "dealer_tier")
+    search_fields = ("user__email", "user__username")
+    readonly_fields = ("dealer_since",)
+
+    fieldsets = (
+        ("User", {"fields": ("user",)}),
+        ("Dealer", {"fields": ("is_dealer", "dealer_tier", "dealer_since")}),
+        # добавьте ваши остальные поля профиля при необходимости
+    )
+
+    @admin.display(description="Total spent")
+    def total_spent_display(self, obj):
+        try:
+            return f"${obj.total_spent_usd():,.2f}"
+        except Exception:
+            return "$0.00"
+
+    @admin.display(description="Dealer discount")
+    def dealer_discount_display(self, obj):
+        try:
+            return f"{obj.dealer_discount_percent}%"
+        except Exception:
+            return "0%"
+
+    actions = ["recompute_tiers"]
+
+    @admin.action(description="Recompute dealer tiers")
+    def recompute_tiers(self, request, queryset):
+        for up in queryset.select_related("user"):
+            up.recompute_dealer_tier()
+            if up.is_dealer and not up.dealer_since:
+                up.dealer_since = timezone.now()
+            up.save(update_fields=["dealer_tier", "dealer_since"])
+        self.message_user(request, f"Recomputed tiers for {queryset.count()} profile(s).")

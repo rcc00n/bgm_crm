@@ -64,6 +64,7 @@
         <li><a href="{% url 'client-dashboard' %}">Services</a></li>
         <li><a href="{% url 'store' %}">Store</a></li>
         <li><a href="{% url 'merch' %}" aria-current="page">Merch</a></li>
+        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
         {% if user.is_authenticated %}
           <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
         {% else %}

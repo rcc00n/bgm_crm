@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.utils.timezone import localtime
 from core.validators import clean_phone
 from django.conf import settings
-
+from django.db.models import Sum
 
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
@@ -81,11 +81,100 @@ class HowHeard(models.TextChoices):
     TIKTOK = "tiktok", "TikTok"
     FRIEND = "friend", "Friends/Family"
     OTHER = "other", "Other"
-    
+
+# ── NEW/UPDATED: Dealer tiers, application, fields на профиле ─────────────────
+from django.conf import settings
+from django.db import models
+from django.utils import timezone
+from django.core.validators import MinLengthValidator
+
+# Если у вас уже есть UserProfile — дополним его, иначе создайте.
+class DealerTier(models.TextChoices):
+    NONE = "NONE", "None"
+    TIER_5 = "TIER_5", "Dealer 5% (≥ $1,000)"
+    TIER_10 = "TIER_10", "Dealer 10% (≥ $5,000)"
+    TIER_15 = "TIER_15", "Dealer 15% (≥ $20,000)"
+
+DEALER_THRESHOLDS = {
+    DealerTier.TIER_5: 1000,
+    DealerTier.TIER_10: 5000,
+    DealerTier.TIER_15: 20000,
+}
+DEALER_DISCOUNTS = {
+    DealerTier.TIER_5: 5,
+    DealerTier.TIER_10: 10,
+    DealerTier.TIER_15: 15,
+}
+
+class DealerApplication(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="dealer_application",
+        verbose_name="User",
+    )
+    business_name = models.CharField("Business name", max_length=128)
+    website = models.URLField("Website", blank=True)
+    phone = models.CharField("Phone", max_length=32, validators=[MinLengthValidator(5)])
+    notes = models.TextField("Notes", blank=True)
+    status = models.CharField(
+        "Status", max_length=16, choices=Status.choices, default=Status.PENDING
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="dealer_reviews",
+        verbose_name="Reviewed by",
+    )
+
+    class Meta:
+        verbose_name = "Dealer Application"
+        verbose_name_plural = "Dealer Applications"
+        ordering = ["-created_at"]
+
+    def approve(self, admin_user):
+        self.status = self.Status.APPROVED
+        self.reviewed_at = timezone.now()
+        self.reviewed_by = admin_user
+        self.save(update_fields=["status", "reviewed_at", "reviewed_by"])
+        # Обновим профиль пользователя
+        up = getattr(self.user, "userprofile", None)
+        if up:
+            up.is_dealer = True
+            # tier будет выставляться на основании total_spent (см. метод ниже)
+            up.recompute_dealer_tier()
+            up.dealer_since = up.dealer_since or timezone.now()
+            up.save(update_fields=["is_dealer", "dealer_tier", "dealer_since"])
+
+    def reject(self, admin_user):
+        self.status = self.Status.REJECTED
+        self.reviewed_at = timezone.now()
+        self.reviewed_by = admin_user
+        self.save(update_fields=["status", "reviewed_at", "reviewed_by"])
+
+
+
 class UserProfile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="userprofile")
+
     phone = models.CharField(max_length=32, unique=True)
     birth_date = models.DateField(null=True, blank=True)
+    is_dealer = models.BooleanField("Is dealer", default=False)
+    dealer_tier = models.CharField(
+        "Dealer tier",
+        max_length=16,
+        choices=DealerTier.choices,
+        default=DealerTier.NONE,
+    )
+    dealer_since = models.DateTimeField("Dealer since", null=True, blank=True)
 
     # === NEW ===
     address = models.TextField(blank=True)                         # одна строка/много строк — на твой вкус
@@ -104,6 +193,61 @@ class UserProfile(models.Model):
             
     def __str__(self):
         return f"{self.user} Profile"
+    
+    
+
+
+
+   
+
+    def total_spent_usd(self) -> float:
+        """
+        Total spent by the user:
+        - Sum of all Payment.amount for appointments where client=self.user
+        - PLUS sum of service.base_price for paid appointments that have NO payments
+        (to avoid double counting).
+        """
+        try:
+            from core.models import Payment, Appointment, PaymentStatus
+        except Exception:
+            return 0.0
+
+        # 1) Sum of all payments
+        payments_total = Payment.objects.filter(
+            appointment__client=self.user
+        ).aggregate(s=Sum("amount"))["s"] or 0
+
+        # 2) Paid appointments that have NO payments
+        paid_names = {"Paid", "Completed", "Settled", "paid", "completed", "settled"}
+        paid_statuses = PaymentStatus.objects.filter(name__in=paid_names)
+
+        appts_without_payments_total = Appointment.objects.filter(
+            client=self.user,
+            payment_status__in=paid_statuses,
+            payment__isnull=True,  # no payments linked
+        ).aggregate(s=Sum("service__base_price"))["s"] or 0
+
+        return float(payments_total) + float(appts_without_payments_total)
+
+
+    def recompute_dealer_tier(self) -> None:
+        spent = self.total_spent_usd()
+        new_tier = DealerTier.NONE
+        if spent >= DEALER_THRESHOLDS[DealerTier.TIER_15]:
+            new_tier = DealerTier.TIER_15
+        elif spent >= DEALER_THRESHOLDS[DealerTier.TIER_10]:
+            new_tier = DealerTier.TIER_10
+        elif spent >= DEALER_THRESHOLDS[DealerTier.TIER_5]:
+            new_tier = DealerTier.TIER_5
+        self.dealer_tier = new_tier  # do NOT flip is_dealer here
+
+
+
+
+
+    @property
+    def dealer_discount_percent(self) -> int:
+        return DEALER_DISCOUNTS.get(self.dealer_tier, 0)
 
 # --- 2. SERVICES ---
 
