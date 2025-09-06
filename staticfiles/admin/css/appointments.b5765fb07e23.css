@@ -1,0 +1,638 @@
+
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.content-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    width: 96vw !important;
+    max-width: 96vw !important;
+    padding: 0 !important;
+    flex-direction: column;
+    min-height: 0; /* 👈 предотвратить выталкивание */
+}
+.content.border-bottom.mb-2 {
+    display: none !important;
+}
+#calendar-container{
+    height: 100%;
+}
+
+.calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+
+    padding: 2vh 3vh;
+    background: rgba(239,239,239,0.52);
+}
+
+.calendar-left {
+    display: flex;
+    align-items: center;
+    gap: 1.3vh;
+}
+
+.calendar-right {
+    display: flex;
+    align-items: center;
+}
+
+.add-appointment-btn {
+    margin-left: auto;
+    background-color: black;
+    color: white;
+    width: 11vh;
+    height: 4.5vh;
+    font-weight: bold;
+    border: none;
+    padding: 1vh 1.5vh;
+    border-radius: 20px;
+    font-size: 1.8vh;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.add-appointment-btn:hover {
+    background-color: rgba(0, 0, 0, 0.85);
+}
+
+.add-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.add-dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 120%;
+    color: black;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    min-width: 21.5vh;
+    z-index: 10000;
+    overflow: hidden;
+    padding: 1vh 0;
+    transition: all 0.3s ease;
+}
+
+.add-dropdown-menu a {
+    display: flex;
+    align-items: center;
+    gap: 1.1vh;
+    padding: 1.1vh 1.8vh;
+    text-decoration: none;
+    color: black;
+    font-size: 1.6vh;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.add-dropdown-menu a:hover {
+    background-color: #f1f1f1;
+
+}
+
+.hidden {
+    display: none;
+}
+
+.popup.hidden {
+    display: none;
+}
+
+.popup {
+    position: absolute;
+    z-index: 2000;
+    background: white;
+    border: 0.15vh solid #ccc;
+    border-radius: 1.2vh;
+    box-shadow: 0 0.6vh 2vh rgba(0, 0, 0, 0.15);
+    width: 28vh;
+    padding: 0;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+}
+
+.popup-header {
+    background-color: #e0e0e0;
+    padding: 0.8vh 1.2vh;
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 2vh;
+    border-top-left-radius: 1.2vh;
+    border-top-right-radius: 1.2vh;
+}
+
+.popup-close {
+    background: none;
+    border: none;
+    font-size: 1.6vh;
+    cursor: pointer;
+}
+
+.popup-body {
+    padding: 1.2vh 0;
+    display: flex;
+
+    flex-direction: column;
+}
+
+.popup-action {
+    padding: 1.2vh 2vh;
+    font-size: 1.8vh;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 1.2vh;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.popup-action:hover {
+    background-color: #f4f4f4;
+}
+.nav-btn {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 0.6vh 1.8vh;
+    border-radius: 2.2vh;
+    font-weight: 500;
+    font-size: 1.8vh;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.nav-btn:hover {
+    border-color: #999;
+}
+
+.nav-group {
+    display: flex;
+    border: 1px solid #ddd;
+    margin-left: 1.1vh;
+    margin-right: 1.1vh;
+    border-radius: 2.2vh;
+    overflow: hidden;
+    align-items: center;
+}
+
+.nav-icon2 {
+    background: white;
+    border: none;
+    padding: 0.66vh 1.3vh;
+    font-size: 1.8vh;
+    cursor: pointer;
+}
+
+.nav-date {
+    padding: 0.66vh 1.8vh;
+    font-weight: 500;
+    background-color: #f8f8f8;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+}
+
+.sidebar2 {
+    position: fixed;
+    top: 6.4vh;
+    right: 0;
+    width: 53.7vh;
+    height: calc(100vh - 6.4vh);
+    background: #fff;
+    border-left: 1px solid #ccc;
+    padding: 2.1vh;
+    overflow-y: auto;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.3s ease;
+    z-index: 1000;
+}
+
+.sidebar2.visible {
+    transform: translateX(0%);
+    opacity: 1;
+}
+
+.sidebar2.hidden {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.sidebar-header2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-bottom: 2.1vh;
+    position: relative;
+}
+
+.close-btn2 {
+    background: transparent;
+    border: none;
+    font-size: 2.1vh;
+    cursor: pointer;
+    width: 3.4vh;
+    height: 3.4vh;
+    line-height: 3.4vh;
+    text-align: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.filter-section {
+    border-bottom: 1px solid #eee;
+    margin-bottom: 1.6vh;
+}
+
+.filter-header {
+    font-weight: 600;
+    cursor: pointer;
+    padding: 1vh 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.clear-link, .edit-link {
+    color: #7e57c2;
+    font-size: 1.3vh;
+    cursor: pointer;
+}
+
+.filter-content {
+    display: none;
+    padding: 1vh 0;
+}
+
+.filter-content select {
+    width: 100%;
+    padding: 0.66vh;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.apply-btn {
+    background-color: #7e57c2;
+    color: #fff;
+    padding: 1vh;
+    border: none;
+    border-radius: 6px;
+    width: 100%;
+    margin-top: 1vh;
+    font-weight: bold;
+    cursor: pointer;
+}
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.6vh;
+    gap: 1vh;
+    font-size:1.5vh;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+    width: 1.8vh;
+    height: 1.8vh;
+    accent-color: #7e57c2; /* фиолетовый */
+}
+
+.filter-footer {
+    margin-top: 2.2vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+}
+
+.clear-btn {
+    background: transparent;
+    color: #7e57c2;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0.66vh;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 1.5vh;
+}
+
+.master-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5vh;
+    padding: 1vh 0;
+}
+
+.initials-circle {
+    width: 5.16vh;
+    height: 5.16vh;
+    background-color: #e3e0ff;
+    border: 3px solid #8be9fd;
+    color: #7e57c2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 2vh;
+    text-transform: uppercase;
+}
+
+.master-name {
+    font-size: 1.5vh;
+    font-weight: bold;
+    text-align: center;
+}
+
+.calendar-table {
+    font-size: 1.5vh;
+
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+    margin: 0 auto;
+
+}
+
+.calendar-table tbody tr:nth-child(4n) {
+    border-bottom: 2px solid rgba(153, 153, 153, 0.47);
+}
+
+.calendar-table tbody td:first-child {
+    font-weight: bold;
+}
+.scrollable{
+    margin: 0;
+    padding: 0;
+    max-height: 85vh;           /* ограничим высоту */
+    overflow-y: auto;            /* вертикальный скролл */
+    width: 100%;
+}
+
+.calendar-cell {
+    position: relative;
+    width: 100%;
+
+    height: 100%;
+    text-align: left;
+}
+
+.calendar-cell:hover::before {
+    content: '';
+    position: absolute;
+    border: 1px solid rgba(164, 104, 197, 0.53);
+    top: 1px;
+    left: 1px;
+    right: 1px;
+    color: #650098;
+    bottom: 1px;
+    text-align: left;
+    background-color: rgba(230, 179, 192, 0.47);
+    border-radius: 5px;
+    box-shadow: 1px 1px 3px rgba(199, 154, 250, 0.82);
+    z-index: 0;
+}
+
+.calendar-cell:hover::after{
+    content:attr(data-time);
+    font-family: "Bold Italic Art", serif;
+    padding-left: 2%;
+    font-size: 1.6vh;
+
+    text-align: left;
+    display: inline-block;
+    z-index: 2;
+
+}
+.calendar-cell.active {
+    background-color: rgba(126, 87, 194, 0.1); /* нежно-фиолетовый фон */
+    border: 1px solid #7e57c2;
+    border-radius: 6px;
+    color: #333;
+    display: inline-block;
+    z-index: 3;
+}
+
+.calendar-table thead th {
+    position: sticky;
+    top: 0;
+
+    background-color: #f9f9f9; /* фон должен быть непрозрачным */
+    z-index: 10;
+    text-align: center;
+    border-bottom: 2px solid #aaa;
+}
+.calendar-table th,
+.calendar-table td {
+    padding: 1px;
+    border-right: 2px solid rgba(153, 153, 153, 0.47);
+    text-align: center;
+    height:3vh;
+}
+
+.calendar-table th.time-col {
+    width: 5%;
+    font-size: 1.5vh;
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+
+
+.fake-date-picker {
+    display: inline-block;
+    padding: 0.66vh 1.7vh;
+    font-weight: bold;
+    text-align: center;
+    background: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 18.2vh;
+    font-size: 1.8vh;
+    user-select: none;
+}
+
+/* Скрываем настоящий input */
+.fake-date-picker input[type="date"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+.event > div{
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* по вертикали вверх */
+    align-items: flex-start;     /* по горизонтали влево */
+    text-align: left;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s ease;
+    height: 100%;
+    color: black;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 0.66vh 1vh;
+    font-size: 1.5vh;
+    font-weight: 500;
+}
+.event:hover > div, .unavailable-cell:hover > div {
+    width: calc(100% - 5%); /* сжатие справа */
+    margin-left: 0;           /* левый край остаётся */
+    margin-right: 0; /* двигаем влево, правый край остаётся внутри */
+    border: 1px solid #5ac2ff;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.unavailable-cell > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* по вертикали вверх */
+    align-items: flex-start;     /* по горизонтали влево */
+    text-align: left;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s ease;
+    background-color: #A4ADBA;
+    height: 100%;
+    color: black;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 0.66vh 1vh;
+    font-size: 1.5vh;
+    font-weight: 500;
+}
+
+#apptTooltip {
+    position: absolute;
+    z-index: 9999;
+    display: block;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+#apptTooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+}
+
+#apptTooltip.hidden {
+    opacity: 0;
+    transform: translateY(1.1vh);
+    visibility: hidden;
+    pointer-events: none;
+}
+
+
+.tooltip-card {
+    font-family: Arial, sans-serif;
+    width: 40.3vh;
+    height: 22.5vh;
+    background: #fff;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.tooltip-header {
+    background: #0064ef;
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.7vh;
+    padding: 1.3vh 2.2vh;
+    display: flex;
+    justify-content: space-between;
+}
+
+.tooltip-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* центрирует клиентский блок по вертикали */
+    padding: 1.8vh 2.2vh;
+    height: 100%;
+    position: relative;
+}
+
+.tooltip-client {
+    display: flex;
+    align-items: center;
+    margin-bottom: auto; /* толкает footer вниз */
+}
+
+.tooltip-avatar {
+    width: 6vh;
+    height: 6vh;
+    border-radius: 50%;
+    background: #e6e6fa;
+    color: #5f5fc4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 2.2vh;
+    margin-right: 1.3vh;
+}
+
+.tooltip-client-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.tooltip-client-name {
+    font-weight: 700;
+    font-size: 1.82vh;
+}
+
+.tooltip-client-phone {
+    font-size: 1.6vh;
+    color: #777;
+}
+
+.tooltip-footer {
+    position: absolute;
+    bottom: 3.4vh;
+    left: 2.2vh;
+    right: 2.2vh;
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.8vh;
+    font-weight: 600;
+}
+
+.tooltip-meta {
+    position: absolute;
+    bottom: 1.3vh;
+    left: 2.2vh;
+    font-size: 1.5vh;
+    color: #777;
+}
+

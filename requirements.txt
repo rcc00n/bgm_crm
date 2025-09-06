@@ -3,7 +3,8 @@ boto3==1.39.4
 botocore==1.39.4
 Django==5.2.4
 django-autocomplete-light==3.12.1
-django-jazzmin==3.0.1
+django-jazzmin==2.6.0
+
 django-storages==1.14.6
 jmespath==1.0.1
 phonenumbers==9.0.10

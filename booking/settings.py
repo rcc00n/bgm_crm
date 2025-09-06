@@ -166,6 +166,7 @@ JAZZMIN_SETTINGS = {
         {"label": "🔔 Notifications", "models": ["core.notification"]},
         {"label": "👨‍🏫 Masters", "models": ["core.masterprofile", "core.masteravailability"]},
     ],
+    "theme": "cosmo",
 }
 JAZZMIN_UI_TWEAKS = {
     "navbar_small_text": False,
@@ -187,6 +188,7 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
+
 
     "button_classes": {
         "primary": "btn-outline-primary",
@@ -216,3 +218,7 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
 }
+
+
+# ВНИЗУ, после STATICFILES_STORAGE
+WHITENOISE_IGNORE_MISSING_FILES = True
