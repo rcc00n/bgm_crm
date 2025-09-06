@@ -18,7 +18,7 @@ INSTALLED_APPS = [
     "core",
     "dal",
     "dal_select2",
-    "storages",
+    # "storages",
     "jazzmin",
 
     "django.contrib.admin",
@@ -100,10 +100,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", BASE_DIR / "media")
 
-STORAGES = {
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-}
+# STORAGES = {
+#     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+#     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+# }
 
 # S3 для медиа включается переменной USE_S3_MEDIA=1
 if os.getenv("USE_S3_MEDIA") == "1":
