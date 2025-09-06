@@ -220,7 +220,7 @@ LOGGING = {
 }
 
 
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 # ВНИЗУ, после STATICFILES_STORAGE
 WHITENOISE_IGNORE_MISSING_FILES = True
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
-
