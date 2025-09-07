@@ -200,7 +200,7 @@ JAZZMIN_UI_TWEAKS = {
         "danger": "btn-danger",
         "success": "btn-success",
     },
-    "custom_css": "admin/css/admin_custom.css",
+    "custom_css": "admin/css/custom_sidebar.css"
 }
 
 # ── Аутентификация ───────────────────────────────────────────────────────
