@@ -1,0 +1,65 @@
+/* ===== AdminLTE / Jazzmin — фиксы сайдбара и смещения контента ===== */
+
+/* НИЧЕГО не сдвигаем у .content напрямую */
+.content { margin-left: 0 !important; }
+
+/* Базовые размеры */
+:root{
+  --admin-sidebar-width: 250px;     /* ширина открытого сайдбара */
+  --admin-sidebar-collapsed: 80px;  /* ширина свернутого сайдбара */
+}
+
+/* Делаем сайдбар фиксированным (как в AdminLTE по умолчанию) */
+.main-sidebar{
+  position: fixed !important;
+  top: 0; left: 0; bottom: 0;
+  z-index: 1030;           /* поверх контента, ниже модалок */
+  overflow-y: auto;
+}
+
+/* Ширина сайдбара и бренд-баров */
+.sidebar-mini .main-sidebar,
+.sidebar-mini .brand-link{
+  width: var(--admin-sidebar-width) !important;
+}
+
+.sidebar-mini.sidebar-collapse .main-sidebar,
+.sidebar-mini.sidebar-collapse .brand-link{
+  width: var(--admin-sidebar-collapsed) !important;
+}
+
+/* Десктоп: смещаем контент/хедер/футер ровно на ширину сайдбара */
+@media (min-width: 992px){
+  .content-wrapper,
+  .main-header,
+  .main-footer{
+    margin-left: var(--admin-sidebar-width) !important;
+    transition: margin-left .15s ease;
+  }
+
+  /* Когда сайдбар свернут */
+  .sidebar-mini.sidebar-collapse .content-wrapper,
+  .sidebar-mini.sidebar-collapse .main-header,
+  .sidebar-mini.sidebar-collapse .main-footer{
+    margin-left: var(--admin-sidebar-collapsed) !important;
+  }
+}
+
+/* Мобилки/планшеты: сайдбар поверх, контент без отступа */
+@media (max-width: 991.98px){
+  .content-wrapper,
+  .main-header,
+  .main-footer{
+    margin-left: 0 !important;
+  }
+}
+
+/* Немного воздуха внутри страницы */
+.content { padding: 1rem; }
+
+/* На всякий случай глушим кастомные классы фронта, чтобы не лезли в админку */
+.icon-sidebar,
+.icon-sidebar *{
+  all: unset !important;
+  display: revert !important;
+}
