@@ -169,7 +169,7 @@ JAZZMIN_SETTINGS = {
         {"label": "👨‍🏫 Masters", "models": ["core.masterprofile", "core.masteravailability"]},
     ],
     "theme": "None",
-    "custom_css": "admin/css/custom_sidebar.css"
+    # "custom_css": "admin/css/custom_sidebar.css"
 }
 JAZZMIN_UI_TWEAKS = {
     "navbar_small_text": False,
