@@ -1,10 +1,10 @@
 /* ========================================================================
    Admin-only overrides for Jazzmin/AdminLTE
-   Положи этот файл в: static/admin/css/admin_custom.css
-   И оставь путь в JAZZMIN_UI_TWEAKS["custom_css"] = "admin/css/admin_custom.css"
+   Файл: static/admin/css/custom_sidebar.css
+   Подключение: JAZZMIN_UI_TWEAKS["custom_css"] = "admin/css/custom_sidebar.css"
    ======================================================================== */
 
-/* Убрать bulk-actions (если нужно) */
+/* Скрыть bulk-actions (по желанию) */
 .actions {
   display: none !important;
 }
@@ -15,7 +15,7 @@
   --admin-sidebar-collapsed: 80px;  /* ширина свернутого сайдбара */
 }
 
-/* Десктоп: контент/хедер/футер смещаем вправо на ширину сайдбара */
+/* Десктоп: смещение контента/хедера/футера на ширину сайдбара */
 @media (min-width: 992px) {
   .content-wrapper,
   .main-header,
@@ -23,7 +23,7 @@
     margin-left: var(--admin-sidebar-width) !important;
   }
 
-  /* Когда сайдбар свернут (класс добавляет AdminLTE) */
+  /* Когда сайдбар свернут (класс .sidebar-collapse вешает AdminLTE/Jazzmin) */
   .sidebar-mini.sidebar-collapse .content-wrapper,
   .sidebar-mini.sidebar-collapse .main-header,
   .sidebar-mini.sidebar-collapse .main-footer {
@@ -31,7 +31,7 @@
   }
 }
 
-/* Мобильные/планшеты: не смещаем, сайдбар поверх контента */
+/* Мобильные/планшеты: сайдбар поверх контента — отступ не нужен */
 @media (max-width: 991.98px) {
   .content-wrapper,
   .main-header,
@@ -40,16 +40,16 @@
   }
 }
 
-/* Чуть-чуть воздуха внутри контента (опционально) */
+/* Немного внутреннего отступа в контенте */
 .content {
   padding: 1rem;
 }
 
-/* Защита от случайных наследований: не трогаем позиции сайдбара */
+/* Фиксированная позиция стандартного сайдбара AdminLTE */
 .main-sidebar {
   position: fixed;
-  z-index: 1030; /* выше контента, но ниже модалок bootstrap */
+  z-index: 1030; /* выше контента, ниже модалок bootstrap */
 }
 
-/* Никаких правил для .icon-sidebar в админке!
-   Стили публичного сайдбара держи в отдельном файле фронта. */
+/* ВАЖНО: никаких правил для .icon-sidebar в этом файле.
+   Публичный сайдбар держим в отдельном фронтовом CSS и не подключаем в /admin/. */
