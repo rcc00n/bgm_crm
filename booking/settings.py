@@ -167,7 +167,7 @@ JAZZMIN_SETTINGS = {
         {"label": "🔔 Notifications", "models": ["core.notification"]},
         {"label": "👨‍🏫 Masters", "models": ["core.masterprofile", "core.masteravailability"]},
     ],
-    "theme": "cosmo",
+    "theme": "None",
 }
 JAZZMIN_UI_TWEAKS = {
     "navbar_small_text": False,
@@ -222,6 +222,6 @@ LOGGING = {
 
 
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
-# ВНИЗУ, после STATICFILES_STORAGE
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# карта sourcemap .css.map по-прежнему может отсутствовать — это ок:
 WHITENOISE_IGNORE_MISSING_FILES = True
