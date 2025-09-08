@@ -65,6 +65,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "booking.wsgi.application"
+TEMPLATES[0]["OPTIONS"].setdefault("builtins", []).append("django.templatetags.static")
 
 # ── База данных ──────────────────────────────────────────────────────────
 # В проде Dokku подставит DATABASE_URL из `dokku postgres:link`.
