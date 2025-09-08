@@ -740,3 +740,16 @@ class AppointmentPromoCode(models.Model):
                 "promocode": "This Service already has a discount. Promocode can't be applied"
             })
 
+# app: core/models.py
+from django.db import models
+
+class SiteSettings(models.Model):
+    hero_preview = models.ImageField(upload_to='hero/', blank=True, null=True)
+    hero_alt = models.CharField(max_length=140, blank=True, default='Project preview')
+
+    class Meta:
+        verbose_name = "Site settings"
+        verbose_name_plural = "Site settings"
+
+    def __str__(self):
+        return "Site settings"

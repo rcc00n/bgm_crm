@@ -1100,3 +1100,13 @@ class UserProfileAdmin(admin.ModelAdmin):
                 up.dealer_since = timezone.now()
             up.save(update_fields=["dealer_tier", "dealer_since"])
         self.message_user(request, f"Recomputed tiers for {queryset.count()} profile(s).")
+# core/admin.py
+from django.contrib import admin
+from .models import SiteSettings
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(admin.ModelAdmin):
+    fields = ("hero_preview", "hero_alt")
+    def has_add_permission(self, request):
+        # разрешаем только одну запись
+        return not SiteSettings.objects.exists()
