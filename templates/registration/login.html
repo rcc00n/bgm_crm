@@ -30,15 +30,20 @@
 
 /* ===== Background ===== */
 html,body{
-  height:100%;margin:0;font-family:"Poppins",sans-serif;
+  height:100%;
+  margin:0;
+  font-family:"Poppins",sans-serif;
   color:var(--ink);
-  background:
-    radial-gradient(60% 120% at 85% -20%, rgba(213,0,0,.16) 0%, transparent 60%),
-    radial-gradient(60% 120% at 10% 120%, rgba(255,255,255,.06) 0%, transparent 60%),
-    #000;
+  background:#000;            /* ← вместо старых градиентов */
   overflow:hidden;
 }
-#particles{position:fixed;inset:0;z-index:0;}
+
+/* слой с дымом */
+#bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+#bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block; pointer-events:none;}
+/* чтобы карточка лежала поверх дыма */
+.wrapper{position:relative; z-index:1;}
+
 
 /* ===== Layout & responsive scale ===== */
 .wrapper{
@@ -154,7 +159,7 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
 </head>
 
 <body>
-<canvas id="particles"></canvas>
+<div id="bg"></div>
 
 <div class="wrapper">
   <div class="card" data-tilt>
@@ -260,38 +265,11 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
     </form>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 
 <!-- ===== S C R I P T S ===== -->
 <script>
-/* particles (LINES + RED NODES) */
-(function(){
-  const c=document.createElement('canvas');c.id='particles';document.body.appendChild(c);
-  const ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
-  let w,h,parts=[],opt={amt:120,size:2,speed:.45,line:140};
-  function resize(){w=c.width=innerWidth*dpr;h=c.height=innerHeight*dpr;c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';}
-  addEventListener('resize',resize);resize();
-  function init(){parts=[];for(let i=0;i<opt.amt;i++)
-    parts.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*opt.speed*dpr,vy:(Math.random()-.5)*opt.speed*dpr});}
-  init();
-  (function tick(){
-    ctx.clearRect(0,0,w,h);
-    // nodes
-    for(const p of parts){
-      p.x+=p.vx;p.y+=p.vy;
-      if(p.x<0||p.x>w)p.vx*=-1;
-      if(p.y<0||p.y>h)p.vy*=-1;
-      ctx.beginPath();ctx.arc(p.x,p.y,opt.size*dpr,0,Math.PI*2);
-      ctx.fillStyle='rgba(213,0,0,.85)';ctx.fill();}   // RED nodes
-    // lines
-    for(let i=0;i<parts.length;i++)for(let j=i+1;j<parts.length;j++){
-      const p=parts[i],q=parts[j],dx=p.x-q.x,dy=p.y-q.y,d=Math.hypot(dx,dy);
-      if(d<opt.line*dpr){
-        const a=(1-d/(opt.line*dpr));
-        ctx.strokeStyle=`rgba(213,0,0,${a*0.55})`;   // RED lines with fade
-        ctx.lineWidth=1*dpr;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}}
-    requestAnimationFrame(tick);
-  })();
-})();
 
 /* 3D tilt */
 (function(){
