@@ -545,32 +545,33 @@
     const tab = link.dataset.tab; if(!tab) return; e.preventDefault(); activate(tab); history.replaceState(null, '', '#'+tab);
   }));
 
-  /* ==== Chart.js (robust) ==== */
-  const el = document.getElementById('stats_chart');
-  if (el && window.Chart){
+    /* ==== Chart.js (robust) ==== */
+  window.addEventListener('load', () => {          // <— добавь эту строку
+    const el = document.getElementById('stats_chart');
+    if (!el || !window.Chart) return;
+
     const parseArr = (raw) => {
-      if(!raw) return [];
-      try{
-        const t = String(raw).trim();
-        if(t.startsWith('[')) return JSON.parse(t);
-      }catch(e){}
-      return String(raw).split(',').map(s=>s.trim()).filter(Boolean);
+      if (!raw) return [];
+      try { const t = String(raw).trim(); if (t.startsWith('[')) return JSON.parse(t); } catch(e){}
+      return String(raw).split(',').map(s => s.trim()).filter(Boolean);
     };
     const labels = parseArr(el.dataset.labels);
-    const data   = parseArr(el.dataset.data).map(Number).filter(v=>!Number.isNaN(v));
+    const data   = parseArr(el.dataset.data).map(Number).filter(v => !Number.isNaN(v));
+
+    if (!labels.length || !data.length) return;    // нет данных — не рисуем
 
     new Chart(el, {
       type: 'bar',
       data: { labels, datasets: [{ data, label: 'Appointments', backgroundColor: '#d50000', borderRadius: 8 }] },
       options: {
-        plugins: { legend: { display: false }},
-        scales : {
-          x: { ticks: { color: '#cccccc' }, grid: { color: 'rgba(255,255,255,.06)' } },
-          y: { beginAtZero: true, ticks: { stepSize: 1, color: '#cccccc' }, grid: { color: 'rgba(255,255,255,.06)' } }
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#ccc' }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y: { beginAtZero: true, ticks: { stepSize: 1, color: '#ccc' }, grid: { color: 'rgba(255,255,255,.06)' } }
         }
       }
     });
-  }
+  });
 
   /* ==== helpers ==== */
   const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
