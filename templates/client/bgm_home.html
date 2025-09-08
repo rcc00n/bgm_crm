@@ -95,9 +95,22 @@
     @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
     @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+    /* smoke layer */
+#bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+#bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
+
+/* контент поверх дыма */
+.site-header, .hero, main, .site-footer{position:relative; z-index:1;}
+
+/* показываем дым за hero — убираем градиент */
+.hero{background:transparent !important;}
+
   </style>
 </head>
 <body>
+  <div id="bg"></div>
+
 <a href="#main" class="visually-hidden">Skip to main content</a>
 
 <header class="site-header" role="banner">
@@ -385,7 +398,11 @@
       <a href="{% url 'store' %}" aria-current="page">Products</a>
       <a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a>
       <a href="{% url 'dealer-status' %}">Dealers</a>
+
     </nav>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+
   </div>
 </footer>
 
