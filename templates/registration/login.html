@@ -155,6 +155,29 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
   top:10px; transform:none; font-size:12px; opacity:.95; color:#fff;
 }
 .reg-form .field select + label{ top:10px; transform:none; font-size:12px; opacity:.95; left:20px; color:#fff; }
+
+
+/* FIX: prevent bottom overlap; make controls full-width */
+.reg-form .field select,
+.reg-form .field textarea{
+  width:100%;
+  display:block;
+}
+
+.reg-form .field select{
+  height:56px;
+  line-height:56px;
+  padding:0 20px;
+}
+
+/* make Address look like the inputs and not shrink */
+.reg-form .field textarea{
+  min-height:72px;
+  padding:12px 20px;
+  line-height:1.35;
+  resize:vertical;
+}
+
 </style>
 </head>
 
