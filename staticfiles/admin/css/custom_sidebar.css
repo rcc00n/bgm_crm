@@ -1,142 +1,65 @@
-/* Layout container */
-.content {
-    margin-left: 6.6vh !important;
+/* ===== AdminLTE / Jazzmin — фиксы сайдбара и смещения контента ===== */
+
+/* НИЧЕГО не сдвигаем у .content напрямую */
+.content { margin-left: 0 !important; }
+
+/* Базовые размеры */
+:root{
+  --admin-sidebar-width: 250px;     /* ширина открытого сайдбара */
+  --admin-sidebar-collapsed: 80px;  /* ширина свернутого сайдбара */
 }
-.actions{
-    display: none !important;
+
+/* Делаем сайдбар фиксированным (как в AdminLTE по умолчанию) */
+.main-sidebar{
+  position: fixed !important;
+  top: 0; left: 0; bottom: 0;
+  z-index: 1030;           /* поверх контента, ниже модалок */
+  overflow-y: auto;
 }
-.content-wrapper{
+
+/* Ширина сайдбара и бренд-баров */
+.sidebar-mini .main-sidebar,
+.sidebar-mini .brand-link{
+  width: var(--admin-sidebar-width) !important;
+}
+
+.sidebar-mini.sidebar-collapse .main-sidebar,
+.sidebar-mini.sidebar-collapse .brand-link{
+  width: var(--admin-sidebar-collapsed) !important;
+}
+
+/* Десктоп: смещаем контент/хедер/футер ровно на ширину сайдбара */
+@media (min-width: 992px){
+  .content-wrapper,
+  .main-header,
+  .main-footer{
+    margin-left: var(--admin-sidebar-width) !important;
+    transition: margin-left .15s ease;
+  }
+
+  /* Когда сайдбар свернут */
+  .sidebar-mini.sidebar-collapse .content-wrapper,
+  .sidebar-mini.sidebar-collapse .main-header,
+  .sidebar-mini.sidebar-collapse .main-footer{
+    margin-left: var(--admin-sidebar-collapsed) !important;
+  }
+}
+
+/* Мобилки/планшеты: сайдбар поверх, контент без отступа */
+@media (max-width: 991.98px){
+  .content-wrapper,
+  .main-header,
+  .main-footer{
     margin-left: 0 !important;
-}
-.main-header{
-margin-left: 0 !important;
-}
-/* Sidebar */
-.icon-sidebar {
-    background-color: #3d3d43;
-    width: 6.6vh;
-    transition: width 0.3s ease;
-    overflow-x: hidden;
-    position: absolute; /* ⛔ was fixed */
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 999;
-    height: 100%;
+  }
 }
 
-.icon-sidebar:hover {
-    width: 23.6vh;
-}
+/* Немного воздуха внутри страницы */
+.content { padding: 1rem; }
 
-/* List styling */
-.icon-sidebar ul {
-    list-style: none;
-    padding: 6.6vh 0 0 0; 
-    margin: 0;
-}
-
-/* List items */
-.icon-sidebar li {
-    display: flex;
-    align-items: center;
-    padding: 1.3vh 1.3vh;
-    white-space: nowrap;
-    overflow: hidden;
-}
-
-/* Links */
-.icon-sidebar a {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    text-decoration: none;
-    color: #fff !important;
-    font-size: 1.6vh;
-    gap: 1.3vh;
-    transition: background 0.2s ease;
-    border-radius: 6px;
-    padding: 1vh;
-}
-
-.icon-sidebar a:hover {
-    background-color: #3f3f5f;
-}
-
-.icon-sidebar img {
-    width: 2.2vh;
-    height: 2.2vh;
-    filter: invert(100%);
-    flex-shrink: 0;
-}
-
-.sidebar-label {
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.icon-sidebar:hover .sidebar-label {
-    opacity: 1;
-}
-
-.icon-sidebar:hover ~ .main-content {
-    margin-left: 23.6vh;
-    width: calc(100% - 23.6vh);
-}
-
-.dropdown-arrow {
-    margin-left: auto;
-    transition: transform 0.6s ease;
-    font-size: 1.6vh;
-}
-
-.icon-sidebar .dropdown.open .dropdown-arrow img {
-    transform: rotate(90deg);
-}
-
-.icon-sidebar .dropdown {
-    display: flex;
-    flex-direction: column;
-}
-
-.icon-sidebar .dropdown .submenu {
-    max-height: 0;
-    overflow: hidden;
-    flex-direction: column;
-    padding-left: 0;
-    padding-top: 0;
-    transition: max-height 0.3s ease, padding-top 0.3s ease;
-}
-
-.icon-sidebar .dropdown.open .submenu {
-    max-height: 53.7vh; /* Должно быть достаточно для всех вложенных элементов */
-    padding-top: 0.5vh;
-}
-.icon-sidebar .submenu li a {
-    font-size: 1.6vh;
-    display: block;
-    width: 100%;
-    padding: 1.1vh 1.8vh;
-    color: #d8d8d8 !important;
-    text-decoration: none;
-    box-sizing: border-box;
-    border-radius: 0;
-    transition: background 0.35s ease;
-}
-
-.icon-sidebar .submenu li a:hover {
-    background-color: rgba(82, 82, 110, 0.7);
-}
-
-.send-notify-btn {
-    padding: 4px 8px;
-    border: none;
-    border-radius: 6px;
-    background-color: #5f5fc4;
-    color: white;
-    font-weight: 500;
-    cursor: pointer;
-}
-.send-notify-btn:hover {
-    background-color: #4b44a7;
+/* На всякий случай глушим кастомные классы фронта, чтобы не лезли в админку */
+.icon-sidebar,
+.icon-sidebar *{
+  all: unset !important;
+  display: revert !important;
 }
