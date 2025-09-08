@@ -2,6 +2,8 @@
 {% block title %}Checkout — BGM Store{% endblock %}
 
 {% block body %}
+<div id="bg"></div>
+
 <section class="section">
   <div class="container">
 
@@ -181,6 +183,9 @@
         {% endif %}
       </aside>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+
   </div>
 </section>
 
@@ -252,6 +257,16 @@
   .callout--ok{ border-left-color:#17d45b; }
   .callout__body{ padding:.9rem 1rem; }
   .err{ color:#ff8a80; font-size:.9rem; margin-top:.25rem; }
+  /* дым — слой позади всего */
+#bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+#bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
+
+/* весь контент поверх дыма */
+.site-header, .hero, .section, footer{position:relative; z-index:1;}
+
+/* убираем прежний фон у hero */
+.hero--store{ background:transparent !important; }
+
 </style>
 
 <script>

@@ -2,6 +2,8 @@
 {% block title %}Cart — BGM Store{% endblock %}
 
 {% block body %}
+<div id="bg"></div>
+
 <section class="section">
   <div class="container">
 
@@ -92,7 +94,12 @@
         <a class="btn btn--primary" href="{% url 'store' %}">Browse catalog</a>
       </div>
     {% endif %}
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+
   </div>
+  
+  
 </section>
 
 <style>
@@ -174,5 +181,15 @@
     .cart__foot{ flex-direction:column; align-items:flex-start; gap:.6rem; }
     .cart__total{ align-self:flex-end; }
   }
+  /* дым — слой позади всего */
+#bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+#bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
+
+/* весь контент поверх дыма */
+.site-header, .hero, .section, footer{position:relative; z-index:1;}
+
+/* убираем прежний фон у hero */
+.hero--store{ background:transparent !important; }
+
 </style>
 {% endblock %}
