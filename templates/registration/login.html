@@ -178,21 +178,22 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
   resize:vertical;
 }
 
-/* ADDRESS: smaller */
+/* ADDRESS: exact height */
 .reg-form .field textarea{
-  min-height:56px;
-  max-height:140px;
-  padding:12px 20px;
+  height:56px;              /* фикс вместо min-height */
+  padding:18px 20px 10px;   /* место под "плавающий" лейбл */
   line-height:1.35;
   resize:vertical;
+  width:100%;
+  display:block;
 }
 
-/* SELECT: dark, full width, custom arrow */
+/* SELECT: отступ сверху под лейбл + тёмный стиль и стрелка */
 .reg-form .field select{
   width:100%;
-  height:56px;
-  line-height:56px;
-  padding:0 48px 0 20px;       /* room for arrow */
+  height:64px;                       /* чуть выше, чтобы поместить лейбл */
+  padding:22px 48px 10px 20px;       /* top 22px даёт место лейблу */
+  line-height:1.2;                   /* убираем вертикальный центринг */
   border:none;
   border-radius:18px;
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);
@@ -200,10 +201,8 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
   color:var(--ink);
   appearance:none; -webkit-appearance:none; -moz-appearance:none;
 
-  /* arrow */
-  background-image:url("data:image/svg+xml;utf8,\
-  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
-  <path fill='%23bdbdbd' d='M7 10l5 5 5-5z'/></svg>");
+  /* стрелка */
+background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'> <path fill='%23bdbdbd' d='M7 10l5 5 5-5z'/></svg>");
   background-repeat:no-repeat;
   background-size:18px 18px;
   background-position:right 16px center;
@@ -213,11 +212,24 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
   box-shadow:inset 0 0 0 3px var(--red);
 }
 
-/* dark popup where supported */
+/* Лейбл у select — маленьким сверху, без перекрытия */
+.reg-form .field select + label{
+  top:8px;
+  left:20px;
+  transform:none;
+  font-size:12px;
+  opacity:.95;
+  color:#fff;
+  pointer-events:none;
+}
+
+/* Тёмные options там, где поддерживается */
 .reg-form .field select option{
-  background:#121212;
+  background:#0f0f0f;
   color:var(--ink);
 }
+
+/* Включаем системную тёмную тему для нативных попапов где можно */
 .modal__dialog,
 .reg-form .field select,
 .reg-form .field input,
