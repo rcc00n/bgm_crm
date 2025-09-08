@@ -53,17 +53,6 @@
     .stat{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow)}
     .stat b{font-size:1.35rem}
     .frame{border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), 0 14px 28px rgba(0,0,0,.45);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted-2)}
-.frame--media { position: relative; overflow: hidden; }
-.frame--media img{
-  width:100%; height:100%; object-fit:cover; display:block;
-  filter:contrast(1.05);
-}
-.frame__play{
-  position:absolute; inset:0; margin:auto; width:72px; height:72px;
-  border-radius:999px; display:grid; place-items:center; font-size:28px;
-  background:rgba(0,0,0,.45); backdrop-filter:blur(4px);
-  border:1px solid rgba(255,255,255,.18); color:#fff;
-}
 
     .section{padding:clamp(2rem,6vw,4rem) 0;border-top:1px solid var(--line)}
     .section__head{display:flex;align-items:end;justify-content:space-between;margin-bottom:1.1rem;gap:1rem}
@@ -165,18 +154,7 @@
       </div>
     </div>
 
-    <div class="frame frame--media">
-  {% if site_settings and site_settings.hero_preview %}
-    <img src="{{ site_settings.hero_preview.url }}"
-         alt="{{ site_settings.hero_alt|default:'Project preview' }}"
-         loading="lazy" decoding="async">
-  {% else %}
-    Project video preview / gallery — coming soon
-  {% endif %}
-</div>
-
-</div>
-
+    <div class="frame">Project video preview / gallery — coming soon</div>
   </div>
 </section>
 

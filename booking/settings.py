@@ -205,9 +205,6 @@ JAZZMIN_UI_TWEAKS = {
     
 }
 
-TEMPLATES[0]["OPTIONS"]["context_processors"] += [
-    "core.context_processors.site_settings",
-]
 
 # ── Аутентификация ───────────────────────────────────────────────────────
 LOGIN_URL = "login"
