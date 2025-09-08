@@ -63,15 +63,3 @@
   all: unset !important;
   display: revert !important;
 }
-
-/* Вернём стандартное смещение контента */
-body.sidebar-mini .content-wrapper,
-body.sidebar-mini .main-header,
-body.sidebar-mini .main-footer { margin-left: 250px !important; }
-
-body.sidebar-mini.sidebar-collapse .content-wrapper,
-body.sidebar-mini.sidebar-collapse .main-header,
-body.sidebar-mini.sidebar-collapse .main-footer { margin-left: 80px !important; }
-
-/* Починим сломанную сетку, если где-то переопределили .row */
-.content-wrapper .row { display:flex !important; flex-direction:row !important; flex-wrap:wrap !important; }
