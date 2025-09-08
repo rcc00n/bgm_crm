@@ -204,6 +204,7 @@ JAZZMIN_UI_TWEAKS = {
     
 }
 
+
 # ── Аутентификация ───────────────────────────────────────────────────────
 LOGIN_URL = "login"
 AUTHENTICATION_BACKENDS = [
