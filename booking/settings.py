@@ -90,7 +90,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # ── Локаль/время ─────────────────────────────────────────────────────────
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "Canada/Mountain"
+TIME_ZONE = "America/Edmonton"
 USE_I18N = True
 USE_TZ = True
 
