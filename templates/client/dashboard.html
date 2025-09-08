@@ -95,6 +95,18 @@
 
     @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .ol2__wrap{max-height:50vh} }
     table.min-w-full{color:#fff}
+    /* Profile form: make input text visible on white fields */
+#tab-profile input,
+#tab-profile select,
+#tab-profile textarea{
+  color:#111 !important;      /* тёмный текст */
+  caret-color:#111;
+}
+#tab-profile input::placeholder,
+#tab-profile textarea::placeholder{
+  color:rgba(0,0,0,.55);
+}
+
   </style>
 </head>
 <body class="h-full">
