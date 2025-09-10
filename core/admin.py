@@ -300,10 +300,10 @@ class MasterSelectorMixing:
 
 @admin.register(MasterAvailability)
 class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
-    list_display = ("master", "start_time", "end_time", "reason")
-    list_filter = ("master",)
+    list_display = ("staff", "start_time", "end_time", "reason")
+    list_filter = ("staff",)
     search_fields = ("master__first_name", "master__last_name", "reason")
-    export_fields = ["master", "start_time", "end_time", "reason"]
+    export_fields = ["staff", "start_time", "end_time", "reason"]
 
     def has_add_permission(self, request):
         return request.user.has_perm("core.add_masteravailability")
@@ -697,7 +697,7 @@ class ClientReviewAdmin(ExportCsvMixin ,admin.ModelAdmin):
     def get_client(self, obj):
         return obj.appointment.client.get_full_name()
 
-    @admin.display(description="Master")
+    @admin.display(description="Staff")
     def get_master(self, obj):
         return obj.appointment.master.get_full_name()
 

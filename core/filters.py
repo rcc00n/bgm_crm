@@ -15,8 +15,8 @@ class RoleFilter(SimpleListFilter):
         return queryset
 
 class MasterOnlyFilter(SimpleListFilter):
-    title = 'Master'
-    parameter_name = 'master'
+    title = 'Staff'
+    parameter_name = 'staff'
 
     def lookups(self, request, model_admin):
         master_role = Role.objects.filter(name="Master").first()

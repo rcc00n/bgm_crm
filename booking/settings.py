@@ -167,7 +167,7 @@ JAZZMIN_SETTINGS = {
         {"label": "💳 Payments", "models": ["core.payment", "core.paymentstatus", "core.paymentmethod"]},
         {"label": "🛎️ Services", "models": ["core.service", "core.servicemaster"]},
         {"label": "🔔 Notifications", "models": ["core.notification"]},
-        {"label": "👨‍🏫 Masters", "models": ["core.masterprofile", "core.masteravailability"]},
+        {"label": "👨‍🏫 Staff", "models": ["core.masterprofile", "core.masteravailability"]},
     ],
     "theme": "None",
     #  "custom_css": "static/admin/css/custom_sidebar.css",
