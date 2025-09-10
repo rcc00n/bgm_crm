@@ -84,6 +84,9 @@
         {% else %}
           <li><a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'store' %}">Login</a></li>
         {% endif %}
+        <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>Financing</a></li>
+        <li><a href="{% url 'our-story' %}">About</a></li>
+
       </ul>
     </nav>
   </div>
