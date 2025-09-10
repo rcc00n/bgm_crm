@@ -2,53 +2,189 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Dealer Status</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <title>BGM Customs — Dealer Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
+    /* ===== BGM palette (dark + red) ===== */
     :root{
-      --bg:#0a0a0a; --ink:#eaeaea; --muted:#bdbdbd;
-      --red:#d50000; --red-dark:#b60000;
-      --card-bg:rgba(18,18,18,.75); --card-border:rgba(255,255,255,.08);
+      --bg:#0a0a0a;            /* page bg */
+      --ink:#eaeaea;           /* base text on dark */
+      --muted:#bdbdbd;
+
+      --red:#d50000;           /* accent red */
+      --red-dark:#b60000;
+
+      --card-bg:rgba(18,18,18,.75);
+      --card-border:rgba(255,255,255,.08);
+
       --field-bg:rgba(255,255,255,.06);
+
+      --line:rgba(255,255,255,.12);
+      --shadow:0 14px 34px rgba(0,0,0,.45);
+      --radius-lg:1.25rem;
+      --radius-sm:.6rem;
+      --container:clamp(320px, 92vw, 980px);
     }
-    body{background:var(--bg); color:var(--ink); font-family:Inter,system-ui,Arial,sans-serif; padding:24px;}
-    .card{background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; padding:24px; max-width:720px; margin:0 auto;}
-    .h{font-weight:900; font-size:28px; margin:0 0 8px;}
-    .muted{color:var(--muted); margin:0 0 16px;}
-    .badge{display:inline-block; padding:8px 12px; border-radius:999px; background:var(--field-bg);}
-    a.btn{display:inline-block; background:var(--red); color:#fff; padding:10px 14px; border-radius:12px; text-decoration:none; font-weight:700;}
-    a.btn:hover{background:var(--red-dark);}
+
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      background:var(--bg);
+      color:var(--ink);
+      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+      line-height:1.55;
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
+      overflow-x:hidden;
+    }
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%;display:block}
+    .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
+
+    /* ===== Topbar ===== */
+    .site-header{position:sticky;top:0;z-index:30;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
+    .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
+    .brand{display:flex;align-items:center;gap:.75rem;font-weight:900}
+    .brand__logo{width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, #ff1a1a, var(--red));box-shadow:0 0 40px -6px #ff1a1a}
+    nav ul{display:flex;list-style:none;gap:.25rem;flex-wrap:wrap}
+    nav a{padding:.55rem .8rem;border-radius:.55rem}
+    nav a[aria-current="page"]{background:var(--card-bg);border:1px solid var(--card-border)}
+
+    /* ===== Buttons / badges ===== */
+    .btn{display:inline-flex;align-items:center;gap:.6em;padding:.78rem 1.1rem;border-radius:var(--radius-sm);font-weight:800;border:1px solid transparent;cursor:pointer;transition:.2s}
+    .btn--primary{background:var(--red);color:#fff}
+    .btn--primary:hover{transform:translateY(-2px);box-shadow:0 12px 22px rgba(213,0,0,.25)}
+    .btn--ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+    .btn--ghost:hover{border-color:var(--red);color:var(--red)}
+    .badge{display:inline-block;font-size:.86rem;padding:.28rem .7rem;border-radius:999px;background:var(--field-bg);border:1px solid var(--card-border)}
+    .chips{display:flex;gap:.5rem;flex-wrap:wrap}
+
+    /* ===== Hero ===== */
+    .hero{padding:clamp(1.6rem,5vw,2.4rem) 0;border-bottom:1px solid var(--line);background:transparent !important}
+    .hero__title{font-weight:900;font-size:clamp(1.6rem,3.6vw,2.2rem);line-height:1.15}
+    .hero__lead{color:var(--muted);margin-top:.4rem}
+
+    /* ===== Card ===== */
+    .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:1.15rem;box-shadow:var(--shadow)}
+    .stack{display:grid;gap:1rem}
+
+    /* ===== Footer ===== */
+    .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted);font-size:.95rem}
+
+    /* ===== Smoke layer (same as Store/Financing) ===== */
+    #bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+    #bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
+    .site-header, .hero, main, .site-footer{position:relative; z-index:1;}
+
+    @media (min-width:900px){
+      .cards{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    {% if is_dealer and userprofile %}
-      <h1 class="h">Dealer Program</h1>
-      <p class="muted">You are an approved dealer.</p>
-      <p>
-        <span class="badge">Tier: {{ userprofile.get_dealer_tier_display }}</span>
-        <span class="badge">Discount: {{ userprofile.dealer_discount_percent }}%</span>
-      </p>
-      <p class="muted">Total spent: ${{ userprofile.total_spent_usd|floatformat:2 }}</p>
-      <p class="muted">Next tiers:
-        ≥ $1,000 → 5%, ≥ $5,000 → 10%, ≥ $20,000 → 15%.
-      </p>
-    {% else %}
-      <h1 class="h">Dealers Only</h1>
-      <p class="muted">This page is available to dealers only.</p>
+  <!-- Smoke background -->
+  <div id="bg"></div>
 
-      {% if dealer_application %}
-        {% if dealer_application.status == "pending" %}
-          <p class="muted">Your application is under review. We will notify you once it is approved.</p>
-        {% elif dealer_application.status == "rejected" %}
-          <p class="muted">Your application was rejected. You can re‑apply later.</p>
-          <a class="btn" href="{% url 'dealer-apply' %}">Apply again</a>
-        {% endif %}
+  <!-- Topbar -->
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="{% url 'home' %}">
+        <span class="brand__logo" aria-hidden="true"></span><span>BGM Customs</span>
+      </a>
+      <nav aria-label="Main">
+        <ul>
+          <li><a href="{% url 'home' %}">Home</a></li>
+          <li><a href="{% url 'client-dashboard' %}">Services</a></li>
+          <li><a href="{% url 'store' %}">Store</a></li>
+          <li><a href="{% url 'merch' %}">Merch</a></li>
+          <li><a href="{% url 'financing' %}">Financing</a></li>
+          <li><a href="{% url 'dealer-status' %}" aria-current="page">Dealers</a></li>
+          {% if user.is_authenticated %}
+            <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+          {% else %}
+            <li><a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dealer-status' %}">Login</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <h1 class="hero__title">Dealer Program</h1>
+      <p class="hero__lead">Check your dealer status, tier and discount — or apply to join the program.</p>
+      <div style="margin-top:.8rem;display:flex;gap:.6rem;flex-wrap:wrap">
+        <a class="btn btn--primary" href="{% url 'home' %}">← Home</a>
+        <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">See all services</a>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <div class="container stack" style="margin-top:1.2rem">
+      {% if is_dealer and userprofile %}
+        <section class="card">
+          <h2 style="font-weight:900;margin-bottom:.4rem">Your status</h2>
+          <p class="hero__lead" style="margin-top:0">You are an approved dealer.</p>
+          <div class="chips" style="margin:.6rem 0 0">
+            <span class="badge">Tier: {{ userprofile.get_dealer_tier_display }}</span>
+            <span class="badge">Discount: {{ userprofile.dealer_discount_percent }}%</span>
+          </div>
+          <p class="hero__lead" style="margin-top:.8rem">Total spent: ${{ userprofile.total_spent_usd|floatformat:2 }}</p>
+          <p class="hero__lead" style="margin-top:.2rem">
+            Next tiers: ≥ $1,000 → 5%, ≥ $5,000 → 10%, ≥ $20,000 → 15%.
+          </p>
+
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem">
+            <a class="btn btn--primary" href="{% url 'store' %}">Shop parts</a>
+            <a class="btn btn--ghost" href="{% url 'client-dashboard' %}">Book an install</a>
+          </div>
+        </section>
       {% else %}
-        <a class="btn" href="{% url 'dealer-apply' %}">Apply to become a dealer</a>
+        <div class="cards">
+          <section class="card">
+            <h2 style="font-weight:900;margin-bottom:.4rem">Dealers only</h2>
+            <p class="hero__lead" style="margin-top:0">This page is available to dealers only.</p>
+
+            {% if dealer_application %}
+              {% if dealer_application.status == "pending" %}
+                <p class="hero__lead" style="margin-top:.6rem">Your application is under review. We will notify you once it is approved.</p>
+              {% elif dealer_application.status == "rejected" %}
+                <p class="hero__lead" style="margin-top:.6rem">Your application was rejected. You can re-apply later.</p>
+                <div style="margin-top:.8rem"><a class="btn btn--primary" href="{% url 'dealer-apply' %}">Apply again</a></div>
+              {% endif %}
+            {% else %}
+              <div style="margin-top:.8rem"><a class="btn btn--primary" href="{% url 'dealer-apply' %}">Apply to become a dealer</a></div>
+            {% endif %}
+          </section>
+
+          <section class="card">
+            <h2 style="font-weight:900;margin-bottom:.4rem">Program perks</h2>
+            <ul style="color:var(--muted);padding-left:1.1rem">
+              <li>Tiered discounts on parts and coatings</li>
+              <li>Priority scheduling for installs</li>
+              <li>Dedicated support from the BGM team</li>
+            </ul>
+          </section>
+        </div>
       {% endif %}
-    {% endif %}
-  </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <span class="brand__logo" aria-hidden="true"></span><b>BGM Customs</b>
+      </div>
+      <div class="hero__lead">© {{ now|date:"Y" }} Bad Guy Motors • 620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2</div>
+    </div>
+  </footer>
+
+  <!-- Smoke (exactly like on Store/Financing) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 </body>
 </html>
