@@ -63,6 +63,7 @@ urlpatterns = [
     path("dealer/apply/", DealerApplyView.as_view(), name="dealer-apply"),
     path("dealer/status/", DealerStatusView.as_view(), name="dealer-status"),
     path("financing/", core_views.financing_view, name="financing"),
+    path("our-story/", core_views.our_story_view, name="our-story"),
 ]
 
 if settings.DEBUG:

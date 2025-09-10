@@ -365,3 +365,6 @@ from django.shortcuts import render
 
 def financing_view(request):
     return render(request, "financing.html")
+
+def our_story_view(request):
+    return render(request, "client/our_story.html")
