@@ -7,110 +7,71 @@
   <title>BGM Customs — Financing Options</title>
   <meta name="description" content="Flexible financing for builds, parts, and installs at BGM Customs: Medicard, Canadian Financial, and Afterpay (Square)." />
 
-  <!-- Preload brand assets if you have them -->
-  <link rel="preload" href="{% static 'img/bgm_badguymotors_logo_invert.png' %}" as="image">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-
   <style>
-    /* ===== BGM palette (dark + red) ===== */
     :root{
-      --bg:#0a0a0a;            /* page bg */
-      --ink:#eaeaea;           /* base text on dark */
-      --muted:#bdbdbd;
-
-      --red:#d50000;           /* accent red */
-      --red-dark:#b60000;
-
-      --card-bg:rgba(18,18,18,.75);
-      --card-border:rgba(255,255,255,.08);
-
-      --field-bg:rgba(255,255,255,.06);
-
-      --error-bg:#3b0000;
-      --error-text:#ff8a80;
-
-      --line:rgba(255,255,255,.12);
-      --shadow:0 14px 34px rgba(0,0,0,.45);
-      --radius-lg:1.25rem;
-      --radius-sm:.6rem;
+      --bg:#000000; --fg:#FFFFFF; --muted:rgba(255,255,255,.72); --muted-2:rgba(255,255,255,.55);
+      --line:rgba(255,255,255,.12); --panel:#0E0E0E; --panel-2:#131313;
+      --accent:#d50000; --accent-2:#ff1a1a; --ok:#17d45b;
+      --radius-lg:1.25rem; --radius-sm:.6rem; --shadow:0 10px 30px rgba(0,0,0,.45);
       --container:clamp(320px, 92vw, 1280px);
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%}
-    body{
-      background:var(--bg);
-      color:var(--ink);
-      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
-      line-height:1.55;
-      -webkit-font-smoothing:antialiased;
-      text-rendering:optimizeLegibility;
-      overflow-x:hidden;
-    }
+    body{background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55}
     a{color:inherit;text-decoration:none}
+    img{max-width:100%;display:block}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
 
-    /* ===== Topbar ===== */
-    .site-header{position:sticky;top:0;z-index:30;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
-    .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
-    .brand{display:flex;align-items:center;gap:.75rem;font-weight:900}
-    .brand__logo{width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, #ff1a1a, var(--red));box-shadow:0 0 40px -6px #ff1a1a}
-    nav ul{display:flex;list-style:none;gap:.25rem;flex-wrap:wrap}
-    nav a{padding:.55rem .8rem;border-radius:.55rem}
-    nav a[aria-current="page"]{background:var(--card-bg);border:1px solid var(--card-border)}
-    .btn{display:inline-flex;align-items:center;gap:.6em;padding:.78rem 1.1rem;border-radius:var(--radius-sm);font-weight:800;border:1px solid transparent;cursor:pointer;transition:.2s}
-    .btn--primary{background:var(--red);color:#fff}
+    .btn{display:inline-flex;align-items:center;gap:.6em;padding:.78rem 1.15rem;border-radius:var(--radius-sm);font-weight:800;letter-spacing:.3px;border:1px solid transparent;cursor:pointer;transition:.2s}
+    .btn--primary{background:var(--accent);color:#fff}
     .btn--primary:hover{transform:translateY(-2px);box-shadow:0 12px 22px rgba(213,0,0,.25)}
-    .btn--ghost{background:transparent;border-color:var(--line);color:var(--ink)}
-    .btn--ghost:hover{border-color:var(--red);color:var(--red)}
-    .badge{display:inline-block;font-size:.78rem;padding:.18rem .6rem;border-radius:999px;background:var(--red);color:#fff}
+    .btn--ghost{background:transparent;border-color:var(--line);color:var(--fg)}
+    .btn--ghost:hover{border-color:var(--accent);color:var(--accent)}
+    .badge{display:inline-block;font-size:.78rem;padding:.15rem .55rem;border-radius:999px;background:var(--accent);color:#fff}
 
-    /* ===== Hero ===== */
-    .hero{position:relative;border-bottom:1px solid var(--line)}
-    .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(2rem,6vw,4.6rem) 0;align-items:center}
-    .kicker{color:var(--muted);font-weight:800;letter-spacing:.18em;text-transform:uppercase;font-size:.78rem}
-    .title{font-size:clamp(2rem,4.8vw,3.6rem);font-weight:900}
-    .lead{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);max-width:60ch;margin-top:1rem}
-    .frame{border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), var(--shadow);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+    .site-header{position:sticky;top:0;z-index:10;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
+    .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
+    .brand{display:flex;align-items:center;gap:.75rem;font-weight:900;letter-spacing:.5px}
+    .brand__logo{width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent));box-shadow:0 0 40px -6px var(--accent-2)}
+    nav ul{display:flex;list-style:none;gap:.75rem}
+    nav a{padding:.55rem .8rem;border-radius:.55rem}
+    nav a[aria-current="page"]{background:var(--panel);border:1px solid var(--line)}
 
-    /* ===== Sections ===== */
-    .section{padding:clamp(2rem,6vw,4rem) 0}
-    .section--lined{border-top:1px solid var(--line)}
+    /* hero-подложка вырубаем, чтобы был виден дым */
+    .hero{background:transparent !important}
+    .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(2rem,6vw,4.5rem) 0;align-items:center}
+    .kicker{color:var(--muted-2);font-weight:800;letter-spacing:.18em;text-transform:uppercase;font-size:.78rem}
+    .title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15}
+    .lead{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);max-width:54ch;margin-top:1rem}
+    .frame{border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), 0 14px 28px rgba(0,0,0,.45);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted-2)}
+
+    .section{padding:clamp(2rem,6vw,4rem) 0;border-top:1px solid var(--line)}
     .section__head{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin-bottom:1.1rem}
     .section__title{font-size:1.6rem;font-weight:900}
-    .section__desc{color:var(--muted)}
+    .section__desc{color:var(--muted-2)}
     .grid{display:grid;gap:1rem}
     .grid--cards{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
-    .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1rem;box-shadow:var(--shadow)}
+    .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:1rem;padding:1rem;box-shadow:var(--shadow)}
     .card__head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.5rem}
-    .card__title{font-weight:800;font-size:1.05rem}
-    .card__meta{font-size:.9rem;color:var(--muted)}
-    .steps{counter-reset: step}
-    .step{position:relative;padding-left:2.8rem}
-    .step + .step{margin-top:1rem}
-    .step::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;width:2rem;height:2rem;display:grid;place-items:center;border-radius:999px;background:var(--field-bg);border:1px solid var(--card-border);font-weight:800;color:var(--muted)}
+    .card__title{font-weight:900}
+    .card__meta{color:var(--muted-2);font-size:.92rem}
 
-    /* ===== Footer ===== */
-    .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted);font-size:.95rem}
+    .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted-2);font-size:.95rem}
 
-    /* ===== WebGL smoke canvas ===== */
-    #bg{position:fixed;inset:0;z-index:-1;display:block}
-    .bg-overlay{position:fixed;inset:0;pointer-events:none;background:
-      radial-gradient(1200px 520px at 10% -10%, rgba(255,26,26,.12), transparent 60%),
-      radial-gradient(1000px 360px at 90% 0%, rgba(213,0,0,.12), transparent 65%),
-      linear-gradient(180deg, #070707 0%, #000 100%)}
+    /* ДЫМ — как на Store */
+    #bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+    #bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
+
+    /* контент над дымом */
+    .site-header, .hero, main, footer{position:relative; z-index:1;}
 
     @media (max-width: 900px){.hero__inner{grid-template-columns:1fr}}
-    @media (prefers-reduced-motion: reduce){#bg{display:none}}
   </style>
 </head>
 <body>
-  <!-- Background layers: WebGL smoke + soft red overlays -->
-  <canvas id="bg" aria-hidden="true"></canvas>
-  <div class="bg-overlay" aria-hidden="true"></div>
+  <!-- дымовой слой -->
+  <div id="bg"></div>
 
-  <!-- ===== Topbar ===== -->
+  <!-- Topbar -->
   <header class="site-header">
     <div class="container site-header__inner">
       <a class="brand" href="{% url 'home' %}">
@@ -120,7 +81,7 @@
         <ul>
           <li><a href="{% url 'home' %}">Home</a></li>
           <li><a href="{% url 'client-dashboard' %}">Services</a></li>
-          <li><a href="{% url 'store' %}">Store</a></li>
+          <li><a href="{% url 'store' %}">Products</a></li>
           <li><a href="{% url 'merch' %}">Merch</a></li>
           <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
           <li><a href="{% url 'financing' %}" aria-current="page">Financing</a></li>
@@ -134,25 +95,25 @@
     </div>
   </header>
 
-  <!-- ===== Hero ===== -->
+  <!-- Hero -->
   <section class="hero">
     <div class="container hero__inner">
       <div>
         <p class="kicker">Flexible Financing</p>
         <h1 class="title">Build now. Pay over time.</h1>
-        <p class="lead">We offer simple financing options for parts, installs, and full custom builds. Apply in minutes with no impact to your credit score for pre‑qualification where available.</p>
+        <p class="lead">We offer simple financing options for parts, installs, and full custom builds. Apply in minutes with no impact to your credit score for pre-qualification where available.</p>
         <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
           <a class="btn btn--primary" href="#providers">See options</a>
           <a class="btn btn--ghost" href="{% url 'client-dashboard' %}">Explore Services</a>
         </div>
       </div>
-      <div class="frame">High‑approval partners • Secure • Fast</div>
+      <div class="frame">High-approval partners • Secure • Fast</div>
     </div>
   </section>
 
   <main>
     <!-- Providers -->
-    <section id="providers" class="section section--lined">
+    <section id="providers" class="section">
       <div class="container">
         <div class="section__head">
           <div>
@@ -195,7 +156,7 @@
               <h3 class="card__title">Afterpay (via Square)</h3>
               <span class="card__meta">Good up to ≈ $2,000</span>
             </div>
-            <p class="section__desc">Split smaller purchases into interest‑free payments at checkout. Perfect for parts and minor installs.</p>
+            <p class="section__desc">Split smaller purchases into interest-free payments at checkout. Perfect for parts and minor installs.</p>
             <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem">
               <a class="btn btn--primary" href="{% url 'store' %}">Shop parts</a>
               <a class="btn btn--ghost" href="{% url 'client-dashboard' %}">Book an install</a>
@@ -211,7 +172,7 @@
     </section>
 
     <!-- How it works -->
-    <section id="steps" class="section section--lined">
+    <section id="steps" class="section">
       <div class="container">
         <div class="section__head">
           <div>
@@ -220,19 +181,19 @@
           </div>
         </div>
         <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem">
-          <div class="card step">
+          <div class="card">
             <h3 class="card__title">Get your project quote</h3>
             <p class="section__desc">Talk to our team about your build or parts install. We’ll outline scope, cost, and timeline.</p>
           </div>
-          <div class="card step">
+          <div class="card">
             <h3 class="card__title">Apply with a provider</h3>
             <p class="section__desc">Use Medicard or Canadian Financial for larger projects, or Afterpay for smaller purchases.</p>
           </div>
-          <div class="card step">
+          <div class="card">
             <h3 class="card__title">Choose terms & finalize</h3>
             <p class="section__desc">Pick the plan that fits your budget. We coordinate approvals and scheduling.</p>
           </div>
-          <div class="card step">
+          <div class="card">
             <h3 class="card__title">Build & updates</h3>
             <p class="section__desc">We get to work. You’ll receive progress updates in your Client Portal.</p>
           </div>
@@ -240,8 +201,8 @@
       </div>
     </section>
 
-    <!-- FAQ / Notes -->
-    <section id="faq" class="section section--lined">
+    <!-- FAQ -->
+    <section id="faq" class="section">
       <div class="container">
         <div class="section__head">
           <div>
@@ -252,7 +213,7 @@
         <div class="grid grid--cards">
           <article class="card">
             <h3 class="card__title">Credit checks & approvals</h3>
-            <p class="section__desc">Some providers offer soft credit checks for pre‑qualification. Final approval may require a hard check. Terms and limits depend on your credit profile.</p>
+            <p class="section__desc">Some providers offer soft credit checks for pre-qualification. Final approval may require a hard check. Terms and limits depend on your credit profile.</p>
           </article>
           <article class="card">
             <h3 class="card__title">Project eligibility</h3>
@@ -281,142 +242,8 @@
     </div>
   </footer>
 
-  <!-- ===== Simple WebGL smoke shader (procedural noise) ===== -->
-  <script>
-  (function(){
-    const canvas = document.getElementById('bg');
-    if(!canvas) return;
-    const gl = canvas.getContext('webgl', { antialias:false, premultipliedAlpha:false });
-    if(!gl){
-      // Fallback: subtle gradient background if WebGL is unavailable
-      canvas.style.display='none';
-      return;
-    }
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    function resize(){
-      const w = window.innerWidth, h = window.innerHeight;
-      canvas.width = Math.floor(w*dpr);
-      canvas.height = Math.floor(h*dpr);
-      canvas.style.width = w+'px';
-      canvas.style.height = h+'px';
-      gl.viewport(0,0,canvas.width,canvas.height);
-    }
-    window.addEventListener('resize', resize, {passive:true});
-    resize();
-
-    const vert = `
-      attribute vec2 a;
-      void main(){
-        gl_Position = vec4(a,0.0,1.0);
-      }
-    `;
-
-    // Fractal noise smoke shader (single pass), tuned for dark red glow
-    const frag = `
-      precision highp float;
-      uniform vec2 u_res; // pixel resolution
-      uniform float u_time;
-
-      // Hash & noise helpers
-      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
-      float noise(vec2 p){
-        vec2 i = floor(p), f = fract(p);
-        float a = hash(i);
-        float b = hash(i + vec2(1.0,0.0));
-        float c = hash(i + vec2(0.0,1.0));
-        float d = hash(i + vec2(1.0,1.0));
-        vec2 u = f*f*(3.0-2.0*f);
-        return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
-      }
-      float fbm(vec2 p){
-        float v = 0.0;
-        float a = 0.5;
-        for(int i=0;i<5;i++){
-          v += a*noise(p);
-          p *= 2.0;
-          a *= 0.5;
-        }
-        return v;
-      }
-
-      void main(){
-        vec2 uv = gl_FragCoord.xy / u_res.xy; // 0..1
-        vec2 p = (gl_FragCoord.xy - 0.5*u_res.xy) / u_res.y; // centered
-
-        // Animate flow
-        float t = u_time * 0.06;
-        float n = fbm(p*1.8 + vec2(t*1.2, t*0.7));
-        float m = fbm(p*3.0 - vec2(t*0.9, t*1.3));
-        float smoke = smoothstep(0.25, 0.85, (n*0.7 + m*0.6));
-
-        // Vignette and colorize (deep red glow)
-        float vign = smoothstep(1.2, 0.1, length(p));
-        vec3 base = vec3(0.02, 0.02, 0.02);
-        vec3 glow = vec3(0.9, 0.08, 0.08); // red tint
-        vec3 col = base + glow * smoke * 0.35 * vign;
-
-        // Soft band accents from top corners (subtle)
-        float bandL = smoothstep(0.0, 0.8, uv.y) * smoothstep(0.4, 0.0, uv.x);
-        float bandR = smoothstep(0.0, 0.8, uv.y) * smoothstep(0.6, 1.0, uv.x);
-        col += vec3(0.6, 0.05, 0.05) * (bandL + bandR) * 0.06;
-
-        gl_FragColor = vec4(col, 1.0);
-      }
-    `;
-
-    function compile(type, src){
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
-        console.error(gl.getShaderInfoLog(s));
-        return null;
-      }
-      return s;
-    }
-    function program(vsrc, fsrc){
-      const vs = compile(gl.VERTEX_SHADER, vsrc);
-      const fs = compile(gl.FRAGMENT_SHADER, fsrc);
-      const pr = gl.createProgram();
-      gl.attachShader(pr, vs);
-      gl.attachShader(pr, fs);
-      gl.linkProgram(pr);
-      if(!gl.getProgramParameter(pr, gl.LINK_STATUS)){
-        console.error(gl.getProgramInfoLog(pr));
-        return null;
-      }
-      return pr;
-    }
-
-    const prog = program(vert, frag);
-    if(!prog){ canvas.style.display='none'; return; }
-    gl.useProgram(prog);
-
-    const aLoc = gl.getAttribLocation(prog, 'a');
-    const uRes = gl.getUniformLocation(prog, 'u_res');
-    const uTime = gl.getUniformLocation(prog, 'u_time');
-
-    const quad = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
-    // Triangle strip covering full screen
-    const V = new Float32Array([
-      -1,-1,  1,-1, -1, 1, 1, 1
-    ]);
-    gl.bufferData(gl.ARRAY_BUFFER, V, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(aLoc);
-    gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
-
-    let start = performance.now();
-    function frame(){
-      const now = performance.now();
-      const t = (now - start) / 1000;
-      gl.uniform2f(uRes, canvas.width, canvas.height);
-      gl.uniform1f(uTime, t);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
-  })();
-  </script>
+  <!-- ровно как на Store -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 </body>
 </html>
