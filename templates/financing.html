@@ -91,6 +91,42 @@
     @media (max-width: 900px){
       .hero__inner{grid-template-columns:1fr}
     }
+
+    /* === Normalize layout to match other pages === */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+:root{
+  --container:clamp(320px,92vw,1280px);
+  --line:rgba(255,255,255,.12);
+  --panel:#0E0E0E;
+}
+
+/* одинаковая ширина сетки на всех страницах */
+.container{width:var(--container);margin-inline:auto;padding-inline:1rem}
+
+/* единый topbar (как на остальных) */
+.site-header{
+  position:sticky;top:0;z-index:1000;
+  background:rgba(0,0,0,.65);
+  backdrop-filter:saturate(1.2) blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
+.brand{display:flex;align-items:center;gap:.75rem;font-weight:900;letter-spacing:.5px}
+.brand__logo{
+  width:34px;height:34px;border-radius:10px;
+  background:radial-gradient(90% 90% at 30% 30%, #ff1a1a, #d50000);
+  box-shadow:0 0 40px -6px #ff1a1a;
+}
+nav ul{display:flex;align-items:center;gap:.75rem;list-style:none}
+nav a{display:inline-flex;align-items:center;gap:.45rem;padding:.55rem .8rem;border-radius:.55rem}
+nav a[aria-current="page"]{background:var(--panel);border:1px solid var(--line)}
+
+/* дым: слой позади и такой же порядок наложения */
+#bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+#bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
+.site-header, .hero, main, footer{position:relative; z-index:1;}
+
   </style>
 </head>
 <body>
