@@ -360,3 +360,8 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         # флаг доступа
         ctx["is_dealer"] = bool(up and up.is_dealer)
         return ctx
+
+from django.shortcuts import render
+
+def financing_view(request):
+    return render(request, "financing.html")

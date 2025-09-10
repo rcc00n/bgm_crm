@@ -8,7 +8,7 @@ from core.views import service_search
 from django.conf import settings
 from django.conf.urls.static import static
 from core.views import DealerApplyView, DealerStatusView
-
+from core import views as core_views
 urlpatterns = [
     # Admin
     path("admin/", admin.site.urls),
@@ -62,6 +62,7 @@ urlpatterns = [
     
     path("dealer/apply/", DealerApplyView.as_view(), name="dealer-apply"),
     path("dealer/status/", DealerStatusView.as_view(), name="dealer-status"),
+    path("financing/", core_views.financing_view, name="financing"),
 ]
 
 if settings.DEBUG:
