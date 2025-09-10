@@ -85,18 +85,19 @@
       </a>
       <nav aria-label="Main">
         <ul>
-          <li><a href="{% url 'home' %}">Home</a></li>
-          <li><a href="{% url 'client-dashboard' %}">Services</a></li>
-          <li><a href="{% url 'store' %}">Products</a></li>
-          <li><a href="{% url 'merch' %}">Merch</a></li>
-          <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-          <li><a href="{% url 'financing' %}">Financing</a></li>
-          {% if user.is_authenticated %}
-            <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
-          {% else %}
-            <li><a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'home' %}">Login</a></li>
-          {% endif %}
-        </ul>
+        <li><a href="{% url 'home' %}">Home</a></li>
+        <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
+        {% if user.is_authenticated %}
+          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+        {% else %}
+          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
+        {% endif %}
+        <li><a href="{% url 'store' %}" >Products</a></li>
+        <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
+        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
+        <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>Financing</a></li>
+        <li><a href="{% url 'our-story' %}">About</a></li>
+      </ul>
       </nav>
     </div>
   </header>
