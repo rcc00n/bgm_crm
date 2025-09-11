@@ -134,10 +134,10 @@ CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in os.getenv("ALLOWED_HOSTS", "").s
 
 # ── Jazzmin (как было) ───────────────────────────────────────────────────
 JAZZMIN_SETTINGS = {
-    "site_title": "Malva Admin",
-    "site_header": "Malva Health & Beauty",
-    "welcome_sign": "Welcome to Malva",
-    "copyright": "Malva © 2025",
+    "site_title": "BGM Admin",
+    "site_header": "BGM",
+    "welcome_sign": "Welcome to BGM",
+    "copyright": "BGM © 2025",
     "search_model": ["auth.User"],
     "show_sidebar": True,
     "navigation_expanded": True,
