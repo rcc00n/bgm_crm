@@ -171,6 +171,76 @@
 
 /* убираем прежний фон у hero, чтобы был виден дым */
 .hero{background:transparent;}
+/* ===== TOP BAR — как на странице бронирования ===== */
+
+/* фон + blur + бордер */
+.site-header{
+  background:rgba(0,0,0,.65) !important;
+  backdrop-filter:saturate(1.2) blur(8px) !important;
+  border-bottom:1px solid var(--line) !important;
+}
+
+/* контейнер: слева бренд, справа меню */
+.site-header__inner{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:1rem !important;
+  padding:.8rem 0 !important;
+}
+
+/* бренд */
+.brand{ display:flex !important; align-items:center !important; gap:.75rem !important; font-weight:900 !important; letter-spacing:.5px !important; }
+
+/* делаем квадрат-логотип, слова BAD GUY / MOTORS скрываем */
+.brand__logo{
+  width:34px !important; height:34px !important; border-radius:10px !important;
+  background:radial-gradient(90% 90% at 30% 30%, #ff1a1a, var(--accent)) !important;
+  box-shadow:0 0 40px -6px #ff1a1a !important;
+  display:inline-block !important;
+}
+.brand__logo .brand__word{ display:none !important; }
+
+/* подпись "BGM Customs" как на второй странице */
+.brand::after{
+  content:"BGM Customs";
+  font-weight:900; letter-spacing:.5px;
+}
+
+/* убираем слоган на первой странице */
+.brand__tagline{ display:none !important; }
+
+/* меню */
+.site-header nav{ margin-left:auto !important; }
+.site-header nav ul{
+  display:flex !important; align-items:center !important; gap:.75rem !important;
+  list-style:none !important; margin:0 !important; padding:0 !important; flex-wrap:nowrap !important;
+}
+.site-header nav a{
+  padding:.55rem .8rem !important; border-radius:.55rem !important;
+  background:transparent !important; border:1px solid transparent !important;
+  color:inherit !important; line-height:1 !important;
+}
+.site-header nav a[aria-current="page"]{
+  background:rgba(255,255,255,.04) !important; border-color:var(--line) !important;
+}
+
+/* badge S O O N — такой же */
+.site-header .badge{ font-size:.78rem; padding:.15rem .55rem; border-radius:999px;
+  background:var(--accent) !important; color:#fff !important; border:1px solid rgba(255,255,255,.14) !important;
+}
+
+/* «Login» в хедере — Ghost как на второй странице */
+.site-header nav .btn,
+.site-header nav .btn--ghost{
+  background:transparent !important; border:1px solid var(--accent) !important;
+  padding:.55rem .8rem !important; border-radius:.55rem !important; line-height:1 !important;
+}
+
+/* на узких можно сжать подпись бренда */
+@media (max-width: 900px){
+  .brand::after{ content:"BGM"; }
+}
 
   </style>
 </head>
