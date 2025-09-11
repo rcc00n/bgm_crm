@@ -375,6 +375,54 @@
 
 /* на узких экранах прячем слоган, чтобы меню не ломалось */
 @media (max-width:1100px){ .brand__tagline{ display:none !important; } }
+/* ===== ONE-LINE, FULL-WIDTH TOP BAR ===== */
+
+/* растянуть контейнер хедера на всю ширину окна */
+.site-header .container{
+  width:100% !important;
+  max-width:none !important;
+  padding-inline:24px !important; /* чуть воздуха по краям */
+}
+
+/* сетка: слева бренд+слоган, справа меню */
+.site-header__inner{
+  display:grid !important;
+  grid-template-columns:auto 1fr !important;
+  align-items:center !important;
+  gap:1.2rem !important;
+}
+
+/* бренд и слоган — не переносятся */
+.brand{min-width:max-content !important;}
+.brand__tagline{white-space:nowrap !important;}
+
+/* меню — одна линия, без переносов слов */
+.site-header nav{justify-self:end; min-width:0;}
+.site-header nav ul{
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  gap:1.6rem !important;
+}
+.site-header nav a{
+  display:inline-flex !important;
+  align-items:center !important;
+  white-space:nowrap !important;   /* ← ключ от "CLIENT" / "PORTAL" в две строки */
+  line-height:1 !important;
+}
+
+/* если становится тесно — прячем слоган и немного уменьшаем gap */
+@media (max-width:1240px){
+  .brand__tagline{display:none !important;}
+}
+@media (max-width:1080px){
+  .site-header nav ul{gap:1.1rem !important;}
+}
+
+/* (опция) на очень узких экранах лучше проскроллить, чем ломать в 2 строки */
+@media (max-width:900px){
+  .site-header nav{overflow-x:auto; scrollbar-width:none;}
+  .site-header nav::-webkit-scrollbar{display:none;}
+}
 
   </style>
 </head>
