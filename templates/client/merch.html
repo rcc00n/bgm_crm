@@ -90,296 +90,90 @@
 .brand__word--white{color:#fff;}
 .brand__word--red{color:var(--accent);}
 
-/* лента-слоган по центру */
-.belt{
-  font-weight:900; letter-spacing:.18em; text-transform:uppercase;
-  color:var(--muted-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
+/* ==== CLEAN HEADER (brand | belt | nav) ============================ */
 
-/* меню — одна линия, без переносов */
-.site-header nav{justify-self:end; min-width:0;}
-.site-header nav ul{
-  display:flex; align-items:center; gap:1.6rem; list-style:none; margin:0; padding:0; flex-wrap:nowrap;
-}
-.site-header nav a{
-  display:inline-flex; align-items:center;
-  background:transparent; border:0; border-radius:.55rem; padding:.55rem .8rem;
-  text-transform:uppercase; font-weight:900; letter-spacing:.08em; font-size:.82rem;
-  color:rgba(255,255,255,.78); white-space:nowrap; line-height:1;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{color:#fff;}
-.site-header nav a[aria-current="page"]{background:rgba(255,255,255,.04);border:1px solid var(--line)}
-.site-header .badge{padding:.12rem .5rem; font-size:.72rem; border-radius:999px; background:var(--accent); color:#fff; border:1px solid rgba(255,255,255,.14)}
-
-/* «Login» без кнопочной подложки */
-.site-header nav .btn,
-.site-header nav .btn--ghost{padding:0 !important; border:none !important; background:transparent !important;}
-
-/* адаптация */
-@media (max-width:1280px){ .belt{display:none;} }
-@media (max-width:1080px){ .site-header nav ul{gap:1.1rem;} }
-@media (max-width:900px){
-  .site-header nav{overflow-x:auto; scrollbar-width:none;}
-  .site-header nav::-webkit-scrollbar{display:none;}
-}
-
-/* === FIX: booking-style top bar on Merch ============================= */
-
-/* центр-колонка: даём достаточную ширину и реально центрируем */
-.site-header__inner{
-  grid-template-columns: auto minmax(420px,1fr) auto !important;
-}
-.belt{
-  justify-self:center; text-align:center;
-  letter-spacing:.14em !important;   /* было слишком широко */
-  white-space:nowrap;
-  overflow:visible; text-overflow:clip; /* не обрезаем */
-  margin:0 .75rem;                    /* немного воздуха */
-}
-
-/* меню компактнее — больше места для слогана */
-.site-header nav ul{ gap:1.25rem !important; }
-.site-header nav a{ padding:.45rem .65rem !important; }
-
-/* активный пункт меню без серой «таблетки» */
-.site-header nav a[aria-current="page"]{
-  background:none !important;
-  border:0 !important;
-  color:#fff !important;
-}
-
-/* если экран уже — прячем слоган, чтобы всё влезло */
-@media (max-width: 1200px){
-  .belt{ display:none !important; }
-}
-
-/* === TOP BAR: убрать квадрат и исключить overlap ===================== */
-
-/* раскладываем хедер в 3 колонки: бренд | слоган | меню */
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns: auto 1fr auto !important;
-  align-items:center !important;
-  gap:1.2rem !important;
-}
-
-/* слева — только BAD GUY / MOTORS, без квадратного лого */
-.brand__logo{ display:none !important; }                /* убрать квадрат */
-.site-header .brand > span:last-child{ display:none !important; } /* скрыть "BGM Customs" */
-
-.site-header .brand{
-  font-weight:900; text-transform:uppercase; letter-spacing:.06em;
-}
-.site-header .brand::before{
-  content:"BAD GUY"; color:#fff; margin-right:.5rem;
-}
-.site-header .brand::after{
-  content:"MOTORS"; color:#d50000;
-}
-
-/* центральный слоган — занимает строго свою колонку */
-.belt{
-  justify-self:center;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  font-weight:900; text-transform:uppercase;
-  font-size:.95rem; letter-spacing:.12em;   /* компактнее, чтобы всё влезало */
-  color:rgba(255,255,255,.7);
-}
-
-/* меню компактнее, чтобы оставалось место под слоган */
-.site-header nav{ justify-self:end; }
-.site-header nav ul{ gap:1.25rem !important; flex-wrap:nowrap !important; }
-.site-header nav a{
-  padding:.45rem .65rem !important;
-  background:none !important; border:0 !important;     /* без серой «таблетки» */
-}
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-/* на узких экранах — лучше спрятать слоган */
-@media (max-width:1200px){
-  .belt{ display:none !important; }
-}
-/* === FIX header: no duplicates, no overlap ========================== */
-
-/* грид: бренд | слоган (тянется) | меню */
-.site-header .container{ width:100% !important; max-width:none !important; padding-inline:24px !important; }
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns:auto minmax(420px,1fr) auto !important;
-  align-items:center !important;
-  gap:1rem !important;
-}
-
-/* используем ТОЛЬКО реальные спаны, без "нарисованных" before/after */
-.brand::before,
-.brand::after{ content:none !important; }
-
-/* квадратный логотип убрать */
-.brand__logo{ display:none !important; }
-
-/* раньше этот хак скрывал "BGM Customs" — теперь мешает */
-.site-header .brand > span:last-child{ display:inline !important; }
-
-/* оформление бренда */
-.brand{ display:flex !important; align-items:baseline !important; gap:.6rem !important; }
-.brand__word{ font-weight:900; text-transform:uppercase; letter-spacing:.06em; font-size:1rem; line-height:1; }
-.brand__word--white{ color:#fff; }
-.brand__word--red{ color:var(--accent); }
-
-/* центральная лента */
-.belt{
-  justify-self:center;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  font-weight:900; text-transform:uppercase;
-  font-size:.95rem; letter-spacing:.12em; color:rgba(255,255,255,.7);
-}
-
-/* меню — компактнее, без серой подложки на активном */
-.site-header nav{ justify-self:end; }
-.site-header nav ul{ display:flex; gap:1.25rem !important; flex-wrap:nowrap !important; }
-.site-header nav a{
-  padding:.45rem .65rem !important; background:none !important; border:0 !important;
-  text-transform:uppercase; font-weight:900; letter-spacing:.08em; color:rgba(255,255,255,.78);
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-/* на узких — убираем ленту, чтобы всё влезало */
-@media (max-width:1200px){ .belt{ display:none !important; } }
-
-/* === TOP BAR: one line, no overlap, edge-to-edge ==================== */
-
-/* контейнер на всю ширину с отступами */
+/* контейнер в край, но с аккуратными отступами */
 .site-header .container{
   width:100% !important;
   max-width:none !important;
-  padding-inline:32px !important;
+  padding-inline:clamp(12px, 2vw, 28px) !important;
 }
 
+/* трёхколоночный грид: бренд | центр (сжимается) | меню */
 .site-header__inner{
   display:grid !important;
-  /* бренд | центр (растягивается) | меню */
-  grid-template-columns: max-content 1fr max-content !important;
+  grid-template-columns:max-content minmax(0,1fr) max-content !important;
   align-items:center !important;
-  column-gap:32px !important;
+  column-gap:clamp(14px, 2vw, 36px) !important;
+  padding-block:.8rem !important;
 }
 
-/* бренд без красного квадрата */
+/* бренд — без квадратного логотипа, аккуратные интервалы */
 .brand__logo{ display:none !important; }
-/* если где-то прятали последний span — вернём */
-.site-header .brand > span:last-child{ display:inline !important; }
-
-/* оформление бренда */
-.brand{ display:flex !important; align-items:baseline !important; gap:.6rem !important; }
-.brand__word{ font-weight:900; text-transform:uppercase; letter-spacing:.06em; font-size:1rem; line-height:1; }
+.brand{
+  display:flex !important;
+  align-items:baseline !important;
+  gap:.55rem !important;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.brand__word{ font-size:clamp(.9rem, 1vw, 1rem); line-height:1; }
 .brand__word--white{ color:#fff; }
-.brand__word--red{ color:var(--accent); }
+.brand__word--red{ color:#d50000; }
 
-/* центральная лента — не даём расползаться */
+/* центральная лента — центрируется и, при нехватке места, сжимается/обрезается */
 .belt{
   justify-self:center;
-  min-width:0;                 /* ВАЖНО: разрешаем сжиматься в grid */
+  min-width:0;                 /* важно: даёт колонке сжиматься */
   white-space:nowrap;
   overflow:hidden;
-  text-overflow:ellipsis;      /* аккуратное обрезание */
+  text-overflow:ellipsis;
   font-weight:900;
   text-transform:uppercase;
   letter-spacing:.12em;
-  color:rgba(255,255,255,.7);
+  color:rgba(255,255,255,.72);
+  font-size:clamp(.78rem, .95vw, .95rem);
 }
 
-/* меню — фиксируем справа, не переносим */
-.site-header nav{
-  justify-self:end;
-  min-width:max-content;       /* меню не схлопывается */
-}
+/* меню справа: плотные интервалы, без «таблеток», не переносим */
+.site-header nav{ justify-self:end; min-width:0; }
 .site-header nav ul{
-  display:flex; align-items:center; gap:1.6rem; flex-wrap:nowrap;
+  display:flex; align-items:center; list-style:none;
+  gap:clamp(8px, 1vw, 18px) !important;
+  margin:0; padding:0; flex-wrap:nowrap;
 }
 .site-header nav a{
-  padding:.45rem .65rem !important;
-  background:none !important; border:0 !important;
-  text-transform:uppercase; font-weight:900; letter-spacing:.08em;
-  color:rgba(255,255,255,.78); white-space:nowrap;
+  display:inline-flex; align-items:center;
+  padding:.38rem .58rem !important;
+  background:none !important; border:0 !important; border-radius:.55rem;
+  text-transform:uppercase; font-weight:900;
+  letter-spacing:.06em;
+  color:rgba(255,255,255,.82);
+  font-size:clamp(.72rem, .9vw, .92rem) !important;
+  white-space:nowrap; line-height:1;
 }
 .site-header nav a:hover,
 .site-header nav a[aria-current="page"]{ color:#fff !important; }
-.site-header .badge{ font-size:.72rem; padding:.12rem .5rem; }
 
-/* когда места мало — прячем ленту, чтобы всё влезло */
-@media (max-width:1200px){
-  .belt{ display:none !important; }
-}
-
-/* --- edge-to-edge header --- */
-:root{ --edge-pad: 0px; } /* поставь 12px если нужно немного воздуха */
-
-.site-header .container{
-  width:100vw !important;
-  max-width:100vw !important;
-  margin:0 !important;
-  padding-inline:var(--edge-pad) !important;   /* 0 — в самый край */
-}
-
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns: max-content 1fr max-content !important; /* бренд | лента | меню */
-  align-items:center !important;
-  column-gap: clamp(16px, 2vw, 40px) !important;
-}
-
-/* центр: не даём налезать */
-.belt{ min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-/* слева и справа — впритык к краям */
-.brand{ justify-self:start; margin-left:0 !important; }
-.site-header nav{ justify-self:end; margin-right:0 !important; min-width:max-content; }
-.site-header nav ul{ gap: clamp(16px, 1.6vw, 28px) !important; }
-
-/* === Nav tighter + no overflow ===================================== */
-
-/* разрешаем центру сжиматься и меню не выталкивать за экран */
-.site-header__inner{
-  grid-template-columns: max-content minmax(0,1fr) max-content !important;
-}
-
-/* меню может сжиматься, не фиксируем ширину */
-.site-header nav{
-  justify-self:end;
-  min-width:0 !important;
-  overflow:hidden; /* на всякий */
-}
-
-/* уменьшаем расстояния между пунктами */
-.site-header nav ul{
-  gap: clamp(6px, 0.8vw, 14px) !important;
-}
-
-/* компактные ссылки */
-.site-header nav a{
-  padding: .35rem .50rem !important;
-  font-size: clamp(.72rem, .85vw, .90rem) !important;
-  letter-spacing: .06em !important;
-  white-space: nowrap;
-}
-
-/* компактный бейдж S O O N */
 .site-header .badge{
-  padding: .08rem .40rem !important;
-  font-size: .68rem !important;
-  line-height: 1 !important;
+  padding:.08rem .42rem !important;
+  font-size:.68rem !important;
+  line-height:1; border-radius:999px;
+  background:#d50000; color:#fff;
 }
 
-/* освобождаем место: на более узких экранах скрываем слоган по центру */
-@media (max-width: 1400px){
-  .belt{ display:none !important; }
+/* адаптация: сначала ужимаем меню и шрифт, затем скрываем ленту, затем включаем мягкий скролл */
+@media (max-width: 1300px){
+  .site-header nav ul{ gap:.6rem !important; }
+  .site-header nav a{ font-size:.72rem !important; letter-spacing:.05em !important; }
 }
-
-/* ещё плотнее на очень узких */
-@media (max-width: 1080px){
-  .site-header nav ul{ gap: .5rem !important; }
-  .site-header nav a{ font-size: .70rem !important; }
+@media (max-width: 1150px){
+  .belt{ display:none !important; } /* освобождаем место, меню остаётся в одну линию */
+}
+@media (max-width: 900px){
+  .site-header nav{ overflow-x:auto; scrollbar-width:none; }
+  .site-header nav::-webkit-scrollbar{ display:none; } /* скрытый горизонтальный скролл при острой нехватке ширины */
 }
 
   </style>
