@@ -174,8 +174,44 @@
 .site-header nav a[aria-current="page"]{color:#fff;}
 .site-header .badge{padding:.12rem .5rem; font-size:.72rem; transform:translateY(-.04rem);} /* Merch: Soon */
 
-/* ==== RESPONSIVE ====================================================== */
-@media (max-width:1100px){ .brand__tagline{display:none;} }   /* когда тесно — скрыть слоган */
+/* ЛЕВО/ПРАВО: бренд слева, меню вправо */
+.site-header__inner{
+  display:grid;
+  grid-template-columns:auto 1fr;  /* бренд = auto, меню = 1fr */
+  align-items:center;
+  gap:1.2rem;
+}
+
+/* бренд как есть */
+.brand{display:flex; align-items:baseline; gap:.9rem; min-width:max-content;}
+.brand__logo{all:unset; display:inline-flex; gap:.5rem; line-height:1; font-weight:900; letter-spacing:.06em; font-size:1rem;}
+.brand__tagline{margin-left:1.1rem; white-space:nowrap; font-size:.82rem; letter-spacing:.14em; font-weight:800; color:rgba(255,255,255,.72);}
+
+/* ключ: nav занимает весь 1fr и ПРИЖИМАЕТ содержимое вправо */
+.site-header nav{
+  display:flex;
+  justify-content:flex-end;   /* тянем список к правому краю */
+  margin-left:0;              /* убираем прежние auto-марджины */
+}
+
+/* сам список — просто ряд с фикс-gap, без своего выравнивания */
+.site-header nav ul{
+  display:flex; align-items:center; flex-wrap:nowrap;
+  gap:1.6rem; margin:0; padding:0; list-style:none;
+  justify-content:unset;      /* убрать возможные прошлые правила */
+}
+
+/* компактные ссылки */
+.site-header nav a{
+  background:none!important; border:0!important; border-radius:0; padding:0!important; line-height:1;
+  text-transform:uppercase; font-weight:800; letter-spacing:.08em; font-size:.82rem; color:rgba(255,255,255,.75);
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{ color:#fff; }
+
+/* узко — скрываем слоган, чтобы меню оставалось в один ряд */
+@media (max-width:1100px){ .brand__tagline{ display:none; } }
+
 
   </style>
 </head>
