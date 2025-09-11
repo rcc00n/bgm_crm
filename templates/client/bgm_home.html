@@ -255,6 +255,33 @@
   padding:.12rem .5rem; font-size:.72rem;
 }
 
+
+/* Навигация в одну линию */
+.site-header nav ul{
+  display:flex; align-items:center;
+  justify-content:flex-end;
+  flex-wrap:nowrap;
+  gap:1.6rem;             /* фиксированный равномерный отступ */
+  list-style:none;
+  margin:0; padding:0;
+}
+
+/* убираем точки-разделители */
+.site-header nav li + li::before{content:none;}
+
+/* ссылки компактнее */
+.site-header nav a{
+  text-transform:uppercase;
+  font-weight:800;
+  letter-spacing:.08em;   /* уменьшено */
+  font-size:.82rem;
+  color:rgba(255,255,255,.75);
+  padding:0;
+  background:none!important;
+  border:none!important;
+}
+.site-header nav a:hover{color:#fff;}
+
 /* Узкие экраны — убираем слоган и разделители, ужимаем трекинг */
 @media (max-width: 1000px){
   .brand__tagline{display:none;}
