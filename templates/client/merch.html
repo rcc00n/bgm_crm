@@ -211,6 +211,39 @@ h1,h2,h3,h4,h5,h6,
 nav a,.btn,.badge {
   font-family:var(--font-head) !important;
 }
+.hero__inner{
+  display:grid;
+  grid-template-columns: 1.1fr .9fr;
+  align-items:center;
+  gap:1.2rem;
+}
+.btn-row{display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap}
+
+.hero__media{
+  justify-self:start;
+  max-width:min(52vw, 720px);
+}
+.hero__media img{
+  width:100%;
+  height:auto;
+  aspect-ratio:16/9;
+  max-height:clamp(220px, 42vh, 420px);
+  object-fit:cover;
+  border-radius:1rem;
+  display:block;
+}
+
+/* мобилка */
+@media (max-width:900px){
+  .hero__inner{grid-template-columns:1fr}
+  .hero__media{max-width:100%}
+}
+
+/* дым оставляем позади */
+.hero{background:transparent !important;}
+.site-header, .hero, main, .site-footer{position:relative; z-index:1;}
+#bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+#bg canvas{position:absolute; inset:0; width:100%; height:100%;}
 
   </style>
   
@@ -253,18 +286,22 @@ nav a,.btn,.badge {
 
 <section class="hero">
   <div class="container hero__inner">
-    <div>
+    <div class="hero__copy">
       <p class="kicker">BGM Merch</p>
       <h1 class="title">Apparel & accessories — Coming soon</h1>
       <p class="lead">Tees, hoodies, caps, wall art — built with the same no-compromise mindset. Want first drop access? Stay tuned.</p>
-      <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
+      <div class="btn-row">
         <a class="btn btn--primary" href="{% url 'home' %}">← Back to Home</a>
         <a class="btn btn--ghost" href="{% url 'client-dashboard' %}">Explore Services</a>
       </div>
-    <div class="frame frame--media">
-  <img src="{% static 'img/hero-merch.jpg' %}" alt="Merch hero" loading="lazy" decoding="async">
-</div>
+    </div>
+
+    <div class="hero__media frame frame--media">
+      <img src="{% static 'img/hero-merch.jpg' %}" alt="Merch hero" loading="lazy" decoding="async">
+    </div>
+  </div>
 </section>
+
 
 <main>
   <section class="section">
