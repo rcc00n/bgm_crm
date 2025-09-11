@@ -134,6 +134,50 @@
   color: rgba(255,255,255,.72);
   white-space: nowrap;
 }
+/* === Header: solid, без blur/overlay === */
+.site-header{
+  position: sticky; top: 0; z-index: 1000;
+  background: #000;                 /* было rgba + backdrop */
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--line);
+}
+.site-header__inner{ padding:.7rem 0; }
+
+/* === Лого-надпись как на референсе === */
+.brand{ display:flex; align-items:center; gap:.8rem; font-weight:900; }
+
+/* Сброс квадрата */
+.brand__logo{
+  all: unset;                       /* убирает width/height/bg/shadow и т.п. */
+  display: inline-flex;
+  gap: .45rem;
+  line-height: 1;
+  font-size: 1rem;                  /* размер слова BAD GUY / MOTORS */
+  letter-spacing: .06em;
+}
+
+/* Цвета слов */
+.brand__word--white{ color:#fff; }
+.brand__word--red{ color:#d50000; }
+
+/* Теглайн справа */
+.brand__tagline{
+  margin-left: 1rem;
+  font-size: .8rem;
+  letter-spacing: .14em;
+  color: rgba(255,255,255,.72);
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+/* Подправим паддинги в навигации, чтобы всё легло в линию */
+nav a{ padding:.5rem .7rem; }
+
+/* На узких — убираем теглайн, чтобы не ломал сетку */
+@media (max-width: 960px){
+  .brand__tagline{ display:none; }
+}
+
 
   </style>
 </head>
