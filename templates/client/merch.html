@@ -200,6 +200,53 @@
 @media (max-width:1200px){
   .belt{ display:none !important; }
 }
+/* === FIX header: no duplicates, no overlap ========================== */
+
+/* грид: бренд | слоган (тянется) | меню */
+.site-header .container{ width:100% !important; max-width:none !important; padding-inline:24px !important; }
+.site-header__inner{
+  display:grid !important;
+  grid-template-columns:auto minmax(420px,1fr) auto !important;
+  align-items:center !important;
+  gap:1rem !important;
+}
+
+/* используем ТОЛЬКО реальные спаны, без "нарисованных" before/after */
+.brand::before,
+.brand::after{ content:none !important; }
+
+/* квадратный логотип убрать */
+.brand__logo{ display:none !important; }
+
+/* раньше этот хак скрывал "BGM Customs" — теперь мешает */
+.site-header .brand > span:last-child{ display:inline !important; }
+
+/* оформление бренда */
+.brand{ display:flex !important; align-items:baseline !important; gap:.6rem !important; }
+.brand__word{ font-weight:900; text-transform:uppercase; letter-spacing:.06em; font-size:1rem; line-height:1; }
+.brand__word--white{ color:#fff; }
+.brand__word--red{ color:var(--accent); }
+
+/* центральная лента */
+.belt{
+  justify-self:center;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-weight:900; text-transform:uppercase;
+  font-size:.95rem; letter-spacing:.12em; color:rgba(255,255,255,.7);
+}
+
+/* меню — компактнее, без серой подложки на активном */
+.site-header nav{ justify-self:end; }
+.site-header nav ul{ display:flex; gap:1.25rem !important; flex-wrap:nowrap !important; }
+.site-header nav a{
+  padding:.45rem .65rem !important; background:none !important; border:0 !important;
+  text-transform:uppercase; font-weight:900; letter-spacing:.08em; color:rgba(255,255,255,.78);
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{ color:#fff !important; }
+
+/* на узких — убираем ленту, чтобы всё влезало */
+@media (max-width:1200px){ .belt{ display:none !important; } }
 
   </style>
 </head>
