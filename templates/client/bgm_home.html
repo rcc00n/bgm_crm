@@ -307,6 +307,26 @@ nav a{ padding:.5rem .7rem; }
   .brand__tagline{ display:none; }
 }
 
+/* контейнер хэдера */
+.site-header__inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between; /* ключевой момент */
+  gap:2rem;
+}
+
+/* бренд с теглайном всегда прижат влево */
+.brand{
+  display:flex;
+  align-items:baseline;
+  gap:.9rem;
+  min-width:max-content;
+}
+
+/* навигация уходит вправо */
+.site-header nav{
+  margin-left:auto;
+}
 
   </style>
 </head>
