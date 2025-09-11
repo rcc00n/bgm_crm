@@ -248,6 +248,70 @@
 /* на узких — убираем ленту, чтобы всё влезало */
 @media (max-width:1200px){ .belt{ display:none !important; } }
 
+/* === TOP BAR: one line, no overlap, edge-to-edge ==================== */
+
+/* контейнер на всю ширину с отступами */
+.site-header .container{
+  width:100% !important;
+  max-width:none !important;
+  padding-inline:32px !important;
+}
+
+.site-header__inner{
+  display:grid !important;
+  /* бренд | центр (растягивается) | меню */
+  grid-template-columns: max-content 1fr max-content !important;
+  align-items:center !important;
+  column-gap:32px !important;
+}
+
+/* бренд без красного квадрата */
+.brand__logo{ display:none !important; }
+/* если где-то прятали последний span — вернём */
+.site-header .brand > span:last-child{ display:inline !important; }
+
+/* оформление бренда */
+.brand{ display:flex !important; align-items:baseline !important; gap:.6rem !important; }
+.brand__word{ font-weight:900; text-transform:uppercase; letter-spacing:.06em; font-size:1rem; line-height:1; }
+.brand__word--white{ color:#fff; }
+.brand__word--red{ color:var(--accent); }
+
+/* центральная лента — не даём расползаться */
+.belt{
+  justify-self:center;
+  min-width:0;                 /* ВАЖНО: разрешаем сжиматься в grid */
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;      /* аккуратное обрезание */
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  color:rgba(255,255,255,.7);
+}
+
+/* меню — фиксируем справа, не переносим */
+.site-header nav{
+  justify-self:end;
+  min-width:max-content;       /* меню не схлопывается */
+}
+.site-header nav ul{
+  display:flex; align-items:center; gap:1.6rem; flex-wrap:nowrap;
+}
+.site-header nav a{
+  padding:.45rem .65rem !important;
+  background:none !important; border:0 !important;
+  text-transform:uppercase; font-weight:900; letter-spacing:.08em;
+  color:rgba(255,255,255,.78); white-space:nowrap;
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{ color:#fff !important; }
+.site-header .badge{ font-size:.72rem; padding:.12rem .5rem; }
+
+/* когда места мало — прячем ленту, чтобы всё влезло */
+@media (max-width:1200px){
+  .belt{ display:none !important; }
+}
+
   </style>
 </head>
 <body>
