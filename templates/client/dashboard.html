@@ -6,6 +6,8 @@
 
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
 
   <style>
     :root{
@@ -14,7 +16,7 @@
       --ring:rgba(213,0,0,.5); --chip:rgba(255,255,255,.06); --busy:#444; --radius:14px; --shadow:0 12px 28px rgba(0,0,0,.6);
     }
     html, body{height:100%}
-    body{background:var(--bg); color:var(--ink); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif; letter-spacing:.2px}
+    body{background:var(--bg); color:var(--ink); background:var(--bg); color:var(--ink); font-family:var(--font-body); letter-spacing:.2px}
 
     .smoke{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden}
     .smoke span{position:absolute; bottom:-220px; border-radius:50%; background:radial-gradient(rgba(255,255,255,.35), rgba(255,255,255,0) 70%);
@@ -112,7 +114,40 @@
   
 #bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block; pointer-events:none}
 
+@font-face{
+  font-family:"Diesel";
+  src: url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
+  font-weight:100 900; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:"Ford";
+  src: url("{% static 'fonts/Ford.ttf' %}") format("truetype");
+  font-weight:100 900; font-style:normal; font-display:swap;
+}
 
+/* переменные */
+:root{
+  --font-body: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-head: "Ford",  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* сглаживание */
+html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
+
+h1,h2,h3,h4,h5,h6,
+.brand, .brand .name, .brand .mark,
+.modal__title,
+.sidebar .sidebar-link,
+.btn, .badge,
+.table th,
+.font-bold, .font-black, .font-semibold {
+  font-family: var(--font-head) !important;
+}
+
+/* обычный текст/инпуты */
+body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip {
+  font-family: var(--font-body) !important;
+}
   </style>
 </head>
 <body class="h-full">
