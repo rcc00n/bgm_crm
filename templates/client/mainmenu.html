@@ -195,7 +195,7 @@
 /* делаем квадрат-логотип, слова BAD GUY / MOTORS скрываем */
 .brand__logo{
   width:34px !important; height:34px !important; border-radius:10px !important;
-  background:radial-gradient(90% 90% at 30% 30%, #ff1a1a, var(--accent)) !important;
+
   box-shadow:0 0 40px -6px #ff1a1a !important;
   display:inline-block !important;
 }
@@ -203,7 +203,6 @@
 
 /* подпись "BGM Customs" как на второй странице */
 .brand::after{
-  content:"BGM Customs";
   font-weight:900; letter-spacing:.5px;
 }
 
@@ -240,6 +239,59 @@
 /* на узких можно сжать подпись бренда */
 @media (max-width: 900px){
   .brand::after{ content:"BGM"; }
+}
+
+/* ===== TOP BAR (один в один как на бронировании) ===== */
+.site-header{
+  position:sticky; top:0; z-index:10;
+  background:rgba(0,0,0,.65);
+  backdrop-filter:saturate(1.2) blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.site-header__inner{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:1rem; padding:.8rem 0;
+}
+.brand{ display:flex; align-items:center; gap:.75rem; font-weight:900; letter-spacing:.5px; }
+
+/* квадрат-логотип с тем же свечением */
+.brand__logo{
+  width:34px; height:34px; border-radius:10px;
+  background:radial-gradient(90% 90% at 30% 30%, #ff1a1a, var(--red));
+  box-shadow:0 0 40px -6px #ff1a1a;
+}
+
+/* если внутри логотипа есть старые слова — прячем их; если текста бренда нет, подставим его псевдо-элементом */
+.brand__logo .brand__word{ display:none; }
+.brand:not(:has(> span:not(.brand__logo)))::after{
+  content:"BGM Customs"; margin-left:.4rem;
+}
+
+/* меню: как на второй странице */
+.site-header nav ul{ display:flex; list-style:none; gap:.75rem; margin:0; padding:0; }
+.site-header nav a{
+  padding:.55rem .8rem; border-radius:.55rem;
+}
+.site-header nav a[aria-current="page"]{
+  background:rgba(255,255,255,.04); border:1px solid var(--line);
+}
+
+/* «Login» — тот же ghost-баттон */
+.site-header nav .btn.btn--ghost{
+  background:transparent; color:var(--ink); border:1px solid var(--red);
+}
+.site-header nav .btn.btn--ghost:hover{ box-shadow:0 0 18px rgba(213,0,0,.35); transform:translateY(-1px); }
+
+/* плашка Soon — та же форма */
+.site-header .badge{
+  font-size:.78rem; padding:.15rem .55rem; border-radius:999px;
+  background:var(--red); color:#fff; border:1px solid rgba(255,255,255,.14);
+}
+
+/* на узких можно укорачивать подпись */
+@media (max-width:900px){
+  .brand:has(> span:not(.brand__logo)) span:last-child{ display:none; } /* скрыть длинный текст, если есть */
+  .brand:not(:has(> span:not(.brand__logo)))::after{ content:"BGM"; }
 }
 
   </style>
