@@ -124,6 +124,36 @@
   .site-header nav::-webkit-scrollbar{display:none;}
 }
 
+/* === FIX: booking-style top bar on Merch ============================= */
+
+/* центр-колонка: даём достаточную ширину и реально центрируем */
+.site-header__inner{
+  grid-template-columns: auto minmax(420px,1fr) auto !important;
+}
+.belt{
+  justify-self:center; text-align:center;
+  letter-spacing:.14em !important;   /* было слишком широко */
+  white-space:nowrap;
+  overflow:visible; text-overflow:clip; /* не обрезаем */
+  margin:0 .75rem;                    /* немного воздуха */
+}
+
+/* меню компактнее — больше места для слогана */
+.site-header nav ul{ gap:1.25rem !important; }
+.site-header nav a{ padding:.45rem .65rem !important; }
+
+/* активный пункт меню без серой «таблетки» */
+.site-header nav a[aria-current="page"]{
+  background:none !important;
+  border:0 !important;
+  color:#fff !important;
+}
+
+/* если экран уже — прячем слоган, чтобы всё влезло */
+@media (max-width: 1200px){
+  .belt{ display:none !important; }
+}
+
   </style>
 </head>
 <body>
