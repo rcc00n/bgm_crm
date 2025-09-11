@@ -210,6 +210,59 @@
   color:#fff;
 }
 
+
+/* ===== HEADER LAYOUT ===== */
+.site-header__inner{
+  display:flex; align-items:center; gap:1.25rem; padding:.7rem 0;
+}
+.site-header .brand{display:flex; align-items:baseline; gap:.9rem; min-width:max-content;}
+.brand__logo{all:unset; display:inline-flex; gap:.5rem; line-height:1; font-weight:900; letter-spacing:.06em; font-size:1rem;}
+.brand__word--white{color:#fff;} .brand__word--red{color:#d50000;}
+.brand__tagline{margin-left:1.1rem; font-size:.82rem; letter-spacing:.14em; color:rgba(255,255,255,.72); white-space:nowrap; font-weight:800}
+
+/* ===== NAV: EVEN LAYOUT + BULLETS ===== */
+.site-header nav{flex:1 1 auto;}
+.site-header nav ul{
+  display:flex; align-items:center;
+  justify-content:space-evenly;      /* ровно растягиваем по правой зоне */
+  gap:0; list-style:none;
+  padding-left:1.2rem;
+}
+.site-header nav li{display:flex; align-items:center;}
+
+/* Разделители • */
+.site-header nav li + li::before{
+  content:"•";
+  margin:0 1.1rem;
+  color:rgba(255,255,255,.38);
+  font-weight:900; letter-spacing:.12em;
+}
+
+/* Ссылки в стиле слогана */
+.site-header nav a{
+  background:none!important; border:0!important; border-radius:0;
+  padding:.2rem 0!important;
+  text-transform:uppercase; font-weight:900; letter-spacing:.12em;
+  font-size:.86rem; line-height:1;
+  color:rgba(255,255,255,.72);
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{ color:#fff; }
+
+/* Бейдж "Soon" — по базовой линии и компактнее */
+.site-header .badge{
+  transform:translateY(-.04rem);
+  padding:.12rem .5rem; font-size:.72rem;
+}
+
+/* Узкие экраны — убираем слоган и разделители, ужимаем трекинг */
+@media (max-width: 1000px){
+  .brand__tagline{display:none;}
+  .site-header nav ul{justify-content:flex-end; gap:1rem;}
+  .site-header nav li + li::before{content:""; margin:0;}
+  .site-header nav a{letter-spacing:.08em;}
+}
+
 /* глушим «кнопочный» вид у Login */
 .site-header nav a.btn--ghost{box-shadow:none}
 
