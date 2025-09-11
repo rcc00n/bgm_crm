@@ -337,6 +337,51 @@
 .site-header nav{ justify-self:end; margin-right:0 !important; min-width:max-content; }
 .site-header nav ul{ gap: clamp(16px, 1.6vw, 28px) !important; }
 
+/* === Nav tighter + no overflow ===================================== */
+
+/* разрешаем центру сжиматься и меню не выталкивать за экран */
+.site-header__inner{
+  grid-template-columns: max-content minmax(0,1fr) max-content !important;
+}
+
+/* меню может сжиматься, не фиксируем ширину */
+.site-header nav{
+  justify-self:end;
+  min-width:0 !important;
+  overflow:hidden; /* на всякий */
+}
+
+/* уменьшаем расстояния между пунктами */
+.site-header nav ul{
+  gap: clamp(6px, 0.8vw, 14px) !important;
+}
+
+/* компактные ссылки */
+.site-header nav a{
+  padding: .35rem .50rem !important;
+  font-size: clamp(.72rem, .85vw, .90rem) !important;
+  letter-spacing: .06em !important;
+  white-space: nowrap;
+}
+
+/* компактный бейдж S O O N */
+.site-header .badge{
+  padding: .08rem .40rem !important;
+  font-size: .68rem !important;
+  line-height: 1 !important;
+}
+
+/* освобождаем место: на более узких экранах скрываем слоган по центру */
+@media (max-width: 1400px){
+  .belt{ display:none !important; }
+}
+
+/* ещё плотнее на очень узких */
+@media (max-width: 1080px){
+  .site-header nav ul{ gap: .5rem !important; }
+  .site-header nav a{ font-size: .70rem !important; }
+}
+
   </style>
 </head>
 <body>
