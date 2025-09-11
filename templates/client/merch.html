@@ -64,35 +64,103 @@
     .site-header, .hero, main, .site-footer{position:relative; z-index:1;}
     /* показываем дым — фон hero делаем прозрачным */
     .hero{background:transparent !important;}
+
+    /* ===== ONE-LINE BOOKING-STYLE TOP BAR (Merch) ===== */
+
+/* растягиваем контейнер на всю ширину */
+.site-header .container{
+  width:100% !important;
+  max-width:none !important;
+  padding-inline:24px !important;
+}
+
+/* сетка: Бренд | Лента-слоган (тянется) | Меню */
+.site-header__inner{
+  display:grid !important;
+  grid-template-columns:auto 1fr auto !important;
+  align-items:center !important;
+  gap:1.4rem !important;
+  padding:.8rem 0 !important;
+}
+
+/* бренд */
+.brand{display:flex !important; align-items:baseline !important; gap:.9rem !important; min-width:max-content;}
+.brand__logo{width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent));box-shadow:0 0 40px -6px var(--accent-2)}
+.brand__word{font-weight:900; letter-spacing:.06em; font-size:1rem; line-height:1}
+.brand__word--white{color:#fff;}
+.brand__word--red{color:var(--accent);}
+
+/* лента-слоган по центру */
+.belt{
+  font-weight:900; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--muted-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* меню — одна линия, без переносов */
+.site-header nav{justify-self:end; min-width:0;}
+.site-header nav ul{
+  display:flex; align-items:center; gap:1.6rem; list-style:none; margin:0; padding:0; flex-wrap:nowrap;
+}
+.site-header nav a{
+  display:inline-flex; align-items:center;
+  background:transparent; border:0; border-radius:.55rem; padding:.55rem .8rem;
+  text-transform:uppercase; font-weight:900; letter-spacing:.08em; font-size:.82rem;
+  color:rgba(255,255,255,.78); white-space:nowrap; line-height:1;
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{color:#fff;}
+.site-header nav a[aria-current="page"]{background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.site-header .badge{padding:.12rem .5rem; font-size:.72rem; border-radius:999px; background:var(--accent); color:#fff; border:1px solid rgba(255,255,255,.14)}
+
+/* «Login» без кнопочной подложки */
+.site-header nav .btn,
+.site-header nav .btn--ghost{padding:0 !important; border:none !important; background:transparent !important;}
+
+/* адаптация */
+@media (max-width:1280px){ .belt{display:none;} }
+@media (max-width:1080px){ .site-header nav ul{gap:1.1rem;} }
+@media (max-width:900px){
+  .site-header nav{overflow-x:auto; scrollbar-width:none;}
+  .site-header nav::-webkit-scrollbar{display:none;}
+}
+
   </style>
 </head>
 <body>
   <!-- дымовой слой -->
   <div id="bg"></div>
 
-<header class="site-header">
+<header class="site-header" role="banner">
   <div class="container site-header__inner">
     <a class="brand" href="{% url 'home' %}">
-      <span class="brand__logo" aria-hidden="true"></span><span>BGM Customs</span>
+      <span class="brand__logo" aria-hidden="true"></span>
+      <span class="brand__word brand__word--white">BAD GUY</span>
+      <span class="brand__word brand__word--red">MOTORS</span>
     </a>
+
+    <div class="belt" aria-hidden="true">CUSTOM BUILDS • INSTALLS • UPGRADES</div>
+
     <nav aria-label="Main">
       <ul>
         <li><a href="{% url 'home' %}">Home</a></li>
         <li><a href="{% url 'client-dashboard' %}">Services</a></li>
-        <li><a href="{% url 'store' %}">Store</a></li>
-        <li><a href="{% url 'merch' %}" aria-current="page">Merch</a></li>
-        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
+
         {% if user.is_authenticated %}
           <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
         {% else %}
-          <li><a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'merch' %}">Login</a></li>
+          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
         {% endif %}
-        <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>Financing</a></li>
+
+        <li><a href="{% url 'store' %}">Products</a></li>
+        <li><a href="{% url 'merch' %}" aria-current="page">Merch <span class="badge">Soon</span></a></li>
+        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
+        <li><a href="{% url 'financing' %}">Financing</a></li>
         <li><a href="{% url 'our-story' %}">About</a></li>
       </ul>
     </nav>
   </div>
 </header>
+
 
 <section class="hero">
   <div class="container hero__inner">
