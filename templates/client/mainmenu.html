@@ -11,6 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Uniform UI font как в примере -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+ <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
 
   <style>
     :root{
@@ -424,6 +426,37 @@
   .site-header nav::-webkit-scrollbar{display:none;}
 }
 
+  </style>
+
+  <style>
+    /* Подключаем кастомные */
+    @font-face{
+      font-family:"Diesel";
+      src: url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
+      font-weight:100 900; font-style:normal; font-display:swap;
+    }
+    @font-face{
+      font-family:"Ford";
+      src: url("{% static 'fonts/Ford.ttf' %}") format("truetype");
+      font-weight:100 900; font-style:normal; font-display:swap;
+    }
+
+    :root{
+      --font-body:"Diesel", Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      --font-head:"Ford",  Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    /* глобально */
+    html, body{
+      font-family:var(--font-body) !important;
+    }
+
+    /* заголовки и акценты */
+    h1,h2,h3,h4,h5,h6,
+    .brand, .brand__word,
+    .btn, .badge, nav a, .modal__title{
+      font-family:var(--font-head) !important;
+    }
   </style>
 </head>
 <body>

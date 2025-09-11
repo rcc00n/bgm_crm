@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bad Guy Motors — Our Story</title>
   <meta name="description" content="Bad Guy Motors is a family-run custom fabrication and diesel performance shop in Medicine Hat, AB. We build bumpers, headache & chase racks, mudflaps, running boards, fender flares, lift kits, body swaps, coatings and more — tough parts for tougher rigs.">
+<link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
 
   <style>
     :root{
@@ -16,7 +18,7 @@
       --container:clamp(320px,92vw,1280px);
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;line-height:1.6}
+    body{background:var(--bg);color:var(--fg);font-family:var(--font-body) !important;}
     a{color:inherit;text-decoration:none}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
 
@@ -155,6 +157,37 @@
 @media (max-width: 900px){
   .site-header nav{ overflow-x:auto; scrollbar-width:none; }
   .site-header nav::-webkit-scrollbar{ display:none; }
+}
+/* === Custom fonts === */
+@font-face{
+  font-family:"Diesel";
+  src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
+  font-weight:100 900; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:"Ford";
+  src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
+  font-weight:100 900; font-style:normal; font-display:swap;
+}
+
+/* переменные семейств */
+:root{
+  --font-body: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-head: "Ford",  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* сглаживание */
+html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
+
+/* заменить Inter на Diesel для основного текста */
+body{ font-family:var(--font-body) !important; }
+
+/* заголовки/бренд/кнопки — Ford */
+h1,h2,h3,h4,h5,h6,
+.title,.section__title,
+.brand,.brand__word,
+nav a,.btn,.badge {
+  font-family:var(--font-head) !important;
 }
 
   </style>
