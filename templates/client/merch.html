@@ -154,6 +154,53 @@
   .belt{ display:none !important; }
 }
 
+/* === TOP BAR: убрать квадрат и исключить overlap ===================== */
+
+/* раскладываем хедер в 3 колонки: бренд | слоган | меню */
+.site-header__inner{
+  display:grid !important;
+  grid-template-columns: auto 1fr auto !important;
+  align-items:center !important;
+  gap:1.2rem !important;
+}
+
+/* слева — только BAD GUY / MOTORS, без квадратного лого */
+.brand__logo{ display:none !important; }                /* убрать квадрат */
+.site-header .brand > span:last-child{ display:none !important; } /* скрыть "BGM Customs" */
+
+.site-header .brand{
+  font-weight:900; text-transform:uppercase; letter-spacing:.06em;
+}
+.site-header .brand::before{
+  content:"BAD GUY"; color:#fff; margin-right:.5rem;
+}
+.site-header .brand::after{
+  content:"MOTORS"; color:#d50000;
+}
+
+/* центральный слоган — занимает строго свою колонку */
+.belt{
+  justify-self:center;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-weight:900; text-transform:uppercase;
+  font-size:.95rem; letter-spacing:.12em;   /* компактнее, чтобы всё влезало */
+  color:rgba(255,255,255,.7);
+}
+
+/* меню компактнее, чтобы оставалось место под слоган */
+.site-header nav{ justify-self:end; }
+.site-header nav ul{ gap:1.25rem !important; flex-wrap:nowrap !important; }
+.site-header nav a{
+  padding:.45rem .65rem !important;
+  background:none !important; border:0 !important;     /* без серой «таблетки» */
+}
+.site-header nav a[aria-current="page"]{ color:#fff !important; }
+
+/* на узких экранах — лучше спрятать слоган */
+@media (max-width:1200px){
+  .belt{ display:none !important; }
+}
+
   </style>
 </head>
 <body>
@@ -168,7 +215,7 @@
       <span class="brand__word brand__word--red">MOTORS</span>
     </a>
 
-    <div class="belt" aria-hidden="true">CUSTOM BUILDS • INSTALLS • UPGRADES</div>
+    <div class="belt">CUSTOM BUILDS • INSTALLS • UPGRADES</div>
 
     <nav aria-label="Main">
       <ul>
