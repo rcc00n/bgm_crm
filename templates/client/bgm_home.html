@@ -352,8 +352,9 @@ nav a, .btn, .badge, .price strong {
     </div>
 
     <div class="frame frame--media">
-  <img src="{% static 'img/hero-preview.png' %}" alt="BGM Customs — project preview" loading="lazy" decoding="async">
-
+  <img src="{{ hero_media.src }}"
+       alt="{{ hero_media.alt }}"
+       loading="lazy" decoding="async">
 </div>
 
   </div>
