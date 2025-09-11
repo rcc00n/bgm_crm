@@ -149,6 +149,45 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   font-family: var(--font-body) !important;
 }
   </style>
+  <style id="bgm-fonts-override">
+  /* REG */
+  @font-face{
+    font-family:"Diesel";
+    src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
+    font-weight:100 900; font-style:normal; font-display:swap;
+  }
+  @font-face{
+    font-family:"Ford";
+    src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
+    font-weight:100 900; font-style:normal; font-display:swap;
+  }
+
+  :root{
+    --font-body:"Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-head:"Ford",  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+
+  /* ГЛАВНОЕ: переопределяем то, что ставит Tailwind */
+  html, body { font-family: var(--font-body) !important; }
+
+  /* Заголовки/бренд/кнопки — Ford */
+  h1,h2,h3,h4,h5,h6,
+  .brand, .brand .name, .brand .mark,
+  .modal__title,
+  .sidebar .sidebar-link,
+  .btn, .badge,
+  .table th,
+  .font-bold, .font-black, .font-semibold {
+    font-family: var(--font-head) !important;
+  }
+
+  /* Форма/обычный текст — Diesel */
+  input, select, textarea, button,
+  .muted, .muted-2, .kicker, .panel, .chip {
+    font-family: var(--font-body) !important;
+  }
+</style>
+
 </head>
 <body class="h-full">
 
