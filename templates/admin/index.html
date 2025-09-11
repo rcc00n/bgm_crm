@@ -8,6 +8,166 @@
     <script defer src="{% static 'admin/js/admin_dashboard.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
+{% block extrahead %}
+  {{ block.super }}
+  <script defer src="{% static 'admin/js/admin_dashboard.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* ===== BGM palette (локально, только для этого шаблона) ===== */
+    :root{
+      --bg:#0a0a0a; --ink:#eaeaea; --muted:#bdbdbd;
+      --red:#d50000; --red-dark:#b60000;
+      --card-bg:#fff; --card-border:rgba(0,0,0,.06);
+      --field-bg:rgba(0,0,0,.04);
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+      --radius-lg:16px; --radius-sm:10px;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --card-bg:rgba(18,18,18,.75);
+        --card-border:rgba(255,255,255,.08);
+        --shadow:0 10px 30px rgba(0,0,0,.45);
+      }
+    }
+
+    /* ======================= SIDEBAR (только внешний вид) ======================= */
+    /* Контейнер и заголовок бренда */
+    .main-sidebar{
+      background:#111; /* плотнее тёмный */
+    }
+    .brand-link{
+      background:#0e0e0e !important;
+      border-bottom:1px solid rgba(255,255,255,.06) !important;
+    }
+    .brand-link .brand-text{ font-weight:800; letter-spacing:.3px; }
+
+    /* Пункты меню */
+    .nav-sidebar .nav-item > .nav-link{
+      border-radius:10px;
+      margin:4px 8px;
+      padding:.55rem .75rem;
+      color:#cfcfcf;
+      transition:background .12s ease, color .12s ease, transform .08s ease;
+    }
+    .nav-sidebar .nav-item > .nav-link:hover{
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      transform: translateX(1px);
+    }
+    /* Активный пункт */
+    .nav-sidebar .nav-item > .nav-link.active{
+      background:linear-gradient(90deg, rgba(213,0,0,.22), rgba(213,0,0,.06));
+      color:#fff;
+      font-weight:700;
+      border:1px solid rgba(213,0,0,.35);
+    }
+    /* Иконки в меню */
+    .nav-sidebar .nav-link .nav-icon{
+      opacity:.9;
+      margin-right:.55rem;
+    }
+    /* Маленькие «подписи» разделов */
+    .sidebar .nav-header{
+      color:#8e8e8e;
+      letter-spacing:.6px;
+      font-weight:700;
+      margin:10px 12px 6px;
+    }
+
+    /* ======================= DASHBOARD (только контейнеры дашборда) ======================= */
+    .content{ padding-top:18px; }
+    .dashboard-container{
+      max-width:1280px; margin:0 auto; padding:8px 10px 24px;
+    }
+    .dashboard-grid{
+      display:grid; grid-template-columns:repeat(12,1fr); gap:16px;
+    }
+
+    .dashboard-card{
+      grid-column:span 12;
+      background:var(--card-bg);
+      border:1px solid var(--card-border);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      padding:18px 18px 14px; overflow:hidden;
+    }
+    .dashboard-card h3{
+      font-size:18px; font-weight:800; letter-spacing:.2px; margin:2px 0 10px;
+    }
+    .dashboard-card p{ color:#555; margin:2px 0 8px; }
+    @media (prefers-color-scheme: dark){ .dashboard-card p{ color:var(--muted); } }
+
+    /* Раскладка на десктопе */
+    @media (min-width:1024px){
+      .dashboard-card:nth-of-type(1){ grid-column:span 6; } /* Sales */
+      .dashboard-card:nth-of-type(2){ grid-column:span 6; } /* Upcoming */
+      .dashboard-card:nth-of-type(3){ grid-column:span 7; } /* Activity (если виден) */
+      .dashboard-card:nth-of-type(4){ grid-column:span 5; } /* Today */
+      .dashboard-card:nth-of-type(5){ grid-column:span 6; } /* Top services */
+      .dashboard-card:nth-of-type(6){ grid-column:span 6; } /* Top team */
+    }
+
+    /* Canvas: фикс-высота и аккуратные отступы */
+    .dashboard-card canvas{
+      width:100% !important; height:240px !important; display:block; margin-top:8px;
+      background:linear-gradient(180deg, rgba(0,0,0,0.02), transparent); border-radius:10px;
+    }
+
+    /* ===== Activity list ===== */
+    .appt-list{
+      display:grid; grid-template-columns:1fr; gap:10px;
+      max-height:420px; overflow:auto; padding-right:6px;
+    }
+    .appt-item{
+      display:grid; grid-template-columns:64px 1fr auto; align-items:center; gap:12px;
+      padding:12px 14px; background:var(--field-bg);
+      border:1px solid var(--card-border); border-radius:var(--radius-sm);
+      cursor:pointer; transition:transform .08s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .appt-item:hover{ transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,0,0,.08); border-color:rgba(0,0,0,.15); }
+
+    .appt-date{
+      display:grid; place-items:center; width:64px; height:56px;
+      border-radius:12px; background:#f3f3f3; border:1px solid var(--card-border);
+    }
+    .appt-day{ font-size:22px; font-weight:800; line-height:1; }
+    .appt-month{ font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:#666; }
+
+    .appt-details{ display:grid; gap:4px; }
+    .appt-top{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:13px; color:#666; }
+    .appt-status{ padding:2px 8px; border-radius:999px; font-weight:700; font-size:12px; border:1px solid transparent; letter-spacing:.3px; }
+    .appt-status.confirmed{ background:rgba(23,212,91,.12); color:#138c46; border-color:rgba(23,212,91,.35); }
+    .appt-status.cancelled{ background:rgba(213,0,0,.12); color:#9c0000; border-color:rgba(213,0,0,.35); }
+    .appt-service{ font-weight:700; font-size:14px; }
+    .appt-master{ font-size:13px; color:#666; }
+    .appt-price{ font-weight:800; letter-spacing:.2px; }
+
+    /* ===== Today timeline ===== */
+    .appt-timeline{ position:relative; margin-top:6px; }
+    .appt-timeline::before{ content:""; position:absolute; left:10px; top:6px; bottom:6px; width:2px; background:rgba(0,0,0,.1); }
+    .appt-timeline-item{ position:relative; padding-left:28px; margin:12px 0; }
+    .appt-timeline-marker{
+      position:absolute; left:2px; top:4px; width:16px; height:16px; border-radius:50%;
+      background:#fff; border:3px solid var(--red); box-shadow:0 0 0 3px rgba(213,0,0,.12);
+    }
+    .appt-time-tag{ display:inline-block; font-weight:800; font-size:12px; padding:2px 8px; border-radius:999px; background:rgba(0,0,0,.05); }
+    .appt-line-main{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:6px; }
+    .appt-service-badge{
+      font-size:12px; font-weight:700; padding:2px 8px; border-radius:6px;
+      background:rgba(213,0,0,.08); color:var(--red-dark); border:1px solid rgba(213,0,0,.22);
+    }
+
+    /* ===== Tables (Top services / Top team) ===== */
+    .dashboard-card table{ width:100%; border-collapse:collapse; font-size:14px; }
+    .dashboard-card thead th{
+      text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:#777;
+      padding:10px 8px; border-bottom:1px solid var(--card-border);
+    }
+    .dashboard-card tbody td{ padding:10px 8px; border-bottom:1px dashed var(--card-border); }
+    .dashboard-card tbody tr:hover td{ background:rgba(0,0,0,.03); }
+  </style>
+{% endblock %}
 
 {% block content %}
 
