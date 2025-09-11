@@ -347,6 +347,34 @@
 
 /* На узких — прячем слоган, чтобы всё было в одну строку */
 @media (max-width:1100px){ .brand__tagline{ display:none !important; } }
+/* вернуть текст BAD GUY / MOTORS и слоган */
+.brand::after{ content:none !important; }                /* убираем псевдо-текст "BGM Customs" */
+.brand__logo .brand__word{ display:inline !important; }  /* показываем слова снова */
+.brand__tagline{ display:inline !important; }            /* на всякий случай */
+
+/* оформление как на главной */
+.brand{
+  display:flex !important; align-items:baseline !important; gap:.9rem !important;
+  font-weight:900 !important; letter-spacing:.06em !important; min-width:max-content;
+  text-transform:uppercase;
+}
+.brand__word--white{ color:#fff !important; }
+.brand__word--red  { color:#d50000 !important; }
+.brand__tagline{
+  margin-left:1.1rem; white-space:nowrap;
+  font-size:.82rem; font-weight:800; letter-spacing:.14em;
+  color:rgba(255,255,255,.72); text-transform:uppercase;
+}
+
+/* бренд слева, меню вправо — одна линия */
+.site-header__inner{
+  display:grid !important; grid-template-columns:auto 1fr !important;
+  align-items:center !important; gap:1.2rem !important;
+}
+.site-header nav{ margin-left:auto !important; }
+
+/* на узких экранах прячем слоган, чтобы меню не ломалось */
+@media (max-width:1100px){ .brand__tagline{ display:none !important; } }
 
   </style>
 </head>
@@ -356,12 +384,13 @@
 <header class="site-header" role="banner">
   <div class="container site-header__inner">
     <a class="brand" href="{% url 'home' %}">
-      <span class="brand__logo">
-        <span class="brand__word brand__word--white">BAD GUY</span>
-        <span class="brand__word brand__word--red">MOTORS</span>
-      </span>
-      <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
-    </a>
+  <span class="brand__logo">
+    <span class="brand__word brand__word--white">BAD GUY</span>
+    <span class="brand__word brand__word--red">MOTORS</span>
+  </span>
+  <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
+</a>
+
 
     <nav aria-label="Main navigation">
       <ul>
