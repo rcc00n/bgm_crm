@@ -170,6 +170,55 @@
   font-weight: 800;
 }
 
+/* Раскладка: лого слева, нав полосу справа */
+.site-header__inner{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  align-items:center;
+}
+
+/* Ссылки в навигации = как теглайн */
+.site-header nav ul{
+  display:flex; align-items:center; flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.site-header nav li{display:flex; align-items:center}
+
+/* разделитель • между ссылками */
+.site-header nav li + li::before{
+  content:"•";
+  margin:0 .75rem;
+  color:rgba(255,255,255,.45);
+  font-weight:900;
+  letter-spacing:.12em;
+}
+
+/* стиль самих ссылок */
+.site-header nav a{
+  background:none !important;
+  border:0 !important;
+  padding:.2rem 0 !important;
+  text-transform:uppercase;
+  font-weight:900;
+  letter-spacing:.12em;
+  font-size:.85rem;
+  color:rgba(255,255,255,.72);
+  border-radius:0;
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{
+  color:#fff;
+}
+
+/* глушим «кнопочный» вид у Login */
+.site-header nav a.btn--ghost{box-shadow:none}
+
+/* адаптив: на узких убираем разделители и уменьшаем трекинг */
+@media (max-width: 980px){
+  .site-header nav li + li::before{content:""; margin:0}
+  .site-header nav a{letter-spacing:.08em}
+}
+
 /* Подправим паддинги в навигации, чтобы всё легло в линию */
 nav a{ padding:.5rem .7rem; }
 
@@ -229,7 +278,7 @@ nav a{ padding:.5rem .7rem; }
       <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
         <div class="stat"><b>Alberta-made</b><br><span class="muted">built in Medicine Hat</span></div>
         <div class="stat"><b>Custom only</b><br><span class="muted">no cookie‑cutter kits</span></div>
-        <div class="stat"><b>24/7</b><br><span class="muted">Book online fas quotes</span></div>
+        <div class="stat"><b>24/7</b><br><span class="muted">Book online fast quotes</span></div>
       </div>
     </div>
 
