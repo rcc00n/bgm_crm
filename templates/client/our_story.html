@@ -189,6 +189,15 @@ h1,h2,h3,h4,h5,h6,
 nav a,.btn,.badge {
   font-family:var(--font-head) !important;
 }
+.hero__inner{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:1.2rem}
+.hero__media{justify-self:start;max-width:min(52vw,720px)}
+.hero__media img{width:100%;height:auto;aspect-ratio:16/9;max-height:clamp(220px,42vh,420px);object-fit:cover;border-radius:1rem;display:block}
+
+/* мобилка */
+@media (max-width:900px){
+  .hero__inner{grid-template-columns:1fr}
+  .hero__media{max-width:100%}
+}
 
   </style>
 </head>
@@ -226,21 +235,24 @@ nav a,.btn,.badge {
   </div>
 </header>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="container hero__inner">
-      <div>
-        <h1 class="title">From bad guys to builders.</h1>
-        <p class="lead">We took the long road — and turned it into horsepower. Bad Guy Motors is a family-run custom fabrication and diesel performance shop in Medicine Hat, AB. We build tough parts, tougher rigs, and a legacy for our kids — from bumpers and racks to fender flares and full builds.</p>
-        <div class="kickers">
-          <span class="chip">Family owned</span>
-          <span class="chip">Alberta-made</span>
-          <span class="chip">Custom only</span>
-        </div>
-      <div class="frame frame--media">
-  <img src="{% static 'img/hero-about.jpg' %}" alt="About hero" loading="lazy" decoding="async">
-</div>
-  </section>
+ <section class="hero">
+  <div class="container hero__inner">
+    <div class="hero__copy">
+      <h1 class="title">From bad guys to builders.</h1>
+      <p class="lead">We took the long road — and turned it into horsepower. Bad Guy Motors is a family-run custom fabrication and diesel performance shop in Medicine Hat, AB. We build tough parts, tougher rigs, and a legacy for our kids — from bumpers and racks to fender flares and full builds.</p>
+      <div class="kickers">
+        <span class="chip">Family owned</span>
+        <span class="chip">Alberta-made</span>
+        <span class="chip">Custom only</span>
+      </div>
+    </div>
+
+    <div class="hero__media frame frame--media">
+      <img src="{% static 'img/hero-about.jpg' %}" alt="About hero" loading="lazy" decoding="async">
+    </div>
+  </div>
+</section>
+
 
   <main>
     <!-- Row 1 -->
