@@ -13,10 +13,14 @@
         <a class="btn btn--primary" href="{% url 'client-dashboard' %}">Book install</a>
         <a class="btn btn--ghost" href="{% url 'store-cart' %}">Open cart</a>
       </div>
-    <div class="frame frame--media">
-  <img src="{% static 'img/hero-products.jpg' %}" alt="Products hero" loading="lazy" decoding="async">
-</div>
+    </div>
+
+    <div class="hero__media frame frame--media">
+      <img src="{% static 'img/hero-products.jpg' %}" alt="Products hero" loading="lazy" decoding="async">
+    </div>
+  </div>
 </section>
+
 
 <section class="section">
   <div class="container">
@@ -253,6 +257,36 @@
 .site-header, .hero, .section, footer{position:relative; z-index:1;}
 
 /* убираем прежний фон у hero */
+.hero--store{ background:transparent !important; }
+.hero__inner{
+  display:grid;
+  grid-template-columns: 1.1fr .9fr;
+  align-items:center;
+  gap:1.2rem;
+}
+
+.hero__media{
+  justify-self:start;
+  max-width:min(52vw, 720px);
+}
+
+.hero__media img{
+  width:100%;
+  height:auto;
+  aspect-ratio:16/9;
+  max-height:clamp(220px, 42vh, 420px);
+  object-fit:cover;
+  border-radius:1rem;
+  display:block;
+}
+
+/* мобилка */
+@media (max-width: 900px){
+  .hero__inner{ grid-template-columns:1fr; }
+  .hero__media{ order:2; max-width:100%; }
+}
+
+/* дым оставляем позади */
 .hero--store{ background:transparent !important; }
 
 </style>
