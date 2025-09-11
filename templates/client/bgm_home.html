@@ -212,6 +212,50 @@
 /* узко — скрываем слоган, чтобы меню оставалось в один ряд */
 @media (max-width:1100px){ .brand__tagline{ display:none; } }
 
+/* ==== CLEAN HEADER OVERRIDE ========================================= */
+.site-header{background:#000 !important; backdrop-filter:none !important; border-bottom:1px solid var(--line);}
+
+.site-header .site-header__inner{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:1.25rem !important;
+  padding:.7rem 0 !important;
+}
+
+/* Бренд слева */
+.site-header .brand{display:flex !important; align-items:baseline !important; gap:.9rem !important; min-width:max-content;}
+.site-header .brand__logo{
+  all:unset; display:inline-flex; gap:.5rem; line-height:1; font-weight:900; letter-spacing:.06em; font-size:1rem;
+}
+.site-header .brand__word--white{color:#fff;}
+.site-header .brand__word--red{color:#d50000;}
+.site-header .brand__tagline{
+  margin-left:1.1rem; white-space:nowrap; font-size:.82rem; font-weight:800;
+  letter-spacing:.14em; color:rgba(255,255,255,.72);
+}
+
+/* Меню вправо, в одну строку */
+.site-header nav{margin-left:auto !important;}
+.site-header nav ul{
+  display:flex !important; align-items:center !important; flex-wrap:nowrap !important;
+  justify-content:flex-end !important; gap:1.4rem !important;
+  margin:0 !important; padding:0 !important; list-style:none !important;
+}
+.site-header nav li+li::before{content:none !important;}
+.site-header nav a{
+  background:none !important; border:0 !important; border-radius:0 !important; padding:0 !important; line-height:1;
+  text-transform:uppercase; font-weight:800; letter-spacing:.08em; font-size:.82rem;
+  color:rgba(255,255,255,.78);
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{color:#fff !important;}
+/* убираем «кнопочность» у Login */
+.site-header nav .btn, .site-header nav .btn--ghost{padding:0 !important; border:none !important; background:none !important;}
+
+@media (max-width:1200px){
+  .site-header .brand__tagline{display:none !important;}
+}
 
   </style>
 </head>
