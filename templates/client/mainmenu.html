@@ -457,6 +457,71 @@
     .btn, .badge, nav a, .modal__title{
       font-family:var(--font-head) !important;
     }
+    /* === Booking page — readability & topbar overrides ==================== */
+
+/* Топбар: всё (кроме логотипа) — на простом шрифте */
+.site-header nav a,
+.site-header nav .btn,
+.site-header nav .btn--ghost{
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  font-size: .95rem !important;
+  letter-spacing: .02em !important;
+  line-height: 1.15 !important;
+  text-transform: none !important;
+  color: rgba(255,255,255,.92) !important;
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{ color:#fff !important; }
+
+/* Заголовки секций (Upgrades & Services и пр.) */
+h2, .section__title{
+  font-family: var(--font-body) !important;
+  font-weight: 900 !important;
+  font-size: clamp(1.85rem, 2.6vw, 2.2rem) !important;
+  letter-spacing: .005em !important;
+  line-height: 1.2 !important;
+  text-transform: none !important;
+  color: #fff !important;
+}
+
+/* Подзаголовки категоний/блоков (некоторые заданы инлайн — перебиваем) */
+main h3{
+  font-family: var(--font-body) !important;
+  font-weight: 900 !important;
+  font-size: 1.15rem !important;
+  letter-spacing: .01em !important;
+  text-transform: none !important;
+  color: #fff !important;
+}
+
+/* Тексты описаний под заголовками */
+.section__desc, .muted{
+  font-family: var(--font-body) !important;
+  font-weight: 400 !important;
+  font-size: clamp(1rem, 1.3vw, 1.06rem) !important;
+  color: rgba(255,255,255,.86) !important;
+}
+
+/* Карточки — заголовок сервиса читаемее */
+.services-grid h3,
+.service-card h3{
+  font-family: var(--font-body) !important;
+  font-weight: 900 !important;
+  font-size: 1.08rem !important;
+  letter-spacing: .01em !important;
+}
+
+/* Футер ссылки (если появятся) в том же стиле */
+.footer__nav a{
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  letter-spacing: .02em !important;
+  text-transform: none !important;
+  color: rgba(255,255,255,.9) !important;
+}
+.footer__nav a:hover{ color:#fff !important; }
+
   </style>
 </head>
 <body>
