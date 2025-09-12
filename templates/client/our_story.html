@@ -198,6 +198,76 @@ nav a,.btn,.badge {
   .hero__inner{grid-template-columns:1fr}
   .hero__media{max-width:100%}
 }
+/* ===== CLEAN HEADER (brand | belt | nav) — unified ===== */
+
+/* контейнер на всю ширину с аккуратными отступами */
+.site-header .container{
+  width:100% !important;
+  max-width:none !important;
+  padding-inline:clamp(12px, 2vw, 28px) !important;
+}
+
+/* трёхколоночная сетка: бренд | слоган (сжимается) | меню */
+.site-header__inner{
+  display:grid !important;
+  grid-template-columns:max-content minmax(0,1fr) max-content !important;
+  align-items:center !important;
+  column-gap:clamp(14px, 2vw, 36px) !important;
+  padding-block:.8rem !important;
+}
+
+/* бренд — текстовый логотип, без квадратной «таблетки» */
+.brand__logo{ display:none !important; }
+.brand{
+  display:flex !important;
+  align-items:baseline !important;
+  gap:.55rem !important;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.brand__word{ font-size:clamp(.9rem, 1vw, 1rem); line-height:1; }
+.brand__word--white{ color:#fff; }
+.brand__word--red{ color:#d50000; }
+
+/* центральная лента (слоган) — обрезается, если не влазит */
+.belt{
+  justify-self:center;
+  min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-weight:900; letter-spacing:.12em; text-transform:uppercase;
+  color:rgba(255,255,255,.72);
+  font-size:clamp(.78rem, .95vw, .95rem);
+}
+
+/* меню — без «пилюль», плотные интервалы, одна строка */
+.site-header nav{ justify-self:end; min-width:0; }
+.site-header nav ul{
+  display:flex; align-items:center; list-style:none;
+  gap:clamp(8px, 1vw, 18px) !important; margin:0; padding:0; flex-wrap:nowrap;
+}
+.site-header nav a{
+  display:inline-flex; align-items:center;
+  padding:.38rem .58rem !important; border-radius:.55rem;
+  background:none !important; border:0 !important;
+  text-transform:uppercase; font-weight:900; letter-spacing:.06em;
+  color:rgba(255,255,255,.82); line-height:1;
+  font-size:clamp(.72rem, .9vw, .92rem) !important;
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{ color:#fff !important; }
+
+/* бейдж Soon — компактный */
+.site-header .badge{
+  padding:.08rem .42rem !important; font-size:.68rem !important;
+  line-height:1; border-radius:999px; background:#d50000; color:#fff;
+}
+
+/* адаптация: сначала прячем слоган, затем включаем мягкий скролл меню */
+@media (max-width:1150px){ .belt{ display:none !important; } }
+@media (max-width:900px){
+  .site-header nav{ overflow-x:auto; scrollbar-width:none; }
+  .site-header nav::-webkit-scrollbar{ display:none; }
+}
 
   </style>
 </head>
