@@ -296,6 +296,51 @@ nav a, .btn, .badge, .price strong {
 /* (опционально) небольшая плотность для заголовков */
 .hero__title, .section__title { letter-spacing: .01em; }
 
+/* === Readability tweaks (topbar + section titles) ===================== */
+
+/* Topbar: всё кроме логотипа — проще и читабельней */
+.site-header nav a,
+.site-header nav .btn,
+.site-header nav .btn--ghost {
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  font-size: .9rem !important;
+  letter-spacing: .02em !important;
+  line-height: 1.15 !important;
+  text-transform: none !important;
+  color: rgba(255,255,255,.92) !important;
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{
+  color:#fff !important;
+  text-decoration: none !important;
+}
+
+/* Читабельные заголовки секций (Featured services, Products, How we work, и т.д.) */
+.section__title{
+  font-family: var(--font-body) !important;
+  font-weight: 900 !important;
+  font-size: clamp(1.9rem, 2.8vw, 2.25rem) !important;
+  letter-spacing: .005em !important;
+  line-height: 1.2 !important;
+}
+.section__desc{
+  font-size: clamp(1rem, 1.4vw, 1.06rem) !important;
+  color: rgba(255,255,255,.86) !important;
+}
+
+/* Подзаголовки-кэтчеры и мелкие надписи — чуть контрастней */
+.kicker{ color: rgba(255,255,255,.78) !important; }
+
+/* В футере — тот же читаемый стиль ссылок */
+.footer__nav a{
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  letter-spacing: .02em !important;
+  text-transform: none !important;
+  color: rgba(255,255,255,.9) !important;
+}
+.footer__nav a:hover{ color:#fff !important; }
 
   </style>
 </head>
