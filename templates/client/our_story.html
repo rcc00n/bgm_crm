@@ -343,6 +343,34 @@ body header.site-header{
   body header.site-header nav::-webkit-scrollbar{ display:none; }
 }
 </style>
+<style id="about-topbar-force">
+/* Последний удар по глобальным стилям */
+html body header.site-header .site-header__inner{
+  display:grid !important;
+  grid-template-columns:max-content minmax(0,1fr) max-content !important;
+}
+html body header.site-header .brand__logo{display:none !important;}
+html body header.site-header .belt{
+  justify-self:center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-weight:900;text-transform:uppercase;letter-spacing:.12em;
+}
+html body header.site-header nav{justify-self:end;min-width:0;}
+html body header.site-header nav ul{
+  display:flex !important;gap:clamp(8px,1vw,18px) !important;flex-wrap:nowrap !important;margin:0 !important;padding:0 !important;
+}
+html body header.site-header nav a{
+  background:none !important;border:0 !important;
+  padding:.38rem .58rem !important;line-height:1 !important;
+  text-transform:uppercase !important;font-weight:900 !important;letter-spacing:.06em !important;
+  font-family: var(--font-head) !important; /* принудительно тот же шрифт, что на остальных страницах */
+  font-size:clamp(.72rem,.9vw,.92rem) !important;color:rgba(255,255,255,.82) !important;
+}
+html body header.site-header nav a:hover,
+html body header.site-header nav a[aria-current="page"]{color:#fff !important;}
+html body header.site-header .badge{
+  padding:.08rem .42rem !important;font-size:.68rem !important;line-height:1 !important;background:#d50000 !important;color:#fff !important;
+}
+</style>
 
 </head>
 <body>
