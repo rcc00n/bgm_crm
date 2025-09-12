@@ -263,6 +263,70 @@ button:focus-visible{
   border-radius: .4rem;
 }
 
+/* === Store page: keep big text bold, rest clean ==================== */
+
+/* Крупные хедеры и hero — оставляем фирменный шрифт (Ford) */
+.title,
+h1{
+  font-family: var(--font-head) !important;
+  font-weight: 900 !important;
+  font-size: clamp(2rem, 4.6vw, 3.4rem) !important;
+  line-height: 1.15 !important;
+  letter-spacing: .01em !important;
+  text-transform: uppercase !important;
+  color:#fff !important;
+  text-shadow: 0 0 18px rgba(213,0,0,.25);
+}
+
+/* Все остальные заголовки, навигация и тексты — на body font */
+h2, h3, h4, h5, h6,
+.section__title,
+.section__desc,
+.lead,
+.card h3,
+.price,
+nav a,
+.btn,
+.badge,
+.field,
+input, select{
+  font-family: var(--font-body) !important;
+}
+
+/* Улучшаем контраст секций */
+.section__title{
+  font-weight: 900 !important;
+  font-size: 1.6rem !important;
+  line-height: 1.2 !important;
+  text-transform: none !important;
+  letter-spacing: .005em !important;
+  color:#fff !important;
+}
+.section__desc, .lead{
+  font-size: 1rem !important;
+  color: rgba(255,255,255,.85) !important;
+}
+
+/* Карточки */
+.card h3{
+  font-weight: 800 !important;
+  font-size: 1.08rem !important;
+  line-height: 1.25 !important;
+}
+.price{ font-weight: 800 !important; }
+.old{ color: rgba(255,255,255,.45) !important; }
+
+/* Навигация */
+.site-header nav a{
+  font-weight: 700 !important;
+  font-size: .92rem !important;
+  letter-spacing: .02em !important;
+  text-transform: none !important;
+  color: rgba(255,255,255,.9) !important;
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{ color:#fff !important; }
+
 /* Мелкие полировки */
 nav a{ white-space: nowrap !important; }
 @media (max-width: 1150px){ .belt{ display:none !important; } }
