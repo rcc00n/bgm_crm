@@ -171,6 +171,101 @@ h1,h2,h3,h4,h5,h6,
 nav a,.btn,.badge {
   font-family:var(--font-head) !important;
 }
+/* === Store: readability + polish ===================================== */
+/* Topbar: всё, КРОМЕ логотипа (.brand__word*) — проще и читабельней */
+.site-header nav a,
+.site-header nav .btn,
+.site-header nav .btn--ghost{
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  font-size: .95rem !important;
+  letter-spacing: .02em !important;
+  text-transform: none !important;
+  line-height: 1.15 !important;
+  color: rgba(255,255,255,.92) !important;
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"]{ color:#fff !important; }
+.site-header nav .btn--ghost{
+  border-color: var(--line) !important;
+  padding:.55rem .8rem !important;
+}
+.site-header .badge{
+  font-family: var(--font-body) !important;
+  font-weight: 800 !important;
+  letter-spacing: .04em !important;
+}
+
+/* Заголовки (Hero .title, секции) — без декоративного шрифта */
+.title,
+.section__title{
+  font-family: var(--font-body) !important;
+  font-weight: 900 !important;
+  font-size: clamp(1.9rem, 2.8vw, 2.3rem) !important;
+  letter-spacing: .005em !important;
+  line-height: 1.2 !important;
+  text-transform: none !important;
+  color:#fff !important;
+}
+.section__desc,
+.lead{
+  font-family: var(--font-body) !important;
+  font-weight: 400 !important;
+  font-size: clamp(1rem, 1.3vw, 1.06rem) !important;
+  color: rgba(255,255,255,.86) !important;
+}
+
+/* Карточки товара — чёткие заголовки/цены */
+.card h3{
+  font-family: var(--font-body) !important;
+  font-weight: 900 !important;
+  font-size: 1.08rem !important;
+  letter-spacing: .01em !important;
+  line-height: 1.25 !important;
+}
+.price{
+  font-family: var(--font-body) !important;
+  font-weight: 800 !important;
+}
+.old{ color: rgba(255,255,255,.45) !important; }
+
+/* Поля/фильтры — единая типографика */
+.field,
+input[type="search"],
+select{
+  font-family: var(--font-body) !important;
+  font-size: .98rem !important;
+}
+
+/* Кнопки в магазине — компактнее и чище */
+.btn{
+  font-family: var(--font-body) !important;
+  font-weight: 800 !important;
+  letter-spacing: .02em !important;
+  text-transform: none !important;
+}
+
+/* Ховеры карточек — деликатные, без сдвигов контента */
+.card{
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.card:hover{
+  transform: translateY(-3px);
+  border-color: rgba(213,0,0,.28);
+  box-shadow: 0 14px 36px rgba(0,0,0,.5), 0 0 24px rgba(213,0,0,.18);
+}
+
+/* Фокус для доступности */
+a:focus-visible,
+button:focus-visible{
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+  border-radius: .4rem;
+}
+
+/* Мелкие полировки */
+nav a{ white-space: nowrap !important; }
+@media (max-width: 1150px){ .belt{ display:none !important; } }
 
   </style>
   {% block extra_head %}{% endblock %}
