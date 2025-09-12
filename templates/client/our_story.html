@@ -270,6 +270,80 @@ nav a,.btn,.badge {
 }
 
   </style>
+
+  <style id="bgm-topbar-fix">
+/* === BGM | clean one-line topbar override ================================= */
+
+/* контейнер во всю ширину */
+body header.site-header .container{
+  width:100% !important;
+  max-width:none !important;
+  padding-inline:clamp(12px,2vw,28px) !important;
+}
+
+/* сетка: бренд | слоган | меню */
+body header.site-header .site-header__inner{
+  display:grid !important;
+  grid-template-columns:max-content minmax(0,1fr) max-content !important;
+  align-items:center !important;
+  column-gap:clamp(14px,2vw,36px) !important;
+  padding-block:.8rem !important;
+}
+
+/* бренд — только текст, без квадратного логотипа */
+body header.site-header .brand__logo{ display:none !important; }
+body header.site-header .brand{
+  display:flex !important; align-items:baseline !important; gap:.55rem !important;
+  font-weight:900; text-transform:uppercase; letter-spacing:.06em;
+}
+body header.site-header .brand__word{ font-size:clamp(.9rem,1vw,1rem); line-height:1; }
+body header.site-header .brand__word--white{ color:#fff; }
+body header.site-header .brand__word--red{ color:#d50000; }
+
+/* слоган по центру, обрезается если не влазит */
+body header.site-header .belt{
+  justify-self:center; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-weight:900; letter-spacing:.12em; text-transform:uppercase;
+  color:rgba(255,255,255,.72); font-size:clamp(.78rem,.95vw,.95rem);
+}
+
+/* меню — одна строка, без «пилюль» */
+body header.site-header nav{ justify-self:end; min-width:0; }
+body header.site-header nav ul{
+  display:flex !important; align-items:center; list-style:none;
+  gap:clamp(8px,1vw,18px) !important; margin:0 !important; padding:0 !important; flex-wrap:nowrap !important;
+}
+body header.site-header nav a{
+  display:inline-flex !important; align-items:center !important; line-height:1 !important;
+  padding:.38rem .58rem !important; border:0 !important; border-radius:.55rem !important;
+  background:none !important;
+  text-transform:uppercase !important; font-weight:900 !important; letter-spacing:.06em !important;
+  color:rgba(255,255,255,.82) !important; font-size:clamp(.72rem,.9vw,.92rem) !important;
+}
+body header.site-header nav a:hover,
+body header.site-header nav a[aria-current="page"]{ color:#fff !important; }
+
+/* компактный бейдж */
+body header.site-header .badge{
+  padding:.08rem .42rem !important; font-size:.68rem !important; line-height:1 !important;
+  background:#d50000 !important; color:#fff !important; border-radius:999px !important;
+}
+
+/* stickiness/фон/blur — на всякий случай */
+body header.site-header{
+  position:sticky !important; top:0 !important; z-index:1000 !important;
+  background:rgba(0,0,0,.65) !important; backdrop-filter:saturate(1.2) blur(8px) !important;
+  border-bottom:1px solid rgba(255,255,255,.12) !important;
+}
+
+/* адаптация */
+@media (max-width:1150px){ body header.site-header .belt{ display:none !important; } }
+@media (max-width:900px){
+  body header.site-header nav{ overflow-x:auto; scrollbar-width:none; }
+  body header.site-header nav::-webkit-scrollbar{ display:none; }
+}
+</style>
+
 </head>
 <body>
   <!-- smoke layer -->
