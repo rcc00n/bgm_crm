@@ -523,6 +523,54 @@ main h3{
 .footer__nav a:hover{ color:#fff !important; }
 
   </style>
+  <style id="diesel-overrides">
+  /* 1) Топбар полностью на Diesel */
+  .site-header .brand,
+  .site-header .brand__word,
+  .site-header nav a,
+  .site-header .badge{
+    font-family: var(--font-body) !important;  /* Diesel */
+    font-style: normal !important;
+  }
+  /* меню — не капсом, читаемый кегль */
+  .site-header nav a{
+    text-transform: none !important;
+    letter-spacing: .02em !important;
+    font-weight: 700 !important;
+    font-size: .95rem !important;
+  }
+
+  /* 2) Заголовок hero — не капсом и тоже Diesel */
+  .hero h1{
+    font-family: var(--font-body) !important;  /* Diesel */
+    text-transform: none !important;
+    letter-spacing: .01em !important;
+  }
+
+  /* 3) Все мелкие тексты/CTA — Diesel */
+  .btn,
+  .btn--primary,
+  .btn--ghost,
+  .badge,
+  .muted,
+  .service-meta,
+  .service-card h3,
+  .slot-chip,
+  .outlook__toolbar button,
+  .master-name,
+  .filters input,
+  .filters select,
+  .field label,
+  .field input,
+  .field select{
+    font-family: var(--font-body) !important;  /* Diesel */
+    text-transform: none !important;
+    letter-spacing: .02em;
+  }
+  /* кнопкам точно убираем капс */
+  .btn{ text-transform: none !important; }
+</style>
+
 </head>
 <body>
 <div id="bg"></div>
