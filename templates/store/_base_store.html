@@ -366,12 +366,20 @@ nav a{ white-space: nowrap !important; }
 
 {% block body %}{% endblock %}
 
-<footer class="site-footer">
+  <footer class="site-footer" id="contact">
   <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:.75rem">
-      <span class="brand__logo" aria-hidden="true"></span><b>BGM Customs</b>
+      <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
     </div>
-    <div class="section__desc">© {{ now|date:"Y" }} BGM. All rights reserved.</div>
+
+    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+      <strong>Contact us:</strong>
+      <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
+      <span aria-hidden="true">•</span>
+      <a href="tel:+14035250432">(403) 525-0432</a>
+    </div>
+
+    <div class="section__desc">© 2025 Bad Guy Motors • Built to be bad. Engineered to last.</div>
   </div>
 </footer>
 </body>
