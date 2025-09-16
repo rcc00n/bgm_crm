@@ -391,6 +391,29 @@ html body header.site-header .badge{
   transition: none !important;
   display: inline-block !important;
 }
+/* AMVIC: убить любые глобальные hover-эффекты/оверлеи/бленды только здесь */
+#amvic .card a img,
+#amvic .card:hover a img,
+#amvic .amvic-logo{
+  opacity: 1 !important;
+  visibility: visible !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+  transition: none !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* если где-то есть затемняющие оверлеи через псевдоэлементы — вырубаем */
+#amvic .card a::before,
+#amvic .card a::after{
+  content: none !important;
+  display: none !important;
+}
+
+/* чтоб бленды родителей не влияли */
+#amvic .card{ isolation: isolate !important; }
+#amvic .amvic-link{ position: relative !important; display:inline-block !important; }
 
 </style>
 
