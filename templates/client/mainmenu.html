@@ -831,6 +831,8 @@ main h3{
 <script>
   (function(){
     const isAuth  = {{ user.is_authenticated|yesno:"true,false" }};
+    const LOCALE = 'en-US'; // можно 'en-US'
+
     const loginUrl= "{% url 'login' %}?next={{ request.path }}";
     const apiAvail= "/accounts/api/availability/";
     const apiBook = "/accounts/api/book/";
@@ -838,7 +840,7 @@ main h3{
     function getCookie(name){ const m=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)'); return m?m.pop():''; }
     function ymd(d){ const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; }
     function parseISO(iso){ try{return new Date(iso);}catch(_){return null;} }
-    function fmtHM(d){ return d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }
+    function fmtHM(d){ return d.toLocaleTimeString(LOCALE, {hour:'numeric', minute:'2-digit'}); }
 
     const modal=document.getElementById('bookModal');
     const btnClose=document.getElementById('bookClose');
@@ -1005,6 +1007,7 @@ main h3{
       const dayStrs=days.map(ymd);
       const dayData = dayStrs.map(ds => availabilityCache.get(ds));
       const timeRows = buildTimeRows(dayData.map(x=>x?.set));
+      const LOCALE = 'en-US'; // можно 'en-US'
 
       const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
       const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
