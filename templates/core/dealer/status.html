@@ -244,7 +244,29 @@ main{ flex: 1 0 auto; }
     letter-spacing:.02em;
   }
 </style>
+<style id="ford-size-fix">
+  /* h1: Dealer Program */
+  .h.ford{
+    font-size: clamp(1.9rem, 3vw, 2.2rem) !important;
+    line-height: 1.15 !important;
+    letter-spacing: .01em !important;
+  }
 
+  /* h2 в карточке: Program perks */
+  .card .h.ford{
+    font-size: clamp(1.25rem, 2.2vw, 1.5rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  /* маленький лейбл: Dealers only */
+  .card .muted .ford{
+    font-size: 1rem !important;
+    line-height: 1.15 !important;
+    display: block;               /* чтобы строка отделялась аккуратно */
+    margin-bottom: .25rem;
+  }
+</style>
+   
 </head>
 <body>
   <!-- Smoke background -->
