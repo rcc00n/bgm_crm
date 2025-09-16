@@ -187,6 +187,40 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     font-family: var(--font-body) !important;
   }
 </style>
+<style id="font-lock-strong">
+  /* === 1) База: весь мелкий/обычный текст — Diesel ===================== */
+  html, body,
+  p, li, span, a, small,
+  label, input, select, textarea, button,
+  .muted, .muted-2, .kicker, .panel, .panel-strong, .panel-pad,
+  .chip, .hint, .error, .success,
+  table, table td, .table td,
+  .link, .badge,
+  .logout-btn,
+  .sidebar-link span,
+  .appt-dt, .appt-main p, .appt-actions a,
+  .text-sm, .text-xs {
+    font-family: var(--font-body) !important; /* Diesel */
+  }
+
+  /* === 2) Крупные и читабельные элементы — Ford ======================== */
+  h1, h2, h3,
+  .modal__title,
+  .brand, .brand .name, .brand .mark,
+  .table th, .table thead th,
+  .panel h1, .panel h2, .panel h3,
+  .text-4xl, .text-3xl, .text-2xl, .text-xl,
+  .font-black, .font-bold, .font-semibold {
+    font-family: var(--font-head) !important;  /* Ford */
+  }
+
+  /* === 3) Профиль: инпуты точно остаются читабельными (Diesel) ========= */
+  #tab-profile input,
+  #tab-profile select,
+  #tab-profile textarea {
+    font-family: var(--font-body) !important;   /* Diesel */
+  }
+</style>
 
 </head>
 <body class="h-full">
