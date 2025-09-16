@@ -371,19 +371,17 @@ html body header.site-header .badge{
   padding:.08rem .42rem !important;font-size:.68rem !important;line-height:1 !important;background:#d50000 !important;color:#fff !important;
 }
 
-/* AMVIC: force always-visible, no blend tricks */
-.amvic-logo,
-.card .amvic-logo,
-.card a img.amvic-logo{
+/* AMVIC: всегда видим, без блендов и исчезаний */
+.card .amvic-link img.amvic-logo{
   opacity: 1 !important;
   mix-blend-mode: normal !important;
   filter: none !important;
-  transition: transform .15s ease;
+  transition: none !important;
+  display: inline-block !important;
 }
-.amvic-link:hover .amvic-logo{ transform: translateY(-1px); }
-
-/* Optional: give the logo a subtle glow for contrast on dark bg */
-.amvic-logo{ filter: drop-shadow(0 6px 18px rgba(0,0,0,.55)) !important; }
+.card .amvic-link:hover img.amvic-logo{
+  opacity: 1 !important; /* на всякий случай */
+}
 
 </style>
 
