@@ -343,6 +343,85 @@ nav a, .btn, .badge, .price strong {
 .footer__nav a:hover{ color:#fff !important; }
 
   </style>
+
+  <style id="diesel-readability-patch">
+  /* ===== Header / “sidebar” ===== */
+  /* логотип — немного крупнее */
+  .brand__logo,
+  .site-header .brand__logo{
+    font-size: clamp(1.15rem, 1.6vw, 1.4rem) !important;
+    letter-spacing: .06em !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+  }
+
+  /* навигация/кнопка Login и прочий мелкий текст в топбаре — Diesel */
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    font-family: var(--font-body) !important; /* Diesel */
+    font-weight: 700 !important;
+    font-size: .95rem !important;
+    letter-spacing: .02em !important;
+    text-transform: none !important;
+    line-height: 1.15 !important;
+    color: rgba(255,255,255,.92) !important;
+  }
+
+  /* ===== Cards (services & products) — всё мелкое на Diesel и читабельно ===== */
+  .card h3{
+    font-family: var(--font-body) !important;  /* Diesel */
+    font-weight: 900 !important;
+    font-size: 1.08rem !important;
+    letter-spacing: .01em !important;
+    line-height: 1.25 !important;
+    color:#fff !important;
+  }
+  .card .muted,
+  .card .dur{
+    font-family: var(--font-body) !important;  /* Diesel */
+    font-weight: 400 !important;
+    font-size: .98rem !important;
+    line-height: 1.4 !important;
+    color: rgba(255,255,255,.86) !important;
+  }
+  .price strong{
+    font-family: var(--font-body) !important;  /* Diesel */
+    font-weight: 800 !important;
+  }
+  .card__badge,
+  .badge{
+    font-family: var(--font-body) !important;  /* Diesel */
+    font-weight: 800 !important;
+    letter-spacing: .02em !important;
+    text-transform: none !important;
+  }
+
+  /* Кнопки (включая мелкие) везде — Diesel и без капса */
+  .btn{
+    font-family: var(--font-body) !important;  /* Diesel */
+    font-weight: 800 !important;
+    letter-spacing: .02em !important;
+    text-transform: none !important;
+    line-height: 1.15 !important;
+    font-size: .98rem !important;
+  }
+
+  /* Поля фильтров/поиска — единый размер и шрифт */
+  .input, .select,
+  .filters .input, .filters .select{
+    font-family: var(--font-body) !important;  /* Diesel */
+    font-size: .95rem !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Подзаголовки-кэтчеры/описания секций — чуть контрастней и на Diesel */
+  .section__desc, .kicker{
+    font-family: var(--font-body) !important;
+    letter-spacing: .02em !important;
+  }
+</style>
+
 </head>
 <body>
   <div id="bg"></div>
