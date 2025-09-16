@@ -300,8 +300,8 @@ class MasterSelectorMixing:
 
 @admin.register(MasterAvailability)
 class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
-    list_display = ('id', 'master', 'date', 'start_time', 'end_time')
-    list_filter  = ('master', 'date')
+    list_display = ('id', 'master', 'start_time', 'end_time')
+    list_filter  = ('master')
     search_fields = ("master__first_name", "master__last_name", "reason")
     export_fields = ["staff", "start_time", "end_time", "reason"]
 
