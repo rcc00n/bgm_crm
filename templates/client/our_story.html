@@ -382,6 +382,15 @@ html body header.site-header .badge{
 .card .amvic-link:hover img.amvic-logo{
   opacity: 1 !important; /* на всякий случай */
 }
+/* AMVIC: принудительно всегда видимая картинка */
+#amvic .amvic-link img.amvic-logo,
+#amvic .amvic-link:hover img.amvic-logo{
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+  transition: none !important;
+  display: inline-block !important;
+}
 
 </style>
 
@@ -511,8 +520,7 @@ html body header.site-header .badge{
     </section>
   </main>
     <!-- Compliance / AMVIC -->
-   <!-- Compliance / AMVIC -->
-<section class="section">
+<section class="section" id="amvic">
   <div class="container">
     <article class="card" style="text-align:center">
       <h2 class="section__title">Licensed by AMVIC</h2>
@@ -523,6 +531,7 @@ html body header.site-header .badge{
     </article>
   </div>
 </section>
+
 
   <footer class="site-footer">
     <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
