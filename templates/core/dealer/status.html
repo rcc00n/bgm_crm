@@ -365,14 +365,22 @@ main{ flex: 1 0 auto; }
     </div>
   </main>
 
-  <footer class="site-footer">
-    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-      <div style="display:flex;align-items:center;gap:.75rem">
-        <span class="brand__logo" aria-hidden="true"></span><b>BGM Customs</b>
-      </div>
-      <div class="hero__lead">© {{ now|date:"Y" }} Bad Guy Motors • 620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2</div>
+  <footer class="site-footer" id="contact">
+  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
     </div>
-  </footer>
+
+    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+      <strong>Contact us:</strong>
+      <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
+      <span aria-hidden="true">•</span>
+      <a href="tel:+14035250432">(403) 525-0432</a>
+    </div>
+
+    <div class="section__desc">© 2025 Bad Guy Motors • Built to be bad. Engineered to last.</div>
+  </div>
+</footer>
 
   <!-- Smoke (exactly like on Store/Financing) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>

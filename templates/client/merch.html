@@ -293,7 +293,27 @@ nav a,.btn,.badge {
 }
 
   </style>
-  
+  <style id="merch-diesel-fix">
+  /* Топбар и все CTA — Diesel */
+  .site-header,
+  .site-header .brand,
+  .site-header .brand__word,
+  .site-header .belt,
+  .site-header nav a,
+  .site-header .badge,
+  .btn { font-family: var(--font-body) !important; font-style: normal !important; }
+
+  /* Утилита для явного применения Diesel */
+  .btn--diesel, .diesel { font-family: var(--font-body) !important; font-style: normal !important; }
+
+  /* Карточки каталога — заголовки и описания Diesel */
+  .grid.grid--cards h3,
+  .grid.grid--cards .section__desc { font-family: var(--font-body) !important; }
+
+  /* Логотип в топбаре крупнее, как на About */
+  .brand__word{ font-size: clamp(1rem, 1.15vw, 1.2rem) !important; }
+</style>
+
 </head>
 <body>
   <!-- дымовой слой -->
@@ -338,8 +358,8 @@ nav a,.btn,.badge {
       <h1 class="title">Apparel & accessories — Coming soon</h1>
       <p class="lead">Tees, hoodies, caps, wall art — built with the same no-compromise mindset. Want first drop access? Stay tuned.</p>
       <div class="btn-row">
-        <a class="btn btn--primary" href="{% url 'home' %}">← Back to Home</a>
-        <a class="btn btn--ghost" href="{% url 'client-dashboard' %}">Explore Services</a>
+        <a class="btn btn--primary btn--diesel" href="{% url 'home' %}">← Back to Home</a>
+        <a class="btn btn--ghost btn--diesel" href="{% url 'client-dashboard' %}">Explore Services</a>
       </div>
     </div>
 
@@ -362,10 +382,10 @@ nav a,.btn,.badge {
       </div>
 
       <div class="grid grid--cards">
-        <article class="card"><div class="sk"></div><h3 style="margin-top:.6rem">T-Shirts</h3><p class="section__desc">Heavyweight cotton, oversized fit.</p></article>
-        <article class="card"><div class="sk"></div><h3 style="margin-top:.6rem">Hoodies</h3><p class="section__desc">Brushed fleece, embroidered logos.</p></article>
-        <article class="card"><div class="sk"></div><h3 style="margin-top:.6rem">Caps</h3><p class="section__desc">Low-profile, structured.</p></article>
-        <article class="card"><div class="sk"></div><h3 style="margin-top:.6rem">Posters</h3><p class="section__desc">Garage & office wall essentials.</p></article>
+        <article class="card"><div class="sk"></div><h3 class="diesel" style="margin-top:.6rem">T-Shirts</h3><p class="section__desc">Heavyweight cotton, oversized fit.</p></article>
+        <article class="card"><div class="sk"></div><h3  class="diesel" style="margin-top:.6rem">Hoodies</h3><p class="section__desc">Brushed fleece, embroidered logos.</p></article>
+        <article class="card"><div class="sk"></div><h3  class="diesel" style="margin-top:.6rem">Caps</h3><p class="section__desc">Low-profile, structured.</p></article>
+        <article class="card"><div class="sk"></div><h3 class="diesel" style="margin-top:.6rem">Posters</h3><p class="section__desc">Garage & office wall essentials.</p></article>
       </div>
 
       <div style="margin-top:1.5rem;display:flex;gap:.6rem;flex-wrap:wrap">
@@ -376,12 +396,20 @@ nav a,.btn,.badge {
   </section>
 </main>
 
-<footer class="site-footer">
+  <footer class="site-footer" id="contact">
   <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:.75rem">
-      <span class="brand__logo" aria-hidden="true"></span><b>BGM Customs</b>
+      <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
     </div>
-    <div class="section__desc">© {{ now|date:"Y" }} 2025 Bad Guy Motors • 620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2 • </div>
+
+    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+      <strong>Contact us:</strong>
+      <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
+      <span aria-hidden="true">•</span>
+      <a href="tel:+14035250432">(403) 525-0432</a>
+    </div>
+
+    <div class="section__desc">© 2025 Bad Guy Motors • Built to be bad. Engineered to last.</div>
   </div>
 </footer>
 
