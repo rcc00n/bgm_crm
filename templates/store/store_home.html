@@ -306,5 +306,16 @@
 /* если капс прилетает откуда-то ещё (на всех h1.h/title) — прибьём локально */
 .hero--store h1.title{ text-transform:none !important; }
 </style>
+<style id="topbar-brand-diesel">
+  /* принудительно как на Merch */
+  .site-header .brand,
+  .site-header .brand__word{
+    font-family: var(--font-body) !important;  /* Diesel */
+    font-style: normal !important;
+    text-transform: uppercase !important;
+    letter-spacing: .06em !important;
+    font-variant-ligatures: none;              /* на всякий случай */
+  }
+</style>
 
 {% endblock %}
