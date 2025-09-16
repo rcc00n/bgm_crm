@@ -294,6 +294,35 @@ html{ font-size: 17px; }                      /* было 16px */
 }
 
   </style>
+  <style id="financing-diesel-overrides">
+/* всё: топбар и кнопки шрифтом Diesel */
+.site-header,
+.site-header .brand,
+.site-header .brand__word,
+.site-header .belt,
+.site-header nav a,
+.site-header .badge,
+.btn, .badge {
+  font-family: var(--font-body) !important; /* Diesel */
+  font-style: normal !important;
+}
+
+/* если где-то .btn переопределяли на Ford — прибьём локальным классом */
+.btn--diesel{
+  font-family: var(--font-body) !important; /* Diesel */
+  font-style: normal !important;
+}
+
+/* чуть крупнее имя в логотипе, как на About */
+.brand__word{ font-size: clamp(1rem, 1.15vw, 1.2rem) !important; }
+
+/* сгладим нав-линки (как на About) */
+.site-header nav a{
+  letter-spacing:.04em !important;
+  padding:.5rem .72rem !important;
+}
+</style>
+
 </head>
 <body>
   <div id="bg"></div>
@@ -334,8 +363,8 @@ html{ font-size: 17px; }                      /* было 16px */
       <h1 class="title">Build now. Pay over time.</h1>
       <p class="lead">We offer simple financing options for parts, installs, and full custom builds. Apply in minutes with no impact to your credit score for pre-qualification where available.</p>
       <div class="card__actions">
-        <a class="btn btn--primary" href="#providers">See options</a>
-        <a class="btn btn--ghost" href="{% url 'client-dashboard' %}">Explore Services</a>
+        <a class="btn btn--primary btn--diesel" href="#providers">See options</a>
+        <a class="btn btn--ghost btn--diesel" href="{% url 'client-dashboard' %}">Explore Services</a>
       </div>
     </div>
 
@@ -367,8 +396,8 @@ html{ font-size: 17px; }                      /* было 16px */
             </div>
             <p class="section__desc">Fast approvals, flexible terms, and competitive rates. Ideal for medium to large builds.</p>
             <div class="card__actions">
-              <a class="btn btn--primary" href="https://apply.medicard.com/22880/" target="_blank" rel="noopener">Apply with Medicard</a>
-              <a class="btn btn--ghost" href="#faq">Read FAQ</a>
+              <a class="btn btn--primary btn--diesel" href="https://apply.medicard.com/22880/" target="_blank" rel="noopener">Apply with Medicard</a>
+              <a class="btn btn--ghost btn--diesel" href="#faq">Read FAQ</a>
             </div>
           </article>
 
@@ -380,8 +409,8 @@ html{ font-size: 17px; }                      /* было 16px */
             </div>
             <p class="section__desc">Personalized financing support through Canadian Financial. Great for custom quotes and structured plans.</p>
             <div class="card__actions">
-              <a class="btn btn--primary" href="https://canadian-financial.ca/megan-gilbertson/badguymotorsinc" target="_blank" rel="noopener">Apply with Canadian Financial</a>
-              <a class="btn btn--ghost" href="#steps">How it works</a>
+              <a class="btn btn--primary btn--diesel" href="https://canadian-financial.ca/megan-gilbertson/badguymotorsinc" target="_blank" rel="noopener">Apply with Canadian Financial</a>
+              <a class="btn btn--ghost btn--diesel" href="#steps">How it works</a>
             </div>
           </article>
 
@@ -393,15 +422,15 @@ html{ font-size: 17px; }                      /* было 16px */
             </div>
             <p class="section__desc">Split smaller purchases into interest-free payments at checkout. Perfect for parts and minor installs.</p>
             <div class="card__actions">
-              <a class="btn btn--primary" href="{% url 'store' %}">Shop parts</a>
-              <a class="btn btn--ghost" href="{% url 'client-dashboard' %}">Book an install</a>
+              <a class="btn btn--primary btn--diesel" href="{% url 'store' %}">Shop parts</a>
+              <a class="btn btn--ghost btn--diesel" href="{% url 'client-dashboard' %}">Book an install</a>
             </div>
           </article>
         </div>
 
         <div class="card__actions" style="margin-top:1.3rem">
-          <a class="btn btn--primary" href="{% url 'home' %}">← Home</a>
-          <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">See all services</a>
+          <a class="btn btn--primary btn--diesel" href="{% url 'home' %}">← Home</a>
+          <a class="btn btn--ghost btn--diesel" href="{% url 'client-dashboard' %}#services">See all services</a>
         </div>
       </div>
     </section>
@@ -466,14 +495,23 @@ html{ font-size: 17px; }                      /* было 16px */
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-      <div style="display:flex;align-items:center;gap:.75rem">
-        <span class="brand__logo" aria-hidden="true"></span><b>BGM Customs</b>
-      </div>
-      <div class="section__desc">© {{ now|date:"Y" }} Bad Guy Motors • 620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2</div>
+  <footer class="site-footer" id="contact">
+  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
     </div>
-  </footer>
+
+    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+      <strong>Contact us:</strong>
+      <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
+      <span aria-hidden="true">•</span>
+      <a href="tel:+14035250432">(403) 525-0432</a>
+    </div>
+
+    <div class="section__desc">© {{ now|date:"Y" }} Bad Guy Motors • Built to be bad. Engineered to last.</div>
+  </div>
+</footer>
+
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
