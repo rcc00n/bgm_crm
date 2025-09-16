@@ -736,32 +736,24 @@ nav a, .btn, .badge, .price strong {
   </section>
 </main>
 
-<footer class="site-footer">
-  <div class="container footer__grid">
-    <div>
-      <div class="brand" style="margin-bottom:.3rem">
-        <span class="brand__logo" aria-hidden="true"></span>
-        <span>BGM Customs</span>
-      </div>
-      <div class="section__desc">© {{ now|date:"Y" }} BGM. All rights reserved.</div>
+<footer class="site-footer" id="contact">
+  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
     </div>
-    <nav class="footer__nav" aria-label="Footer">
-      <a href="{% url 'client-dashboard' %}">Services</a>
-      {% if user.is_authenticated %}
-        <a href="{% url 'dashboard' %}">Client Portal</a>
-      {% else %}
-        <a href="{% url 'login' %}?next={% url 'dashboard' %}">Login</a>
-      {% endif %}
-      <a href="{% url 'store' %}" aria-current="page">Products</a>
-      <a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a>
-      <a href="{% url 'dealer-status' %}">Dealers</a>
 
-    </nav>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+      <strong>Contact us:</strong>
+      <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
+      <span aria-hidden="true">•</span>
+      <a href="tel:+14035250432">(403) 525-0432</a>
+    </div>
 
+    <div class="section__desc">© 2025 Bad Guy Motors • Built to be bad. Engineered to last.</div>
   </div>
 </footer>
+ <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 
 <script>
 (function(){
