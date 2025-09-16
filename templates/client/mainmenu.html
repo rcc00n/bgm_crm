@@ -1009,8 +1009,8 @@ main h3{
       const timeRows = buildTimeRows(dayData.map(x=>x?.set));
       const LOCALE = 'en-US'; // можно 'en-US'
 
-      const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
-      const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
+      const from = days[0].toLocaleDateString(LOCALE, {month:'short', day:'numeric'});
+      const to   = days[days.length-1].toLocaleDateString(LOCALE, {month:'short', day:'numeric'});
       olRange.textContent = `${from} – ${to}`;
       olGrid.style.setProperty('--days', String(WINDOW_DAYS));
 
@@ -1024,8 +1024,8 @@ main h3{
         h.className='outlook__cell outlook__head';
         if (new Date().toDateString()===d.toDateString()) h.classList.add('day--today');
         h.innerHTML = `<div class="day-head">
-          <div class="day-title">${d.toLocaleDateString([], {weekday:'long'})}</div>
-          <div class="day-sub">${d.toLocaleDateString([], {month:'short', day:'numeric'})}</div>
+          <div class="day-title">${d.toLocaleDateString(LOCALE, {weekday:'long'})}</div>
+          <div class="day-sub">${d.toLocaleDateString(LOCALE, {month:'short', day:'numeric'})}</div>
         </div>`;
         olGrid.appendChild(h);
       });
