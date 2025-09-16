@@ -382,6 +382,16 @@ nav a{ white-space: nowrap !important; }
     font-variant-ligatures: none;              /* на всякий случай */
   }
 </style>
+<style id="topbar-logo-bigger">
+  /* логотип в топбаре — крупнее */
+  .site-header .brand__word{
+    font-size: clamp(1.1rem, 1.55vw, 1.4rem) !important; /* было ~1rem */
+    line-height: 1 !important;
+    letter-spacing: .06em; /* как и было, для фирменного вида */
+  }
+  /* чуть увеличим расстояние между словами, если нужно */
+  .site-header .brand{ gap: .65rem !important; }
+</style>
 
   {% block extra_head %}{% endblock %}
 </head>
