@@ -171,30 +171,7 @@ h1,h2,h3,h4,h5,h6,
 nav a,.btn,.badge {
   font-family:var(--font-head) !important;
 }
-/* === Store: readability + polish ===================================== */
-/* Topbar: всё, КРОМЕ логотипа (.brand__word*) — проще и читабельней */
-.site-header nav a,
-.site-header nav .btn,
-.site-header nav .btn--ghost{
-  font-family: var(--font-body) !important;
-  font-weight: 700 !important;
-  font-size: .95rem !important;
-  letter-spacing: .02em !important;
-  text-transform: none !important;
-  line-height: 1.15 !important;
-  color: rgba(255,255,255,.92) !important;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-.site-header nav .btn--ghost{
-  border-color: var(--line) !important;
-  padding:.55rem .8rem !important;
-}
-.site-header .badge{
-  font-family: var(--font-body) !important;
-  font-weight: 800 !important;
-  letter-spacing: .04em !important;
-}
+
 
 /* Заголовки (Hero .title, секции) — без декоративного шрифта */
 .title,
@@ -332,62 +309,7 @@ nav a{ white-space: nowrap !important; }
 @media (max-width: 1150px){ .belt{ display:none !important; } }
 
   </style>
-  <style id="store-topbar-fix">
-/* контейнер на всю ширину с аккуратными паддингами */
-.site-header .container{
-  width:100% !important;
-  max-width:none !important;
-  padding-inline:clamp(12px, 2vw, 28px) !important;
-}
-
-/* сетка: бренд | слоган (сжимается) | меню */
-.site-header .site-header__inner{
-  display:grid !important;
-  grid-template-columns:max-content minmax(0,1fr) max-content !important;
-  align-items:center !important;
-  column-gap:clamp(14px, 2vw, 36px) !important;
-  padding-block:.8rem !important;
-}
-
-/* бренд — текст, без квадратного логотипа */
-.site-header .brand__logo{ display:none !important; }
-.site-header .brand{
-  display:flex !important; align-items:baseline !important; gap:.55rem !important;
-  font-weight:900; text-transform:uppercase; letter-spacing:.06em;
-}
-.site-header .brand__word{ font-size:clamp(.95rem, 1.1vw, 1.15rem) !important; line-height:1; }
-.site-header .brand__word--white{ color:#fff; } .site-header .brand__word--red{ color:#d50000; }
-
-/* центральная лента (если есть) */
-.site-header .belt{
-  justify-self:center; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  font-weight:900; letter-spacing:.12em; color:rgba(255,255,255,.72);
-  font-size:clamp(.78rem, .95vw, .95rem);
-}
-
-/* меню: без «пилюль», плотные интервалы, одна строка */
-.site-header nav{ justify-self:end; min-width:0; }
-.site-header nav ul{
-  display:flex !important; align-items:center !important;
-  gap:clamp(8px, 1vw, 18px) !important; margin:0 !important; padding:0 !important; flex-wrap:nowrap !important;
-}
-.site-header nav a{
-  display:inline-flex !important; align-items:center !important; line-height:1 !important;
-  padding:.38rem .58rem !important; background:none !important; border:0 !important; border-radius:.55rem !important;
-  text-transform:uppercase; font-weight:900; letter-spacing:.06em;
-  color:rgba(255,255,255,.82) !important; font-size:clamp(.72rem, .9vw, .92rem) !important;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-.site-header .badge{ padding:.08rem .42rem !important; font-size:.68rem !important; border-radius:999px; }
-
-@media (max-width:1150px){ .site-header .belt{ display:none !important; } }
-@media (max-width:900px){
-  .site-header nav{ overflow-x:auto; scrollbar-width:none; }
-  .site-header nav::-webkit-scrollbar{ display:none; }
-}
-
-</style>
+  
 <style id="topbar-merch">
   /* контейнер — во всю ширину с аккуратными паддингами */
   .site-header .container{
