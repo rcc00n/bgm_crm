@@ -370,6 +370,21 @@ html body header.site-header nav a[aria-current="page"]{color:#fff !important;}
 html body header.site-header .badge{
   padding:.08rem .42rem !important;font-size:.68rem !important;line-height:1 !important;background:#d50000 !important;color:#fff !important;
 }
+
+/* AMVIC: force always-visible, no blend tricks */
+.amvic-logo,
+.card .amvic-logo,
+.card a img.amvic-logo{
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+  transition: transform .15s ease;
+}
+.amvic-link:hover .amvic-logo{ transform: translateY(-1px); }
+
+/* Optional: give the logo a subtle glow for contrast on dark bg */
+.amvic-logo{ filter: drop-shadow(0 6px 18px rgba(0,0,0,.55)) !important; }
+
 </style>
 
 </head>
@@ -498,21 +513,18 @@ html body header.site-header .badge{
     </section>
   </main>
     <!-- Compliance / AMVIC -->
-    <section class="section">
-      <div class="container">
-        <article class="card" style="text-align:center">
-          <h2 class="section__title">Licensed by AMVIC</h2>
-          <a class="amvic-link" href="https://www.amvic.org/business/advertising/" target="_blank" rel="noopener">
-  <img class="amvic-logo" src="{% static 'img/amvic-logo.png' %}" alt="AMVIC Licensed Business">
-</a>
-          <p class="muted">Bad Guy Motors is a licensed automotive business under the Alberta Motor Vehicle Industry Council.</p>
-          <a href="https://www.amvic.org/business/advertising/" target="_blank" rel="noopener">
-            <img src="{% static 'img/amvic-logo.png' %}" alt="AMVIC Licensed Business" 
-                 style="max-width:220px;height:auto;margin-top:.75rem">
-          </a>
-        </article>
-      </div>
-    </section>
+   <!-- Compliance / AMVIC -->
+<section class="section">
+  <div class="container">
+    <article class="card" style="text-align:center">
+      <h2 class="section__title">Licensed by AMVIC</h2>
+      <a class="amvic-link" href="https://www.amvic.org/business/advertising/" target="_blank" rel="noopener">
+        <img class="amvic-logo" src="{% static 'img/amvic-logo.png' %}" alt="AMVIC Licensed Business" style="max-width:220px;height:auto;margin-top:.75rem">
+      </a>
+      <p class="muted" style="margin-top:.6rem">Bad Guy Motors is a licensed automotive business under the Alberta Motor Vehicle Industry Council.</p>
+    </article>
+  </div>
+</section>
 
   <footer class="site-footer">
     <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
