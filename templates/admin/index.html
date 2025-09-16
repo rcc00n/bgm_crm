@@ -2,323 +2,246 @@
 {% load static %}
 {% block extrahead %}
   {{ block.super }}
-  <script defer src="{% static 'admin/js/admin_dashboard.js' %}"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-  /* ===== Palette только для этого шаблона ===== */
-  :root{
-    --bg:#0a0a0a; 
-    --ink:#f5f5f5; 
-    --muted:#c2c2c2;
+  <style>
+    :root{
+      --bg:#0a0a0a;
+      --ink:#f5f5f5;
+      --muted:#c2c2c2;
 
-    --red:#e53935; 
-    --red-dark:#b71c1c;
+      --red:#e53935;
+      --green:#2ecc71;
+      --blue:#4285f4;
 
-    --green:#2ecc71; 
-    --blue:#4285f4;
+      --card-bg:#1e1e1e;
+      --card-border:rgba(255,255,255,.15);
+      --field-bg:#151515;
 
-    --card-bg:#1e1e1e;           /* фон карточек */
-    --card-border:rgba(255,255,255,.15);
-    --field-bg:#151515;
+      --shadow:0 8px 28px rgba(0,0,0,.55);
+      --radius-lg:16px;
+      --radius-sm:10px;
+    }
 
-    --shadow:0 8px 28px rgba(0,0,0,.55);
-    --radius-lg:16px; 
-    --radius-sm:10px;
-  }
+    body{ background:var(--bg); color:var(--ink); }
 
-  body { background: var(--bg); color: var(--ink); }
+    /* Layout */
+    .dashboard-container{ padding:16px; }
+    .dashboard-grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:16px;
+      align-items:start;
+    }
+    .span-6{ grid-column: span 6; }
+    .span-12{ grid-column: span 12; }
+    @media (max-width: 1200px){ .span-6, .span-12{ grid-column: span 12; } }
 
-  /* ===== SIDEBAR ===== */
-  .main-sidebar{ background:#111; }
-  .brand-link{
-    background:#0e0e0e !important;
-    border-bottom:1px solid rgba(255,255,255,.1) !important;
-  }
-  .nav-sidebar .nav-item>.nav-link{
-    border-radius:10px; margin:4px 8px; padding:.55rem .75rem;
-    color:#ddd; transition:background .12s,color .12s,transform .08s;
-  }
-  .nav-sidebar .nav-item>.nav-link:hover{
-    background:rgba(255,255,255,.12); color:#fff; transform:translateX(1px);
-  }
-  .nav-sidebar .nav-item>.nav-link.active{
-    background:linear-gradient(90deg, rgba(229,57,53,.25), rgba(229,57,53,.08));
-    color:#fff; font-weight:700; border:1px solid rgba(229,57,53,.45);
-  }
-  .sidebar .nav-header{
-    color:#9e9e9e; font-weight:700; margin:12px 12px 6px;
-    text-transform:uppercase; font-size:11px;
-  }
+    /* Cards */
+    .dashboard-card{
+      background:var(--card-bg);
+      border:1px solid var(--card-border);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      padding:18px;
+    }
+    .dashboard-card h3{ font-size:18px; font-weight:800; color:#fff; margin-bottom:8px; }
+    .dashboard-card p, .dashboard-card table, .dashboard-card li{ color:var(--muted); }
 
-  /* ===== DASHBOARD ===== */
-  .dashboard-card{
-    background:var(--card-bg);
-    border:1px solid var(--card-border);
-    border-radius:var(--radius-lg);
-    box-shadow:var(--shadow);
-    padding:18px 18px 14px;
-  }
-  .dashboard-card h3{ font-size:18px; font-weight:800; color:#fff; }
-  .dashboard-card p{ color:var(--muted); }
+    /* Canvas */
+    .dashboard-card canvas{
+      width:100% !important;
+      height:260px !important;
+      background:#121212;
+      border-radius:10px;
+    }
 
-  /* Canvas */
-  .dashboard-card canvas{
-    width:100% !important; height:240px !important;
-    background:#121212;
-    border-radius:10px;
-  }
+    /* Small list items */
+    .appt-item{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:12px; padding:10px 12px; margin:8px 0;
+      background:var(--field-bg);
+      border:1px solid var(--card-border);
+      border-radius:var(--radius-sm);
+      color:#f5f5f5;
+      cursor:pointer;
+    }
+    .appt-top{ display:flex; gap:8px; align-items:center; }
+    .appt-status{ padding:2px 8px; border-radius:999px; border:1px solid var(--card-border); font-size:12px; }
+    .appt-status.confirmed{ background:rgba(46,204,113,.18); color:var(--green); border-color:rgba(46,204,113,.35); }
+    .appt-status.cancelled{ background:rgba(229,57,53,.18); color:#ff6f60; border-color:rgba(229,57,53,.35); }
 
-  /* Activity list */
-  .appt-item{
-    background:var(--field-bg);
-    border:1px solid var(--card-border); 
-    border-radius:var(--radius-sm);
-    color:#f5f5f5;
-  }
-  .appt-status.confirmed{ background:rgba(46,204,113,.2); color:var(--green); border-color:rgba(46,204,113,.4); }
-  .appt-status.cancelled{ background:rgba(229,57,53,.2); color:#ff6f60; border-color:rgba(229,57,53,.4); }
+    /* Tables */
+    .dashboard-card table{ width:100%; border-collapse:collapse; }
+    .dashboard-card thead th{ text-align:left; padding:8px 0; color:#bdbdbd; border-bottom:1px solid var(--card-border); }
+    .dashboard-card tbody td{ padding:10px 0; border-bottom:1px dashed var(--card-border); color:#f0f0f0; }
 
-  .appt-time-tag{ background:rgba(255,255,255,.12); color:#fff; }
-  .appt-service-badge{ background:rgba(229,57,53,.15); color:#ff6f60; border:1px solid rgba(229,57,53,.3); }
-
-  /* Tables */
-  .dashboard-card table{ color:#f0f0f0; }
-  .dashboard-card thead th{ color:#bdbdbd; border-bottom:1px solid var(--card-border); }
-  .dashboard-card tbody td{ border-bottom:1px dashed var(--card-border); }
-</style>
-
+    .badge{ display:inline-block; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.12); color:#fff; font-size:12px; }
+  </style>
 {% endblock %}
 
-
 {% block content %}
+<div class="dashboard-container">
+  <div class="dashboard-grid">
 
+    {% if not is_master %}
+    <!-- Recent Sales -->
+    <div class="dashboard-card span-6">
+      <h3>Recent Sales</h3>
+      <p>Appointments value (7 days): <strong>CA$ {{ total_sales|floatformat:2 }}</strong></p>
+      <canvas id="salesChart"></canvas>
+    </div>
+    {% endif %}
 
-    <div class="dashboard-container">
-        <div class="dashboard-grid">
-            <!-- Block 1: Recent Sales Chart -->
-            {% if not is_master %}
-            <div class="dashboard-card">
-                <h3>Recent Sales</h3>
-                <p><br>Appointments value: <strong>CA$ {{ total_sales }}</strong></p>
-                <canvas id="salesChart"></canvas>
+    <!-- Upcoming Appointments -->
+    <div class="dashboard-card span-6">
+      <h3>Upcoming Appointments</h3>
+      <p><strong>{{ upcoming_total }}</strong> booked</p>
+      <p>Confirmed: {{ confirmed_count }} &nbsp;•&nbsp; Cancelled: {{ cancelled_count }}</p>
+      <canvas id="upcomingChart"></canvas>
+    </div>
+
+    {% if not is_master %}
+    <!-- Appointment Activity -->
+    <div class="dashboard-card span-12">
+      <h3>Appointment Activity</h3>
+      <div class="appt-list">
+        {% for app in recent_appointments %}
+          <div class="appt-item" onclick="window.location.href='/admin/core/appointment/{{ app.id }}/change/'">
+            <div>
+              <div class="appt-top">
+                <span class="badge">{{ app.start_time|date:"D, d M Y H:i" }}</span>
+                <span class="appt-status {{ app.appointmentstatushistory_set.last.status.name|lower }}">{{ app.appointmentstatushistory_set.last.status.name }}</span>
+              </div>
+              <div>{{ app.client.get_full_name }} — {{ app.service.name }} with {{ app.master.get_full_name }}</div>
             </div>
-            {% endif %}
-            <!-- Block 2: Upcoming Appointments -->
-            <div class="dashboard-card">
-                <h3>Upcoming appointments</h3>
-                <p><strong>{{ upcoming_total }} booked</strong></p>
-                <p>Confirmed appointments: {{ confirmed_count }}<br>Cancelled appointments: {{ cancelled_count }}</p>
-                <canvas id="upcomingChart" height="150"></canvas>
-            </div>
-            {% if not is_master %}
-            <!-- Block 3: Appointments Activity -->
-            <div class="dashboard-card">
-                <h3>Appointment activity</h3>
-                <div class="appt-list">
-                    {% for app in recent_appointments %}
+            <div>CA$ {{ app.service.base_price }}</div>
+          </div>
+        {% empty %}
+          <p>No recent activity.</p>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
 
-                        <div class="appt-item{% if app.start_time.date == today %} appt-today{% endif %}" onclick="window.location.href='/admin/core/appointment/{{app.id}}/change/'">
-                            <div class="appt-date">
-                                <span class="appt-day">{{ app.start_time|date:"d" }}</span>
-                                <span class="appt-month">{{ app.start_time|date:"b" }}</span>
-                            </div>
-                            <div class="appt-details">
-                                <div class="appt-top">
-                                    <span class="appt-time">{{ app.start_time|date:"D, d M Y H:i" }}</span>
-                                    <span class="appt-status {{ app.appointmentstatushistory_set.last.status.name|lower }}">{{ app.appointmentstatushistory_set.last.status.name }}</span>
-                                </div>
-                                <div class="appt-service">{{ app.service.name }}</div>
-                                <div class="appt-master">with {{ app.master.get_full_name }}</div>
-                            </div>
-                            <div class="appt-price">CA$ {{ app.service.base_price }}</div>
-                        </div>
-                    {% endfor %}
+    <!-- Today's Next Appointments -->
+    <div class="dashboard-card span-12">
+      <h3>Today's Next Appointments</h3>
+      {% if today_appointments %}
+        <div class="appt-list">
+          {% for a in today_appointments %}
+            <div class="appt-item">
+              <div>
+                <div class="appt-top">
+                  <span class="badge">{{ a.start_time|time:"H:i" }}</span>
                 </div>
+                <div><strong>{{ a.client.get_full_name }}</strong> — {{ a.service.name }}</div>
+              </div>
             </div>
-            {% endif %}
-            <!-- Block 4: Today's Appointments -->
-            <div class="dashboard-card">
-                <h3>Today's next appointments</h3>
-                {% if today_appointments %}
-                    <div class="appt-timeline">
-                        {% for a in today_appointments %}
-                            <div class="appt-timeline-item">
-                                <div class="appt-timeline-marker"></div>
-                                <div class="appt-timeline-content">
-                                    <div class="appt-time-tag">{{ a.start_time|time:"H:i" }}</div>
-                                    <div class="appt-line-main">
-                                        <strong>{{ a.client.get_full_name }}</strong>
-                                        <span class="appt-service-badge">{{ a.service.name }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p style="text-align:center; margin-top: 20px;">
-                        <img src="{% static 'admin/icons/calendar_empty.png' %}" style="width:40px;" alt="No appts">
-                        <br>No More Appointments Today<br><a href="/admin/core/appointment/">Go to calendar</a>
-                    </p>
-                {% endif %}
-
-            </div>
-            <!-- Block 5: Top Services -->
-            <div class="dashboard-card">
-                <h3>Top services</h3>
-                <table>
-                    <thead><tr><th>Service</th><th>This month</th></tr></thead>
-                    <tbody>
-                    {% for s in top_services %}
-                        <tr><td>{{ s.name }}</td><td>{{ s.count }}</td></tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-
-        {% if not is_master %}
-            <!-- Block 6: Top Team Member -->
-            <div class="dashboard-card">
-                <h3>Top team member</h3>
-                <table>
-                    <thead><tr><th>Team member</th><th>This month</th></tr></thead>
-                    <tbody>
-                    {% for m in top_masters %}
-                        <tr><td>{{ m.get_full_name }}</td><td>CA$ {{ m.total|floatformat:2 }}</td></tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
+          {% endfor %}
         </div>
+      {% else %}
+        <p style="text-align:center; margin-top: 8px;">
+          <img src="{% static 'admin/icons/calendar_empty.png' %}" alt="" style="width:40px; opacity:.9;"><br>
+          No more appointments today. <a href="/admin/core/appointment/">Go to calendar</a>
+        </p>
+      {% endif %}
     </div>
 
-
-
-    <script>
-        const chartData = {{ chart_data|safe }};
-        new Chart(document.getElementById('salesChart'), {
-            type: 'line',
-            data: {
-                labels: chartData.map(x => x.day),
-                datasets: [
-                    {
-                        label: 'Sales',
-                        data: chartData.map(x => x.sales),
-                        borderColor: 'blue', fill: false
-                    },
-                ]
-            }
-        });
-
-        const dailyAppointments = {{ daily_appointments|safe }};
-        const ctxUpcoming = document.getElementById("upcomingChart").getContext("2d");
-
-        new Chart(ctxUpcoming, {
-            type: 'bar',
-            data: {
-                labels: dailyAppointments.map(x => x.day),
-                datasets: [
-                    {
-                        label: 'Confirmed',
-                        data: dailyAppointments.map(x => x.confirmed),
-                        backgroundColor: 'rgba(63,81,181,0.8)', // blue
-                    },
-                    {
-                        label: 'Cancelled',
-                        data: dailyAppointments.map(x => x.cancelled),
-                        backgroundColor: 'rgba(244,67,54,0.8)', // red
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: { mode: 'index', intersect: false }
-                },
-                scales: {
-                    x: { stacked: true },
-                    y: { stacked: true,
-                        ticks: {
-                            stepSize: 1  // 👈 Шаг по оси Y
-                        },
-                        beginAtZero: true}
-                }
-            }
-        });
-    </script>
-
-<!-- Карточки со сводной статистикой -->
-<div class="summary-cards">
-    <div class="card">
-        <h4>Выручка за 7 дней</h4>
-        {% with last_point=chart_data|last %}
-  <p>{{ last_point.sales|floatformat:2 }} $</p>
-{% endwith %}
+    <!-- Top services -->
+    <div class="dashboard-card span-6">
+      <h3>Top Services</h3>
+      <table>
+        <thead><tr><th>Service</th><th>This month</th></tr></thead>
+        <tbody>
+          {% for s in top_services %}
+            <tr><td>{{ s.name }}</td><td>{{ s.count }}</td></tr>
+          {% empty %}
+            <tr><td colspan="2">No data yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-    <div class="card">
-        <h4>Записей сегодня</h4>
-        <p>{{ total_today }} (подтвержд.: {{ confirmed_count }}, отмен: {{ cancelled_count }})</p>
+
+    {% if not is_master %}
+    <!-- Top team member -->
+    <div class="dashboard-card span-6">
+      <h3>Top Team Member</h3>
+      <table>
+        <thead><tr><th>Team member</th><th>This month</th></tr></thead>
+        <tbody>
+          {% for m in top_masters %}
+            <tr><td>{{ m.get_full_name }}</td><td>CA$ {{ m.total|floatformat:2 }}</td></tr>
+          {% empty %}
+            <tr><td colspan="2">No data yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-    <div class="card">
-        <h4>Средний рейтинг</h4>
-        <p>{{ avg_rating|floatformat:1 }} ★</p>
-    </div>
-    <div class="card">
-        <h4>Заказы магазина</h4>
-        <p>{{ orders_count }} / {{ store_revenue|floatformat:2 }} $</p>
-    </div>
+    {% endif %}
+
+  </div>
 </div>
 
-<!-- Линейный график выручки -->
-<canvas id="salesChart" height="150"></canvas>
-
-<!-- График статусов записей -->
-<canvas id="apptStatusChart" height="150"></canvas>
+{# Safe JSON payloads for charts #}
+{{ chart_data|json_script:"chart-data" }}
+{{ daily_appointments|json_script:"daily-appts" }}
 
 <script>
-    // график выручки
-    const chartData = {{ chart_data|safe }};
-    new Chart(document.getElementById('salesChart'), {
-        type: 'line',
-        data: {
-            labels: chartData.map(x => x.day),
-            datasets: [{
-                label: 'Выручка',
-                data: chartData.map(x => x.sales),
-                borderColor: '#007bff',
-                fill: false,
-            }],
-        },
-        options: {responsive: true},
-    });
+  // Read data safely from script tags
+  const chartData = JSON.parse(document.getElementById('chart-data').textContent || '[]');
+  const dailyAppointments = JSON.parse(document.getElementById('daily-appts').textContent || '[]');
 
-    // график подтверждённых/отменённых записей
-    const apptData = {{ daily_appointments|safe }};
-    new Chart(document.getElementById('apptStatusChart'), {
-        type: 'bar',
-        data: {
-            labels: apptData.map(x => x.day),
-            datasets: [
-                {
-                    label: 'Подтверждённые',
-                    data: apptData.map(x => x.confirmed),
-                    backgroundColor: 'rgba(40,167,69,0.8)', // зелёный
-                },
-                {
-                    label: 'Отменённые',
-                    data: apptData.map(x => x.cancelled),
-                    backgroundColor: 'rgba(220,53,69,0.8)', // красный
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            scales: {x: {stacked: true}, y: {stacked: true, beginAtZero: true}},
-        },
+  // Sales line chart
+  (function(){
+    const canvas = document.getElementById('salesChart');
+    if(!canvas) return;
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: chartData.map(x => x.day),
+        datasets: [{
+          label: 'Sales (CA$)',
+          data: chartData.map(x => x.sales),
+          borderColor: '#4285f4',
+          backgroundColor: 'rgba(66,133,244,0.18)',
+          tension: 0.3,
+          fill: true,
+          pointRadius: 2
+        }]
+      },
+      options: {
+        plugins:{ legend:{ display:true } },
+        scales:{
+          x:{ ticks:{ color:'#cfcfcf' }, grid:{ color:'rgba(255,255,255,.08)' } },
+          y:{ beginAtZero:true, ticks:{ color:'#cfcfcf' }, grid:{ color:'rgba(255,255,255,.08)' } }
+        }
+      }
     });
+  })();
+
+  // Upcoming appointments stacked bars
+  (function(){
+    const canvas = document.getElementById('upcomingChart');
+    if(!canvas) return;
+    new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: dailyAppointments.map(x => x.day),
+        datasets: [
+          { label: 'Confirmed', data: dailyAppointments.map(x => x.confirmed), backgroundColor: 'rgba(66,133,244,0.9)' },
+          { label: 'Cancelled', data: dailyAppointments.map(x => x.cancelled), backgroundColor: 'rgba(229,57,53,0.9)' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          x: { stacked:true, ticks:{ color:'#cfcfcf' }, grid:{ color:'rgba(255,255,255,.08)' } },
+          y: { stacked:true, beginAtZero:true, ticks:{ stepSize:1, color:'#cfcfcf' }, grid:{ color:'rgba(255,255,255,.08)' } }
+        }
+      }
+    });
+  })();
 </script>
-
 {% endblock %}
