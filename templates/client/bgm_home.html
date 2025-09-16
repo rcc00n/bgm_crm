@@ -421,6 +421,23 @@ nav a, .btn, .badge, .price strong {
     letter-spacing: .02em !important;
   }
 </style>
+<style id="logo-to-diesel">
+  /* Только логотип в хедере — на Diesel */
+  .site-header .brand__logo,
+  .site-header .brand__logo .brand__word{
+    font-family: var(--font-body) !important;   /* Diesel */
+    font-weight: 900 !important;
+    font-style: normal !important;              /* на всякий случай глушим курсив */
+    text-transform: uppercase !important;
+    letter-spacing: .06em !important;
+    line-height: 1 !important;
+  }
+
+  /* слегка крупнее, чтобы читалось как знак */
+  .site-header .brand__logo{
+    font-size: clamp(1.2rem, 1.8vw, 1.55rem) !important;
+  }
+</style>
 
 </head>
 <body>
