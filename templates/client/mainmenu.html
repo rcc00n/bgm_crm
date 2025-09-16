@@ -570,6 +570,39 @@ main h3{
   /* кнопкам точно убираем капс */
   .btn{ text-transform: none !important; }
 </style>
+<style id="ford-readable-fixes">
+  /* 1) Hero title — Ford, без капса, читабельно */
+  .hero h1,
+  .hero .title{
+    font-family: var(--font-head) !important;   /* Ford */
+    text-transform: none !important;
+    letter-spacing: .01em !important;
+    font-weight: 900 !important;
+    font-size: clamp(2.1rem, 4.5vw, 3.3rem) !important;
+    line-height: 1.15 !important;
+    text-shadow: none !important;
+  }
+
+  /* 2) "Upgrades & Services" — Ford, без капса */
+  main h2,
+  #services h2,
+  .section__title{
+    font-family: var(--font-head) !important;   /* Ford */
+    text-transform: none !important;
+    letter-spacing: .01em !important;
+    font-weight: 900 !important;
+    font-size: clamp(1.9rem, 2.6vw, 2.2rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  /* 3) Текст лого в топбаре — крупнее */
+  .brand__word{
+    font-family: var(--font-head) !important;   /* Ford */
+    font-size: clamp(1.1rem, 1.5vw, 1.35rem) !important;
+    line-height: 1 !important;
+    letter-spacing: .06em !important;
+  }
+</style>
 
 </head>
 <body>
