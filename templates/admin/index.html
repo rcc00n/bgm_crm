@@ -250,5 +250,73 @@
         });
     </script>
 
+<!-- Карточки со сводной статистикой -->
+<div class="summary-cards">
+    <div class="card">
+        <h4>Выручка за 7 дней</h4>
+        <p>{{ chart_data|last.sales|floatformat:2 }} $</p>
+    </div>
+    <div class="card">
+        <h4>Записей сегодня</h4>
+        <p>{{ total_today }} (подтвержд.: {{ confirmed_count }}, отмен: {{ cancelled_count }})</p>
+    </div>
+    <div class="card">
+        <h4>Средний рейтинг</h4>
+        <p>{{ avg_rating|floatformat:1 }} ★</p>
+    </div>
+    <div class="card">
+        <h4>Заказы магазина</h4>
+        <p>{{ orders_count }} / {{ store_revenue|floatformat:2 }} $</p>
+    </div>
+</div>
+
+<!-- Линейный график выручки -->
+<canvas id="salesChart" height="150"></canvas>
+
+<!-- График статусов записей -->
+<canvas id="apptStatusChart" height="150"></canvas>
+
+<script>
+    // график выручки
+    const chartData = {{ chart_data|safe }};
+    new Chart(document.getElementById('salesChart'), {
+        type: 'line',
+        data: {
+            labels: chartData.map(x => x.day),
+            datasets: [{
+                label: 'Выручка',
+                data: chartData.map(x => x.sales),
+                borderColor: '#007bff',
+                fill: false,
+            }],
+        },
+        options: {responsive: true},
+    });
+
+    // график подтверждённых/отменённых записей
+    const apptData = {{ daily_appointments|safe }};
+    new Chart(document.getElementById('apptStatusChart'), {
+        type: 'bar',
+        data: {
+            labels: apptData.map(x => x.day),
+            datasets: [
+                {
+                    label: 'Подтверждённые',
+                    data: apptData.map(x => x.confirmed),
+                    backgroundColor: 'rgba(40,167,69,0.8)', // зелёный
+                },
+                {
+                    label: 'Отменённые',
+                    data: apptData.map(x => x.cancelled),
+                    backgroundColor: 'rgba(220,53,69,0.8)', // красный
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            scales: {x: {stacked: true}, y: {stacked: true, beginAtZero: true}},
+        },
+    });
+</script>
 
 {% endblock %}
