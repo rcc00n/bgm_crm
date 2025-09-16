@@ -464,6 +464,12 @@ html body header.site-header .brand{
 
 #contact{ scroll-margin-top: 90px; }
 
+/* Diesel font for small CTA buttons */
+.btn--diesel{
+  font-family: var(--font-body) !important; /* Diesel */
+  font-style: normal !important;
+}
+
 </style>
 
 </head>
@@ -580,12 +586,13 @@ html body header.site-header .brand{
           <p>Bad Guy Motors Inc.<br>620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2</p>
           <p class="muted">Open by appointment. Book online to lock your time.</p>
           <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
-            <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book a service</a>
-            {% if user.is_authenticated %}
-              <a class="btn btn--ghost" href="{% url 'dashboard' %}">Client portal</a>
-            {% else %}
-              <a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dashboard' %}">Client portal</a>
-            {% endif %}
+            <a class="btn btn--primary btn--diesel" href="{% url 'client-dashboard' %}#services">Book a service</a>
+{% if user.is_authenticated %}
+  <a class="btn btn--ghost btn--diesel" href="{% url 'dashboard' %}">Client portal</a>
+{% else %}
+  <a class="btn btn--ghost btn--diesel" href="{% url 'login' %}?next={% url 'dashboard' %}">Client portal</a>
+{% endif %}
+
           </div>
         </article>
       </div>
