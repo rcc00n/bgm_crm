@@ -107,13 +107,18 @@ def custom_index(request):
         })
 
     # ── NEW: five datasets for 5 new charts ────────────────────────────────────
-    # 1) Revenue by Service (this month / last 30d)
-    revenue_by_service = list(
+    # 1) Revenue by Service (без models.F и с явным маппингом)
+    _raw_service_rev = (
         Payment.objects.filter(appointment__start_time__date__gte=last_30)
-        .values(name=models.F("appointment__service__name"))
+        .values("appointment__service__name")
         .annotate(total=Sum("amount"))
         .order_by("-total")[:8]
     )
+    revenue_by_service = [
+        {"name": r["appointment__service__name"] or "—", "total": float(r["total"] or 0)}
+        for r in _raw_service_rev
+    ]
+
 
     # 2) Revenue by Team Member (last 30d)
     raw_master_rev = (
@@ -137,13 +142,17 @@ def custom_index(request):
         wd = timezone.localtime(dt).weekday()  # Mon=0..Sun=6
         weekday_counts[wd]["count"] += 1
 
-    # 4) Payment Methods breakdown (last 30d)
-    payment_methods = list(
+    # 4) Payment Methods breakdown (исключаем конфликт имени)
+    _raw_methods = (
         Payment.objects.filter(appointment__start_time__date__gte=last_30)
-        .values(method=models.F("method__name"))
+        .values("method__name")                # группируем по названию метода
         .annotate(count=Count("id"))
         .order_by("-count")
     )
+    payment_methods = [
+        {"method": r["method__name"] or "—", "count": r["count"]}
+        for r in _raw_methods
+    ]
 
     # 5) Status trend (last 14d)
     status_days = [today - timedelta(days=i) for i in range(13, -1, -1)]
