@@ -386,6 +386,68 @@ nav a{ white-space: nowrap !important; }
   .site-header nav{ overflow-x:auto; scrollbar-width:none; }
   .site-header nav::-webkit-scrollbar{ display:none; }
 }
+
+</style>
+<style id="topbar-merch">
+  /* контейнер — во всю ширину с аккуратными паддингами */
+  .site-header .container{
+    width:100% !important;
+    max-width:none !important;
+    padding-inline:clamp(12px, 2vw, 28px) !important;
+  }
+
+  /* сетка: бренд | центр (сжимается) | меню */
+  .site-header__inner{
+    display:grid !important;
+    grid-template-columns:max-content minmax(0,1fr) max-content !important;
+    align-items:center !important;
+    column-gap:clamp(14px, 2vw, 36px) !important;
+    padding-block:.8rem !important;
+  }
+
+  /* бренд как на Merch */
+  .brand__logo{ display:none !important; }
+  .brand{
+    display:flex !important; align-items:baseline !important; gap:.55rem !important;
+    font-weight:900; text-transform:uppercase; letter-spacing:.06em;
+  }
+  .brand__word{ font-size:clamp(.9rem, 1vw, 1rem); line-height:1; }
+  .brand__word--white{ color:#fff; } .brand__word--red{ color:#d50000; }
+
+  /* центральная лента по центру */
+  .belt{
+    justify-self:center; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    font-weight:900; letter-spacing:.12em; color:rgba(255,255,255,.72);
+    font-size:clamp(.78rem, .95vw, .95rem);
+  }
+
+  /* меню справа — без «таблеток», Diesel, без капса */
+  .site-header nav{ justify-self:end; min-width:0; }
+  .site-header nav ul{
+    display:flex !important; align-items:center !important;
+    gap:clamp(8px, 1vw, 18px) !important; margin:0 !important; padding:0 !important; flex-wrap:nowrap !important;
+  }
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    background:none !important; border:0 !important; border-radius:.4rem !important; padding:.4rem .6rem !important;
+    font-family:var(--font-body) !important; /* Diesel */
+    font-weight:700 !important; font-size:.95rem !important;
+    letter-spacing:.02em !important; text-transform:none !important; line-height:1.15 !important;
+    color:rgba(255,255,255,.92) !important; white-space:nowrap !important;
+  }
+  .site-header nav a:hover,
+  .site-header nav a[aria-current="page"]{ color:#fff !important; }
+
+  /* бейдж “Soon” — компактный */
+  .site-header .badge{ padding:.1rem .46rem !important; font-size:.68rem !important; border-radius:999px; }
+
+  /* адаптив как на Merch */
+  @media (max-width:1150px){ .belt{ display:none !important; } }
+  @media (max-width:900px){
+    .site-header nav{ overflow-x:auto; scrollbar-width:none; }
+    .site-header nav::-webkit-scrollbar{ display:none; }
+  }
 </style>
 
   {% block extra_head %}{% endblock %}
