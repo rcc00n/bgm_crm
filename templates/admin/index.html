@@ -6,76 +6,30 @@
 
   <style>
     :root{
-      --bg:#0a0a0a;
-      --ink:#f5f5f5;
-      --muted:#c2c2c2;
-
-      --red:#e53935;
-      --green:#2ecc71;
-      --blue:#4285f4;
-
-      --card-bg:#1e1e1e;
-      --card-border:rgba(255,255,255,.15);
-      --field-bg:#151515;
-
-      --shadow:0 8px 28px rgba(0,0,0,.55);
-      --radius-lg:16px;
-      --radius-sm:10px;
+      --bg:#0a0a0a; --ink:#f5f5f5; --muted:#c2c2c2;
+      --red:#e53935; --green:#2ecc71; --blue:#4285f4;
+      --card-bg:#1e1e1e; --card-border:rgba(255,255,255,.15); --field-bg:#151515;
+      --shadow:0 8px 28px rgba(0,0,0,.55); --radius-lg:16px; --radius-sm:10px;
     }
-
     body{ background:var(--bg); color:var(--ink); }
-
-    /* Layout */
     .dashboard-container{ padding:16px; }
-    .dashboard-grid{
-      display:grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap:16px;
-      align-items:start;
-    }
-    .span-6{ grid-column: span 6; }
-    .span-12{ grid-column: span 12; }
-    @media (max-width: 1200px){ .span-6, .span-12{ grid-column: span 12; } }
-
-    /* Cards */
-    .dashboard-card{
-      background:var(--card-bg);
-      border:1px solid var(--card-border);
-      border-radius:var(--radius-lg);
-      box-shadow:var(--shadow);
-      padding:18px;
-    }
+    .dashboard-grid{ display:grid; grid-template-columns: repeat(12,1fr); gap:16px; align-items:start; }
+    .span-6{ grid-column: span 6; } .span-12{ grid-column: span 12; }
+    @media (max-width: 1200px){ .span-6,.span-12{ grid-column: span 12; } }
+    .dashboard-card{ background:var(--card-bg); border:1px solid var(--card-border);
+      border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:18px; }
     .dashboard-card h3{ font-size:18px; font-weight:800; color:#fff; margin-bottom:8px; }
     .dashboard-card p, .dashboard-card table, .dashboard-card li{ color:var(--muted); }
-
-    /* Canvas */
-    .dashboard-card canvas{
-      width:100% !important;
-      height:260px !important;
-      background:#121212;
-      border-radius:10px;
-    }
-
-    /* Small list items */
-    .appt-item{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:12px; padding:10px 12px; margin:8px 0;
-      background:var(--field-bg);
-      border:1px solid var(--card-border);
-      border-radius:var(--radius-sm);
-      color:#f5f5f5;
-      cursor:pointer;
-    }
+    .dashboard-card canvas{ width:100%!important; height:260px!important; background:#121212; border-radius:10px; }
+    .appt-item{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 12px; margin:8px 0;
+      background:var(--field-bg); border:1px solid var(--card-border); border-radius:var(--radius-sm); color:#f5f5f5; cursor:pointer; }
     .appt-top{ display:flex; gap:8px; align-items:center; }
     .appt-status{ padding:2px 8px; border-radius:999px; border:1px solid var(--card-border); font-size:12px; }
     .appt-status.confirmed{ background:rgba(46,204,113,.18); color:var(--green); border-color:rgba(46,204,113,.35); }
     .appt-status.cancelled{ background:rgba(229,57,53,.18); color:#ff6f60; border-color:rgba(229,57,53,.35); }
-
-    /* Tables */
     .dashboard-card table{ width:100%; border-collapse:collapse; }
     .dashboard-card thead th{ text-align:left; padding:8px 0; color:#bdbdbd; border-bottom:1px solid var(--card-border); }
     .dashboard-card tbody td{ padding:10px 0; border-bottom:1px dashed var(--card-border); color:#f0f0f0; }
-
     .badge{ display:inline-block; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.12); color:#fff; font-size:12px; }
   </style>
 {% endblock %}
@@ -85,7 +39,6 @@
   <div class="dashboard-grid">
 
     {% if not is_master %}
-    <!-- Recent Sales -->
     <div class="dashboard-card span-6">
       <h3>Recent Sales</h3>
       <p>Appointments value (7 days): <strong>CA$ {{ total_sales|floatformat:2 }}</strong></p>
@@ -93,7 +46,6 @@
     </div>
     {% endif %}
 
-    <!-- Upcoming Appointments -->
     <div class="dashboard-card span-6">
       <h3>Upcoming Appointments</h3>
       <p><strong>{{ upcoming_total }}</strong> booked</p>
@@ -102,7 +54,6 @@
     </div>
 
     {% if not is_master %}
-    <!-- Appointment Activity -->
     <div class="dashboard-card span-12">
       <h3>Appointment Activity</h3>
       <div class="appt-list">
@@ -124,7 +75,6 @@
     </div>
     {% endif %}
 
-    <!-- Today's Next Appointments -->
     <div class="dashboard-card span-12">
       <h3>Today's Next Appointments</h3>
       {% if today_appointments %}
@@ -132,115 +82,154 @@
           {% for a in today_appointments %}
             <div class="appt-item">
               <div>
-                <div class="appt-top">
-                  <span class="badge">{{ a.start_time|time:"H:i" }}</span>
-                </div>
+                <div class="appt-top"><span class="badge">{{ a.start_time|time:"H:i" }}</span></div>
                 <div><strong>{{ a.client.get_full_name }}</strong> — {{ a.service.name }}</div>
               </div>
             </div>
           {% endfor %}
         </div>
       {% else %}
-        <p style="text-align:center; margin-top: 8px;">
+        <p style="text-align:center; margin-top:8px;">
           <img src="{% static 'admin/icons/calendar_empty.png' %}" alt="" style="width:40px; opacity:.9;"><br>
           No more appointments today. <a href="/admin/core/appointment/">Go to calendar</a>
         </p>
       {% endif %}
     </div>
 
-    <!-- Top services -->
+    <!-- NEW: 5 more charts -->
     <div class="dashboard-card span-6">
-      <h3>Top Services</h3>
-      <table>
-        <thead><tr><th>Service</th><th>This month</th></tr></thead>
-        <tbody>
-          {% for s in top_services %}
-            <tr><td>{{ s.name }}</td><td>{{ s.count }}</td></tr>
-          {% empty %}
-            <tr><td colspan="2">No data yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <h3>Revenue by Service (Last 30 Days)</h3>
+      <canvas id="serviceRevenueChart"></canvas>
     </div>
 
-    {% if not is_master %}
-    <!-- Top team member -->
     <div class="dashboard-card span-6">
-      <h3>Top Team Member</h3>
-      <table>
-        <thead><tr><th>Team member</th><th>This month</th></tr></thead>
-        <tbody>
-          {% for m in top_masters %}
-            <tr><td>{{ m.get_full_name }}</td><td>CA$ {{ m.total|floatformat:2 }}</td></tr>
-          {% empty %}
-            <tr><td colspan="2">No data yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <h3>Revenue by Team Member (Last 30 Days)</h3>
+      <canvas id="masterRevenueChart"></canvas>
     </div>
-    {% endif %}
+
+    <div class="dashboard-card span-6">
+      <h3>Appointments by Weekday (Last 60 Days)</h3>
+      <canvas id="weekdayChart"></canvas>
+    </div>
+
+    <div class="dashboard-card span-6">
+      <h3>Payment Methods (Last 30 Days)</h3>
+      <canvas id="paymentMethodChart"></canvas>
+    </div>
+
+    <div class="dashboard-card span-12">
+      <h3>Status Trend (Last 14 Days)</h3>
+      <canvas id="statusTrendChart"></canvas>
+    </div>
 
   </div>
 </div>
 
-{# Safe JSON payloads for charts #}
+{# Safe JSON payloads #}
 {{ chart_data|json_script:"chart-data" }}
 {{ daily_appointments|json_script:"daily-appts" }}
+{{ service_revenue|json_script:"service-revenue" }}
+{{ master_revenue|json_script:"master-revenue" }}
+{{ weekday_counts|json_script:"weekday-counts" }}
+{{ payment_methods|json_script:"payment-methods" }}
+{{ status_trend|json_script:"status-trend" }}
 
 <script>
-  // Read data safely from script tags
-  const chartData = JSON.parse(document.getElementById('chart-data').textContent || '[]');
-  const dailyAppointments = JSON.parse(document.getElementById('daily-appts').textContent || '[]');
+  // helpers
+  const $json = id => JSON.parse(document.getElementById(id).textContent || '[]');
+  const gridColor = 'rgba(255,255,255,.08)';
+  const tickColor = '#cfcfcf';
 
-  // Sales line chart
+  // Sales (line)
   (function(){
-    const canvas = document.getElementById('salesChart');
-    if(!canvas) return;
-    new Chart(canvas, {
-      type: 'line',
-      data: {
-        labels: chartData.map(x => x.day),
-        datasets: [{
-          label: 'Sales (CA$)',
-          data: chartData.map(x => x.sales),
-          borderColor: '#4285f4',
-          backgroundColor: 'rgba(66,133,244,0.18)',
-          tension: 0.3,
-          fill: true,
-          pointRadius: 2
-        }]
-      },
-      options: {
-        plugins:{ legend:{ display:true } },
-        scales:{
-          x:{ ticks:{ color:'#cfcfcf' }, grid:{ color:'rgba(255,255,255,.08)' } },
-          y:{ beginAtZero:true, ticks:{ color:'#cfcfcf' }, grid:{ color:'rgba(255,255,255,.08)' } }
-        }
-      }
+    const el = document.getElementById('salesChart'); if(!el) return;
+    const d = $json('chart-data');
+    new Chart(el, {
+      type:'line',
+      data:{ labels:d.map(x=>x.day),
+        datasets:[{ label:'Sales (CA$)', data:d.map(x=>x.sales),
+          borderColor:'#4285f4', backgroundColor:'rgba(66,133,244,.18)', tension:.3, fill:true, pointRadius:2 }]},
+      options:{ scales:{ x:{ticks:{color:tickColor},grid:{color:gridColor}}, y:{beginAtZero:true,ticks:{color:tickColor},grid:{color:gridColor}}}}
     });
   })();
 
-  // Upcoming appointments stacked bars
+  // Upcoming (stacked bars)
   (function(){
-    const canvas = document.getElementById('upcomingChart');
-    if(!canvas) return;
-    new Chart(canvas.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: dailyAppointments.map(x => x.day),
-        datasets: [
-          { label: 'Confirmed', data: dailyAppointments.map(x => x.confirmed), backgroundColor: 'rgba(66,133,244,0.9)' },
-          { label: 'Cancelled', data: dailyAppointments.map(x => x.cancelled), backgroundColor: 'rgba(229,57,53,0.9)' }
+    const el = document.getElementById('upcomingChart'); if(!el) return;
+    const d = $json('daily-appts');
+    new Chart(el, {
+      type:'bar',
+      data:{ labels:d.map(x=>x.day),
+        datasets:[
+          {label:'Confirmed', data:d.map(x=>x.confirmed), backgroundColor:'rgba(66,133,244,.9)'},
+          {label:'Cancelled', data:d.map(x=>x.cancelled), backgroundColor:'rgba(229,57,53,.9)'}
+        ]},
+      options:{ scales:{ x:{stacked:true,ticks:{color:tickColor},grid:{color:gridColor}},
+                         y:{stacked:true,beginAtZero:true,ticks:{stepSize:1,color:tickColor},grid:{color:gridColor}}}}
+    });
+  })();
+
+  // Revenue by Service (bar)
+  (function(){
+    const el = document.getElementById('serviceRevenueChart'); if(!el) return;
+    const d = $json('service-revenue');
+    new Chart(el, {
+      type:'bar',
+      data:{ labels:d.map(x=>x.name), datasets:[{label:'Revenue (CA$)', data:d.map(x=>x.total), backgroundColor:'rgba(66,133,244,.9)'}]},
+      options:{ indexAxis:'x', scales:{ x:{ticks:{color:tickColor},grid:{color:gridColor}}, y:{beginAtZero:true,ticks:{color:tickColor},grid:{color:gridColor}} } }
+    });
+  })();
+
+  // Revenue by Master (horizontal bar)
+  (function(){
+    const el = document.getElementById('masterRevenueChart'); if(!el) return;
+    const d = $json('master-revenue');
+    new Chart(el, {
+      type:'bar',
+      data:{ labels:d.map(x=>x.name.trim() || '—'), datasets:[{label:'Revenue (CA$)', data:d.map(x=>x.total), backgroundColor:'rgba(46,204,113,.9)'}]},
+      options:{ indexAxis:'y', scales:{ x:{beginAtZero:true,ticks:{color:tickColor},grid:{color:gridColor}}, y:{ticks:{color:tickColor},grid:{color:gridColor}} } }
+    });
+  })();
+
+  // Weekday counts (bar)
+  (function(){
+    const el = document.getElementById('weekdayChart'); if(!el) return;
+    const d = $json('weekday-counts');
+    new Chart(el, {
+      type:'bar',
+      data:{ labels:d.map(x=>x.day), datasets:[{label:'Appointments', data:d.map(x=>x.count), backgroundColor:'rgba(163,193,201,.9)'}]},
+      options:{ scales:{ x:{ticks:{color:tickColor},grid:{color:gridColor}}, y:{beginAtZero:true,ticks:{stepSize:1,color:tickColor},grid:{color:gridColor}} } }
+    });
+  })();
+
+  // Payment Methods (doughnut)
+  (function(){
+    const el = document.getElementById('paymentMethodChart'); if(!el) return;
+    const d = $json('payment-methods');
+    new Chart(el, {
+      type:'doughnut',
+      data:{ labels:d.map(x=>x.method || '—'),
+             datasets:[{ data:d.map(x=>x.count),
+                         backgroundColor:['#4285f4','#e53935','#2ecc71','#f4b400','#ab47bc','#00acc1'] }] },
+      options:{ plugins:{ legend:{ position:'right', labels:{ color: tickColor } } } }
+    });
+  })();
+
+  // Status trend (line)
+  (function(){
+    const el = document.getElementById('statusTrendChart'); if(!el) return;
+    const d = $json('status-trend');
+    new Chart(el, {
+      type:'line',
+      data:{
+        labels:d.map(x=>x.day),
+        datasets:[
+          {label:'Confirmed', data:d.map(x=>x.confirmed), borderColor:'#2ecc71', backgroundColor:'rgba(46,204,113,.2)', tension:.3, fill:true, pointRadius:2},
+          {label:'Cancelled', data:d.map(x=>x.cancelled), borderColor:'#e53935', backgroundColor:'rgba(229,57,53,.2)', tension:.3, fill:true, pointRadius:2}
         ]
       },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'top' } },
-        scales: {
-          x: { stacked:true, ticks:{ color:'#cfcfcf' }, grid:{ color:'rgba(255,255,255,.08)' } },
-          y: { stacked:true, beginAtZero:true, ticks:{ stepSize:1, color:'#cfcfcf' }, grid:{ color:'rgba(255,255,255,.08)' } }
-        }
-      }
+      options:{ scales:{ x:{ticks:{color:tickColor},grid:{color:gridColor}},
+                         y:{beginAtZero:true,ticks:{stepSize:1,color:tickColor},grid:{color:gridColor}} } }
     });
   })();
 </script>

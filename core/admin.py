@@ -24,82 +24,141 @@ from django.http import HttpResponse
 from .filters import *
 from .models import *
 from .forms import *
-
+from datetime import timedelta, time
 # -----------------------------
 # Custom filter for filtering users by Role
 # -----------------------------
 
 # Переопределение index view
+# ── REPLACE this function in core/admin.py ─────────────────────────────────────
 def custom_index(request):
-    today = localdate()
+    from datetime import timedelta  # (на случай, если не импортирован наверху)
+    from django.utils import timezone
+    today = timezone.localdate()
+
+    # windows for aggregates
     week_ago = today - timedelta(days=6)
-    week = [today + timedelta(days=i) for i in range(7)]
+    last_14 = today - timedelta(days=13)
+    last_30 = today - timedelta(days=29)
+    last_60 = today - timedelta(days=59)
+
+    # base querysets
     appointments_qs = Appointment.objects.filter(start_time__date__range=[week_ago, today])
     payments_qs = Payment.objects.filter(appointment__start_time__date__range=[week_ago, today])
-    is_master = request.user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
-    chart_data = []
-    total_sales = 0
+
+    is_master = request.user.userrole_set.filter(
+        role__name="Master", user__is_superuser=False
+    ).exists()
+
+    # 7-day sales line (как раньше)
+    chart_data, total_sales = [], 0.0
     for i in range(7):
         day = today - timedelta(days=6 - i)
-        sales = payments_qs.filter(appointment__start_time__date=day).aggregate(total=Sum("amount"))["total"] or 0
+        sales = payments_qs.filter(appointment__start_time__date=day)\
+                           .aggregate(total=Sum("amount"))["total"] or 0
         appts = appointments_qs.filter(start_time__date=day).count()
         total_sales += float(sales)
-        chart_data.append({
-            "day": day.strftime("%a %d"),
-            "sales": float(sales),
-            "appointments": appts
-        })
+        chart_data.append({"day": day.strftime("%a %d"), "sales": float(sales), "appointments": appts})
 
+    # statuses / counters
     confirmed = AppointmentStatus.objects.filter(name="Confirmed").first()
     cancelled = AppointmentStatus.objects.filter(name="Cancelled").first()
-    upcoming = Appointment.objects.filter(start_time__range=(today, today+timedelta(7)))
+
+    upcoming = Appointment.objects.filter(
+        start_time__date__gte=today, start_time__date__lte=today + timedelta(days=7)
+    )
     confirmed_count = upcoming.filter(appointmentstatushistory__status=confirmed).count()
     cancelled_count = upcoming.filter(appointmentstatushistory__status=cancelled).count()
 
+    # tables
     top_services = Service.objects.annotate(count=Count("appointment")).order_by("-count")[:5]
 
     master_role = Role.objects.filter(name="Master").first()
-
-    today = timezone.now().date()
     first_day = today.replace(day=1)
     masters = CustomUserDisplay.objects.filter(userrole__role=master_role).annotate(
         total=Sum(
             "appointments_as_master__service__base_price",
-            filter=models.Q(appointments_as_master__start_time__date__gte=first_day)
+            filter=models.Q(appointments_as_master__start_time__date__gte=first_day),
         )
     )
-
     top_masters = sorted(masters, key=lambda m: m.total or 0, reverse=True)[:3]
 
-
-    recent_appointments = Appointment.objects.select_related("client", "master", "service").order_by("-start_time")[:20]
+    recent_appointments = Appointment.objects.select_related("client", "master", "service")\
+                                             .order_by("-start_time")[:20]
     today_appointments = Appointment.objects.filter(
-        start_time__date=today,
-        start_time__gte=timezone.now()
+        start_time__date=today, start_time__gte=timezone.now()
     )
     if is_master:
         today_appointments = today_appointments.filter(master=request.user)
-
     today_appointments = today_appointments.order_by("start_time")
 
+    # daily confirmed/cancelled for upcoming chart (последние 7 дней)
+    week = [today - timedelta(days=6 - i) for i in range(7)]
     daily_counts = []
-
     for day in week:
-        confirmed_appts = Appointment.objects.filter(
-            start_time__date=day,
-            appointmentstatushistory__status=confirmed
-        ).count()
-
-        cancelled_appts =  Appointment.objects.filter(
-            start_time__date=day,
-            appointmentstatushistory__status=cancelled
-        ).count()
-
         daily_counts.append({
-            "day": day.strftime("%a %d"),  # e.g., "Fri 25"
-            "confirmed": confirmed_appts,
-            "cancelled": cancelled_appts
+            "day": day.strftime("%a %d"),
+            "confirmed": Appointment.objects.filter(
+                start_time__date=day, appointmentstatushistory__status=confirmed
+            ).count(),
+            "cancelled": Appointment.objects.filter(
+                start_time__date=day, appointmentstatushistory__status=cancelled
+            ).count(),
         })
+
+    # ── NEW: five datasets for 5 new charts ────────────────────────────────────
+    # 1) Revenue by Service (this month / last 30d)
+    revenue_by_service = list(
+        Payment.objects.filter(appointment__start_time__date__gte=last_30)
+        .values(name=models.F("appointment__service__name"))
+        .annotate(total=Sum("amount"))
+        .order_by("-total")[:8]
+    )
+
+    # 2) Revenue by Team Member (last 30d)
+    raw_master_rev = (
+        Payment.objects.filter(appointment__start_time__date__gte=last_30)
+        .values("appointment__master__first_name", "appointment__master__last_name")
+        .annotate(total=Sum("amount"))
+        .order_by("-total")[:8]
+    )
+    master_revenue = [
+        {
+            "name": (r["appointment__master__first_name"] or "") + " " + (r["appointment__master__last_name"] or ""),
+            "total": float(r["total"] or 0),
+        }
+        for r in raw_master_rev
+    ]
+
+    # 3) Appointments by Weekday (last 60d)
+    weekday_counts = [{"day": d, "count": 0} for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]]
+    for dt in Appointment.objects.filter(start_time__date__gte=last_60)\
+                                 .values_list("start_time", flat=True):
+        wd = timezone.localtime(dt).weekday()  # Mon=0..Sun=6
+        weekday_counts[wd]["count"] += 1
+
+    # 4) Payment Methods breakdown (last 30d)
+    payment_methods = list(
+        Payment.objects.filter(appointment__start_time__date__gte=last_30)
+        .values(method=models.F("method__name"))
+        .annotate(count=Count("id"))
+        .order_by("-count")
+    )
+
+    # 5) Status trend (last 14d)
+    status_days = [today - timedelta(days=i) for i in range(13, -1, -1)]
+    status_trend = []
+    for day in status_days:
+        status_trend.append({
+            "day": day.strftime("%b %d"),
+            "confirmed": Appointment.objects.filter(
+                start_time__date=day, appointmentstatushistory__status=confirmed
+            ).count(),
+            "cancelled": Appointment.objects.filter(
+                start_time__date=day, appointmentstatushistory__status=cancelled
+            ).count(),
+        })
+
     context = admin.site.each_context(request)
     context.update({
         "is_master": is_master,
@@ -114,9 +173,15 @@ def custom_index(request):
         "today": localdate(),
         "recent_appointments": recent_appointments,
         "today_appointments": today_appointments,
+        # NEW datasets for charts:
+        "service_revenue": revenue_by_service,
+        "master_revenue": master_revenue,
+        "weekday_counts": weekday_counts,
+        "payment_methods": payment_methods,
+        "status_trend": status_trend,
     })
-
     return TemplateResponse(request, "admin/index.html", context)
+# ───────────────────────────────────────────────────────────────────────────────
 
 # Переопределить главную страницу
 admin.site.index = custom_index
