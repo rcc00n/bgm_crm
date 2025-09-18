@@ -10,8 +10,7 @@
   url('{{ category.image.url }}') center/cover no-repeat;">
   <div class="container hero__inner hero__inner--tight">
     <div>
-      <h1 class="title no-caps">{{ category.name }}</h1>
-
+      <h1 class="title">{{ category.name }}</h1>
       {% if category.description %}<p class="lead">{{ category.description }}</p>{% endif %}
       <div class="btn-row"><a class="btn btn--ghost" href="{% url 'store' %}">← All categories</a></div>
     </div>
@@ -20,8 +19,7 @@
 {% else %}
 <section class="section">
   <div class="container">
-    <h1 class="title no-caps">{{ category.name }}</h1>
-
+    <h1 class="section__title">{{ category.name }}</h1>
     {% if category.description %}<p class="section__desc">{{ category.description }}</p>{% endif %}
     <a class="btn btn--ghost" href="{% url 'store' %}" style="margin-top:.6rem">← All categories</a>
   </div>
@@ -109,6 +107,14 @@
 
 /* убираем прежний фон у hero */
 .hero--store{ background:transparent !important; }
+/* Переопределение только для названия категории */
+.hero--cat .title,
+.section__title {
+  text-transform: none !important;   /* убираем капс */
+  letter-spacing: .01em !important;  /* меньше растяжки */
+  font-size: clamp(1.9rem, 2.6vw, 2.3rem) !important; /* оставляем читаемый размер */
+  line-height: 1.25 !important; 
+}
 
 </style>
 {% endblock %}
