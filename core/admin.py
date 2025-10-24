@@ -24,6 +24,7 @@ from django.http import HttpResponse
 from .filters import *
 from .models import *
 from .forms import *
+from .constants import STAFF_DISPLAY_NAME
 
 # -----------------------------
 # Custom filter for filtering users by Role
@@ -294,16 +295,19 @@ class MasterSelectorMixing:
                 kwargs["queryset"] = CustomUserDisplay.objects.filter(id__in=master_user_ids)
             else:
                 kwargs["queryset"] = User.objects.none()
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+        field = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == "master" and field:
+            field.label = STAFF_DISPLAY_NAME
+        return field
 
 
 
 @admin.register(MasterAvailability)
 class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
-    list_display = ("staff", "start_time", "end_time", "reason")
-    list_filter = ("staff",)
+    list_display = ("staff_member", "start_time", "end_time", "reason")
+    list_filter = (MasterOnlyFilter, "reason")
     search_fields = ("master__first_name", "master__last_name", "reason")
-    export_fields = ["staff", "start_time", "end_time", "reason"]
+    export_fields = ["master", "start_time", "end_time", "reason"]
 
     def has_add_permission(self, request):
         return request.user.has_perm("core.add_masteravailability")
@@ -355,6 +359,11 @@ class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelA
 
 
         return initial
+
+    @admin.display(description=STAFF_DISPLAY_NAME, ordering="master__first_name")
+    def staff_member(self, obj):
+        full_name = obj.master.get_full_name()
+        return full_name if full_name else obj.master.username
 
 
 # -----------------------------
@@ -614,9 +623,14 @@ class ServiceMasterAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin)
     """
     Admin interface to assign masters to services.
     """
-    list_display = ('master', 'service')
+    list_display = ('staff_member', 'service')
     search_fields = ('master__user__first_name', 'master__user__last_name', 'service__name')
     export_fields = ['master', 'service']
+
+    @admin.display(description=STAFF_DISPLAY_NAME, ordering="master__first_name")
+    def staff_member(self, obj):
+        full_name = obj.master.get_full_name()
+        return full_name if full_name else obj.master.username
 
 # -----------------------------
 # Service Admin

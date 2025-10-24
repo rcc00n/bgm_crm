@@ -34,18 +34,39 @@
 
       <div>
         <div class="card" style="padding:1.2rem">
-          <div class="price">
-            <strong style="font-size:1.4rem">${{ product.price }}</strong>
-            {% if product.old_price %}<span class="old">${{ product.old_price }}</span>{% endif %}
-          </div>
-
-          <form method="post" action="{% url 'store-cart-add' slug=product.slug %}" style="margin-top:1rem">
+          <form class="product-form" method="post" action="{% url 'store-cart-add' slug=product.slug %}">
             {% csrf_token %}
+            <div class="price">
+              <strong style="font-size:1.4rem">${{ product.price }}</strong>
+              {% if product.old_price %}<span class="old">${{ product.old_price }}</span>{% endif %}
+            </div>
+
+            {% if product_options %}
+              <fieldset class="option-picker" id="product-options">
+                <legend>Options</legend>
+                <div class="option-picker__grid">
+                  {% for opt in product_options %}
+                    <label class="option-pill">
+                      <input type="radio" name="option_id" value="{{ opt.id }}" {% if forloop.first %}checked{% endif %} required>
+                      <span class="option-pill__inner">
+                        <span class="option-pill__name">{{ opt.name }}</span>
+                        {% if opt.description %}
+                          <span class="option-pill__desc">{{ opt.description }}</span>
+                        {% endif %}
+                      </span>
+                    </label>
+                  {% endfor %}
+                </div>
+              </fieldset>
+            {% endif %}
+
             <label class="section__desc" for="qty">Quantity</label>
-            <div style="display:flex;gap:.5rem;align-items:center;margin-top:.35rem">
+            <div class="qty-row">
               <input class="field" id="qty" name="qty" type="number" min="1" value="1" style="width:110px">
-              <button class="btn btn--primary" type="submit">Add to cart</button>
-              <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Buy now</button>
+              <div class="btn-pair">
+                <button class="btn btn--primary" type="submit">Add to cart</button>
+                <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Buy now</button>
+              </div>
             </div>
           </form>
         </div>
@@ -95,6 +116,30 @@
       </div>
     </div>
 
+    {% if go_along %}
+      <div class="section__head" style="margin-top:1.6rem">
+        <h3 class="section__title">Items that go along</h3>
+      </div>
+      <div class="grid grid--cards">
+        {% for p in go_along %}
+          <article class="card">
+            <a href="{% url 'store-product' slug=p.slug %}">
+              {% if p.main_image %}
+                <img class="card__img" src="{{ p.main_image.url }}" alt="{{ p.name }}">
+              {% else %}
+                <div class="card__img" style="aspect-ratio:16/9"></div>
+              {% endif %}
+              <div class="card__body" style="padding:.6rem .8rem">
+                <h4>{{ p.name }}</h4>
+                <p class="section__desc">{{ p.short_description|default:p.category.name }}</p>
+                <div class="price" style="margin-top:.2rem"><strong>${{ p.price }}</strong></div>
+              </div>
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     {% if related %}
       <div class="section__head" style="margin-top:1.6rem">
         <h3 class="section__title">Related products</h3>
@@ -122,6 +167,34 @@
 </section>
 
 <style>
+  .product-form{display:flex; flex-direction:column; gap:1rem}
+  .qty-row{display:flex; flex-wrap:wrap; gap:.6rem; align-items:center}
+  .btn-pair{display:flex; gap:.5rem; flex-wrap:wrap}
+  .option-picker{border:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.4rem}
+  .option-picker legend{font-weight:800; font-size:.95rem; margin-bottom:.2rem}
+  .option-picker__grid{display:flex; flex-direction:column; gap:.5rem}
+  @media (min-width:600px){
+    .option-picker__grid{flex-direction:row; flex-wrap:wrap}
+  }
+  .option-pill{display:block; cursor:pointer; position:relative;}
+  .option-pill input{position:absolute; opacity:0; pointer-events:none;}
+  .option-pill__inner{
+    display:flex;
+    flex-direction:column;
+    gap:.15rem;
+    padding:.6rem .8rem;
+    border:1px solid var(--card-border);
+    border-radius:.8rem;
+    min-width:160px;
+    transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .option-pill__name{font-weight:700; color:var(--ink);}
+  .option-pill__desc{color:var(--muted); font-size:.88rem;}
+  .option-pill input:checked + .option-pill__inner{
+    border-color:rgba(213,0,0,.6);
+    box-shadow:0 0 0 2px rgba(213,0,0,.2);
+    background:rgba(213,0,0,.06);
+  }
   .specs{margin:0; padding:.4rem .6rem}
   .specs__row{display:grid; grid-template-columns: 180px 1fr; gap:.6rem; padding:.35rem 0; border-bottom:1px solid var(--card-border)}
   .specs__row:last-child{border-bottom:none}

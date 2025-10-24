@@ -5,6 +5,7 @@ from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 from .models import *
+from .constants import STAFF_DISPLAY_NAME
 
 # -----------------------------
 # Appointment Form
@@ -30,6 +31,9 @@ class AppointmentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        master_field = self.fields.get("master")
+        if master_field:
+            master_field.label = STAFF_DISPLAY_NAME
 
     def clean(self):
         cleaned_data = super().clean()

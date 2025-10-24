@@ -88,7 +88,7 @@ from django.db import models
 from django.utils import timezone
 from django.core.validators import MinLengthValidator
 
-# Если у вас уже есть UserProfile — дополним его, иначе создайте.
+
 class DealerTier(models.TextChoices):
     NONE = "NONE", "None"
     TIER_5 = "TIER_5", "Dealer 5% (≥ $1,000)"

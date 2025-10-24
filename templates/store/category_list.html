@@ -53,13 +53,18 @@
 
             <!-- quick actions -->
             <div class="quick row">
-              <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
-                <button class="btn btn--primary" type="submit">Add to cart</button>
-              </form>
-              <form method="post" action="{% url 'store-checkout' %}">{% csrf_token %}
-                <input type="hidden" name="buy_now_slug" value="{{ p.slug }}">
-                <button class="btn btn--ghost" type="submit">Buy now</button>
-              </form>
+              {% if p.has_active_options %}
+                <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
+                <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View product</a>
+              {% else %}
+                <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
+                  <button class="btn btn--primary" type="submit">Add to cart</button>
+                </form>
+                <form method="post" action="{% url 'store-checkout' %}">{% csrf_token %}
+                  <input type="hidden" name="buy_now_slug" value="{{ p.slug }}">
+                  <button class="btn btn--ghost" type="submit">Buy now</button>
+                </form>
+              {% endif %}
             </div>
           </div>
         </article>

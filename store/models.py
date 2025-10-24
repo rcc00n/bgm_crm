@@ -115,6 +115,65 @@ class Product(models.Model):
         # под шаблоны, где используется {% url 'store-product' slug=p.slug %}
         return reverse("store-product", kwargs={"slug": self.slug})
 
+    def get_active_options(self):
+        """
+        Ordered list of active options. Prefetch-aware to avoid extra queries.
+        """
+        cache = getattr(self, "_prefetched_objects_cache", {})
+        if cache and "options" in cache:
+            return [opt for opt in cache["options"] if getattr(opt, "is_active", False)]
+        return list(self.options.filter(is_active=True).order_by("sort_order", "id"))
+
+    @property
+    def has_active_options(self) -> bool:
+        cache = getattr(self, "_prefetched_objects_cache", {})
+        if cache and "options" in cache:
+            return any(opt.is_active for opt in cache["options"])
+        return self.options.filter(is_active=True).exists()
+
+    def get_companion_items(self, limit: int = 3):
+        """
+        Deterministically rotates the active catalog to get a varied (but stable) set of companions.
+        """
+        qs = Product.objects.filter(is_active=True).exclude(pk=self.pk).order_by("id")
+        ids = list(qs.values_list("id", flat=True))
+        if not ids:
+            return []
+        seed_source = self.slug or self.name or str(self.pk)
+        seed = sum(ord(ch) for ch in seed_source)
+        idx = seed % len(ids)
+        ordered_ids = ids[idx:] + ids[:idx]
+        pick_ids = ordered_ids[:limit]
+        companions = list(Product.objects.filter(id__in=pick_ids).select_related("category"))
+        companions.sort(key=lambda obj: pick_ids.index(obj.id))
+        return companions
+
+
+class ProductOption(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="options",
+        verbose_name="Товар",
+    )
+    name = models.CharField("Название", max_length=120)
+    description = models.CharField("Описание", max_length=240, blank=True)
+    is_active = models.BooleanField(
+        "Активна",
+        default=False,
+        help_text="Неактивные опции скрыты из карточки товара.",
+    )
+    sort_order = models.PositiveIntegerField("Порядок", default=0)
+
+    class Meta:
+        verbose_name = "Опция товара"
+        verbose_name_plural = "Опции товара"
+        ordering = ["sort_order", "id"]
+        unique_together = ("product", "name")
+
+    def __str__(self):
+        return f"{self.product}: {self.name}"
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
@@ -220,6 +279,13 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order   = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    option  = models.ForeignKey(
+        ProductOption,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="order_items",
+        help_text="Опция, выбранная покупателем.",
+    )
     qty     = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
 
     # ключевой момент: допускаем NULL и автоснапшотим при сохранении
@@ -229,6 +295,8 @@ class OrderItem(models.Model):
     )
 
     def __str__(self):
+        if self.option_id:
+            return f"{self.product} [{self.option.name}] × {self.qty}"
         return f"{self.product} × {self.qty}"
 
     def save(self, *args, **kwargs):
@@ -238,6 +306,8 @@ class OrderItem(models.Model):
         """
         if self.price_at_moment is None and self.product_id:
             self.price_at_moment = self.product.price
+        if self.option_id and self.product_id and self.option.product_id != self.product_id:
+            raise ValueError("Selected option does not belong to the product.")
         super().save(*args, **kwargs)
 
     @property

@@ -8,6 +8,7 @@ from .models import (
     Category,
     Product,
     ProductImage,
+    ProductOption,
     Order,
     OrderItem,
 )
@@ -30,6 +31,13 @@ class CarModelAdmin(admin.ModelAdmin):
 
 
 # ───────────────────────────── Categories / Products ─────────────────────────────
+
+class ProductOptionInline(admin.TabularInline):
+    model = ProductOption
+    extra = 1
+    fields = ("name", "description", "is_active", "sort_order")
+    ordering = ("sort_order", "id")
+
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -72,7 +80,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ("name", "sku", "description")
     prepopulated_fields = {"slug": ("name",)}
     list_select_related = ("category",)
-    inlines = [ProductImageInline]
+    inlines = [ProductOptionInline, ProductImageInline]
     filter_horizontal = ("compatible_models",)
     readonly_fields = ("created_at", "updated_at", "specs_preview")
 
@@ -132,8 +140,8 @@ class StatusBadgeMixin:
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    autocomplete_fields = ["product"]
-    fields = ("product", "qty", "price_at_moment", "subtotal")
+    autocomplete_fields = ["product", "option"]
+    fields = ("product", "option", "qty", "price_at_moment", "subtotal")
     readonly_fields = ("subtotal",)
 
 

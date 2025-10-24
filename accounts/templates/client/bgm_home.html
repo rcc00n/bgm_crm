@@ -284,10 +284,15 @@
                 {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
               </a>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
-                <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
-                  <button class="btn btn--primary" type="submit">Add to cart</button>
-                </form>
-                <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% if p.has_active_options %}
+                  <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
+                  <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% else %}
+                  <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
+                    <button class="btn btn--primary" type="submit">Add to cart</button>
+                  </form>
+                  <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% endif %}
               </div>
             </article>
           {% endfor %}

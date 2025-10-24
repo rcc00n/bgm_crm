@@ -49,6 +49,9 @@
                 {% if row.product.category %}
                   <div class="section__desc">Category: {{ row.product.category.name }}</div>
                 {% endif %}
+                {% if row.option %}
+                  <div class="section__desc">Option: {{ row.option.name }}</div>
+                {% endif %}
               </div>
             </div>
 
@@ -63,7 +66,10 @@
             <div class="cart__col cart__col--act" role="cell">
               <form method="post" action="{% url 'store-cart-remove' slug=row.product.slug %}">
                 {% csrf_token %}
-                <button class="btn btn--ghost cart__remove" type="submit" aria-label="Remove {{ row.product.name }}">
+                {% if row.option_id %}
+                  <input type="hidden" name="option_id" value="{{ row.option_id }}">
+                {% endif %}
+                <button class="btn btn--ghost cart__remove" type="submit" aria-label="Remove {{ row.product.name }}{% if row.option %} ({{ row.option.name }}){% endif %}">
                   Remove
                 </button>
               </form>

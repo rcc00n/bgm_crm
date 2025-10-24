@@ -238,6 +238,7 @@ class HomeView(TemplateView):
         ctx["home_products"] = (
             Product.objects.filter(is_active=True)
             .select_related("category")
+            .prefetch_related("options")
             .order_by("-created_at")[:8]
         )
         return ctx

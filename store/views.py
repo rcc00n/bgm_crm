@@ -10,7 +10,7 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from .models import Category, Order, OrderItem, Product, CarMake, CarModel
+from .models import Category, Order, OrderItem, Product, ProductOption, CarMake, CarModel
 from .forms_store import ProductFilterForm
 
 # ────────────────────────── Публичные страницы ──────────────────────────
@@ -52,7 +52,7 @@ def store_home(request):
     base_qs = (
         Product.objects.filter(is_active=True)
         .select_related("category")
-        .prefetch_related("compatible_models")
+        .prefetch_related("compatible_models", "options")
         .order_by("-created_at")
     )
 
@@ -65,7 +65,12 @@ def store_home(request):
     # Секции по всем категориям
     sections = []
     for c in categories:
-        cat_base = Product.objects.filter(is_active=True, category=c).order_by("-created_at")
+        cat_base = (
+            Product.objects.filter(is_active=True, category=c)
+            .select_related("category")
+            .prefetch_related("options")
+            .order_by("-created_at")
+        )
         if cat_base.exists():
             sections.append((c, cat_base[:8]))
 
@@ -87,7 +92,7 @@ def category_list(request, slug):
     base_qs = (
         Product.objects.filter(is_active=True, category=category)
         .select_related("category")
-        .prefetch_related("compatible_models")
+        .prefetch_related("compatible_models", "options")
         .order_by("-created_at")
     )
     products = _apply_filters(base_qs, form)
@@ -103,24 +108,143 @@ def category_list(request, slug):
 
 def product_detail(request, slug: str):
     product = get_object_or_404(
-        Product.objects.select_related("category"),
+        Product.objects.select_related("category").prefetch_related("options", "compatible_models"),
         slug=slug,
         is_active=True
     )
+    options = product.get_active_options()
     related = (
         Product.objects.filter(is_active=True, category=product.category)
         .exclude(pk=product.pk)
         .order_by("-created_at")[:8]
     )
-    return render(request, "store/product_detail.html", {"product": product, "related": related})
+    go_along = product.get_companion_items(limit=3)
+    return render(
+        request,
+        "store/product_detail.html",
+        {
+            "product": product,
+            "related": related,
+            "product_options": options,
+            "go_along": go_along,
+        },
+    )
 
 
 # ──────────────────────────── Корзина (сессии) ───────────────────────────
 
-CART_KEY = "cart_items"  # {product_id: qty}
+CART_KEY = "cart_items"  # backwards-compatible key
 
-def _cart(session) -> Dict[str, int]:
-    return session.setdefault(CART_KEY, {})
+def _cart(session) -> Dict[str, list]:
+    """
+    Normalized cart representation: {"items": [{"product_id": int, "option_id": int|None, "qty": int}, ...]}
+    """
+    data = session.get(CART_KEY)
+    if not data:
+        data = {"items": []}
+    elif isinstance(data, dict) and "items" not in data:
+        # legacy shape {product_id: qty}
+        items = []
+        for pid, qty in data.items():
+            try:
+                product_id = int(pid)
+                quantity = max(1, int(qty))
+            except (TypeError, ValueError):
+                continue
+            items.append({"product_id": product_id, "option_id": None, "qty": quantity})
+        data = {"items": items}
+    elif isinstance(data, list):
+        data = {"items": data}
+    else:
+        data.setdefault("items", [])
+
+    normalized = []
+    for entry in data.get("items", []):
+        try:
+            product_id = int(entry.get("product_id"))
+            qty = max(1, int(entry.get("qty", 1)))
+        except (TypeError, ValueError):
+            continue
+        option_id = entry.get("option_id")
+        if option_id in ("", None):
+            option_id = None
+        else:
+            try:
+                option_id = int(option_id)
+            except (TypeError, ValueError):
+                option_id = None
+        normalized.append({"product_id": product_id, "option_id": option_id, "qty": qty})
+
+    data["items"] = normalized
+    session[CART_KEY] = data
+    return data
+
+
+def _cart_add_item(session, *, product_id: int, qty: int, option_id: int | None = None):
+    qty = max(1, int(qty))
+    cart = _cart(session)
+    for item in cart["items"]:
+        if item["product_id"] == product_id and item["option_id"] == option_id:
+            item["qty"] += qty
+            break
+    else:
+        cart["items"].append(
+            {
+                "product_id": product_id,
+                "option_id": option_id,
+                "qty": qty,
+            }
+        )
+    session.modified = True
+    return cart
+
+
+def _cart_positions(session):
+    """
+    Build hydrated cart positions for rendering/checkout.
+    """
+    cart = _cart(session)
+    items = cart.get("items", [])
+    if not items:
+        return [], Decimal("0.00")
+
+    quant = Decimal("0.01")
+    product_ids = {it["product_id"] for it in items}
+    option_ids = {it["option_id"] for it in items if it.get("option_id")}
+
+    products = {
+        p.id: p
+        for p in Product.objects.filter(id__in=product_ids).select_related("category")
+    }
+    options = {
+        opt.id: opt
+        for opt in ProductOption.objects.filter(id__in=option_ids)
+    } if option_ids else {}
+
+    positions = []
+    total = Decimal("0.00")
+
+    for entry in items:
+        product = products.get(entry["product_id"])
+        if not product:
+            continue  # silently drop missing products
+        option = options.get(entry["option_id"])
+        qty = entry["qty"]
+        unit = Decimal(str(product.price))
+        line_total = (unit * qty).quantize(quant)
+        total += line_total
+        positions.append(
+            {
+                "product": product,
+                "option": option,
+                "qty": qty,
+                "unit_price": unit,
+                "line_total": line_total,
+                "option_id": entry["option_id"],
+            }
+        )
+
+    return positions, (total.quantize(quant) if positions else Decimal("0.00"))
 
 @require_POST
 def cart_add(request, slug: str):
@@ -131,43 +255,69 @@ def cart_add(request, slug: str):
         qty = 1
     qty = max(1, qty)
 
-    cart = _cart(request.session)
-    pid = str(product.id)
-    cart[pid] = cart.get(pid, 0) + qty
-    request.session.modified = True
+    option = None
+    option_id_raw = request.POST.get("option_id")
+    if option_id_raw:
+        try:
+            option_id = int(option_id_raw)
+        except (TypeError, ValueError):
+            option_id = None
+        if option_id:
+            option = get_object_or_404(ProductOption, id=option_id, product=product)
+            if not option.is_active:
+                messages.error(request, "Эта опция недоступна для заказа.")
+                return redirect("store:store-product", slug=product.slug)
+    elif product.has_active_options:
+        messages.error(request, "Выберите опцию перед добавлением товара в корзину.")
+        return redirect("store:store-product", slug=product.slug)
+
+    _cart_add_item(
+        request.session,
+        product_id=product.id,
+        qty=qty,
+        option_id=option.id if option else None,
+    )
 
     if request.POST.get("buy_now") == "1":
         messages.success(request, f"Товар «{product.name}» добавлен. Переходим к оформлению.")
         return redirect("store:store-checkout")
 
-    messages.success(request, f"Добавлено в корзину: «{product.name}».")
+    opt_suffix = f" ({option.name})" if option else ""
+    messages.success(request, f"Добавлено в корзину: «{product.name}{opt_suffix}».")
     return redirect("store:store-product", slug=product.slug)
 
 
 def cart_view(request):
-    cart = _cart(request.session)
-    ids = list(map(int, cart.keys())) if cart else []
-    items = Product.objects.filter(id__in=ids).select_related("category")
-
-    positions, total = [], Decimal("0.00")
-    for p in items:
-        qty = int(cart.get(str(p.id), 0))
-        unit = Decimal(str(p.price))
-        line_total = unit * qty
-        total += line_total
-        positions.append({"product": p, "qty": qty, "line_total": line_total})
+    positions, total = _cart_positions(request.session)
     return render(request, "store/cart.html", {"positions": positions, "total": total})
 
 
 @require_POST
 def cart_remove(request, slug: str):
     product = get_object_or_404(Product, slug=slug)
+    option_id_raw = request.POST.get("option_id")
+    option_pk = None
+    if option_id_raw not in (None, "", "null"):
+        try:
+            option_pk = int(option_id_raw)
+        except (TypeError, ValueError):
+            option_pk = None
+
     cart = _cart(request.session)
-    pid = str(product.id)
-    if pid in cart:
-        cart.pop(pid)
+    before = len(cart["items"])
+    cart["items"] = [
+        item for item in cart["items"]
+        if not (item["product_id"] == product.id and item.get("option_id") == option_pk)
+    ]
+    removed = before - len(cart["items"])
+    if removed:
         request.session.modified = True
-        messages.info(request, f"Товар «{product.name}» удалён из корзины.")
+        option_label = ""
+        if option_pk:
+            opt = ProductOption.objects.filter(id=option_pk, product=product).first()
+            if opt:
+                option_label = f" ({opt.name})"
+        messages.info(request, f"Товар «{product.name}{option_label}» удалён из корзины.")
     return redirect("store:store-cart")
 
 
@@ -191,17 +341,7 @@ def _first_present(model_fields: set, candidates: Iterable[str]):
 
 def checkout(request):
     # собрать позиции заказа из корзины
-    cart = _cart(request.session)
-    ids = list(map(int, cart.keys())) if cart else []
-    qs = Product.objects.filter(id__in=ids).select_related("category")
-
-    positions, total = [], Decimal("0.00")
-    for p in qs:
-        qty = int(cart.get(str(p.id), 0))
-        unit = Decimal(str(p.price))
-        line_total = unit * qty
-        total += line_total
-        positions.append({"product": p, "qty": qty, "line_total": line_total})
+    positions, total = _cart_positions(request.session)
 
     if request.method == "POST" and not positions:
         messages.error(request, "Корзина пуста.")
@@ -332,11 +472,13 @@ def checkout(request):
                 line_field    = _first_present(i_fields, ["total", "line_total", "subtotal", "line_price", "price_total"])
                 currency_field= _first_present(i_fields, ["currency", "currency_code"])
 
+                option_field = _first_present(i_fields, ["option", "product_option"])
+
                 for it in positions:
                     p = it["product"]
                     qty = int(it["qty"])
-                    unit = Decimal(str(p.price))
-                    line_total = unit * qty
+                    unit = Decimal(str(it.get("unit_price", p.price)))
+                    line_total = Decimal(str(it.get("line_total", unit * qty)))
 
                     kwargs = {"order": order}
                     if product_field:
@@ -349,11 +491,13 @@ def checkout(request):
                         kwargs[line_field] = line_total
                     if currency_field:
                         kwargs[currency_field] = getattr(p, "currency", "USD")
+                    if option_field and it.get("option"):
+                        kwargs[option_field] = it["option"]
 
                     OrderItem.objects.create(**kwargs)
 
                 # очистить корзину
-                request.session[CART_KEY] = {}
+                request.session[CART_KEY] = {"items": []}
                 request.session.modified = True
 
             messages.success(request, f"Заказ успешно создан. Спасибо! Номер: #{order.id}")
