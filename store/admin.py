@@ -95,7 +95,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
 
     def specs_preview(self, obj):
-        """Pretty HTML preview для JSON specs."""
+        """Pretty HTML preview for JSON specs."""
         if not getattr(obj, "specs", None):
             return "—"
         rows = []
@@ -184,14 +184,14 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
         for o in queryset:
             o.set_status(status, save=True)
             updated += 1
-        self.message_user(request, f"Обновлено заказов: {updated}")
+        self.message_user(request, f"Orders updated: {updated}")
 
     def mark_processing(self, request, qs): self._bulk_set(request, qs, Order.STATUS_PROCESSING)
     def mark_shipped(self, request, qs):    self._bulk_set(request, qs, Order.STATUS_SHIPPED)
     def mark_completed(self, request, qs):  self._bulk_set(request, qs, Order.STATUS_COMPLETED)
     def mark_cancelled(self, request, qs):  self._bulk_set(request, qs, Order.STATUS_CANCELLED)
 
-    mark_processing.short_description = "Пометить: processing"
-    mark_shipped.short_description    = "Пометить: shipped"
-    mark_completed.short_description  = "Пометить: completed"
-    mark_cancelled.short_description  = "Пометить: cancelled"
+    mark_processing.short_description = "Mark as processing"
+    mark_shipped.short_description    = "Mark as shipped"
+    mark_completed.short_description  = "Mark as completed"
+    mark_cancelled.short_description  = "Mark as cancelled"

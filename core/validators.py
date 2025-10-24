@@ -2,10 +2,10 @@
 import re
 from django.core.exceptions import ValidationError
 
-PHONE_RE = re.compile(r"^\+?\d{10,15}$")      # «+» необязателен, 10-15 цифр
+PHONE_RE = re.compile(r"^\+?\d{10,15}$")      # leading "+" optional, expect 10-15 digits
 
 def clean_phone(value):
-    """Проверяет, что телефон соответствует международному формату."""
+    """Ensure the phone number follows the international format."""
     if not PHONE_RE.fullmatch(value):
-        raise ValidationError("Введите телефон в формате +79991234567")
+        raise ValidationError("Enter a phone number in the format +12345678901.")
     return value

@@ -5,7 +5,7 @@
 <section class="section">
   <div class="container">
     <h1 class="section__title">BGM Store</h1>
-    <p class="section__desc">Каталог запчастей и апгрейдов</p>
+    <p class="section__desc">Catalog of parts and upgrades.</p>
 
     {% for category in categories %}
       <h2 style="margin-top:1.5rem">{{ category.name }}</h2>
@@ -18,14 +18,14 @@
             <h3 style="margin-top:.6rem">{{ product.name }}</h3>
             <p class="section__desc">{{ product.description|truncatewords:20 }}</p>
             <p><strong>${{ product.price }}</strong></p>
-            <a class="btn btn--primary" href="#">Заказать</a>
+            <a class="btn btn--primary" href="#">Order</a>
           </article>
         {% empty %}
-          <p class="section__desc">Нет товаров в этой категории.</p>
+          <p class="section__desc">No products in this category yet.</p>
         {% endfor %}
       </div>
     {% empty %}
-      <p>Категории ещё не созданы.</p>
+      <p>Categories have not been created yet.</p>
     {% endfor %}
   </div>
 </section>

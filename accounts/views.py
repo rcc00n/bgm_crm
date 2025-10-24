@@ -152,7 +152,7 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         form = ClientProfileForm(request.POST, user=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, "Профиль обновлён.")
+            messages.success(request, "Profile updated.")
             return redirect(reverse("dashboard") + "#profile")
 
         ctx = self.get_context_data()

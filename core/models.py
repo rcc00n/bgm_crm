@@ -183,7 +183,7 @@ class UserProfile(models.Model):
     how_heard = models.CharField(max_length=32, choices=HowHeard.choices, blank=True)
 
     def set_marketing_consent(self, value: bool):
-        """Удобный метод: при выставлении True заполнит timestamp, при снятии — очистит."""
+        """Convenience helper: switches consent flag and timestamp in sync."""
         if value and not self.email_marketing_consent:
             self.email_marketing_consent = True
             self.email_marketing_consented_at = timezone.now()
@@ -404,7 +404,7 @@ class Appointment(models.Model):
     def clean(self):
         if self.start_time and self.start_time.time() > time(23, 59):
             raise ValidationError({
-                "start_time": "Время начала не может быть позже 23:59."
+                "start_time": "Start time cannot be later than 23:59."
             })
 
         # Остальная логика…
@@ -739,4 +739,3 @@ class AppointmentPromoCode(models.Model):
             raise ValidationError({
                 "promocode": "This Service already has a discount. Promocode can't be applied"
             })
-

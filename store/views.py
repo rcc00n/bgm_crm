@@ -265,10 +265,10 @@ def cart_add(request, slug: str):
         if option_id:
             option = get_object_or_404(ProductOption, id=option_id, product=product)
             if not option.is_active:
-                messages.error(request, "Эта опция недоступна для заказа.")
+                messages.error(request, "This option is currently unavailable.")
                 return redirect("store:store-product", slug=product.slug)
     elif product.has_active_options:
-        messages.error(request, "Выберите опцию перед добавлением товара в корзину.")
+        messages.error(request, "Please select an option before adding the product to the cart.")
         return redirect("store:store-product", slug=product.slug)
 
     _cart_add_item(
@@ -279,11 +279,11 @@ def cart_add(request, slug: str):
     )
 
     if request.POST.get("buy_now") == "1":
-        messages.success(request, f"Товар «{product.name}» добавлен. Переходим к оформлению.")
+        messages.success(request, f'"{product.name}" added. Redirecting to checkout.')
         return redirect("store:store-checkout")
 
     opt_suffix = f" ({option.name})" if option else ""
-    messages.success(request, f"Добавлено в корзину: «{product.name}{opt_suffix}».")
+    messages.success(request, f'Added to cart: "{product.name}{opt_suffix}".')
     return redirect("store:store-product", slug=product.slug)
 
 
@@ -317,7 +317,7 @@ def cart_remove(request, slug: str):
             opt = ProductOption.objects.filter(id=option_pk, product=product).first()
             if opt:
                 option_label = f" ({opt.name})"
-        messages.info(request, f"Товар «{product.name}{option_label}» удалён из корзины.")
+        messages.info(request, f'Removed from cart: "{product.name}{option_label}".')
     return redirect("store:store-cart")
 
 
@@ -344,7 +344,7 @@ def checkout(request):
     positions, total = _cart_positions(request.session)
 
     if request.method == "POST" and not positions:
-        messages.error(request, "Корзина пуста.")
+        messages.error(request, "The cart is empty.")
         return redirect("store:store-cart")
 
     form = {"delivery_method": "shipping"}
@@ -372,29 +372,29 @@ def checkout(request):
 
         # валидация
         if not form["customer_name"]:
-            errors["customer_name"] = "Укажите имя и фамилию."
+            errors["customer_name"] = "Please provide your full name."
         if not form["phone"]:
-            errors["phone"] = "Укажите телефон."
+            errors["phone"] = "Please provide a phone number."
         try:
             validate_email(form["email"])
         except ValidationError:
-            errors["email"] = "Неверный формат email."
+            errors["email"] = "Enter a valid email."
 
         is_pickup = form["delivery_method"] == "pickup"
         if not is_pickup:
             if not form["address_line1"]:
-                errors["address_line1"] = "Улица и дом обязательны."
+                errors["address_line1"] = "Street and house/building are required."
             if not form["city"]:
-                errors["city"] = "Укажите город."
+                errors["city"] = "City is required."
             if not form["region"]:
-                errors["region"] = "Укажите регион/штат."
+                errors["region"] = "State/region is required."
             if not form["postal_code"]:
-                errors["postal_code"] = "Укажите индекс."
+                errors["postal_code"] = "Postal code is required."
             if not form["country"]:
-                errors["country"] = "Укажите страну."
+                errors["country"] = "Country is required."
 
         if not form["agree"]:
-            errors["agree"] = "Нужно подтвердить согласие с условиями."
+            errors["agree"] = "You must agree to the terms."
 
         if not errors:
             o_fields = _model_field_names(Order)
@@ -437,7 +437,7 @@ def checkout(request):
                 if form["comment"]:
                     extra_blocks.append(form["comment"])
                 if is_pickup and form["pickup_notes"]:
-                    extra_blocks.append(f"[Самовывоз] {form['pickup_notes']}")
+                    extra_blocks.append(f"[Pickup] {form['pickup_notes']}")
                 if not is_pickup:
                     addr_pushed = all(
                         _first_present(o_fields, mapping[k])
@@ -448,7 +448,7 @@ def checkout(request):
                             [form["address_line1"], form["address_line2"], form["city"],
                              form["region"], form["postal_code"], form["country"]]
                         ).strip(", ").replace("  ", " ")
-                        extra_blocks.append(f"[Доставка] {addr_text}")
+                        extra_blocks.append(f"[Delivery] {addr_text}")
                 if extra_blocks:
                     order_kwargs[comment_field] = "\n".join(extra_blocks)
 
@@ -500,7 +500,7 @@ def checkout(request):
                 request.session[CART_KEY] = {"items": []}
                 request.session.modified = True
 
-            messages.success(request, f"Заказ успешно создан. Спасибо! Номер: #{order.id}")
+            messages.success(request, f"Order created successfully. Thank you! Order #: {order.id}")
             return redirect("store:store")
 
     return render(

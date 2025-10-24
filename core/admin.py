@@ -304,7 +304,7 @@ class MasterSelectorMixing:
 
 @admin.register(MasterAvailability)
 class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
-    list_display = ("staff_member", "start_time", "end_time", "reason")
+    list_display = ("staff", "start_time", "end_time", "reason")
     list_filter = (MasterOnlyFilter, "reason")
     search_fields = ("master__first_name", "master__last_name", "reason")
     export_fields = ["master", "start_time", "end_time", "reason"]
@@ -361,7 +361,7 @@ class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelA
         return initial
 
     @admin.display(description=STAFF_DISPLAY_NAME, ordering="master__first_name")
-    def staff_member(self, obj):
+    def staff(self, obj):
         full_name = obj.master.get_full_name()
         return full_name if full_name else obj.master.username
 

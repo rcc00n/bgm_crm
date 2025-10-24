@@ -54,10 +54,10 @@ class AppointmentForm(forms.ModelForm):
             try:
                 code = PromoCode.objects.get(code=promocode_str.upper())
                 if not code.is_valid_for(service):
-                    raise forms.ValidationError("Этот промокод недействителен для выбранной услуги или срока.")
+                    raise forms.ValidationError("This promo code is not valid for the selected service or date.")
                 cleaned_data["applied_promocode"] = code
             except PromoCode.DoesNotExist:
-                raise forms.ValidationError("Неверный промокод.")
+                raise forms.ValidationError("Promo code not found.")
 
         return cleaned_data
 

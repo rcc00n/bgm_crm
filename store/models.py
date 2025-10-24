@@ -43,19 +43,19 @@ class CarModel(models.Model):
 # ─────────────────────────── Store: categories / products ───────────────────────────
 
 class Category(models.Model):
-    name = models.CharField("Название", max_length=120, unique=True)
-    slug = models.SlugField("Слаг", unique=True)
-    description = models.TextField("Описание", blank=True)
+    name = models.CharField("Name", max_length=120, unique=True)
+    slug = models.SlugField("Slug", unique=True)
+    description = models.TextField("Description", blank=True)
     image = models.ImageField(
-        "Картинка",
+        "Image",
         upload_to="store/categories/",
         blank=True, null=True,
-        help_text="Загрузите обложку категории (соотношение ~16:9)"
+        help_text="Upload a 16:9 category cover"
     )
 
     class Meta:
-        verbose_name = "Категория"
-        verbose_name_plural = "Категории"
+        verbose_name = "Category"
+        verbose_name_plural = "Categories"
         ordering = ["name"]
 
     def __str__(self):
@@ -65,7 +65,7 @@ class Category(models.Model):
         if self.image:
             return format_html('<img src="{}" style="height:60px;border-radius:8px">', self.image.url)
         return "—"
-    image_tag.short_description = "Превью"
+    image_tag.short_description = "Preview"
 
 
 class Product(models.Model):
@@ -154,20 +154,20 @@ class ProductOption(models.Model):
         Product,
         on_delete=models.CASCADE,
         related_name="options",
-        verbose_name="Товар",
+        verbose_name="Product",
     )
-    name = models.CharField("Название", max_length=120)
-    description = models.CharField("Описание", max_length=240, blank=True)
+    name = models.CharField("Name", max_length=120)
+    description = models.CharField("Description", max_length=240, blank=True)
     is_active = models.BooleanField(
-        "Активна",
+        "Active",
         default=False,
-        help_text="Неактивные опции скрыты из карточки товара.",
+        help_text="Inactive options are hidden on the product page.",
     )
-    sort_order = models.PositiveIntegerField("Порядок", default=0)
+    sort_order = models.PositiveIntegerField("Sort order", default=0)
 
     class Meta:
-        verbose_name = "Опция товара"
-        verbose_name_plural = "Опции товара"
+        verbose_name = "Product option"
+        verbose_name_plural = "Product options"
         ordering = ["sort_order", "id"]
         unique_together = ("product", "name")
 
@@ -284,7 +284,7 @@ class OrderItem(models.Model):
         null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name="order_items",
-        help_text="Опция, выбранная покупателем.",
+        help_text="Option chosen by the customer.",
     )
     qty     = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
 

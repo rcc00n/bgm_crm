@@ -12,41 +12,41 @@ from core.models import (
     CustomUserDisplay,
     UserProfile,
     Role,
-    HowHeard,  # TextChoices со значениями источников
+    HowHeard,  # TextChoices enumerating acquisition sources
 )
 
 
 # ---------- Registration ----------
 class ClientRegistrationForm(UserCreationForm):
     """
-    Регистрация клиента: e-mail, телефон, (необязательный) username + пароль.
-    После save():
-        • создаёт UserProfile (включая address / how_heard / email_marketing_consent),
-        • назначает роль «Client».
+    Customer registration form: email, phone, optional username, and password.
+    On save it:
+        - creates a UserProfile (address / how_heard / email_marketing_consent),
+        - assigns the "Client" role.
     """
 
     email = forms.EmailField(required=True, label="E-mail")
 
-    # Визуально предзаполняем +1 и показываем формат;
-    # валидацию/нормализацию делаем в clean_phone()
+    # Pre-fill +1 visually and show the expected format;
+    # actual validation/normalization occurs in clean_phone().
     phone = forms.CharField(
         max_length=20,
-        label="Телефон",
+        label="Phone",
         initial="+1 ",
         widget=forms.TextInput(attrs={"placeholder": "(555) 123-4567"})
     )
 
-    username = forms.CharField(required=False, label="Логин (можно оставить пустым)")
+    username = forms.CharField(required=False, label="Username (optional)")
 
-    # --- NEW: дополнительные поля регистрации ---
+    # --- additional registration fields ---
     address = forms.CharField(
-        required=False, label="Адрес",
+        required=False, label="Address",
         widget=forms.Textarea(attrs={"rows": 2, "placeholder": "Street, Apt, City, ZIP"})
     )
 
     how_heard = forms.ChoiceField(
         required=False, label="How did you hear about us?",
-        choices=[("", "— Select —")] + list(HowHeard.choices)
+        choices=[("", "- Select -")] + list(HowHeard.choices)
     )
 
     email_marketing_consent = forms.BooleanField(
@@ -66,31 +66,31 @@ class ClientRegistrationForm(UserCreationForm):
     def clean_email(self):
         email = (self.cleaned_data.get("email") or "").lower().strip()
         if CustomUserDisplay.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError("Этот e-mail уже используется.")
+            raise forms.ValidationError("This email is already in use.")
         return email
 
     def clean_phone(self):
         raw = (self.cleaned_data.get("phone") or "").strip()
-        # Оставляем только цифры и '+'
+        # keep only digits and "+"
         raw = "".join(ch for ch in raw if ch.isdigit() or ch == "+")
-        # Если код страны не указан — подставим +1
+        # assume +1 if country code is missing
         if raw and not raw.startswith("+"):
             raw = "+1" + raw
-        # Парсим и приводим к E.164
+        # parse and normalize to E.164
         try:
             parsed = phonenumbers.parse(raw, None)
         except phonenumbers.NumberParseException:
-            raise forms.ValidationError("Неверный формат телефона.")
+            raise forms.ValidationError("Invalid phone format.")
         phone_e164 = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
-        # Проверка уникальности среди профилей
+        # ensure uniqueness across profiles
         if UserProfile.objects.filter(phone=phone_e164).exists():
-            raise forms.ValidationError("Этот телефон уже используется.")
+            raise forms.ValidationError("This phone number is already in use.")
         return phone_e164
 
     def clean_username(self):
         username = (self.cleaned_data.get("username") or "").strip()
         if username and CustomUserDisplay.objects.filter(username=username).exists():
-            raise forms.ValidationError("Такой логин уже занят.")
+            raise forms.ValidationError("This username is already taken.")
         return username or None
 
     # --- Save ---
@@ -101,9 +101,9 @@ class ClientRegistrationForm(UserCreationForm):
         # email / username
         user.email = self.cleaned_data["email"]
         if not self.cleaned_data.get("username"):
-            # генерируем из e-mail: "john@example.com" → "john"
+            # derive username from email local-part
             user.username = slugify(user.email.split("@")[0])
-            # гарантируем уникальность
+            # ensure uniqueness
             suffix = 1
             base = user.username
             while CustomUserDisplay.objects.filter(username=user.username).exists():
@@ -113,15 +113,15 @@ class ClientRegistrationForm(UserCreationForm):
         if commit:
             user.save()
 
-            # профиль
-            phone = self.cleaned_data["phone"]  # уже в E.164
+            # profile
+            phone = self.cleaned_data["phone"]  # already E.164
             profile = UserProfile.objects.create(
                 user=user,
                 phone=phone,
                 address=self.cleaned_data.get("address") or "",
                 how_heard=self.cleaned_data.get("how_heard") or "",
             )
-            # согласие на e-mail-рассылки (+ timestamp)
+            # marketing consent + timestamp
             consent = bool(self.cleaned_data.get("email_marketing_consent"))
             profile.set_marketing_consent(consent)
             profile.save(update_fields=[
@@ -129,7 +129,7 @@ class ClientRegistrationForm(UserCreationForm):
                 "email_marketing_consent", "email_marketing_consented_at",
             ])
 
-            # роль «Client»
+            # assign Client role
             client_role, _ = Role.objects.get_or_create(name="Client")
             user.userrole_set.get_or_create(role=client_role)
 
@@ -139,51 +139,50 @@ class ClientRegistrationForm(UserCreationForm):
 # ---------- Login ----------
 class ClientLoginForm(AuthenticationForm):
     """
-    Один input «identifier»:
-        • username
-        • e-mail
-        • телефон
-    (Шаблон логина у тебя сейчас использует {{ form.username }} и {{ form.password }},
-    так что эту форму подключай только если обновишь шаблон под 'identifier'.)
+    Single "identifier" input:
+        - username
+        - e-mail
+        - phone number
+    (Update the login template to use {{ form.identifier }} and {{ form.password }} when wiring this form.)
     """
-    identifier = forms.CharField(label="E-mail / телефон / логин")
+    identifier = forms.CharField(label="Email / phone / username")
 
     def clean(self):
         identifier = self.cleaned_data.get("identifier")
         password = self.cleaned_data.get("password")
         self.user_cache = authenticate(self.request, username=identifier, password=password)
         if self.user_cache is None:
-            raise forms.ValidationError("Неверные учётные данные.")
+            raise forms.ValidationError("Incorrect credentials.")
         self.confirm_login_allowed(self.user_cache)
         return self.cleaned_data
 
 
 # ---------- Profile edit ----------
 class ClientProfileForm(forms.Form):
-    first_name = forms.CharField(required=False, max_length=150, label="Имя")
-    last_name  = forms.CharField(required=False, max_length=150, label="Фамилия")
+    first_name = forms.CharField(required=False, max_length=150, label="First name")
+    last_name  = forms.CharField(required=False, max_length=150, label="Last name")
     email      = forms.EmailField(required=True, label="E-mail")
-    phone      = forms.CharField(required=True, max_length=20, label="Телефон")
-    birth_date = forms.DateField(required=False, input_formats=["%Y-%m-%d"], label="Дата рождения")
+    phone      = forms.CharField(required=True, max_length=20, label="Phone")
+    birth_date = forms.DateField(required=False, input_formats=["%Y-%m-%d"], label="Birth date")
 
-    # --- NEW: редактирование доп. полей профиля ---
+    # --- profile extras ---
     address = forms.CharField(
-        required=False, label="Адрес",
+        required=False, label="Address",
         widget=forms.Textarea(attrs={"rows": 2})
     )
     how_heard = forms.ChoiceField(
         required=False, label="How did you hear about us?",
-        choices=[("", "— Select —")] + list(HowHeard.choices)
+        choices=[("", "- Select -")] + list(HowHeard.choices)
     )
     email_marketing_consent = forms.BooleanField(
-        required=False, label="Согласен получать новости и предложения на e-mail"
+        required=False, label="I agree to receive news and offers via e-mail"
     )
 
     def __init__(self, *args, **kwargs):
         self.user: CustomUserDisplay = kwargs.pop("user")
         super().__init__(*args, **kwargs)
 
-        # Префиллим текущими значениями профиля (если форма открывается GET'ом)
+        # pre-fill current profile values when rendering GET form
         try:
             prof = self.user.userprofile
             self.fields["phone"].initial = prof.phone
@@ -201,12 +200,12 @@ class ClientProfileForm(forms.Form):
     def clean_email(self):
         email = (self.cleaned_data.get("email") or "").lower().strip()
         if CustomUserDisplay.objects.filter(email__iexact=email).exclude(pk=self.user.pk).exists():
-            raise ValidationError("Этот e-mail уже используется.")
+            raise ValidationError("This email is already in use.")
         return email
 
     def clean_phone(self):
         raw = (self.cleaned_data.get("phone") or "").strip()
-        # нормализация под E.164 с принудительным +1
+        # normalize to E.164 with default +1
         raw = "".join(ch for ch in raw if ch.isdigit() or ch == "+")
         if raw and not raw.startswith("+"):
             raw = "+1" + raw
@@ -214,12 +213,12 @@ class ClientProfileForm(forms.Form):
             parsed = phonenumbers.parse(raw, None)
             phone_e164 = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
         except phonenumbers.NumberParseException:
-            raise ValidationError("Неверный формат телефона.")
-        # уникальность среди профилей, исключая текущего пользователя
+            raise ValidationError("Invalid phone format.")
+        # ensure uniqueness excluding the current user
         qs = UserProfile.objects.filter(phone=phone_e164)
         qs = qs.exclude(user=self.user)
         if qs.exists():
-            raise ValidationError("Этот телефон уже используется.")
+            raise ValidationError("This phone number is already in use.")
         return phone_e164
 
     def save(self):
@@ -230,12 +229,12 @@ class ClientProfileForm(forms.Form):
         u.save(update_fields=["first_name", "last_name", "email"])
 
         prof, _ = UserProfile.objects.get_or_create(user=u)
-        prof.phone      = self.cleaned_data["phone"]              # уже E.164
+        prof.phone      = self.cleaned_data["phone"]              # already E.164
         prof.birth_date = self.cleaned_data.get("birth_date") or None
         prof.address    = self.cleaned_data.get("address", "") or ""
         prof.how_heard  = self.cleaned_data.get("how_heard", "") or ""
 
-        # согласие + timestamp через метод модели
+        # consent + timestamp via model helper
         consent = bool(self.cleaned_data.get("email_marketing_consent"))
         prof.set_marketing_consent(consent)
 
