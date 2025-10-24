@@ -16,9 +16,18 @@
       --accent:#d50000; --accent-2:#ff1a1a; --ok:#17d45b;
       --radius-lg:1.25rem; --radius-sm:.6rem; --shadow:0 12px 28px rgba(0,0,0,.55);
       --container:clamp(320px,92vw,1280px);
+      --text-base:clamp(1rem,1.15vw,1.1rem);
+      --text-body:clamp(1.06rem,1.35vw,1.24rem);
+      --text-detail:clamp(.95rem,1.05vw,1.05rem);
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--fg);font-family:var(--font-body) !important;}
+    body{
+      background:var(--bg);
+      color:var(--fg);
+      font-family:var(--font-body) !important;
+      font-size:var(--text-base);
+      line-height:1.65;
+    }
     a{color:inherit;text-decoration:none}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
 
@@ -49,7 +58,12 @@
     .kickers{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
     .chip{border:1px solid var(--line);padding:.35rem .6rem;border-radius:999px;font-weight:800;letter-spacing:.3px}
     .title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15;text-shadow:0 0 18px rgba(213,0,0,.25)}
-    .lead{color:var(--muted);max-width:70ch}
+    .lead{
+      color:var(--muted);
+      max-width:70ch;
+      font-size:clamp(1.1rem,1.5vw,1.35rem);
+      line-height:1.65;
+    }
 
     .frame{border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), 0 14px 28px rgba(0,0,0,.45);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted-2)}
@@ -58,7 +72,11 @@
     .section{padding:clamp(2rem,6vw,4rem) 0;border-top:1px solid var(--line)}
     .section__head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1.1rem}
     .section__title{font-size:1.6rem;font-weight:900}
-    .section__desc{color:var(--muted-2)}
+    .section__desc{
+      color:var(--muted);
+      font-size:var(--text-detail);
+      line-height:1.6;
+    }
 
     .grid{display:grid;gap:1rem}
     .grid--2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
@@ -67,10 +85,27 @@
       background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .18s ease, box-shadow .18s ease}
     .card:hover{transform:translateY(-2px);box-shadow:0 16px 36px rgba(0,0,0,.55)}
 
-    .list{margin:.25rem 0 0 1rem}
-    .muted{color:var(--muted)}
+    p,
+    .list{
+      font-size:var(--text-body);
+      line-height:1.65;
+    }
 
-    .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted-2);font-size:.95rem}
+    .list{margin:.25rem 0 0 1rem}
+    .muted{
+      color:var(--muted);
+      font-size:var(--text-detail);
+      line-height:1.6;
+    }
+    .chip{font-size:var(--text-detail);}
+
+    .site-footer{
+      border-top:1px solid var(--line);
+      padding:1.6rem 0;
+      color:var(--muted-2);
+      font-size:var(--text-detail);
+      line-height:1.6;
+    }
 
     @media (max-width: 900px){.hero__inner{grid-template-columns:1fr}}
     /* ===== CLEAN HEADER (brand | belt | nav) — как на Merch ===== */
@@ -371,34 +406,30 @@ html body header.site-header .badge{
   padding:.08rem .42rem !important;font-size:.68rem !important;line-height:1 !important;background:#d50000 !important;color:#fff !important;
 }
 
-/* AMVIC: всегда видим, без блендов и исчезаний */
+/* AMVIC lockup — always visible & recolored to brand red */
 .card .amvic-link img.amvic-logo{
   opacity: 1 !important;
   mix-blend-mode: normal !important;
-  filter: none !important;
+  filter: brightness(0) saturate(100%) invert(13%) sepia(95%) saturate(5278%) hue-rotate(357deg) brightness(92%) contrast(112%) !important;
   transition: none !important;
   display: inline-block !important;
 }
-.card .amvic-link:hover img.amvic-logo{
-  opacity: 1 !important; /* на всякий случай */
-}
-/* AMVIC: принудительно всегда видимая картинка */
+.card .amvic-link:hover img.amvic-logo{ opacity: 1 !important; }
 #amvic .amvic-link img.amvic-logo,
 #amvic .amvic-link:hover img.amvic-logo{
   opacity: 1 !important;
   mix-blend-mode: normal !important;
-  filter: none !important;
+  filter: brightness(0) saturate(100%) invert(13%) sepia(95%) saturate(5278%) hue-rotate(357deg) brightness(92%) contrast(112%) !important;
   transition: none !important;
   display: inline-block !important;
 }
-/* AMVIC: убить любые глобальные hover-эффекты/оверлеи/бленды только здесь */
 #amvic .card a img,
 #amvic .card:hover a img,
 #amvic .amvic-logo{
   opacity: 1 !important;
   visibility: visible !important;
   mix-blend-mode: normal !important;
-  filter: none !important;
+  filter: brightness(0) saturate(100%) invert(13%) sepia(95%) saturate(5278%) hue-rotate(357deg) brightness(92%) contrast(112%) !important;
   transition: none !important;
   position: relative !important;
   z-index: 2 !important;
@@ -688,14 +719,23 @@ html body header.site-header .brand{
     background:rgba(255,255,255,.06); border:1px solid var(--line);
     border-radius:.7rem; padding:.7rem .8rem;
     font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
+    font-size:var(--text-body);
+    line-height:1.55;
   }
   .contact-row a{ color:#fff; font-weight:800; text-decoration:none; }
-  .contact-sub{ color:rgba(255,255,255,.72); font-size:.95rem; }
+  .contact-sub{
+    color:rgba(255,255,255,.72);
+    font-size:var(--text-detail);
+    line-height:1.5;
+  }
   .contact-actions{ display:flex; gap:.6rem; margin-top:.9rem; flex-wrap:wrap; }
   .contact-btn{
     display:inline-flex; align-items:center; gap:.5em; padding:.7rem 1rem; border-radius:.55rem;
     border:1px solid var(--line); background:#0f0f0f; color:#fff; cursor:pointer;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif; font-weight:800;
+    font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
+    font-weight:800;
+    font-size:var(--text-base);
+    line-height:1.4;
   }
   .contact-btn:hover{ border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.25); }
 
