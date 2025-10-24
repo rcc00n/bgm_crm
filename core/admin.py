@@ -892,7 +892,10 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
         master_id = appt.master_id
         time_key = local_start.strftime('%H:%M')
-        duration = appt.service.duration_min + appt.service.extra_time_min
+        service = appt.service
+        base_duration = getattr(service, "duration_min", 0) or 0
+        extra_duration = getattr(service, "extra_time_min", 0) or 0
+        duration = base_duration + extra_duration
         rowspan = max(1, duration // 15)
 
         slot_map.setdefault(master_id, {})
