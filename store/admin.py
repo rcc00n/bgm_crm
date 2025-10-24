@@ -123,6 +123,15 @@ class ProductAdmin(admin.ModelAdmin):
     specs_preview.short_description = "Specifications (preview)"
 
 
+@admin.register(ProductOption)
+class ProductOptionAdmin(admin.ModelAdmin):
+    list_display = ("name", "product", "is_active", "sort_order")
+    list_filter = ("is_active",)
+    search_fields = ("name", "product__name", "product__sku")
+    autocomplete_fields = ("product",)
+    ordering = ("product__name", "sort_order", "id")
+
+
 # ──────────────────────────────── Orders ────────────────────────────────
 
 class StatusBadgeMixin:
