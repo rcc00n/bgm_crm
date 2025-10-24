@@ -16,9 +16,9 @@
       --accent:#d50000; --accent-2:#ff1a1a; --ok:#17d45b;
       --radius-lg:1.25rem; --radius-sm:.6rem; --shadow:0 12px 28px rgba(0,0,0,.55);
       --container:clamp(320px,92vw,1280px);
-      --text-base:clamp(1rem,1.15vw,1.1rem);
-      --text-body:clamp(1.06rem,1.35vw,1.24rem);
-      --text-detail:clamp(.95rem,1.05vw,1.05rem);
+      --text-base:clamp(.98rem,1.05vw,1.05rem);
+      --text-body:clamp(1.02rem,1.25vw,1.18rem);
+      --text-detail:clamp(.9rem,1vw,1rem);
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{
@@ -57,7 +57,12 @@
     .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;align-items:center;padding:clamp(2rem,6vw,4.5rem) 0}
     .kickers{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
     .chip{border:1px solid var(--line);padding:.35rem .6rem;border-radius:999px;font-weight:800;letter-spacing:.3px}
-    .title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15;text-shadow:0 0 18px rgba(213,0,0,.25)}
+    .title{
+      font-size:clamp(2.2rem,5vw,3.8rem);
+      font-weight:900;
+      line-height:1.12;
+      text-shadow:0 0 18px rgba(213,0,0,.25);
+    }
     .lead{
       color:var(--muted);
       max-width:70ch;
@@ -71,7 +76,11 @@
     /* ===== Sections ===== */
     .section{padding:clamp(2rem,6vw,4rem) 0;border-top:1px solid var(--line)}
     .section__head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1.1rem}
-    .section__title{font-size:1.6rem;font-weight:900}
+    .section__title{
+      font-size:clamp(1.8rem,2.2vw,2.1rem);
+      font-weight:900;
+      line-height:1.2;
+    }
     .section__desc{
       color:var(--muted);
       font-size:var(--text-detail);
@@ -638,7 +647,7 @@ html body header.site-header .brand{
         <img class="amvic-logo"
      src="{% static 'img/amvic-logo.png' %}"
      alt="AMVIC Licensed Business"
-     style="max-width:220px;height:auto;margin-top:.75rem;opacity:1!important;mix-blend-mode:normal!important;filter:none!important">
+     style="max-width:220px;height:auto;margin-top:.75rem;opacity:1!important;mix-blend-mode:normal!important;">
       </a>
       <p class="muted" style="margin-top:.6rem">Bad Guy Motors is a licensed automotive business under the Alberta Motor Vehicle Industry Council.</p>
     </article>
