@@ -12,6 +12,8 @@ from django.utils.text import slugify
 
 User = get_user_model()
 
+PRICE_QUANT = Decimal("0.01")
+
 
 # ─────────────────────────── Catalog: car directories ───────────────────────────
 
@@ -148,6 +150,44 @@ class Product(models.Model):
         companions.sort(key=lambda obj: pick_ids.index(obj.id))
         return companions
 
+    def get_unit_price(self, option=None) -> Decimal:
+        """
+        Returns the effective unit price for the product, respecting option overrides.
+        """
+        raw_value = None
+        if option and getattr(option, "price", None) is not None:
+            raw_value = option.price
+        else:
+            raw_value = self.price
+        try:
+            return Decimal(raw_value).quantize(PRICE_QUANT)
+        except (InvalidOperation, TypeError):
+            return Decimal("0.00")
+
+    def _option_price_values(self):
+        for opt in self.get_active_options():
+            value = getattr(opt, "price", None)
+            if value is not None:
+                yield value
+
+    @property
+    def display_price(self) -> Decimal:
+        overrides = []
+        for value in self._option_price_values():
+            try:
+                overrides.append(Decimal(value))
+            except (InvalidOperation, TypeError):
+                continue
+        if overrides:
+            return min(overrides).quantize(PRICE_QUANT)
+        return self.get_unit_price()
+
+    @property
+    def has_option_price_overrides(self) -> bool:
+        for _ in self._option_price_values():
+            return True
+        return False
+
 
 class ProductOption(models.Model):
     product = models.ForeignKey(
@@ -158,6 +198,15 @@ class ProductOption(models.Model):
     )
     name = models.CharField("Name", max_length=120)
     description = models.CharField("Description", max_length=240, blank=True)
+    price = models.DecimalField(
+        "Price override",
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        help_text="Leave empty to inherit the product price.",
+    )
     is_active = models.BooleanField(
         "Active",
         default=False,
@@ -173,6 +222,17 @@ class ProductOption(models.Model):
 
     def __str__(self):
         return f"{self.product}: {self.name}"
+
+    def get_effective_price(self) -> Decimal:
+        return self.product.get_unit_price(self)
+
+    @property
+    def unit_price(self) -> Decimal:
+        return self.get_effective_price()
+
+    @property
+    def has_custom_price(self) -> bool:
+        return self.price is not None
 
 
 class ProductImage(models.Model):
@@ -304,10 +364,14 @@ class OrderItem(models.Model):
         Снимаем «снэпшот» цены, если поле пустое, чтобы сумма не зависела от
         будущих изменений цены продукта.
         """
+        option_obj = None
+        if self.option_id:
+            option_obj = self.option
+            if option_obj and self.product_id and option_obj.product_id != self.product_id:
+                raise ValueError("Selected option does not belong to the product.")
+
         if self.price_at_moment is None and self.product_id:
-            self.price_at_moment = self.product.price
-        if self.option_id and self.product_id and self.option.product_id != self.product_id:
-            raise ValueError("Selected option does not belong to the product.")
+            self.price_at_moment = self.product.get_unit_price(option_obj)
         super().save(*args, **kwargs)
 
     @property
@@ -320,8 +384,9 @@ class OrderItem(models.Model):
             qty = Decimal(self.qty or 0)
             if self.price_at_moment is not None:
                 price = Decimal(self.price_at_moment)
-            elif self.product_id and self.product.price is not None:
-                price = Decimal(self.product.price)
+            elif self.product_id:
+                option_obj = self.option if self.option_id else None
+                price = self.product.get_unit_price(option_obj)
             else:
                 price = Decimal("0.00")
             return (qty * price).quantize(Decimal("0.01"))

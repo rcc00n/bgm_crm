@@ -35,7 +35,7 @@ class CarModelAdmin(admin.ModelAdmin):
 class ProductOptionInline(admin.TabularInline):
     model = ProductOption
     extra = 1
-    fields = ("name", "description", "is_active", "sort_order")
+    fields = ("name", "description", "price", "is_active", "sort_order")
     ordering = ("sort_order", "id")
 
 
@@ -125,7 +125,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductOption)
 class ProductOptionAdmin(admin.ModelAdmin):
-    list_display = ("name", "product", "is_active", "sort_order")
+    list_display = ("name", "product", "price", "is_active", "sort_order")
     list_filter = ("is_active",)
     search_fields = ("name", "product__name", "product__sku")
     autocomplete_fields = ("product",)

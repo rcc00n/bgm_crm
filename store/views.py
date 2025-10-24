@@ -229,8 +229,12 @@ def _cart_positions(session):
         if not product:
             continue  # silently drop missing products
         option = options.get(entry["option_id"])
+        if option and option.product_id != product.id:
+            option = None
+        if option and not getattr(option, "is_active", True):
+            option = None
         qty = entry["qty"]
-        unit = Decimal(str(product.price))
+        unit = product.get_unit_price(option)
         line_total = (unit * qty).quantize(quant)
         total += line_total
         positions.append(
@@ -477,7 +481,10 @@ def checkout(request):
                 for it in positions:
                     p = it["product"]
                     qty = int(it["qty"])
-                    unit = Decimal(str(it.get("unit_price", p.price)))
+                    unit_source = it.get("unit_price")
+                    if unit_source is None:
+                        unit_source = p.get_unit_price()
+                    unit = Decimal(str(unit_source))
                     line_total = Decimal(str(it.get("line_total", unit * qty)))
 
                     kwargs = {"order": order}

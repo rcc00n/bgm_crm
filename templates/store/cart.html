@@ -50,7 +50,9 @@
                   <div class="section__desc">Category: {{ row.product.category.name }}</div>
                 {% endif %}
                 {% if row.option %}
-                  <div class="section__desc">Option: {{ row.option.name }}</div>
+                  <div class="section__desc">Option: {{ row.option.name }} — ${{ row.unit_price|floatformat:2 }}</div>
+                {% else %}
+                  <div class="section__desc">Unit price: ${{ row.unit_price|floatformat:2 }}</div>
                 {% endif %}
               </div>
             </div>

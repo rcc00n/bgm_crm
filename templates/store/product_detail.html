@@ -37,7 +37,17 @@
           <form class="product-form" method="post" action="{% url 'store-cart-add' slug=product.slug %}">
             {% csrf_token %}
             <div class="price">
-              <strong style="font-size:1.4rem">${{ product.price }}</strong>
+              {% if product.has_option_price_overrides %}
+                <span class="price__hint">Starting at</span>
+              {% endif %}
+              <strong
+                class="price__value"
+                data-product-price-value
+                data-currency-symbol="$"
+                style="font-size:1.4rem"
+              >
+                ${{ product.display_price|floatformat:2 }}
+              </strong>
               {% if product.old_price %}<span class="old">${{ product.old_price }}</span>{% endif %}
             </div>
 
@@ -47,9 +57,19 @@
                 <div class="option-picker__grid">
                   {% for opt in product_options %}
                     <label class="option-pill">
-                      <input type="radio" name="option_id" value="{{ opt.id }}" {% if forloop.first %}checked{% endif %} required>
+                      <input
+                        type="radio"
+                        name="option_id"
+                        value="{{ opt.id }}"
+                        data-price="{{ opt.unit_price|floatformat:2 }}"
+                        {% if forloop.first %}checked{% endif %}
+                        required
+                      >
                       <span class="option-pill__inner">
-                        <span class="option-pill__name">{{ opt.name }}</span>
+                        <span class="option-pill__top">
+                          <span class="option-pill__name">{{ opt.name }}</span>
+                          <span class="option-pill__price">${{ opt.unit_price|floatformat:2 }}</span>
+                        </span>
                         {% if opt.description %}
                           <span class="option-pill__desc">{{ opt.description }}</span>
                         {% endif %}
@@ -132,7 +152,10 @@
               <div class="card__body" style="padding:.6rem .8rem">
                 <h4>{{ p.name }}</h4>
                 <p class="section__desc">{{ p.short_description|default:p.category.name }}</p>
-                <div class="price" style="margin-top:.2rem"><strong>${{ p.price }}</strong></div>
+                <div class="price" style="margin-top:.2rem">
+                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                  <strong>${{ p.display_price|floatformat:2 }}</strong>
+                </div>
               </div>
             </a>
           </article>
@@ -154,12 +177,47 @@
                 <div class="card__img" style="aspect-ratio:16/9"></div>
               {% endif %}
               <h4 style="margin-top:.6rem">{{ p.name }}</h4>
-              <div class="price" style="margin-top:.2rem"><strong>${{ p.price }}</strong></div>
+              <div class="price" style="margin-top:.2rem">
+                {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                <strong>${{ p.display_price|floatformat:2 }}</strong>
+              </div>
             </a>
           </article>
         {% endfor %}
       </div>
     {% endif %}
+
+    <script>
+      (function () {
+        var priceEl = document.querySelector('[data-product-price-value]');
+        var optionInputs = document.querySelectorAll('#product-options input[name="option_id"]');
+        if (!priceEl || !optionInputs.length) return;
+
+        var currency = priceEl.dataset.currencySymbol || '$';
+        var format = function (val) {
+          var num = Number(val);
+          if (Number.isNaN(num)) {
+            return currency + val;
+          }
+          return currency + num.toFixed(2);
+        };
+        var update = function (input) {
+          var nextPrice = input && input.dataset ? input.dataset.price : null;
+          if (!nextPrice) return;
+          priceEl.textContent = format(nextPrice);
+        };
+
+        optionInputs.forEach(function (input) {
+          input.addEventListener('change', function () {
+            update(input);
+          });
+          if (input.checked) {
+            update(input);
+          }
+        });
+      })();
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 
@@ -188,6 +246,10 @@
     min-width:160px;
     transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
   }
+  .price__hint{font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+  .price__value{display:inline-flex;align-items:center;gap:.3rem;line-height:1;}
+  .option-pill__top{display:flex;align-items:center;justify-content:space-between;gap:.6rem;}
+  .option-pill__price{font-weight:700;color:var(--ink);}
   .option-pill__name{font-weight:700; color:var(--ink);}
   .option-pill__desc{color:var(--muted); font-size:.88rem;}
   .option-pill input:checked + .option-pill__inner{

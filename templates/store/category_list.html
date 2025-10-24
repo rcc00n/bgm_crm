@@ -47,7 +47,8 @@
             <h3 class="product__title"><a href="{% url 'store-product' slug=p.slug %}">{{ p.name }}</a></h3>
             {% if p.short_description %}<p class="section__desc">{{ p.short_description }}</p>{% endif %}
             <div class="price">
-              <strong>${{ p.price }}</strong>
+              {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+              <strong>${{ p.display_price|floatformat:2 }}</strong>
               {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
             </div>
 
@@ -92,6 +93,7 @@
   .product__meta{padding:.8rem}
   .product__title{margin:.6rem 0 0}
   .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
+  .price__hint{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
   .price .old{color:var(--muted);text-decoration:line-through}
   .quick.row{margin-top:.7rem;display:flex;gap:.5rem;flex-wrap:wrap}
 

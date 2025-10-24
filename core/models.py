@@ -9,6 +9,7 @@ import os
 from django.utils import timezone
 from django.utils.timezone import localtime
 from core.validators import clean_phone
+from .constants import STAFF_DISPLAY_NAME
 from django.conf import settings
 from django.db.models import Sum
 
@@ -336,6 +337,10 @@ class MasterRoom(models.Model):
     def __str__(self):
         return self.room
 
+    class Meta:
+        verbose_name = f"{STAFF_DISPLAY_NAME} Room"
+        verbose_name_plural = f"{STAFF_DISPLAY_NAME} Rooms"
+
 class MasterProfile(models.Model):
     """
     Дополнительная информация о мастере: профессия, график работы, цвет и т.д.
@@ -352,6 +357,10 @@ class MasterProfile(models.Model):
     def __str__(self):
         return f"{self.user.get_full_name()}"
 
+    class Meta:
+        verbose_name = f"{STAFF_DISPLAY_NAME} Profile"
+        verbose_name_plural = f"{STAFF_DISPLAY_NAME} Profiles"
+
 class ServiceMaster(models.Model):
     """
     Connects a specific service with a master who can perform it.
@@ -361,6 +370,10 @@ class ServiceMaster(models.Model):
 
     def __str__(self):
         return f"{self.master} → {self.service.name}"
+
+    class Meta:
+        verbose_name = f"{STAFF_DISPLAY_NAME} Service Assignment"
+        verbose_name_plural = f"{STAFF_DISPLAY_NAME} Service Assignments"
 
 # --- 3. APPOINTMENTS ---
 

@@ -108,7 +108,8 @@
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
                 <div class="price">
-                  <strong>${{ p.price }}</strong>
+                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                  <strong>${{ p.display_price|floatformat:2 }}</strong>
                   {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
                 </div>
               </div>
@@ -144,7 +145,8 @@
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
                 <div class="price">
-                  <strong>${{ p.price }}</strong>
+                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                  <strong>${{ p.display_price|floatformat:2 }}</strong>
                   {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
                 </div>
               </div>
@@ -184,7 +186,8 @@
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
                 <div class="price">
-                  <strong>${{ p.price }}</strong>
+                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                  <strong>${{ p.display_price|floatformat:2 }}</strong>
                   {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
                 </div>
               </div>
@@ -237,6 +240,7 @@
   .product__meta{padding:.7rem .8rem}
   .product__title{margin:.6rem 0 0}
   .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
+  .price__hint{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
   .price .old{color:var(--muted);text-decoration:line-through}
 
   /* Skeleton */
