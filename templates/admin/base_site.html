@@ -10,5 +10,7 @@
 
 {% block extrastyle %}
   {{ block.super }}
-  <link rel="stylesheet" href="{% static 'admin/css/admin_overrides.css' %}">
+  <style>
+    {% include "admin/includes/admin_overrides.css" %}
+  </style>
 {% endblock %}
