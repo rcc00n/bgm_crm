@@ -224,6 +224,7 @@ nav a,.btn,.badge {
 .hero__media{
   justify-self:start;
   max-width:min(52vw, 720px);
+  position:relative;
 }
 .hero__media img{
   width:100%;
@@ -234,11 +235,36 @@ nav a,.btn,.badge {
   border-radius:1rem;
   display:block;
 }
+.hero__disclaimer{
+  position:absolute;
+  left:1.1rem;
+  bottom:1.1rem;
+  padding:.35rem .9rem;
+  border-radius:.85rem;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.6);
+  color:rgba(255,255,255,.8);
+  font-size:.72rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  backdrop-filter:blur(6px);
+}
+.hero__disclaimer::before{
+  content:"";
+  width:18px;
+  height:1px;
+  background:rgba(255,255,255,.45);
+  flex-shrink:0;
+}
 
 /* мобилка */
 @media (max-width:900px){
   .hero__inner{grid-template-columns:1fr}
   .hero__media{max-width:100%}
+  .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
 }
 
 /* дым оставляем позади */
@@ -515,6 +541,7 @@ nav a,.btn,.badge {
 
     <div class="hero__media frame frame--media">
       <img src="{% static 'img/hero-merch.jpg' %}" alt="Merch hero" loading="lazy" decoding="async">
+      <p class="hero__disclaimer">Product may not appear exactly as shown.</p>
     </div>
   </div>
 </section>

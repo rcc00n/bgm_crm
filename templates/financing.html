@@ -260,9 +260,37 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   }
 
   .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:1.2rem}
-.hero__media{justify-self:start;max-width:min(52vw,720px)}
-.hero__media img{width:100%;height:auto;aspect-ratio:16/9;max-height:clamp(220px,42vh,420px);object-fit:cover;border-radius:1rem;display:block}
-@media (max-width:900px){.hero__inner{grid-template-columns:1fr}.hero__media{max-width:100%}}
+  .hero__media{justify-self:start;max-width:min(52vw,720px);position:relative}
+  .hero__media img{width:100%;height:auto;aspect-ratio:16/9;max-height:clamp(220px,42vh,420px);object-fit:cover;border-radius:1rem;display:block}
+  .hero__disclaimer{
+    position:absolute;
+    left:1.1rem;
+    bottom:1.1rem;
+    padding:.35rem .9rem;
+    border-radius:.85rem;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(0,0,0,.58);
+    color:rgba(255,255,255,.82);
+    font-size:.72rem;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    display:inline-flex;
+    align-items:center;
+    gap:.45rem;
+    backdrop-filter:blur(6px);
+  }
+  .hero__disclaimer::before{
+    content:"";
+    width:18px;
+    height:1px;
+    background:rgba(255,255,255,.45);
+    flex-shrink:0;
+  }
+  @media (max-width:900px){
+    .hero__inner{grid-template-columns:1fr}
+    .hero__media{max-width:100%}
+    .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
+  }
 /* === BGM Financing: readable sizes ================================== */
 
 /* базовый кегль страницы */
@@ -522,6 +550,7 @@ html{ font-size: 17px; }                      /* было 16px */
 
     <div class="hero__media frame frame--media">
       <img src="{% static 'img/hero-services.jpg' %}" alt="Financing hero" loading="lazy" decoding="async">
+      <p class="hero__disclaimer">Product may not appear exactly as shown.</p>
     </div>
   </div>
 </section>
