@@ -7,6 +7,7 @@
 {% endblock %}
 
 {% block content %}
+<div class="col-12">
 <div class="dashboard-shell">
   <section class="dashboard-hero">
     <div class="dashboard-hero-content">
@@ -169,6 +170,7 @@
       <canvas id="statusTrendChart"></canvas>
     </section>
   </div>
+</div>
 </div>
 
 {{ chart_data|json_script:"chart-data" }}

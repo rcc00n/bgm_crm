@@ -30,6 +30,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.content.border-bottom.mb-2 {
+  display: none !important;
+}
+
 .content-wrapper,
 .main-header,
 .main-footer {
