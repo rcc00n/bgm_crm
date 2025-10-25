@@ -84,6 +84,33 @@ class HowHeard(models.TextChoices):
     FRIEND = "friend", "Friends/Family"
     OTHER = "other", "Other"
 
+
+class LegalPage(models.Model):
+    """
+    Simple editable container for legal documents (Terms, Privacy, etc.).
+    """
+    slug = models.SlugField(max_length=64, unique=True)
+    title = models.CharField(max_length=200)
+    body = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Legal page"
+        verbose_name_plural = "Legal pages"
+        ordering = ["title"]
+
+    def __str__(self) -> str:
+        return self.title
+
+    def get_absolute_url(self) -> str:
+        from django.urls import reverse
+
+        if self.slug == "terms-and-conditions":
+            return reverse("legal-terms")
+        return reverse("legal-page", kwargs={"slug": self.slug})
+
 # ── NEW/UPDATED: Dealer tiers, application, fields на профиле ─────────────────
 from django.conf import settings
 from django.db import models
@@ -605,8 +632,13 @@ class ClientFile(models.Model):
     ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
-    file = models.FileField(upload_to='client_files/', storage=S3Boto3Storage()) # stored in S3!
-    file_type = models.CharField(max_length=50, editable=False)
+    file = models.FileField(
+        upload_to='client_files/',
+        storage=MASTER_PHOTO_STORAGE,
+        help_text="Uploaded file stored in the configured media storage."
+    )
+    file_type = models.CharField(max_length=50, editable=False, blank=True)
+    file_size = models.PositiveIntegerField(null=True, blank=True, help_text="Size in bytes for quick display.")
     uploaded_at = models.DateTimeField(auto_now_add=True)
     uploaded_by = models.CharField(
         max_length=10,
@@ -620,11 +652,29 @@ class ClientFile(models.Model):
         blank=True,
         help_text="Optional description (e.g., 'Form before procedure')"
     )
+
     def save(self, *args, **kwargs):
-        if self.file and not self.file_type:
-            name, extension = os.path.splitext(self.file.name)
-            self.file_type = extension.lower().lstrip('.')  # без точки
+        if self.file:
+            if not self.file_type:
+                _, extension = os.path.splitext(self.file.name)
+                self.file_type = extension.lower().lstrip('.')
+            try:
+                self.file_size = self.file.size
+            except Exception:
+                # leave previous value if storage can't provide size
+                self.file_size = self.file_size or None
         super().save(*args, **kwargs)
+
+    @property
+    def filename(self):
+        if not self.file:
+            return ""
+        return os.path.basename(self.file.name)
+
+    @property
+    def is_image(self) -> bool:
+        ext = (self.file_type or "").lower()
+        return ext in {"jpg", "jpeg", "png", "webp", "gif", "heic", "bmp"}
 
 # --- 7. NOTIFICATIONS ---
 

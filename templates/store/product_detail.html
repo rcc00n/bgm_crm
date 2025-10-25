@@ -150,15 +150,105 @@
                 confirm availability, and send back a detailed quote with next steps.
               </p>
             </div>
-            <a
-              class="btn btn--primary"
-              href="mailto:support@badguymotors.com?subject=Deck%20Build%20Quote&body=Hi%20BGM%20team%2C%0AI'm%20ready%20to%20build%20my%20deck.%20Here%20are%20the%20details%3A%0A-%20Vehicle%3A%0A-%20Desired%20power%2Fapplication%3A%0A-%20Timeline%3A%0A%0AThanks!"
-            >
-              Get a quote today
-            </a>
+            <a class="btn btn--primary" href="#quote-request">Get a quote today</a>
           </div>
         </div>
       </div>
+    </div>
+
+    <div id="quote-request" class="card card--quote">
+      <div class="quote-card__intro">
+        <p class="cta__eyebrow">Custom fitment brief</p>
+        <h3 class="cta__title">Share the inputs, we’ll send the plan</h3>
+        <p class="section__desc cta__copy">
+          Outline your vehicle, performance targets, and timeline. The build desk will confirm availability,
+          pricing, and next steps in writing.
+        </p>
+      </div>
+
+      {% if messages %}
+        <div class="quote-alerts">
+          {% for message in messages %}
+            <div class="quote-alert quote-alert--{{ message.tags|default:'info' }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="" class="quote-form" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="custom_fitment">
+        {{ quote_form.product }}
+        {{ quote_form.source_url }}
+
+        {% if quote_form.non_field_errors %}
+          <div class="quote-alert quote-alert--error">
+            {% for err in quote_form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="quote-grid">
+          <div class="quote-field{% if quote_form.customer_name.errors %} quote-field--error{% endif %}">
+            <label for="{{ quote_form.customer_name.id_for_label }}">Full name *</label>
+            {{ quote_form.customer_name }}
+            {% if quote_form.customer_name.errors %}
+              <p class="quote-field__error">{{ quote_form.customer_name.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="quote-field{% if quote_form.email.errors %} quote-field--error{% endif %}">
+            <label for="{{ quote_form.email.id_for_label }}">Email *</label>
+            {{ quote_form.email }}
+            {% if quote_form.email.errors %}
+              <p class="quote-field__error">{{ quote_form.email.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="quote-field{% if quote_form.phone.errors %} quote-field--error{% endif %}">
+            <label for="{{ quote_form.phone.id_for_label }}">Phone</label>
+            {{ quote_form.phone }}
+            {% if quote_form.phone.errors %}
+              <p class="quote-field__error">{{ quote_form.phone.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="quote-field{% if quote_form.vehicle.errors %} quote-field--error{% endif %}">
+            <label for="{{ quote_form.vehicle.id_for_label }}">Platform / chassis</label>
+            {{ quote_form.vehicle }}
+            {% if quote_form.vehicle.errors %}
+              <p class="quote-field__error">{{ quote_form.vehicle.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="quote-field{% if quote_form.performance_goals.errors %} quote-field--error{% endif %}">
+            <label for="{{ quote_form.performance_goals.id_for_label }}">Performance goals</label>
+            {{ quote_form.performance_goals }}
+            {% if quote_form.performance_goals.errors %}
+              <p class="quote-field__error">{{ quote_form.performance_goals.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="quote-field{% if quote_form.timeline.errors %} quote-field--error{% endif %}">
+            <label for="{{ quote_form.timeline.id_for_label }}">Timeline</label>
+            {{ quote_form.timeline }}
+            {% if quote_form.timeline.errors %}
+              <p class="quote-field__error">{{ quote_form.timeline.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="quote-field quote-field--full{% if quote_form.message.errors %} quote-field--error{% endif %}">
+            <label for="{{ quote_form.message.id_for_label }}">Notes</label>
+            {{ quote_form.message }}
+            {% if quote_form.message.errors %}
+              <p class="quote-field__error">{{ quote_form.message.errors.0 }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="quote-actions">
+          <button class="btn btn--primary" type="submit">Submit request</button>
+          <p class="quote-footnote">Response time: typically same day during business hours.</p>
+        </div>
+      </form>
     </div>
 
 {% if go_along %}
@@ -325,6 +415,60 @@
   @media (max-width:640px){
     .cta{flex-direction:column;align-items:flex-start}
     .cta .btn{width:100%;justify-content:center}
+  }
+  .card--quote{
+    margin-top:1.5rem;
+    padding:1.5rem;
+    background:linear-gradient(145deg,rgba(213,0,0,.08),rgba(0,0,0,.8));
+    border:1px solid rgba(213,0,0,.25);
+    border-radius:1.1rem;
+    box-shadow:0 18px 45px rgba(0,0,0,.35);
+  }
+  .quote-card__intro{margin-bottom:1rem;}
+  .quote-form{display:flex;flex-direction:column;gap:1rem;margin-top:.5rem;}
+  .quote-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    gap:1rem;
+  }
+  .quote-field{display:flex;flex-direction:column;}
+  .quote-field label{
+    font-size:.85rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:rgba(255,255,255,.76);
+    margin-bottom:.25rem;
+  }
+  .quote-field .field{width:100%;}
+  .quote-field--full{grid-column:1 / -1;}
+  .quote-field__error{
+    color:var(--error-text);
+    font-size:.8rem;
+    margin-top:.3rem;
+  }
+  .quote-field--error .field{
+    border-color:rgba(213,0,0,.7);
+    box-shadow:0 0 0 1px rgba(213,0,0,.35);
+  }
+  .quote-alerts{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem;}
+  .quote-alert{
+    padding:.6rem .8rem;
+    border-radius:.7rem;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.04);
+    font-weight:700;
+    font-size:.9rem;
+  }
+  .quote-alert--success{border-color:rgba(33,150,83,.55);background:rgba(33,150,83,.15);color:#b9f6ca;}
+  .quote-alert--error{border-color:rgba(255,138,128,.6);background:rgba(59,0,0,.8);color:var(--error-text);}
+  .quote-alert--info{opacity:.85;}
+  .quote-actions{display:flex;flex-direction:column;gap:.4rem;}
+  .quote-footnote{color:var(--muted);font-size:.85rem;}
+  @media (min-width:640px){
+    .quote-actions{flex-direction:row;align-items:center;justify-content:flex-start;}
+    .quote-actions .btn{flex-shrink:0;}
+    .quote-footnote{margin:0;}
   }
 
   /* дым — слой позади всего */

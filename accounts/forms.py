@@ -53,11 +53,20 @@ class ClientRegistrationForm(UserCreationForm):
         required=False, label="I agree to receive e-mail updates and offers"
     )
 
+    accepted_terms = forms.BooleanField(
+        required=True,
+        label="I have read and agree to the Terms & Conditions",
+        error_messages={
+            "required": "You must accept the Terms & Conditions to create an account."
+        },
+    )
+
     class Meta:
         model = CustomUserDisplay
         fields = (
             "username", "email", "phone",
             "address", "how_heard", "email_marketing_consent",
+            "accepted_terms",
             "password1", "password2"
         )
 

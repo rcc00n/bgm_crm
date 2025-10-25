@@ -5,9 +5,13 @@
   <meta charset="utf-8" />
   <title>{% block title %}BGM — Store{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- preload кастомных шрифтов -->
+  <!-- Preload custom fonts -->
 <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
+  <!-- Load Inter for crisp body copy -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
 
   <style>
     :root{
@@ -166,14 +170,15 @@
 
 /* переменные семейств */
 :root{
-  --font-body: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
+  --font-display: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --font-head: "Ford",  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 /* сглаживание */
 html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
 
-/* заменить Inter на Diesel для основного текста */
+/* Keep body copy on Inter for readability */
 body{ font-family:var(--font-body) !important; }
 
 /* заголовки/бренд/кнопки — Ford */
@@ -355,7 +360,7 @@ nav a{ white-space: nowrap !important; }
     font-size:clamp(.78rem, .95vw, .95rem);
   }
 
-  /* меню справа — без «таблеток», Diesel, без капса */
+  /* navigation on the right stays pill-less and clean */
   .site-header nav{ justify-self:end; min-width:0; }
   .site-header nav ul{
     display:flex !important; align-items:center !important;
@@ -365,7 +370,7 @@ nav a{ white-space: nowrap !important; }
   .site-header nav .btn,
   .site-header nav .btn--ghost{
     background:none !important; border:0 !important; border-radius:.4rem !important; padding:.4rem .6rem !important;
-    font-family:var(--font-body) !important; /* Diesel */
+    font-family:var(--font-body) !important;
     font-weight:700 !important; font-size:.95rem !important;
     letter-spacing:.02em !important; text-transform:none !important; line-height:1.15 !important;
     color:rgba(255,255,255,.92) !important; white-space:nowrap !important;
@@ -387,7 +392,7 @@ nav a{ white-space: nowrap !important; }
   /* принудительно как на Merch */
   .site-header .brand,
   .site-header .brand__word{
-    font-family: var(--font-body) !important;  /* Diesel */
+    font-family: var(--font-display) !important;
     font-style: normal !important;
     text-transform: uppercase !important;
     letter-spacing: .06em !important;
@@ -618,7 +623,7 @@ nav a{ white-space: nowrap !important; }
     background:linear-gradient(180deg,var(--red) 0%,var(--red-dark) 100%);
     color:#fff; font-weight:900; letter-spacing:.02em; line-height:1;
     cursor:pointer; box-shadow:0 12px 26px rgba(213,0,0,.28), 0 0 26px rgba(213,0,0,.18);
-    transition:.18s ease; font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
+    transition:.18s ease; font-family:var(--font-body,"Inter"),system-ui,sans-serif;
   }
   .contact-fab:hover{ transform:translateY(-2px); filter:saturate(1.05); }
   .contact-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
@@ -655,7 +660,7 @@ nav a{ white-space: nowrap !important; }
     display:flex; align-items:center; justify-content:space-between; gap:.6rem;
     background:rgba(255,255,255,.06); border:1px solid var(--line);
     border-radius:.7rem; padding:.7rem .8rem;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
+    font-family:var(--font-body,"Inter"),system-ui,sans-serif;
   }
   .contact-row a{ color:#fff; font-weight:800; text-decoration:none; }
   .contact-sub{ color:rgba(255,255,255,.72); font-size:.95rem; }
@@ -663,7 +668,7 @@ nav a{ white-space: nowrap !important; }
   .contact-btn{
     display:inline-flex; align-items:center; gap:.5em; padding:.7rem 1rem; border-radius:.55rem;
     border:1px solid var(--line); background:#0f0f0f; color:#fff; cursor:pointer;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif; font-weight:800;
+    font-family:var(--font-body,"Inter"),system-ui,sans-serif; font-weight:800;
   }
   .contact-btn:hover{ border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.25); }
 

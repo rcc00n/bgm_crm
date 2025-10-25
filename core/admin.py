@@ -9,9 +9,11 @@ from django.contrib import admin
 from django.db.models import Sum, Count
 from itertools import cycle
 from django.utils.timezone import localtime, datetime, make_aware, localdate
+from django.utils import timezone
 from django.utils.html import escape
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
+from django.template.defaultfilters import filesizeformat
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
@@ -285,8 +287,9 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'birth_date')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Files', {'fields': ('files',)}),
+        ('Files', {'fields': ('files', 'files_overview')}),
     )
+    readonly_fields = BaseUserAdmin.readonly_fields + ('files_overview',)
 
     def get_fieldsets(self, request, obj=None):
         # Allow Django to use default fieldsets logic
@@ -299,6 +302,38 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
     def save_model(self, request, obj, form, change):
         # Save user and assign roles
         super().save_model(request, obj, form, change)
+
+    @admin.display(description="Existing files")
+    def files_overview(self, obj):
+        if not obj or not obj.pk:
+            return "Files will appear after the user is saved."
+        files_qs = obj.clientfile_set.order_by('-uploaded_at')
+        if not files_qs.exists():
+            return "No files yet."
+        rows = format_html_join(
+            "",
+            "<li style='margin-bottom:.4rem'>"
+            "<a href=\"{0}\" target=\"_blank\" rel=\"noopener\" style='font-weight:600'>{1}</a>"
+            "<div style='font-size:.85rem;color:#999'>"
+            "{2} • {3} • {4}"
+            "</div>"
+            "</li>",
+            (
+                (
+                    f.file.url,
+                    f.filename or f.file.name,
+                    filesizeformat(f.file_size) if f.file_size else "—",
+                    f.get_uploaded_by_display(),
+                    timezone.localtime(f.uploaded_at).strftime("%b %d, %Y %H:%M") if f.uploaded_at else "—",
+                )
+                for f in files_qs[:8]
+            )
+        )
+        extra = ""
+        remaining = files_qs.count() - 8
+        if remaining > 0:
+            extra = format_html("<div style='margin-top:.5rem;color:#999'>+ {} more file(s)</div>", remaining)
+        return format_html("<ul style='margin:0;padding-left:1rem;list-style:disc'>{}</ul>{}", rows, extra)
 
     # Custom display methods for user profile fields
     def phone(self, instance):
@@ -779,14 +814,31 @@ class ClientFileAdmin(admin.ModelAdmin):
     """
     Admin interface for managing user-uploaded files.
     """
-    list_display = ('user', "uploaded_by" ,'file_type', 'file')
-    fields = ('user', 'file',"uploaded_by", 'file_type')
-    readonly_fields = ('file_type',)  # 👈 делаем только для чтения
-    exclude = ('file_type',)  # 👈 скрываем из формы создания
+    list_display = ('user', 'filename', 'file_type', 'file_size_display', 'uploaded_by', 'uploaded_at')
+    fieldsets = (
+        (None, {"fields": ('user', 'file', 'description', 'uploaded_by')}),
+        ("Metadata", {"fields": ('file_type', 'file_size_display', 'uploaded_at', 'file_preview')}),
+    )
+    readonly_fields = ('file_type', 'file_size_display', 'uploaded_at', 'file_preview')
     list_filter = (('uploaded_at', DateFieldListFilter), 'file_type')
-    search_fields = ('user__first_name', 'user__last_name')
+    search_fields = ('user__first_name', 'user__last_name', 'description')
     ordering = ['-uploaded_at']
 
+    @admin.display(description="File name")
+    def filename(self, obj):
+        return obj.filename or obj.file.name
+
+    @admin.display(description="Size")
+    def file_size_display(self, obj):
+        if obj.file_size:
+            return filesizeformat(obj.file_size)
+        return "—"
+
+    @admin.display(description="Preview")
+    def file_preview(self, obj):
+        if obj.file:
+            return format_html('<a href="{}" target="_blank" rel="noopener">Open file</a>', obj.file.url)
+        return "—"
 
 
 # -----------------------------
@@ -1224,3 +1276,16 @@ class UserProfileAdmin(admin.ModelAdmin):
                 up.dealer_since = timezone.now()
             up.save(update_fields=["dealer_tier", "dealer_since"])
         self.message_user(request, f"Recomputed tiers for {queryset.count()} profile(s).")
+
+
+@admin.register(LegalPage)
+class LegalPageAdmin(admin.ModelAdmin):
+    list_display = ("title", "slug", "is_active", "updated_at")
+    list_filter = ("is_active",)
+    search_fields = ("title", "slug", "body")
+    prepopulated_fields = {"slug": ("title",)}
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("title", "slug", "body", "is_active")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )

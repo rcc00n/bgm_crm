@@ -338,6 +338,36 @@ background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000
 .reg-form .field select option{ background:#0f0f0f; color:var(--ink); }
 .modal__dialog, .reg-form .field select, .reg-form .field input, .reg-form .field textarea{ color-scheme:dark; }
 
+.reg-form .field.field--agree{
+  display:flex;
+  align-items:flex-start;
+  gap:.6rem;
+  padding:.75rem 0;
+}
+.field--agree input{
+  width:20px;
+  height:20px;
+  margin-top:.2rem;
+  accent-color:#ff3939;
+  flex-shrink:0;
+}
+.field--agree label{
+  position:static;
+  transform:none;
+  opacity:1;
+  font-size:.88rem;
+  line-height:1.45;
+  color:var(--muted);
+}
+.field--agree a{
+  color:#ff5a5a;
+  font-weight:600;
+  text-decoration:none;
+}
+.field--agree a:hover{
+  text-decoration:underline;
+}
+
 
 </style>
 </head>
@@ -437,10 +467,20 @@ background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000
       </div>
 
       <!-- Consent -->
-      <div class="field" style="display:flex;align-items:center;gap:.6rem;">
-        <input id="consentEmail" type="checkbox" name="email_marketing_consent" style="width:auto;height:auto;">
-        <label for="consentEmail" style="position:static;transform:none;opacity:1;font-size:14px;color:var(--muted);">
-          I agree to receive e‑mail updates and offers
+      <div class="field field--agree">
+        <input id="consentEmail" type="checkbox" name="email_marketing_consent">
+        <label for="consentEmail">
+          I agree to receive e‑mail updates and offers.
+        </label>
+      </div>
+
+      <div class="field field--agree">
+        <input id="acceptTerms" type="checkbox" name="accepted_terms" required>
+        <label for="acceptTerms">
+          I have read and agree to the
+          <a href="{% url 'legal-terms' %}" target="_blank" rel="noopener">
+            Terms &amp; Conditions
+          </a>.
         </label>
       </div>
 

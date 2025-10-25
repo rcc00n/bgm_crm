@@ -1,17 +1,26 @@
 # store/views.py
 from decimal import Decimal
 from typing import Dict, Iterable
+import logging
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+from PIL import Image, UnidentifiedImageError
 
 from .models import Category, Order, OrderItem, Product, ProductOption, CarMake, CarModel
-from .forms_store import ProductFilterForm
+from .forms_store import ProductFilterForm, CustomFitmentRequestForm
+
+logger = logging.getLogger(__name__)
+
+REFERENCE_IMAGE_MAX_MB = getattr(settings, "STORE_REFERENCE_IMAGE_MAX_MB", 8)
+REFERENCE_IMAGE_MAX_BYTES = int(REFERENCE_IMAGE_MAX_MB * 1024 * 1024)
 
 # ────────────────────────── Публичные страницы ──────────────────────────
 
@@ -43,6 +52,60 @@ def _apply_filters(qs, form: ProductFilterForm):
         )
 
     return qs.distinct()
+
+
+def _quote_notification_recipients() -> list[str]:
+    """
+    Resolve the notification list for custom fitment requests with sensible fallbacks.
+    """
+    recipients = getattr(settings, "STORE_QUOTE_RECIPIENTS", None)
+    if isinstance(recipients, str):
+        return [recipients]
+    if recipients:
+        return list(recipients)
+
+    support_email = getattr(settings, "SUPPORT_EMAIL", None)
+    if support_email:
+        return [support_email]
+    default = getattr(settings, "DEFAULT_FROM_EMAIL", None)
+    if default:
+        return [default]
+    return ["support@badguymotors.com"]
+
+
+def _notify_fitment_request(request_obj):
+    """
+    Send a concise email to the internal inbox so the sales team can follow up fast.
+    """
+    recipients = _quote_notification_recipients()
+    if not recipients:
+        return
+
+    subject = f"Custom fitment request — {request_obj.product_name or 'Custom build'}"
+    lines = [
+        f"Product: {request_obj.product_name or '—'}",
+        f"Customer: {request_obj.customer_name}",
+        f"Email: {request_obj.email}",
+        f"Phone: {request_obj.phone or '—'}",
+        f"Vehicle: {request_obj.vehicle or '—'}",
+        f"Performance goals: {request_obj.performance_goals or '—'}",
+        f"Timeline: {request_obj.timeline or '—'}",
+        f"Notes:\n{request_obj.message or '—'}",
+    ]
+    if request_obj.source_url:
+        lines.append(f"Source: {request_obj.source_url}")
+
+    sender = getattr(settings, "DEFAULT_FROM_EMAIL", None) or recipients[0]
+    try:
+        send_mail(
+            subject=subject,
+            message="\n".join(lines),
+            from_email=sender,
+            recipient_list=recipients,
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception("Failed to notify about custom fitment request (id=%s)", request_obj.pk)
 
 
 def store_home(request):
@@ -119,6 +182,27 @@ def product_detail(request, slug: str):
         .order_by("-created_at")[:8]
     )
     go_along = product.get_companion_items(limit=3)
+    quote_initial = {
+        "product": product.pk,
+        "source_url": request.build_absolute_uri(),
+    }
+    quote_form = CustomFitmentRequestForm(initial=quote_initial)
+
+    if request.method == "POST" and request.POST.get("form_type") == "custom_fitment":
+        form_data = request.POST.copy()
+        form_data["product"] = product.pk
+        form_data.setdefault("source_url", request.build_absolute_uri())
+        quote_form = CustomFitmentRequestForm(form_data)
+        if quote_form.is_valid():
+            fitment_request = quote_form.save()
+            _notify_fitment_request(fitment_request)
+            messages.success(
+                request,
+                "Thanks! Your build notes reached our team. Expect a reply within one business day.",
+            )
+            return redirect(product.get_absolute_url() + "#quote-request")
+        messages.error(request, "Please correct the fields highlighted below.")
+
     return render(
         request,
         "store/product_detail.html",
@@ -127,6 +211,7 @@ def product_detail(request, slug: str):
             "related": related,
             "product_options": options,
             "go_along": go_along,
+            "quote_form": quote_form,
         },
     )
 
@@ -352,6 +437,7 @@ def checkout(request):
     # собрать позиции заказа из корзины
     positions, total = _cart_positions(request.session)
 
+    reference_file = None
     if request.method == "POST" and not positions:
         messages.error(request, "The cart is empty.")
         return redirect("store:store-cart")
@@ -363,6 +449,7 @@ def checkout(request):
         def val(name, default=""):
             return (request.POST.get(name) or default).strip()
 
+        reference_file = request.FILES.get("reference_image")
         form = {
             "customer_name": val("customer_name"),
             "email": val("email"),
@@ -398,12 +485,25 @@ def checkout(request):
             if not form["region"]:
                 errors["region"] = "State/region is required."
             if not form["postal_code"]:
-                errors["postal_code"] = "Postal code is required."
-            if not form["country"]:
-                errors["country"] = "Country is required."
+            errors["postal_code"] = "Postal code is required."
+        if not form["country"]:
+            errors["country"] = "Country is required."
 
         if not form["agree"]:
             errors["agree"] = "You must agree to the terms."
+
+        if reference_file:
+            if reference_file.size > REFERENCE_IMAGE_MAX_BYTES:
+                errors["reference_image"] = f"Image is too large. Limit: {REFERENCE_IMAGE_MAX_MB} MB."
+            elif not (reference_file.content_type or "").lower().startswith("image/"):
+                errors["reference_image"] = "Please upload an image file."
+            else:
+                try:
+                    with Image.open(reference_file) as img:
+                        img.verify()
+                    reference_file.seek(0)
+                except (UnidentifiedImageError, OSError):
+                    errors["reference_image"] = "Unsupported image. Use JPG, PNG, or WEBP."
 
         if not errors:
             o_fields = _model_field_names(Order)
@@ -469,6 +569,9 @@ def checkout(request):
                 if "created_by" in o_fields:
                     order_kwargs.setdefault("created_by", request.user)
 
+            if reference_file and "reference_image" in o_fields:
+                order_kwargs["reference_image"] = reference_file
+
             with transaction.atomic():
                 order = Order.objects.create(**order_kwargs)
 
@@ -523,5 +626,6 @@ def checkout(request):
             "total": total,
             "form": form,
             "errors": errors,
+            "reference_image_limit_mb": REFERENCE_IMAGE_MAX_MB,
         },
     )

@@ -8,10 +8,11 @@ from django.utils.dateparse import parse_date, parse_datetime
 from django.utils import timezone
 from datetime import datetime
 import json
+from django.utils.functional import cached_property
 
 from core.models import (
     Appointment, ServiceCategory, Service, CustomUserDisplay,
-    AppointmentStatusHistory
+    AppointmentStatusHistory, LegalPage
 )
 from core.services.booking import (
     get_available_slots, get_service_masters,
@@ -373,6 +374,30 @@ def financing_view(request):
 
 def our_story_view(request):
     return render(request, "client/our_story.html")
+
+
+class LegalPageView(TemplateView):
+    """
+    Generic renderer for editable legal/marketing documents.
+    """
+    template_name = "legal/page.html"
+    slug = None
+
+    @cached_property
+    def page(self) -> LegalPage:
+        lookup_slug = self.kwargs.get("slug") or self.slug
+        queryset = LegalPage.objects.filter(is_active=True)
+        return get_object_or_404(queryset, slug=lookup_slug)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page"] = self.page
+        ctx.setdefault("meta_title", self.page.title)
+        return ctx
+
+
+class TermsAndConditionsView(LegalPageView):
+    slug = "terms-and-conditions"
 
 # core/views.py
 from datetime import datetime, timedelta

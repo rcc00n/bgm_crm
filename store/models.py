@@ -302,6 +302,12 @@ class Order(models.Model):
     vehicle_model = models.CharField(max_length=64, blank=True)
     vehicle_year = models.PositiveIntegerField(null=True, blank=True)
     notes = models.TextField(blank=True)
+    reference_image = models.ImageField(
+        upload_to="store/order_attachments/",
+        null=True,
+        blank=True,
+        help_text="Optional photo reference uploaded at checkout.",
+    )
 
     # who created
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
@@ -408,3 +414,78 @@ class OrderItem(models.Model):
             return (qty * price).quantize(Decimal("0.01"))
         except (InvalidOperation, TypeError):
             return Decimal("0.00")
+
+
+# ─────────────────────────── Custom fitment / quote requests ───────────────────────────
+
+class CustomFitmentRequest(models.Model):
+    class Status(models.TextChoices):
+        NEW = ("new", "New")
+        IN_PROGRESS = ("in_progress", "In progress")
+        RESPONDED = ("responded", "Responded")
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fitment_requests",
+        help_text="Product the request originated from (if it still exists).",
+    )
+    product_name = models.CharField(
+        max_length=180,
+        blank=True,
+        help_text="Snapshot of the product name so context is not lost if the product is removed.",
+    )
+
+    customer_name = models.CharField("Customer name", max_length=140)
+    email = models.EmailField()
+    phone = models.CharField(max_length=40, blank=True)
+    vehicle = models.CharField(
+        max_length=180,
+        blank=True,
+        help_text="Chassis, platform, or vehicle description shared by the customer.",
+    )
+    performance_goals = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Power goals or intended usage spelled out by the customer.",
+    )
+    timeline = models.CharField(
+        max_length=140,
+        blank=True,
+        help_text="Requested timing or deadline for the build.",
+    )
+    message = models.TextField(
+        blank=True,
+        help_text="Free-form notes provided by the customer.",
+    )
+    source_url = models.URLField(
+        blank=True,
+        help_text="Where on the site the request originated.",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NEW,
+        db_index=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Custom fitment request"
+        verbose_name_plural = "Custom fitment requests"
+
+    def __str__(self):
+        return f"{self.customer_name} — {self.product_name or 'Custom build'}"
+
+    def save(self, *args, **kwargs):
+        """
+        Preserve product context even if the catalog entry disappears later.
+        """
+        if self.product and not self.product_name:
+            self.product_name = self.product.name
+        super().save(*args, **kwargs)

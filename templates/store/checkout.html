@@ -33,7 +33,7 @@
 
     <div class="checkout-grid">
       <!-- FORM -->
-      <form class="card checkout-form" method="post" novalidate>
+      <form class="card checkout-form" method="post" novalidate enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-grid">
 
@@ -144,6 +144,35 @@
             <textarea class="input" name="comment" rows="4" placeholder="Anything we should know?">{{ form.comment|default_if_none:'' }}</textarea>
           </section>
 
+          <!-- Reference photo -->
+          <section>
+            <h3 class="block-title">Photo reference <span class="section__desc" style="font-size:.9rem;">(optional)</span></h3>
+            <div class="upload-card {% if errors.reference_image %}upload-card--invalid{% endif %}">
+              <input type="file" id="reference_image" name="reference_image" accept="image/*" hidden>
+              <div id="referenceDropzone" class="upload-drop">
+                <div class="upload-graphic">📷</div>
+                <div class="upload-copy">
+                  <p class="upload-title">Drop an image or click to upload</p>
+                  <p class="upload-subtitle">JPG, PNG, or WEBP — up to {{ reference_image_limit_mb }} MB.</p>
+                </div>
+                <button type="button" id="uploadPick" class="btn btn--ghost btn--small">Browse</button>
+              </div>
+              <div id="referencePreview" class="upload-preview" hidden>
+                <img id="referencePreviewImg" alt="Reference preview">
+                <div>
+                  <p id="referencePreviewName" class="upload-title"></p>
+                  <p id="referencePreviewMeta" class="upload-subtitle"></p>
+                </div>
+                <button type="button" id="uploadClear" class="btn btn--ghost btn--small" hidden>Remove</button>
+              </div>
+              {% if errors.reference_image %}
+                <div class="err">{{ errors.reference_image }}</div>
+              {% else %}
+                <p class="section__desc text-xs">If the form reloads you'll need to pick the file again.</p>
+              {% endif %}
+            </div>
+          </section>
+
           <!-- Consent + actions -->
           <label class="check">
             <input id="agree" type="checkbox" name="agree" value="1" {% if form.agree %}checked{% endif %}>
@@ -244,6 +273,49 @@
   .check input{ margin-top:.2rem; accent-color:var(--red); }
 
   .actions{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
+  .btn--small{ padding:.45rem .75rem; font-size:.85rem; }
+
+  .upload-card{
+    border:1px dashed var(--card-border);
+    border-radius:var(--radius-sm);
+    padding:1rem;
+    background:rgba(255,255,255,.02);
+  }
+  .upload-card--invalid{ border-color:var(--error-text); }
+  .upload-drop{
+    display:flex; align-items:center; gap:1rem;
+    padding:1rem;
+    border:1px dashed rgba(255,255,255,.2);
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    transition:.2s;
+  }
+  .upload-card--invalid .upload-drop{ border-color:var(--error-text); }
+  .upload-drop:hover,
+  .upload-drop.is-dragover{
+    border-color:var(--red); background:rgba(213,0,0,.04);
+  }
+  .upload-graphic{
+    width:48px; height:48px;
+    display:grid; place-items:center;
+    font-size:1.5rem;
+    border-radius:14px;
+    background:rgba(255,255,255,.05);
+  }
+  .upload-title{ font-weight:700; margin-bottom:.15rem; }
+  .upload-subtitle{ color:var(--muted); font-size:.9rem; }
+  .upload-preview{
+    display:flex; align-items:center; gap:1rem;
+    margin-top:1rem;
+    padding:1rem;
+    border:1px solid rgba(255,255,255,.15);
+    border-radius:var(--radius-sm);
+    background:rgba(255,255,255,.02);
+  }
+  .upload-preview img{
+    width:72px; height:72px; object-fit:cover;
+    border-radius:12px; border:1px solid rgba(255,255,255,.12);
+  }
 
   .summary__list{ list-style:none; display:grid; gap:.6rem; margin:0; padding:0; }
   .summary__row{
@@ -280,6 +352,14 @@
     const agree  = document.getElementById('agree');
     const submit = document.getElementById('submitBtn');
     const postal = document.getElementById('postal_code');
+    const refInput = document.getElementById('reference_image');
+    const refDrop  = document.getElementById('referenceDropzone');
+    const refPick  = document.getElementById('uploadPick');
+    const refClear = document.getElementById('uploadClear');
+    const refPreview = document.getElementById('referencePreview');
+    const refPreviewImg = document.getElementById('referencePreviewImg');
+    const refPreviewName = document.getElementById('referencePreviewName');
+    const refPreviewMeta = document.getElementById('referencePreviewMeta');
 
     function syncDelivery(){
       const val = document.querySelector('input[name="delivery_method"]:checked')?.value;
@@ -297,10 +377,93 @@
       if (!postal) return;
       postal.value = postal.value.toUpperCase().replace(/\s+/g,'').replace(/(.{3})/,'$1 ');
     }
+    function bytesToString(bytes){
+      if (!bytes && bytes !== 0) return '';
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1048576) return `${(bytes/1024).toFixed(1)} KB`;
+      return `${(bytes/1048576).toFixed(1)} MB`;
+    }
+    function resetPreview(){
+      if (!refPreview) return;
+      refPreview.setAttribute('hidden','');
+      if (refClear) refClear.setAttribute('hidden','');
+      if (refPreviewImg) refPreviewImg.src = '';
+      if (refPreviewName) refPreviewName.textContent = '';
+      if (refPreviewMeta) refPreviewMeta.textContent = '';
+    }
+    function showPreview(file){
+      if (!file || !refPreview) return;
+      refPreview.removeAttribute('hidden');
+      if (refClear) refClear.removeAttribute('hidden');
+      if (refPreviewName) refPreviewName.textContent = file.name || 'Selected image';
+      if (refPreviewMeta) refPreviewMeta.textContent = bytesToString(file.size);
+      if (refPreviewImg){
+        const reader = new FileReader();
+        reader.onload = e => { refPreviewImg.src = e.target.result; };
+        reader.readAsDataURL(file);
+      }
+    }
+    function assignFile(file){
+      if (!(window.DataTransfer && file)) return false;
+      try{
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        refInput.files = dt.files;
+        return true;
+      }catch(_){
+        return false;
+      }
+    }
+    function handleReferenceFile(file){
+      if (!file) return;
+      if (!assignFile(file)){
+        alert('Drag & drop is not supported in this browser. Please use the Browse button.');
+        return;
+      }
+      showPreview(file);
+    }
 
     methodInputs.forEach(i => i.addEventListener('change', syncDelivery));
     if (agree)  agree.addEventListener('change', syncAgree);
     if (postal) postal.addEventListener('blur', normalizePostal);
+    if (refInput){
+      refInput.addEventListener('change', () => {
+        if (!refInput.files.length){
+          resetPreview();
+          return;
+        }
+        showPreview(refInput.files[0]);
+      });
+    }
+    if (refDrop){
+      refDrop.addEventListener('click', () => refInput && refInput.click());
+      ['dragenter','dragover'].forEach(evt => refDrop.addEventListener(evt, e => {
+        e.preventDefault();
+        refDrop.classList.add('is-dragover');
+      }));
+      ['dragleave','dragend','drop'].forEach(evt => refDrop.addEventListener(evt, e => {
+        if (evt !== 'drop') e.preventDefault();
+        refDrop.classList.remove('is-dragover');
+      }));
+      refDrop.addEventListener('drop', e => {
+        e.preventDefault();
+        const file = e.dataTransfer?.files?.[0];
+        if (file) handleReferenceFile(file);
+      });
+    }
+    if (refPick){
+      refPick.addEventListener('click', (e) => {
+        e.preventDefault();
+        refInput && refInput.click();
+      });
+    }
+    if (refClear){
+      refClear.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (refInput) refInput.value = '';
+        resetPreview();
+      });
+    }
 
     document.addEventListener('DOMContentLoaded', function(){
       syncDelivery();

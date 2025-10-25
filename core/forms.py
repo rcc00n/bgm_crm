@@ -9,6 +9,13 @@ from django.contrib.auth.password_validation import validate_password
 from .models import *
 from .constants import STAFF_DISPLAY_NAME
 
+
+class MultipleFileInput(forms.ClearableFileInput):
+    """
+    ClearableFileInput variant that allows selecting multiple files.
+    """
+    allow_multiple_selected = True
+
 # -----------------------------
 # Appointment Form
 # -----------------------------
@@ -171,8 +178,9 @@ class CustomUserChangeForm(UserChangeForm):
 
     files = forms.FileField(
         required=False,
-        widget=forms.ClearableFileInput(attrs={'multiple': False}),
-        label="Upload files"
+        widget=MultipleFileInput(attrs={'multiple': True}),
+        label="Upload files",
+        help_text="Attach one or more files to this profile."
     )
     class Meta:
         model = User
@@ -224,7 +232,8 @@ class CustomUserChangeForm(UserChangeForm):
             ClientFile.objects.create(
                 user=user,
                 file=f,
-                file_type=""
+                uploaded_by=ClientFile.ADMIN,
+                description="Uploaded via admin panel"
             )
         return user
 

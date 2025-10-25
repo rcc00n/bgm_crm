@@ -259,6 +259,72 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     font-family: var(--font-body) !important; /* Diesel */
   }
 </style>
+<style id="file-upload-styles">
+  #tab-files .file-dropzone{
+    border:1px dashed rgba(255,255,255,.25);
+    border-radius:var(--radius);
+    padding:1.75rem 1.25rem;
+    text-align:center;
+    background:rgba(255,255,255,.03);
+    transition:all .2s ease;
+    cursor:pointer;
+  }
+  #tab-files .file-dropzone:hover,
+  #tab-files .file-dropzone.is-dragover{
+    border-color:var(--red);
+    background:rgba(213,0,0,.08);
+  }
+  #tab-files .file-dropzone.is-uploading{
+    opacity:.6;
+    pointer-events:none;
+  }
+  #tab-files .file-dropzone__icon{
+    font-size:2rem;
+    margin-bottom:.5rem;
+  }
+  .file-card{
+    display:flex;
+    gap:1rem;
+    align-items:flex-start;
+    padding:1rem;
+    border:1px solid var(--grid);
+    border-radius:var(--radius);
+    background:rgba(255,255,255,.03);
+  }
+  .file-card__icon{
+    font-size:1.4rem;
+    width:40px;
+    height:40px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(255,255,255,.04);
+  }
+  .file-card__body{
+    flex:1;
+    min-width:0;
+  }
+  .file-card__name{
+    font-weight:700;
+    color:#fff;
+    display:inline-flex;
+    align-items:center;
+    gap:.35rem;
+  }
+  .file-card__desc{
+    color:var(--muted);
+    margin:.25rem 0;
+  }
+  .file-card__delete{
+    margin-left:auto;
+    color:#ff8282;
+    background:transparent;
+    border:0;
+    font-weight:700;
+    cursor:pointer;
+  }
+</style>
 <style id="font-lock-brand">
   .brand {
     font-size: 1.6rem !important;   /* общий размер */
@@ -466,132 +532,16 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         <a href="{% url 'store' %}" class="ml-auto btn btn-ghost">Go to products</a>
       </div>
 
-      {# 1) если в контексте уже есть `orders` #}
       {% if orders %}
-        {% with orders as orders_qs %}
-          <div class="space-y-3">
-            {% for o in orders_qs %}
-              <div class="panel panel-pad">
-                <div class="flex flex-wrap items-center gap-3">
-                  <div class="text-sm muted">Order</div>
-                  <div class="font-bold">#{{ o.id }}</div>
-                  <div class="text-sm muted">
-                    · {{
-                      o.created_at|default:o.shipped_at|default:o.completed_at|default:o.cancelled_at
-                      |localtime|date:"d M Y, H:i"
-                    }}
-                  </div>
-                  <div class="ml-auto flex items-center gap-3">
-                    <span class="badge st-{{ o.status|default:'processing' }}">
-                      {{ o.status_label|default:o.get_status_display|default:o.status }}
-                    </span>
-                    <div class="font-bold">${{ o.total|floatformat:2 }}</div>
-                  </div>
-                </div>
-
-                {% with items=o.items.all %}
-                  {% if items %}
-                    <div class="mt-3 border-t border-[color:var(--grid)] pt-3">
-                      {% for it in items %}
-                        <div class="flex items-center justify-between py-1 text-sm">
-                          <div class="truncate">
-                            <span class="font-semibold">{{ it.product.name }}</span>
-                            {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
-                          </div>
-                          <div class="muted-2">x {{ it.qty }}</div>
-                          <div class="font-semibold">${{ it.subtotal|floatformat:2 }}</div>
-                        </div>
-                      {% endfor %}
-                    </div>
-                  {% endif %}
-                {% endwith %}
-              </div>
-            {% endfor %}
-          </div>
-        {% endwith %}
-
-      {# 2) иначе — если юзер залогинен, пробуем его связанные `orders` #}
+        {% include "client/_order_cards.html" with orders=orders %}
       {% elif request.user.is_authenticated %}
         {% with user_orders=request.user.orders.all %}
           {% if user_orders %}
-            {% with user_orders as orders_qs %}
-              <div class="space-y-3">
-                {% for o in orders_qs %}
-                  <div class="panel panel-pad">
-                    <div class="flex flex-wrap items-center gap-3">
-                      <div class="text-sm muted">Order</div>
-                      <div class="font-bold">#{{ o.id }}</div>
-                      <div class="text-sm muted">
-                        · {{ o.created_at|default:o.shipped_at|default:o.completed_at|default:o.cancelled_at|localtime|date:"d M Y, H:i" }}
-                      </div>
-                      <div class="ml-auto flex items-center gap-3">
-                        <span class="badge st-{{ o.status|default:'processing' }}">
-                          {{ o.status_label|default:o.get_status_display|default:o.status }}
-                        </span>
-                        <div class="font-bold">${{ o.total|floatformat:2 }}</div>
-                      </div>
-                    </div>
-                    {% with items=o.items.all %}
-                      {% if items %}
-                        <div class="mt-3 border-t border-[color:var(--grid)] pt-3">
-                          {% for it in items %}
-                            <div class="flex items-center justify-between py-1 text-sm">
-                              <div class="truncate">
-                                <span class="font-semibold">{{ it.product.name }}</span>
-                                {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
-                              </div>
-                              <div class="muted-2">x {{ it.qty }}</div>
-                              <div class="font-semibold">${{ it.subtotal|floatformat:2 }}</div>
-                            </div>
-                          {% endfor %}
-                        </div>
-                      {% endif %}
-                    {% endwith %}
-                  </div>
-                {% endfor %}
-              </div>
-            {% endwith %}
+            {% include "client/_order_cards.html" with orders=user_orders %}
           {% else %}
-            {# 3) финальный фолбэк: если вдруг related_name другой (order_set) #}
             {% with legacy_orders=request.user.order_set.all %}
               {% if legacy_orders %}
-                {% with legacy_orders as orders_qs %}
-                  <div class="space-y-3">
-                    {% for o in orders_qs %}
-                      <div class="panel panel-pad">
-                        <div class="flex flex-wrap items-center gap-3">
-                          <div class="text-sm muted">Order</div>
-                          <div class="font-bold">#{{ o.id }}</div>
-                          <div class="text-sm muted">
-                            · {{ o.created_at|default:o.shipped_at|default:o.completed_at|default:o.cancelled_at|localtime|date:"d M Y, H:i" }}
-                          </div>
-                          <div class="ml-auto flex items-center gap-3">
-                            <span class="badge st-{{ o.status|default:'processing' }}">
-                              {{ o.status_label|default:o.get_status_display|default:o.status }}
-                            </span>
-                            <div class="font-bold">${{ o.total|floatformat:2 }}</div>
-                          </div>
-                        </div>
-                        {% with items=o.items.all %}
-                          {% if items %}
-                            <div class="mt-3 border-t border-[color:var(--grid)] pt-3">
-                              {% for it in items %}
-                                <div class="flex items-center justify-between py-1 text-sm">
-                                  <div class="truncate">
-                                    <span class="font-semibold">{{ it.product.name }}</span>
-                                    {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
-                                  </div>
-                                  <div class="muted-2">x {{ it.qty }}</div>
-                                  <div class="font-semibold">${{ it.subtotal|floatformat:2 }}</div>
-                                </div>
-                              {% endfor %}
-                            </div>
-                          {% endif %}
-                        {% endwith %}
-                      </div>
-                    {% endfor %}
-                  </div>
-                {% endwith %}
+                {% include "client/_order_cards.html" with orders=legacy_orders %}
               {% else %}
                 <p class="muted-2">No orders yet.</p>
               {% endif %}
@@ -605,8 +555,77 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
     <!-- FILES -->
     <section id="tab-files" class="tab hidden">
-      <h2 class="text-2xl font-bold mb-6">Files</h2>
-      <p class="muted-2">Coming soon.</p>
+      <div class="flex flex-col md:flex-row md:items-end gap-2 mb-6">
+        <div>
+          <h2 class="text-2xl font-bold">Files</h2>
+          <p class="muted-2">Upload insurance papers, IDs, or inspiration photos for our team.</p>
+        </div>
+        <span class="text-sm muted-2 md:ml-auto">Max size: {{ client_file_max_mb }} MB</span>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6">
+        <form id="fileUploadForm"
+              class="panel panel-pad space-y-5"
+              data-upload-url="{% url 'dashboard-file-upload' %}"
+              data-max-mb="{{ client_file_max_mb }}">
+          {% csrf_token %}
+          <div>
+            <label class="block text-sm muted mb-1" for="fileDescription">Description (optional)</label>
+            <input id="fileDescription" name="description" type="text" placeholder="e.g. Insurance approval" />
+          </div>
+
+          <div id="fileDropzone" class="file-dropzone" role="button" tabindex="0">
+            <input id="filePicker" type="file" accept="image/*,.pdf" hidden />
+            <div class="file-dropzone__icon">⬆️</div>
+            <p class="font-semibold">Drop a file here or click to browse</p>
+            <p class="muted-2 text-sm">Accepted: images (JPG, PNG, WEBP, HEIC) or PDF. Max {{ client_file_max_mb }} MB.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" id="fileBrowseBtn" class="btn btn-primary">Choose file</button>
+            <p id="fileStatus" class="text-sm muted-2"></p>
+          </div>
+        </form>
+
+        <div class="panel panel-pad">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold">Your files</h3>
+            <span class="muted-2 text-sm" id="fileCount">{{ client_files|length }} total</span>
+          </div>
+          <p id="fileEmpty" class="muted-2 {% if client_files %}hidden{% endif %}">
+            No files yet. Upload your first document or photo.
+          </p>
+          <div id="fileCards" class="space-y-4">
+            {% for file in client_files %}
+              <div class="file-card"
+                   data-file-id="{{ file.id }}"
+                   {% if file.uploaded_by == file.USER %}data-delete-url="{% url 'dashboard-file-delete' file.id %}"{% endif %}>
+                <div class="file-card__icon">{% if file.is_image %}🖼️{% else %}📎{% endif %}</div>
+                <div class="file-card__body">
+                  <a href="{{ file.file.url }}" target="_blank" rel="noopener" class="file-card__name">
+                    {{ file.filename|default:file.file.name }}
+                  </a>
+                  {% if file.description %}
+                    <p class="file-card__desc">{{ file.description }}</p>
+                  {% endif %}
+                  <p class="file-card__meta text-sm muted-2">
+                    {{ file.uploaded_at|localtime|date:"d M Y, H:i" }} ·
+                    {% if file.file_size %}
+                      {{ file.file_size|filesizeformat }}
+                    {% else %}
+                      —
+                    {% endif %}
+                    · {{ file.get_uploaded_by_display }}
+                  </p>
+                </div>
+                {% if file.uploaded_by == file.USER %}
+                  <button type="button" class="file-card__delete">Remove</button>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- NOTIFICATIONS -->
@@ -963,6 +982,193 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     resCancel.addEventListener('click', closeRes);
     resModal.addEventListener('click', (e)=>{ if(e.target===resModal) closeRes(); });
     resSubmit.addEventListener('click', submitRes);
+  }
+
+  /* ==== Files upload ==== */
+  const fileForm = document.getElementById('fileUploadForm');
+  if (fileForm) {
+    const dropzone = document.getElementById('fileDropzone');
+    const picker = document.getElementById('filePicker');
+    const browseBtn = document.getElementById('fileBrowseBtn');
+    const cardsEl = document.getElementById('fileCards');
+    const emptyEl = document.getElementById('fileEmpty');
+    const descriptionInput = document.getElementById('fileDescription');
+    const statusEl = document.getElementById('fileStatus');
+    const countEl = document.getElementById('fileCount');
+    const uploadUrl = fileForm.dataset.uploadUrl;
+    const maxMb = Number(fileForm.dataset.maxMb || 10);
+
+    if (dropzone && picker && browseBtn && cardsEl && uploadUrl) {
+      const showStatus = (message = '', isError = false) => {
+        if (!statusEl) return;
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? '#ff8a80' : 'var(--muted)';
+      };
+
+      const toggleEmptyState = () => {
+        if (!emptyEl) return;
+        const hasCards = !!cardsEl.querySelector('.file-card');
+        emptyEl.classList.toggle('hidden', hasCards);
+      };
+
+      const updateCount = () => {
+        if (!countEl) return;
+        const count = cardsEl.querySelectorAll('.file-card').length;
+        countEl.textContent = `${count} total`;
+      };
+
+      const attachDeleteHandler = (card) => {
+        const btn = card.querySelector('.file-card__delete');
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+          const url = card.dataset.deleteUrl;
+          if (!url) return;
+          btn.disabled = true;
+          const originalText = btn.textContent;
+          btn.textContent = 'Removing…';
+          try {
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: {'X-CSRFToken': csrftoken},
+              credentials: 'same-origin',
+            });
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(payload.error || 'Unable to delete file.');
+            card.remove();
+            toggleEmptyState();
+            updateCount();
+            showStatus('File removed.');
+            setTimeout(() => showStatus(''), 1600);
+          } catch (err) {
+            showStatus(err.message || 'Delete failed.', true);
+          } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+          }
+        });
+      };
+
+      const createCard = (file) => {
+        if (!file) return null;
+        const card = document.createElement('div');
+        card.className = 'file-card';
+        card.dataset.fileId = file.id;
+        if (file.delete_url) {
+          card.dataset.deleteUrl = file.delete_url;
+        }
+
+        const icon = document.createElement('div');
+        icon.className = 'file-card__icon';
+        icon.textContent = file.is_image ? '🖼️' : '📎';
+
+        const body = document.createElement('div');
+        body.className = 'file-card__body';
+
+        const name = document.createElement('a');
+        name.href = file.url || '#';
+        name.target = '_blank';
+        name.rel = 'noopener';
+        name.className = 'file-card__name';
+        name.textContent = file.name || 'File';
+        body.appendChild(name);
+
+        if (file.description) {
+          const desc = document.createElement('p');
+          desc.className = 'file-card__desc';
+          desc.textContent = file.description;
+          body.appendChild(desc);
+        }
+
+        const meta = document.createElement('p');
+        meta.className = 'file-card__meta text-sm muted-2';
+        meta.textContent = `${file.uploaded_at_display || ''} · ${file.size || '—'} · ${file.uploaded_by || ''}`;
+        body.appendChild(meta);
+
+        card.appendChild(icon);
+        card.appendChild(body);
+
+        if (file.can_delete) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'file-card__delete';
+          btn.textContent = 'Remove';
+          card.appendChild(btn);
+        }
+
+        attachDeleteHandler(card);
+        return card;
+      };
+
+      const uploadFile = async (file) => {
+        if (!file) return;
+        if (file.size > maxMb * 1024 * 1024) {
+          showStatus(`File exceeds ${maxMb} MB limit.`, true);
+          return;
+        }
+        const formData = new FormData();
+        formData.append('file', file);
+        const descValue = descriptionInput ? descriptionInput.value.trim() : '';
+        formData.append('description', descValue);
+        try {
+          dropzone.classList.add('is-uploading');
+          browseBtn.disabled = true;
+          showStatus('Uploading…');
+          const res = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken},
+            body: formData,
+            credentials: 'same-origin',
+          });
+          const payload = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(payload.error || 'Upload failed.');
+          if (!payload.file) throw new Error('Upload failed.');
+          const card = createCard(payload.file);
+          if (card) {
+            cardsEl.prepend(card);
+            toggleEmptyState();
+            updateCount();
+          }
+          if (descriptionInput) descriptionInput.value = '';
+          picker.value = '';
+          showStatus('Uploaded successfully.');
+          setTimeout(() => showStatus(''), 2000);
+        } catch (err) {
+          showStatus(err.message || 'Upload failed.', true);
+        } finally {
+          browseBtn.disabled = false;
+          dropzone.classList.remove('is-uploading');
+        }
+      };
+
+      const handleFiles = (files) => {
+        if (!files || !files.length) return;
+        uploadFile(files[0]);
+      };
+
+      picker.addEventListener('change', () => handleFiles(picker.files));
+      browseBtn.addEventListener('click', () => picker.click());
+      dropzone.addEventListener('click', () => picker.click());
+      ['dragenter', 'dragover'].forEach(evt => {
+        dropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropzone.classList.add('is-dragover');
+        });
+      });
+      ['dragleave', 'dragend'].forEach(evt => {
+        dropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('is-dragover');
+        });
+      });
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('is-dragover');
+        handleFiles(e.dataTransfer.files);
+      });
+
+      cardsEl.querySelectorAll('.file-card').forEach(attachDeleteHandler);
+      updateCount();
+    }
   }
 
 </script>

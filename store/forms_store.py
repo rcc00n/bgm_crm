@@ -11,6 +11,7 @@ from .models import (
     Category,
     CarMake,
     CarModel,
+    CustomFitmentRequest,
 )
 
 # =========================
@@ -181,10 +182,11 @@ class OrderCreateForm(forms.ModelForm):
         fields = [
             "customer_name", "email", "phone",
             "vehicle_make", "vehicle_model", "vehicle_year",
-            "notes",
+            "notes", "reference_image",
         ]
         widgets = {
-            "notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Additional information for the order..."})
+            "notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Additional information for the order..."}),
+            "reference_image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
         labels = {
             "customer_name": "Full name",
@@ -194,4 +196,73 @@ class OrderCreateForm(forms.ModelForm):
             "vehicle_model": "Vehicle model",
             "vehicle_year": "Vehicle year",
             "notes": "Notes",
+            "reference_image": "Photo reference",
         }
+
+
+# =========================
+# Quote / custom fitment form
+# =========================
+
+class CustomFitmentRequestForm(forms.ModelForm):
+    product = forms.ModelChoiceField(
+        queryset=Product.objects.all(),
+        required=False,
+        widget=forms.HiddenInput,
+    )
+    source_url = forms.URLField(required=False, widget=forms.HiddenInput)
+
+    class Meta:
+        model = CustomFitmentRequest
+        fields = [
+            "product",
+            "customer_name",
+            "email",
+            "phone",
+            "vehicle",
+            "performance_goals",
+            "timeline",
+            "message",
+            "source_url",
+        ]
+        labels = {
+            "vehicle": "Platform / chassis",
+            "performance_goals": "Performance goals",
+            "timeline": "Timeline",
+            "message": "Notes",
+        }
+        widgets = {
+            "customer_name": forms.TextInput(
+                attrs={"placeholder": "Full name", "class": "field", "autocomplete": "name"}
+            ),
+            "email": forms.EmailInput(
+                attrs={"placeholder": "name@example.com", "class": "field", "autocomplete": "email"}
+            ),
+            "phone": forms.TextInput(
+                attrs={"placeholder": "Phone (optional)", "class": "field", "autocomplete": "tel"}
+            ),
+            "vehicle": forms.TextInput(
+                attrs={"placeholder": "E.g. 2020 F-350 crew cab", "class": "field"}
+            ),
+            "performance_goals": forms.TextInput(
+                attrs={"placeholder": "Desired power / use case", "class": "field"}
+            ),
+            "timeline": forms.TextInput(
+                attrs={"placeholder": "Target completion date", "class": "field"}
+            ),
+            "message": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "placeholder": "Anything else we should know?",
+                    "class": "field",
+                }
+            ),
+        }
+
+    def clean_phone(self):
+        phone = (self.cleaned_data.get("phone") or "").strip()
+        if not phone:
+            return ""
+        # keep digits, plus, and separators minimal to avoid user errors
+        cleaned = "".join(ch for ch in phone if ch.isdigit() or ch in "+-() ")
+        return cleaned.strip()
