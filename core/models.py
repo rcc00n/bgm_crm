@@ -12,6 +12,7 @@ from core.validators import clean_phone
 from .constants import STAFF_DISPLAY_NAME
 from django.conf import settings
 from django.db.models import Sum
+from django.core.validators import MinValueValidator
 
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
@@ -286,7 +287,21 @@ class Service(models.Model):
     description = models.TextField(blank=True)
     category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, blank=True, null=True)
     prepayment_option = models.ForeignKey(PrepaymentOption, on_delete=models.CASCADE, blank=True, null=True)
-    base_price = models.DecimalField(max_digits=10, decimal_places=2)
+    base_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    contact_for_estimate = models.BooleanField(
+        "Contact for estimate",
+        default=False,
+        help_text='Display “Contact for estimate” instead of a fixed price on the storefront.',
+    )
+    estimate_from_price = models.DecimalField(
+        "Starting from",
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text='Optional “From $X” hint shown next to the contact label.',
+    )
     duration_min = models.IntegerField()
     extra_time_min = models.IntegerField(null=True, blank=True)
 
@@ -301,6 +316,25 @@ class Service(models.Model):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        super().clean()
+        if not self.contact_for_estimate and self.base_price in (None, ""):
+            raise ValidationError({"base_price": "Base price is required unless the service is contact-only."})
+        if self.contact_for_estimate and self.estimate_from_price is not None and self.estimate_from_price <= 0:
+            raise ValidationError({"estimate_from_price": "Starting price must be greater than zero."})
+
+    def base_price_amount(self) -> Decimal:
+        """
+        Safe accessor that always returns a quantized Decimal.
+        """
+        value = self.base_price
+        if value is None:
+            return Decimal("0.00")
+        return Decimal(value).quantize(Decimal("0.01"))
+
+    def has_public_price(self) -> bool:
+        return not self.contact_for_estimate and self.base_price is not None
 
     # Admin inline preview (safe to call in admin)
     def image_preview(self):
@@ -322,10 +356,22 @@ class Service(models.Model):
         Call instead of price to get discounted price or base_price if discount is not set
         """
         discount = self.get_active_discount()
-        if discount:
+        base_amount = self.base_price_amount()
+        if discount and not self.contact_for_estimate:
             discount_multiplier = Decimal(1) - (Decimal(discount.discount_percent) / Decimal(100))
-            return (self.base_price * discount_multiplier).quantize(Decimal('0.01'))
-        return self.base_price
+            return (base_amount * discount_multiplier).quantize(Decimal('0.01'))
+        return base_amount
+
+    def public_price(self):
+        """
+        Returns the amount that should be shown to customers, or None if the service is contact-only.
+        """
+        if not self.has_public_price():
+            return None
+        discount = self.get_active_discount()
+        if discount:
+            return self.get_discounted_price()
+        return self.base_price_amount()
 
 
 class MasterRoom(models.Model):

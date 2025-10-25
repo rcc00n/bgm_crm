@@ -115,30 +115,19 @@
           </div>
         {% endif %}
 
-        {# Compatibility: сначала из M2M, иначе из текстового поля (если есть) #}
-        {% with compat_qs=product.compatible_models.all %}
-          {% if compat_qs %}
-            <div class="card" style="margin-top:1rem">
-              <h3 style="font-weight:900;margin-bottom:.4rem">Compatibility</h3>
-              <ul class="compat">
-                {% for cm in compat_qs %}
-                  <li>{{ cm.make.name }} {{ cm.name }}{% if cm.year_from %} {{ cm.year_from }}{% if cm.year_to %}–{{ cm.year_to }}{% endif %}{% endif %}</li>
-                {% endfor %}
-              </ul>
-            </div>
-          {% elif product.compatibility %}
-            <div class="card" style="margin-top:1rem">
-              <h3 style="font-weight:900;margin-bottom:.4rem">Compatibility</h3>
-              <div class="section__desc">{{ product.compatibility|linebreaks }}</div>
-            </div>
-          {% endif %}
-        {% endwith %}
+{# Compatibility: free-form text shown to users; model data stays hidden #}
+{% if product.compatibility %}
+  <div class="card" style="margin-top:1rem">
+    <h3 style="font-weight:900;margin-bottom:.4rem">Compatibility</h3>
+    <div class="section__desc">{{ product.compatibility|linebreaks }}</div>
+  </div>
+{% endif %}
       </div>
     </div>
 
-    {% if go_along %}
-      <div class="section__head" style="margin-top:1.6rem">
-        <h3 class="section__title">Items that go along</h3>
+{% if go_along %}
+  <div class="section__head" style="margin-top:1.6rem">
+    <h3 class="section__title">Items that go along to complete your build</h3>
       </div>
       <div class="grid grid--cards">
         {% for p in go_along %}

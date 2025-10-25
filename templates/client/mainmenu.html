@@ -833,15 +833,20 @@ main h3{
             <h3>{{ s.name }}</h3>
             {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
             <div class="service-meta">
-              {% with disc=s.get_active_discount %}
-                {% if disc %}
-                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                  <span class="badge">-{{ disc.discount_percent }}%</span>
-                {% else %}
-                  <strong>${{ s.base_price|floatformat:2 }}</strong>
-                {% endif %}
-              {% endwith %}
+              {% if s.contact_for_estimate %}
+                <strong>Contact for estimate</strong>
+                {% if s.estimate_from_price %}<span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+              {% else %}
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <strong>${{ s.base_price|floatformat:2 }}</strong>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
               · {{ s.duration_min }} min
             </div>
             <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
@@ -865,15 +870,20 @@ main h3{
             <h3>{{ s.name }}</h3>
             {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
             <div class="service-meta">
-              {% with disc=s.get_active_discount %}
-                {% if disc %}
-                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                  <span class="badge">-{{ disc.discount_percent }}%</span>
-                {% else %}
-                  <strong>${{ s.base_price|floatformat:2 }}</strong>
-                {% endif %}
-              {% endwith %}
+              {% if s.contact_for_estimate %}
+                <strong>Contact for estimate</strong>
+                {% if s.estimate_from_price %}<span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+              {% else %}
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <strong>${{ s.base_price|floatformat:2 }}</strong>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
               · {{ s.duration_min }} min
             </div>
             <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
@@ -895,15 +905,20 @@ main h3{
             <h3>{{ s.name }}</h3>
             {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
             <div class="service-meta">
-              {% with disc=s.get_active_discount %}
-                {% if disc %}
-                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                  <span class="badge">-{{ disc.discount_percent }}%</span>
-                {% else %}
-                  <strong>${{ s.base_price|floatformat:2 }}</strong>
-                {% endif %}
-              {% endwith %}
+              {% if s.contact_for_estimate %}
+                <strong>Contact for estimate</strong>
+                {% if s.estimate_from_price %}<span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+              {% else %}
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <strong>${{ s.base_price|floatformat:2 }}</strong>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
               · {{ s.duration_min }} min
             </div>
             <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
@@ -1283,6 +1298,11 @@ main h3{
 
     function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
     function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+    function formatMoney(val){
+      const num = Number(val);
+      if (Number.isFinite(num)) return num.toFixed(2);
+      return val || '';
+    }
     function showLive(){ liveTitle.style.display='block'; liveGrid.style.display='grid'; serverContent.style.display='none'; }
     function hideLive(){ liveTitle.style.display='none'; liveGrid.style.display='none'; serverContent.style.display='block'; }
     function skeleton(n=8){
@@ -1295,12 +1315,22 @@ main h3{
         </article>`).join('');
     }
     function cardHTML(s){
-      const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
-      const priceBlock = hasDisc
-        ? `<span class="old">$${escapeHtml(s.base_price)}</span>
-           <strong>$${escapeHtml(s.price)}</strong>
-           <span class="badge">-${escapeHtml(String(s.discount_percent))}%</span>`
-        : `<strong>$${escapeHtml(s.price || s.base_price)}</strong>`;
+      let priceBlock;
+      if (s.contact_for_estimate){
+        const fromVal = s.estimate_from_price ? formatMoney(s.estimate_from_price) : '';
+        const hint = fromVal ? `<span class="price__hint">From $${escapeHtml(fromVal)}</span>` : '';
+        priceBlock = `<strong>Contact for estimate</strong>${hint ? ' ' + hint : ''}`;
+      } else {
+        const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
+        if (hasDisc){
+          priceBlock = `<span class="old">$${escapeHtml(formatMoney(s.base_price))}</span>
+             <strong>$${escapeHtml(formatMoney(s.price))}</strong>
+             <span class="badge">-${escapeHtml(String(s.discount_percent))}%</span>`;
+        } else {
+          const current = s.price || s.base_price;
+          priceBlock = `<strong>$${escapeHtml(formatMoney(current))}</strong>`;
+        }
+      }
       const desc = s.description ? `<p class="muted">${escapeHtml(s.description)}</p>` : '';
       const cat  = s.category ? `<div class="muted">${escapeHtml(s.category)}</div>` : '';
       const media = `<div class="ph" aria-hidden="true">BGM • SERVICE</div>`;

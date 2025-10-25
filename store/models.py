@@ -89,6 +89,7 @@ class Product(models.Model):
 
     # compatibility
     compatible_models = models.ManyToManyField(CarModel, blank=True, related_name="compatible_products")
+    compatibility = models.TextField(blank=True, help_text="Free-form compatibility notes shown on the product page.")
 
     # SEO/meta
     short_description = models.CharField(max_length=240, blank=True)

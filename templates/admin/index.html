@@ -66,7 +66,15 @@
               </div>
               <div>{{ app.client.get_full_name }} — {{ app.service.name }} with {{ app.master.get_full_name }}</div>
             </div>
-            <div>CA$ {{ app.service.base_price }}</div>
+            <div>
+              {% if app.service.contact_for_estimate %}
+                Contact for estimate{% if app.service.estimate_from_price %} · From ${{ app.service.estimate_from_price|floatformat:2 }}{% endif %}
+              {% elif app.service.base_price %}
+                CA$ {{ app.service.base_price|floatformat:2 }}
+              {% else %}
+                —
+              {% endif %}
+            </div>
           </div>
         {% empty %}
           <p>No recent activity.</p>

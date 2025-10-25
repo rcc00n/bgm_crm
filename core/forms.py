@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from dal import autocomplete
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
@@ -67,7 +69,9 @@ class AppointmentForm(forms.ModelForm):
 
         promocode = self.cleaned_data.get("applied_promocode")
         if promocode:
-            discount = instance.service.base_price * (promocode.discount_percent / 100)
+            base_amount = instance.service.base_price_amount()
+            percent = Decimal(promocode.discount_percent) / Decimal("100")
+            discount = base_amount * percent
             AppointmentPromoCode.objects.create(
                 appointment=instance,
                 promocode=promocode,

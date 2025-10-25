@@ -297,15 +297,21 @@ def service_search(request):
 
     results = []
     for s in qs:
-        disc = s.get_active_discount()
-        price = str(s.get_discounted_price()) if disc else str(s.base_price)
+        disc = s.get_active_discount() if not s.contact_for_estimate else None
+        base_price = None
+        price = None
+        if not s.contact_for_estimate:
+            base_price = str(s.base_price_amount())
+            price = str(s.get_discounted_price()) if disc else base_price
         results.append({
             "id": str(s.id),
             "name": s.name,
             "category": s.category.name if s.category_id else "",
             "description": (s.description or "")[:280],
-            "base_price": str(s.base_price),
+            "base_price": base_price,
             "price": price,
+            "contact_for_estimate": s.contact_for_estimate,
+            "estimate_from_price": str(s.estimate_from_price) if s.estimate_from_price is not None else "",
             "discount_percent": disc.discount_percent if disc else None,
             "duration_min": s.duration_min,
             # NEW: image url for cards

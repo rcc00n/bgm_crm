@@ -89,7 +89,7 @@ class ProductAdmin(admin.ModelAdmin):
         "price", "currency", "inventory", "is_active",
         "main_image",
         "short_description", "description",
-        "compatible_models",
+        "compatible_models", "compatibility",
         "specs_text", "specs_preview",
         "created_at", "updated_at",
     )

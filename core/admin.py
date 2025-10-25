@@ -719,18 +719,36 @@ class ServiceAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface for services.
     """
-    list_display = ('name', 'base_price', 'category', 'duration_min', 'image_preview')  # + preview
+    list_display = ('name', 'pricing_display', 'category', 'duration_min', 'image_preview')
     search_fields = ('name',)
-    list_filter = ('category',)
-    export_fields = ['name', 'description', 'base_price', 'category', 'prepayment_option', 'duration_min', 'extra_time_min']
+    list_filter = ('category', 'contact_for_estimate')
+    export_fields = [
+        'name', 'description', 'base_price', 'contact_for_estimate', 'estimate_from_price',
+        'category', 'prepayment_option', 'duration_min', 'extra_time_min'
+    ]
 
     # NEW: allow uploading image and show preview; keep previous fields
     fields = (
         'name', 'category', 'description',
-        'base_price', 'prepayment_option', 'duration_min', 'extra_time_min',
-        'image', 'image_preview',  # ← added
+        'base_price', 'contact_for_estimate', 'estimate_from_price',
+        'prepayment_option', 'duration_min', 'extra_time_min',
+        'image', 'image_preview',
     )
     readonly_fields = ('image_preview',)
+
+    @admin.display(description="Pricing", ordering="base_price")
+    def pricing_display(self, obj):
+        if obj.contact_for_estimate:
+            if obj.estimate_from_price:
+                return format_html(
+                    '<span style="font-weight:600;color:#e53935">Contact for estimate</span>'
+                    '<br><small>From ${}</small>',
+                    obj.estimate_from_price
+                )
+            return format_html('<span style="font-weight:600;color:#e53935">Contact for estimate</span>')
+        if obj.base_price is None:
+            return "—"
+        return format_html("${}", obj.base_price)
 
 # Notification Admin
 # -----------------------------
@@ -934,15 +952,23 @@ class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
 
 
 def get_price_html(service):
+    if service.contact_for_estimate:
+        if service.estimate_from_price:
+            return format_html(
+                '<strong>Contact for estimate</strong><br><small>From ${}</small>',
+                service.estimate_from_price,
+            )
+        return format_html("<strong>Contact for estimate</strong>")
     discount = service.get_active_discount()
+    base = service.base_price_amount()
     if discount:
         discounted = service.get_discounted_price()
         return format_html(
             '<span style="text-decoration: line-through; color: grey;">${}</span><br><strong>${}</strong>',
-            service.base_price,
+            base,
             discounted
         )
-    return format_html("<strong>${}</strong>", service.base_price)
+    return format_html("<strong>${}</strong>", base)
 
 def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities):
     COLOR_PALETTE = ["#E4D08A", "#EDC2A2", "#CEAEC6", "#A3C1C9", "#C3CEA3", "#E7B3C3"]
@@ -1053,6 +1079,14 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                 local_end = local_start + timedelta(minutes=appt.service.duration_min) + timedelta(minutes=appt.service.extra_time_min)
                 last_status = appt.appointmentstatushistory_set.order_by('-set_at').first()
                 status_name = last_status.status.name if last_status else "Unknown"
+                service_obj = appt.service
+                if service_obj.contact_for_estimate:
+                    price_value = "Contact for estimate"
+                    price_discounted = price_value
+                else:
+                    price_discounted = f"${service_obj.get_discounted_price():.2f}"
+                    price_value = f"${service_obj.base_price_amount():.2f}"
+
                 row["cells"].append({
                     "html": f"""
                                         <div>
@@ -1076,8 +1110,8 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                     "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
                     "duration": f"{appt.service.duration_min}min",
                     "discount": f"-{appt_promocode.promocode.discount_percent}" if appt_promocode else "",
-                    "price_discounted": f"${appt.service.get_discounted_price()}",
-                    "price": f"${appt.service.base_price}",
+                    "price_discounted": price_discounted,
+                    "price": price_value,
                     "background": MASTER_COLORS.get(master_id),
                 })
 
