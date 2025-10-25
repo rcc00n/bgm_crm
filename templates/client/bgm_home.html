@@ -841,15 +841,23 @@ nav a, .btn, .badge, .price strong {
                 <div class="card__head" style="margin-top:.35rem">
                   <h3 style="font-weight:900">{{ p.name }}</h3>
                   <div class="price">
-                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>${{ p.display_price|floatformat:2 }}</strong>
-                    {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                    {% if p.contact_for_estimate %}
+                      <strong>Contact for estimate</strong>
+                      {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                    {% else %}
+                      {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                      <strong>${{ p.display_price|floatformat:2 }}</strong>
+                      {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                    {% endif %}
                   </div>
                 </div>
                 {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
               </a>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
-                {% if p.has_active_options %}
+                {% if p.contact_for_estimate %}
+                  <a class="btn btn--primary" href="{% url 'home' %}#contact">Contact us</a>
+                  <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% elif p.has_active_options %}
                   <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
                   <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
                 {% else %}

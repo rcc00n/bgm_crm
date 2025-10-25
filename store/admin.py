@@ -75,8 +75,8 @@ class ProductAdmin(admin.ModelAdmin):
     - галерея через inline
     """
     form = ProductAdminForm
-    list_display = ("name", "sku", "category", "price", "currency", "inventory", "is_active")
-    list_filter = ("is_active", "category", "currency")
+    list_display = ("name", "sku", "category", "price", "currency", "inventory", "is_active", "contact_for_estimate")
+    list_filter = ("is_active", "category", "currency", "contact_for_estimate")
     search_fields = ("name", "sku", "description")
     prepopulated_fields = {"slug": ("name",)}
     list_select_related = ("category",)
@@ -86,7 +86,9 @@ class ProductAdmin(admin.ModelAdmin):
 
     fields = (
         "name", "slug", "sku", "category",
-        "price", "currency", "inventory", "is_active",
+        ("price", "contact_for_estimate"),
+        "estimate_from_price",
+        "currency", "inventory", "is_active",
         "main_image",
         "short_description", "description",
         "compatible_models", "compatibility",

@@ -91,6 +91,21 @@ class Product(models.Model):
     compatible_models = models.ManyToManyField(CarModel, blank=True, related_name="compatible_products")
     compatibility = models.TextField(blank=True, help_text="Free-form compatibility notes shown on the product page.")
 
+    contact_for_estimate = models.BooleanField(
+        "Contact for estimate",
+        default=False,
+        help_text='Show “Contact for estimate” instead of the numeric price on the storefront.',
+    )
+    estimate_from_price = models.DecimalField(
+        "Starting from",
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Optional hint that displays as “From $X”.",
+    )
+
     # SEO/meta
     short_description = models.CharField(max_length=240, blank=True)
     description = models.TextField(blank=True)

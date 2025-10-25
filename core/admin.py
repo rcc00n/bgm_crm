@@ -730,7 +730,7 @@ class ServiceAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
     # NEW: allow uploading image and show preview; keep previous fields
     fields = (
         'name', 'category', 'description',
-        'base_price', 'contact_for_estimate', 'estimate_from_price',
+        ('base_price', 'contact_for_estimate'), 'estimate_from_price',
         'prepayment_option', 'duration_min', 'extra_time_min',
         'image', 'image_preview',
     )

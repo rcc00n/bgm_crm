@@ -109,9 +109,14 @@
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
                 <div class="price">
-                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                  <strong>${{ p.display_price|floatformat:2 }}</strong>
-                  {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                  {% if p.contact_for_estimate %}
+                    <strong>Contact for estimate</strong>
+                    {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                  {% else %}
+                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                    <strong>${{ p.display_price|floatformat:2 }}</strong>
+                    {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                  {% endif %}
                 </div>
               </div>
             </a>
@@ -146,9 +151,14 @@
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
                 <div class="price">
-                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                  <strong>${{ p.display_price|floatformat:2 }}</strong>
-                  {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                  {% if p.contact_for_estimate %}
+                    <strong>Contact for estimate</strong>
+                    {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                  {% else %}
+                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                    <strong>${{ p.display_price|floatformat:2 }}</strong>
+                    {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                  {% endif %}
                 </div>
               </div>
             </a>
@@ -187,9 +197,14 @@
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
                 <div class="price">
-                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                  <strong>${{ p.display_price|floatformat:2 }}</strong>
-                  {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                  {% if p.contact_for_estimate %}
+                    <strong>Contact for estimate</strong>
+                    {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                  {% else %}
+                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                    <strong>${{ p.display_price|floatformat:2 }}</strong>
+                    {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                  {% endif %}
                 </div>
               </div>
             </a>

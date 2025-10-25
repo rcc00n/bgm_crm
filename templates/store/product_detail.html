@@ -37,19 +37,27 @@
           <form class="product-form" method="post" action="{% url 'store-cart-add' slug=product.slug %}">
             {% csrf_token %}
             <div class="price">
-              {% if product.has_option_price_overrides %}
-                <span class="price__hint">Starting at</span>
+              {% if product.contact_for_estimate %}
+                <strong>Contact for estimate</strong>
+                {% if product.estimate_from_price %}<span class="price__hint">From ${{ product.estimate_from_price|floatformat:2 }}</span>{% endif %}
+              {% else %}
+                {% if product.has_option_price_overrides %}
+                  <span class="price__hint">Starting at</span>
+                {% endif %}
+                <strong
+                  class="price__value"
+                  data-product-price-value
+                  data-currency-symbol="$"
+                  style="font-size:1.4rem"
+                >
+                  ${{ product.display_price|floatformat:2 }}
+                </strong>
+                {% if product.old_price %}<span class="old">${{ product.old_price }}</span>{% endif %}
               {% endif %}
-              <strong
-                class="price__value"
-                data-product-price-value
-                data-currency-symbol="$"
-                style="font-size:1.4rem"
-              >
-                ${{ product.display_price|floatformat:2 }}
-              </strong>
-              {% if product.old_price %}<span class="old">${{ product.old_price }}</span>{% endif %}
             </div>
+            {% if product.contact_for_estimate %}
+              <div class="quote-note">Custom builds are quoted individually. Share your spec and we’ll confirm lead time and final pricing.</div>
+            {% endif %}
 
             {% if product_options %}
               <fieldset class="option-picker" id="product-options">
@@ -63,12 +71,14 @@
                         value="{{ opt.id }}"
                         data-price="{{ opt.unit_price|floatformat:2 }}"
                         {% if forloop.first %}checked{% endif %}
-                        required
+                        {% if not product.contact_for_estimate %}required{% endif %}
                       >
                       <span class="option-pill__inner">
                         <span class="option-pill__top">
                           <span class="option-pill__name">{{ opt.name }}</span>
-                          <span class="option-pill__price">${{ opt.unit_price|floatformat:2 }}</span>
+                          {% if not product.contact_for_estimate %}
+                            <span class="option-pill__price">${{ opt.unit_price|floatformat:2 }}</span>
+                          {% endif %}
                         </span>
                         {% if opt.description %}
                           <span class="option-pill__desc">{{ opt.description }}</span>
@@ -80,14 +90,21 @@
               </fieldset>
             {% endif %}
 
-            <label class="section__desc" for="qty">Quantity</label>
-            <div class="qty-row">
-              <input class="field" id="qty" name="qty" type="number" min="1" value="1" style="width:110px">
-              <div class="btn-pair">
-                <button class="btn btn--primary" type="submit">Add to cart</button>
-                <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Buy now</button>
+            {% if not product.contact_for_estimate %}
+              <label class="section__desc" for="qty">Quantity</label>
+              <div class="qty-row">
+                <input class="field" id="qty" name="qty" type="number" min="1" value="1" style="width:110px">
+                <div class="btn-pair">
+                  <button class="btn btn--primary" type="submit">Add to cart</button>
+                  <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Buy now</button>
+                </div>
               </div>
-            </div>
+            {% else %}
+              <div class="btn-pair" style="margin-top:1rem">
+                <a class="btn btn--primary" href="{% url 'home' %}#contact">Contact us</a>
+                <a class="btn btn--ghost" href="{% url 'store' %}">Browse products</a>
+              </div>
+            {% endif %}
           </form>
         </div>
 
@@ -142,8 +159,13 @@
                 <h4>{{ p.name }}</h4>
                 <p class="section__desc">{{ p.short_description|default:p.category.name }}</p>
                 <div class="price" style="margin-top:.2rem">
-                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                  <strong>${{ p.display_price|floatformat:2 }}</strong>
+                  {% if p.contact_for_estimate %}
+                    <strong>Contact for estimate</strong>
+                    {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                  {% else %}
+                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                    <strong>${{ p.display_price|floatformat:2 }}</strong>
+                  {% endif %}
                 </div>
               </div>
             </a>
@@ -167,8 +189,13 @@
               {% endif %}
               <h4 style="margin-top:.6rem">{{ p.name }}</h4>
               <div class="price" style="margin-top:.2rem">
-                {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                <strong>${{ p.display_price|floatformat:2 }}</strong>
+                {% if p.contact_for_estimate %}
+                  <strong>Contact for estimate</strong>
+                  {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                {% else %}
+                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                  <strong>${{ p.display_price|floatformat:2 }}</strong>
+                {% endif %}
               </div>
             </a>
           </article>

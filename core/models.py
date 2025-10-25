@@ -287,7 +287,7 @@ class Service(models.Model):
     description = models.TextField(blank=True)
     category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, blank=True, null=True)
     prepayment_option = models.ForeignKey(PrepaymentOption, on_delete=models.CASCADE, blank=True, null=True)
-    base_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    base_price = models.DecimalField(max_digits=10, decimal_places=2)
     contact_for_estimate = models.BooleanField(
         "Contact for estimate",
         default=False,
@@ -319,8 +319,6 @@ class Service(models.Model):
 
     def clean(self):
         super().clean()
-        if not self.contact_for_estimate and self.base_price in (None, ""):
-            raise ValidationError({"base_price": "Base price is required unless the service is contact-only."})
         if self.contact_for_estimate and self.estimate_from_price is not None and self.estimate_from_price <= 0:
             raise ValidationError({"estimate_from_price": "Starting price must be greater than zero."})
 

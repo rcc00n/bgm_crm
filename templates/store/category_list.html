@@ -47,14 +47,22 @@
             <h3 class="product__title"><a href="{% url 'store-product' slug=p.slug %}">{{ p.name }}</a></h3>
             {% if p.short_description %}<p class="section__desc">{{ p.short_description }}</p>{% endif %}
             <div class="price">
-              {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-              <strong>${{ p.display_price|floatformat:2 }}</strong>
-              {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+              {% if p.contact_for_estimate %}
+                <strong>Contact for estimate</strong>
+                {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+              {% else %}
+                {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                <strong>${{ p.display_price|floatformat:2 }}</strong>
+                {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+              {% endif %}
             </div>
 
             <!-- quick actions -->
             <div class="quick row">
-              {% if p.has_active_options %}
+              {% if p.contact_for_estimate %}
+                <a class="btn btn--primary" href="{% url 'home' %}#contact">Contact us</a>
+                <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View product</a>
+              {% elif p.has_active_options %}
                 <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
                 <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View product</a>
               {% else %}

@@ -253,6 +253,11 @@ def _cart_positions(session):
 @require_POST
 def cart_add(request, slug: str):
     product = get_object_or_404(Product, slug=slug, is_active=True)
+
+    if product.contact_for_estimate:
+        messages.error(request, "This build is quoted individually. Please contact us to get an estimate.")
+        return redirect("store:store-product", slug=product.slug)
+
     try:
         qty = int(request.POST.get("qty", 1))
     except (TypeError, ValueError):
