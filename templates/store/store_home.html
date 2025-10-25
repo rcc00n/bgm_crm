@@ -316,7 +316,9 @@
     previousFocus = document.activeElement;
     host.classList.add('filters--open');
     document.body.classList.add('filters-drawer-open');
-    toggle?.setAttribute('aria-expanded', 'true');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'true');
+    }
     document.addEventListener('keydown', trapKeydown);
     requestAnimationFrame(() => {
       try {
@@ -330,7 +332,9 @@
   const closeDrawer = ({ restoreFocus = true } = {}) => {
     host.classList.remove('filters--open');
     document.body.classList.remove('filters-drawer-open');
-    toggle?.setAttribute('aria-expanded', 'false');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+    }
     document.removeEventListener('keydown', trapKeydown);
     if (restoreFocus && previousFocus) {
       try {
@@ -341,16 +345,20 @@
     }
   };
 
-  toggle?.addEventListener('click', () => {
-    if (host.classList.contains('filters--open')) {
-      closeDrawer();
-    } else {
-      openDrawer();
-    }
-  });
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      if (host.classList.contains('filters--open')) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
+    });
+  }
 
   closeEls.forEach(btn => btn.addEventListener('click', () => closeDrawer()));
-  backdrop?.addEventListener('click', () => closeDrawer());
+  if (backdrop) {
+    backdrop.addEventListener('click', () => closeDrawer());
+  }
 
   const handleMq = (event) => {
     if (!event.matches) {

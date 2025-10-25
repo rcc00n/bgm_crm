@@ -933,9 +933,15 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     };
     const closeDrawer = () => setOpen(false);
 
-    toggle?.addEventListener('click', () => setOpen(!drawer.classList.contains('sidebar--open')));
-    backdrop?.addEventListener('click', closeDrawer);
-    closeBtn?.addEventListener('click', closeDrawer);
+    if (toggle) {
+      toggle.addEventListener('click', () => setOpen(!drawer.classList.contains('sidebar--open')));
+    }
+    if (backdrop) {
+      backdrop.addEventListener('click', closeDrawer);
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeDrawer);
+    }
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') closeDrawer();
     });
@@ -1116,7 +1122,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(resState.baseStart); d.setDate(d.getDate()+i); return d;});
       const dayStrs = days.map(ymd);
       const dayData = dayStrs.map(ds => resState.cache.get(ds));
-      const timeRows = buildTimeRows(dayData.map(x=>x?.set));
+      const timeRows = buildTimeRows(dayData.map(item => (item && item.set) ? item.set : null));
 
       const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
       const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
@@ -1146,12 +1152,16 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
         days.forEach((d, idx)=>{
           const cell=document.createElement('div'); cell.className='ol2__cell';
-          const data = dayData[idx]; const isFree = data?.set?.has(t);
+          const data = dayData[idx];
+          const slotSet = (data && data.set) ? data.set : null;
+          const hasSlot = slotSet ? slotSet.has(t) : false;
+          const canSelect = Boolean(hasSlot && data && data.iso);
+
           const chip=document.createElement('button');
-          chip.type='button'; chip.className='chip ' + (isFree?'chip--free':'chip--busy');
+          chip.type='button'; chip.className='chip ' + (canSelect?'chip--free':'chip--busy');
           chip.textContent = fmtHM(fake);
 
-          if(isFree){
+          if(canSelect){
             chip.addEventListener('click', ()=>{
               rsGrid.querySelectorAll('.chip--sel').forEach(x=>x.classList.remove('chip--sel'));
               chip.classList.add('chip--sel');
@@ -1198,11 +1208,14 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       });
       const data = await r.json().catch(()=> ({}));
       if(r.ok){
-        resOk.textContent = 'Rescheduled to ' + (data.appointment?.start_time || '');
+        const appointmentStart = (data && data.appointment && data.appointment.start_time) ? data.appointment.start_time : '';
+        resOk.textContent = 'Rescheduled to ' + (appointmentStart || '');
         resOk.style.display='block';
-        document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
-          try{ dt.textContent = new Date(data.appointment.start_time).toLocaleString(); }catch(_){}
-        });
+        if (appointmentStart) {
+          document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
+            try{ dt.textContent = new Date(appointmentStart).toLocaleString(); }catch(_){}
+          });
+        }
         setTimeout(()=> location.reload(), 700);
       }else{
         resErr.textContent = data.error || data.detail || 'Reschedule failed';
