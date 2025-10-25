@@ -368,3 +368,112 @@ def financing_view(request):
 
 def our_story_view(request):
     return render(request, "client/our_story.html")
+
+# core/views.py
+from datetime import datetime, timedelta
+from django.db.models import Sum, Count, F
+from django.utils import timezone
+from django.shortcuts import render
+
+from core.models import (
+    Appointment, AppointmentStatusHistory, Payment,
+    ClientReview, Service, CustomUserDisplay
+)
+from store.models import Order, OrderItem
+
+def admin_dashboard(request):
+    """Главная страница админки с расширенной статистикой."""
+    today = timezone.localdate()
+    start_date = today - timedelta(days=6)  # за последние 7 дней
+
+    # 1. Выручка по дням (по платежам)
+    payments = (
+        Payment.objects.filter(created_at__date__gte=start_date)
+        .annotate(day=F("created_at__date"))
+        .values("day")
+        .annotate(total=Sum("amount"))
+        .order_by("day")
+    )
+    chart_data = [
+        {"day": p["day"].strftime("%d.%m"), "sales": float(p["total"])}
+        for p in payments
+    ]
+
+    # 2. Число подтверждённых и отменённых записей по дням
+    appointments = (
+        AppointmentStatusHistory.objects
+        .filter(set_at__date__gte=start_date)
+        .annotate(day=F("set_at__date"))
+        .values("day", "status__name")
+        .annotate(cnt=Count("id"))
+    )
+    # агрегируем в словарь вида {"2025-09-10": {"Confirmed": 2, "Cancelled": 1}, ...}
+    appt_stats_by_day = {}
+    for item in appointments:
+        day = item["day"].strftime("%d.%m")
+        status = item["status__name"]
+        appt_stats_by_day.setdefault(day, {"Confirmed": 0, "Cancelled": 0})
+        appt_stats_by_day[day][status] = item["cnt"]
+    daily_appointments = [
+        {
+            "day": day,
+            "confirmed": appt_stats_by_day[day]["Confirmed"],
+            "cancelled": appt_stats_by_day[day]["Cancelled"],
+        }
+        for day in sorted(appt_stats_by_day.keys())
+    ]
+
+    # 3. Количество записей сегодня (по статусам)
+    today_appointments_qs = Appointment.objects.filter(
+        start_time__date=today
+    )
+    confirmed_count = today_appointments_qs.filter(
+        appointmentstatushistory__status__name="Confirmed"
+    ).count()
+    cancelled_count = today_appointments_qs.filter(
+        appointmentstatushistory__status__name="Cancelled"
+    ).count()
+    total_today = today_appointments_qs.count()
+
+    # 4. Топ‑услуги по количеству записей
+    top_services = (
+        Appointment.objects.filter(start_time__date__gte=start_date)
+        .values("service__name")
+        .annotate(cnt=Count("id"))
+        .order_by("-cnt")[:5]
+    )
+
+    # 5. Топ‑мастера по выручке (сумма платежей за их услуги)
+    top_masters = (
+        Payment.objects.filter(appointment__start_time__date__gte=start_date)
+        .values("appointment__master__first_name", "appointment__master__last_name")
+        .annotate(total=Sum("amount"))
+        .order_by("-total")[:5]
+    )
+
+    # 6. Средняя оценка клиентов
+    avg_rating = ClientReview.objects.aggregate(avg=Sum("rating") * 1.0 / Count("rating"))["avg"]
+
+    # 7. Статистика магазина: общая выручка и количество заказов
+    orders_completed = Order.objects.filter(status=Order.STATUS_COMPLETED)
+    store_revenue = orders_completed.aggregate(
+        total=Sum(F("items__price_at_moment") * F("items__qty"))
+    )["total"] or 0
+    orders_count = orders_completed.count()
+
+    context = {
+        "today": today,
+        "chart_data": chart_data,
+        "daily_appointments": daily_appointments,
+        "confirmed_count": confirmed_count,
+        "cancelled_count": cancelled_count,
+        "total_today": total_today,
+        "top_services": top_services,
+        "top_masters": top_masters,
+        "avg_rating": avg_rating,
+        "store_revenue": store_revenue,
+        "orders_count": orders_count,
+        # передаём существующие переменные, если они используются
+        "recent_appointments": [],  # заполните при необходимости
+    }
+    return render(request, "admin/index.html", context)
