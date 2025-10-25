@@ -1,5 +1,4 @@
 from decimal import Decimal
-
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
@@ -80,6 +79,7 @@ class ClientSource(models.Model):
 class HowHeard(models.TextChoices):
     GOOGLE = "google", "Google search"
     INSTAGRAM = "instagram", "Instagram"
+    FACEBOOK = "facebook", "Facebook"
     TIKTOK = "tiktok", "TikTok"
     FRIEND = "friend", "Friends/Family"
     OTHER = "other", "Other"
