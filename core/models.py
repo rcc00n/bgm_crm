@@ -111,6 +111,73 @@ class LegalPage(models.Model):
             return reverse("legal-terms")
         return reverse("legal-page", kwargs={"slug": self.slug})
 
+class HeroImage(models.Model):
+    """
+    Configurable hero/cover image for high-visibility marketing sections.
+    """
+    class Location(models.TextChoices):
+        HOME = "home", "Home hero"
+        DEALER_STATUS = "dealer-status", "Dealer banner"
+        STORE = "store", "Store hero"
+        MERCH = "merch", "Merch hero"
+
+    location = models.CharField(
+        "Placement",
+        max_length=32,
+        choices=Location.choices,
+        unique=True,
+    )
+    title = models.CharField(
+        "Internal title",
+        max_length=120,
+        blank=True,
+        help_text="Optional label to help the team identify the asset.",
+    )
+    image = models.ImageField(
+        "Image",
+        upload_to="hero/",
+        blank=True,
+        null=True,
+        help_text="Upload a 16:9 image (webp/jpg recommended, ≤ 2MB).",
+    )
+    alt_text = models.CharField(
+        "Alt text",
+        max_length=160,
+        blank=True,
+        help_text="Accessible description shown to screen readers.",
+    )
+    caption = models.CharField(
+        "Caption / disclaimer",
+        max_length=160,
+        blank=True,
+        help_text="Optional short line rendered under the hero image.",
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Hero asset"
+        verbose_name_plural = "Hero assets"
+        ordering = ["location"]
+
+    def __str__(self) -> str:
+        suffix = f" — {self.title}" if self.title else ""
+        return f"{self.get_location_display()}{suffix}"
+
+    def image_preview(self):
+        if self.image:
+            from django.utils.html import format_html
+            try:
+                return format_html(
+                    '<img src="{}" style="height:60px;border-radius:8px;object-fit:cover;">',
+                    self.image.url,
+                )
+            except Exception:
+                return "—"
+        return "—"
+    image_preview.short_description = "Preview"
+
 # ── NEW/UPDATED: Dealer tiers, application, fields на профиле ─────────────────
 from django.conf import settings
 from django.db import models
@@ -123,6 +190,42 @@ class DealerTier(models.TextChoices):
     TIER_5 = "TIER_5", "Dealer 5% (≥ $1,000)"
     TIER_10 = "TIER_10", "Dealer 10% (≥ $5,000)"
     TIER_15 = "TIER_15", "Dealer 15% (≥ $20,000)"
+
+
+class DealerTierLevel(models.Model):
+    """
+    Editable tier configuration accessible from the admin panel.
+    Allows ops to tune names, minimum spend, and discount percent without code changes.
+    """
+    code = models.CharField(
+        "Code",
+        max_length=16,
+        choices=DealerTier.choices,
+        unique=True,
+    )
+    label = models.CharField("Label", max_length=120)
+    discount_percent = models.PositiveIntegerField("Discount percent", default=5)
+    minimum_spend = models.PositiveIntegerField(
+        "Minimum lifetime spend (USD)",
+        default=0,
+        help_text="Required lifetime spend in USD to qualify for this tier.",
+    )
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    description = models.CharField(
+        "Short description",
+        max_length=200,
+        blank=True,
+        help_text="Optional helper text shown in the dealer portal.",
+    )
+
+    class Meta:
+        verbose_name = "Dealer tier level"
+        verbose_name_plural = "Dealer tier levels"
+        ordering = ["minimum_spend", "sort_order", "code"]
+
+    def __str__(self) -> str:
+        return f"{self.label} ({self.discount_percent}% off)"
 
 DEALER_THRESHOLDS = {
     DealerTier.TIER_5: 1000,
@@ -151,6 +254,25 @@ class DealerApplication(models.Model):
     website = models.URLField("Website", blank=True)
     phone = models.CharField("Phone", max_length=32, validators=[MinLengthValidator(5)])
     notes = models.TextField("Notes", blank=True)
+    preferred_tier = models.CharField(
+        "Preferred tier",
+        max_length=16,
+        choices=DealerTier.choices,
+        default=DealerTier.TIER_5,
+        help_text="Requested tier based on projected volume.",
+    )
+    assigned_tier = models.CharField(
+        "Assigned tier",
+        max_length=16,
+        choices=DealerTier.choices,
+        blank=True,
+        help_text="Tier granted by the admin team when approving the account.",
+    )
+    internal_note = models.TextField(
+        "Internal note",
+        blank=True,
+        help_text="Private note for the review team (not shared with the dealer).",
+    )
     status = models.CharField(
         "Status", max_length=16, choices=Status.choices, default=Status.PENDING
     )
@@ -169,17 +291,30 @@ class DealerApplication(models.Model):
         verbose_name_plural = "Dealer Applications"
         ordering = ["-created_at"]
 
-    def approve(self, admin_user):
+    def resolved_tier(self) -> str:
+        """
+        Returns the tier that should be applied to the user profile.
+        Admin-selected tier wins over the applicant's preference.
+        """
+        return self.assigned_tier or self.preferred_tier or DealerTier.NONE
+
+    def approve(self, admin_user, *, tier=None):
+        if tier:
+            self.assigned_tier = tier
         self.status = self.Status.APPROVED
         self.reviewed_at = timezone.now()
         self.reviewed_by = admin_user
-        self.save(update_fields=["status", "reviewed_at", "reviewed_by"])
+        self.save(update_fields=["status", "reviewed_at", "reviewed_by", "assigned_tier"])
+        final_tier = self.resolved_tier()
         # Обновим профиль пользователя
         up = getattr(self.user, "userprofile", None)
         if up:
             up.is_dealer = True
-            # tier будет выставляться на основании total_spent (см. метод ниже)
-            up.recompute_dealer_tier()
+            if final_tier and final_tier != DealerTier.NONE:
+                up.dealer_tier = final_tier
+            else:
+                # tier будет выставляться на основании total_spent (см. метод ниже)
+                up.recompute_dealer_tier()
             up.dealer_since = up.dealer_since or timezone.now()
             up.save(update_fields=["is_dealer", "dealer_tier", "dealer_since"])
 
@@ -187,7 +322,8 @@ class DealerApplication(models.Model):
         self.status = self.Status.REJECTED
         self.reviewed_at = timezone.now()
         self.reviewed_by = admin_user
-        self.save(update_fields=["status", "reviewed_at", "reviewed_by"])
+        self.assigned_tier = ""
+        self.save(update_fields=["status", "reviewed_at", "reviewed_by", "assigned_tier"])
 
 
 
@@ -259,16 +395,50 @@ class UserProfile(models.Model):
         return float(payments_total) + float(appts_without_payments_total)
 
 
+    def _tier_levels_queryset(self):
+        return DealerTierLevel.objects.filter(is_active=True).order_by("minimum_spend", "sort_order", "code")
+
+    def get_dealer_tier_level(self):
+        cache_attr = "_dealer_tier_level_cache"
+        cached = getattr(self, cache_attr, None)
+        if cached and cached.code == self.dealer_tier:
+            return cached
+        try:
+            level = self._tier_levels_queryset().filter(code=self.dealer_tier).first()
+        except Exception:
+            level = None
+        setattr(self, cache_attr, level)
+        return level
+
     def recompute_dealer_tier(self) -> None:
-        spent = self.total_spent_usd()
-        new_tier = DealerTier.NONE
-        if spent >= DEALER_THRESHOLDS[DealerTier.TIER_15]:
-            new_tier = DealerTier.TIER_15
-        elif spent >= DEALER_THRESHOLDS[DealerTier.TIER_10]:
-            new_tier = DealerTier.TIER_10
-        elif spent >= DEALER_THRESHOLDS[DealerTier.TIER_5]:
-            new_tier = DealerTier.TIER_5
-        self.dealer_tier = new_tier  # do NOT flip is_dealer here
+        spent = Decimal(str(self.total_spent_usd()))
+        try:
+            tiers = list(self._tier_levels_queryset())
+        except Exception:
+            tiers = []
+        chosen = DealerTier.NONE
+        fallback = DealerTier.NONE
+
+        if tiers:
+            for level in tiers:
+                if spent >= Decimal(level.minimum_spend):
+                    chosen = level.code
+                else:
+                    break
+            level_match = next((lvl for lvl in tiers if lvl.code == chosen), None)
+            setattr(self, "_dealer_tier_level_cache", level_match)
+        else:
+            # Fallback to static thresholds if no rows configured in DB.
+            fallback = DealerTier.NONE
+            if spent >= Decimal(DEALER_THRESHOLDS[DealerTier.TIER_15]):
+                fallback = DealerTier.TIER_15
+            elif spent >= Decimal(DEALER_THRESHOLDS[DealerTier.TIER_10]):
+                fallback = DealerTier.TIER_10
+            elif spent >= Decimal(DEALER_THRESHOLDS[DealerTier.TIER_5]):
+                fallback = DealerTier.TIER_5
+            chosen = fallback
+
+        self.dealer_tier = chosen  # do NOT flip is_dealer here
 
 
 
@@ -276,6 +446,9 @@ class UserProfile(models.Model):
 
     @property
     def dealer_discount_percent(self) -> int:
+        level = self.get_dealer_tier_level()
+        if level:
+            return level.discount_percent
         return DEALER_DISCOUNTS.get(self.dealer_tier, 0)
 
 # --- 2. SERVICES ---

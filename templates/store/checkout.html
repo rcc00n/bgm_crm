@@ -201,15 +201,35 @@
                   {% if it.option %}
                     <div class="section__desc">Option: {{ it.option.name }}</div>
                   {% endif %}
+                  <div class="section__desc">
+                    Retail ${{ it.retail_unit_price|floatformat:2 }}
+                    {% if it.discount_percent %}
+                      <span class="badge badge--dealer">Dealer ${{ it.unit_price|floatformat:2 }}</span>
+                    {% endif %}
+                  </div>
+                  {% if it.savings %}
+                    <div class="section__desc">Saved ${{ it.savings|floatformat:2 }}</div>
+                  {% endif %}
                 </div>
                 <div class="summary__amount">${{ it.line_total|floatformat:2 }}</div>
               </li>
             {% endfor %}
           </ul>
           <div class="summary__total">
-            <span>Total</span>
-            <span>${{ total|floatformat:2 }}</span>
+            <div>
+              <span class="summary__total-label">{% if dealer_discount_percent %}Dealer total{% else %}Total{% endif %}</span>
+              <span class="summary__total-sum">${{ total|floatformat:2 }}</span>
+            </div>
+            {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
+              <div class="summary__total-savings">
+                <span class="summary__total-label">You save</span>
+                <span class="summary__total-sum">- ${{ cart_savings|floatformat:2 }}</span>
+              </div>
+            {% endif %}
           </div>
+          {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
+            <p class="section__desc">Retail before discount: ${{ retail_total|floatformat:2 }}</p>
+          {% endif %}
         {% else %}
           <p class="section__desc">Your cart is empty. <a href="{% url 'store' %}">Browse catalog</a></p>
         {% endif %}
@@ -325,8 +345,22 @@
   .summary__title{ font-weight:700; }
   .summary__amount{ white-space:nowrap; }
   .summary__total{
-    display:flex; justify-content:space-between; margin-top:1rem; font-weight:900;
+    display:flex; flex-direction:column; gap:.4rem; margin-top:1rem;
   }
+  .summary__total > div{
+    display:flex; justify-content:space-between; font-weight:900;
+  }
+  .summary__total-label{font-weight:800;}
+  .summary__total-sum{font-weight:900;}
+  .summary__total-savings span{color:#17d45b;}
+  .badge{
+    display:inline-flex; align-items:center; gap:.3rem;
+    padding:.18rem .5rem; border-radius:.5rem;
+    border:1px solid rgba(255,255,255,.15);
+    background:rgba(255,255,255,.06);
+    font-size:.8rem;
+  }
+  .badge--dealer{background:rgba(23,212,91,.12); border-color:rgba(23,212,91,.35); color:#17d45b;}
 
   .callout{ border-left:4px solid; background:var(--card-bg); border:1px solid var(--card-border); border-left-color:#d50000; border-radius:.6rem; margin-bottom:1rem; }
   .callout--ok{ border-left-color:#17d45b; }

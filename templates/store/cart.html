@@ -50,10 +50,14 @@
                   <div class="section__desc">Category: {{ row.product.category.name }}</div>
                 {% endif %}
                 {% if row.option %}
-                  <div class="section__desc">Option: {{ row.option.name }} — ${{ row.unit_price|floatformat:2 }}</div>
-                {% else %}
-                  <div class="section__desc">Unit price: ${{ row.unit_price|floatformat:2 }}</div>
+                  <div class="section__desc">Option: {{ row.option.name }}</div>
                 {% endif %}
+                <div class="section__desc">
+                  Retail: ${{ row.retail_unit_price|floatformat:2 }}
+                  {% if row.discount_percent %}
+                    <span class="badge badge--dealer">Dealer ${{ row.unit_price|floatformat:2 }}</span>
+                  {% endif %}
+                </div>
               </div>
             </div>
 
@@ -63,6 +67,9 @@
 
             <div class="cart__col cart__col--sum" role="cell">
               <strong>${{ row.line_total|floatformat:2 }}</strong>
+              {% if row.savings %}
+                <div class="section__desc">Saved ${{ row.savings|floatformat:2 }}</div>
+              {% endif %}
             </div>
 
             <div class="cart__col cart__col--act" role="cell">
@@ -80,10 +87,27 @@
         {% endfor %}
 
         <div class="cart__foot">
-          <div class="cart__note section__desc">Estimated shipping & taxes are calculated at checkout.</div>
-          <div class="cart__total">
-            <span class="cart__total-label">Total</span>
-            <span class="cart__total-sum">${{ total|floatformat:2 }}</span>
+          <div>
+            <div class="cart__note section__desc">Estimated shipping & taxes are calculated at checkout.</div>
+            {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
+              <div class="cart__note section__desc">Retail: ${{ retail_total|floatformat:2 }} · You save ${{ cart_savings|floatformat:2 }} via dealer pricing.</div>
+            {% endif %}
+          </div>
+          <div class="cart__total-group">
+            {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
+              <div class="cart__total cart__total--muted">
+                <span class="cart__total-label">Retail</span>
+                <span class="cart__total-sum">${{ retail_total|floatformat:2 }}</span>
+              </div>
+              <div class="cart__total cart__total--muted">
+                <span class="cart__total-label">Savings</span>
+                <span class="cart__total-sum">- ${{ cart_savings|floatformat:2 }}</span>
+              </div>
+            {% endif %}
+            <div class="cart__total">
+              <span class="cart__total-label">{% if dealer_discount_percent %}Dealer total{% else %}Total{% endif %}</span>
+              <span class="cart__total-sum">${{ total|floatformat:2 }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -133,7 +157,9 @@
     display:flex; align-items:center; justify-content:space-between; gap:1rem; padding-top:.8rem;
   }
   .cart__note{ opacity:.9; }
+  .cart__total-group{display:flex; flex-direction:column; align-items:flex-end; gap:.35rem;}
   .cart__total{ display:flex; align-items:baseline; gap:.8rem; }
+  .cart__total--muted{ color:var(--muted); font-size:.95rem; }
   .cart__total-label{ font-weight:800; }
   .cart__total-sum{ font-weight:900; font-size:1.1rem; }
 
@@ -160,6 +186,7 @@
     min-width:2.2rem; padding:.2rem .5rem; border-radius:.5rem;
     background:var(--field-bg); border:1px solid var(--card-border); color:var(--ink);
   }
+  .badge--dealer{background:rgba(23,212,91,.12); border:1px solid rgba(23,212,91,.4); color:#17d45b;}
 
   .cart__remove{ padding:.4rem .6rem; }
   .cart__remove:hover{ transform:translateY(-1px); }
@@ -187,7 +214,7 @@
     .cart__col--sum::before{ content:"Subtotal"; color:var(--muted); }
     .cart__col--act::before{ content:""; }
     .cart__foot{ flex-direction:column; align-items:flex-start; gap:.6rem; }
-    .cart__total{ align-self:flex-end; }
+    .cart__total-group{ align-self:flex-end; }
   }
   /* дым — слой позади всего */
 #bg{position:fixed; inset:0; z-index:0; pointer-events:none;}

@@ -1195,7 +1195,19 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
 from django.contrib import admin
 from django.utils import timezone
-from core.models import DealerApplication, UserProfile
+from core.models import DealerApplication, DealerTierLevel, UserProfile
+
+
+@admin.register(DealerTierLevel)
+class DealerTierLevelAdmin(admin.ModelAdmin):
+    list_display = ("label", "code", "discount_percent", "minimum_spend", "is_active")
+    list_editable = ("discount_percent", "minimum_spend", "is_active")
+    search_fields = ("label", "code")
+    ordering = ("minimum_spend", "sort_order")
+    fieldsets = (
+        (None, {"fields": ("label", "code", "description")}),
+        ("Eligibility", {"fields": ("minimum_spend", "discount_percent", "sort_order", "is_active")}),
+    )
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Dealer Applications
@@ -1205,13 +1217,36 @@ from core.models import DealerApplication, UserProfile
 class DealerApplicationAdmin(admin.ModelAdmin):
     list_display = (
         "user", "business_name", "status",
+        "preferred_tier_display", "assigned_tier_display",
         "created_at", "reviewed_by", "reviewed_at",
     )
-    list_filter = ("status", "created_at")
+    list_filter = ("status", "preferred_tier", "assigned_tier", "created_at")
     search_fields = ("user__email", "user__username", "business_name", "phone", "website")
     readonly_fields = ("created_at", "reviewed_at", "reviewed_by")
+    fieldsets = (
+        ("Application", {
+            "fields": (
+                "user", "business_name", "website", "phone",
+                "preferred_tier", "notes",
+            )
+        }),
+        ("Review", {
+            "fields": (
+                "status", "assigned_tier", "internal_note",
+                "reviewed_by", "reviewed_at", "created_at",
+            )
+        }),
+    )
 
     actions = ["approve_selected", "reject_selected"]
+
+    @admin.display(description="Requested tier")
+    def preferred_tier_display(self, obj):
+        return obj.get_preferred_tier_display() or "—"
+
+    @admin.display(description="Assigned tier")
+    def assigned_tier_display(self, obj):
+        return obj.get_assigned_tier_display() or "—"
 
     @admin.action(description="Approve selected applications")
     def approve_selected(self, request, queryset):
@@ -1287,5 +1322,19 @@ class LegalPageAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
         (None, {"fields": ("title", "slug", "body", "is_active")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+
+@admin.register(HeroImage)
+class HeroImageAdmin(admin.ModelAdmin):
+    list_display = ("location", "title", "is_active", "updated_at", "image_preview")
+    list_editable = ("is_active",)
+    search_fields = ("title", "alt_text", "caption")
+    list_filter = ("is_active", "location")
+    readonly_fields = ("image_preview", "created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("location", "title", "is_active")}),
+        ("Media", {"fields": ("image", "image_preview", "alt_text", "caption")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )

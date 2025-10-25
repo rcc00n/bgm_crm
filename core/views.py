@@ -326,11 +326,18 @@ from django.views.generic import CreateView, TemplateView
 
 from core.forms import DealerApplicationForm
 from core.models import DealerApplication
+from core.services.dealer_portal import build_portal_snapshot
 
 class DealerApplyView(LoginRequiredMixin, CreateView):
     template_name = "core/dealer/apply.html"
     form_class = DealerApplicationForm
     success_url = reverse_lazy("dealer-status")
+
+    def dispatch(self, request, *args, **kwargs):
+        profile = getattr(request.user, "userprofile", None)
+        if profile and profile.is_dealer:
+            return redirect("dealer-status")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -363,8 +370,17 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         dealer_app = getattr(self.request.user, "dealer_application", None)
         ctx["userprofile"] = up
         ctx["dealer_application"] = dealer_app
-        # флаг доступа
-        ctx["is_dealer"] = bool(up and up.is_dealer)
+        # флаг доступа и snapshot для портала
+        portal_snapshot = build_portal_snapshot(self.request.user)
+        ctx["portal"] = portal_snapshot
+        ctx["application_steps"] = portal_snapshot.get("timeline", [])
+        ctx["orders_snapshot"] = portal_snapshot.get("orders") or {"total": 0, "open": 0, "latest": None}
+        ctx["tier_levels"] = portal_snapshot.get("tiers", [])
+        ctx["next_tier"] = portal_snapshot.get("next_tier")
+        ctx["current_threshold"] = portal_snapshot.get("current_threshold")
+        ctx["remaining_to_next"] = portal_snapshot.get("remaining_to_next")
+        ctx["lifetime_spent"] = portal_snapshot.get("lifetime_spent")
+        ctx["is_dealer"] = portal_snapshot.get("is_dealer", False)
         return ctx
 
 from django.shortcuts import render

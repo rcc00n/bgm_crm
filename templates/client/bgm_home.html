@@ -1,4 +1,4 @@
-{% load static %}
+{% load static dealer_extras %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -35,7 +35,12 @@
     .btn--ghost:hover{border-color:var(--accent);color:var(--accent)}
     .btn--link{padding:0;border:none;background:transparent;color:var(--accent)}
     .badge{display:inline-block;font-size:.78rem;padding:.15rem .55rem;border-radius:999px;background:var(--accent);color:#fff}
+    .price{display:flex;gap:.45rem;align-items:baseline;}
+    .price--stacked{flex-direction:column;align-items:flex-start;gap:.25rem;}
+    .price__retail-row{display:flex;gap:.4rem;align-items:baseline;}
+    .price__dealer-row{display:inline-flex;gap:.35rem;align-items:baseline;background:rgba(213,0,0,.12);border:1px solid rgba(213,0,0,.35);border-radius:.5rem;padding:.2rem .45rem;}
     .price__hint{font-size:.75rem;font-weight:800;color:var(--muted-2);text-transform:uppercase;letter-spacing:.08em;}
+    .price__save{font-size:.75rem;color:var(--muted-2);}
 
     .site-header{position:sticky;top:0;z-index:1000;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
     .site-header__inner{display:flex;align-items:center;gap:1rem;justify-content:space-between;padding:.8rem 0}
@@ -688,8 +693,8 @@ nav a, .btn, .badge, .price strong {
     </div>
 
 <div class="frame frame--media hero__media">
-  <img src="{% static 'img/hero-home.jpg' %}" alt="Home hero" loading="lazy" decoding="async">
-  <p class="hero__disclaimer">Product may not appear exactly as shown.</p>
+  <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'BGM hero' }}" loading="lazy" decoding="async">
+  <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
 </div>
 
   </div>
@@ -840,14 +845,23 @@ nav a, .btn, .badge, .price strong {
                 </div>
                 <div class="card__head" style="margin-top:.35rem">
                   <h3 style="font-weight:900">{{ p.name }}</h3>
-                  <div class="price">
+                  <div class="price price--stacked">
                     {% if p.contact_for_estimate %}
                       <strong>Contact for estimate</strong>
                       {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
                     {% else %}
-                      {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                      <strong>${{ p.display_price|floatformat:2 }}</strong>
-                      {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                      <div class="price__retail-row">
+                        {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                        <strong>${{ p.display_price|floatformat:2 }}</strong>
+                        {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                      </div>
+                      {% if dealer_portal.show_discount %}
+                        <div class="price__dealer-row">
+                          <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                          <strong>${{ p.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</strong>
+                          <span class="price__save">Save ${{ p.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}</span>
+                        </div>
+                      {% endif %}
                     {% endif %}
                   </div>
                 </div>

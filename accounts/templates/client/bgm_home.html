@@ -1,4 +1,4 @@
-{% load static %}
+{% load static dealer_extras %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -74,7 +74,12 @@
     .card__badge{position:absolute;left:.6rem;bottom:.6rem;font-size:.72rem;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
     .card__head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
     .price{display:flex;gap:.5rem;align-items:baseline;white-space:nowrap}
+    .price{display:flex;gap:.45rem;align-items:baseline;}
+    .price--stacked{flex-direction:column;align-items:flex-start;gap:.25rem;}
+    .price__retail-row{display:flex;gap:.4rem;align-items:baseline;}
+    .price__dealer-row{display:inline-flex;gap:.35rem;align-items:baseline;background:rgba(213,0,0,.12);border:1px solid rgba(213,0,0,.35);border-radius:.5rem;padding:.2rem .45rem;}
     .price__hint{font-size:.75rem;font-weight:800;color:var(--muted-2);text-transform:uppercase;letter-spacing:.08em;}
+    .price__save{font-size:.75rem;color:var(--muted-2);}
     .old{color:var(--muted-2);text-decoration:line-through}
     .dur{color:var(--muted-2);font-size:.92rem}
     .empty{color:var(--muted-2);font-style:italic;padding:1rem}
@@ -291,14 +296,23 @@
                 </div>
                 <div class="card__head" style="margin-top:.35rem">
                   <h3 style="font-weight:900">{{ p.name }}</h3>
-                  <div class="price">
+                  <div class="price price--stacked">
                     {% if p.contact_for_estimate %}
                       <strong>Contact for estimate</strong>
                       {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
                     {% else %}
-                      {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                      <strong>${{ p.display_price|floatformat:2 }}</strong>
-                      {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                      <div class="price__retail-row">
+                        {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                        <strong>${{ p.display_price|floatformat:2 }}</strong>
+                        {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                      </div>
+                      {% if dealer_portal.show_discount %}
+                        <div class="price__dealer-row">
+                          <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                          <strong>${{ p.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</strong>
+                          <span class="price__save">Save ${{ p.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}</span>
+                        </div>
+                      {% endif %}
                     {% endif %}
                   </div>
                 </div>

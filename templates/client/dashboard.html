@@ -2,6 +2,7 @@
 <html lang="en" class="h-full">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Bad Guy Motors | Client Portal</title>
 
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
@@ -148,6 +149,201 @@ h1,h2,h3,h4,h5,h6,
 body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip {
   font-family: var(--font-body) !important;
 }
+  </style>
+  <style id="dashboard-responsive">
+    :root{
+      --sidebar-width: clamp(260px, 28vw, 320px);
+    }
+    body{
+      min-height:100svh;
+      background:var(--bg);
+    }
+    .app-wrap{
+      min-height:100svh;
+      display:flex;
+      flex-direction:row;
+      align-items:stretch;
+      gap:0;
+    }
+    .sidebar{
+      width:var(--sidebar-width);
+      flex-shrink:0;
+      transition:transform .35s ease;
+    }
+    .sidebar__close{
+      display:none;
+      margin:0 1.25rem 1rem;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(0,0,0,.35);
+      color:#fff;
+      font-weight:700;
+      justify-content:center;
+      min-height:44px;
+    }
+    .sidebar-link,
+    .logout-btn{
+      min-height:44px;
+      padding:.85rem 1rem;
+    }
+    .logout-btn{
+      font-weight:700;
+    }
+    .sidebar-link span{
+      flex:1;
+      min-width:0;
+    }
+    main{
+      flex:1;
+      width:100%;
+      padding:clamp(1.25rem, 2vw, 2.75rem);
+      overflow-x:hidden;
+    }
+    .tab{
+      display:block;
+      max-width:1150px;
+      margin-inline:auto;
+    }
+    .panel{
+      border-radius:var(--radius);
+      overflow:hidden;
+    }
+    .panel table{
+      width:100%;
+    }
+    .panel table th,
+    .panel table td{
+      padding:.65rem .75rem;
+    }
+    .btn,
+    button.btn,
+    a.btn{
+      min-height:44px;
+      padding-inline:clamp(.85rem,2vw,1.4rem);
+    }
+    .btn-ghost{
+      border:1px solid var(--grid);
+    }
+    .appt-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.45rem;
+    }
+    .appt-actions .link{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid var(--grid);
+      border-radius:999px;
+      padding:0 .9rem;
+      min-height:44px;
+      font-weight:700;
+    }
+    .mobile-portal-bar{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      margin-bottom:1.5rem;
+      padding:.75rem 1rem;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      background:rgba(0,0,0,.35);
+      box-shadow:var(--shadow);
+    }
+    .mobile-portal-bar__title{
+      display:flex;
+      align-items:center;
+      gap:.35rem;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .mobile-portal-bar__title .mark{
+      padding:.2rem .5rem;
+      border-radius:.8rem;
+      background:var(--red);
+    }
+    .sidebar-toggle{
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      font-weight:800;
+      padding:.5rem 1.2rem;
+      min-height:44px;
+    }
+    .sidebar-toggle__icon{
+      width:20px;
+      height:2px;
+      background:#fff;
+      position:relative;
+      display:block;
+    }
+    .sidebar-toggle__icon::before,
+    .sidebar-toggle__icon::after{
+      content:"";
+      position:absolute;
+      left:0;
+      width:20px;
+      height:2px;
+      background:#fff;
+    }
+    .sidebar-toggle__icon::before{ top:-6px; }
+    .sidebar-toggle__icon::after{ top:6px; }
+    .sidebar-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.65);
+      backdrop-filter:blur(4px);
+      opacity:0;
+      visibility:hidden;
+      transition:opacity .2s ease;
+      z-index:70;
+    }
+    body.has-drawer-open .sidebar-backdrop{
+      opacity:1;
+      visibility:visible;
+    }
+    @media (max-width:1024px){
+      .app-wrap{
+        flex-direction:column;
+      }
+      .sidebar{
+        position:fixed;
+        inset:0 auto 0 0;
+        height:100%;
+        max-width:min(320px, calc(100vw - 48px));
+        width:min(320px, calc(100vw - 48px));
+        transform:translateX(-110%);
+        z-index:80;
+        overflow-y:auto;
+        border-right:1px solid rgba(255,255,255,.12);
+      }
+      .sidebar.sidebar--open{
+        transform:translateX(0);
+      }
+      body.has-drawer-open{
+        overflow:hidden;
+      }
+      .sidebar__close{
+        display:flex;
+      }
+      .mobile-portal-bar{
+        display:flex;
+      }
+    }
+    @media (max-width:640px){
+      main{
+        padding:clamp(1rem,4vw,1.5rem);
+      }
+      .grid.lg\:grid-cols-3{
+        grid-template-columns:1fr;
+      }
+    }
   </style>
   <style id="bgm-fonts-override">
   /* REG */
@@ -351,8 +547,9 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
 <div class="app-wrap">
   <!-- SIDEBAR -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="portalSidebar">
     <div class="brand"><span class="mark">BGM</span><span class="name">Client Portal</span></div>
+    <button type="button" class="sidebar__close" id="sidebarClose">Close menu</button>
 
     <nav id="sidebar" class="space-y-1 px-3 text-sm">
       <a href="#" data-tab="dashboard"     class="sidebar-link">🏁 <span>Overview</span></a>
@@ -371,9 +568,20 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       </form>
     </nav>
   </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 
   <!-- MAIN -->
   <main>
+    <div class="mobile-portal-bar" aria-label="Portal controls">
+      <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="portalSidebar" aria-expanded="false">
+        <span class="sidebar-toggle__icon" aria-hidden="true"></span>
+        Menu
+      </button>
+      <div class="mobile-portal-bar__title">
+        <span class="mark">BGM</span>
+        <span>Client Portal</span>
+      </div>
+    </div>
     <!-- DASHBOARD -->
     <section id="tab-dashboard" class="tab">
       <h1 class="text-4xl font-black mb-2 tracking-wide">
@@ -709,6 +917,35 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 </div>
 
 <script>
+
+  (function(){
+    const drawer = document.getElementById('portalSidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const closeBtn = document.getElementById('sidebarClose');
+    const media = window.matchMedia('(max-width: 1024px)');
+    if (!drawer) return;
+
+    const setOpen = (open) => {
+      drawer.classList.toggle('sidebar--open', !!open);
+      document.body.classList.toggle('has-drawer-open', !!open);
+      if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    const closeDrawer = () => setOpen(false);
+
+    toggle?.addEventListener('click', () => setOpen(!drawer.classList.contains('sidebar--open')));
+    backdrop?.addEventListener('click', closeDrawer);
+    closeBtn?.addEventListener('click', closeDrawer);
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeDrawer();
+    });
+    const mqHandler = (event) => { if (!event.matches) closeDrawer(); };
+    if (media.addEventListener) {
+      media.addEventListener('change', mqHandler);
+    } else if (media.addListener) {
+      media.addListener(mqHandler);
+    }
+  })();
 
   /* ==== табы ==== */
   const links = document.querySelectorAll('.sidebar-link');

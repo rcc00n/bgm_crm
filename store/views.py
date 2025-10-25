@@ -16,6 +16,7 @@ from PIL import Image, UnidentifiedImageError
 
 from .models import Category, Order, OrderItem, Product, ProductOption, CarMake, CarModel
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm
+from core.utils import apply_dealer_discount, get_dealer_discount_percent
 
 logger = logging.getLogger(__name__)
 
@@ -284,9 +285,10 @@ def _cart_add_item(session, *, product_id: int, qty: int, option_id: int | None 
     return cart
 
 
-def _cart_positions(session):
+def _cart_positions(session, *, dealer_discount: int = 0):
     """
     Build hydrated cart positions for rendering/checkout.
+    Returns (positions, dealer_total, retail_total).
     """
     cart = _cart(session)
     items = cart.get("items", [])
@@ -308,6 +310,8 @@ def _cart_positions(session):
 
     positions = []
     total = Decimal("0.00")
+    retail_total = Decimal("0.00")
+    dealer_discount = int(dealer_discount or 0)
 
     for entry in items:
         product = products.get(entry["product_id"])
@@ -320,20 +324,34 @@ def _cart_positions(session):
             option = None
         qty = entry["qty"]
         unit = product.get_unit_price(option)
-        line_total = (unit * qty).quantize(quant)
+        retail_unit = unit
+        retail_line = (retail_unit * qty).quantize(quant)
+
+        discounted_unit = retail_unit
+        if dealer_discount:
+            discounted_unit = apply_dealer_discount(retail_unit, dealer_discount)
+        line_total = (discounted_unit * qty).quantize(quant)
+
         total += line_total
+        retail_total += retail_line
         positions.append(
             {
                 "product": product,
                 "option": option,
                 "qty": qty,
-                "unit_price": unit,
+                "unit_price": discounted_unit,
+                "retail_unit_price": retail_unit,
                 "line_total": line_total,
+                "retail_line_total": retail_line,
+                "savings": (retail_line - line_total).quantize(quant),
+                "discount_percent": dealer_discount if dealer_discount else 0,
                 "option_id": entry["option_id"],
             }
         )
 
-    return positions, (total.quantize(quant) if positions else Decimal("0.00"))
+    total_quantized = total.quantize(quant) if positions else Decimal("0.00")
+    retail_quantized = retail_total.quantize(quant) if positions else Decimal("0.00")
+    return positions, total_quantized, retail_quantized
 
 @require_POST
 def cart_add(request, slug: str):
@@ -382,8 +400,17 @@ def cart_add(request, slug: str):
 
 
 def cart_view(request):
-    positions, total = _cart_positions(request.session)
-    return render(request, "store/cart.html", {"positions": positions, "total": total})
+    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    positions, total, retail_total = _cart_positions(request.session, dealer_discount=dealer_discount)
+    savings = (retail_total - total) if retail_total and total else Decimal("0.00")
+    context = {
+        "positions": positions,
+        "total": total,
+        "retail_total": retail_total,
+        "cart_savings": savings,
+        "dealer_discount_percent": dealer_discount,
+    }
+    return render(request, "store/cart.html", context)
 
 
 @require_POST
@@ -435,7 +462,8 @@ def _first_present(model_fields: set, candidates: Iterable[str]):
 
 def checkout(request):
     # собрать позиции заказа из корзины
-    positions, total = _cart_positions(request.session)
+    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    positions, total, retail_total = _cart_positions(request.session, dealer_discount=dealer_discount)
 
     reference_file = None
     if request.method == "POST" and not positions:
@@ -627,5 +655,8 @@ def checkout(request):
             "form": form,
             "errors": errors,
             "reference_image_limit_mb": REFERENCE_IMAGE_MAX_MB,
+            "retail_total": retail_total,
+            "cart_savings": (retail_total - total) if retail_total and total else Decimal("0.00"),
+            "dealer_discount_percent": dealer_discount,
         },
     )

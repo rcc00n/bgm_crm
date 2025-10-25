@@ -1,388 +1,405 @@
-{% load static %}
+{% load static dealer_extras %}
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>BGM Customs — Dealer Status</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
+  <meta charset="utf-8">
+  <title>Dealer Portal — BGM Customs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    /* ===== BGM palette (dark + red) ===== */
     :root{
-      --bg:#0a0a0a;            /* page bg */
-      --ink:#eaeaea;           /* base text on dark */
-      --muted:#bdbdbd;
-
-      --red:#d50000;           /* accent red */
-      --red-dark:#b60000;
-
-      --card-bg:rgba(18,18,18,.75);
-      --card-border:rgba(255,255,255,.08);
-
-      --field-bg:rgba(255,255,255,.06);
-
+      --bg:#050505;
+      --ink:#f2f2f2;
+      --muted:#b9b9b9;
       --line:rgba(255,255,255,.12);
-      --shadow:0 14px 34px rgba(0,0,0,.45);
-      --radius-lg:1.25rem;
-      --radius-sm:.6rem;
-      --container:clamp(320px, 92vw, 980px);
+      --card-bg:rgba(15,15,15,.85);
+      --card-border:rgba(255,255,255,.1);
+      --field-bg:rgba(255,255,255,.05);
+      --red:#d50000;
+      --green:#17d45b;
+      --radius-lg:1.35rem;
+      --radius-sm:.75rem;
+      --shadow:0 18px 60px rgba(0,0,0,.45);
+      --container:clamp(320px, 92vw, 1180px);
     }
-
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%}
-    body{
-      background:var(--bg);
-      color:var(--ink);
-      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
-      line-height:1.55;
-      -webkit-font-smoothing:antialiased;
-      text-rendering:optimizeLegibility;
-      overflow-x:hidden;
-    }
-    /* === Sticky footer layout === */
-html, body { height: 100%; }
-
-body{
-  display: flex;            /* делаем страницу колонкой */
-  flex-direction: column;
-  min-height: 100vh;        /* fallback */
-  min-height: 100svh;       /* корректная высота на iOS/Android */
-}
-
-/* Шапка и hero занимают «естественную» высоту, не растягиваются */
-.site-header,
-.hero,
-.site-footer{ flex: 0 0 auto; }
-
-/* Главный контент тянется, выталкивая футер вниз */
-main{ flex: 1 0 auto; }
-
+    body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55;min-height:100vh;}
     a{color:inherit;text-decoration:none}
-    img{max-width:100%;display:block}
-    .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
-
-    /* ===== Topbar ===== */
-    .site-header{position:sticky;top:0;z-index:30;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
-    .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
-    .brand{display:flex;align-items:center;gap:.75rem;font-weight:900}
-    .brand__logo{width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, #ff1a1a, var(--red));box-shadow:0 0 40px -6px #ff1a1a}
-    nav ul{display:flex;list-style:none;gap:.25rem;flex-wrap:wrap}
-    nav a{padding:.55rem .8rem;border-radius:.55rem}
-    nav a[aria-current="page"]{background:var(--card-bg);border:1px solid var(--card-border)}
-
-    /* ===== Buttons / badges ===== */
-    .btn{display:inline-flex;align-items:center;gap:.6em;padding:.78rem 1.1rem;border-radius:var(--radius-sm);font-weight:800;border:1px solid transparent;cursor:pointer;transition:.2s}
+    img{display:block;max-width:100%}
+    .container{width:var(--container);margin-inline:auto;padding-inline:clamp(1rem,3vw,2rem)}
+    .site-header{position:sticky;top:0;z-index:20;background:rgba(0,0,0,.7);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+    .site-header__inner{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:1.2rem;padding:.9rem 0}
+    .brand{display:flex;align-items:baseline;gap:.45rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;}
+    .brand__word--red{color:var(--red)}
+    nav ul{display:flex;list-style:none;gap:.65rem;justify-content:flex-end}
+    nav a{display:inline-flex;align-items:center;justify-content:center;padding:.65rem .95rem;border-radius:.6rem;font-weight:700;font-size:.85rem;letter-spacing:.05em;text-transform:uppercase;border:1px solid transparent;min-height:44px;line-height:1.1}
+    nav a[aria-current="page"], nav a:hover{border-color:var(--line)}
+    .badge{display:inline-flex;align-items:center;gap:.25rem;padding:.25rem .7rem;border-radius:999px;font-size:.82rem;background:var(--field-bg);border:1px solid var(--card-border)}
+    .badge--accent{background:rgba(213,0,0,.14);border-color:rgba(213,0,0,.65);color:#fff}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.6rem;padding:.85rem 1.2rem;border-radius:var(--radius-sm);font-weight:800;border:1px solid transparent;cursor:pointer;transition:.18s;min-height:44px;line-height:1.1}
     .btn--primary{background:var(--red);color:#fff}
-    .btn--primary:hover{transform:translateY(-2px);box-shadow:0 12px 22px rgba(213,0,0,.25)}
+    .btn--primary:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(213,0,0,.3)}
     .btn--ghost{background:transparent;border-color:var(--line);color:var(--ink)}
     .btn--ghost:hover{border-color:var(--red);color:var(--red)}
-    .badge{display:inline-block;font-size:.86rem;padding:.28rem .7rem;border-radius:999px;background:var(--field-bg);border:1px solid var(--card-border)}
-    .chips{display:flex;gap:.5rem;flex-wrap:wrap}
-
-    /* ===== Hero ===== */
-    .hero{padding:clamp(1.6rem,5vw,2.4rem) 0;border-bottom:1px solid var(--line);background:transparent !important}
-    .hero__title{font-weight:900;font-size:clamp(1.6rem,3.6vw,2.2rem);line-height:1.15}
-    .hero__lead{color:var(--muted);margin-top:.4rem}
-
-    /* ===== Card ===== */
-    .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:1.15rem;box-shadow:var(--shadow)}
-    .stack{display:grid;gap:1rem}
-
-    /* ===== Footer ===== */
-    .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted);font-size:.95rem}
-
-    /* ===== Smoke layer (same as Store/Financing) ===== */
-    #bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
-    #bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
-    .site-header, .hero, main, .site-footer{position:relative; z-index:1;}
-
-    @media (min-width:900px){
-      .cards{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    main{padding:2rem 0 3rem}
+    .hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;margin-bottom:1.8rem;align-items:start}
+    .hero__card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:1.6rem;box-shadow:var(--shadow)}
+    .hero__eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:.78rem;color:var(--muted);font-weight:800;margin-bottom:.4rem}
+    .hero__title{font-size:clamp(2rem,4vw,2.8rem);font-weight:900;margin:0}
+    .hero__lead{color:var(--muted);margin-top:.4rem;max-width:40ch}
+    .hero__media{
+      position:relative;
+      border-radius:var(--radius-lg);
+      border:1px solid var(--card-border);
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      min-height:0;
+      background:linear-gradient(180deg,rgba(12,12,12,.95),rgba(5,5,5,.95));
     }
-
-    /* ===== CLEAN HEADER (brand | belt | nav) — как на Merch ===== */
-
-/* контейнер в край, аккуратные паддинги */
-.site-header .container{
-  width:100% !important;
-  max-width:none !important;
-  padding-inline:clamp(12px, 2vw, 28px) !important;
-}
-
-/* сетка: бренд | центр (сжимается) | меню */
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns:max-content minmax(0,1fr) max-content !important;
-  align-items:center !important;
-  column-gap:clamp(14px, 2vw, 36px) !important;
-  padding-block:.8rem !important;
-}
-
-/* бренд — как на втором */
-.brand__logo{ display:none !important; }
-.brand{
-  display:flex !important;
-  align-items:baseline !important;
-  gap:.55rem !important;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-}
-.brand__word{ font-size:clamp(.9rem, 1vw, 1rem); line-height:1; }
-.brand__word--white{ color:#fff; }
-.brand__word--red{ color:#d50000; }
-
-/* центральная лента */
-.belt{
-  justify-self:center;
-  min-width:0;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  color:rgba(255,255,255,.72);
-  font-size:clamp(.78rem, .95vw, .95rem);
-}
-
-/* меню справа */
-.site-header nav{ justify-self:end; min-width:0; }
-.site-header nav ul{
-  display:flex; align-items:center; list-style:none;
-  gap:clamp(8px, 1vw, 18px) !important;
-  margin:0; padding:0; flex-wrap:nowrap;
-}
-.site-header nav a{
-  display:inline-flex; align-items:center;
-  padding:.38rem .58rem !important;
-  background:none !important; border:0 !important; border-radius:.55rem;
-  text-transform:uppercase; font-weight:900;
-  letter-spacing:.06em;
-  color:rgba(255,255,255,.82);
-  font-size:clamp(.72rem, .9vw, .92rem) !important;
-  white-space:nowrap; line-height:1;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-.site-header .badge{
-  padding:.08rem .42rem !important;
-  font-size:.68rem !important;
-  line-height:1; border-radius:999px;
-  background:#d50000; color:#fff;
-}
-
-/* адаптация */
-@media (max-width: 1300px){
-  .site-header nav ul{ gap:.6rem !important; }
-  .site-header nav a{ font-size:.72rem !important; letter-spacing:.05em !important; }
-}
-@media (max-width: 1150px){
-  .belt{ display:none !important; }
-}
-@media (max-width: 900px){
-  .site-header nav{ overflow-x:auto; scrollbar-width:none; }
-  .site-header nav::-webkit-scrollbar{ display:none; }
-}
-/* === Dealers: tidy topbar (brand | belt | nav) ======================= */
-.site-header .container{width:100%!important;max-width:none!important;padding-inline:24px!important;}
-.site-header__inner{
-  display:grid!important;grid-template-columns:auto 1fr auto!important;
-  align-items:center!important;gap:1.2rem!important;padding:.8rem 0!important;
-}
-
-/* бренд остаётся, квадрат можно не рисовать */
-.brand__logo{display:none!important;}
-.brand{min-width:max-content}
-.brand__word--white{color:#fff}.brand__word--red{color:#d50000}
-
-/* слоган по центру, ужимается красиво */
-.belt{
-  justify-self:center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  font-weight:900;letter-spacing:.12em;color:rgba(255,255,255,.72);
-  font-size:clamp(.78rem,.95vw,.95rem);
-}
-
-/* меню — читабельно, одна строка, без «таблеток» */
-.site-header nav{justify-self:end;min-width:0}
-.site-header nav ul{
-  display:flex!important;align-items:center!important;gap:clamp(.6rem,1vw,1.1rem)!important;
-  margin:0!important;padding:0!important;list-style:none!important;flex-wrap:nowrap!important;
-}
-.site-header nav a,
-.site-header nav .btn,
-.site-header nav .btn--ghost{
-  background:none!important;border:0!important;border-radius:.4rem!important;padding:.4rem .6rem!important;
-  font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif!important;
-  font-weight:700!important;font-size:.95rem!important;letter-spacing:.02em!important;text-transform:none!important;
-  line-height:1.15!important;color:rgba(255,255,255,.92)!important;white-space:nowrap!important;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{color:#fff!important}
-.site-header .badge{padding:.1rem .46rem!important;font-size:.68rem!important;border-radius:999px}
-
-@media (max-width:1150px){.belt{display:none!important}}
-@media (max-width:900px){
-  .site-header nav{overflow-x:auto;scrollbar-width:none}
-  .site-header nav::-webkit-scrollbar{display:none}
-}
-
-  </style>
-  <style id="ford-only-headings">
-  /* Подключаем Ford локально */
-  @font-face{
-    font-family:"Ford";
-    src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
-    font-weight:100 900; font-style:normal; font-display:swap;
+    .hero__media img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      aspect-ratio:16/9;
+      display:block;
+    }
+    .hero__disclaimer{
+      position:absolute;
+      bottom:.85rem;
+      right:.85rem;
+      margin:0;
+      padding:.45rem .9rem;
+      border-radius:999px;
+      background:rgba(0,0,0,.7);
+      color:var(--muted);
+      font-size:.78rem;
+      letter-spacing:.01em;
+      backdrop-filter:blur(8px) saturate(1.2);
+    }
+    @media (max-width: 720px){
+      .hero__disclaimer{
+        position:static;
+        margin-top:.65rem;
+        border-radius:.8rem;
+        display:inline-flex;
+      }
+    }
+    .hero__meta{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0 1.2rem}
+    .hero__stat{display:flex;flex-direction:column;gap:.15rem}
+    .hero__stat-label{color:var(--muted);font-size:.85rem;text-transform:uppercase;letter-spacing:.08em}
+    .hero__stat-value{font-size:1.2rem;font-weight:800}
+    .grid{display:grid;gap:1rem}
+    .grid--3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:1.4rem;box-shadow:var(--shadow);min-height:0}
+    .card__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;gap:.8rem}
+    .card__title{font-weight:800;font-size:1.15rem}
+    .metrics{display:grid;gap:.4rem}
+    .metric{display:flex;align-items:center;justify-content:space-between;padding:.35rem .2rem;border-bottom:1px solid rgba(255,255,255,.05)}
+    .metric:last-child{border-bottom:none}
+    .metric__label{color:var(--muted);font-size:.9rem}
+    .metric__value{font-weight:800}
+    .progress{margin-top:.8rem}
+    .progress__bar{width:100%;height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+    .progress__fill{height:100%;background:linear-gradient(90deg,#d50000,#ff4d4d)}
+    .progress__meta{display:flex;align-items:center;justify-content:space-between;font-size:.9rem;color:var(--muted);margin-top:.35rem}
+    .timeline{display:flex;flex-direction:column;gap:1rem;margin-top:1.2rem}
+    .timeline__step{display:flex;gap:.8rem;align-items:flex-start}
+    .timeline__icon{width:32px;height:32px;border-radius:999px;display:grid;place-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);font-size:.85rem}
+    .timeline__body{flex:1}
+    .timeline__label{font-weight:700}
+    .timeline__note{color:var(--muted);font-size:.9rem}
+    .table{width:100%;border-collapse:collapse;margin-top:.6rem;font-size:.95rem}
+    .table th,.table td{padding:.6rem;border-bottom:1px solid rgba(255,255,255,.08);text-align:left}
+    .table th{font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+    .callout{border-left:4px solid var(--red);background:rgba(213,0,0,.08);padding:.9rem 1.1rem;border-radius:var(--radius-sm);margin-bottom:1rem}
+    .callout--ok{border-color:var(--green);background:rgba(23,212,91,.08)}
+    .resources{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1.2rem}
+    .resource{padding:1rem;border:1px solid rgba(255,255,255,.08);border-radius:var(--radius-sm);background:rgba(255,255,255,.02)}
+    footer{border-top:1px solid var(--line);padding:1.2rem 0;color:var(--muted);font-size:.9rem}
+    @media (max-width: 900px){
+      .site-header__inner{grid-template-columns:auto auto;grid-template-rows:auto auto}
+      nav{grid-column:1 / -1}
+      nav ul{justify-content:flex-start;flex-wrap:wrap}
+    }
+    #bg{position:fixed;inset:0;z-index:-1;pointer-events:none;}
+    #bg canvas{position:absolute;width:100%;height:100%;display:block;}
+</style>
+<style id="dealer-status-touch-targets">
+  .site-header nav a{
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    min-height:44px !important;
+    padding:.65rem .95rem !important;
+    line-height:1.1 !important;
   }
-  /* Утилити-класс только для заголовков/фраз */
-  .ford {
-    font-family:"Ford", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
-    font-style: normal !important;
-    font-weight:900;              /* жирный, как на брендовых хедлайнах */
-    letter-spacing:.02em;
+  .btn{
+    min-height:44px !important;
   }
 </style>
-<style id="ford-size-fix">
-  /* h1: Dealer Program */
-  .h.ford{
-    font-size: clamp(1.9rem, 3vw, 2.2rem) !important;
-    line-height: 1.15 !important;
-    letter-spacing: .01em !important;
-  }
-
-  /* h2 в карточке: Program perks */
-  .card .h.ford{
-    font-size: clamp(1.25rem, 2.2vw, 1.5rem) !important;
-    line-height: 1.2 !important;
-  }
-
-  /* маленький лейбл: Dealers only */
-  .card .muted .ford{
-    font-size: 1rem !important;
-    line-height: 1.15 !important;
-    display: block;               /* чтобы строка отделялась аккуратно */
-    margin-bottom: .25rem;
-  }
-</style>
-   
 </head>
 <body>
-  <!-- Smoke background -->
   <div id="bg"></div>
-
-<header class="site-header" role="banner">
-  <div class="container site-header__inner">
-    <a class="brand" href="{% url 'home' %}">
-      <span class="brand__logo" aria-hidden="true"></span>
-      <span class="brand__word brand__word--white">BAD GUY</span>
-      <span class="brand__word brand__word--red">MOTORS</span>
-    </a>
-
-    <div class="belt">CUSTOM BUILDS • INSTALLS • UPGRADES</div>
-
-    <nav aria-label="Main">
-      <ul>
-        <li><a href="{% url 'home' %}">Home</a></li>
-        <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
-        {% if user.is_authenticated %}
-          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
-        {% else %}
-          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
-        {% endif %}
-        <li><a href="{% url 'store' %}" aria-current="page">Products</a></li>
-        <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
-        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-        <li><a href="{% url 'financing' %}">Financing</a></li>
-        <li><a href="{% url 'our-story' %}">About</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
-
-  <!-- Hero -->
-  <section class="hero">
-    <div class="container">
-      <h1 class="h ford">Dealer Program</h1>
-      <p class="hero__lead">Check your dealer status, tier and discount — or apply to join the program.</p>
-      <div style="margin-top:.8rem;display:flex;gap:.6rem;flex-wrap:wrap">
-        <a class="btn btn--primary" href="{% url 'home' %}">← Home</a>
-        <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">See all services</a>
-      </div>
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="{% url 'home' %}">
+        <span class="brand__word">BAD GUY</span>
+        <span class="brand__word brand__word--red">MOTORS</span>
+      </a>
+      <div class="badge">Dealer Portal</div>
+      <nav aria-label="Main navigation">
+        <ul>
+          <li><a href="{% url 'store' %}">Store</a></li>
+          <li><a href="{% url 'store-cart' %}">Cart</a></li>
+          <li><a href="{% url 'dealer-status' %}" aria-current="page">Dealers</a></li>
+          <li><a href="{% url 'client-dashboard' %}">Services</a></li>
+        </ul>
+      </nav>
     </div>
-  </section>
+  </header>
 
-  <main>
-    <div class="container stack" style="margin-top:1.2rem">
-      {% if is_dealer and userprofile %}
-        <section class="card">
-          <h2 style="font-weight:900;margin-bottom:.4rem">Your status</h2>
-          <p class="hero__lead" style="margin-top:0">You are an approved dealer.</p>
-          <div class="chips" style="margin:.6rem 0 0">
-            <span class="badge">Tier: {{ userprofile.get_dealer_tier_display }}</span>
-            <span class="badge">Discount: {{ userprofile.dealer_discount_percent }}%</span>
-          </div>
-          <p class="hero__lead" style="margin-top:.8rem">Total spent: ${{ userprofile.total_spent_usd|floatformat:2 }}</p>
-          <p class="hero__lead" style="margin-top:.2rem">
-            Next tiers: ≥ $1,000 → 5%, ≥ $5,000 → 10%, ≥ $20,000 → 15%.
-          </p>
-
-          <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem">
-            <a class="btn btn--primary" href="{% url 'store' %}">Shop parts</a>
-            <a class="btn btn--ghost" href="{% url 'client-dashboard' %}">Book an install</a>
-          </div>
-        </section>
-      {% else %}
-        <div class="cards">
-          <section class="card">
-<h2 class="h ford">Dealers only</h2>
-
-            <p class="hero__lead" style="margin-top:0">This page is available to dealers only.</p>
-
-            {% if dealer_application %}
-              {% if dealer_application.status == "pending" %}
-                <p class="hero__lead" style="margin-top:.6rem">Your application is under review. We will notify you once it is approved.</p>
-              {% elif dealer_application.status == "rejected" %}
-                <p class="hero__lead" style="margin-top:.6rem">Your application was rejected. You can re-apply later.</p>
-                <div style="margin-top:.8rem"><a class="btn btn--primary" href="{% url 'dealer-apply' %}">Apply again</a></div>
-              {% endif %}
-            {% else %}
-              <div style="margin-top:.8rem"><a class="btn btn--primary" href="{% url 'dealer-apply' %}">Apply to become a dealer</a></div>
-            {% endif %}
-          </section>
-
-          <section class="card">
-            <h2 class="h ford">Program perks</h2>
-            <ul style="color:var(--muted);padding-left:1.1rem">
-              <li>Tiered discounts on parts and coatings</li>
-              <li>Priority scheduling for installs</li>
-              <li>Dedicated support from the BGM team</li>
-            </ul>
-          </section>
+  <main class="container">
+    <section class="hero">
+      <div>
+        <p class="hero__eyebrow">BGM Customs</p>
+        <h1 class="hero__title">Dealer workspace</h1>
+        <p class="hero__lead">
+          Track your approval status, understand the tier ladder, and jump straight into the catalog with your negotiated pricing.
+        </p>
+        <div class="hero__meta">
+          <span class="badge">Tier: {{ portal.tier_label|default:"Standard" }}</span>
+          {% if portal.discount_percent %}
+            <span class="badge badge--accent">{{ portal.discount_percent }}% off catalog</span>
+          {% endif %}
         </div>
+        <div class="hero__actions" style="display:flex;gap:.6rem;flex-wrap:wrap">
+          <a class="btn btn--primary" href="{% url 'store' %}">Browse catalog</a>
+          <a class="btn btn--ghost" href="{% url 'store-cart' %}">Open cart</a>
+        </div>
+      </div>
+      <div class="hero__card">
+        <div class="hero__stat">
+          <span class="hero__stat-label">Dealer since</span>
+          <span class="hero__stat-value">
+            {% if userprofile and userprofile.dealer_since %}
+              {{ userprofile.dealer_since|date:"M d, Y" }}
+            {% else %}
+              Pending activation
+            {% endif %}
+          </span>
+        </div>
+        <div class="hero__stat">
+          <span class="hero__stat-label">Lifetime spend</span>
+          <span class="hero__stat-value">${{ lifetime_spent|default:0|floatformat:2 }}</span>
+        </div>
+        {% if next_tier %}
+          <div class="hero__stat">
+            <span class="hero__stat-label">Next tier target</span>
+            <span class="hero__stat-value">${{ next_tier.minimum_spend|floatformat:0 }}</span>
+            {% if remaining_to_next %}
+              <span class="hero__lead" style="font-size:.9rem;margin-top:.2rem;color:var(--muted);">
+                ${{ remaining_to_next|floatformat:2 }} to unlock {{ next_tier.label }}
+              </span>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="hero__stat">
+            <span class="hero__stat-label">Top tier unlocked</span>
+            <span class="hero__stat-value">Enjoy the max discount</span>
+          </div>
+        {% endif %}
+      </div>
+      <div class="hero__media">
+        <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Dealer hero' }}" loading="lazy" decoding="async">
+        <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
+      </div>
+    </section>
+
+    {% if is_dealer %}
+      <section class="grid grid--3">
+        <article class="card">
+          <div class="card__header">
+            <h2 class="card__title">Account overview</h2>
+            <span class="badge">Active</span>
+          </div>
+          <div class="metrics">
+            <div class="metric"><span class="metric__label">Tier</span><span class="metric__value">{{ portal.tier_label|default:"Standard" }}</span></div>
+            <div class="metric"><span class="metric__label">Discount</span><span class="metric__value">{% if portal.discount_percent %}{{ portal.discount_percent }}%{% else %}—{% endif %}</span></div>
+            <div class="metric"><span class="metric__label">Lifetime spend</span><span class="metric__value">${{ lifetime_spent|default:0|floatformat:2 }}</span></div>
+            <div class="metric"><span class="metric__label">Last review</span><span class="metric__value">
+              {% if dealer_application and dealer_application.reviewed_at %}
+                {{ dealer_application.reviewed_at|date:"M d, Y" }}
+              {% else %}
+                —
+              {% endif %}
+            </span></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card__header">
+            <h2 class="card__title">Progress to next tier</h2>
+            {% if next_tier %}
+              <span class="badge">{{ next_tier.label }}</span>
+            {% else %}
+              <span class="badge">Max tier unlocked</span>
+            {% endif %}
+          </div>
+          <div class="progress">
+            <div class="progress__bar">
+              <div class="progress__fill" style="width:{{ portal.progress|default:0 }}%"></div>
+            </div>
+            <div class="progress__meta">
+              <span>${{ current_threshold|default:0|floatformat:0 }}</span>
+              <span>{{ portal.progress|default:0 }}%</span>
+              <span>{% if next_tier %}${{ next_tier.minimum_spend|floatformat:0 }}{% else %}Top tier{% endif %}</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card__header">
+            <h2 class="card__title">Orders</h2>
+            <span class="badge">{{ orders_snapshot.total }} total</span>
+          </div>
+          <div class="metrics">
+            <div class="metric"><span class="metric__label">Open</span><span class="metric__value">{{ orders_snapshot.open }}</span></div>
+            <div class="metric"><span class="metric__label">Completed</span><span class="metric__value">{{ orders_snapshot.total|add:-orders_snapshot.open }}</span></div>
+            <div class="metric"><span class="metric__label">Most recent</span>
+              <span class="metric__value">
+                {% if orders_snapshot.latest %}
+                  #{{ orders_snapshot.latest.id }} · {{ orders_snapshot.latest.get_status_display }}
+                {% else %}
+                  —
+                {% endif %}
+              </span>
+            </div>
+          </div>
+          <div class="hero__actions" style="margin-top:.8rem">
+            <a class="btn btn--ghost" href="{% url 'store' %}">Place order</a>
+          </div>
+        </article>
+      </section>
+
+      <section class="card" style="margin-top:1.5rem">
+        <div class="card__header">
+          <h2 class="card__title">Resources</h2>
+        </div>
+        <div class="resources">
+          <div class="resource">
+            <h3 style="font-weight:800;margin-bottom:.3rem">Dealer price sheet</h3>
+            <p class="hero__lead" style="font-size:.9rem;">Download the latest catalog with your discount baked in.</p>
+            <a class="btn btn--ghost" href="{% url 'store' %}">Open catalog</a>
+          </div>
+          <div class="resource">
+            <h3 style="font-weight:800;margin-bottom:.3rem">Support desk</h3>
+            <p class="hero__lead" style="font-size:.9rem;">Need to escalate an order or request marketing assets? Reach out.</p>
+            <a class="btn btn--ghost" href="{% url 'home' %}#contact">Contact support</a>
+          </div>
+          <div class="resource">
+            <h3 style="font-weight:800;margin-bottom:.3rem">Dealer policy</h3>
+            <p class="hero__lead" style="font-size:.9rem;">Review the playbook covering terms, logistics, and reporting cadence.</p>
+            <a class="btn btn--ghost" href="{% url 'legal-terms' %}">View policy</a>
+          </div>
+        </div>
+      </section>
+    {% else %}
+      <section class="card">
+        <div class="card__header">
+          <h2 class="card__title">Application status</h2>
+          {% if dealer_application %}
+            <span class="badge">{{ dealer_application.get_status_display }}</span>
+          {% else %}
+            <span class="badge badge--accent">Not submitted</span>
+          {% endif %}
+        </div>
+        {% if dealer_application %}
+          {% if dealer_application.status == "pending" %}
+            <div class="callout">Thanks for applying. Your submission is in the review queue. We typically respond within 2 business days.</div>
+          {% elif dealer_application.status == "rejected" %}
+            <div class="callout">The previous request was declined. Feel free to update your details and submit a new application.</div>
+          {% elif dealer_application.status == "approved" and not is_dealer %}
+            <div class="callout callout--ok">Approved — we are finalizing onboarding. Expect an activation email shortly.</div>
+          {% endif %}
+          <div class="metrics" style="margin-top:.6rem">
+            <div class="metric"><span class="metric__label">Business</span><span class="metric__value">{{ dealer_application.business_name }}</span></div>
+            <div class="metric"><span class="metric__label">Requested tier</span><span class="metric__value">{{ dealer_application.get_preferred_tier_display }}</span></div>
+            <div class="metric"><span class="metric__label">Submitted</span><span class="metric__value">{{ dealer_application.created_at|date:"M d, Y" }}</span></div>
+          </div>
+        {% else %}
+          <div class="callout">You have not submitted a dealer request yet. Tell us about your business and projected volume to unlock wholesale pricing.</div>
+        {% endif %}
+        <div class="hero__actions" style="margin-top:1rem">
+          {% if dealer_application and dealer_application.status == "pending" %}
+            <a class="btn btn--ghost" href="{% url 'home' %}#contact">Need to update your data? Contact us</a>
+          {% else %}
+            <a class="btn btn--primary" href="{% url 'dealer-apply' %}">{% if dealer_application and dealer_application.status == "rejected" %}Reapply{% else %}Apply now{% endif %}</a>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="card" style="margin-top:1.6rem">
+      <div class="card__header">
+        <h2 class="card__title">Tier ladder</h2>
+        <span class="badge">Transparent thresholds</span>
+      </div>
+      {% if tier_levels %}
+        <table class="table" aria-label="Dealer tiers">
+          <thead>
+            <tr>
+              <th scope="col">Tier</th>
+              <th scope="col">Minimum spend</th>
+              <th scope="col">Discount</th>
+              <th scope="col">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tier in tier_levels %}
+              <tr {% if tier.code == portal.tier_code %}style="background:rgba(213,0,0,.08)"{% endif %}>
+                <td>{{ tier.label }}</td>
+                <td>${{ tier.minimum_spend|floatformat:0 }}</td>
+                <td>{{ tier.discount_percent }}%</td>
+                <td>{{ tier.description|default:"—" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="hero__lead">Tier configuration is coming soon.</p>
       {% endif %}
-    </div>
+    </section>
+
+    <section class="card" style="margin-top:1.6rem">
+      <div class="card__header">
+        <h2 class="card__title">Lifecycle timeline</h2>
+      </div>
+      <div class="timeline">
+        {% for step in application_steps %}
+          <div class="timeline__step">
+            <div class="timeline__icon">
+              {% if step.state %}✓{% else %}•{% endif %}
+            </div>
+            <div class="timeline__body">
+              <div class="timeline__label">{{ step.label }}</div>
+              {% if step.timestamp %}
+                <div class="timeline__note">{{ step.timestamp|date:"M d, Y" }}</div>
+              {% else %}
+                <div class="timeline__note">In progress</div>
+              {% endif %}
+              {% if step.details %}
+                <div class="timeline__note">{{ step.details }}</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
   </main>
 
-  <footer class="site-footer" id="contact">
-  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:.75rem">
-      <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
-    </div>
+  <footer class="container">
+    © {{ now|date:"Y" }} BGM Customs. Dealer portal.
+  </footer>
 
-    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-      <strong>Contact us:</strong>
-      <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
-      <span aria-hidden="true">•</span>
-      <a href="tel:+14035250432">(403) 525-0432</a>
-    </div>
-
-    <div class="section__desc">© 2025 Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
-  </div>
-</footer>
-
-  <!-- Smoke (exactly like on Store/Financing) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 </body>

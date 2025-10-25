@@ -375,11 +375,12 @@ from core.models import DealerApplication
 class DealerApplicationForm(forms.ModelForm):
     class Meta:
         model = DealerApplication
-        fields = ["business_name", "website", "phone", "notes"]
+        fields = ["business_name", "website", "phone", "preferred_tier", "notes"]
         widgets = {
             "business_name": forms.TextInput(attrs={"placeholder": "Business name"}),
             "website": forms.URLInput(attrs={"placeholder": "Website (optional)"}),
             "phone": forms.TextInput(attrs={"placeholder": "Phone"}),
+            "preferred_tier": forms.Select(attrs={"class": "field"}),
             "notes": forms.Textarea(attrs={"placeholder": "Tell us about your business...", "rows": 4}),
         }
 
@@ -395,3 +396,7 @@ class DealerApplicationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.current_user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
+        tier_field = self.fields.get("preferred_tier")
+        if tier_field:
+            tier_field.label = "Projected tier"
+            tier_field.help_text = "Select the tier that matches your planned annual volume."

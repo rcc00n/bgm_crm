@@ -1,3 +1,4 @@
+{% load dealer_extras %}
 {% extends "store/_base_store.html" %}
 {% block title %}BGM — Products{% endblock %}
 
@@ -16,8 +17,8 @@
     </div>
 
     <div class="hero__media frame frame--media">
-      <img src="{% static 'img/hero-products.jpg' %}" alt="Products hero" loading="lazy" decoding="async">
-      <p class="hero__disclaimer">Product may not appear exactly as shown.</p>
+      <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Products hero' }}" loading="lazy" decoding="async">
+      <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
     </div>
   </div>
 </section>
@@ -108,14 +109,23 @@
               <div class="product__meta">
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
-                <div class="price">
+                <div class="price price--stacked">
                   {% if p.contact_for_estimate %}
                     <strong>Contact for estimate</strong>
                     {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
                   {% else %}
-                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>${{ p.display_price|floatformat:2 }}</strong>
-                    {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                    <div class="price__retail-row">
+                      {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                      <strong>${{ p.display_price|floatformat:2 }}</strong>
+                      {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                    </div>
+                    {% if dealer_portal.show_discount %}
+                      <div class="price__dealer-row">
+                        <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                        <strong>${{ p.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</strong>
+                        <span class="price__save">Save ${{ p.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}</span>
+                      </div>
+                    {% endif %}
                   {% endif %}
                 </div>
               </div>
@@ -150,14 +160,23 @@
               <div class="product__meta">
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
-                <div class="price">
+                <div class="price price--stacked">
                   {% if p.contact_for_estimate %}
                     <strong>Contact for estimate</strong>
                     {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
                   {% else %}
-                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>${{ p.display_price|floatformat:2 }}</strong>
-                    {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                    <div class="price__retail-row">
+                      {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                      <strong>${{ p.display_price|floatformat:2 }}</strong>
+                      {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                    </div>
+                    {% if dealer_portal.show_discount %}
+                      <div class="price__dealer-row">
+                        <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                        <strong>${{ p.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</strong>
+                        <span class="price__save">Save ${{ p.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}</span>
+                      </div>
+                    {% endif %}
                   {% endif %}
                 </div>
               </div>
@@ -196,14 +215,23 @@
               <div class="product__meta">
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
-                <div class="price">
+                <div class="price price--stacked">
                   {% if p.contact_for_estimate %}
                     <strong>Contact for estimate</strong>
                     {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
                   {% else %}
-                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>${{ p.display_price|floatformat:2 }}</strong>
-                    {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                    <div class="price__retail-row">
+                      {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                      <strong>${{ p.display_price|floatformat:2 }}</strong>
+                      {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                    </div>
+                    {% if dealer_portal.show_discount %}
+                      <div class="price__dealer-row">
+                        <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                        <strong>${{ p.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</strong>
+                        <span class="price__save">Save ${{ p.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}</span>
+                      </div>
+                    {% endif %}
                   {% endif %}
                 </div>
               </div>
@@ -256,8 +284,21 @@
   .product__meta{padding:.7rem .8rem}
   .product__title{margin:.6rem 0 0}
   .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
+  .price--stacked{flex-direction:column;align-items:flex-start;gap:.3rem}
+  .price__retail-row{display:flex;gap:.45rem;align-items:baseline}
+  .price__dealer-row{
+    display:inline-flex;
+    gap:.35rem;
+    align-items:baseline;
+    flex-wrap:wrap;
+    background:rgba(213,0,0,.12);
+    border:1px solid rgba(213,0,0,.35);
+    border-radius:.6rem;
+    padding:.2rem .5rem;
+  }
   .price__hint{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
   .price .old{color:var(--muted);text-decoration:line-through}
+  .price__save{font-size:.78rem;color:var(--muted)}
 
   /* Skeleton */
   .ph{

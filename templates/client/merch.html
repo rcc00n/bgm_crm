@@ -540,8 +540,8 @@ nav a,.btn,.badge {
     </div>
 
     <div class="hero__media frame frame--media">
-      <img src="{% static 'img/hero-merch.jpg' %}" alt="Merch hero" loading="lazy" decoding="async">
-      <p class="hero__disclaimer">Product may not appear exactly as shown.</p>
+      <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Merch hero' }}" loading="lazy" decoding="async">
+      <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
     </div>
   </div>
 </section>
