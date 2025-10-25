@@ -1,5 +1,5 @@
-{% load dealer_extras %}
 {% extends "store/_base_store.html" %}
+{% load dealer_extras %}
 {% block title %}BGM — Products{% endblock %}
 
 {% block body %}
@@ -28,30 +28,58 @@
   <div class="container">
 
     {# ================== FILTERS ================== #}
-    <form method="get" class="card filters">
-      <div class="filters__grid">
-        <div class="filters__item">
-          <label>Category</label>
-          {{ filter_form.category }}
-        </div>
-        <div class="filters__item">
-          <label>Make</label>
-          {{ filter_form.make }}
-        </div>
-        <div class="filters__item">
-          <label>Model</label>
-          {{ filter_form.model }}
-        </div>
-        <div class="filters__item">
-          <label>Year</label>
-          {{ filter_form.year }}
-        </div>
+    <div class="filters-wrap" data-filters>
+      <div class="filters-toolbar">
+        <button type="button"
+                class="filters-toggle"
+                data-filters-toggle
+                aria-expanded="false"
+                aria-controls="catalogFilters">
+          <span>Filters</span>
+          {% if filters_active %}
+            <span class="filters-toggle__badge">Active</span>
+          {% endif %}
+        </button>
+        {% if filters_active %}
+          <a class="filters-toolbar__clear" href="{% url 'store' %}">Reset</a>
+        {% endif %}
       </div>
-      <div class="filters__actions">
-        <button class="btn btn--primary" type="submit">Apply filters</button>
-        <a class="btn btn--ghost" href="{% url 'store' %}">Clear</a>
-      </div>
-    </form>
+
+      <form id="catalogFilters"
+            method="get"
+            class="card filters"
+            tabindex="-1"
+            aria-labelledby="filtersHeading">
+        <div class="filters__drawer-head">
+          <h3 class="filters__drawer-title" id="filtersHeading">Filters</h3>
+          <button type="button" class="filters__close" data-filters-close>Close</button>
+        </div>
+        <div class="filters__grid">
+          <div class="filters__item">
+            <label>Category</label>
+            {{ filter_form.category }}
+          </div>
+          <div class="filters__item">
+            <label>Make</label>
+            {{ filter_form.make }}
+          </div>
+          <div class="filters__item">
+            <label>Model</label>
+            {{ filter_form.model }}
+          </div>
+          <div class="filters__item">
+            <label>Year</label>
+            {{ filter_form.year }}
+          </div>
+        </div>
+        <div class="filters__actions">
+          <button class="btn btn--primary" type="submit">Apply filters</button>
+          <a class="btn btn--ghost" href="{% url 'store' %}">Clear</a>
+        </div>
+      </form>
+
+      <div class="filters-backdrop" data-filters-backdrop></div>
+    </div>
 
     {# ================== CATEGORIES ================== #}
     <div class="section__head">
@@ -242,6 +270,100 @@
     {% endfor %}
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+<script>
+(function(){
+  const host = document.querySelector('[data-filters]');
+  if (!host) return;
+
+  const panel = host.querySelector('.filters');
+  const toggle = host.querySelector('[data-filters-toggle]');
+  const closeEls = host.querySelectorAll('[data-filters-close]');
+  const backdrop = host.querySelector('[data-filters-backdrop]');
+  const mq = window.matchMedia('(max-width: 900px)');
+  let previousFocus = null;
+
+  if (panel && !panel.hasAttribute('tabindex')) {
+    panel.setAttribute('tabindex', '-1');
+  }
+
+  const isMobile = () => mq.matches;
+
+  const trapKeydown = (event) => {
+    if (!host.classList.contains('filters--open')) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDrawer();
+      return;
+    }
+    if (event.key !== 'Tab' || !panel) return;
+    const focusables = Array.from(
+      panel.querySelectorAll('a,button,input,select,textarea,[tabindex]:not([tabindex="-1"])')
+    ).filter(el => !el.disabled && !el.getAttribute('aria-hidden'));
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  const openDrawer = () => {
+    if (!panel || !isMobile()) return;
+    previousFocus = document.activeElement;
+    host.classList.add('filters--open');
+    document.body.classList.add('filters-drawer-open');
+    toggle?.setAttribute('aria-expanded', 'true');
+    document.addEventListener('keydown', trapKeydown);
+    requestAnimationFrame(() => {
+      try {
+        panel.focus({ preventScroll: true });
+      } catch (err) {
+        panel.focus();
+      }
+    });
+  };
+
+  const closeDrawer = ({ restoreFocus = true } = {}) => {
+    host.classList.remove('filters--open');
+    document.body.classList.remove('filters-drawer-open');
+    toggle?.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('keydown', trapKeydown);
+    if (restoreFocus && previousFocus) {
+      try {
+        previousFocus.focus({ preventScroll: true });
+      } catch (err) {
+        previousFocus.focus();
+      }
+    }
+  };
+
+  toggle?.addEventListener('click', () => {
+    if (host.classList.contains('filters--open')) {
+      closeDrawer();
+    } else {
+      openDrawer();
+    }
+  });
+
+  closeEls.forEach(btn => btn.addEventListener('click', () => closeDrawer()));
+  backdrop?.addEventListener('click', () => closeDrawer());
+
+  const handleMq = (event) => {
+    if (!event.matches) {
+      closeDrawer({ restoreFocus: false });
+    }
+  };
+  if (mq.addEventListener) {
+    mq.addEventListener('change', handleMq);
+  } else if (mq.addListener) {
+    mq.addListener(handleMq);
+  }
+})();
+</script>
 
   </div>
 </section>
@@ -258,6 +380,39 @@
   .img-fit{width:100%;height:100%;object-fit:cover;aspect-ratio:16/9;display:block}
 
   /* Filters */
+  .filters-wrap{position:relative;margin-bottom:1.2rem}
+  .filters-toolbar{
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    gap:.6rem;
+    margin-bottom:.8rem;
+  }
+  .filters-toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:.45rem;
+    border-radius:.75rem;
+    border:1px solid var(--card-border);
+    background:var(--card-bg);
+    padding:.65rem 1rem;
+    font-weight:800;
+    letter-spacing:.04em;
+    cursor:pointer;
+  }
+  .filters-toggle__badge{
+    font-size:.75rem;
+    border-radius:999px;
+    padding:.1rem .5rem;
+    background:rgba(213,0,0,.16);
+    border:1px solid rgba(213,0,0,.4);
+  }
+  .filters-toolbar__clear{
+    display:none;
+    font-weight:700;
+    color:var(--muted);
+  }
+  .filters-backdrop{display:none;}
   .filters{padding:1rem;background:var(--card-bg);border:1px solid var(--card-border);margin-bottom:1.2rem}
   .filters__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}
   .filters__item label{display:block;margin:0 0 .35rem .1rem;color:var(--muted);font-size:.9rem}
@@ -265,6 +420,17 @@
   .filters select,.filters input{
     width:100%; background:var(--field-bg); color:var(--ink);
     border:1px solid var(--card-border); border-radius:.6rem; padding:.55rem .7rem;
+  }
+  .filters__drawer-head{display:none;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:1rem}
+  .filters__drawer-title{font-size:1.1rem;font-weight:800}
+  .filters__close{
+    display:none;
+    border:1px solid var(--card-border);
+    background:transparent;
+    color:var(--ink);
+    padding:.4rem .9rem;
+    border-radius:.6rem;
+    font-weight:700;
   }
 
   /* Categories */
@@ -368,6 +534,41 @@
 
 /* мобилка */
 @media (max-width: 900px){
+  .filters-toolbar{display:flex;}
+  .filters-toolbar__clear{display:inline-flex;}
+  .filters{
+    position:fixed;
+    top:0;
+    right:0;
+    bottom:0;
+    width:min(420px,92vw);
+    max-width:92vw;
+    border-radius:0;
+    margin-bottom:0;
+    transform:translateX(100%);
+    transition:transform .28s ease;
+    z-index:120;
+    overflow-y:auto;
+  }
+  .filters-wrap.filters--open .filters{transform:translateX(0);}
+  .filters-backdrop{
+    display:block;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.65);
+    backdrop-filter:blur(2px);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+    z-index:110;
+  }
+  .filters-wrap.filters--open .filters-backdrop{
+    opacity:1;
+    pointer-events:auto;
+  }
+  .filters__drawer-head,
+  .filters__close{display:flex;}
+  body.filters-drawer-open{overflow:hidden;}
   .hero__inner{ grid-template-columns:1fr; }
   .hero__media{ order:2; max-width:100%; }
   .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
