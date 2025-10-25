@@ -279,13 +279,21 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   opacity: 0;
 }
 
-.content-wrapper .content {
+/* Only apply structural spacing to the main content sections, not the header strip */
+.content-wrapper > .content:not(.border-bottom) {
   padding: 32px clamp(18px, 4vw, 40px);
   min-height: calc(100vh - 64px);
 }
 
-.content-wrapper .content > .container-fluid {
+.content-wrapper > .content:not(.border-bottom) > .container-fluid {
   padding: 0;
+}
+
+/* Flatten the inner #content wrapper so it does not re-introduce spacing */
+.content-wrapper #content.content {
+  padding: 0;
+  min-height: unset;
+  background: transparent;
 }
 
 .card,
