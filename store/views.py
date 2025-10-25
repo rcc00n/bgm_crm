@@ -485,7 +485,7 @@ def checkout(request):
             if not form["region"]:
                 errors["region"] = "State/region is required."
             if not form["postal_code"]:
-            errors["postal_code"] = "Postal code is required."
+                errors["postal_code"] = "Postal code is required."
         if not form["country"]:
             errors["country"] = "Country is required."
 
