@@ -139,6 +139,25 @@
     <div class="section__desc">{{ product.compatibility|linebreaks }}</div>
   </div>
 {% endif %}
+
+        <div class="card card--cta" style="margin-top:1rem">
+          <div class="cta">
+            <div>
+              <p class="cta__eyebrow">Custom fitments</p>
+              <h3 class="cta__title">Ready to build your deck?</h3>
+              <p class="section__desc cta__copy">
+                Tell us about your platform, performance goals, and timeline. We’ll map the parts,
+                confirm availability, and send back a detailed quote with next steps.
+              </p>
+            </div>
+            <a
+              class="btn btn--primary"
+              href="mailto:support@badguymotors.com?subject=Deck%20Build%20Quote&body=Hi%20BGM%20team%2C%0AI'm%20ready%20to%20build%20my%20deck.%20Here%20are%20the%20details%3A%0A-%20Vehicle%3A%0A-%20Desired%20power%2Fapplication%3A%0A-%20Timeline%3A%0A%0AThanks!"
+            >
+              Get a quote today
+            </a>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -280,6 +299,33 @@
   .specs__v{color:var(--muted)}
   .compat{margin:.2rem 0 0;padding-left:1.1rem}
   .compat li{margin:.2rem 0}
+  .card--cta{background:linear-gradient(135deg,rgba(213,0,0,.12),rgba(0,0,0,.65));border:1px solid rgba(213,0,0,.3)}
+  .cta{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:1rem;
+    flex-wrap:wrap;
+  }
+  .cta__eyebrow{
+    text-transform:uppercase;
+    letter-spacing:.16em;
+    font-size:.78rem;
+    font-weight:800;
+    color:rgba(255,255,255,.72);
+    margin-bottom:.3rem;
+  }
+  .cta__title{
+    font-family:var(--font-body);
+    font-weight:900;
+    font-size:1.5rem;
+    margin:0 0 .4rem;
+  }
+  .cta__copy{max-width:28rem;color:rgba(255,255,255,.9) !important;}
+  @media (max-width:640px){
+    .cta{flex-direction:column;align-items:flex-start}
+    .cta .btn{width:100%;justify-content:center}
+  }
 
   /* дым — слой позади всего */
 #bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
