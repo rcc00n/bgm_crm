@@ -74,6 +74,7 @@
     .card__badge{position:absolute;left:.6rem;bottom:.6rem;font-size:.72rem;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
     .card__head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
     .price{display:flex;gap:.5rem;align-items:baseline;white-space:nowrap}
+    .price__hint{font-size:.75rem;font-weight:800;color:var(--muted-2);text-transform:uppercase;letter-spacing:.08em;}
     .old{color:var(--muted-2);text-decoration:line-through}
     .dur{color:var(--muted-2);font-size:.92rem}
     .empty{color:var(--muted-2);font-style:italic;padding:1rem}
@@ -277,17 +278,23 @@
                 <div class="card__head" style="margin-top:.35rem">
                   <h3 style="font-weight:900">{{ p.name }}</h3>
                   <div class="price">
-                    <strong>${{ p.price }}</strong>
+                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                    <strong>${{ p.display_price|floatformat:2 }}</strong>
                     {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
                   </div>
                 </div>
                 {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
               </a>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
-                <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
-                  <button class="btn btn--primary" type="submit">Add to cart</button>
-                </form>
-                <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% if p.has_active_options %}
+                  <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
+                  <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% else %}
+                  <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
+                    <button class="btn btn--primary" type="submit">Add to cart</button>
+                  </form>
+                  <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% endif %}
               </div>
             </article>
           {% endfor %}

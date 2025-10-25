@@ -169,6 +169,9 @@
                 <div>
                   <div class="summary__title">{{ it.product.name }}</div>
                   <div class="section__desc">x{{ it.qty }} • {{ it.product.category.name }}</div>
+                  {% if it.option %}
+                    <div class="section__desc">Option: {{ it.option.name }}</div>
+                  {% endif %}
                 </div>
                 <div class="summary__amount">${{ it.line_total|floatformat:2 }}</div>
               </li>

@@ -47,19 +47,25 @@
             <h3 class="product__title"><a href="{% url 'store-product' slug=p.slug %}">{{ p.name }}</a></h3>
             {% if p.short_description %}<p class="section__desc">{{ p.short_description }}</p>{% endif %}
             <div class="price">
-              <strong>${{ p.price }}</strong>
+              {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+              <strong>${{ p.display_price|floatformat:2 }}</strong>
               {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
             </div>
 
             <!-- quick actions -->
             <div class="quick row">
-              <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
-                <button class="btn btn--primary" type="submit">Add to cart</button>
-              </form>
-              <form method="post" action="{% url 'store-checkout' %}">{% csrf_token %}
-                <input type="hidden" name="buy_now_slug" value="{{ p.slug }}">
-                <button class="btn btn--ghost" type="submit">Buy now</button>
-              </form>
+              {% if p.has_active_options %}
+                <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
+                <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View product</a>
+              {% else %}
+                <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
+                  <button class="btn btn--primary" type="submit">Add to cart</button>
+                </form>
+                <form method="post" action="{% url 'store-checkout' %}">{% csrf_token %}
+                  <input type="hidden" name="buy_now_slug" value="{{ p.slug }}">
+                  <button class="btn btn--ghost" type="submit">Buy now</button>
+                </form>
+              {% endif %}
             </div>
           </div>
         </article>
@@ -87,6 +93,7 @@
   .product__meta{padding:.8rem}
   .product__title{margin:.6rem 0 0}
   .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
+  .price__hint{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
   .price .old{color:var(--muted);text-decoration:line-through}
   .quick.row{margin-top:.7rem;display:flex;gap:.5rem;flex-wrap:wrap}
 
@@ -107,6 +114,14 @@
 
 /* убираем прежний фон у hero */
 .hero--store{ background:transparent !important; }
+/* Переопределение только для названия категории */
+.hero--cat .title,
+.section__title {
+  text-transform: none !important;   /* убираем капс */
+  letter-spacing: .01em !important;  /* меньше растяжки */
+  font-size: clamp(1.9rem, 2.6vw, 2.3rem) !important; /* оставляем читаемый размер */
+  line-height: 1.25 !important; 
+}
 
 </style>
 {% endblock %}

@@ -152,7 +152,7 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         form = ClientProfileForm(request.POST, user=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, "Профиль обновлён.")
+            messages.success(request, "Profile updated.")
             return redirect(reverse("dashboard") + "#profile")
 
         ctx = self.get_context_data()
@@ -238,6 +238,7 @@ class HomeView(TemplateView):
         ctx["home_products"] = (
             Product.objects.filter(is_active=True)
             .select_related("category")
+            .prefetch_related("options")
             .order_by("-created_at")[:8]
         )
         return ctx

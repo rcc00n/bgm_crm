@@ -9,6 +9,7 @@ import os
 from django.utils import timezone
 from django.utils.timezone import localtime
 from core.validators import clean_phone
+from .constants import STAFF_DISPLAY_NAME
 from django.conf import settings
 from django.db.models import Sum
 
@@ -88,7 +89,7 @@ from django.db import models
 from django.utils import timezone
 from django.core.validators import MinLengthValidator
 
-# Если у вас уже есть UserProfile — дополним его, иначе создайте.
+
 class DealerTier(models.TextChoices):
     NONE = "NONE", "None"
     TIER_5 = "TIER_5", "Dealer 5% (≥ $1,000)"
@@ -183,7 +184,7 @@ class UserProfile(models.Model):
     how_heard = models.CharField(max_length=32, choices=HowHeard.choices, blank=True)
 
     def set_marketing_consent(self, value: bool):
-        """Удобный метод: при выставлении True заполнит timestamp, при снятии — очистит."""
+        """Convenience helper: switches consent flag and timestamp in sync."""
         if value and not self.email_marketing_consent:
             self.email_marketing_consent = True
             self.email_marketing_consented_at = timezone.now()
@@ -336,6 +337,10 @@ class MasterRoom(models.Model):
     def __str__(self):
         return self.room
 
+    class Meta:
+        verbose_name = f"{STAFF_DISPLAY_NAME} Room"
+        verbose_name_plural = f"{STAFF_DISPLAY_NAME} Rooms"
+
 class MasterProfile(models.Model):
     """
     Дополнительная информация о мастере: профессия, график работы, цвет и т.д.
@@ -352,6 +357,10 @@ class MasterProfile(models.Model):
     def __str__(self):
         return f"{self.user.get_full_name()}"
 
+    class Meta:
+        verbose_name = f"{STAFF_DISPLAY_NAME} Profile"
+        verbose_name_plural = f"{STAFF_DISPLAY_NAME} Profiles"
+
 class ServiceMaster(models.Model):
     """
     Connects a specific service with a master who can perform it.
@@ -361,6 +370,10 @@ class ServiceMaster(models.Model):
 
     def __str__(self):
         return f"{self.master} → {self.service.name}"
+
+    class Meta:
+        verbose_name = f"{STAFF_DISPLAY_NAME} Service Assignment"
+        verbose_name_plural = f"{STAFF_DISPLAY_NAME} Service Assignments"
 
 # --- 3. APPOINTMENTS ---
 
@@ -404,7 +417,7 @@ class Appointment(models.Model):
     def clean(self):
         if self.start_time and self.start_time.time() > time(23, 59):
             raise ValidationError({
-                "start_time": "Время начала не может быть позже 23:59."
+                "start_time": "Start time cannot be later than 23:59."
             })
 
         # Остальная логика…
@@ -739,4 +752,3 @@ class AppointmentPromoCode(models.Model):
             raise ValidationError({
                 "promocode": "This Service already has a discount. Promocode can't be applied"
             })
-

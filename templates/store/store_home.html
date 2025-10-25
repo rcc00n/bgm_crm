@@ -17,6 +17,7 @@
 
     <div class="hero__media frame frame--media">
       <img src="{% static 'img/hero-products.jpg' %}" alt="Products hero" loading="lazy" decoding="async">
+      <p class="hero__disclaimer">Product may not appear exactly as shown.</p>
     </div>
   </div>
 </section>
@@ -108,7 +109,8 @@
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
                 <div class="price">
-                  <strong>${{ p.price }}</strong>
+                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                  <strong>${{ p.display_price|floatformat:2 }}</strong>
                   {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
                 </div>
               </div>
@@ -144,7 +146,8 @@
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
                 <div class="price">
-                  <strong>${{ p.price }}</strong>
+                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                  <strong>${{ p.display_price|floatformat:2 }}</strong>
                   {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
                 </div>
               </div>
@@ -184,7 +187,8 @@
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
                 <div class="price">
-                  <strong>${{ p.price }}</strong>
+                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                  <strong>${{ p.display_price|floatformat:2 }}</strong>
                   {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
                 </div>
               </div>
@@ -237,6 +241,7 @@
   .product__meta{padding:.7rem .8rem}
   .product__title{margin:.6rem 0 0}
   .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
+  .price__hint{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
   .price .old{color:var(--muted);text-decoration:line-through}
 
   /* Skeleton */
@@ -268,6 +273,7 @@
 .hero__media{
   justify-self:start;
   max-width:min(52vw, 720px);
+  position:relative;
 }
 
 .hero__media img{
@@ -279,11 +285,36 @@
   border-radius:1rem;
   display:block;
 }
+.hero__disclaimer{
+  position:absolute;
+  left:1.1rem;
+  bottom:1.1rem;
+  padding:.35rem .9rem;
+  border-radius:.85rem;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.6);
+  color:rgba(255,255,255,.82);
+  font-size:.72rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  backdrop-filter:blur(6px);
+}
+.hero__disclaimer::before{
+  content:"";
+  width:18px;
+  height:1px;
+  background:rgba(255,255,255,.45);
+  flex-shrink:0;
+}
 
 /* мобилка */
 @media (max-width: 900px){
   .hero__inner{ grid-template-columns:1fr; }
   .hero__media{ order:2; max-width:100%; }
+  .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
 }
 
 /* дым оставляем позади */

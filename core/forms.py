@@ -5,6 +5,7 @@ from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 from .models import *
+from .constants import STAFF_DISPLAY_NAME
 
 # -----------------------------
 # Appointment Form
@@ -30,6 +31,9 @@ class AppointmentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        master_field = self.fields.get("master")
+        if master_field:
+            master_field.label = STAFF_DISPLAY_NAME
 
     def clean(self):
         cleaned_data = super().clean()
@@ -50,10 +54,10 @@ class AppointmentForm(forms.ModelForm):
             try:
                 code = PromoCode.objects.get(code=promocode_str.upper())
                 if not code.is_valid_for(service):
-                    raise forms.ValidationError("Этот промокод недействителен для выбранной услуги или срока.")
+                    raise forms.ValidationError("This promo code is not valid for the selected service or date.")
                 cleaned_data["applied_promocode"] = code
             except PromoCode.DoesNotExist:
-                raise forms.ValidationError("Неверный промокод.")
+                raise forms.ValidationError("Promo code not found.")
 
         return cleaned_data
 

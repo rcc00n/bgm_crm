@@ -15,6 +15,8 @@
       --accent:#d50000; --accent-2:#ff1a1a; --ok:#17d45b;
       --radius-lg:1.25rem; --radius-sm:.6rem; --shadow:0 10px 30px rgba(0,0,0,.45);
       --container:clamp(320px,92vw,1280px);
+      --site-header-height:72px;
+      --site-header-toggle-size:46px;
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
@@ -33,6 +35,7 @@
     .btn--ghost:hover{border-color:var(--accent);color:var(--accent)}
     .btn--link{padding:0;border:none;background:transparent;color:var(--accent)}
     .badge{display:inline-block;font-size:.78rem;padding:.15rem .55rem;border-radius:999px;background:var(--accent);color:#fff}
+    .price__hint{font-size:.75rem;font-weight:800;color:var(--muted-2);text-transform:uppercase;letter-spacing:.08em;}
 
     .site-header{position:sticky;top:0;z-index:1000;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
     .site-header__inner{display:flex;align-items:center;gap:1rem;justify-content:space-between;padding:.8rem 0}
@@ -66,6 +69,34 @@
   background:rgba(0,0,0,.45); backdrop-filter:blur(4px);
   border:1px solid rgba(255,255,255,.18); color:#fff;
 }
+    .hero__media{position:relative}
+    .hero__disclaimer{
+      position:absolute;
+      left:1.1rem;
+      bottom:1.1rem;
+      padding:.35rem .9rem;
+      border-radius:.85rem;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(0,0,0,.6);
+      color:rgba(255,255,255,.82);
+      font-size:.72rem;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      backdrop-filter:blur(6px);
+    }
+    .hero__disclaimer::before{
+      content:"";
+      width:18px;
+      height:1px;
+      background:rgba(255,255,255,.45);
+      flex-shrink:0;
+    }
+    @media (max-width:900px){
+      .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
+    }
 
     .section{padding:clamp(2rem,6vw,4rem) 0;border-top:1px solid var(--line)}
     .section__head{display:flex;align-items:end;justify-content:space-between;margin-bottom:1.1rem;gap:1rem}
@@ -441,7 +472,7 @@ nav a, .btn, .badge, .price strong {
 <style id="belt-to-diesel">
   /* Текст-пояс (между логотипом и меню) — Diesel */
   .site-header .brand__tagline,
-  .site-header .belt{
+.site-header .belt{
     font-family: var(--font-body) !important;   /* Diesel */
     font-weight: 900 !important;
     font-style: normal !important;
@@ -451,6 +482,148 @@ nav a, .btn, .badge, .price strong {
     color: rgba(255,255,255,.78) !important;
     font-size: clamp(.78rem, .95vw, .95rem) !important;
     white-space: nowrap !important;
+  }
+</style>
+
+<style id="topbar-responsive">
+  .sr-only{
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
+  }
+
+  .site-header__toggle{
+    display:none;
+    align-items:center;
+    justify-content:center;
+    width:var(--site-header-toggle-size);
+    height:var(--site-header-toggle-size);
+    border-radius:.85rem;
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.06);
+    color:#fff;
+    cursor:pointer;
+    transition:transform .18s ease, background .18s ease, border-color .18s ease;
+  }
+  .site-header__toggle:hover{
+    background:rgba(255,255,255,.12);
+    border-color:rgba(255,255,255,.28);
+  }
+  .site-header__toggle:focus-visible{
+    outline:2px solid rgba(255,255,255,.92);
+    outline-offset:3px;
+  }
+  .site-header__toggle-box{
+    position:relative;
+    width:20px;
+    height:14px;
+    display:block;
+  }
+  .site-header__toggle-lines,
+  .site-header__toggle-lines::before,
+  .site-header__toggle-lines::after{
+    content:"";
+    position:absolute;
+    left:0;
+    width:100%;
+    height:2px;
+    border-radius:999px;
+    background:currentColor;
+    transition:transform .22s ease, opacity .22s ease, background .22s ease;
+  }
+  .site-header__toggle-lines{ top:50%; transform:translateY(-50%); }
+  .site-header__toggle-lines::before{ top:-6px; }
+  .site-header__toggle-lines::after{ top:6px; }
+
+  .site-header--open .site-header__toggle{
+    background:rgba(255,255,255,.16);
+    border-color:rgba(255,255,255,.38);
+  }
+  .site-header--open .site-header__toggle-lines{ background:transparent; }
+  .site-header--open .site-header__toggle-lines::before{
+    transform:translateY(6px) rotate(45deg);
+  }
+  .site-header--open .site-header__toggle-lines::after{
+    transform:translateY(-6px) rotate(-45deg);
+  }
+
+  @media (max-width:1080px){
+    .site-header .belt{ display:none !important; }
+  }
+
+  @media (max-width:960px){
+    body.nav-open{ overflow:hidden; }
+
+    .site-header{
+      --site-header-height:max(62px, 10vh);
+    }
+    .site-header .brand__tagline{ display:none !important; }
+    .site-header .container{
+      padding-inline:clamp(16px, 4vw, 24px) !important;
+    }
+    .site-header__inner{
+      display:grid !important;
+      grid-template-columns:auto max-content !important;
+      align-items:center !important;
+      gap:clamp(12px, 3vw, 24px) !important;
+    }
+    .site-header__toggle{
+      display:inline-flex;
+    }
+    .site-header nav{
+      position:fixed;
+      inset:0;
+      padding-top:calc(var(--site-header-height) + 1rem);
+      padding-inline:clamp(20px, 6vw, 36px);
+      padding-bottom:clamp(28px, 12vh, 46px);
+      background:rgba(5,5,5,.88);
+      backdrop-filter:blur(18px) saturate(1.2);
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-start;
+      opacity:0;
+      pointer-events:none;
+      transform:translateY(-12px);
+      transition:opacity .22s ease, transform .22s ease;
+      z-index:900;
+    }
+      .site-header nav ul{
+      flex-direction:column !important;
+      align-items:stretch !important;
+      gap:.45rem !important;
+      width:100%;
+    }
+    .site-header nav li{ width:100%; }
+    .site-header nav a,
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      width:100%;
+      justify-content:space-between;
+      background:rgba(255,255,255,.04) !important;
+      border:1px solid rgba(255,255,255,.08) !important;
+      border-radius:.85rem !important;
+      padding:.95rem 1rem !important;
+      font-size:1.05rem !important;
+      letter-spacing:.035em !important;
+    }
+    .site-header nav a:hover,
+    .site-header nav a[aria-current="page"],
+    .site-header nav .btn:hover{
+      background:rgba(255,255,255,.1) !important;
+      border-color:rgba(255,255,255,.22) !important;
+      color:#fff !important;
+    }
+    .site-header--open nav{
+      opacity:1;
+      pointer-events:auto;
+      transform:translateY(0);
+    }
   }
 </style>
 
@@ -470,7 +643,14 @@ nav a, .btn, .badge, .price strong {
       <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
     </a>
 
-    <nav aria-label="Main navigation">
+    <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
+      <span class="site-header__toggle-box" aria-hidden="true">
+        <span class="site-header__toggle-lines"></span>
+      </span>
+      <span class="sr-only">Toggle navigation</span>
+    </button>
+
+    <nav id="siteNav" aria-label="Main navigation">
       <ul>
         <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
         {% if user.is_authenticated %}
@@ -507,8 +687,9 @@ nav a, .btn, .badge, .price strong {
       </div>
     </div>
 
-<div class="frame frame--media">
+<div class="frame frame--media hero__media">
   <img src="{% static 'img/hero-home.jpg' %}" alt="Home hero" loading="lazy" decoding="async">
+  <p class="hero__disclaimer">Product may not appear exactly as shown.</p>
 </div>
 
   </div>
@@ -646,17 +827,23 @@ nav a, .btn, .badge, .price strong {
                 <div class="card__head" style="margin-top:.35rem">
                   <h3 style="font-weight:900">{{ p.name }}</h3>
                   <div class="price">
-                    <strong>${{ p.price }}</strong>
+                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                    <strong>${{ p.display_price|floatformat:2 }}</strong>
                     {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
                   </div>
                 </div>
                 {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
               </a>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
-                <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
-                  <button class="btn btn--primary" type="submit">Add to cart</button>
-                </form>
-                <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% if p.has_active_options %}
+                  <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
+                  <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% else %}
+                  <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
+                    <button class="btn btn--primary" type="submit">Add to cart</button>
+                  </form>
+                  <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% endif %}
               </div>
             </article>
           {% endfor %}

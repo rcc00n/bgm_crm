@@ -8,6 +8,7 @@ from .models import (
     Category,
     Product,
     ProductImage,
+    ProductOption,
     Order,
     OrderItem,
 )
@@ -30,6 +31,13 @@ class CarModelAdmin(admin.ModelAdmin):
 
 
 # ───────────────────────────── Categories / Products ─────────────────────────────
+
+class ProductOptionInline(admin.TabularInline):
+    model = ProductOption
+    extra = 1
+    fields = ("name", "description", "price", "is_active", "sort_order")
+    ordering = ("sort_order", "id")
+
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -72,7 +80,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ("name", "sku", "description")
     prepopulated_fields = {"slug": ("name",)}
     list_select_related = ("category",)
-    inlines = [ProductImageInline]
+    inlines = [ProductOptionInline, ProductImageInline]
     filter_horizontal = ("compatible_models",)
     readonly_fields = ("created_at", "updated_at", "specs_preview")
 
@@ -87,7 +95,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
 
     def specs_preview(self, obj):
-        """Pretty HTML preview для JSON specs."""
+        """Pretty HTML preview for JSON specs."""
         if not getattr(obj, "specs", None):
             return "—"
         rows = []
@@ -115,6 +123,15 @@ class ProductAdmin(admin.ModelAdmin):
     specs_preview.short_description = "Specifications (preview)"
 
 
+@admin.register(ProductOption)
+class ProductOptionAdmin(admin.ModelAdmin):
+    list_display = ("name", "product", "price", "is_active", "sort_order")
+    list_filter = ("is_active",)
+    search_fields = ("name", "product__name", "product__sku")
+    autocomplete_fields = ("product",)
+    ordering = ("product__name", "sort_order", "id")
+
+
 # ──────────────────────────────── Orders ────────────────────────────────
 
 class StatusBadgeMixin:
@@ -132,8 +149,8 @@ class StatusBadgeMixin:
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    autocomplete_fields = ["product"]
-    fields = ("product", "qty", "price_at_moment", "subtotal")
+    autocomplete_fields = ["product", "option"]
+    fields = ("product", "option", "qty", "price_at_moment", "subtotal")
     readonly_fields = ("subtotal",)
 
 
@@ -167,14 +184,14 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
         for o in queryset:
             o.set_status(status, save=True)
             updated += 1
-        self.message_user(request, f"Обновлено заказов: {updated}")
+        self.message_user(request, f"Orders updated: {updated}")
 
     def mark_processing(self, request, qs): self._bulk_set(request, qs, Order.STATUS_PROCESSING)
     def mark_shipped(self, request, qs):    self._bulk_set(request, qs, Order.STATUS_SHIPPED)
     def mark_completed(self, request, qs):  self._bulk_set(request, qs, Order.STATUS_COMPLETED)
     def mark_cancelled(self, request, qs):  self._bulk_set(request, qs, Order.STATUS_CANCELLED)
 
-    mark_processing.short_description = "Пометить: processing"
-    mark_shipped.short_description    = "Пометить: shipped"
-    mark_completed.short_description  = "Пометить: completed"
-    mark_cancelled.short_description  = "Пометить: cancelled"
+    mark_processing.short_description = "Mark as processing"
+    mark_shipped.short_description    = "Mark as shipped"
+    mark_completed.short_description  = "Mark as completed"
+    mark_cancelled.short_description  = "Mark as cancelled"
