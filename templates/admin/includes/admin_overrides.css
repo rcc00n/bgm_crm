@@ -111,6 +111,20 @@ body {
   margin-left: auto;
 }
 
+body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link {
+  align-items: flex-start;
+}
+
+body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link p,
+body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .nav-sidebar .nav-link:hover,
 .nav-sidebar .nav-link:focus {
   background: var(--sidebar-pill-hover);
