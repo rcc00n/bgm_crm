@@ -62,12 +62,15 @@ def _application_timeline(application: Optional[DealerApplication], profile) -> 
 
 
 def _orders_snapshot(user) -> dict:
-    base = {"total": 0, "open": 0, "latest": None}
+    base = {"total": 0, "open": 0, "completed": 0, "latest": None}
     if not user.is_authenticated:
         return base
     qs = Order.objects.filter(user=user).order_by("-id")
     base["total"] = qs.count()
     base["open"] = qs.filter(status__in=OPEN_ORDER_STATUSES).count()
+    # Completed is the remainder once open orders are excluded; clamp at 0 to
+    # protect against inconsistent data.
+    base["completed"] = max(base["total"] - base["open"], 0)
     base["latest"] = qs.first()
     return base
 

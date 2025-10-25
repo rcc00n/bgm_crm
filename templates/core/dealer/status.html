@@ -263,7 +263,7 @@
           </div>
           <div class="metrics">
             <div class="metric"><span class="metric__label">Open</span><span class="metric__value">{{ orders_snapshot.open }}</span></div>
-            <div class="metric"><span class="metric__label">Completed</span><span class="metric__value">{{ orders_snapshot.total|add:-orders_snapshot.open }}</span></div>
+            <div class="metric"><span class="metric__label">Completed</span><span class="metric__value">{{ orders_snapshot.completed }}</span></div>
             <div class="metric"><span class="metric__label">Most recent</span>
               <span class="metric__value">
                 {% if orders_snapshot.latest %}

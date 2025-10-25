@@ -374,7 +374,7 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         portal_snapshot = build_portal_snapshot(self.request.user)
         ctx["portal"] = portal_snapshot
         ctx["application_steps"] = portal_snapshot.get("timeline", [])
-        ctx["orders_snapshot"] = portal_snapshot.get("orders") or {"total": 0, "open": 0, "latest": None}
+        ctx["orders_snapshot"] = portal_snapshot.get("orders") or {"total": 0, "open": 0, "completed": 0, "latest": None}
         ctx["tier_levels"] = portal_snapshot.get("tiers", [])
         ctx["next_tier"] = portal_snapshot.get("next_tier")
         ctx["current_threshold"] = portal_snapshot.get("current_threshold")
