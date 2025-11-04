@@ -1,6 +1,6 @@
 {% load static dealer_extras %}
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>BGM Customs — Home</title>
@@ -457,6 +457,7 @@ nav a, .btn, .badge, .price strong {
     letter-spacing: .02em !important;
   }
 </style>
+{% include "includes/site_notice_style.html" %}
 <style id="logo-to-diesel">
   /* Только логотип в хедере — на Diesel */
   .site-header .brand__logo,
@@ -634,6 +635,7 @@ nav a, .btn, .badge, .price strong {
 
 </head>
 <body>
+{% include "includes/site_notice_markup.html" with site_notice_version="uc-v2" %}
   <div id="bg"></div>
 
 <a href="#main" class="visually-hidden">Skip to main content</a>
@@ -1165,9 +1167,11 @@ nav a, .btn, .badge, .price strong {
         <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write e-mail</a>
         <a class="contact-btn" href="sms:+14035250432">Text us</a>
       </div>
-    </div>
+</div>
   </div>
 </div>
+
+{% include "includes/site_notice_script.html" %}
 
 <script id="contact-fab-js">
 (function(){

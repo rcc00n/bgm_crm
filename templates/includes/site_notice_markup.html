@@ -1,0 +1,35 @@
+{# Shared Under Construction banner markup #}
+{% with site_notice_version=site_notice_version|default:"uc-v2" %}
+<div id="siteNotice" class="site-notice" role="dialog" aria-modal="true"
+     aria-labelledby="siteNoticeTitle" aria-describedby="siteNoticeDescription"
+     data-version="{{ site_notice_version }}" hidden>
+  <div class="site-notice__panel">
+    <span class="site-notice__flare" aria-hidden="true"></span>
+    <div class="site-notice__eyebrow">Storefront update</div>
+    <h2 id="siteNoticeTitle" class="site-notice__title">🚧 Website Under Construction 🚧</h2>
+    <p id="siteNoticeDescription" class="site-notice__desc site-notice__desc--lead">
+      We're still putting the finishing touches on our site to make it as badass as our builds.
+      Some pages may not be fully functional yet, but you can still browse, get quotes, and reach us anytime.
+    </p>
+    <div class="site-notice__contact">
+      <div class="site-notice__contact-name">Bad Guy Motors Inc.</div>
+      <div class="site-notice__contact-details">
+        <div class="site-notice__contact-row">
+          <div class="site-notice__contact-label">Address</div>
+          <div class="site-notice__contact-value">620 Porcelain Ave SE, Medicine Hat, AB</div>
+        </div>
+        <div class="site-notice__contact-row">
+          <div class="site-notice__contact-label">Phone</div>
+          <div class="site-notice__contact-value">
+            <a href="tel:+14035250432">403-525-0432</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="site-notice__actions">
+      <button type="button" class="site-notice__cta" data-notice-dismiss>Okay, close</button>
+    </div>
+    <div class="site-notice__sub">Thanks for your patience while we dial it in.</div>
+  </div>
+</div>
+{% endwith %}
