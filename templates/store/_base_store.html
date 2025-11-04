@@ -663,32 +663,50 @@ nav a{ white-space: nowrap !important; }
     color:rgba(255,255,255,.85);
     line-height:1.6;
   }
-  .site-notice__list{
-    margin-top:1.1rem;
-    padding:0;
-    list-style:none;
-    display:grid;
-    gap:.65rem;
+  .site-notice__desc--lead{
+    font-size:1.1rem;
+    color:rgba(255,255,255,.9);
   }
-  .site-notice__list li{
+  .site-notice__contact{
+    margin-top:clamp(1.2rem, 4vw, 1.8rem);
+    padding:1.15rem 1.35rem;
+    border-radius:1.15rem;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.05);
+    box-shadow:0 12px 34px rgba(0,0,0,.32);
     display:grid;
-    grid-template-columns:auto 1fr;
-    align-items:start;
-    gap:.65rem;
+    gap:.75rem;
+  }
+  .site-notice__contact-name{
+    font-family:var(--font-display, "Diesel", system-ui, sans-serif);
+    font-size:1.05rem;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:#fff;
+  }
+  .site-notice__contact-details{
+    display:grid;
+    gap:.5rem;
+  }
+  .site-notice__contact-row{
+    display:grid;
+    gap:.18rem;
+  }
+  .site-notice__contact-label{
+    font-family:var(--font-body);
+    font-size:.82rem;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.58);
+  }
+  .site-notice__contact-value{
     font-family:var(--font-body);
     font-size:1rem;
-    color:rgba(255,255,255,.86);
-    line-height:1.5;
+    color:rgba(255,255,255,.88);
   }
-  .site-notice__list li::before{
-    content:"";
-    display:block;
-    width:.85rem;
-    height:.85rem;
-    border-radius:50%;
-    background:linear-gradient(135deg, rgba(213,0,0,.94), rgba(156,0,0,.94));
-    box-shadow:0 0 12px rgba(213,0,0,.45);
-    margin-top:.35rem;
+  .site-notice__contact-value a{
+    color:#fff;
+    font-weight:700;
   }
   .site-notice__actions{
     margin-top:clamp(1.3rem, 4vw, 1.9rem);
@@ -742,7 +760,8 @@ nav a{ white-space: nowrap !important; }
     .site-notice__panel{ padding:clamp(1.4rem, 6vw, 2.2rem); border-radius:1.35rem; }
     .site-notice__eyebrow{ letter-spacing:.22em; font-size:.7rem; }
     .site-notice__title{ font-size:clamp(1.8rem, 7.8vw, 2.5rem); }
-    .site-notice__list li{ font-size:.95rem; }
+    .site-notice__desc{ font-size:1rem; }
+    .site-notice__contact{ padding:1rem 1.15rem; gap:.6rem; }
     .site-notice__cta{ width:100%; }
   }
   @media (prefers-reduced-motion: reduce){
@@ -759,23 +778,31 @@ nav a{ white-space: nowrap !important; }
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-<div id="siteNotice" class="site-notice" role="dialog" aria-modal="true" aria-labelledby="siteNoticeTitle" aria-describedby="siteNoticeDescription" hidden>
+<div id="siteNotice" class="site-notice" role="dialog" aria-modal="true" aria-labelledby="siteNoticeTitle" aria-describedby="siteNoticeDescription" data-version="uc-v2" hidden>
   <div class="site-notice__panel">
     <span class="site-notice__flare" aria-hidden="true"></span>
-    <div class="site-notice__eyebrow">Under Construction</div>
-    <h2 id="siteNoticeTitle" class="site-notice__title">We are tuning the storefront</h2>
-    <p id="siteNoticeDescription" class="site-notice__desc">
-      The digital garage is still being finished. You might notice temp pricing, evolving specs, or placeholder inventory while we calibrate every package.
+    <div class="site-notice__eyebrow">Storefront update</div>
+    <h2 id="siteNoticeTitle" class="site-notice__title">🚧 Website Under Construction 🚧</h2>
+    <p id="siteNoticeDescription" class="site-notice__desc site-notice__desc--lead">
+      We're still putting the finishing touches on our site to make it as badass as our builds. Some pages may not be fully functional yet, but you can still browse, get quotes, and reach us anytime.
     </p>
-    <ul class="site-notice__list">
-      <li>Pricing can shift as supplier quotes lock in and promotions change.</li>
-      <li>Availability, lead times, and option bundles are still being dialed in.</li>
-      <li>Reach out if you need exact numbers — we will confirm everything before you buy.</li>
-    </ul>
-    <div class="site-notice__actions">
-      <button type="button" class="site-notice__cta" data-notice-dismiss>Got it</button>
+    <div class="site-notice__contact">
+      <div class="site-notice__contact-name">Bad Guy Motors Inc.</div>
+      <div class="site-notice__contact-details">
+        <div class="site-notice__contact-row">
+          <div class="site-notice__contact-label">Address</div>
+          <div class="site-notice__contact-value">620 Porcelain Ave SE, Medicine Hat, AB</div>
+        </div>
+        <div class="site-notice__contact-row">
+          <div class="site-notice__contact-label">Phone</div>
+          <div class="site-notice__contact-value"><a href="tel:+14035250432">403-525-0432</a></div>
+        </div>
+      </div>
     </div>
-    <div class="site-notice__sub">Thanks for the patience while we torque everything to spec.</div>
+    <div class="site-notice__actions">
+      <button type="button" class="site-notice__cta" data-notice-dismiss>Okay, close</button>
+    </div>
+    <div class="site-notice__sub">Thanks for your patience while we dial it in.</div>
   </div>
 </div>
 
@@ -962,8 +989,10 @@ nav a{ white-space: nowrap !important; }
   const notice = document.getElementById('siteNotice');
   if (!notice) return;
 
-  const storageKey = 'bgm:site-notice:under-construction:v1';
-  const cookieKey = 'bgm_site_notice_uc';
+  const versionToken = (notice.getAttribute('data-version') || 'default').trim();
+  const versionSafe = versionToken.replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'default';
+  const storageKey = `bgm:site-notice:${versionSafe}`;
+  const cookieKey = `bgm_site_notice_${versionSafe}`;
   const dismissBtn = notice.querySelector('[data-notice-dismiss]');
   if (!dismissBtn) return;
 
