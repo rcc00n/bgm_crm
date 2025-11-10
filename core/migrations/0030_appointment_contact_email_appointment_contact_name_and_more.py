@@ -22,8 +22,13 @@ def populate_contact_fields(apps, schema_editor):
             client = None
 
         if not appt.contact_name and client:
-            full_name = client.get_full_name().strip()
-            appt.contact_name = full_name or client.username or client.email
+            name_parts = [
+                (client.first_name or "").strip(),
+                (client.last_name or "").strip(),
+            ]
+            full_name = " ".join(part for part in name_parts if part)
+            fallback = getattr(client, "username", "") or getattr(client, "email", "")
+            appt.contact_name = (full_name or fallback or "").strip()
             changed = True
 
         if not appt.contact_email and client and client.email:
