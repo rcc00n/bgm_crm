@@ -446,10 +446,20 @@ class CustomFitmentRequest(models.Model):
         blank=True,
         help_text="Chassis, platform, or vehicle description shared by the customer.",
     )
+    submodel = models.CharField(
+        max_length=140,
+        blank=True,
+        help_text="Trim or submodel details provided by the customer.",
+    )
     performance_goals = models.CharField(
         max_length=200,
         blank=True,
         help_text="Power goals or intended usage spelled out by the customer.",
+    )
+    budget = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Budget or target spend shared by the customer.",
     )
     timeline = models.CharField(
         max_length=140,

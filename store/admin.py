@@ -233,13 +233,15 @@ class CustomFitmentRequestAdmin(admin.ModelAdmin):
         "phone",
         "product_name",
         "vehicle",
+        "submodel",
         "performance_goals",
+        "budget",
     )
     readonly_fields = ("created_at", "updated_at")
     autocomplete_fields = ("product",)
     fieldsets = (
         ("Request", {"fields": ("status", "product", "product_name", "source_url")}),
         ("Customer", {"fields": ("customer_name", "email", "phone")}),
-        ("Build details", {"fields": ("vehicle", "performance_goals", "timeline", "message")}),
+        ("Build details", {"fields": ("vehicle", "submodel", "performance_goals", "budget", "timeline", "message")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )

@@ -89,7 +89,9 @@ def _notify_fitment_request(request_obj):
         f"Email: {request_obj.email}",
         f"Phone: {request_obj.phone or '—'}",
         f"Vehicle: {request_obj.vehicle or '—'}",
+        f"Submodel: {request_obj.submodel or '—'}",
         f"Performance goals: {request_obj.performance_goals or '—'}",
+        f"Budget: {request_obj.budget or '—'}",
         f"Timeline: {request_obj.timeline or '—'}",
         f"Notes:\n{request_obj.message or '—'}",
     ]
@@ -199,7 +201,7 @@ def product_detail(request, slug: str):
             _notify_fitment_request(fitment_request)
             messages.success(
                 request,
-                "Thanks! Your build notes reached our team. Expect a reply within one business day.",
+                "Thanks! Your build notes reached our team. Expect a reply within 1-2 business days.",
             )
             return redirect(product.get_absolute_url() + "#quote-request")
         messages.error(request, "Please correct the fields highlighted below.")

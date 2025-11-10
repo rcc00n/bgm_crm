@@ -26,7 +26,9 @@ class ProductDetailQuoteFormTests(TestCase):
             "email": "jane@example.com",
             "phone": "+1 555 0100",
             "vehicle": "2020 F-350 crew cab",
+            "submodel": "Platinum",
             "performance_goals": "Tow + chase truck duties",
+            "budget": "Up to $15k",
             "timeline": "Need it next month",
             "message": "Also need powder coat.",
         }
@@ -40,6 +42,8 @@ class ProductDetailQuoteFormTests(TestCase):
         self.assertEqual(req.product, self.product)
         self.assertEqual(req.product_name, self.product.name)
         self.assertEqual(req.customer_name, payload["customer_name"])
+        self.assertEqual(req.submodel, payload["submodel"])
+        self.assertEqual(req.budget, payload["budget"])
         self.assertEqual(req.status, CustomFitmentRequest.Status.NEW)
 
         self.assertEqual(len(mail.outbox), 1)

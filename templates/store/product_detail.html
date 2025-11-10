@@ -240,11 +240,27 @@
             {% endif %}
           </div>
 
+          <div class="quote-field{% if quote_form.submodel.errors %} quote-field--error{% endif %}">
+            <label for="{{ quote_form.submodel.id_for_label }}">Submodel / trim</label>
+            {{ quote_form.submodel }}
+            {% if quote_form.submodel.errors %}
+              <p class="quote-field__error">{{ quote_form.submodel.errors.0 }}</p>
+            {% endif %}
+          </div>
+
           <div class="quote-field{% if quote_form.performance_goals.errors %} quote-field--error{% endif %}">
             <label for="{{ quote_form.performance_goals.id_for_label }}">Performance goals</label>
             {{ quote_form.performance_goals }}
             {% if quote_form.performance_goals.errors %}
               <p class="quote-field__error">{{ quote_form.performance_goals.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="quote-field{% if quote_form.budget.errors %} quote-field--error{% endif %}">
+            <label for="{{ quote_form.budget.id_for_label }}">Budget</label>
+            {{ quote_form.budget }}
+            {% if quote_form.budget.errors %}
+              <p class="quote-field__error">{{ quote_form.budget.errors.0 }}</p>
             {% endif %}
           </div>
 
@@ -267,7 +283,7 @@
 
         <div class="quote-actions">
           <button class="btn btn--primary" type="submit">Submit request</button>
-          <p class="quote-footnote">Response time: typically same day during business hours.</p>
+          <p class="quote-footnote">Response time: 1-2 business days to reply.</p>
         </div>
       </form>
     </div>

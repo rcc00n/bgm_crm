@@ -220,14 +220,18 @@ class CustomFitmentRequestForm(forms.ModelForm):
             "email",
             "phone",
             "vehicle",
+            "submodel",
             "performance_goals",
+            "budget",
             "timeline",
             "message",
             "source_url",
         ]
         labels = {
             "vehicle": "Platform / chassis",
+            "submodel": "Submodel / trim",
             "performance_goals": "Performance goals",
+            "budget": "Budget",
             "timeline": "Timeline",
             "message": "Notes",
         }
@@ -244,8 +248,14 @@ class CustomFitmentRequestForm(forms.ModelForm):
             "vehicle": forms.TextInput(
                 attrs={"placeholder": "E.g. 2020 F-350 crew cab", "class": "field"}
             ),
+            "submodel": forms.TextInput(
+                attrs={"placeholder": "Trim, submodel, or package", "class": "field"}
+            ),
             "performance_goals": forms.TextInput(
                 attrs={"placeholder": "Desired power / use case", "class": "field"}
+            ),
+            "budget": forms.TextInput(
+                attrs={"placeholder": "Budget (optional)", "class": "field"}
             ),
             "timeline": forms.TextInput(
                 attrs={"placeholder": "Target completion date", "class": "field"}
