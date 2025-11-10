@@ -44,21 +44,21 @@
               <div>
                 <label class="label" for="customer_name">Full name*</label>
                 <input id="customer_name" class="input{% if errors.customer_name %} input--invalid{% endif %}"
-                       type="text" name="customer_name" autocomplete="name"
+                       type="text" name="customer_name" autocomplete="name" required
                        placeholder="John Doe" value="{{ form.customer_name|default_if_none:'' }}">
                 {% if errors.customer_name %}<div class="err">{{ errors.customer_name }}</div>{% endif %}
               </div>
               <div>
                 <label class="label" for="phone">Phone*</label>
                 <input id="phone" class="input{% if errors.phone %} input--invalid{% endif %}"
-                       type="text" name="phone" autocomplete="tel"
+                       type="text" name="phone" autocomplete="tel" required
                        placeholder="+1 (555) 123-4567" value="{{ form.phone|default_if_none:'' }}">
                 {% if errors.phone %}<div class="err">{{ errors.phone }}</div>{% endif %}
               </div>
               <div>
                 <label class="label" for="email">Email*</label>
                 <input id="email" class="input{% if errors.email %} input--invalid{% endif %}"
-                       type="email" name="email" autocomplete="email"
+                       type="email" name="email" autocomplete="email" required
                        placeholder="you@example.com" value="{{ form.email|default_if_none:'' }}">
                 {% if errors.email %}<div class="err">{{ errors.email }}</div>{% endif %}
               </div>

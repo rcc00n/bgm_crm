@@ -481,7 +481,17 @@ class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelA
 class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
     change_list_template = "admin/appointments_calendar.html"
     form = AppointmentForm
-    fields = ['client', 'master', 'service', 'start_time', 'payment_status', 'status']
+    fields = [
+        'client',
+        'contact_name',
+        'contact_email',
+        'contact_phone',
+        'master',
+        'service',
+        'start_time',
+        'payment_status',
+        'status',
+    ]
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
 
@@ -852,7 +862,10 @@ class ClientReviewAdmin(ExportCsvMixin ,admin.ModelAdmin):
     export_fields = ["appointment", "get_client", "get_master", "rating", "created_at"]
     @admin.display(description="Client")
     def get_client(self, obj):
-        return obj.appointment.client.get_full_name()
+        appt = obj.appointment
+        if appt.client_id:
+            return appt.client.get_full_name() or appt.client.username or appt.client.email
+        return appt.contact_name or "Guest"
 
     @admin.display(description="Staff")
     def get_master(self, obj):
@@ -1139,12 +1152,22 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                     price_discounted = f"${service_obj.get_discounted_price():.2f}"
                     price_value = f"${service_obj.base_price_amount():.2f}"
 
+                client_name = appt.contact_name or ""
+                if not client_name and appt.client_id:
+                    client_name = appt.client.get_full_name() or appt.client.username or appt.client.email
+                client_name = client_name or "Guest"
+
+                phone_value = appt.contact_phone or ""
+                if not phone_value and appt.client_id:
+                    profile = getattr(appt.client, "userprofile", None)
+                    phone_value = getattr(profile, "phone", "") if profile else ""
+
                 row["cells"].append({
                     "html": f"""
                                         <div>
                                             <div style="font-size:1.8vh;">
                                                 {local_start.strftime('%I:%M').lstrip('0')} – {local_end.strftime('%I:%M').lstrip('0')}
-                                                <strong>{escape(appt.client.get_full_name())}</strong>
+                                                <strong>{escape(client_name)}</strong>
                                             </div>
                                             <div style="font-size:1.8vh;">
                                                 {escape(appt.service.name)}
@@ -1154,8 +1177,8 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                     "rowspan": data["rowspan"],
                     "appt_id": appt.id,
                     "appointment": appt,
-                    "client": escape(appt.client.get_full_name()),
-                    "phone": escape("+1 " + getattr(appt.client.userprofile, "phone", "")),
+                    "client": escape(client_name),
+                    "phone": escape(phone_value or ""),
                     "service": escape(appt.service.name),
                     "status": status_name,
                     "master": escape(master.get_full_name()),

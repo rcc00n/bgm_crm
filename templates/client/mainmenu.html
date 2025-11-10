@@ -989,6 +989,26 @@ main h3{
           <label>Summary</label>
           <div class="muted" id="bookSummary">Pick a staff member and time.</div>
         </div>
+        <div class="field" style="margin-top:1rem;">
+          <label for="contactName">Full name*</label>
+          <input id="contactName" name="contact_name" type="text" maxlength="120"
+                 class="input" autocomplete="name" required
+                 placeholder="John Doe">
+        </div>
+        <div class="field">
+          <label for="contactEmail">Email*</label>
+          <input id="contactEmail" name="contact_email" type="email"
+                 class="input" autocomplete="email" required
+                 placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label for="contactPhone">Phone*</label>
+          <input id="contactPhone" name="contact_phone" type="tel"
+                 class="input" autocomplete="tel" inputmode="tel"
+                 pattern="\+?\d{10,15}" title="Use digits only, optionally starting with +"
+                 required placeholder="+1 5551234567">
+        </div>
+        <p class="hint">No account needed — we confirm bookings by email and phone.</p>
         <div class="error" id="bookError" style="display:none;"></div>
         <div class="success" id="bookSuccess" style="display:none;"></div>
       </div>
@@ -1004,12 +1024,15 @@ main h3{
 
 </div>
 
+{{ contact_prefill|json_script:"contactPrefillData" }}
+
 <script>
   (function(){
-    const isAuth  = {{ user.is_authenticated|yesno:"true,false" }};
+    const contactPrefillEl = document.getElementById('contactPrefillData');
+    const contactPrefill = contactPrefillEl ? JSON.parse(contactPrefillEl.textContent) : {name:'', email:'', phone:''};
+    const contactDraft = {...contactPrefill};
     const LOCALE = 'en-US'; // можно 'en-US'
 
-    const loginUrl= "{% url 'login' %}?next={{ request.path }}";
     const apiAvail= "/accounts/api/availability/";
     const apiBook = "/accounts/api/book/";
 
@@ -1028,6 +1051,11 @@ main h3{
     const elSummary=document.getElementById('bookSummary');
     const elError=document.getElementById('bookError');
     const elSuccess=document.getElementById('bookSuccess');
+    const contactInputs = {
+      name: document.getElementById('contactName'),
+      email: document.getElementById('contactEmail'),
+      phone: document.getElementById('contactPhone'),
+    };
 
     const olGrid=document.getElementById('olGrid');
     const olWrap=document.getElementById('olWrap');
@@ -1041,15 +1069,53 @@ main h3{
     let baseStart = new Date(); baseStart.setHours(0,0,0,0);
     let availabilityCache = new Map();
 
+    function hydrateContactForm(){
+      Object.entries(contactInputs).forEach(([key, input])=>{
+        input.value = contactDraft[key] || "";
+      });
+    }
+
+    function getContactPayload(){
+      return {
+        name: contactInputs.name.value.trim(),
+        email: contactInputs.email.value.trim(),
+        phone: contactInputs.phone.value.trim(),
+      };
+    }
+
+    function contactIsComplete(){
+      const c = getContactPayload();
+      return Boolean(c.name && c.email && c.phone);
+    }
+
+    function updateSubmitState(){
+      const ready = current.serviceId && current.masterId && current.slot && contactIsComplete();
+      btnSubmit.disabled = !ready;
+    }
+
+    Object.values(contactInputs).forEach(input=>{
+      input.addEventListener('input', ()=>{
+        const payload = getContactPayload();
+        contactDraft.name = payload.name;
+        contactDraft.email = payload.email;
+        contactDraft.phone = payload.phone;
+        elError.style.display='none';
+        updateSubmitState();
+      });
+    });
+
+    hydrateContactForm();
+    updateSubmitState();
+
     function openModal(serviceId, serviceName){
-      if(!isAuth){ window.location=loginUrl; return; }
       current={ serviceId, serviceName, masterId:null, slot:null, mastersData:[] };
       elServiceName.textContent=serviceName;
       elError.style.display='none'; elSuccess.style.display='none';
-      btnSubmit.disabled=true;
       elSummary.textContent='Pick a staff member and time.';
       availabilityCache.clear();
       baseStart = new Date(); baseStart.setHours(0,0,0,0);
+      hydrateContactForm();
+      updateSubmitState();
       modal.classList.add('modal--open');
       loadMastersAndRender();
     }
@@ -1137,7 +1203,8 @@ main h3{
 
           elMaster.value = String(m.id);
           current.masterId = Number(m.id);
-          current.slot = null; btnSubmit.disabled = true;
+          current.slot = null;
+          updateSubmitState();
           elSummary.textContent='Pick a staff member and time.';
           availabilityCache.clear();
           await renderWindow();
@@ -1155,7 +1222,9 @@ main h3{
     }
 
     async function loadMastersAndRender(){
-      elError.style.display='none'; btnSubmit.disabled=true; current.slot=null;
+      elError.style.display='none';
+      current.slot=null;
+      updateSubmitState();
       try{
         const first = await fetchAvailability(ymd(baseStart), null);
         const masters = (first.raw && first.raw.masters) || [];
@@ -1225,7 +1294,7 @@ main h3{
               current.masterId = Number(elMaster.value);
               current.slot     = data.iso.get(t);
               elSummary.textContent = `Staff: ${elMaster.selectedOptions[0]?.text || (elMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent || '')}. Time: ${chip.textContent}, ${d.toLocaleDateString()}.`;
-              btnSubmit.disabled=false;
+              updateSubmitState();
             });
           }else{
             chip.disabled=true;
@@ -1246,22 +1315,39 @@ main h3{
 
     async function submitBooking(){
       if(!current.serviceId||!current.masterId||!current.slot) return;
+      if(!contactIsComplete()){
+        elError.textContent='Please add your name, email and phone.';
+        elError.style.display='block';
+        return;
+      }
+      const contact = getContactPayload();
       btnSubmit.disabled=true; elError.style.display='none'; elSuccess.style.display='none';
       try{
         const resp=await fetch(apiBook,{
           method:'POST',
           headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
           credentials:'same-origin',
-          body:JSON.stringify({ service:current.serviceId, master:current.masterId, start_time:current.slot })
+          body:JSON.stringify({
+            service:current.serviceId,
+            master:current.masterId,
+            start_time:current.slot,
+            contact
+          })
         });
         const data=await resp.json().catch(()=>({}));
-        if(!resp.ok){ throw new Error((data&&(data.error||data.detail))||'Could not create an appointment'); }
+        if(!resp.ok){
+          const contactErrors = data?.errors?.contact;
+          let message = (contactErrors && Object.values(contactErrors).find(Boolean)) || data?.error || data?.detail || 'Could not create an appointment';
+          if (Array.isArray(message)) message = message[0];
+          throw new Error(message);
+        }
         elSuccess.textContent='Appointment created! ' + (data.appointment?.start_time?('Time: '+new Date(data.appointment.start_time).toLocaleString()):'');
         elSuccess.style.display='block';
         setTimeout(()=>{ window.location.reload(); }, 700);
       }catch(err){
         elError.textContent=err.message||'Booking error';
-        elError.style.display='block'; btnSubmit.disabled=false;
+        elError.style.display='block';
+        updateSubmitState();
       }
     }
 

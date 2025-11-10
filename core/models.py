@@ -646,7 +646,16 @@ class Appointment(models.Model):
     Represents a scheduled appointment between a client and a master for a service.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    client = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE, related_name='appointments_as_client')
+    client = models.ForeignKey(
+        CustomUserDisplay,
+        on_delete=models.CASCADE,
+        related_name='appointments_as_client',
+        null=True,
+        blank=True,
+    )
+    contact_name = models.CharField(max_length=120, blank=True)
+    contact_email = models.EmailField(blank=True)
+    contact_phone = models.CharField(max_length=32, blank=True)
     master = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE, related_name='appointments_as_master')
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
     start_time = models.DateTimeField()
@@ -654,9 +663,12 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-
         formatted = localtime(self.start_time).strftime("%Y-%m-%d %H:%M")
-        return f"{self.client} for {self.service} at {formatted}"
+        client_name = self.contact_name
+        if not client_name and self.client:
+            client_name = self.client.get_full_name() or self.client.username
+        client_name = client_name or "Guest"
+        return f"{client_name} for {self.service} at {formatted}"
 
     def clean(self):
         if self.start_time and self.start_time.time() > time(23, 59):
@@ -667,6 +679,23 @@ class Appointment(models.Model):
         # Остальная логика…
         if not self.master or not self.service or not self.start_time:
             return
+
+        # Контактные данные: либо есть клиент, либо все поля заполнены
+        if not self.client:
+            err = {}
+            if not self.contact_name:
+                err["contact_name"] = "Name is required for guest bookings."
+            if not self.contact_email:
+                err["contact_email"] = "Email is required for guest bookings."
+            if not self.contact_phone:
+                err["contact_phone"] = "Phone is required for guest bookings."
+            if err:
+                raise ValidationError(err)
+        if self.contact_phone:
+            try:
+                clean_phone(self.contact_phone)
+            except ValidationError as exc:
+                raise ValidationError({"contact_phone": exc.messages[0]})
 
         cancelled_status = AppointmentStatus.objects.filter(name="Cancelled").first()
         # Проверка на пересечение с другими записями
@@ -755,7 +784,12 @@ class AppointmentStatusHistory(models.Model):
     """
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
     status = models.ForeignKey(AppointmentStatus, on_delete=models.CASCADE)
-    set_by = models.ForeignKey(CustomUserDisplay, on_delete=models.CASCADE)
+    set_by = models.ForeignKey(
+        CustomUserDisplay,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     set_at = models.DateTimeField(auto_now_add=True)
 
 # --- 4. PAYMENTS ---

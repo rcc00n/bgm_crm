@@ -3,9 +3,12 @@ from django.shortcuts import render, get_object_or_404
 from django.db.models import Prefetch, Q
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.http import JsonResponse, HttpResponseBadRequest
 from datetime import datetime
 import json
 from django.utils.functional import cached_property
@@ -18,6 +21,7 @@ from core.services.booking import (
     get_available_slots, get_service_masters,
     get_or_create_status, get_default_payment_status, _tz_aware
 )
+from core.validators import clean_phone
 
 def _build_catalog_context(request):
     """Общий конструктор контекста каталога."""
@@ -45,22 +49,30 @@ def _build_catalog_context(request):
         "uncategorized": services_qs.filter(category__isnull=True),
     }
 
+@ensure_csrf_cookie
 def public_mainmenu(request):
     """
     Публичная главная страница (каталог). Доступна всем.
     Если пользователь авторизован — дополнительно подставим профиль и его записи.
     """
     ctx = _build_catalog_context(request)
+    ctx["contact_prefill"] = {"name": "", "email": "", "phone": ""}
 
     if request.user.is_authenticated:
         user = request.user
-        ctx["profile"] = getattr(user, "userprofile", None)
+        profile = getattr(user, "userprofile", None)
+        ctx["profile"] = profile
         ctx["appointments"] = (
             Appointment.objects
             .filter(client=user)
             .select_related("service", "master")
             .order_by("-start_time")
         )
+        ctx["contact_prefill"] = {
+            "name": user.get_full_name() or user.username or "",
+            "email": user.email or "",
+            "phone": getattr(profile, "phone", "") if profile else "",
+        }
     else:
         # чтобы шаблон не спотыкался, если где-то используешь эти ключи
         ctx.setdefault("profile", None)
@@ -68,9 +80,8 @@ def public_mainmenu(request):
 
     return render(request, "client/mainmenu.html", ctx)
 
-# ===== API (оставляем только для авторизованных) =====
+# ===== API =====
 
-@login_required
 @require_GET
 def api_availability(request):
     service_id = request.GET.get("service")
@@ -78,13 +89,11 @@ def api_availability(request):
     master_id = request.GET.get("master")
 
     if not service_id or not date_str:
-        from django.http import HttpResponseBadRequest
         return HttpResponseBadRequest("service and date required")
 
     service = get_object_or_404(Service.objects.select_related("category"), pk=service_id)
     day = parse_date(date_str)
     if not day:
-        from django.http import HttpResponseBadRequest
         return HttpResponseBadRequest("invalid date")
 
     day_dt = _tz_aware(datetime(day.year, day.month, day.day, 12, 0))
@@ -111,10 +120,8 @@ def api_availability(request):
             "avatar": avatar_url,
             "slots": [s.isoformat() for s in slots_map.get(m.id, [])]
         })
-    from django.http import JsonResponse
     return JsonResponse(resp)
 
-@login_required
 @require_POST
 @csrf_protect
 def api_book(request):
@@ -129,7 +136,6 @@ def api_book(request):
     start_iso  = payload.get("start_time")
 
     if not service_id or not master_id or not start_iso:
-        from django.http import HttpResponseBadRequest
         return HttpResponseBadRequest("service, master, start_time required")
 
     service = get_object_or_404(Service, pk=service_id)
@@ -147,25 +153,69 @@ def api_book(request):
         from django.http import HttpResponseBadRequest
         return HttpResponseBadRequest("invalid start_time")
 
+    contact = payload.get("contact") or {}
+    contact_name = (contact.get("name") or "").strip()
+    contact_email = (contact.get("email") or "").strip()
+    raw_phone = (contact.get("phone") or "").strip()
+    digits_only = "".join(ch for ch in raw_phone if ch.isdigit())
+    contact_phone = ""
+    if digits_only:
+        contact_phone = f"+{digits_only}" if raw_phone.strip().startswith("+") else digits_only
+
+    user = request.user if request.user.is_authenticated else None
+    if user:
+        contact_name = contact_name or user.get_full_name() or user.username or ""
+        contact_email = contact_email or user.email or ""
+        profile = getattr(user, "userprofile", None)
+        fallback_phone = getattr(profile, "phone", "") if profile else ""
+        contact_phone = contact_phone or fallback_phone
+
+    contact_errors = {}
+    if not contact_name:
+        contact_errors["name"] = "Name is required."
+    if not contact_email:
+        contact_errors["email"] = "Email is required."
+    else:
+        try:
+            validate_email(contact_email)
+        except ValidationError:
+            contact_errors["email"] = "Enter a valid email."
+    if not contact_phone:
+        contact_errors["phone"] = "Phone is required."
+    else:
+        try:
+            contact_phone = clean_phone(contact_phone)
+        except ValidationError:
+            contact_errors["phone"] = "Enter a valid phone number in international format."
+
+    if contact_errors:
+        return JsonResponse({"errors": {"contact": contact_errors}}, status=400)
+
+    contact_name = contact_name[:120]
     pay_status = get_default_payment_status()
     appt = Appointment(
-        client=request.user,
+        client=user,
+        contact_name=contact_name,
+        contact_email=contact_email,
+        contact_phone=contact_phone,
         master=master,
         service=service,
         start_time=start_dt,
         payment_status=pay_status if pay_status else None,
     )
-    appt.full_clean()
+    try:
+        appt.full_clean()
+    except ValidationError as exc:
+        return JsonResponse({"errors": exc.message_dict or exc.messages}, status=400)
     appt.save()
 
     initial_status = get_or_create_status("Confirmed")
     AppointmentStatusHistory.objects.create(
         appointment=appt,
         status=initial_status,
-        set_by=request.user,
+        set_by=user,
     )
 
-    from django.http import JsonResponse
     return JsonResponse({
         "ok": True,
         "appointment": {
@@ -270,18 +320,6 @@ def api_appointment_reschedule(request, appt_id):
         "master": appt.master.get_full_name() or appt.master.username
     }})
 
-
-# core/views.py
-from django.http import JsonResponse
-from django.views.decorators.http import require_GET
-from django.db.models import Q
-from .models import Service
-
-# imports вверху файла должны быть:
-# from django.http import JsonResponse
-# from django.views.decorators.http import require_GET
-# from django.db.models import Q
-# from .models import Service
 
 @require_GET
 def service_search(request):
