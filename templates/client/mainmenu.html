@@ -115,8 +115,18 @@
     .modal__dialog{background:linear-gradient(180deg, #0c0c0c, #121212);border-radius:1rem;box-shadow:0 14px 36px rgba(0,0,0,.75), 0 0 32px rgba(213,0,0,.18);
       width:min(940px,96vw);border:1px solid var(--line);padding:1.2rem 1.25rem 1rem;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:var(--ink)}
     .modal__header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
-    .modal__title{font:900 1.18rem/1 Inter;text-transform:uppercase;letter-spacing:.6px}
-    .modal__title span{color:var(--red)}
+    .modal__title{
+      font-family:var(--font-body);
+      font-weight:900;
+      font-size:1.35rem;
+      line-height:1.2;
+      letter-spacing:.04em;
+      text-transform:none;
+    }
+    .modal__title span{
+      color:var(--red);
+      font-family:inherit;
+    }
     .modal__close{background:transparent;border:1px solid var(--line);font-size:1.2rem;line-height:1;cursor:pointer;color:var(--muted);border-radius:.5rem;width:36px;height:36px}
     .grid-2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:1rem;flex:1 1 auto;min-height:0}
     .grid-2>div{min-height:0}
@@ -456,7 +466,7 @@
     /* заголовки и акценты */
     h1,h2,h3,h4,h5,h6,
     .brand, .brand__word,
-    .btn, .badge, nav a, .modal__title{
+    .btn, .badge, nav a{
       font-family:var(--font-head) !important;
     }
     /* === Booking page — readability & topbar overrides ==================== */
@@ -977,7 +987,7 @@ main h3{
       <div>
         <div class="field">
           <label>Summary</label>
-          <div class="muted" id="bookSummary">Pick a master and time.</div>
+          <div class="muted" id="bookSummary">Pick a staff member and time.</div>
         </div>
         <div class="error" id="bookError" style="display:none;"></div>
         <div class="success" id="bookSuccess" style="display:none;"></div>
@@ -1037,7 +1047,7 @@ main h3{
       elServiceName.textContent=serviceName;
       elError.style.display='none'; elSuccess.style.display='none';
       btnSubmit.disabled=true;
-      elSummary.textContent='Pick a master and time.';
+      elSummary.textContent='Pick a staff member and time.';
       availabilityCache.clear();
       baseStart = new Date(); baseStart.setHours(0,0,0,0);
       modal.classList.add('modal--open');
@@ -1128,7 +1138,7 @@ main h3{
           elMaster.value = String(m.id);
           current.masterId = Number(m.id);
           current.slot = null; btnSubmit.disabled = true;
-          elSummary.textContent='Pick a master and time.';
+          elSummary.textContent='Pick a staff member and time.';
           availabilityCache.clear();
           await renderWindow();
         });
@@ -1153,7 +1163,7 @@ main h3{
 
         if(masters.length===0){
           elMaster.innerHTML='';
-          elMasterPicker.innerHTML='<div class="stub">No masters available</div>';
+          elMasterPicker.innerHTML='<div class="stub">No staff available</div>';
           olGrid.innerHTML='<div class="skeleton" style="height:240px;margin:.5rem;"></div>';
           return;
         }
@@ -1214,7 +1224,7 @@ main h3{
               chip.classList.add('slot-selected');
               current.masterId = Number(elMaster.value);
               current.slot     = data.iso.get(t);
-              elSummary.textContent = `Master: ${elMaster.selectedOptions[0]?.text || (elMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent || '')}. Time: ${chip.textContent}, ${d.toLocaleDateString()}.`;
+              elSummary.textContent = `Staff: ${elMaster.selectedOptions[0]?.text || (elMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent || '')}. Time: ${chip.textContent}, ${d.toLocaleDateString()}.`;
               btnSubmit.disabled=false;
             });
           }else{
