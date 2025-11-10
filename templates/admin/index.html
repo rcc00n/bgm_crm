@@ -170,6 +170,152 @@
       <canvas id="statusTrendChart"></canvas>
     </section>
   </div>
+
+  {% if not is_master and web_analytics %}
+  <div class="dashboard-grid analytics-grid">
+    <section class="data-panel span-2 analytics-overview">
+      <div class="panel-title">Web traffic overview</div>
+      <div class="panel-subtitle">Last {{ web_analytics.window_days }} days · public website</div>
+      <div class="analytics-kpi-grid">
+        <div class="analytics-kpi">
+          <span>Total visits</span>
+          <strong>{{ web_analytics.totals.visits }}</strong>
+          <small>{{ web_analytics.totals.page_views }} page views</small>
+        </div>
+        <div class="analytics-kpi">
+          <span>Signed-in sessions</span>
+          <strong>{{ web_analytics.totals.signed_in }}</strong>
+          <small>{{ web_analytics.totals.signed_in_pct }}% with accounts</small>
+        </div>
+        <div class="analytics-kpi">
+          <span>Average dwell time</span>
+          <strong>{{ web_analytics.totals.avg_duration_seconds }}s</strong>
+          <small>Active time per page</small>
+        </div>
+        <div class="analytics-kpi">
+          <span>Pages per visit</span>
+          <strong>{{ web_analytics.totals.avg_pages_per_visit }}</strong>
+          <small>Mean engagements</small>
+        </div>
+      </div>
+      <div class="analytics-chart-grid">
+        <div>
+          <div class="panel-subtitle">Visitors per day</div>
+          <canvas id="visitorTrafficChart" aria-label="Visitors per day"></canvas>
+        </div>
+        <div>
+          <div class="panel-subtitle">Average dwell time (s)</div>
+          <canvas id="engagementQualityChart" aria-label="Average time on page"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Top pages</div>
+      <div class="panel-subtitle">Most viewed</div>
+      {% if web_analytics.top_pages %}
+        <table class="analytics-table">
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Views</th>
+              <th>Avg time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for page in web_analytics.top_pages %}
+              <tr>
+                <td><code>{{ page.path }}</code></td>
+                <td>{{ page.views }}</td>
+                <td>{{ page.avg_seconds }}s</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <p>No page views collected yet.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Slowest pages</div>
+      <div class="panel-subtitle">Highest dwell time</div>
+      {% if web_analytics.slow_pages %}
+        <table class="analytics-table">
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Avg time</th>
+              <th>Views</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for page in web_analytics.slow_pages %}
+              <tr>
+                <td><code>{{ page.path }}</code></td>
+                <td>{{ page.avg_seconds }}s</td>
+                <td>{{ page.views }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <p>No long reads detected.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Top referrers</div>
+      <div class="panel-subtitle">Where visits originate</div>
+      {% if web_analytics.top_referrers %}
+        <table class="analytics-table">
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Visits</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ref in web_analytics.top_referrers %}
+              <tr>
+                <td>{{ ref.referrer }}</td>
+                <td>{{ ref.visits }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <p>No referral data yet.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="data-panel analytics-table-panel span-2">
+      <div class="panel-title">Recent signed-in visitors</div>
+      <div class="panel-subtitle">Last activity snapshot</div>
+      {% if web_analytics.recent_signed_in_sessions %}
+        <ul class="analytics-people">
+          {% for session in web_analytics.recent_signed_in_sessions %}
+            <li>
+              <strong>{{ session.user_name_snapshot|default:"Unnamed account" }}</strong>
+              <span>{{ session.user_email_snapshot|default:"No email on file" }}</span>
+              <span>Last seen {{ session.last_seen_at|date:"M d · H:i" }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty-state">
+          <p>No signed-in visitors in the selected window.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+  {% endif %}
 </div>
 </div>
 
@@ -180,6 +326,10 @@
 {{ weekday_counts|json_script:"weekday-counts" }}
 {{ payment_methods|json_script:"payment-methods" }}
 {{ status_trend|json_script:"status-trend" }}
+{% if web_analytics %}
+  {{ web_analytics.visitor_timeseries|json_script:"web-visitor-series" }}
+  {{ web_analytics.engagement_timeseries|json_script:"web-engagement-series" }}
+{% endif %}
 
 <script>
   const $json = (id) => JSON.parse(document.getElementById(id)?.textContent || '[]');
@@ -339,6 +489,68 @@
       },
       options: {
         maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+          y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }
+        }
+      }
+    });
+  })();
+
+  (function renderVisitorTraffic(){
+    const el = document.getElementById('visitorTrafficChart');
+    if(!el) return;
+    const d = $json('web-visitor-series');
+    if(!Array.isArray(d) || !d.length) return;
+    new Chart(el, {
+      type: 'line',
+      data: {
+        labels: d.map(x => x.label),
+        datasets: [{
+          label: 'Visitors',
+          data: d.map(x => x.count),
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37,99,235,0.15)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: '#1d4ed8'
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+          y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }
+        }
+      }
+    });
+  })();
+
+  (function renderEngagement(){
+    const el = document.getElementById('engagementQualityChart');
+    if(!el) return;
+    const d = $json('web-engagement-series');
+    if(!Array.isArray(d) || !d.length) return;
+    new Chart(el, {
+      type: 'line',
+      data: {
+        labels: d.map(x => x.label),
+        datasets: [{
+          label: 'Avg seconds on page',
+          data: d.map(x => x.avg),
+          borderColor: '#f97316',
+          backgroundColor: 'rgba(249,115,22,0.18)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: '#ea580c'
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { color: tickColor }, grid: { color: gridColor } },
           y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }

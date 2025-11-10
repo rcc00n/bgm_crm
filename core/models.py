@@ -1171,3 +1171,83 @@ class AppointmentPromoCode(models.Model):
             raise ValidationError({
                 "promocode": "This Service already has a discount. Promocode can't be applied"
             })
+
+
+class VisitorSession(models.Model):
+    """
+    Persistent visitor session that lets us tie anonymous requests, account data
+    and downstream engagement signals together.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session_key = models.CharField(max_length=64, unique=True)
+    user = models.ForeignKey(
+        CustomUserDisplay,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="analytics_sessions",
+    )
+    user_email_snapshot = models.EmailField(blank=True)
+    user_name_snapshot = models.CharField(max_length=255, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    referrer = models.URLField(max_length=512, blank=True)
+    landing_path = models.CharField(max_length=512, blank=True)
+    landing_query = models.CharField(max_length=512, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-last_seen_at",)
+
+    def __str__(self) -> str:
+        label = self.user_name_snapshot or (self.user.get_full_name() if self.user else "")
+        return label or f"Visitor {self.session_key}"
+
+
+class PageView(models.Model):
+    """
+    Single logical view of a page (including duration updates while the tab stays open).
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(
+        VisitorSession,
+        on_delete=models.CASCADE,
+        related_name="page_views",
+    )
+    user = models.ForeignKey(
+        CustomUserDisplay,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="page_views",
+    )
+    page_instance_id = models.CharField(
+        max_length=50,
+        unique=True,
+        help_text="Client-generated identifier used to keep updates idempotent.",
+    )
+    path = models.CharField(max_length=512)
+    full_path = models.CharField(max_length=768, blank=True)
+    page_title = models.CharField(max_length=255, blank=True)
+    referrer = models.CharField(max_length=512, blank=True)
+    started_at = models.DateTimeField()
+    duration_ms = models.PositiveIntegerField(default=0)
+    timezone_offset = models.SmallIntegerField(
+        default=0,
+        help_text="Client timezone offset in minutes (UTC = 0).",
+    )
+    viewport_width = models.PositiveIntegerField(null=True, blank=True)
+    viewport_height = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-started_at",)
+
+    def __str__(self) -> str:
+        return f"{self.path} ({self.duration_ms} ms)"
+
+    @property
+    def duration_seconds(self) -> float:
+        return round(self.duration_ms / 1000, 2)

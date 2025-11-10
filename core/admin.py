@@ -26,6 +26,7 @@ from django.http import HttpResponse
 from .filters import *
 from .models import *
 from .forms import *
+from core.services.analytics import summarize_web_analytics
 from datetime import timedelta, time
 # -----------------------------
 # Custom filter for filtering users by Role
@@ -170,6 +171,8 @@ def custom_index(request):
             ).count(),
         })
 
+    analytics_summary = summarize_web_analytics(window_days=7) if not is_master else None
+
     context = admin.site.each_context(request)
     context.update({
         "is_master": is_master,
@@ -190,6 +193,7 @@ def custom_index(request):
         "weekday_counts": weekday_counts,
         "payment_methods": payment_methods,
         "status_trend": status_trend,
+        "web_analytics": analytics_summary,
     })
     return TemplateResponse(request, "admin/index.html", context)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -1444,3 +1448,43 @@ class HeroImageAdmin(admin.ModelAdmin):
         ("Media", {"fields": ("image", "image_preview", "alt_text", "caption")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
+
+
+@admin.register(VisitorSession)
+class VisitorSessionAdmin(admin.ModelAdmin):
+    list_display = (
+        "session_key",
+        "user_display",
+        "ip_address",
+        "landing_path",
+        "created_at",
+        "last_seen_at",
+    )
+    search_fields = (
+        "session_key",
+        "user__username",
+        "user_email_snapshot",
+        "user_name_snapshot",
+        "ip_address",
+    )
+    list_filter = ("created_at", "last_seen_at")
+    readonly_fields = ("created_at", "last_seen_at")
+    ordering = ("-last_seen_at",)
+
+    def user_display(self, obj):
+        if obj.user_name_snapshot:
+            return obj.user_name_snapshot
+        if obj.user:
+            return obj.user.get_full_name() or obj.user.username
+        return "—"
+
+    user_display.short_description = "User"
+
+
+@admin.register(PageView)
+class PageViewAdmin(admin.ModelAdmin):
+    list_display = ("path", "session", "user", "duration_ms", "started_at")
+    search_fields = ("path", "page_instance_id", "session__session_key", "user__username")
+    list_filter = ("started_at",)
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-started_at",)

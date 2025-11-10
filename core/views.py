@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404
 from django.db.models import Prefetch, Q
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
-from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_cookie
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -14,8 +14,15 @@ import json
 from django.utils.functional import cached_property
 
 from core.models import (
-    Appointment, ServiceCategory, Service, CustomUserDisplay,
-    AppointmentStatusHistory, LegalPage, ProjectJournalEntry
+    Appointment,
+    ServiceCategory,
+    Service,
+    CustomUserDisplay,
+    AppointmentStatusHistory,
+    LegalPage,
+    ProjectJournalEntry,
+    PageView,
+    VisitorSession,
 )
 from core.services.booking import (
     get_available_slots, get_service_masters,
@@ -491,6 +498,116 @@ class LegalPageView(TemplateView):
 
 class TermsAndConditionsView(LegalPageView):
     slug = "terms-and-conditions"
+
+
+@require_POST
+@csrf_exempt
+def analytics_collect(request):
+    """
+    Accepts lightweight JSON payloads from the frontend tracker so we can
+    persist dwell time and visit metadata.
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+
+    page_instance_id = (payload.get("page_instance_id") or "").strip()
+    if not page_instance_id:
+        return JsonResponse({"error": "page_instance_id is required."}, status=400)
+
+    def _int(value, default=0):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    duration_ms = max(0, _int(payload.get("duration_ms", 0)))
+    timezone_offset = _int(payload.get("timezone_offset", 0))
+    viewport_width = _int(payload.get("viewport_width")) or None
+    viewport_height = _int(payload.get("viewport_height")) or None
+
+    started_at_raw = payload.get("started_at")
+    started_at = None
+    if started_at_raw:
+        try:
+            started_at = parse_datetime(started_at_raw)
+        except (TypeError, ValueError):
+            started_at = None
+    if started_at and not timezone.is_aware(started_at):
+        started_at = timezone.make_aware(started_at)
+    started_at = started_at or timezone.now()
+
+    visitor_session = getattr(request, "visitor_session", None)
+    if not visitor_session:
+        session_key = request.session.session_key
+        if not session_key:
+            request.session.save()
+            session_key = request.session.session_key
+        visitor_session, _ = VisitorSession.objects.get_or_create(
+            session_key=session_key,
+            defaults={
+                "ip_address": request.META.get("REMOTE_ADDR"),
+                "user_agent": (request.META.get("HTTP_USER_AGENT") or "")[:1024],
+                "landing_path": (request.path or "")[:512],
+            },
+        )
+
+    user = request.user if request.user.is_authenticated else visitor_session.user
+    path_value = (payload.get("path") or request.META.get("HTTP_REFERER") or "/")[:512]
+    full_path_value = (payload.get("full_path") or path_value)[:768]
+
+    base_defaults = {
+        "session": visitor_session,
+        "user": user,
+        "path": path_value,
+        "full_path": full_path_value,
+        "page_title": (payload.get("title") or "")[:255],
+        "referrer": (payload.get("referrer") or "")[:512],
+        "started_at": started_at,
+        "duration_ms": duration_ms,
+        "timezone_offset": timezone_offset,
+        "viewport_width": viewport_width,
+        "viewport_height": viewport_height,
+    }
+
+    page_view, created = PageView.objects.get_or_create(
+        page_instance_id=page_instance_id,
+        defaults=base_defaults,
+    )
+
+    dirty = []
+    if not created:
+        if duration_ms and duration_ms > page_view.duration_ms:
+            page_view.duration_ms = duration_ms
+            dirty.append("duration_ms")
+        if path_value and page_view.path != path_value:
+            page_view.path = path_value
+            dirty.append("path")
+        if user and page_view.user_id != user.id:
+            page_view.user = user
+            dirty.append("user")
+        if viewport_width and page_view.viewport_width != viewport_width:
+            page_view.viewport_width = viewport_width
+            dirty.append("viewport_width")
+        if viewport_height and page_view.viewport_height != viewport_height:
+            page_view.viewport_height = viewport_height
+            dirty.append("viewport_height")
+        # keep earliest started_at to describe the session accurately
+        if started_at < page_view.started_at:
+            page_view.started_at = started_at
+            dirty.append("started_at")
+        if not page_view.full_path and base_defaults["full_path"]:
+            page_view.full_path = base_defaults["full_path"]
+            dirty.append("full_path")
+        if not page_view.page_title and base_defaults["page_title"]:
+            page_view.page_title = base_defaults["page_title"]
+            dirty.append("page_title")
+        if dirty:
+            page_view.save(update_fields=dirty)
+
+    status = 201 if created else 200
+    return JsonResponse({"ok": True}, status=status)
 
 # core/views.py
 from datetime import datetime, timedelta

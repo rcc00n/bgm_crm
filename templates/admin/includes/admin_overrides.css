@@ -458,6 +458,107 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   grid-column: span 3;
 }
 
+.analytics-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.analytics-kpi {
+  border: 1px solid var(--admin-divider);
+  border-radius: var(--admin-radius-md);
+  padding: 16px;
+  background: var(--admin-surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.analytics-kpi span {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--admin-text-muted);
+  letter-spacing: 0.08em;
+}
+
+.analytics-kpi strong {
+  font-size: 26px;
+  font-weight: 650;
+}
+
+.analytics-kpi small {
+  font-size: 13px;
+  color: var(--admin-text-muted);
+}
+
+.analytics-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.analytics-chart-grid canvas {
+  width: 100%;
+  height: 220px;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.analytics-table th,
+.analytics-table td {
+  border-bottom: 1px solid var(--admin-divider);
+  padding: 10px 4px;
+  text-align: left;
+}
+
+.analytics-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-text-muted);
+}
+
+.analytics-table code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  background: rgba(15, 23, 42, 0.06);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.analytics-people {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analytics-people li {
+  border: 1px solid var(--admin-divider);
+  border-radius: var(--admin-radius-md);
+  padding: 12px;
+  background: var(--admin-surface-muted);
+}
+
+.analytics-people strong {
+  display: block;
+  font-size: 15px;
+}
+
+.analytics-people span {
+  font-size: 13px;
+  color: var(--admin-text-muted);
+}
+
 @media (max-width: 1200px) {
   .dashboard-grid .span-2,
   .dashboard-grid .span-3 {
