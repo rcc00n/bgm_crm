@@ -1,9 +1,33 @@
-{% load i18n tz %}<!DOCTYPE html>
+{% load i18n tz static %}<!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Bad Guy Motors | Client Portal</title>
+  {% static 'img/bad-guy-preview.png' as preview_image %}
+  {% if request %}
+    {% with origin=request.scheme|add:"://"|add:request.get_host %}
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content="Bad Guy Motors" />
+      <meta property="og:description" content="Performance builds, outlaw styling and VIP service." />
+      <meta property="og:url" content="{{ origin }}{{ request.path }}" />
+      <meta property="og:image" content="{{ origin }}{{ preview_image }}" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="Bad Guy Motors" />
+      <meta name="twitter:description" content="Performance builds, outlaw styling and VIP service." />
+      <meta name="twitter:image" content="{{ origin }}{{ preview_image }}" />
+    {% endwith %}
+  {% else %}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Bad Guy Motors" />
+    <meta property="og:description" content="Performance builds, outlaw styling and VIP service." />
+    <meta property="og:image" content="{{ preview_image }}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bad Guy Motors" />
+    <meta name="twitter:description" content="Performance builds, outlaw styling and VIP service." />
+    <meta name="twitter:image" content="{{ preview_image }}" />
+  {% endif %}
+  <link rel="image_src" href="{{ preview_image }}" />
 
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
