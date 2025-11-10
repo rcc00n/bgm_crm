@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from datetime import timedelta, time
 import os
 from django.utils import timezone
+from django.utils.text import slugify
 from django.utils.timezone import localtime
 from core.validators import clean_phone
 from .constants import STAFF_DISPLAY_NAME
@@ -110,6 +111,123 @@ class LegalPage(models.Model):
         if self.slug == "terms-and-conditions":
             return reverse("legal-terms")
         return reverse("legal-page", kwargs={"slug": self.slug})
+
+class ProjectJournalQuerySet(models.QuerySet):
+    def published(self):
+        return self.filter(
+            status=self.model.Status.PUBLISHED,
+            published_at__isnull=False,
+        )
+
+
+class ProjectJournalEntry(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PUBLISHED = "published", "Published"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=180)
+    slug = models.SlugField(max_length=180, unique=True)
+    headline = models.CharField(
+        max_length=220,
+        blank=True,
+        help_text="Optional hero headline override.",
+    )
+    excerpt = models.TextField(
+        blank=True,
+        help_text="Short teaser shown on cards and previews.",
+    )
+    body = models.TextField()
+    cover_image = models.ImageField(upload_to="project-journal/", blank=True, null=True)
+    tags = models.CharField(
+        max_length=160,
+        blank=True,
+        help_text="Comma separated list (e.g. detailing,vinyl,wrap).",
+    )
+    client_name = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Displayed as 'Client' on the public page.",
+    )
+    location = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="City / facility to boost trust.",
+    )
+    services = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Comma separated services rendered.",
+    )
+    result_highlight = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Single sentence outcome that appears on cards.",
+    )
+    reading_time = models.PositiveSmallIntegerField(
+        default=4,
+        validators=[MinValueValidator(1)],
+        help_text="Approximate reading time in minutes.",
+    )
+    status = models.CharField(
+        max_length=12,
+        choices=Status.choices,
+        default=Status.DRAFT,
+    )
+    featured = models.BooleanField(default=False)
+    published_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = ProjectJournalQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = "Project journal entry"
+        verbose_name_plural = "Project journal entries"
+        ordering = ("-published_at", "-created_at")
+
+    def __str__(self) -> str:
+        return self.title
+
+    @property
+    def hero_title(self) -> str:
+        return self.headline or self.title
+
+    @property
+    def tag_list(self):
+        return [tag.strip() for tag in self.tags.split(",") if tag.strip()]
+
+    @property
+    def services_list(self):
+        return [svc.strip() for svc in self.services.split(",") if svc.strip()]
+
+    @property
+    def is_live(self) -> bool:
+        return self.status == self.Status.PUBLISHED and self.published_at is not None
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return f"{reverse('project-journal')}#project-{self.slug}"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title)[:160] if self.title else ""
+            if not base_slug:
+                base_slug = slugify(str(uuid.uuid4()))
+            slug_candidate = base_slug
+            suffix = 1
+            while ProjectJournalEntry.objects.exclude(pk=self.pk).filter(slug=slug_candidate).exists():
+                slug_candidate = f"{base_slug}-{suffix}"
+                suffix += 1
+            self.slug = slug_candidate[:180]
+
+        if self.status == self.Status.PUBLISHED and not self.published_at:
+            self.published_at = timezone.now()
+        if self.status == self.Status.DRAFT:
+            self.published_at = None
+
+        super().save(*args, **kwargs)
 
 class HeroImage(models.Model):
     """

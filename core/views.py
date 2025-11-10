@@ -15,7 +15,7 @@ from django.utils.functional import cached_property
 
 from core.models import (
     Appointment, ServiceCategory, Service, CustomUserDisplay,
-    AppointmentStatusHistory, LegalPage
+    AppointmentStatusHistory, LegalPage, ProjectJournalEntry
 )
 from core.services.booking import (
     get_available_slots, get_service_masters,
@@ -428,6 +428,45 @@ def financing_view(request):
 
 def our_story_view(request):
     return render(request, "client/our_story.html")
+
+
+def project_journal_view(request):
+    tag_filter = (request.GET.get("tag") or "").strip()
+    normalized_tag = tag_filter.lower()
+
+    published_posts = list(ProjectJournalEntry.objects.published())
+    available_tags = sorted(
+        {tag for post in published_posts for tag in post.tag_list},
+        key=lambda tag: tag.lower(),
+    )
+
+    if normalized_tag:
+        visible_posts = [
+            post for post in published_posts
+            if any(tag.lower() == normalized_tag for tag in post.tag_list)
+        ]
+    else:
+        visible_posts = published_posts
+
+    featured_post = next((post for post in visible_posts if post.featured), None)
+    if not featured_post and visible_posts:
+        featured_post = visible_posts[0]
+
+    remaining_posts = [
+        post for post in visible_posts
+        if not featured_post or post.pk != featured_post.pk
+    ]
+
+    context = {
+        "featured_post": featured_post,
+        "journal_posts": remaining_posts,
+        "available_tags": available_tags,
+        "tag_filter": tag_filter,
+        "has_posts": bool(visible_posts),
+        "page_title": "Project Journal",
+        "meta_description": "Quiet corner of Bad Guy Motors where we document completed builds, wraps, and custom work.",
+    }
+    return render(request, "client/project_journal.html", context)
 
 
 class LegalPageView(TemplateView):

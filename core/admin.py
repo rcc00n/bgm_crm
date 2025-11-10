@@ -1349,6 +1349,89 @@ class LegalPageAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(ProjectJournalEntry)
+class ProjectJournalEntryAdmin(admin.ModelAdmin):
+    list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
+    list_filter = ("status", "featured", "published_at")
+    search_fields = ("title", "excerpt", "body", "tags", "client_name", "location", "services")
+    ordering = ("-published_at", "-updated_at")
+    readonly_fields = ("created_at", "updated_at", "published_at", "preview_link")
+    prepopulated_fields = {"slug": ("title",)}
+    fieldsets = (
+        ("Story", {
+            "fields": (
+                "title",
+                "slug",
+                "headline",
+                "excerpt",
+                "body",
+                "cover_image",
+                "result_highlight",
+            )
+        }),
+        ("Project meta", {
+            "fields": (
+                "client_name",
+                "location",
+                "services",
+                "reading_time",
+                "tags",
+            )
+        }),
+        ("Publication", {
+            "fields": (
+                "status",
+                "featured",
+                "published_at",
+                "preview_link",
+                "created_at",
+                "updated_at",
+            )
+        }),
+    )
+    actions = ("mark_as_published", "mark_as_draft")
+
+    @admin.display(description="Status")
+    def status_badge(self, obj):
+        color = "#16a34a" if obj.status == obj.Status.PUBLISHED else "#f97316"
+        return format_html(
+            '<span style="padding:0.2rem 0.6rem;border-radius:999px;background:{}1a;color:{};font-size:0.85rem;">{}</span>',
+            color,
+            color,
+            obj.get_status_display(),
+        )
+
+    @admin.display(description="Preview")
+    def preview_link(self, obj):
+        if not obj.pk:
+            return "—"
+        try:
+            url = obj.get_absolute_url()
+        except Exception:
+            return "—"
+        return format_html('<a href="{}" target="_blank" rel="noopener">Open page</a>', url)
+
+    @admin.action(description="Publish selected posts")
+    def mark_as_published(self, request, queryset):
+        updated = 0
+        for entry in queryset:
+            if entry.status != entry.Status.PUBLISHED:
+                entry.status = entry.Status.PUBLISHED
+                entry.save()
+                updated += 1
+        self.message_user(request, f"Published {updated} post(s).")
+
+    @admin.action(description="Move selected posts to draft")
+    def mark_as_draft(self, request, queryset):
+        updated = 0
+        for entry in queryset:
+            if entry.status != entry.Status.DRAFT:
+                entry.status = entry.Status.DRAFT
+                entry.save()
+                updated += 1
+        self.message_user(request, f"Moved {updated} post(s) to draft.")
+
+
 @admin.register(HeroImage)
 class HeroImageAdmin(admin.ModelAdmin):
     list_display = ("location", "title", "is_active", "updated_at", "image_preview")
