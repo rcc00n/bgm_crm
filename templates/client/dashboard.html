@@ -1606,6 +1606,78 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 })();
 </script>
 <!-- ==================================================================== -->
+<!-- ============ Client Portal — MOBILE SIDEBAR FIX (safe overrides) ============ -->
+<style id="portal-mobile-fix">
+  @media (max-width:1024px){
+    /* Ensure vertical stack + full width items inside the drawer */
+    #portalSidebar nav#sidebar{
+      display:flex;
+      flex-direction:column;
+    }
+    #portalSidebar nav#sidebar > *{ width:100%; }
+    #portalSidebar nav#sidebar .sidebar-link,
+    #portalSidebar nav#sidebar .logout-btn{
+      display:flex; align-items:center; gap:.8rem;
+      width:100%; min-height:44px; border-radius:10px;
+    }
+
+    /* Smooth scroll inside drawer, no background interference */
+    #portalSidebar{ -webkit-overflow-scrolling:touch; }
+
+    /* Do not overlap the floating contact button while drawer is open */
+    body.has-drawer-open .contact-fab{ display:none !important; }
+  }
+
+  /* No extra animations for users preferring reduced motion */
+  @media (prefers-reduced-motion:reduce){
+    #portalSidebar{ scroll-behavior:auto; }
+  }
+</style>
+
+<script id="portal-mobile-fix-js">
+(() => {
+  const drawer   = document.getElementById('portalSidebar');
+  const toggle   = document.getElementById('sidebarToggle');
+  const nav      = document.getElementById('sidebar');       // the nav inside the drawer
+  const mqMobile = window.matchMedia('(max-width: 1024px)');
+  if (!drawer || !nav) return;
+
+  // Guard against double-binding
+  if (drawer.dataset.bgmPortalMobileBound === '1') return;
+  drawer.dataset.bgmPortalMobileBound = '1';
+
+  const closeDrawer = () => {
+    drawer.classList.remove('sidebar--open');
+    document.body.classList.remove('has-drawer-open');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  };
+
+  // 1) Close drawer when any nav item (link/button) is clicked on mobile
+  nav.addEventListener('click', (e) => {
+    const action = e.target.closest('a,button');
+    if (!action) return;
+    if (mqMobile.matches) closeDrawer();
+  });
+
+  // 2) Keep focus inside drawer while open (mobile)
+  document.addEventListener('keydown', (e) => {
+    if (!mqMobile.matches || !drawer.classList.contains('sidebar--open')) return;
+    if (e.key !== 'Tab') return;
+
+    const focusables = drawer.querySelectorAll('a,button,select,[tabindex]:not([tabindex="-1"])');
+    const list = Array.from(focusables).filter(el => !el.disabled && el.offsetParent !== null);
+    if (!list.length) return;
+
+    const first = list[0], last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  });
+
+  // 3) If breakpoint jumps to desktop, ensure clean state
+  mqMobile.addEventListener?.('change', (ev) => { if (!ev.matches) closeDrawer(); });
+})();
+</script>
+<!-- ========================== END MOBILE SIDEBAR FIX =========================== -->
 
 {% include "includes/analytics_tracker.html" %}
 </body>

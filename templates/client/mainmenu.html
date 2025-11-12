@@ -1561,6 +1561,8 @@ main h3{
     .contact-fab{ right:14px; bottom:14px; }
     .contact-title{ font-size:1.45rem; }
   }
+
+
 </style>
 
 <button type="button" id="contactFab" class="contact-fab"
@@ -1653,6 +1655,162 @@ main h3{
 </script>
 <!-- ==================================================================== -->
 
+
+
+<!-- === Mobile sidebar hardening (safe, additive) ======================= -->
+<style id="mobile-sidebar-fix">
+  /* Make the mobile nav overlay robust and always vertical */
+  @media (max-width: 960px){
+    header.site-header nav{
+      /* ensure it sits above any floating UI (e.g., contact FAB, smoke) */
+      z-index: 2400 !important;
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: rgba(5,5,5,.88);
+      backdrop-filter: blur(18px) saturate(1.2);
+      /* safe-area + topbar height padding */
+      padding-top: calc(var(--site-header-height) + max(1rem, env(safe-area-inset-top, 0px)));
+      padding-inline: clamp(20px, 6vw, 36px);
+      padding-bottom: clamp(28px, 12vh, 46px);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-12px);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    /* Open state works with either existing .site-header--open OR aria-expanded=true */
+    header.site-header.site-header--open nav,
+    header.site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    header.site-header nav ul{
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: .55rem;
+      width: 100%;
+    }
+    header.site-header nav li{ width: 100%; }
+
+    header.site-header nav a,
+    header.site-header nav .btn,
+    header.site-header nav .btn--ghost{
+      width: 100%;
+      display: inline-flex;
+      justify-content: space-between;
+      background: rgba(255,255,255,.04) !important;
+      border: 1px solid rgba(255,255,255,.08) !important;
+      border-radius: .85rem !important;
+      padding: .95rem 1rem !important;
+      font-size: 1.05rem !important;
+      letter-spacing: .035em !important;
+      line-height: 1.15 !important;
+      text-transform: none !important;
+      color: rgba(255,255,255,.95) !important;
+    }
+    header.site-header nav a:hover,
+    header.site-header nav a[aria-current="page"],
+    header.site-header nav .btn:hover{
+      background: rgba(255,255,255,.10) !important;
+      border-color: rgba(255,255,255,.22) !important;
+      color: #fff !important;
+    }
+
+    /* Hide floating contact FAB while menu is open to avoid overlap */
+    body.nav-open .contact-fab{ display: none !important; }
+  }
+
+  /* Motion friendly */
+  @media (prefers-reduced-motion: reduce){
+    header.site-header nav{ transition: none !important; transform: none !important; }
+  }
+</style>
+
+<script id="mobile-sidebar-fix-js">
+(() => {
+  const header = document.querySelector('header.site-header');
+  const toggle = document.querySelector('.site-header__toggle');
+  const nav    = document.getElementById('siteNav');
+  if (!header || !toggle || !nav) return;
+
+  // Avoid double-binding if something else already attached
+  if (toggle.dataset.bgmMobileSidebarBound === '1') return;
+  toggle.dataset.bgmMobileSidebarBound = '1';
+
+  const mql = window.matchMedia('(max-width: 960px)');
+  const isOpen = () => toggle.getAttribute('aria-expanded') === 'true' || header.classList.contains('site-header--open');
+
+  const setOpen = (open) => {
+    // We drive the open state via aria-expanded; CSS supports both aria and class
+    toggle.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('nav-open', open);
+
+    // Focus management (first focusable inside nav when opening)
+    if (open && mql.matches) {
+      const first = nav.querySelector('a,button,[tabindex]:not([tabindex="-1"])');
+      first && first.focus({ preventScroll: true });
+    } else if (!open) {
+      toggle.focus({ preventScroll: true });
+    }
+  };
+
+  // Sync helper: if external script toggles the header class, keep aria/body in sync
+  const mo = new MutationObserver(() => {
+    const open = header.classList.contains('site-header--open');
+    toggle.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('nav-open', open);
+  });
+  mo.observe(header, { attributes: true, attributeFilter: ['class'] });
+
+  // Toggle button
+  toggle.addEventListener('click', (e) => {
+    if (!mql.matches) return; // desktop: let normal nav flow
+    e.preventDefault();
+    setOpen(!isOpen());
+  });
+
+  // Close on any nav link/button click
+  nav.addEventListener('click', (e) => {
+    if (!mql.matches) return;
+    if (e.target.closest('a, button')) setOpen(false);
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (!mql.matches) return;
+    if (e.key === 'Escape' && isOpen()) setOpen(false);
+  });
+
+  // Trap focus inside the open menu on mobile
+  document.addEventListener('keydown', (e) => {
+    if (!mql.matches || e.key !== 'Tab' || !isOpen()) return;
+    const focusables = nav.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
+    const list = Array.from(focusables).filter(el => !el.disabled && el.offsetParent !== null);
+    if (!list.length) return;
+    const first = list[0], last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+
+  // If viewport switches to desktop while open, close safely
+  mql.addEventListener?.('change', (ev) => {
+    if (!ev.matches) setOpen(false);
+  });
+
+  // On load, ensure consistent aria/body state
+  setOpen(isOpen());
+})();
+</script>
+
 {% include "includes/analytics_tracker.html" %}
+
+
 </body>
 </html>
