@@ -1,98 +1,67 @@
-(function(){
-  const header = document.querySelector('.site-header');
-  if (!header) return;
+// static/js/topbar.js
+(() => {
+  const header = document.querySelector('header.site-header');
+  const toggle = header?.querySelector('.site-header__toggle');
+  const nav    = document.getElementById('siteNav');
+  if (!header || !toggle || !nav) return;
 
-  const toggle = header.querySelector('.site-header__toggle');
-  const nav = header.querySelector('nav');
-  if (!toggle || !nav) return;
+  // Prevent double-binding
+  if (header.dataset.bgmTopbarBound === '1') return;
+  header.dataset.bgmTopbarBound = '1';
 
-  const body = document.body;
-  const docEl = document.documentElement;
-  const mq = window.matchMedia('(max-width: 960px)');
+  const mql = window.matchMedia('(max-width: 960px)');
+  let lastFocus = null;
 
-  const updateHeight = () => {
-    const height = header.getBoundingClientRect().height;
-    if (height > 0) {
-      const value = `${Math.round(height)}px`;
-      header.style.setProperty('--site-header-height', value);
-      docEl.style.setProperty('--site-header-height', value);
-    }
-  };
+  const isOpen = () => header.classList.contains('site-header--open');
 
-  let resizeTimer = null;
-  const onResize = () => {
-    if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(updateHeight, 120);
-  };
+  function setOpen(open){
+    header.classList.toggle('site-header--open', open);
+    document.body.classList.toggle('nav-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    nav.setAttribute('aria-hidden', open ? 'false' : 'true');
 
-  const closeMenu = ({ focusToggle = true } = {}) => {
-    header.classList.remove('site-header--open');
-    body.classList.remove('nav-open');
-    toggle.setAttribute('aria-expanded', 'false');
-    if (focusToggle) {
-      try {
-        toggle.focus({ preventScroll: true });
-      } catch (err) {
-        toggle.focus();
-      }
-    }
-  };
-
-  const openMenu = () => {
-    header.classList.add('site-header--open');
-    body.classList.add('nav-open');
-    toggle.setAttribute('aria-expanded', 'true');
-    updateHeight();
-    const focusable = nav.querySelector('a, button, [tabindex]:not([tabindex="-1"])');
-    if (focusable) {
-      try {
-        focusable.focus({ preventScroll: true });
-      } catch (err) {
-        focusable.focus();
-      }
-    }
-  };
-
-  const toggleMenu = () => {
-    if (header.classList.contains('site-header--open')) {
-      closeMenu({ focusToggle: false });
+    if (open) {
+      lastFocus = document.activeElement;
+      const first = nav.querySelector('a,button,[tabindex]:not([tabindex="-1"])');
+      setTimeout(() => (first || nav).focus({ preventScroll:true }), 0);
+      document.addEventListener('keydown', onKey);
     } else {
-      openMenu();
+      document.removeEventListener('keydown', onKey);
+      if (lastFocus) lastFocus.focus({ preventScroll:true });
     }
-  };
-
-  const handleMediaChange = (event) => {
-    if (!event.matches) {
-      closeMenu({ focusToggle: false });
-    }
-    updateHeight();
-  };
-
-  toggle.addEventListener('click', toggleMenu);
-
-  window.addEventListener('resize', onResize, { passive: true });
-  window.addEventListener('orientationchange', updateHeight, { passive: true });
-
-  window.addEventListener('keyup', (event) => {
-    if (event.key === 'Escape' && header.classList.contains('site-header--open')) {
-      closeMenu();
-    }
-  });
-
-  nav.addEventListener('click', (event) => {
-    const link = event.target.closest('a');
-    if (!link) return;
-    if (mq.matches) {
-      closeMenu({ focusToggle: false });
-    }
-  });
-
-  if (mq.addEventListener) {
-    mq.addEventListener('change', handleMediaChange);
-  } else if (mq.addListener) {
-    mq.addListener(handleMediaChange);
   }
 
-  document.addEventListener('DOMContentLoaded', updateHeight);
-  updateHeight();
+  function onKey(e){
+    if (!mql.matches || !isOpen()) return;
+    if (e.key === 'Escape') { setOpen(false); return; }
+    if (e.key !== 'Tab') return;
+
+    // Focus trap
+    const nodes = nav.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
+    const list = Array.from(nodes).filter(el => !el.disabled && el.offsetParent !== null);
+    if (!list.length) return;
+    const first = list[0], last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  }
+
+  // Toggle open/close
+  toggle.addEventListener('click', (e) => {
+    if (!mql.matches) return;
+    e.preventDefault();
+    setOpen(!isOpen());
+  });
+
+  // Close when any menu item is activated
+  nav.addEventListener('click', (e) => {
+    if (!mql.matches) return;
+    if (e.target.closest('a,button')) setOpen(false);
+  });
+
+  // Close safely when resizing to desktop
+  mql.addEventListener?.('change', (ev) => { if (!ev.matches) setOpen(false); });
+
+  // Initial ARIA
+  toggle.setAttribute('aria-expanded', 'false');
+  nav.setAttribute('aria-hidden', 'true');
 })();

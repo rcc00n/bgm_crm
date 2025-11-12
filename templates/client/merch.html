@@ -756,6 +756,53 @@ nav a,.btn,.badge {
 })();
 </script>
 <!-- ==================================================================== -->
+<style id="mobile-sidebar-vertical-fix">
+/* Mobile = true sidebar overlay with vertical, full-width items */
+@media (max-width: 960px){
+  header.site-header nav{
+    display:flex;
+    align-items:flex-start;
+    justify-content:flex-start;
+    flex-direction:column;
+    width:100%;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding-top:calc(var(--site-header-height) + env(safe-area-inset-top, 0px) + 1rem);
+  }
+  header.site-header nav ul{
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:stretch !important;
+    width:100%;
+    gap:.55rem !important;
+    margin:0;
+    padding:0;
+    list-style:none;
+  }
+  header.site-header nav li{ width:100%; }
+
+  header.site-header nav a,
+  header.site-header nav .btn,
+  header.site-header nav .btn--ghost{
+    width:100% !important;
+    display:flex !important;
+    justify-content:space-between !important;
+    align-items:center;
+    min-height:48px;
+  }
+
+  /* Prevent overlap with floating Contact FAB */
+  body.nav-open .contact-fab,
+  header.site-header.site-header--open ~ .contact-fab{
+    display:none !important;
+  }
+}
+
+/* Reduced motion respect */
+@media (prefers-reduced-motion: reduce){
+  header.site-header nav{ transition:none !important; transform:none !important; }
+}
+</style>
 
 {% include "includes/analytics_tracker.html" %}
 </body>
