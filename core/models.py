@@ -715,6 +715,20 @@ class MasterProfile(models.Model):
     work_end = models.TimeField(default="21:00")
     photo = models.ImageField(upload_to="masters/", storage=MASTER_PHOTO_STORAGE, blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        """
+        Persist profile changes and guarantee the linked user carries the Master role.
+        """
+        response = super().save(*args, **kwargs)
+        self._ensure_master_role()
+        return response
+
+    def _ensure_master_role(self):
+        if not self.user_id:
+            return
+        from core.utils import assign_role
+        master_role, _ = Role.objects.get_or_create(name="Master")
+        assign_role(self.user, master_role)
 
     def __str__(self):
         return f"{self.user.get_full_name()}"

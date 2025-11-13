@@ -135,6 +135,165 @@ CSRF_COOKIE_SECURE = True
 CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h]
 
 # ── Jazzmin (как было) ───────────────────────────────────────────────────
+ADMIN_SIDEBAR_SECTIONS = [
+    {
+        "label": "Operations",
+        "icon": "fas fa-gauge-high",
+        "groups": [
+            {
+                "label": "Appointments",
+                "icon": "fas fa-calendar-check",
+                "items": [
+                    {"model": "core.Appointment", "label": "Calendar"},
+                    {"model": "core.AppointmentStatus", "label": "Status Library"},
+                    {"model": "core.AppointmentStatusHistory", "label": "Status Timeline"},
+                    {"model": "core.AppointmentPrepayment", "label": "Collected Prepayments"},
+                ],
+            },
+            {
+                "label": "Staffing",
+                "icon": "fas fa-user-gear",
+                "items": [
+                    {"model": "core.MasterAvailability", "label": "Availability"},
+                    {"model": "core.MasterProfile", "label": "Team Profiles"},
+                    {"model": "core.ServiceMaster", "label": "Service Assignment"},
+                    {"model": "core.MasterRoom", "label": "Rooms & Bays"},
+                ],
+            },
+            {
+                "label": "Payments",
+                "icon": "fas fa-sack-dollar",
+                "items": [
+                    {"model": "core.Payment"},
+                    {"model": "core.PaymentStatus", "label": "Payment Status"},
+                    {"model": "core.PaymentMethod", "label": "Payment Methods"},
+                    {"model": "core.PrepaymentOption", "label": "Prepayment Options"},
+                ],
+            },
+            {
+                "label": "Promotions",
+                "icon": "fas fa-tags",
+                "items": [
+                    {"model": "core.ServiceDiscount", "label": "Service Discounts"},
+                    {"model": "core.PromoCode", "label": "Promo Codes"},
+                    {"model": "core.AppointmentPromoCode", "label": "Appointment Promo Codes"},
+                ],
+            },
+        ],
+    },
+    {
+        "label": "Clients",
+        "icon": "fas fa-users",
+        "groups": [
+            {
+                "label": "Client Records",
+                "icon": "fas fa-address-card",
+                "items": [
+                    {"model": "core.UserProfile", "label": "Client Profiles"},
+                    {"model": "core.ClientFile", "label": "Client Files"},
+                    {"model": "core.ClientReview", "label": "Reviews"},
+                    {"model": "core.ClientSource", "label": "Lead Sources"},
+                ],
+            },
+            {
+                "label": "Dealer Program",
+                "icon": "fas fa-user-shield",
+                "items": [
+                    {"model": "core.DealerTierLevel", "label": "Tier Levels"},
+                    {"model": "core.DealerApplication", "label": "Applications"},
+                ],
+            },
+        ],
+    },
+    {
+        "label": "Storefront",
+        "icon": "fas fa-store",
+        "groups": [
+            {
+                "label": "Catalog",
+                "icon": "fas fa-box-open",
+                "items": [
+                    {"model": "store.Category", "label": "Product Categories"},
+                    {"model": "store.Product"},
+                    {"model": "store.ProductImage", "label": "Product Gallery"},
+                    {"model": "store.ProductOption", "label": "Product Options"},
+                ],
+            },
+            {
+                "label": "Vehicles & Fitment",
+                "icon": "fas fa-car-side",
+                "items": [
+                    {"model": "store.CarMake", "label": "Car Makes"},
+                    {"model": "store.CarModel", "label": "Car Models"},
+                    {"model": "store.CustomFitmentRequest", "label": "Fitment Requests"},
+                ],
+            },
+            {
+                "label": "Orders",
+                "icon": "fas fa-cart-shopping",
+                "items": [
+                    {"model": "store.Order", "label": "Orders"},
+                    {"model": "store.OrderItem", "label": "Order Items"},
+                ],
+            },
+        ],
+    },
+    {
+        "label": "Content & Insights",
+        "icon": "fas fa-bullhorn",
+        "groups": [
+            {
+                "label": "Services & Packages",
+                "icon": "fas fa-screwdriver-wrench",
+                "items": [
+                    {"model": "core.ServiceCategory", "label": "Service Categories"},
+                    {"model": "core.Service"},
+                ],
+            },
+            {
+                "label": "Website",
+                "icon": "fas fa-globe",
+                "items": [
+                    {"model": "core.LegalPage", "label": "Legal Pages"},
+                    {"model": "core.ProjectJournalEntry", "label": "Project Journal"},
+                    {"model": "core.HeroImage", "label": "Hero Assets"},
+                ],
+            },
+            {
+                "label": "Messaging",
+                "icon": "fas fa-bell",
+                "items": [
+                    {"model": "core.Notification", "label": "Notifications"},
+                ],
+            },
+            {
+                "label": "Analytics",
+                "icon": "fas fa-chart-line",
+                "items": [
+                    {"model": "core.VisitorSession", "label": "Visitor Sessions"},
+                    {"model": "core.PageView", "label": "Page Views"},
+                ],
+            },
+        ],
+    },
+    {
+        "label": "System",
+        "icon": "fas fa-shield-halved",
+        "groups": [
+            {
+                "label": "Access Control",
+                "icon": "fas fa-user-lock",
+                "items": [
+                    {"model": "auth.User", "label": "Users"},
+                    {"model": "auth.Group", "label": "Groups"},
+                    {"model": "core.Role", "label": "Roles"},
+                    {"model": "core.UserRole", "label": "Role Assignments"},
+                ],
+            },
+        ],
+    },
+]
+
 JAZZMIN_SETTINGS = {
     "site_title": "BGM Admin",
     "site_header": "BGM",
@@ -142,36 +301,55 @@ JAZZMIN_SETTINGS = {
     "copyright": "BGM © 2025",
     "search_model": ["auth.User"],
     "show_sidebar": True,
-    "navigation_expanded": True,
+    "navigation_expanded": False,
     "show_ui_builder": False,
-    "hide_models": ["Groups"],
+    "hide_models": [],
     "topmenu_links": [{"name": "Webpage", "url": "/", "permissions": ["auth.view_user"]}],
     "icons": {
         "auth.User": "fas fa-user",
         "auth.Group": "fas fa-users-cog",
         "core.Appointment": "fas fa-calendar-check",
-        "core.AppointmentStatus": "fas fa-info-circle",
-        "core.AppointmentStatusHistory": "fas fa-history",
+        "core.AppointmentStatus": "fas fa-circle-dot",
+        "core.AppointmentStatusHistory": "fas fa-wave-square",
         "core.AppointmentPrepayment": "fas fa-coins",
-        "core.ClientFile": "fas fa-file-alt",
+        "core.AppointmentPromoCode": "fas fa-ticket",
+        "core.ClientFile": "fas fa-folder-open",
+        "core.ClientReview": "fas fa-comments",
+        "core.ClientSource": "fas fa-bullseye",
+        "core.DealerApplication": "fas fa-user-check",
+        "core.DealerTierLevel": "fas fa-medal",
+        "core.HeroImage": "fas fa-panorama",
+        "core.LegalPage": "fas fa-scale-balanced",
+        "core.MasterAvailability": "fas fa-business-time",
+        "core.MasterProfile": "fas fa-user-tie",
+        "core.MasterRoom": "fas fa-warehouse",
         "core.Notification": "fas fa-bell",
-        "core.Payment": "fas fa-money-check-alt",
+        "core.PageView": "fas fa-chart-area",
+        "core.Payment": "fas fa-sack-dollar",
         "core.PaymentMethod": "fas fa-credit-card",
-        "core.PaymentStatus": "fas fa-receipt",
-        "core.PrepaymentOption": "fas fa-percentage",
-        "core.Role": "fas fa-user-tag",
-        "core.UserRole": "fas fa-user-friends",
-        "core.Service": "fas fa-spa",
-        "core.ServiceMaster": "fas fa-user-cog",
+        "core.PaymentStatus": "fas fa-list-check",
+        "core.PrepaymentOption": "fas fa-piggy-bank",
+        "core.PromoCode": "fas fa-ticket-alt",
+        "core.ProjectJournalEntry": "fas fa-newspaper",
+        "core.Role": "fas fa-shield-halved",
+        "core.Service": "fas fa-screwdriver-wrench",
+        "core.ServiceCategory": "fas fa-diagram-project",
+        "core.ServiceDiscount": "fas fa-badge-percent",
+        "core.ServiceMaster": "fas fa-user-gear",
+        "core.UserProfile": "fas fa-id-badge",
+        "core.UserRole": "fas fa-user-tag",
+        "core.VisitorSession": "fas fa-user-clock",
+        "store.CarMake": "fas fa-industry",
+        "store.CarModel": "fas fa-car-side",
+        "store.Category": "fas fa-tags",
+        "store.CustomFitmentRequest": "fas fa-ruler-combined",
+        "store.Order": "fas fa-cart-shopping",
+        "store.OrderItem": "fas fa-receipt",
+        "store.Product": "fas fa-box-open",
+        "store.ProductImage": "fas fa-images",
+        "store.ProductOption": "fas fa-sliders-h",
     },
-    "menu": [
-        {"label": "📅 Appointments", "models": ["core.appointment", "core.appointmentstatus", "core.appointmentprepayment", "core.appointmentstatushistory"]},
-        {"label": "🧑‍💼 Users", "models": ["core.user", "core.userprofile", "core.role", "core.userrole", "core.clientfile"]},
-        {"label": "💳 Payments", "models": ["core.payment", "core.paymentstatus", "core.paymentmethod"]},
-        {"label": "🛎️ Services", "models": ["core.service", "core.servicemaster"]},
-        {"label": "🔔 Notifications", "models": ["core.notification"]},
-        {"label": "👨‍🏫 Staff", "models": ["core.masterprofile", "core.masteravailability"]},
-    ],
+    "custom_sidebar": ADMIN_SIDEBAR_SECTIONS,
     "theme": "None",
     #  "custom_css": "static/admin/css/custom_sidebar.css",
 }

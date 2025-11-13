@@ -27,6 +27,7 @@ from .filters import *
 from .models import *
 from .forms import *
 from core.services.analytics import summarize_web_analytics
+from core.utils import get_staff_queryset
 from datetime import timedelta, time
 # -----------------------------
 # Custom filter for filtering users by Role
@@ -76,9 +77,8 @@ def custom_index(request):
     # tables
     top_services = Service.objects.annotate(count=Count("appointment")).order_by("-count")[:5]
 
-    master_role = Role.objects.filter(name="Master").first()
     first_day = today.replace(day=1)
-    masters = CustomUserDisplay.objects.filter(userrole__role=master_role).annotate(
+    masters = get_staff_queryset(active_only=False).annotate(
         total=Sum(
             "appointments_as_master__service__base_price",
             filter=models.Q(appointments_as_master__start_time__date__gte=first_day),
@@ -400,13 +400,8 @@ class MasterSelectorMixing:
     Restricts 'master' foreign key fields to users who have the 'Master' role.
     """
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "master":
-            master_role = Role.objects.filter(name="Master").first()
-            if master_role:
-                master_user_ids = UserRole.objects.filter(role=master_role).values_list('user_id', flat=True)
-                kwargs["queryset"] = CustomUserDisplay.objects.filter(id__in=master_user_ids)
-            else:
-                kwargs["queryset"] = User.objects.none()
+        if db_field.name == "master" and "queryset" not in kwargs:
+            kwargs["queryset"] = get_staff_queryset()
         field = super().formfield_for_foreignkey(db_field, request, **kwargs)
         if db_field.name == "master" and field:
             field.label = STAFF_DISPLAY_NAME

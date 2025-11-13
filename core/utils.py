@@ -1,7 +1,9 @@
 # core/utils.py
 from decimal import Decimal, InvalidOperation
 
-from .models import UserRole
+from django.db.models import Q
+
+from .models import CustomUserDisplay, UserRole
 
 def assign_role(user, role):
     """
@@ -13,6 +15,18 @@ def assign_role(user, role):
         if not user.is_staff:
             user.is_staff = True
             user.save(update_fields=["is_staff"])
+
+
+def get_staff_queryset(active_only: bool = True):
+    """
+    Unified helper that returns every staff member (masters) regardless of how they were created.
+    """
+    staff_filter = Q(master_profile__isnull=False) | Q(userrole__role__name="Master")
+    qs = CustomUserDisplay.objects.filter(staff_filter).distinct()
+    if active_only:
+        qs = qs.filter(is_active=True)
+    return qs
+
 
 def get_dealer_discount_percent(user) -> int:
     """

@@ -247,23 +247,44 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
 }
 
 .nav-treeview {
-  padding-left: 32px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  margin-left: 12px;
+  padding: 6px 0 6px 20px;
 }
 
 .nav-treeview .nav-item .nav-link {
   font-size: 14px;
-  padding-top: 9px;
-  padding-bottom: 9px;
+  padding-top: 8px;
+  padding-bottom: 8px;
   background: transparent;
 }
 
 .nav-treeview .nav-link::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  margin-right: 10px;
+  display: none;
+}
+
+.nav-treeview .nav-link .nav-icon {
+  width: 16px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.nav-item.has-treeview > .nav-link p {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+
+.nav-sidebar .nav-badge {
+  margin-left: auto;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .sidebar-mini.sidebar-collapse .main-sidebar {
