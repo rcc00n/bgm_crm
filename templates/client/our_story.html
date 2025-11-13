@@ -117,93 +117,7 @@
     }
 
     @media (max-width: 900px){.hero__inner{grid-template-columns:1fr}}
-    /* ===== CLEAN HEADER (brand | belt | nav) — как на Merch ===== */
-
-/* контейнер в край, аккуратные паддинги */
-.site-header .container{
-  width:100% !important;
-  max-width:none !important;
-  padding-inline:clamp(12px, 2vw, 28px) !important;
-}
-
-/* сетка: бренд | центр (сжимается) | меню */
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns:max-content minmax(0,1fr) max-content !important;
-  align-items:center !important;
-  column-gap:clamp(14px, 2vw, 36px) !important;
-  padding-block:.8rem !important;
-}
-
-/* бренд — как на втором */
-.brand__logo{ display:none !important; }
-.brand{
-  display:flex !important;
-  align-items:baseline !important;
-  gap:.55rem !important;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-}
-.brand__word{ font-size:clamp(.9rem, 1vw, 1rem); line-height:1; }
-.brand__word--white{ color:#fff; }
-.brand__word--red{ color:#d50000; }
-
-/* центральная лента */
-.belt{
-  justify-self:center;
-  min-width:0;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  color:rgba(255,255,255,.72);
-  font-size:clamp(.78rem, .95vw, .95rem);
-}
-
-/* меню справа */
-.site-header nav{ justify-self:end; min-width:0; }
-.site-header nav ul{
-  display:flex; align-items:center; list-style:none;
-  gap:clamp(8px, 1vw, 18px) !important;
-  margin:0; padding:0; flex-wrap:nowrap;
-}
-.site-header nav a{
-  display:inline-flex; align-items:center;
-  padding:.38rem .58rem !important;
-  background:none !important; border:0 !important; border-radius:.55rem;
-  text-transform:uppercase; font-weight:900;
-  letter-spacing:.06em;
-  color:rgba(255,255,255,.82);
-  font-size:clamp(.72rem, .9vw, .92rem) !important;
-  white-space:nowrap; line-height:1;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-.site-header .badge{
-  padding:.08rem .42rem !important;
-  font-size:.68rem !important;
-  line-height:1; border-radius:999px;
-  background:#d50000; color:#fff;
-}
-
-/* адаптация */
-@media (max-width: 1300px){
-  .site-header nav ul{ gap:.6rem !important; }
-  .site-header nav a{ font-size:.72rem !important; letter-spacing:.05em !important; }
-}
-@media (max-width: 1150px){
-  .belt{ display:none !important; }
-}
-@media (max-width: 900px){
-  .site-header nav{ overflow-x:auto; scrollbar-width:none; }
-  .site-header nav::-webkit-scrollbar{ display:none; }
-}
-/* === Custom fonts === */
-@font-face{
+    @font-face{
   font-family:"Diesel";
   src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
   font-weight:100 900; font-style:normal; font-display:swap;
@@ -267,179 +181,10 @@ nav a,.btn,.badge {
   .hero__media{max-width:100%}
   .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
 }
-/* ===== CLEAN HEADER (brand | belt | nav) — unified ===== */
 
-/* контейнер на всю ширину с аккуратными отступами */
-.site-header .container{
-  width:100% !important;
-  max-width:none !important;
-  padding-inline:clamp(12px, 2vw, 28px) !important;
-}
 
-/* трёхколоночная сетка: бренд | слоган (сжимается) | меню */
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns:max-content minmax(0,1fr) max-content !important;
-  align-items:center !important;
-  column-gap:clamp(14px, 2vw, 36px) !important;
-  padding-block:.8rem !important;
-}
-
-/* бренд — текстовый логотип, без квадратной «таблетки» */
-.brand__logo{ display:none !important; }
-.brand{
-  display:flex !important;
-  align-items:baseline !important;
-  gap:.55rem !important;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-}
-.brand__word{ font-size:clamp(.9rem, 1vw, 1rem); line-height:1; }
-.brand__word--white{ color:#fff; }
-.brand__word--red{ color:#d50000; }
-
-/* центральная лента (слоган) — обрезается, если не влазит */
-.belt{
-  justify-self:center;
-  min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  font-weight:900; letter-spacing:.12em; text-transform:uppercase;
-  color:rgba(255,255,255,.72);
-  font-size:clamp(.78rem, .95vw, .95rem);
-}
-
-/* меню — без «пилюль», плотные интервалы, одна строка */
-.site-header nav{ justify-self:end; min-width:0; }
-.site-header nav ul{
-  display:flex; align-items:center; list-style:none;
-  gap:clamp(8px, 1vw, 18px) !important; margin:0; padding:0; flex-wrap:nowrap;
-}
-.site-header nav a{
-  display:inline-flex; align-items:center;
-  padding:.38rem .58rem !important; border-radius:.55rem;
-  background:none !important; border:0 !important;
-  text-transform:uppercase; font-weight:900; letter-spacing:.06em;
-  color:rgba(255,255,255,.82); line-height:1;
-  font-size:clamp(.72rem, .9vw, .92rem) !important;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-/* бейдж Soon — компактный */
-.site-header .badge{
-  padding:.08rem .42rem !important; font-size:.68rem !important;
-  line-height:1; border-radius:999px; background:#d50000; color:#fff;
-}
-
-/* адаптация: сначала прячем слоган, затем включаем мягкий скролл меню */
-@media (max-width:1150px){ .belt{ display:none !important; } }
-@media (max-width:900px){
-  .site-header nav{ overflow-x:auto; scrollbar-width:none; }
-  .site-header nav::-webkit-scrollbar{ display:none; }
-}
-
-  </style>
-
-  <style id="bgm-topbar-fix">
-/* === BGM | clean one-line topbar override ================================= */
-
-/* контейнер во всю ширину */
-body header.site-header .container{
-  width:100% !important;
-  max-width:none !important;
-  padding-inline:clamp(12px,2vw,28px) !important;
-}
-
-/* сетка: бренд | слоган | меню */
-body header.site-header .site-header__inner{
-  display:grid !important;
-  grid-template-columns:max-content minmax(0,1fr) max-content !important;
-  align-items:center !important;
-  column-gap:clamp(14px,2vw,36px) !important;
-  padding-block:.8rem !important;
-}
-
-/* бренд — только текст, без квадратного логотипа */
-body header.site-header .brand__logo{ display:none !important; }
-body header.site-header .brand{
-  display:flex !important; align-items:baseline !important; gap:.55rem !important;
-  font-weight:900; text-transform:uppercase; letter-spacing:.06em;
-}
-body header.site-header .brand__word{ font-size:clamp(.9rem,1vw,1rem); line-height:1; }
-body header.site-header .brand__word--white{ color:#fff; }
-body header.site-header .brand__word--red{ color:#d50000; }
-
-/* слоган по центру, обрезается если не влазит */
-body header.site-header .belt{
-  justify-self:center; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  font-weight:900; letter-spacing:.12em; text-transform:uppercase;
-  color:rgba(255,255,255,.72); font-size:clamp(.78rem,.95vw,.95rem);
-}
-
-/* меню — одна строка, без «пилюль» */
-body header.site-header nav{ justify-self:end; min-width:0; }
-body header.site-header nav ul{
-  display:flex !important; align-items:center; list-style:none;
-  gap:clamp(8px,1vw,18px) !important; margin:0 !important; padding:0 !important; flex-wrap:nowrap !important;
-}
-body header.site-header nav a{
-  display:inline-flex !important; align-items:center !important; line-height:1 !important;
-  padding:.38rem .58rem !important; border:0 !important; border-radius:.55rem !important;
-  background:none !important;
-  text-transform:uppercase !important; font-weight:900 !important; letter-spacing:.06em !important;
-  color:rgba(255,255,255,.82) !important; font-size:clamp(.72rem,.9vw,.92rem) !important;
-}
-body header.site-header nav a:hover,
-body header.site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-/* компактный бейдж */
-body header.site-header .badge{
-  padding:.08rem .42rem !important; font-size:.68rem !important; line-height:1 !important;
-  background:#d50000 !important; color:#fff !important; border-radius:999px !important;
-}
-
-/* stickiness/фон/blur — на всякий случай */
-body header.site-header{
-  position:sticky !important; top:0 !important; z-index:1000 !important;
-  background:rgba(0,0,0,.65) !important; backdrop-filter:saturate(1.2) blur(8px) !important;
-  border-bottom:1px solid rgba(255,255,255,.12) !important;
-}
-
-/* адаптация */
-@media (max-width:1150px){ body header.site-header .belt{ display:none !important; } }
-@media (max-width:900px){
-  body header.site-header nav{ overflow-x:auto; scrollbar-width:none; }
-  body header.site-header nav::-webkit-scrollbar{ display:none; }
-}
-</style>
+  
 <style id="about-topbar-force">
-/* Последний удар по глобальным стилям */
-html body header.site-header .site-header__inner{
-  display:grid !important;
-  grid-template-columns:max-content minmax(0,1fr) max-content !important;
-}
-html body header.site-header .brand__logo{display:none !important;}
-html body header.site-header .belt{
-  justify-self:center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  font-weight:900;text-transform:uppercase;letter-spacing:.12em;
-}
-html body header.site-header nav{justify-self:end;min-width:0;}
-html body header.site-header nav ul{
-  display:flex !important;gap:clamp(8px,1vw,18px) !important;flex-wrap:nowrap !important;margin:0 !important;padding:0 !important;
-}
-html body header.site-header nav a{
-  background:none !important;border:0 !important;
-  padding:.38rem .58rem !important;line-height:1 !important;
-  text-transform:uppercase !important;font-weight:900 !important;letter-spacing:.06em !important;
-  font-family: var(--font-head) !important; /* принудительно тот же шрифт, что на остальных страницах */
-  font-size:clamp(.72rem,.9vw,.92rem) !important;color:rgba(255,255,255,.82) !important;
-}
-html body header.site-header nav a:hover,
-html body header.site-header nav a[aria-current="page"]{color:#fff !important;}
-html body header.site-header .badge{
-  padding:.08rem .42rem !important;font-size:.68rem !important;line-height:1 !important;background:#d50000 !important;color:#fff !important;
-}
-
 /* AMVIC lockup — always visible & recolored to brand red */
 .card .amvic-link img.amvic-logo{
   opacity: 1 !important;
@@ -486,47 +231,6 @@ html body header.site-header .badge{
   font-weight: 900 !important;
   letter-spacing: .02em;
 }
-/* Topbar шрифтом Diesel */
-.site-header,
-.site-header .brand,
-.site-header .belt,
-.site-header nav a,
-.site-header .badge {
-  font-family: var(--font-body) !important; /* Diesel */
-  font-style: normal !important;
-}
-
-/* === FORCE DIESEL FOR TOPBAR (overrides Ford) === */
-html body header.site-header nav a{
-  font-family: var(--font-body) !important;   /* Diesel */
-  font-style: normal !important;
-}
-html body header.site-header .brand,
-html body header.site-header .brand__word{
-  font-family: var(--font-body) !important;   /* Diesel */
-  font-style: normal !important;
-}
-html body header.site-header .belt,
-html body header.site-header .badge,
-html body header.site-header .btn{
-  font-family: var(--font-body) !important;   /* Diesel */
-  font-style: normal !important;
-}
-/* Увеличить логотип BAD GUY MOTORS и сдвинуть правее */
-html body header.site-header .brand__word{
-  font-size: clamp(1rem, 1.15vw, 1.2rem) !important; /* чуть крупнее */
-}
-
-html body header.site-header .brand{
-  margin-left: clamp(8px, 1.5vw, 28px) !important;   /* сдвиг вправо от края */
-  gap: .65rem !important;                             /* аккуратный интервал между словами */
-}
-
-/* на мобилке не переборщить со сдвигом */
-@media (max-width: 900px){
-  html body header.site-header .brand{ margin-left: 12px !important; }
-}
-
 #contact{ scroll-margin-top: 90px; }
 
 /* Diesel font for small CTA buttons */
@@ -535,53 +239,17 @@ html body header.site-header .brand{
   font-style: normal !important;
 }
 
+
 </style>
+
+<link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 
 </head>
 <body>
   <!-- smoke layer -->
   <div id="bg"></div>
 
-  <!-- Topbar -->
-<header class="site-header" role="banner">
-  <div class="container site-header__inner">
-    <a class="brand" href="{% url 'home' %}">
-      <span class="brand__logo" aria-hidden="true"></span>
-      <span class="brand__word brand__word--white">BAD GUY</span>
-      <span class="brand__word brand__word--red">MOTORS</span>
-    </a>
-
-    <div class="belt">CUSTOM BUILDS • INSTALLS • UPGRADES</div>
-
-    <nav aria-label="Main">
-      <ul>
-        <li><a href="{% url 'home' %}">Home</a></li>
-        <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
-        {% if user.is_authenticated %}
-          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
-        {% else %}
-          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
-        {% endif %}
-        <li><a href="{% url 'store' %}" aria-current="page">Products</a></li>
-        <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
-        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-        <li><a href="{% url 'financing' %}">Financing</a></li>
-        <li><a href="{% url 'our-story' %}">About</a></li>
-      </ul>
-    </nav>
-    <!-- Mobile menu toggle (visible ≤900px) -->
-<button type="button"
-        id="mobileNavToggle"
-        class="mobile-nav-toggle"
-        aria-haspopup="true"
-        aria-expanded="false"
-        aria-controls="mobileNav">
-  <span class="mobile-nav-toggle__bars" aria-hidden="true"><i></i><i></i><i></i></span>
-  <span class="mobile-nav-toggle__label">Menu</span>
-</button>
-
-  </div>
-</header>
+  {% include "includes/topbar.html" %}
 
  <section class="hero">
   <div class="container hero__inner">
@@ -885,112 +553,7 @@ html body header.site-header .brand{
 <!-- ==================================================================== -->
 
 {% include "includes/analytics_tracker.html" %}
-<!-- Mobile sidebar + overlay -->
-<div id="mobileOverlay" class="mobile-overlay" hidden></div>
 
-<aside id="mobileNav"
-       class="mobile-nav"
-       aria-label="Mobile menu"
-       aria-hidden="true">
-  <div class="mobile-nav__header">
-    <div class="mobile-nav__brand">Bad Guy Motors</div>
-    <button type="button" id="mobileNavClose" class="mobile-nav__close" aria-label="Close menu">×</button>
-  </div>
-
-  <nav class="mobile-nav__scroll" aria-label="Mobile">
-    <ul class="mobile-nav__list"><!-- populated via JS --></ul>
-  </nav>
-</aside>
-
-<style id="mobile-sidebar-patch">
-/* ===== Mobile Sidebar Patch (keeps desktop untouched) ===== */
-
-:root{
-  --nav-width: min(82vw, 380px);
-}
-
-/* Toggle button — hidden on desktop */
-.mobile-nav-toggle{
-  display:none;
-  align-items:center; gap:.55rem;
-  padding:.5rem .7rem;
-  border-radius:.55rem; border:1px solid var(--line);
-  background:#0f0f0f; color:#fff; cursor:pointer;
-  font-family:var(--font-body, system-ui); font-weight:900; line-height:1;
-}
-.mobile-nav-toggle:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
-.mobile-nav-toggle__bars{ display:inline-flex; flex-direction:column; gap:4px; }
-.mobile-nav-toggle__bars i{ width:18px; height:2px; background:#fff; display:block; border-radius:2px; opacity:.92; }
-.mobile-nav-toggle__label{ font-size:.9rem; letter-spacing:.06em; text-transform:uppercase; }
-
-/* Sidebar + overlay (stack above contact modal) */
-.mobile-overlay{
-  position:fixed; inset:0; z-index:2390;
-  background:rgba(0,0,0,.55);
-  backdrop-filter:blur(2px);
-}
-
-.mobile-nav{
-  position:fixed; inset:0 auto 0 0; z-index:2400;
-  width:var(--nav-width); height:100vh;
-  transform:translate3d(-100%,0,0);
-  transition:transform .22s ease;
-  background:linear-gradient(180deg,#0c0c0c,#121212);
-  border-right:1px solid var(--line);
-  display:flex; flex-direction:column;
-  padding-top:calc(8px + env(safe-area-inset-top));
-  color:#fff;
-  box-shadow:0 18px 44px rgba(0,0,0,.55);
-}
-
-.mobile-nav__header{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:.8rem .9rem .6rem .9rem;
-  border-bottom:1px solid var(--line);
-}
-.mobile-nav__brand{
-  font-family:var(--font-head, system-ui);
-  font-weight:900; letter-spacing:.04em; text-transform:uppercase;
-}
-.mobile-nav__close{
-  width:38px; height:38px; border-radius:.55rem;
-  border:1px solid var(--line); background:#0f0f0f; color:#bdbdbd; cursor:pointer; font-size:20px;
-}
-.mobile-nav__close:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
-
-.mobile-nav__scroll{
-  overflow:auto; -webkit-overflow-scrolling:touch;
-  padding:.6rem .6rem calc(12px + env(safe-area-inset-bottom));
-}
-.mobile-nav__list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.25rem; }
-.mobile-nav__list > li > a{
-  display:block;
-  padding:.78rem .85rem;
-  border-radius:.65rem;
-  font-family:var(--font-body, system-ui);
-  font-weight:900; letter-spacing:.06em; text-transform:uppercase;
-  color:rgba(255,255,255,.92);
-  border:1px solid transparent;
-}
-.mobile-nav__list > li > a:hover{ background:#151515; border-color:rgba(255,255,255,.08); }
-.mobile-nav__list > li > a[aria-current="page"]{
-  background:#151515; border-color:rgba(255,255,255,.14);
-}
-
-/* Activation state (controlled by JS) */
-body.nav-open #mobileNav{ transform:translate3d(0,0,0); }
-body.nav-open{ overflow:hidden; }
-
-/* Enable enhancement only when JS is active */
-@media (max-width:900px){
-  .mobile-nav-toggle{ display:inline-flex; grid-column:3; justify-self:end; }
-}
-/* Hide desktop nav only when enhancement is active (JS adds .nav-enhanced) */
-@media (max-width:900px){
-  body.nav-enhanced .site-header nav{ display:none !important; }
-}
-/* Keep your existing desktop header styles intact */
-</style>
 
 </body>
 </html>

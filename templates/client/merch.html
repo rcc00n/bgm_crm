@@ -71,117 +71,7 @@
     /* показываем дым — фон hero делаем прозрачным */
     .hero{background:transparent !important;}
 
-    /* ===== ONE-LINE BOOKING-STYLE TOP BAR (Merch) ===== */
-
-/* растягиваем контейнер на всю ширину */
-.site-header .container{
-  width:100% !important;
-  max-width:none !important;
-  padding-inline:24px !important;
-}
-
-/* сетка: Бренд | Лента-слоган (тянется) | Меню */
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns:auto 1fr auto !important;
-  align-items:center !important;
-  gap:1.4rem !important;
-  padding:.8rem 0 !important;
-}
-
-/* бренд */
-.brand{display:flex !important; align-items:baseline !important; gap:.9rem !important; min-width:max-content;}
-.brand__logo{width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent));box-shadow:0 0 40px -6px var(--accent-2)}
-.brand__word{font-weight:900; letter-spacing:.06em; font-size:1rem; line-height:1}
-.brand__word--white{color:#fff;}
-.brand__word--red{color:var(--accent);}
-
-/* ==== CLEAN HEADER (brand | belt | nav) ============================ */
-
-/* контейнер в край, но с аккуратными отступами */
-.site-header .container{
-  width:100% !important;
-  max-width:none !important;
-  padding-inline:clamp(12px, 2vw, 28px) !important;
-}
-
-/* трёхколоночный грид: бренд | центр (сжимается) | меню */
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns:max-content minmax(0,1fr) max-content !important;
-  align-items:center !important;
-  column-gap:clamp(14px, 2vw, 36px) !important;
-  padding-block:.8rem !important;
-}
-
-/* бренд — без квадратного логотипа, аккуратные интервалы */
-.brand__logo{ display:none !important; }
-.brand{
-  display:flex !important;
-  align-items:baseline !important;
-  gap:.55rem !important;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-}
-.brand__word{ font-size:clamp(.9rem, 1vw, 1rem); line-height:1; }
-.brand__word--white{ color:#fff; }
-.brand__word--red{ color:#d50000; }
-
-/* центральная лента — центрируется и, при нехватке места, сжимается/обрезается */
-.belt{
-  justify-self:center;
-  min-width:0;                 /* важно: даёт колонке сжиматься */
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  color:rgba(255,255,255,.72);
-  font-size:clamp(.78rem, .95vw, .95rem);
-}
-
-/* меню справа: плотные интервалы, без «таблеток», не переносим */
-.site-header nav{ justify-self:end; min-width:0; }
-.site-header nav ul{
-  display:flex; align-items:center; list-style:none;
-  gap:clamp(8px, 1vw, 18px) !important;
-  margin:0; padding:0; flex-wrap:nowrap;
-}
-.site-header nav a{
-  display:inline-flex; align-items:center;
-  padding:.38rem .58rem !important;
-  background:none !important; border:0 !important; border-radius:.55rem;
-  text-transform:uppercase; font-weight:900;
-  letter-spacing:.06em;
-  color:rgba(255,255,255,.82);
-  font-size:clamp(.72rem, .9vw, .92rem) !important;
-  white-space:nowrap; line-height:1;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-.site-header .badge{
-  padding:.08rem .42rem !important;
-  font-size:.68rem !important;
-  line-height:1; border-radius:999px;
-  background:#d50000; color:#fff;
-}
-
-/* адаптация: сначала ужимаем меню и шрифт, затем скрываем ленту, затем включаем мягкий скролл */
-@media (max-width: 1300px){
-  .site-header nav ul{ gap:.6rem !important; }
-  .site-header nav a{ font-size:.72rem !important; letter-spacing:.05em !important; }
-}
-@media (max-width: 1150px){
-  .belt{ display:none !important; } /* освобождаем место, меню остаётся в одну линию */
-}
-@media (max-width: 900px){
-  .site-header nav{ overflow-x:auto; scrollbar-width:none; }
-  .site-header nav::-webkit-scrollbar{ display:none; } /* скрытый горизонтальный скролл при острой нехватке ширины */
-}
-/* === Custom fonts === */
+    /* === Custom fonts === */
 @font-face{
   font-family:"Diesel";
   src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
@@ -274,257 +164,26 @@ nav a,.btn,.badge {
 #bg canvas{position:absolute; inset:0; width:100%; height:100%;}
 
 
-/* === Merch: TOP BAR only ============================================ */
-/* контейнер растягиваем, сетка: бренд | слоган | меню */
-.site-header .container{width:100%!important;max-width:none!important;padding-inline:24px!important;}
-.site-header__inner{
-  display:grid!important; grid-template-columns:auto 1fr auto!important;
-  align-items:center!important; gap:1.2rem!important; padding:.8rem 0!important;
-}
 
-/* бренд оставляем как есть; убираем декоративный квадратик, если мешает */
-.brand__logo{display:none!important;}
-.brand{min-width:max-content}
 
-/* слоган по центру, обрезается при нехватке места */
-.belt{
-  justify-self:center; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  font-weight:900; letter-spacing:.12em; color:rgba(255,255,255,.72);
-  font-size:clamp(.78rem,.95vw,.95rem);
-}
-
-/* меню справа: простой читаемый шрифт, без капса и таблеток */
-.site-header nav{justify-self:end; min-width:0;}
-.site-header nav ul{
-  display:flex!important; align-items:center!important; gap:clamp(.6rem,1vw,1.1rem)!important;
-  margin:0!important; padding:0!important; list-style:none!important; flex-wrap:nowrap!important;
-}
-.site-header nav a,
-.site-header nav .btn,
-.site-header nav .btn--ghost{
-  background:none!important; border:0!important; border-radius:.4rem!important; padding:.4rem .6rem!important;
-  font-family:var(--font-body)!important; font-weight:700!important; font-size:.95rem!important;
-  letter-spacing:.02em!important; text-transform:none!important; line-height:1.15!important;
-  color:rgba(255,255,255,.92)!important; white-space:nowrap!important;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{color:#fff!important}
-
-/* бейдж “Soon” — компактный */
-.site-header .badge{padding:.1rem .46rem!important;font-size:.68rem!important;border-radius:999px}
-
-/* адаптив: скрываем слоган, включаем мягкий горизонтальный скролл у меню */
-@media (max-width:1150px){ .belt{display:none!important;} }
-@media (max-width:900px){
-  .site-header nav{overflow-x:auto; scrollbar-width:none;}
-  .site-header nav::-webkit-scrollbar{display:none;}
-}
-
-  </style>
+</style>
   <style id="merch-diesel-fix">
-  /* Топбар и все CTA — Diesel */
-  .site-header,
-  .site-header .brand,
-  .site-header .brand__word,
-  .site-header .belt,
-  .site-header nav a,
-  .site-header .badge,
-  .btn { font-family: var(--font-body) !important; font-style: normal !important; }
-
   /* Утилита для явного применения Diesel */
   .btn--diesel, .diesel { font-family: var(--font-body) !important; font-style: normal !important; }
 
   /* Карточки каталога — заголовки и описания Diesel */
   .grid.grid--cards h3,
   .grid.grid--cards .section__desc { font-family: var(--font-body) !important; }
-
-  /* Логотип в топбаре крупнее, как на About */
-.brand__word{ font-size: clamp(1rem, 1.15vw, 1.2rem) !important; }
 </style>
 
-  <style id="topbar-responsive">
-    .sr-only{
-      position:absolute;
-      width:1px;
-      height:1px;
-      padding:0;
-      margin:-1px;
-      overflow:hidden;
-      clip:rect(0,0,0,0);
-      white-space:nowrap;
-      border:0;
-    }
-
-    .site-header__toggle{
-      display:none;
-      align-items:center;
-      justify-content:center;
-      width:var(--site-header-toggle-size);
-      height:var(--site-header-toggle-size);
-      border-radius:.85rem;
-      border:1px solid rgba(255,255,255,.16);
-      background:rgba(255,255,255,.06);
-      color:#fff;
-      cursor:pointer;
-      transition:transform .18s ease, background .18s ease, border-color .18s ease;
-    }
-    .site-header__toggle:hover{
-      background:rgba(255,255,255,.12);
-      border-color:rgba(255,255,255,.28);
-    }
-    .site-header__toggle:focus-visible{
-      outline:2px solid rgba(255,255,255,.92);
-      outline-offset:3px;
-    }
-    .site-header__toggle-box{
-      position:relative;
-      width:20px;
-      height:14px;
-      display:block;
-    }
-    .site-header__toggle-lines,
-    .site-header__toggle-lines::before,
-    .site-header__toggle-lines::after{
-      content:"";
-      position:absolute;
-      left:0;
-      width:100%;
-      height:2px;
-      border-radius:999px;
-      background:currentColor;
-      transition:transform .22s ease, opacity .22s ease, background .22s ease;
-    }
-    .site-header__toggle-lines{ top:50%; transform:translateY(-50%); }
-    .site-header__toggle-lines::before{ top:-6px; }
-    .site-header__toggle-lines::after{ top:6px; }
-
-    .site-header--open .site-header__toggle{
-      background:rgba(255,255,255,.16);
-      border-color:rgba(255,255,255,.38);
-    }
-    .site-header--open .site-header__toggle-lines{ background:transparent; }
-    .site-header--open .site-header__toggle-lines::before{
-      transform:translateY(6px) rotate(45deg);
-    }
-    .site-header--open .site-header__toggle-lines::after{
-      transform:translateY(-6px) rotate(-45deg);
-    }
-
-    @media (max-width:1080px){
-      .site-header .belt{ display:none !important; }
-    }
-
-    @media (max-width:960px){
-      body.nav-open{ overflow:hidden; }
-
-      .site-header{
-        --site-header-height:max(62px, 10vh);
-      }
-      .site-header .brand__tagline{ display:none !important; }
-      .site-header .container{
-        padding-inline:clamp(16px, 4vw, 24px) !important;
-      }
-      .site-header__inner{
-        grid-template-columns:auto max-content !important;
-        align-items:center !important;
-        gap:clamp(12px, 3vw, 24px) !important;
-      }
-      .site-header__toggle{
-        display:inline-flex;
-      }
-      .site-header nav{
-        position:fixed;
-        inset:0;
-        padding-top:calc(var(--site-header-height) + 1rem);
-        padding-inline:clamp(20px, 6vw, 36px);
-        padding-bottom:clamp(28px, 12vh, 46px);
-        background:rgba(5,5,5,.88);
-        backdrop-filter:blur(18px) saturate(1.2);
-        display:flex;
-        align-items:flex-start;
-        justify-content:flex-start;
-        opacity:0;
-        pointer-events:none;
-        transform:translateY(-12px);
-        transition:opacity .22s ease, transform .22s ease;
-        z-index:900;
-      }
-      .site-header nav ul{
-        flex-direction:column !important;
-        align-items:stretch !important;
-        gap:.45rem !important;
-        width:100%;
-      }
-      .site-header nav li{ width:100%; }
-      .site-header nav a,
-      .site-header nav .btn,
-      .site-header nav .btn--ghost{
-        width:100%;
-        justify-content:space-between;
-        background:rgba(255,255,255,.04) !important;
-        border:1px solid rgba(255,255,255,.08) !important;
-        border-radius:.85rem !important;
-        padding:.95rem 1rem !important;
-        font-size:1.05rem !important;
-        letter-spacing:.035em !important;
-      }
-      .site-header nav a:hover,
-      .site-header nav a[aria-current="page"],
-      .site-header nav .btn:hover{
-        background:rgba(255,255,255,.1) !important;
-        border-color:rgba(255,255,255,.22) !important;
-        color:#fff !important;
-      }
-      .site-header--open nav{
-        opacity:1;
-        pointer-events:auto;
-        transform:translateY(0);
-      }
-    }
-  </style>
+<link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 
 </head>
 <body>
   <!-- дымовой слой -->
   <div id="bg"></div>
 
-<header class="site-header" role="banner">
-  <div class="container site-header__inner">
-    <a class="brand" href="{% url 'home' %}">
-      <span class="brand__logo" aria-hidden="true"></span>
-      <span class="brand__word brand__word--white">BAD GUY</span>
-      <span class="brand__word brand__word--red">MOTORS</span>
-    </a>
-
-    <div class="belt">CUSTOM BUILDS • INSTALLS • UPGRADES</div>
-
-    <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
-      <span class="site-header__toggle-box" aria-hidden="true">
-        <span class="site-header__toggle-lines"></span>
-      </span>
-      <span class="sr-only">Toggle navigation</span>
-    </button>
-
-    <nav id="siteNav" aria-label="Main">
-      <ul>
-        <li><a href="{% url 'home' %}">Home</a></li>
-        <li><a href="{% url 'client-dashboard' %}">Services</a></li>
-
-        {% if user.is_authenticated %}
-          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
-        {% else %}
-          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
-        {% endif %}
-
-        <li><a href="{% url 'store' %}">Products</a></li>
-        <li><a href="{% url 'merch' %}" aria-current="page">Merch <span class="badge">Soon</span></a></li>
-        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-        <li><a href="{% url 'financing' %}">Financing</a></li>
-        <li><a href="{% url 'our-story' %}">About</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
+{% include "includes/topbar.html" %}
 
 
 <section class="hero">
@@ -708,8 +367,6 @@ nav a,.btn,.badge {
 </div>
 </div>
 
-<script src="{% static 'js/topbar.js' %}"></script>
-
 <script id="contact-fab-js">
 (function(){
   const fab   = document.getElementById('contactFab');
@@ -756,53 +413,7 @@ nav a,.btn,.badge {
 })();
 </script>
 <!-- ==================================================================== -->
-<style id="mobile-sidebar-vertical-fix">
-/* Mobile = true sidebar overlay with vertical, full-width items */
-@media (max-width: 960px){
-  header.site-header nav{
-    display:flex;
-    align-items:flex-start;
-    justify-content:flex-start;
-    flex-direction:column;
-    width:100%;
-    overflow-y:auto;
-    overscroll-behavior:contain;
-    padding-top:calc(var(--site-header-height) + env(safe-area-inset-top, 0px) + 1rem);
-  }
-  header.site-header nav ul{
-    display:flex !important;
-    flex-direction:column !important;
-    align-items:stretch !important;
-    width:100%;
-    gap:.55rem !important;
-    margin:0;
-    padding:0;
-    list-style:none;
-  }
-  header.site-header nav li{ width:100%; }
 
-  header.site-header nav a,
-  header.site-header nav .btn,
-  header.site-header nav .btn--ghost{
-    width:100% !important;
-    display:flex !important;
-    justify-content:space-between !important;
-    align-items:center;
-    min-height:48px;
-  }
-
-  /* Prevent overlap with floating Contact FAB */
-  body.nav-open .contact-fab,
-  header.site-header.site-header--open ~ .contact-fab{
-    display:none !important;
-  }
-}
-
-/* Reduced motion respect */
-@media (prefers-reduced-motion: reduce){
-  header.site-header nav{ transition:none !important; transform:none !important; }
-}
-</style>
 
 {% include "includes/analytics_tracker.html" %}
 </body>
