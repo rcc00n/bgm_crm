@@ -291,6 +291,17 @@
         transform:translateY(0);
       }
     }
+    /* Keep overlay above everything else (needed because nav lives inside the header) */
+.site-header{ z-index: 1000; }
+
+/* Smooth mobile panel scroll & prevent bounce issues */
+@media (max-width:960px){
+  .site-header nav{
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
   </style>
 </head>
 <body>
