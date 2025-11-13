@@ -223,25 +223,232 @@ html{ font-size: 17px; }                      /* было 16px */
 /* кнопки — чуть крупнее */
 .btn{ font-size: 1rem !important; }
 
+/* === TOPBAR: крупнее и чище ========================================= */
+.brand__word{ font-size: clamp(1rem, 1.15vw, 1.15rem) !important; }
+.site-header nav a{
+  font-size: clamp(.92rem, 1.05vw, 1.06rem) !important;
+  letter-spacing: .04em !important;     /* помягче трекинг */
+  padding: .5rem .72rem !important;     /* плотнее вертикально */
+}
+
+/* на очень узких оставляем читаемость */
+@media (max-width: 900px){
+  html{ font-size: 16px; }              /* чтобы не разъезжалось */
+  .site-header nav a{ font-size: .95rem !important; }
+}
+
   </style>
   <style id="financing-diesel-overrides">
+/* всё: топбар и кнопки шрифтом Diesel */
+.site-header,
+.site-header .brand,
+.site-header .brand__word,
+.site-header .belt,
+.site-header nav a,
+.site-header .badge,
+.btn, .badge {
+  font-family: var(--font-body) !important; /* Diesel */
+  font-style: normal !important;
+}
+
 /* если где-то .btn переопределяли на Ford — прибьём локальным классом */
 .btn--diesel{
   font-family: var(--font-body) !important; /* Diesel */
   font-style: normal !important;
 }
 
+/* чуть крупнее имя в логотипе, как на About */
+.brand__word{ font-size: clamp(1rem, 1.15vw, 1.2rem) !important; }
+
+/* сгладим нав-линки (как на About) */
+.site-header nav a{
+  letter-spacing:.04em !important;
+  padding:.5rem .72rem !important;
+}
 .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted-2);font-size:.95rem}
 
 </style>
 
-<link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+  <style id="topbar-responsive">
+    .sr-only{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    .site-header__toggle{
+      display:none;
+      align-items:center;
+      justify-content:center;
+      width:var(--site-header-toggle-size);
+      height:var(--site-header-toggle-size);
+      border-radius:.85rem;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      cursor:pointer;
+      transition:transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+    .site-header__toggle:hover{
+      background:rgba(255,255,255,.12);
+      border-color:rgba(255,255,255,.28);
+    }
+    .site-header__toggle:focus-visible{
+      outline:2px solid rgba(255,255,255,.92);
+      outline-offset:3px;
+    }
+    .site-header__toggle-box{
+      position:relative;
+      width:20px;
+      height:14px;
+      display:block;
+    }
+    .site-header__toggle-lines,
+    .site-header__toggle-lines::before,
+    .site-header__toggle-lines::after{
+      content:"";
+      position:absolute;
+      left:0;
+      width:100%;
+      height:2px;
+      border-radius:999px;
+      background:currentColor;
+      transition:transform .22s ease, opacity .22s ease, background .22s ease;
+    }
+    .site-header__toggle-lines{ top:50%; transform:translateY(-50%); }
+    .site-header__toggle-lines::before{ top:-6px; }
+    .site-header__toggle-lines::after{ top:6px; }
+
+    .site-header--open .site-header__toggle{
+      background:rgba(255,255,255,.16);
+      border-color:rgba(255,255,255,.38);
+    }
+    .site-header--open .site-header__toggle-lines{ background:transparent; }
+    .site-header--open .site-header__toggle-lines::before{
+      transform:translateY(6px) rotate(45deg);
+    }
+    .site-header--open .site-header__toggle-lines::after{
+      transform:translateY(-6px) rotate(-45deg);
+    }
+
+    @media (max-width:1080px){
+      .site-header .belt{ display:none !important; }
+    }
+
+    @media (max-width:960px){
+      body.nav-open{ overflow:hidden; }
+
+      .site-header{
+        --site-header-height:max(62px, 10vh);
+      }
+      .site-header .brand__tagline{ display:none !important; }
+      .site-header .container{
+        padding-inline:clamp(16px, 4vw, 24px) !important;
+      }
+      .site-header__inner{
+        grid-template-columns:auto max-content !important;
+        align-items:center !important;
+        gap:clamp(12px, 3vw, 24px) !important;
+      }
+      .site-header__toggle{
+        display:inline-flex;
+      }
+      .site-header nav{
+        position:fixed;
+        inset:0;
+        padding-top:calc(var(--site-header-height) + 1rem);
+        padding-inline:clamp(20px, 6vw, 36px);
+        padding-bottom:clamp(28px, 12vh, 46px);
+        background:rgba(5,5,5,.88);
+        backdrop-filter:blur(18px) saturate(1.2);
+        display:flex;
+        align-items:flex-start;
+        justify-content:flex-start;
+        opacity:0;
+        pointer-events:none;
+        transform:translateY(-12px);
+        transition:opacity .22s ease, transform .22s ease;
+        z-index:900;
+      }
+      .site-header nav ul{
+        flex-direction:column !important;
+        align-items:stretch !important;
+        gap:.45rem !important;
+        width:100%;
+      }
+      .site-header nav li{ width:100%; }
+      .site-header nav a,
+      .site-header nav .btn,
+      .site-header nav .btn--ghost{
+        width:100%;
+        justify-content:space-between;
+        background:rgba(255,255,255,.04) !important;
+        border:1px solid rgba(255,255,255,.08) !important;
+        border-radius:.85rem !important;
+        padding:.95rem 1rem !important;
+        font-size:1.05rem !important;
+        letter-spacing:.035em !important;
+      }
+      .site-header nav a:hover,
+      .site-header nav a[aria-current="page"],
+      .site-header nav .btn:hover{
+        background:rgba(255,255,255,.1) !important;
+        border-color:rgba(255,255,255,.22) !important;
+        color:#fff !important;
+      }
+      .site-header--open nav{
+        opacity:1;
+        pointer-events:auto;
+        transform:translateY(0);
+      }
+    }
+  </style>
 
 </head>
 <body>
   <div id="bg"></div>
 
-  {% include "includes/topbar.html" %}
+  <header class="site-header" role="banner">
+  <div class="container site-header__inner">
+    <a class="brand" href="{% url 'home' %}">
+      <span class="brand__logo" aria-hidden="true"></span>
+      <span class="brand__word brand__word--white">BAD GUY</span>
+      <span class="brand__word brand__word--red">MOTORS</span>
+    </a>
+
+    <div class="belt">CUSTOM BUILDS • INSTALLS • UPGRADES</div>
+
+    <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
+      <span class="site-header__toggle-box" aria-hidden="true">
+        <span class="site-header__toggle-lines"></span>
+      </span>
+      <span class="sr-only">Toggle navigation</span>
+    </button>
+
+    <nav id="siteNav" aria-label="Main">
+      <ul>
+        <li><a href="{% url 'home' %}">Home</a></li>
+        <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
+        {% if user.is_authenticated %}
+          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+        {% else %}
+          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
+        {% endif %}
+        <li><a href="{% url 'store' %}" aria-current="page">Products</a></li>
+        <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
+        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
+        <li><a href="{% url 'financing' %}">Financing</a></li>
+        <li><a href="{% url 'our-story' %}">About</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
 
   <section class="hero">
   <div class="container hero__inner">
@@ -516,6 +723,8 @@ html{ font-size: 17px; }                      /* было 16px */
 </div>
 </div>
 </div>
+
+<script src="{% static 'js/topbar.js' %}"></script>
 
 <script id="contact-fab-js">
 (function(){

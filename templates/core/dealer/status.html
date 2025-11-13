@@ -132,17 +132,30 @@
     padding:.65rem .95rem !important;
     line-height:1.1 !important;
   }
-.btn{
+  .btn{
     min-height:44px !important;
   }
 </style>
-
-<link rel="stylesheet" href="{% static 'css/topbar.css' %}">
-
 </head>
 <body>
   <div id="bg"></div>
-  {% include "includes/topbar.html" %}
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="{% url 'home' %}">
+        <span class="brand__word">BAD GUY</span>
+        <span class="brand__word brand__word--red">MOTORS</span>
+      </a>
+      <div class="badge">Dealer Portal</div>
+      <nav aria-label="Main navigation">
+        <ul>
+          <li><a href="{% url 'store' %}">Store</a></li>
+          <li><a href="{% url 'store-cart' %}">Cart</a></li>
+          <li><a href="{% url 'dealer-status' %}" aria-current="page">Dealers</a></li>
+          <li><a href="{% url 'client-dashboard' %}">Services</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
 
   <main class="container">
     <section class="hero">

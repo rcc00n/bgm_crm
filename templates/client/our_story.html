@@ -181,7 +181,27 @@ nav a,.btn,.badge {
   .hero__media{max-width:100%}
   .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
 }
+/* ===== CLEAN HEADER (brand | belt | nav) — unified ===== */
 
+/* контейнер на всю ширину с аккуратными отступами */
+.site-header .container{
+  width:100% !important;
+  max-width:none !important;
+  padding-inline:clamp(12px, 2vw, 28px) !important;
+}
+
+/* трёхколоночная сетка: бренд | слоган (сжимается) | меню */
+.site-header__inner{
+  display:grid !important;
+  grid-template-columns:max-content minmax(0,1fr) max-content !important;
+  align-items:center !important;
+  column-gap:clamp(14px, 2vw, 36px) !important;
+  padding-block:.8rem !important;
+}
+
+
+
+</style></style>
 
   
 <style id="about-topbar-force">
@@ -231,6 +251,47 @@ nav a,.btn,.badge {
   font-weight: 900 !important;
   letter-spacing: .02em;
 }
+/* Topbar шрифтом Diesel */
+.site-header,
+.site-header .brand,
+.site-header .belt,
+.site-header nav a,
+.site-header .badge {
+  font-family: var(--font-body) !important; /* Diesel */
+  font-style: normal !important;
+}
+
+/* === FORCE DIESEL FOR TOPBAR (overrides Ford) === */
+html body header.site-header nav a{
+  font-family: var(--font-body) !important;   /* Diesel */
+  font-style: normal !important;
+}
+html body header.site-header .brand,
+html body header.site-header .brand__word{
+  font-family: var(--font-body) !important;   /* Diesel */
+  font-style: normal !important;
+}
+html body header.site-header .belt,
+html body header.site-header .badge,
+html body header.site-header .btn{
+  font-family: var(--font-body) !important;   /* Diesel */
+  font-style: normal !important;
+}
+/* Увеличить логотип BAD GUY MOTORS и сдвинуть правее */
+html body header.site-header .brand__word{
+  font-size: clamp(1rem, 1.15vw, 1.2rem) !important; /* чуть крупнее */
+}
+
+html body header.site-header .brand{
+  margin-left: clamp(8px, 1.5vw, 28px) !important;   /* сдвиг вправо от края */
+  gap: .65rem !important;                             /* аккуратный интервал между словами */
+}
+
+/* на мобилке не переборщить со сдвигом */
+@media (max-width: 900px){
+  html body header.site-header .brand{ margin-left: 12px !important; }
+}
+
 #contact{ scroll-margin-top: 90px; }
 
 /* Diesel font for small CTA buttons */
@@ -242,14 +303,51 @@ nav a,.btn,.badge {
 
 </style>
 
-<link rel="stylesheet" href="{% static 'css/topbar.css' %}">
-
 </head>
 <body>
   <!-- smoke layer -->
   <div id="bg"></div>
 
-  {% include "includes/topbar.html" %}
+  <!-- Topbar -->
+<header class="site-header" role="banner">
+  <div class="container site-header__inner">
+    <a class="brand" href="{% url 'home' %}">
+      <span class="brand__logo" aria-hidden="true"></span>
+      <span class="brand__word brand__word--white">BAD GUY</span>
+      <span class="brand__word brand__word--red">MOTORS</span>
+    </a>
+
+    <div class="belt">CUSTOM BUILDS • INSTALLS • UPGRADES</div>
+
+    <nav aria-label="Main">
+      <ul>
+        <li><a href="{% url 'home' %}">Home</a></li>
+        <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
+        {% if user.is_authenticated %}
+          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+        {% else %}
+          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
+        {% endif %}
+        <li><a href="{% url 'store' %}" aria-current="page">Products</a></li>
+        <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
+        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
+        <li><a href="{% url 'financing' %}">Financing</a></li>
+        <li><a href="{% url 'our-story' %}">About</a></li>
+      </ul>
+    </nav>
+    <!-- Mobile menu toggle (visible ≤900px) -->
+<button type="button"
+        id="mobileNavToggle"
+        class="mobile-nav-toggle"
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-controls="mobileNav">
+  <span class="mobile-nav-toggle__bars" aria-hidden="true"><i></i><i></i><i></i></span>
+  <span class="mobile-nav-toggle__label">Menu</span>
+</button>
+
+  </div>
+</header>
 
  <section class="hero">
   <div class="container hero__inner">
@@ -553,7 +651,112 @@ nav a,.btn,.badge {
 <!-- ==================================================================== -->
 
 {% include "includes/analytics_tracker.html" %}
+<!-- Mobile sidebar + overlay -->
+<div id="mobileOverlay" class="mobile-overlay" hidden></div>
 
+<aside id="mobileNav"
+       class="mobile-nav"
+       aria-label="Mobile menu"
+       aria-hidden="true">
+  <div class="mobile-nav__header">
+    <div class="mobile-nav__brand">Bad Guy Motors</div>
+    <button type="button" id="mobileNavClose" class="mobile-nav__close" aria-label="Close menu">×</button>
+  </div>
+
+  <nav class="mobile-nav__scroll" aria-label="Mobile">
+    <ul class="mobile-nav__list"><!-- populated via JS --></ul>
+  </nav>
+</aside>
+
+<style id="mobile-sidebar-patch">
+/* ===== Mobile Sidebar Patch (keeps desktop untouched) ===== */
+
+:root{
+  --nav-width: min(82vw, 380px);
+}
+
+/* Toggle button — hidden on desktop */
+.mobile-nav-toggle{
+  display:none;
+  align-items:center; gap:.55rem;
+  padding:.5rem .7rem;
+  border-radius:.55rem; border:1px solid var(--line);
+  background:#0f0f0f; color:#fff; cursor:pointer;
+  font-family:var(--font-body, system-ui); font-weight:900; line-height:1;
+}
+.mobile-nav-toggle:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+.mobile-nav-toggle__bars{ display:inline-flex; flex-direction:column; gap:4px; }
+.mobile-nav-toggle__bars i{ width:18px; height:2px; background:#fff; display:block; border-radius:2px; opacity:.92; }
+.mobile-nav-toggle__label{ font-size:.9rem; letter-spacing:.06em; text-transform:uppercase; }
+
+/* Sidebar + overlay (stack above contact modal) */
+.mobile-overlay{
+  position:fixed; inset:0; z-index:2390;
+  background:rgba(0,0,0,.55);
+  backdrop-filter:blur(2px);
+}
+
+.mobile-nav{
+  position:fixed; inset:0 auto 0 0; z-index:2400;
+  width:var(--nav-width); height:100vh;
+  transform:translate3d(-100%,0,0);
+  transition:transform .22s ease;
+  background:linear-gradient(180deg,#0c0c0c,#121212);
+  border-right:1px solid var(--line);
+  display:flex; flex-direction:column;
+  padding-top:calc(8px + env(safe-area-inset-top));
+  color:#fff;
+  box-shadow:0 18px 44px rgba(0,0,0,.55);
+}
+
+.mobile-nav__header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:.8rem .9rem .6rem .9rem;
+  border-bottom:1px solid var(--line);
+}
+.mobile-nav__brand{
+  font-family:var(--font-head, system-ui);
+  font-weight:900; letter-spacing:.04em; text-transform:uppercase;
+}
+.mobile-nav__close{
+  width:38px; height:38px; border-radius:.55rem;
+  border:1px solid var(--line); background:#0f0f0f; color:#bdbdbd; cursor:pointer; font-size:20px;
+}
+.mobile-nav__close:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+
+.mobile-nav__scroll{
+  overflow:auto; -webkit-overflow-scrolling:touch;
+  padding:.6rem .6rem calc(12px + env(safe-area-inset-bottom));
+}
+.mobile-nav__list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.25rem; }
+.mobile-nav__list > li > a{
+  display:block;
+  padding:.78rem .85rem;
+  border-radius:.65rem;
+  font-family:var(--font-body, system-ui);
+  font-weight:900; letter-spacing:.06em; text-transform:uppercase;
+  color:rgba(255,255,255,.92);
+  border:1px solid transparent;
+}
+.mobile-nav__list > li > a:hover{ background:#151515; border-color:rgba(255,255,255,.08); }
+.mobile-nav__list > li > a[aria-current="page"]{
+  background:#151515; border-color:rgba(255,255,255,.14);
+}
+
+/* Activation state (controlled by JS) */
+body.nav-open #mobileNav{ transform:translate3d(0,0,0); }
+body.nav-open{ overflow:hidden; }
+
+/* Enable enhancement only when JS is active */
+@media (max-width:900px){
+  .mobile-nav-toggle{ display:inline-flex; grid-column:3; justify-self:end; }
+}
+/* Hide desktop nav only when enhancement is active (JS adds .nav-enhanced) */
+@media (max-width:900px){
+  body.nav-enhanced .site-header nav{ display:none !important; }
+}
+/* Keep your existing desktop header styles intact */
+</style>
 
 </body>
 </html>
