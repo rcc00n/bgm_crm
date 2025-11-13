@@ -712,6 +712,57 @@ nav a{ white-space: nowrap !important; }
     .contact-title{ font-size:1.45rem; }
   }
 </style>
+<style id="mobile-nav-fix">
+  /* Keep sidebar under the modal (2200) and above page, but below the toggle */
+  @media (max-width:960px){
+    /* Ensure the hamburger stays tappable above the sheet */
+    .site-header__toggle{
+      position: relative;
+      z-index: 1001;
+    }
+    /* Sidebar sheet */
+    .site-header nav{
+      z-index: 1000;                       /* under toggle, over page */
+      position: fixed;
+      inset: 0;
+      height: 100dvh;                      /* stable on mobile devices */
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(var(--site-header-height) + .9rem + env(safe-area-inset-top));
+      padding-inline: clamp(20px, 6vw, 36px);
+      padding-bottom: max(28px, env(safe-area-inset-bottom));
+      background: rgba(5,5,5,.88);
+      backdrop-filter: blur(18px) saturate(1.2);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-12px);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    /* Vertical, full‑width items */
+    .site-header nav ul{
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: .55rem !important;
+      width: 100% !important;
+    }
+    .site-header nav li{ width: 100% !important; }
+    .site-header nav a,
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      width: 100% !important;
+      justify-content: space-between !important;
+    }
+    /* Open state */
+    .site-header--open nav{
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .site-header nav{ transition: none !important; }
+  }
+</style>
 
 <button type="button" id="contactFab" class="contact-fab"
         aria-haspopup="dialog" aria-controls="contactModal" aria-expanded="false">
@@ -804,6 +855,82 @@ nav a{ white-space: nowrap !important; }
 })();
 </script>
 <!-- ==================================================================== -->
+<script id="mobile-nav-fix-js">
+(function(){
+  if (window.__BGMTopbarFixInit) return;       // idempotent
+  window.__BGMTopbarFixInit = true;
+
+  const header = document.querySelector('.site-header');
+  const nav    = document.getElementById('siteNav');
+  const toggle = header && header.querySelector('.site-header__toggle');
+  if (!header || !nav || !toggle) return;
+
+  const mq = window.matchMedia('(max-width: 960px)');
+  let lastFocus = null;
+
+  function setState(open){
+    header.classList.toggle('site-header--open', open);
+    document.body.classList.toggle('nav-open', open && mq.matches);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    nav.setAttribute('aria-hidden', open ? 'false' : 'true');
+
+    if (open){
+      lastFocus = document.activeElement;
+      const first = nav.querySelector('a,button,[tabindex]:not([tabindex="-1"])');
+      if (first) first.focus({ preventScroll: true });
+      document.addEventListener('keydown', onKey, { passive: false });
+    } else {
+      document.removeEventListener('keydown', onKey);
+      if (lastFocus) lastFocus.focus({ preventScroll: true });
+    }
+  }
+
+  function onKey(e){
+    if (e.key === 'Escape'){ setState(false); return; }
+    if (e.key !== 'Tab') return;
+
+    const list = [...nav.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])')]
+      .filter(el => !el.disabled && el.offsetParent !== null);
+
+    if (!list.length) return;
+    const first = list[0], last = list[list.length - 1];
+
+    if (e.shiftKey && document.activeElement === first){
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last){
+      e.preventDefault(); first.focus();
+    }
+  }
+
+  // Coexists with existing topbar.js: only toggles if nothing else handled it.
+  toggle.addEventListener('click', () => {
+    const before = header.classList.contains('site-header--open');
+    setTimeout(() => {
+      const after = header.classList.contains('site-header--open');
+      if (before === after) setState(!before);
+    }, 0);
+  });
+
+  // Close on any nav item click (route change)
+  nav.addEventListener('click', (e) => {
+    const actionable = e.target && e.target.closest('a,button');
+    if (actionable) setState(false);
+  });
+
+  function sync(){
+    if (!mq.matches){
+      header.classList.remove('site-header--open');
+      document.body.classList.remove('nav-open');
+      nav.removeAttribute('aria-hidden');
+      toggle.setAttribute('aria-expanded','false');
+    } else {
+      nav.setAttribute('aria-hidden', header.classList.contains('site-header--open') ? 'false' : 'true');
+    }
+  }
+  (mq.addEventListener || mq.addListener).call(mq, 'change', sync);
+  sync();
+})();
+</script>
 
 {% include "includes/analytics_tracker.html" %}
 </body>
