@@ -600,9 +600,10 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
                     appointmentstatushistory__status=cancelled_status
                 )
         if hasattr(request.user, "master_profile") and not request.user.is_superuser:
-            masters = CustomUserDisplay.objects.filter(id=request.user.id)
+            masters_qs = CustomUserDisplay.objects.filter(id=request.user.id)
         else:
-            masters = get_staff_queryset(active_only=True)
+            masters_qs = get_staff_queryset(active_only=True)
+        masters = list(masters_qs.select_related("master_profile"))
         start_of_day = make_aware(datetime.combine(selected_date, datetime.min.time()))
         end_of_day = make_aware(datetime.combine(selected_date, datetime.max.time()))
 
@@ -610,6 +611,7 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
             start_time__lte=end_of_day,
             end_time__gte=start_of_day
         )
+        appointments = appointments.filter(start_time__gte=start_of_day, start_time__lte=end_of_day)
         if request.GET.get("service"):
             appointments = appointments.filter(service_id=request.GET["service"])
         if request.GET.get("status"):
@@ -617,18 +619,14 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         if request.GET.get("payment_status"):
             appointments = appointments.filter(payment_status_id__in=request.GET.getlist("payment_status"))
 
-        # Слоты по 15 минут
-        start_hour = 8
-        end_hour = 21
+        appointments_for_day = list(appointments)
         slot_times = []
-        time_pointer = datetime(2000, 1, 1, start_hour, 0)
-        end_time = datetime(2000, 1, 1, end_hour, 0)
+        grid_start, grid_end = determine_calendar_window(masters, appointments_for_day)
+        calendar_table = createTable(selected_date, grid_start, grid_end, slot_times, appointments_for_day, masters, availabilities)
 
 
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             action = request.GET.get("action")
-
-            calendar_table = createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities)
 
             if action == "filter":  # Фильтрация по форме
 
@@ -646,8 +644,6 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
                 }, request=request)
 
                 return JsonResponse({'html': html})
-
-        calendar_table = createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities)
 
         response = super().changelist_view(request, extra_context=extra_context)
 
@@ -1040,15 +1036,86 @@ def get_price_html(service):
         )
     return format_html("<strong>${}</strong>", base)
 
+GRID_STEP_MINUTES = 15
+DEFAULT_START_MINUTES = 6 * 60
+DEFAULT_END_MINUTES = 23 * 60
+MAX_CALENDAR_MINUTES = (24 * 60) - GRID_STEP_MINUTES
+
+
+def _time_to_minutes(value):
+    return value.hour * 60 + value.minute
+
+
+def _floor_to_slot(minutes: int) -> int:
+    minutes = max(minutes, 0)
+    return (minutes // GRID_STEP_MINUTES) * GRID_STEP_MINUTES
+
+
+def _ceil_to_slot(minutes: int) -> int:
+    minutes = max(minutes, 0)
+    minutes = min(minutes, MAX_CALENDAR_MINUTES)
+    remainder = minutes % GRID_STEP_MINUTES
+    if remainder:
+        minutes += GRID_STEP_MINUTES - remainder
+        minutes = min(minutes, MAX_CALENDAR_MINUTES)
+    return minutes
+
+
+def determine_calendar_window(masters, appointments):
+    """
+    Expands the calendar grid to cover the earliest start / latest end time for masters or appointments.
+    """
+    start_candidates = []
+    end_candidates = []
+
+    for master in masters:
+        profile = getattr(master, "master_profile", None)
+        if not profile:
+            continue
+        if profile.work_start:
+            start_candidates.append(_time_to_minutes(profile.work_start))
+        if profile.work_end:
+            end_minutes = _time_to_minutes(profile.work_end)
+            if profile.work_end <= profile.work_start:
+                end_minutes = MAX_CALENDAR_MINUTES
+            end_candidates.append(end_minutes)
+
+    for appt in appointments:
+        local_start = localtime(appt.start_time)
+        start_candidates.append(_time_to_minutes(local_start.time()))
+        base_duration = appt.service.duration_min or 0
+        extra_duration = appt.service.extra_time_min or 0
+        total_minutes = base_duration + extra_duration
+        if total_minutes <= 0:
+            total_minutes = GRID_STEP_MINUTES
+        local_end = local_start + timedelta(minutes=total_minutes)
+        if local_end.date() != local_start.date():
+            end_minutes = MAX_CALENDAR_MINUTES
+        else:
+            end_minutes = _time_to_minutes(local_end.time())
+        end_candidates.append(end_minutes)
+
+    start_minutes = _floor_to_slot(min(start_candidates) if start_candidates else DEFAULT_START_MINUTES)
+    end_minutes = _ceil_to_slot(max(end_candidates) if end_candidates else DEFAULT_END_MINUTES)
+    if end_minutes <= start_minutes:
+        end_minutes = min(start_minutes + GRID_STEP_MINUTES, MAX_CALENDAR_MINUTES)
+
+    base = datetime(2000, 1, 1)
+    return base + timedelta(minutes=start_minutes), base + timedelta(minutes=end_minutes)
+
+
 def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities):
     COLOR_PALETTE = ["#E4D08A", "#EDC2A2", "#CEAEC6", "#A3C1C9", "#C3CEA3", "#E7B3C3"]
     master_ids = [m.id for m in masters]
     MASTER_COLORS = dict(zip(master_ids, cycle(COLOR_PALETTE)))
 
 
-    while time_pointer <= end_time:
-        slot_times.append(time_pointer.strftime('%H:%M'))
-        time_pointer += timedelta(minutes=15)
+    grid_start_dt = time_pointer
+    grid_end_dt = end_time
+    pointer = time_pointer
+    while pointer <= end_time:
+        slot_times.append(pointer.strftime('%H:%M'))
+        pointer += timedelta(minutes=15)
 
     slot_map = {}
     skip_map = {}
@@ -1085,14 +1152,20 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
     availability_map = {}
 
+    grid_start_minutes = grid_start_dt.hour * 60 + grid_start_dt.minute
+    grid_end_minutes = grid_end_dt.hour * 60 + grid_end_dt.minute
+    buffered_end_minutes = min(grid_end_minutes + GRID_STEP_MINUTES, MAX_CALENDAR_MINUTES)
+
     for period in availabilities:
         master_id = int(getattr(period.master, "id", period.master))
         start = localtime(period.start_time)
         end = localtime(period.end_time)
 
         if start.date() <= selected_date <= end.date():
-            day_start = datetime.combine(selected_date, time(8, 0)).replace(tzinfo=start.tzinfo)
-            day_end = datetime.combine(selected_date, time(21, 15)).replace(tzinfo=end.tzinfo)
+            day_start_naive = datetime.combine(selected_date, time(0, 0)) + timedelta(minutes=grid_start_minutes)
+            day_end_naive = datetime.combine(selected_date, time(0, 0)) + timedelta(minutes=buffered_end_minutes)
+            day_start = day_start_naive.replace(tzinfo=start.tzinfo)
+            day_end = day_end_naive.replace(tzinfo=end.tzinfo)
 
             block_start = max(start, day_start)
             block_end = min(end, day_end)
