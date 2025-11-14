@@ -1056,8 +1056,8 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
         master_id = appt.master_id
         time_key = local_start.strftime('%H:%M')
         service = appt.service
-        base_duration = getattr(service, "duration_min", 0) or 0
-        extra_duration = getattr(service, "extra_time_min", 0) or 0
+        base_duration = int(getattr(service, "duration_min", 0) or 0)
+        extra_duration = int(getattr(service, "extra_time_min", 0) or 0)
         duration = base_duration + extra_duration
         rowspan = max(1, duration // 15)
 
@@ -1067,6 +1067,8 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
         slot_map[master_id][time_key] = {
             "appointment": appt,
             "rowspan": rowspan,
+            "base_duration": base_duration,
+            "extra_duration": extra_duration,
         }
 
         for i in range(1, rowspan):
@@ -1140,7 +1142,9 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                 appt_promocode = getattr(appt, 'appointmentpromocode', None)
 
                 local_start = localtime(appt.start_time)
-                local_end = local_start + timedelta(minutes=appt.service.duration_min) + timedelta(minutes=appt.service.extra_time_min)
+                base_duration = data.get("base_duration", 0) or 0
+                extra_duration = data.get("extra_duration", 0) or 0
+                local_end = local_start + timedelta(minutes=base_duration + extra_duration)
                 last_status = appt.appointmentstatushistory_set.order_by('-set_at').first()
                 status_name = last_status.status.name if last_status else "Unknown"
                 service_obj = appt.service
@@ -1182,7 +1186,7 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                     "status": status_name,
                     "master": escape(master.get_full_name()),
                     "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
-                    "duration": f"{appt.service.duration_min}min",
+                    "duration": f"{base_duration}min",
                     "discount": f"-{appt_promocode.promocode.discount_percent}" if appt_promocode else "",
                     "price_discounted": price_discounted,
                     "price": price_value,
