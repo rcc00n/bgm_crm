@@ -11,6 +11,11 @@ from core.views import DealerApplyView, DealerStatusView
 from core import views as core_views
 urlpatterns = [
     path("analytics/collect/", core_views.analytics_collect, name="analytics-collect"),
+    path(
+        "admin/api/clients/<int:user_id>/contact/",
+        core_views.admin_client_contact,
+        name="admin-client-contact",
+    ),
     # Admin
     path("admin/", admin.site.urls),
 

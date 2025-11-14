@@ -2,6 +2,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Prefetch, Q
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_cookie
 from django.utils.dateparse import parse_date, parse_datetime
@@ -86,6 +87,25 @@ def public_mainmenu(request):
         ctx.setdefault("appointments", [])
 
     return render(request, "client/mainmenu.html", ctx)
+
+
+@staff_member_required
+@require_GET
+def admin_client_contact(request, user_id):
+    """
+    Lightweight endpoint for the admin calendar form to fetch contact data for a linked client.
+    """
+    user = get_object_or_404(
+        CustomUserDisplay.objects.select_related("userprofile"),
+        pk=user_id,
+    )
+    profile = getattr(user, "userprofile", None)
+    return JsonResponse({
+        "id": user.id,
+        "name": user.get_full_name() or user.username or user.email or "",
+        "email": user.email or "",
+        "phone": getattr(profile, "phone", "") if profile else "",
+    })
 
 # ===== API =====
 

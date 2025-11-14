@@ -46,6 +46,29 @@ class AppointmentForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        client_obj = cleaned_data.get("client")
+
+        if client_obj:
+            contact_name = (cleaned_data.get("contact_name") or "").strip()
+            if not contact_name:
+                contact_name = (
+                    client_obj.get_full_name()
+                    or client_obj.username
+                    or client_obj.email
+                    or ""
+                )
+                cleaned_data["contact_name"] = contact_name
+
+            contact_email = (cleaned_data.get("contact_email") or "").strip()
+            if not contact_email and client_obj.email:
+                cleaned_data["contact_email"] = client_obj.email
+
+            if not (cleaned_data.get("contact_phone") or "").strip():
+                profile = getattr(client_obj, "userprofile", None)
+                phone = getattr(profile, "phone", "") if profile else ""
+                if phone:
+                    cleaned_data["contact_phone"] = phone
+
         instance = self.instance
 
         # Обнови instance перед вызовом clean()

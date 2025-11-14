@@ -491,6 +491,8 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         'payment_status',
         'status',
     ]
+    class Media:
+        js = ("admin/js/appointment_contact_autofill.js",)
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
 
@@ -578,7 +580,13 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         appointment_statuses = AppointmentStatus.objects.all()
         payment_statuses = PaymentStatus.objects.all()
 
-        appointments = Appointment.objects.select_related('client', 'service', 'master')
+        appointments = (
+            Appointment.objects.select_related('client', 'service', 'master')
+            .prefetch_related(
+                'appointmentstatushistory_set__status',
+                'appointmentpromocode__promocode',
+            )
+        )
         cancelled_status = AppointmentStatus.objects.filter(name="Cancelled").first()
         if not request.GET.get("status"):
             appointments = appointments.exclude(
@@ -1137,7 +1145,10 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
             if master_id in slot_map and time_str in slot_map[master_id]:
                 data = slot_map[master_id][time_str]
                 appt = data["appointment"]
-                appt_promocode = getattr(appt, 'appointmentpromocode', None)
+                try:
+                    appt_promocode = appt.appointmentpromocode
+                except AppointmentPromoCode.DoesNotExist:
+                    appt_promocode = None
 
                 local_start = localtime(appt.start_time)
                 base_duration = data.get("base_duration", 0) or 0
