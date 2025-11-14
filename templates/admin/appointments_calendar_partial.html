@@ -40,7 +40,7 @@
                             <div>{{ cell.html }}</div>
                         </td>
 
-                    {% elif cell.rowspan > 1 %}
+                    {% elif cell.appt_id %}
                         <td rowspan="{{ cell.rowspan }}" class="event"
                             onclick="window.location.href='/admin/core/appointment/{{cell.appt_id}}/change/'"
                             data-client="{{ cell.client }}"
