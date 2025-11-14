@@ -1,46 +1,46 @@
 {% load static marketing_extras %}
-{% firstof page_meta.title meta_title marketing.site_name as __meta_title %}
-{% firstof page_meta.description meta_description marketing.default_description as __meta_description %}
-{% firstof page_meta.url meta_url marketing.page_url marketing.canonical_url as __meta_url %}
-{% firstof page_meta.type meta_type "website" as __meta_type %}
-{% firstof page_meta.image meta_image marketing.default_image as __meta_image %}
-{% firstof page_meta.keywords meta_keywords "" as __meta_keywords %}
-{% firstof page_meta.robots meta_robots "" as __meta_robots %}
-{% firstof page_meta.locale meta_locale "en_US" as __meta_locale %}
-{% firstof page_meta.section meta_section "" as __meta_section %}
-{% firstof page_meta.published meta_published "" as __meta_published %}
-{% firstof page_meta.updated meta_updated "" as __meta_updated %}
-{% firstof page_meta.twitter_card meta_twitter_card "summary_large_image" as __twitter_card %}
-{% firstof page_meta.schema_type meta_schema_type "WebSite" as __schema_type %}
-{% with meta_image_candidate=__meta_image|default:marketing.default_image %}
+{% firstof page_meta.title meta_title marketing.site_name as meta_title_resolved %}
+{% firstof page_meta.description meta_description marketing.default_description as meta_description_resolved %}
+{% firstof page_meta.url meta_url marketing.page_url marketing.canonical_url as meta_url_resolved %}
+{% firstof page_meta.type meta_type "website" as meta_type_resolved %}
+{% firstof page_meta.image meta_image marketing.default_image as meta_image_resolved %}
+{% firstof page_meta.keywords meta_keywords "" as meta_keywords_resolved %}
+{% firstof page_meta.robots meta_robots "" as meta_robots_resolved %}
+{% firstof page_meta.locale meta_locale "en_US" as meta_locale_resolved %}
+{% firstof page_meta.section meta_section "" as meta_section_resolved %}
+{% firstof page_meta.published meta_published "" as meta_published_resolved %}
+{% firstof page_meta.updated meta_updated "" as meta_updated_resolved %}
+{% firstof page_meta.twitter_card meta_twitter_card "summary_large_image" as meta_twitter_card_resolved %}
+{% firstof page_meta.schema_type meta_schema_type "WebSite" as meta_schema_type_resolved %}
+{% with meta_image_candidate=meta_image_resolved|default:marketing.default_image %}
   {% with meta_image_absolute=meta_image_candidate|absolute_url:marketing.origin|default:marketing.default_image_absolute %}
 
-  <meta name="description" content="{{ __meta_description }}">
-  {% if __meta_keywords %}<meta name="keywords" content="{{ __meta_keywords }}">{% endif %}
-  <meta name="robots" content="{{ __meta_robots|default:'index,follow' }}">
-  {% if __meta_url %}<link rel="canonical" href="{{ __meta_url }}">{% endif %}
-  <meta property="og:type" content="{{ __meta_type }}">
-  <meta property="og:title" content="{{ __meta_title }}">
-  <meta property="og:description" content="{{ __meta_description }}">
+  <meta name="description" content="{{ meta_description_resolved }}">
+  {% if meta_keywords_resolved %}<meta name="keywords" content="{{ meta_keywords_resolved }}">{% endif %}
+  <meta name="robots" content="{{ meta_robots_resolved|default:'index,follow' }}">
+  {% if meta_url_resolved %}<link rel="canonical" href="{{ meta_url_resolved }}">{% endif %}
+  <meta property="og:type" content="{{ meta_type_resolved }}">
+  <meta property="og:title" content="{{ meta_title_resolved }}">
+  <meta property="og:description" content="{{ meta_description_resolved }}">
   <meta property="og:site_name" content="{{ marketing.site_name }}">
-  {% if __meta_url %}<meta property="og:url" content="{{ __meta_url }}">{% endif %}
+  {% if meta_url_resolved %}<meta property="og:url" content="{{ meta_url_resolved }}">{% endif %}
   <meta property="og:image" content="{{ meta_image_absolute }}">
-  <meta property="og:locale" content="{{ __meta_locale }}">
-  {% if __meta_section %}<meta property="article:section" content="{{ __meta_section }}">{% endif %}
-  {% if __meta_published %}<meta property="article:published_time" content="{{ __meta_published }}">{% endif %}
-  {% if __meta_updated %}<meta property="article:modified_time" content="{{ __meta_updated }}">{% endif %}
-  <meta name="twitter:card" content="{{ __meta_twitter_card }}">
-  <meta name="twitter:title" content="{{ __meta_title }}">
-  <meta name="twitter:description" content="{{ __meta_description }}">
+  <meta property="og:locale" content="{{ meta_locale_resolved }}">
+  {% if meta_section_resolved %}<meta property="article:section" content="{{ meta_section_resolved }}">{% endif %}
+  {% if meta_published_resolved %}<meta property="article:published_time" content="{{ meta_published_resolved }}">{% endif %}
+  {% if meta_updated_resolved %}<meta property="article:modified_time" content="{{ meta_updated_resolved }}">{% endif %}
+  <meta name="twitter:card" content="{{ meta_twitter_card_resolved }}">
+  <meta name="twitter:title" content="{{ meta_title_resolved }}">
+  <meta name="twitter:description" content="{{ meta_description_resolved }}">
   <meta name="twitter:image" content="{{ meta_image_absolute }}">
 
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "{{ __schema_type }}",
+    "@type": "{{ meta_schema_type_resolved }}",
     "name": "{{ marketing.site_name }}",
-    "url": "{{ __meta_url|default:marketing.canonical_url }}",
-    "description": "{{ __meta_description }}",
+    "url": "{{ meta_url_resolved|default:marketing.canonical_url }}",
+    "description": "{{ meta_description_resolved }}",
     "publisher": {
       "@type": "Organization",
       "name": "{{ marketing.site_name }}",
@@ -61,11 +61,11 @@
     window.dataLayer.push({
       event: "page_view",
       page: {
-        title: "{{ __meta_title|escapejs }}",
-        url: "{{ __meta_url|default:marketing.page_url|escapejs }}",
-        type: "{{ __meta_type|escapejs }}",
-        section: "{{ __meta_section|escapejs }}",
-        robots: "{{ __meta_robots|default:'index,follow'|escapejs }}"
+        title: "{{ meta_title_resolved|escapejs }}",
+        url: "{{ meta_url_resolved|default:marketing.page_url|escapejs }}",
+        type: "{{ meta_type_resolved|escapejs }}",
+        section: "{{ meta_section_resolved|escapejs }}",
+        robots: "{{ meta_robots_resolved|default:'index,follow'|escapejs }}"
       },
       user: {
         status: "{{ request.user.is_authenticated|yesno:'authenticated,guest' }}"
