@@ -801,7 +801,7 @@ nav a, .btn, .badge, .price strong {
                 {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
                 <div class="dur">Duration: {{ s.duration_min }} min</div>
                 <div style="margin-top:.4rem">
-                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a>
+                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">Book now</a>
                 </div>
               </article>
             {% empty %}
@@ -844,7 +844,7 @@ nav a, .btn, .badge, .price strong {
                 {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
                 <div class="dur">Duration: {{ s.duration_min }} min</div>
                 <div style="margin-top:.4rem">
-                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a>
+                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">Book now</a>
                 </div>
               </article>
             {% endfor %}
@@ -1029,6 +1029,13 @@ nav a, .btn, .badge, .price strong {
 
   const currencyCode = "{{ currency.code }}";
   const currencySymbol = "{{ currency.symbol }}";
+  const bookingBaseUrl = "{% url 'client-dashboard' %}";
+  const toBookingUrl = (serviceId) => {
+    if (serviceId) {
+      return `${bookingBaseUrl}?book=${encodeURIComponent(serviceId)}#services`;
+    }
+    return `${bookingBaseUrl}#services`;
+  };
 
   const skel = (n=8)=> Array.from({length:n}).map(()=>'<div class="sk"></div>').join('');
   const showLive = ()=>{ liveTitle.style.display='block'; liveGrid.style.display='grid'; server.style.display='none'; }
@@ -1066,6 +1073,7 @@ nav a, .btn, .badge, .price strong {
     const media = s.image ? `<img src="${esc(s.image)}" alt="${esc(s.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
     const cat   = s.category ? `<span class="card__badge">${esc(s.category)}</span>` : '';
     const desc  = s.description ? `<p class="muted">${esc(s.description)}</p>` : '';
+    const bookingHref = toBookingUrl(s.id);
     return `
       <article class="card">
         <div class="card__img">${media}${cat}</div>
@@ -1075,7 +1083,7 @@ nav a, .btn, .badge, .price strong {
         </div>
         ${desc}
         <div class="dur">Duration: ${esc(String(s.duration_min))} min</div>
-        <div style="margin-top:.4rem"><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a></div>
+        <div style="margin-top:.4rem"><a class="btn btn--primary" href="${bookingHref}">Book now</a></div>
       </article>`;
   }
 

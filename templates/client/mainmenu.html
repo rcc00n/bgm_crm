@@ -1204,6 +1204,39 @@ main h3{
       }
     });
 
+    function maybeOpenDeepLinkedService(){
+      const params = new URLSearchParams(window.location.search);
+      const serviceId = (params.get('book') || '').trim();
+      if (!serviceId) return;
+
+      const cleanupQuery = () => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('book');
+        const nextSearch = url.searchParams.toString();
+        const nextUrl = url.pathname + (nextSearch ? `?${nextSearch}` : '') + (url.hash || '');
+        window.history.replaceState({}, document.title, nextUrl);
+      };
+
+      const attemptOpen = (retries = 6) => {
+        const safeId = window.CSS && CSS.escape ? CSS.escape(serviceId) : serviceId.replace(/"/g, '\\"');
+        const card = document.querySelector(`.service-card[data-service-id="${safeId}"]`);
+        if (card){
+          const serviceName = card.dataset.serviceName || card.querySelector('h3')?.textContent?.trim() || 'service';
+          openModal(serviceId, serviceName);
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          cleanupQuery();
+          return;
+        }
+        if (retries > 0){
+          setTimeout(() => attemptOpen(retries - 1), 200);
+        }
+      };
+
+      attemptOpen();
+    }
+
+    maybeOpenDeepLinkedService();
+
     btnClose.addEventListener('click',()=>modal.classList.remove('modal--open'));
     btnCancel.addEventListener('click',()=>modal.classList.remove('modal--open'));
     modal.addEventListener('click',(e)=>{ if(e.target===modal) modal.classList.remove('modal--open'); });
