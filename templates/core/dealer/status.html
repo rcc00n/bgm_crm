@@ -5,6 +5,9 @@
   <meta charset="utf-8">
   <title>Dealer Portal — BGM Customs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with meta_title="Dealer Portal — BGM Customs" meta_description="Track dealer tier, benefits, and requirements for the BGM Customs wholesale program." meta_section="dealer" meta_type="article" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
   <style>
     :root{
       --bg:#050505;
@@ -138,6 +141,7 @@
 </style>
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
   <div id="bg"></div>
   <header class="site-header">
     <div class="container site-header__inner">
@@ -189,15 +193,15 @@
         </div>
         <div class="hero__stat">
           <span class="hero__stat-label">Lifetime spend</span>
-          <span class="hero__stat-value">${{ lifetime_spent|default:0|floatformat:2 }}</span>
+          <span class="hero__stat-value">{{ lifetime_spent|money }}</span>
         </div>
         {% if next_tier %}
           <div class="hero__stat">
             <span class="hero__stat-label">Next tier target</span>
-            <span class="hero__stat-value">${{ next_tier.minimum_spend|floatformat:0 }}</span>
+            <span class="hero__stat-value">{{ next_tier.minimum_spend|money }}</span>
             {% if remaining_to_next %}
               <span class="hero__lead" style="font-size:.9rem;margin-top:.2rem;color:var(--muted);">
-                ${{ remaining_to_next|floatformat:2 }} to unlock {{ next_tier.label }}
+                {{ remaining_to_next|money }} to unlock {{ next_tier.label }}
               </span>
             {% endif %}
           </div>
@@ -224,7 +228,7 @@
           <div class="metrics">
             <div class="metric"><span class="metric__label">Tier</span><span class="metric__value">{{ portal.tier_label|default:"Standard" }}</span></div>
             <div class="metric"><span class="metric__label">Discount</span><span class="metric__value">{% if portal.discount_percent %}{{ portal.discount_percent }}%{% else %}—{% endif %}</span></div>
-            <div class="metric"><span class="metric__label">Lifetime spend</span><span class="metric__value">${{ lifetime_spent|default:0|floatformat:2 }}</span></div>
+            <div class="metric"><span class="metric__label">Lifetime spend</span><span class="metric__value">{{ lifetime_spent|money }}</span></div>
             <div class="metric"><span class="metric__label">Last review</span><span class="metric__value">
               {% if dealer_application and dealer_application.reviewed_at %}
                 {{ dealer_application.reviewed_at|date:"M d, Y" }}
@@ -249,9 +253,9 @@
               <div class="progress__fill" style="width:{{ portal.progress|default:0 }}%"></div>
             </div>
             <div class="progress__meta">
-              <span>${{ current_threshold|default:0|floatformat:0 }}</span>
+              <span>{{ current_threshold|money }}</span>
               <span>{{ portal.progress|default:0 }}%</span>
-              <span>{% if next_tier %}${{ next_tier.minimum_spend|floatformat:0 }}{% else %}Top tier{% endif %}</span>
+              <span>{% if next_tier %}{{ next_tier.minimum_spend|money }}{% else %}Top tier{% endif %}</span>
             </div>
           </div>
         </article>
@@ -357,7 +361,7 @@
             {% for tier in tier_levels %}
               <tr {% if tier.code == portal.tier_code %}style="background:rgba(213,0,0,.08)"{% endif %}>
                 <td>{{ tier.label }}</td>
-                <td>${{ tier.minimum_spend|floatformat:0 }}</td>
+                <td>{{ tier.minimum_spend|money }}</td>
                 <td>{{ tier.discount_percent }}%</td>
                 <td>{{ tier.description|default:"—" }}</td>
               </tr>

@@ -1,13 +1,19 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>{% block title %}Malva Booking{% endblock %}</title>
     {% load static %}
+    {% block marketing_meta %}
+      {% with meta_title="Malva Booking" meta_section="general" %}
+        {% include "includes/marketing_head.html" %}
+      {% endwith %}
+    {% endblock %}
     <link rel="stylesheet" href="{% static 'css/site.css' %}">
   </head>
   <body>
+    {% include "includes/marketing_body.html" %}
     {% block content %}{% endblock %}
     {% include "includes/analytics_tracker.html" %}
   </body>

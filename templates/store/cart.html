@@ -1,4 +1,5 @@
 {% extends "store/_base_store.html" %}
+{% load dealer_extras %}
 {% block title %}Cart — BGM Store{% endblock %}
 
 {% block body %}
@@ -53,9 +54,9 @@
                   <div class="section__desc">Option: {{ row.option.name }}</div>
                 {% endif %}
                 <div class="section__desc">
-                  Retail: ${{ row.retail_unit_price|floatformat:2 }}
+                  Retail: {{ row.retail_unit_price|money }}
                   {% if row.discount_percent %}
-                    <span class="badge badge--dealer">Dealer ${{ row.unit_price|floatformat:2 }}</span>
+                    <span class="badge badge--dealer">Dealer {{ row.unit_price|money }}</span>
                   {% endif %}
                 </div>
               </div>
@@ -66,9 +67,9 @@
             </div>
 
             <div class="cart__col cart__col--sum" role="cell">
-              <strong>${{ row.line_total|floatformat:2 }}</strong>
+              <strong>{{ row.line_total|money }}</strong>
               {% if row.savings %}
-                <div class="section__desc">Saved ${{ row.savings|floatformat:2 }}</div>
+                <div class="section__desc">Saved {{ row.savings|money }}</div>
               {% endif %}
             </div>
 
@@ -90,23 +91,23 @@
           <div>
             <div class="cart__note section__desc">Estimated shipping & taxes are calculated at checkout.</div>
             {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
-              <div class="cart__note section__desc">Retail: ${{ retail_total|floatformat:2 }} · You save ${{ cart_savings|floatformat:2 }} via dealer pricing.</div>
+              <div class="cart__note section__desc">Retail: {{ retail_total|money }} · You save {{ cart_savings|money }} via dealer pricing.</div>
             {% endif %}
           </div>
           <div class="cart__total-group">
             {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
               <div class="cart__total cart__total--muted">
                 <span class="cart__total-label">Retail</span>
-                <span class="cart__total-sum">${{ retail_total|floatformat:2 }}</span>
+                <span class="cart__total-sum">{{ retail_total|money }}</span>
               </div>
               <div class="cart__total cart__total--muted">
                 <span class="cart__total-label">Savings</span>
-                <span class="cart__total-sum">- ${{ cart_savings|floatformat:2 }}</span>
+                <span class="cart__total-sum">- {{ cart_savings|money }}</span>
               </div>
             {% endif %}
             <div class="cart__total">
               <span class="cart__total-label">{% if dealer_discount_percent %}Dealer total{% else %}Total{% endif %}</span>
-              <span class="cart__total-sum">${{ total|floatformat:2 }}</span>
+              <span class="cart__total-sum">{{ total|money }}</span>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 {% extends "store/_base_store.html" %}
+{% load dealer_extras %}
 {% block title %}Checkout — BGM Store{% endblock %}
 
 {% block body %}
@@ -202,33 +203,33 @@
                     <div class="section__desc">Option: {{ it.option.name }}</div>
                   {% endif %}
                   <div class="section__desc">
-                    Retail ${{ it.retail_unit_price|floatformat:2 }}
+                    Retail {{ it.retail_unit_price|money }}
                     {% if it.discount_percent %}
-                      <span class="badge badge--dealer">Dealer ${{ it.unit_price|floatformat:2 }}</span>
+                      <span class="badge badge--dealer">Dealer {{ it.unit_price|money }}</span>
                     {% endif %}
                   </div>
                   {% if it.savings %}
-                    <div class="section__desc">Saved ${{ it.savings|floatformat:2 }}</div>
+                    <div class="section__desc">Saved {{ it.savings|money }}</div>
                   {% endif %}
                 </div>
-                <div class="summary__amount">${{ it.line_total|floatformat:2 }}</div>
+                <div class="summary__amount">{{ it.line_total|money }}</div>
               </li>
             {% endfor %}
           </ul>
           <div class="summary__total">
             <div>
               <span class="summary__total-label">{% if dealer_discount_percent %}Dealer total{% else %}Total{% endif %}</span>
-              <span class="summary__total-sum">${{ total|floatformat:2 }}</span>
+              <span class="summary__total-sum">{{ total|money }}</span>
             </div>
             {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
               <div class="summary__total-savings">
                 <span class="summary__total-label">You save</span>
-                <span class="summary__total-sum">- ${{ cart_savings|floatformat:2 }}</span>
+                <span class="summary__total-sum">- {{ cart_savings|money }}</span>
               </div>
             {% endif %}
           </div>
           {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
-            <p class="section__desc">Retail before discount: ${{ retail_total|floatformat:2 }}</p>
+            <p class="section__desc">Retail before discount: {{ retail_total|money }}</p>
           {% endif %}
         {% else %}
           <p class="section__desc">Your cart is empty. <a href="{% url 'store' %}">Browse catalog</a></p>

@@ -1,3 +1,4 @@
+{% load dealer_extras %}
 {% if orders %}
   <div class="space-y-3">
     {% for o in orders %}
@@ -15,7 +16,7 @@
             <span class="badge st-{{ o.status|default:'processing' }}">
               {{ o.status_label|default:o.get_status_display|default:o.status }}
             </span>
-            <div class="font-bold">${{ o.total|floatformat:2 }}</div>
+            <div class="font-bold">{{ o.total|money }}</div>
           </div>
         </div>
 
@@ -29,7 +30,7 @@
                     {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
                   </div>
                   <div class="muted-2">x {{ it.qty }}</div>
-                  <div class="font-semibold">${{ it.subtotal|floatformat:2 }}</div>
+                  <div class="font-semibold">{{ it.subtotal|money }}</div>
                 </div>
               {% endfor %}
             </div>

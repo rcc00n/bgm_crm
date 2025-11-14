@@ -40,7 +40,7 @@
             <div class="price price--detail">
               {% if product.contact_for_estimate %}
                 <strong>Contact for estimate</strong>
-                {% if product.estimate_from_price %}<span class="price__hint">From ${{ product.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                {% if product.estimate_from_price %}<span class="price__hint">From {{ product.estimate_from_price|money }}</span>{% endif %}
               {% else %}
                 <div class="price__retail-row">
                   {% if product.has_option_price_overrides %}
@@ -49,21 +49,22 @@
                   <strong
                     class="price__value"
                     data-product-price-retail
-                    data-currency-symbol="$"
+                    data-currency-symbol="{{ currency.symbol }}"
+                    data-currency-code="{{ currency.code }}"
                     style="font-size:1.4rem"
                   >
-                    ${{ product.display_price|floatformat:2 }}
+                    {{ product.display_price|money }}
                   </strong>
-                  {% if product.old_price %}<span class="old">${{ product.old_price }}</span>{% endif %}
+                  {% if product.old_price %}<span class="old">{{ product.old_price|money }}</span>{% endif %}
                 </div>
                 {% if dealer_portal.show_discount %}
                   <div class="price__dealer-row" data-dealer-price-wrapper>
                     <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
                     <strong class="price__value" data-product-price-dealer>
-                      ${{ product.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}
+                      {{ product.display_price|dealer_price:dealer_portal.discount_percent|money }}
                     </strong>
                     <span class="price__save" data-product-price-savings>
-                      Save ${{ product.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}
+                      Save {{ product.display_price|dealer_savings:dealer_portal.discount_percent|money }}
                     </span>
                   </div>
                 {% endif %}
@@ -94,9 +95,9 @@
                           <span class="option-pill__name">{{ opt.name }}</span>
                           {% if not product.contact_for_estimate %}
                             <span class="option-pill__price">
-                              ${{ opt.unit_price|floatformat:2 }}
+                              {{ opt.unit_price|money }}
                               {% if dealer_portal.show_discount %}
-                                <span class="option-pill__dealer">Dealer ${{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</span>
+                                <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
                               {% endif %}
                             </span>
                           {% endif %}
@@ -307,17 +308,17 @@
               <div class="price price--stacked" style="margin-top:.2rem">
                 {% if p.contact_for_estimate %}
                   <strong>Contact for estimate</strong>
-                  {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                  {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
                 {% else %}
                   <div class="price__retail-row">
                     {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>${{ p.display_price|floatformat:2 }}</strong>
+                    <strong>{{ p.display_price|money }}</strong>
                   </div>
                   {% if dealer_portal.show_discount %}
                     <div class="price__dealer-row">
                       <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
-                      <strong>${{ p.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</strong>
-                      <span class="price__save">Save ${{ p.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}</span>
+                      <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+                      <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
                     </div>
                   {% endif %}
                 {% endif %}
@@ -346,17 +347,17 @@
               <div class="price price--stacked" style="margin-top:.2rem">
                 {% if p.contact_for_estimate %}
                   <strong>Contact for estimate</strong>
-                  {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                  {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
                 {% else %}
                   <div class="price__retail-row">
                     {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>${{ p.display_price|floatformat:2 }}</strong>
+                    <strong>{{ p.display_price|money }}</strong>
                   </div>
                   {% if dealer_portal.show_discount %}
                     <div class="price__dealer-row">
                       <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
-                      <strong>${{ p.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</strong>
-                      <span class="price__save">Save ${{ p.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}</span>
+                      <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+                      <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
                     </div>
                   {% endif %}
                 {% endif %}
@@ -375,7 +376,12 @@
         var optionInputs = document.querySelectorAll('#product-options input[name="option_id"]');
         if (!retailEl || !optionInputs.length) return;
 
-        var currency = retailEl.dataset.currencySymbol || '$';
+        var symbol = retailEl.dataset.currencySymbol || '$';
+        var code = (retailEl.dataset.currencyCode || '').trim();
+        var wrap = function (amount) {
+          var core = symbol + amount;
+          return code ? code + ' ' + core : core;
+        };
         var formatTarget = function (node, raw) {
           if (!node || raw === undefined) return;
           node.textContent = format(raw);
@@ -383,9 +389,9 @@
         var format = function (val) {
           var num = Number(val);
           if (Number.isNaN(num)) {
-            return currency + val;
+            return wrap(String(val));
           }
-          return currency + num.toFixed(2);
+          return wrap(num.toFixed(2));
         };
         var update = function (input) {
           if (!input || !input.dataset) return;

@@ -1,6 +1,12 @@
 {% extends "base_site.html" %}
 {% load static dealer_extras %}
 
+{% block marketing_meta %}
+  {% with meta_title="BGM Store — Services Catalog" meta_description="Explore curated service packages, pricing, and availability direct from BGM." meta_section="store" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+{% endblock %}
+
 {% block content %}
 <section class="section">
   <div class="container">
@@ -21,10 +27,10 @@
               <p><strong>Contact for estimate</strong></p>
             {% else %}
               <p>
-                <strong>{% if product.has_option_price_overrides %}From {% endif %}${{ product.display_price|floatformat:2 }}</strong>
+                <strong>{% if product.has_option_price_overrides %}From {% endif %}{{ product.display_price|money }}</strong>
                 {% if dealer_portal.show_discount %}
                   <span style="display:block;color:var(--muted);font-size:.9rem;">
-                    Dealer ${{ product.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }} · Save ${{ product.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}
+                    Dealer {{ product.display_price|dealer_price:dealer_portal.discount_percent|money }} · Save {{ product.display_price|dealer_savings:dealer_portal.discount_percent|money }}
                   </span>
                 {% endif %}
               </p>

@@ -5,7 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bad Guy Motors — Our Story</title>
-  <meta name="description" content="Bad Guy Motors is a family-run custom fabrication and diesel performance shop in Medicine Hat, AB. We build bumpers, headache & chase racks, mudflaps, running boards, fender flares, lift kits, body swaps, coatings and more — tough parts for tougher rigs.">
+  {% with meta_title="Bad Guy Motors — Our Story" meta_description="Family-run fabrication and diesel performance shop crafting racks, bumpers, coatings, and full builds out of Medicine Hat, AB." meta_section="story" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
 <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
 
@@ -305,6 +307,7 @@ html body header.site-header .brand{
 
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
   <!-- smoke layer -->
   <div id="bg"></div>
 
@@ -411,8 +414,8 @@ html body header.site-header .brand{
         <article class="card">
           <h2 class="section__title">Rates & policies</h2>
           <ul class="list">
-            <li>Shop rate: <strong>$130/hr</strong></li>
-            <li>Design/CAD rate: <strong>$150/hr</strong></li>
+            <li>Shop rate: <strong>{{ currency.code }} {{ currency.symbol }}130/hr</strong></li>
+            <li>Design/CAD rate: <strong>{{ currency.code }} {{ currency.symbol }}150/hr</strong></li>
             <li>Deposits secure your slot; balance due on delivery.</li>
             <li>Storage fees may apply for completed items not picked up promptly.</li>
             <li>Warranty & support — if it isn’t right, we make it right.</li>

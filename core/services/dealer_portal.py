@@ -103,7 +103,7 @@ def build_portal_snapshot(user):
     tier_map = {t.code: t for t in tiers}
 
     if profile:
-        lifetime_spent = _to_decimal(profile.total_spent_usd()).quantize(MONEY_QUANT)
+        lifetime_spent = _to_decimal(profile.total_spent_cad()).quantize(MONEY_QUANT)
         tier_code = profile.dealer_tier
         tier_level = tier_map.get(tier_code) or profile.get_dealer_tier_level()
     else:

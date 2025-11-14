@@ -370,7 +370,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, TemplateView
 
 from core.forms import DealerApplicationForm
-from core.models import DealerApplication
+from core.models import DealerApplication, DealerTierLevel
 from core.services.dealer_portal import build_portal_snapshot
 
 class DealerApplyView(LoginRequiredMixin, CreateView):
@@ -390,6 +390,16 @@ class DealerApplyView(LoginRequiredMixin, CreateView):
         # initial пригодится clean() для проверки дублей
         kwargs.setdefault("initial", {})["user"] = self.request.user
         return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        try:
+            ctx["tier_levels"] = list(
+                DealerTierLevel.objects.filter(is_active=True).order_by("minimum_spend", "sort_order", "code")
+            )
+        except Exception:
+            ctx["tier_levels"] = []
+        return ctx
 
     def form_valid(self, form):
         # Один активный аппликейшен на пользователя (кроме REJECTED)

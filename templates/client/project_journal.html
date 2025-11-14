@@ -5,8 +5,11 @@
   <meta charset="utf-8">
   <title>{{ page_title }} | Bad Guy Motors</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="{{ meta_description|default:'Project deep dives from Bad Guy Motors.' }}">
-  <meta name="robots" content="noindex,nofollow">
+  {% with resolved_title=page_title|default:"Project Journal" %}
+    {% with meta_title=resolved_title|add:" | Bad Guy Motors" meta_description=meta_description|default:"Project deep dives from Bad Guy Motors." meta_section="journal" meta_robots="noindex,nofollow" %}
+      {% include "includes/marketing_head.html" %}
+    {% endwith %}
+  {% endwith %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -297,6 +300,7 @@
   </style>
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
   <main class="page">
     <header class="hero">
       <p class="eyebrow">Internal spotlight</p>

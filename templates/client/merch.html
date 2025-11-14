@@ -5,6 +5,9 @@
   <meta charset="utf-8" />
   <title>BGM Customs — Merch (Coming Soon)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {% with meta_title="BGM Customs — Merch (Coming Soon)" meta_description="Streetwear, track gear, and pit essentials from BGM Customs are on the way. Join the drop list." meta_section="merch" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
   <!-- preload кастомных шрифтов -->
 <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
@@ -192,6 +195,7 @@ nav a,.btn,.badge {
 
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
   <!-- дымовой слой -->
   <div id="bg"></div>
 

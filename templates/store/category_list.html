@@ -50,18 +50,18 @@
             <div class="price price--stacked">
               {% if p.contact_for_estimate %}
                 <strong>Contact for estimate</strong>
-                {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
               {% else %}
                 <div class="price__retail-row">
                   {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                  <strong>${{ p.display_price|floatformat:2 }}</strong>
-                  {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                  <strong>{{ p.display_price|money }}</strong>
+                  {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
                 </div>
                 {% if dealer_portal.show_discount %}
                   <div class="price__dealer-row">
                     <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
-                    <strong>${{ p.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</strong>
-                    <span class="price__save">Save ${{ p.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}</span>
+                    <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+                    <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
                   </div>
                 {% endif %}
               {% endif %}

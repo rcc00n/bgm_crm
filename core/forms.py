@@ -370,7 +370,8 @@ class MasterCreateFullForm(forms.ModelForm):
             return super().save(commit=commit)
         
 from django import forms
-from core.models import DealerApplication
+from core.models import DealerApplication, DealerTierLevel
+from core.utils import format_currency
 
 class DealerApplicationForm(forms.ModelForm):
     class Meta:
@@ -399,4 +400,18 @@ class DealerApplicationForm(forms.ModelForm):
         tier_field = self.fields.get("preferred_tier")
         if tier_field:
             tier_field.label = "Projected tier"
-            tier_field.help_text = "Select the tier that matches your planned annual volume."
+            tier_field.help_text = "Select the tier that matches your planned annual CAD volume."
+            try:
+                tiers = list(
+                    DealerTierLevel.objects.filter(is_active=True).order_by("minimum_spend", "sort_order", "code")
+                )
+            except Exception:
+                tiers = []
+            if tiers:
+                tier_field.choices = [
+                    (
+                        tier.code,
+                        f"{tier.label} — {format_currency(tier.minimum_spend)}+ · {tier.discount_percent}% off",
+                    )
+                    for tier in tiers
+                ]

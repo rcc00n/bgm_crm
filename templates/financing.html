@@ -5,7 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BGM Customs — Financing Options</title>
-  <meta name="description" content="Flexible financing for builds, parts, and installs at BGM Customs: Medicard, Canadian Financial, and Afterpay (Square)." />
+  {% with meta_title="BGM Customs — Financing Options" meta_description="Flexible financing partners for builds, parts, and installs including Medicard, Canadian Financial, and Afterpay." meta_section="financing" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
 <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
 
@@ -412,6 +414,7 @@ html{ font-size: 17px; }                      /* было 16px */
 
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
   <div id="bg"></div>
 
   <header class="site-header" role="banner">
@@ -513,7 +516,7 @@ html{ font-size: 17px; }                      /* было 16px */
           <article class="card">
             <div class="card__head">
               <h3 class="card__title">Afterpay (via Square)</h3>
-              <span class="card__meta">Good up to ≈ $2,000</span>
+              <span class="card__meta">Good up to ≈ {{ currency.code }} {{ currency.symbol }}2,000</span>
             </div>
             <p class="section__desc">Split smaller purchases into interest-free payments at checkout. Perfect for parts and minor installs.</p>
             <div class="card__actions">
@@ -578,7 +581,7 @@ html{ font-size: 17px; }                      /* было 16px */
           </article>
           <article class="card">
             <h3 class="card__title">Afterpay limits</h3>
-            <p class="section__desc">Afterpay via Square is typically suitable for purchases up to about $2,000 and is best used for smaller jobs and parts orders.</p>
+            <p class="section__desc">Afterpay via Square is typically suitable for purchases up to about {{ currency.code }} {{ currency.symbol }}2,000 and is best used for smaller jobs and parts orders.</p>
           </article>
           <article class="card">
             <h3 class="card__title">Questions?</h3>

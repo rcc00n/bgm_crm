@@ -5,6 +5,9 @@
   <meta charset="utf-8">
   <title>BGM Customs — Home</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with meta_title="BGM Customs — Performance Builds & VIP Service" meta_description="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM Customs in Calgary." meta_image=hero_media.src meta_section="home" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
 <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
 
@@ -664,6 +667,7 @@ nav a, .btn, .badge, .price strong {
 
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
 {% include "includes/site_notice_markup.html" with site_notice_version="uc-v2" %}
   <div id="bg"></div>
 
@@ -779,16 +783,16 @@ nav a, .btn, .badge, .price strong {
                     {% if s.contact_for_estimate %}
                       <strong>Contact for estimate</strong>
                       {% if s.estimate_from_price %}
-                        <span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>
+                        <span class="price__hint">From {{ s.estimate_from_price|money }}</span>
                       {% endif %}
                     {% else %}
                       {% with disc=s.get_active_discount %}
                         {% if disc %}
-                          <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                          <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                          <span class="old">{{ s.base_price|money }}</span>
+                          <strong>{{ s.get_discounted_price|money }}</strong>
                           <span class="badge">-{{ disc.discount_percent|floatformat:0 }}%</span>
                         {% else %}
-                          <strong>${{ s.base_price|floatformat:2 }}</strong>
+                          <strong>{{ s.base_price|money }}</strong>
                         {% endif %}
                       {% endwith %}
                     {% endif %}
@@ -822,16 +826,16 @@ nav a, .btn, .badge, .price strong {
                     {% if s.contact_for_estimate %}
                       <strong>Contact for estimate</strong>
                       {% if s.estimate_from_price %}
-                        <span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>
+                        <span class="price__hint">From {{ s.estimate_from_price|money }}</span>
                       {% endif %}
                     {% else %}
                       {% with disc=s.get_active_discount %}
                         {% if disc %}
-                          <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                          <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                          <span class="old">{{ s.base_price|money }}</span>
+                          <strong>{{ s.get_discounted_price|money }}</strong>
                           <span class="badge">-{{ disc.discount_percent|floatformat:0 }}%</span>
                         {% else %}
-                          <strong>${{ s.base_price|floatformat:2 }}</strong>
+                          <strong>{{ s.base_price|money }}</strong>
                         {% endif %}
                       {% endwith %}
                     {% endif %}
@@ -879,18 +883,18 @@ nav a, .btn, .badge, .price strong {
                   <div class="price price--stacked">
                     {% if p.contact_for_estimate %}
                       <strong>Contact for estimate</strong>
-                      {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                      {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
                     {% else %}
                       <div class="price__retail-row">
                         {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                        <strong>${{ p.display_price|floatformat:2 }}</strong>
-                        {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                        <strong>{{ p.display_price|money }}</strong>
+                        {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
                       </div>
                       {% if dealer_portal.show_discount %}
                         <div class="price__dealer-row">
                           <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
-                          <strong>${{ p.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</strong>
-                          <span class="price__save">Save ${{ p.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}</span>
+                          <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+                          <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
                         </div>
                       {% endif %}
                     {% endif %}
@@ -1023,30 +1027,40 @@ nav a, .btn, .badge, .price strong {
   const server    = document.getElementById('serverContent');
   if(!qInput || !catSel) return;
 
+  const currencyCode = "{{ currency.code }}";
+  const currencySymbol = "{{ currency.symbol }}";
+
   const skel = (n=8)=> Array.from({length:n}).map(()=>'<div class="sk"></div>').join('');
   const showLive = ()=>{ liveTitle.style.display='block'; liveGrid.style.display='grid'; server.style.display='none'; }
   const hideLive = ()=>{ liveTitle.style.display='none'; liveGrid.style.display='none'; server.style.display='block'; }
   const esc = s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   const formatMoney = (val) => {
     const num = Number(val);
-    if (Number.isFinite(num)) return num.toFixed(2);
-    return val || "";
+    let normalized = "";
+    if (Number.isFinite(num)) {
+      normalized = num.toFixed(2);
+    } else if (typeof val === "string" && val.trim()) {
+      normalized = val.trim();
+    }
+    if (!normalized) return "";
+    const symbol = currencySymbol || "$";
+    return currencyCode ? `${currencyCode} ${symbol}${normalized}` : `${symbol}${normalized}`;
   };
 
   function cardHTML(s){
     let price;
     if (s.contact_for_estimate){
       const fromVal = s.estimate_from_price ? formatMoney(s.estimate_from_price) : "";
-      const hint = fromVal ? `<span class="price__hint">From $${esc(fromVal)}</span>` : "";
+      const hint = fromVal ? `<span class="price__hint">From ${esc(fromVal)}</span>` : "";
       price = `<strong>Contact for estimate</strong>${hint ? " " + hint : ""}`;
     } else {
       const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent>0;
-      const base = esc(formatMoney(s.base_price));
+      const base = formatMoney(s.base_price);
       if (hasDisc){
-        price = `<span class="old">$${base}</span> <strong>$${esc(formatMoney(s.price))}</strong> <span class="badge">-${esc(String(s.discount_percent))}%</span>`;
+        price = `<span class="old">${esc(base)}</span> <strong>${esc(formatMoney(s.price))}</strong> <span class="badge">-${esc(String(s.discount_percent))}%</span>`;
       } else {
         const current = s.price || s.base_price;
-        price = `<strong>$${esc(formatMoney(current))}</strong>`;
+        price = `<strong>${esc(formatMoney(current))}</strong>`;
       }
     }
     const media = s.image ? `<img src="${esc(s.image)}" alt="${esc(s.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;

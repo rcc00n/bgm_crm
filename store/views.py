@@ -635,7 +635,7 @@ def checkout(request):
                     if line_field:
                         kwargs[line_field] = line_total
                     if currency_field:
-                        kwargs[currency_field] = getattr(p, "currency", "USD")
+                        kwargs[currency_field] = getattr(p, "currency", settings.DEFAULT_CURRENCY_CODE)
                     if option_field and it.get("option"):
                         kwargs[option_field] = it["option"]
 

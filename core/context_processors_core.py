@@ -1,4 +1,5 @@
 # core/context_processors_core.py
+from django.conf import settings
 from django.urls import resolve, reverse
 from django.templatetags.static import static
 
@@ -94,7 +95,8 @@ def dealer_portal(request):
     except Exception:
         return {"dealer_portal": data}
 
-    label = profile.get_dealer_tier_display()
+    level = profile.get_dealer_tier_level()
+    label = level.label if level else profile.get_dealer_tier_display()
     discount = profile.dealer_discount_percent
     data.update(
         {
@@ -107,3 +109,79 @@ def dealer_portal(request):
         }
     )
     return {"dealer_portal": data}
+
+
+def marketing_tags(request):
+    """
+    Provides consistent marketing metadata + tracking IDs to every template.
+    Keeps logic centralized so templates only worry about rendering.
+    """
+    config = getattr(settings, "MARKETING", {})
+    site_name = config.get("site_name") or "BGM Customs"
+    default_description = config.get("default_description") or ""
+    default_image = config.get("default_image") or "/static/img/bad-guy-preview.png"
+    organization_logo = config.get("organization_logo") or default_image
+    origin = ""
+    canonical_url = ""
+    page_url = ""
+
+    if request is not None:
+        try:
+            origin = request.build_absolute_uri("/")
+        except Exception:
+            origin = ""
+        else:
+            origin = origin.rstrip("/")
+        try:
+            canonical_url = request.build_absolute_uri(request.path)
+        except Exception:
+            canonical_url = ""
+        try:
+            page_url = request.build_absolute_uri()
+        except Exception:
+            page_url = canonical_url
+
+    def _absolute(url: str, fallback: str = "") -> str:
+        candidate = url or fallback
+        if not candidate:
+            return ""
+        if candidate.startswith(("http://", "https://")):
+            return candidate
+        if origin:
+            return f"{origin}{candidate}"
+        return candidate
+
+    default_image_absolute = _absolute(default_image)
+    organization_logo_absolute = _absolute(organization_logo, default_image)
+
+    return {
+        "marketing": {
+            "site_name": site_name,
+            "tagline": config.get("tagline") or "",
+            "default_description": default_description,
+            "default_image": default_image,
+            "default_image_absolute": default_image_absolute,
+            "organization_logo": organization_logo,
+            "organization_logo_absolute": organization_logo_absolute,
+            "organization_same_as": config.get("organization_same_as") or [],
+            "canonical_url": canonical_url,
+            "page_url": page_url or canonical_url,
+            "origin": origin,
+            "google_tag_manager_id": config.get("google_tag_manager_id") or "",
+            "google_ads_id": config.get("google_ads_id") or "",
+            "google_ads_conversion_label": config.get("google_ads_conversion_label") or "",
+            "google_ads_send_page_view": config.get("google_ads_send_page_view", True),
+        }
+    }
+
+
+def currency(request):
+    """
+    Expose default currency code/symbol to every template (storefront, dealer portal, etc).
+    """
+    return {
+        "currency": {
+            "code": getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD"),
+            "symbol": getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$"),
+        }
+    }

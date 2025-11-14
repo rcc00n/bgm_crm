@@ -5,6 +5,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ meta_title|default:page.title }} • Bad Guy Motors</title>
+  {% with resolved_title=meta_title|default:page.title %}
+    {% with meta_title=resolved_title|add:" • Bad Guy Motors" meta_description=meta_description|default:marketing.default_description meta_section="legal" %}
+      {% include "includes/marketing_head.html" %}
+    {% endwith %}
+  {% endwith %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -150,6 +155,7 @@
   </style>
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
   <div id="bg" aria-hidden="true"></div>
   <a class="skip-link" href="#legal-content">Skip to content</a>
   <header class="site-header" role="banner">

@@ -11,6 +11,33 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "*").split(",") if h.strip()]
 
+# ── Бренд и маркетинг ───────────────────────────────────────────────────
+SITE_BRAND_NAME = os.getenv("SITE_BRAND_NAME", "BGM Customs")
+SITE_BRAND_TAGLINE = os.getenv("SITE_BRAND_TAGLINE", "Performance builds and outlaw styling out of Calgary.")
+SITE_DEFAULT_DESCRIPTION = os.getenv(
+    "SITE_DEFAULT_DESCRIPTION",
+    "BGM Customs delivers bespoke performance builds, detailing and premium parts sourcing for enthusiasts across North America.",
+)
+SITE_DEFAULT_IMAGE = os.getenv("SITE_DEFAULT_IMAGE", "/static/img/bad-guy-preview.png")
+SITE_ORG_LOGO = os.getenv("SITE_ORG_LOGO", "/static/img/bad-guy-preview.png")
+SITE_ORG_SAME_AS = [url.strip() for url in os.getenv("SITE_ORG_SAME_AS", "").split(",") if url.strip()]
+MARKETING = {
+    "site_name": SITE_BRAND_NAME,
+    "tagline": SITE_BRAND_TAGLINE,
+    "default_description": SITE_DEFAULT_DESCRIPTION,
+    "default_image": SITE_DEFAULT_IMAGE,
+    "organization_logo": SITE_ORG_LOGO,
+    "organization_same_as": SITE_ORG_SAME_AS,
+    "google_tag_manager_id": os.getenv("GOOGLE_TAG_MANAGER_ID", ""),
+    "google_ads_id": os.getenv("GOOGLE_ADS_ID", ""),
+    "google_ads_conversion_label": os.getenv("GOOGLE_ADS_CONVERSION_LABEL", ""),
+    "google_ads_send_page_view": os.getenv("GOOGLE_ADS_SEND_PAGE_VIEW", "True") == "True",
+}
+
+# ── Currency ──────────────────────────────────────────────────────────────
+DEFAULT_CURRENCY_CODE = os.getenv("DEFAULT_CURRENCY_CODE", "CAD")
+DEFAULT_CURRENCY_SYMBOL = os.getenv("DEFAULT_CURRENCY_SYMBOL", "$")
+
 # ── Приложения ───────────────────────────────────────────────────────────
 INSTALLED_APPS = [
     "phonenumbers",
@@ -62,6 +89,8 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors_core.hero_media",
                 "core.context_processors_core.dealer_portal",
+                "core.context_processors_core.currency",
+                "core.context_processors_core.marketing_tags",
             ],
         },
     },

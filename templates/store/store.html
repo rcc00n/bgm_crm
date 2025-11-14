@@ -5,6 +5,9 @@
   <meta charset="utf-8" />
   <title>BGM Customs — Store (Coming Soon)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {% with meta_title="BGM Customs — Store (Coming Soon)" meta_description="Get on the waitlist for the BGM Customs store featuring aero, lighting, and track-proven performance parts." meta_section="store" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
   <style>
     :root{
       --bg:#000000; --fg:#FFFFFF; --muted:rgba(255,255,255,.72); --muted-2:rgba(255,255,255,.55);
@@ -316,6 +319,7 @@
   </style>
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
   <div id="bg"></div>
 
 <header class="site-header" role="banner">

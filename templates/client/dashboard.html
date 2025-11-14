@@ -1,33 +1,13 @@
-{% load i18n tz static %}<!DOCTYPE html>
+{% load i18n tz static dealer_extras %}<!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Bad Guy Motors | Client Portal</title>
   {% static 'img/bad-guy-preview.png' as preview_image %}
-  {% if request %}
-    {% with origin=request.scheme|add:"://"|add:request.get_host %}
-      <meta property="og:type" content="website" />
-      <meta property="og:title" content="Bad Guy Motors" />
-      <meta property="og:description" content="Performance builds, outlaw styling and VIP service." />
-      <meta property="og:url" content="{{ origin }}{{ request.path }}" />
-      <meta property="og:image" content="{{ origin }}{{ preview_image }}" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="Bad Guy Motors" />
-      <meta name="twitter:description" content="Performance builds, outlaw styling and VIP service." />
-      <meta name="twitter:image" content="{{ origin }}{{ preview_image }}" />
-    {% endwith %}
-  {% else %}
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Bad Guy Motors" />
-    <meta property="og:description" content="Performance builds, outlaw styling and VIP service." />
-    <meta property="og:image" content="{{ preview_image }}" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Bad Guy Motors" />
-    <meta name="twitter:description" content="Performance builds, outlaw styling and VIP service." />
-    <meta name="twitter:image" content="{{ preview_image }}" />
-  {% endif %}
-  <link rel="image_src" href="{{ preview_image }}" />
+  {% with meta_title="Bad Guy Motors | Client Portal" meta_description="Manage appointments, check project status, and review invoices in the client portal." meta_image=preview_image meta_section="client-portal" meta_robots="noindex,nofollow" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
 
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -561,6 +541,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
 </head>
 <body class="h-full">
+  {% include "includes/marketing_body.html" %}
 
 <!-- <div class="smoke" id="smoke-layer"></div> -->
 <div id="bg"></div>
@@ -667,7 +648,13 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
                     <td class="py-2 pr-4">{{ a.service.name }}</td>
                     <td class="py-2 pr-4">{{ a.master.get_full_name }}</td>
                     <td class="py-2 pr-4">{{ a.current_status }}</td>
-                    <td class="py-2 pr-3">{{ a.price|default:"—" }}</td>
+                    <td class="py-2 pr-3">
+                      {% if a.price is not None %}
+                        {{ a.price|money }}
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
                   </tr>
                 {% endfor %}
               </tbody>
@@ -683,10 +670,10 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
           <h2 class="text-lg font-bold mb-4">Rates</h2>
           <div class="space-y-2 text-sm">
             <div class="flex items-center justify-between">
-              <span class="muted">Shop rate</span><span class="font-bold">$130/hr</span>
+              <span class="muted">Shop rate</span><span class="font-bold">{{ currency.code }} {{ currency.symbol }}130/hr</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="muted">Design/CAD rate</span><span class="font-bold">$150/hr</span>
+              <span class="muted">Design/CAD rate</span><span class="font-bold">{{ currency.code }} {{ currency.symbol }}150/hr</span>
             </div>
           </div>
         </div>

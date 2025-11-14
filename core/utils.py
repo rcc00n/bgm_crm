@@ -1,9 +1,12 @@
 # core/utils.py
 from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
 from django.db.models import Q
 
 from .models import CustomUserDisplay, UserRole
+
+MONEY_QUANT = Decimal("0.01")
 
 def assign_role(user, role):
     """
@@ -56,15 +59,29 @@ def apply_dealer_discount(base_price, percent: int) -> Decimal:
     amount = _to_decimal(base_price)
     pct = Decimal(str(percent or 0))
     if pct <= 0:
-        return amount.quantize(Decimal("0.01"))
+        return amount.quantize(MONEY_QUANT)
     factor = (Decimal("100") - pct) / Decimal("100")
-    return (amount * factor).quantize(Decimal("0.01"))
+    return (amount * factor).quantize(MONEY_QUANT)
 
 
 def dealer_discount_savings(base_price, percent: int) -> Decimal:
     """
     Calculates how much money is saved versus the base price for the given discount percent.
     """
-    amount = _to_decimal(base_price).quantize(Decimal("0.01"))
+    amount = _to_decimal(base_price).quantize(MONEY_QUANT)
     discounted = apply_dealer_discount(base_price, percent)
-    return (amount - discounted).quantize(Decimal("0.01"))
+    return (amount - discounted).quantize(MONEY_QUANT)
+
+
+def format_currency(amount, include_code: bool = True) -> str:
+    """
+    Formats a numeric value using the default currency code/symbol defined in settings.
+    include_code=False keeps only the symbol (useful for tight UI spots).
+    """
+    quantized = _to_decimal(amount).quantize(MONEY_QUANT)
+    symbol = getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$") or ""
+    code = getattr(settings, "DEFAULT_CURRENCY_CODE", "").upper()
+    formatted = f"{symbol}{quantized:,.2f}".strip()
+    if include_code and code:
+        return f"{code} {formatted}".strip()
+    return formatted

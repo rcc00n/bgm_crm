@@ -1,10 +1,13 @@
-{% load static %}
+{% load static dealer_extras %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Dealer Application</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with meta_title="Dealer Application — BGM Customs" meta_description="Apply for wholesale pricing, protected territories, and launch support with the BGM Customs dealer program." meta_section="dealer" meta_type="article" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
 
 <style>
     /* ===== BGM palette ===== */
@@ -166,9 +169,50 @@
   a.btn{
     min-height:44px !important;
   }
+  .tier-panel{
+    margin:1.2rem 0;
+    padding:1.2rem;
+    border:1px solid var(--card-border);
+    border-radius:var(--radius-lg);
+    background:var(--card-bg);
+  }
+  .tier-panel__head{
+    display:flex;
+    flex-direction:column;
+    gap:.3rem;
+  }
+  .tier-panel__list{
+    display:flex;
+    flex-direction:column;
+    gap:.65rem;
+    margin-top:.8rem;
+  }
+  .tier-pill{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.35rem;
+    justify-content:space-between;
+    padding:.75rem .9rem;
+    border-radius:.85rem;
+    border:1px solid var(--card-border);
+    background:rgba(255,255,255,.02);
+  }
+  .tier-pill__name{
+    font-weight:700;
+  }
+  .tier-pill__meta{
+    color:var(--muted);
+    font-size:.9rem;
+  }
+  .tier-pill__desc{
+    flex-basis:100%;
+    color:var(--muted);
+    font-size:.9rem;
+  }
 </style>
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
   <!-- smoke -->
   <div id="bg"></div>
 
@@ -214,6 +258,24 @@
 
       {% if form.non_field_errors %}
         <div class="errors">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      {% if tier_levels %}
+        <section class="tier-panel" aria-labelledby="tierOverview">
+          <div class="tier-panel__head">
+            <h2 id="tierOverview" class="h" style="font-size:1.1rem">Dealer tier overview</h2>
+            <p class="muted" style="font-size:.95rem">All thresholds are denominated in CAD and can be updated by the ops team as programs evolve.</p>
+          </div>
+          <div class="tier-panel__list">
+            {% for tier in tier_levels %}
+              <div class="tier-pill">
+                <div class="tier-pill__name">{{ tier.label }}</div>
+                <div class="tier-pill__meta">{{ tier.minimum_spend|money }}+ · {{ tier.discount_percent }}% off</div>
+                {% if tier.description %}<div class="tier-pill__desc">{{ tier.description }}</div>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
       {% endif %}
 
       <form method="post" novalidate>

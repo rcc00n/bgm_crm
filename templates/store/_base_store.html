@@ -5,6 +5,11 @@
   <meta charset="utf-8" />
   <title>{% block title %}BGM — Store{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {% block marketing_meta %}
+    {% with meta_title="BGM Customs — Storefront" meta_description="Shop curated parts, aero, lighting, and performance upgrades from BGM Customs." meta_section="store" %}
+      {% include "includes/marketing_head.html" %}
+    {% endwith %}
+  {% endblock %}
   <!-- Preload custom fonts -->
 <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
@@ -576,6 +581,7 @@ nav a{ white-space: nowrap !important; }
   {% block extra_head %}{% endblock %}
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
 {% include "includes/site_notice_markup.html" with site_notice_version="uc-v2" %}
 
 <header class="site-header" role="banner">

@@ -305,9 +305,9 @@ from django.core.validators import MinLengthValidator
 
 class DealerTier(models.TextChoices):
     NONE = "NONE", "None"
-    TIER_5 = "TIER_5", "Dealer 5% (≥ $1,000)"
-    TIER_10 = "TIER_10", "Dealer 10% (≥ $5,000)"
-    TIER_15 = "TIER_15", "Dealer 15% (≥ $20,000)"
+    TIER_5 = "TIER_5", "Dealer 5% tier"
+    TIER_10 = "TIER_10", "Dealer 10% tier"
+    TIER_15 = "TIER_15", "Dealer 15% tier"
 
 
 class DealerTierLevel(models.Model):
@@ -324,9 +324,9 @@ class DealerTierLevel(models.Model):
     label = models.CharField("Label", max_length=120)
     discount_percent = models.PositiveIntegerField("Discount percent", default=5)
     minimum_spend = models.PositiveIntegerField(
-        "Minimum lifetime spend (USD)",
+        f"Minimum lifetime spend ({settings.DEFAULT_CURRENCY_CODE})",
         default=0,
-        help_text="Required lifetime spend in USD to qualify for this tier.",
+        help_text=f"Required lifetime spend in {settings.DEFAULT_CURRENCY_CODE} to qualify for this tier.",
     )
     sort_order = models.PositiveSmallIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -483,9 +483,9 @@ class UserProfile(models.Model):
 
    
 
-    def total_spent_usd(self) -> float:
+    def total_spent_cad(self) -> float:
         """
-        Total spent by the user:
+        Total spent by the user in CAD:
         - Sum of all Payment.amount for appointments where client=self.user
         - PLUS sum of service.base_price for paid appointments that have NO payments
         (to avoid double counting).
@@ -529,7 +529,7 @@ class UserProfile(models.Model):
         return level
 
     def recompute_dealer_tier(self) -> None:
-        spent = Decimal(str(self.total_spent_usd()))
+        spent = Decimal(str(self.total_spent_cad()))
         try:
             tiers = list(self._tier_levels_queryset())
         except Exception:

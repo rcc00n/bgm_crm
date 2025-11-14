@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
+{% load static dealer_extras %}
 
 {% block extrahead %}
   {{ block.super }}
@@ -99,9 +99,9 @@
             </div>
             <div class="appt-price">
               {% if app.service.contact_for_estimate %}
-                Contact for estimate{% if app.service.estimate_from_price %} · From ${{ app.service.estimate_from_price|floatformat:2 }}{% endif %}
+                Contact for estimate{% if app.service.estimate_from_price %} · From {{ app.service.estimate_from_price|money }}{% endif %}
               {% elif app.service.base_price %}
-                CA$ {{ app.service.base_price|floatformat:2 }}
+                {{ app.service.base_price|money }}
               {% else %}
                 —
               {% endif %}

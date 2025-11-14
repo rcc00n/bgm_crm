@@ -27,7 +27,7 @@ from .filters import *
 from .models import *
 from .forms import *
 from core.services.analytics import summarize_web_analytics
-from core.utils import get_staff_queryset
+from core.utils import get_staff_queryset, format_currency
 from datetime import timedelta, time
 # -----------------------------
 # Custom filter for filtering users by Role
@@ -1316,9 +1316,9 @@ class UserProfileAdmin(admin.ModelAdmin):
     @admin.display(description="Total spent")
     def total_spent_display(self, obj):
         try:
-            return f"${obj.total_spent_usd():,.2f}"
+            return format_currency(obj.total_spent_cad())
         except Exception:
-            return "$0.00"
+            return format_currency(0)
 
     @admin.display(description="Dealer discount")
     def dealer_discount_display(self, obj):
