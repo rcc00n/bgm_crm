@@ -591,12 +591,10 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
                 appointments = appointments.exclude(
                     appointmentstatushistory__status=cancelled_status
                 )
-        if hasattr(request.user, "master_profile"):
+        if hasattr(request.user, "master_profile") and not request.user.is_superuser:
             masters = CustomUserDisplay.objects.filter(id=request.user.id)
         else:
-            masters = CustomUserDisplay.objects.filter(
-                id__in=appointments.values_list('master_id', flat=True)
-            ).distinct()
+            masters = get_staff_queryset(active_only=True)
         start_of_day = make_aware(datetime.combine(selected_date, datetime.min.time()))
         end_of_day = make_aware(datetime.combine(selected_date, datetime.max.time()))
 

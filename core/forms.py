@@ -49,9 +49,19 @@ class AppointmentForm(forms.ModelForm):
         instance = self.instance
 
         # Обнови instance перед вызовом clean()
-        instance.master = cleaned_data.get("master")
-        instance.start_time = cleaned_data.get("start_time")
-        instance.service = cleaned_data.get("service")
+        # Keep the model instance in sync so Appointment.clean() validates actual form data.
+        for field in (
+            "client",
+            "contact_name",
+            "contact_email",
+            "contact_phone",
+            "master",
+            "service",
+            "start_time",
+            "payment_status",
+        ):
+            if field in cleaned_data:
+                setattr(instance, field, cleaned_data.get(field))
         promocode_str = cleaned_data.get("promocode")
         service = cleaned_data.get("service")
         try:
