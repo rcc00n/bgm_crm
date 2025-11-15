@@ -1579,15 +1579,6 @@ nav a, .btn, .badge, .price strong {
   scrim.addEventListener('click', () => { if (mq.matches && isOpen()) setOpen(false); });
   closeInPanel && closeInPanel.addEventListener('click', () => { if (mq.matches) setOpen(false); });
 
-  // close on link/button activation inside drawer
- // nav.addEventListener('click', (e) => { -->
-   // if (!mq.matches) return;
-    //const act = e.target.closest('a,button');
-    //if (!act) return;
-    //if (act.closest('form')) return;
-    //setOpen(false);
-  //});
-
   // esc to close
   document.addEventListener('keydown', (e) => {
     if (!mq.matches || !isOpen()) return;
@@ -1617,59 +1608,68 @@ nav a, .btn, .badge, .price strong {
 (() => {
   const header = document.querySelector('header.site-header');
   const nav    = document.getElementById('siteNav');
-  const mq     = window.matchMedia('(max-width: 960px)');
+  const toggle = document.querySelector('.site-header__toggle');
   if (!header || !nav) return;
-  if (nav.dataset.bgmNavBound === '3') return;
-  nav.dataset.bgmNavBound = '3';
+  if (nav.dataset.bgmNavBound === 'hard') return;
+  nav.dataset.bgmNavBound = 'hard';
 
-  const scrim  = document.getElementById('navScrim');
-  const setOpenFn = typeof header.bgmSetNavOpen === 'function' ? header.bgmSetNavOpen : null;
-  const closeD = () => {
-    if (setOpenFn) setOpenFn(false);
-    else{
-      header.classList.remove('site-header--open');
-      document.body.classList.remove('nav-open');
-      const tgl = document.querySelector('.site-header__toggle');
-      if (scrim) scrim.style.display = '';
-      if (tgl) tgl.setAttribute('aria-expanded','false');
-    }
+  const scrim = document.getElementById('navScrim');
+
+  const isOpen = () =>
+    header.classList.contains('site-header--open') ||
+    document.body.classList.contains('nav-open') ||
+    (toggle && toggle.getAttribute('aria-expanded') === 'true');
+
+  const closeDrawer = () => {
+    header.classList.remove('site-header--open');
+    document.body.classList.remove('nav-open');
+    if (toggle) toggle.setAttribute('aria-expanded','false');
+    if (scrim) scrim.style.display = '';
   };
 
-  nav.addEventListener('click', (e) => {
-    if (!mq.matches) return;
+  const go = (href) => {
+    // iOS/Safari надёжнее через href с резервом на assign
+    try { window.location.assign(href); }
+    catch { window.location.href = href; }
+  };
 
-    const closer = e.target.closest('.site-header__close');
-    if (closer){ e.preventDefault(); closeD(); return; }
+  const DELAY = 220; // синхронизируйте с анимацией закрытия
+
+  nav.addEventListener('click', (e) => {
+    // работаем только когда открыт дровер — без завязки на matchMedia
+    if (!isOpen()) return;
 
     const link = e.target.closest('a[href]');
     if (!link) return;
 
-    const raw = link.getAttribute('href') || '';
-    if (/^(mailto:|tel:|sms:)/i.test(raw)){ closeD(); return; }
+    const href = link.getAttribute('href') || '';
+    // системные схемы не трогаем
+    if (/^(mailto:|tel:|sms:)/i.test(href)) { closeDrawer(); return; }
 
-    const url = new URL(raw, location.href);
+    e.preventDefault();
+    e.stopImmediatePropagation();         // гасим любые другие обработчики
+    // вычисляем целевой URL до закрытия
+    const url = new URL(href, location.href);
 
-    // Якорь на текущей странице
-    if (url.origin === location.origin && url.pathname === location.pathname && url.hash){
-      e.preventDefault();
-      closeD();
+    closeDrawer();
+
+    // якорь внутри текущей страницы
+    if (url.origin === location.origin && url.pathname === location.pathname && url.hash) {
       const id = decodeURIComponent(url.hash.slice(1));
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         const el = document.getElementById(id);
         if (el) {
           history.pushState(null, '', url.hash);
           el.scrollIntoView({ behavior:'smooth', block:'start' });
         } else {
-          location.href = url.href;
+          go(url.href);
         }
-      });
+      }, DELAY);
       return;
     }
 
-    // Жёсткая навигация (главное изменение)
-    e.preventDefault();
-    // Не ждём закрытия: новое загрузит страницу и так
-    window.location.href = url.href;
-  }, { capture:false, passive:false });   // <- без capture
+    // обычная навигация
+    setTimeout(() => { go(url.href); }, DELAY);
+  }, { capture: true, passive: false });
 })();
 </script>
