@@ -1620,72 +1620,64 @@ nav a, .btn, .badge, .price strong {
   const toggle = document.querySelector('.site-header__toggle');
   const mq     = window.matchMedia('(max-width: 960px)');
   if (!header || !nav || !toggle) return;
-  if (nav.dataset.bgmNavBound === '1') return;
-  nav.dataset.bgmNavBound = '1';
+  if (nav.dataset.bgmNavBound === '2') return;
+  nav.dataset.bgmNavBound = '2';
+
   const scrim  = document.getElementById('navScrim');
   const setOpenFn = typeof header.bgmSetNavOpen === 'function' ? header.bgmSetNavOpen : null;
 
   const closeD = () => {
-    if (setOpenFn) {
-      setOpenFn(false);
-      return;
-    }
-    header.classList.remove('site-header--open');
-    document.body.classList.remove('nav-open');
-    toggle.setAttribute('aria-expanded', 'false');
-    if (scrim) scrim.style.display = '';
-    if (mq.matches) {
-      try { toggle.focus({ preventScroll: true }); }
-      catch { toggle.focus(); }
+    if (setOpenFn) setOpenFn(false);
+    else{
+      header.classList.remove('site-header--open');
+      document.body.classList.remove('nav-open');
+      toggle.setAttribute('aria-expanded','false');
+      if (scrim) scrim.style.display = '';
     }
   };
-  const closeDelay = 220; // длительность анимации панели
+  const closeDelay = 220;
 
   nav.addEventListener('click', (e) => {
     if (!mq.matches) return;
 
-    // Кнопка "×"
     const closer = e.target.closest('.site-header__close');
-    if (closer) { e.preventDefault(); closeD(); return; }
+    if (closer){ e.preventDefault(); closeD(); return; }
 
     const link = e.target.closest('a[href]');
     if (!link) return;
 
-    // Модификаторы/новая вкладка — не трогаем
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || link.target === '_blank' || e.button !== 0) return;
-
-    const url = new URL(link.getAttribute('href'), location.href);
-    const sameOrigin = url.origin === location.origin;
-    const samePath = sameOrigin && url.pathname === location.pathname;
-    const hasHash = !!url.hash;
-
-    // Переход к секции на текущей странице
-    if (samePath && hasHash) {
-      e.preventDefault();
-      const id = decodeURIComponent(url.hash.slice(1));
+    // Разрешаем модификаторы/новую вкладку
+    const nonPrimary = (typeof e.button === 'number') ? e.button !== 0 : false; // <-- фикс
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || link.target === '_blank' || nonPrimary){
       closeD();
+      return;
+    }
+
+    const href = link.href;
+    // системные схемы — не перехватываем
+    if (/^(mailto:|tel:|sms:)/i.test(href)){ closeD(); return; }
+
+    e.preventDefault();
+    closeD();
+
+    const url = new URL(href, location.href);
+    // Якорь на текущей странице
+    if (url.origin === location.origin && url.pathname === location.pathname && url.hash){
+      const id = decodeURIComponent(url.hash.slice(1));
       setTimeout(() => {
         const el = document.getElementById(id);
-        if (el) {
+        if (el){
           history.pushState(null, '', url.hash);
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.scrollIntoView({ behavior:'smooth', block:'start' });
         } else {
-          location.hash = url.hash; // запасной вариант
+          location.href = href;
         }
       }, closeDelay);
       return;
     }
-    // Обычная навигация (другая страница/маршрут)
-e.preventDefault();                      // ключевая строка
-const href = link.href;
-closeD();
-setTimeout(() => {
-  window.location.assign(href);          // гарантируем переход
-}, closeDelay);
 
-    // Обычная навигация (другая страница/маршрут)
-    //closeD();
-    // allow browser to perform navigation (internal/external)
+    // Обычная навигация
+    setTimeout(() => { location.assign(href); }, closeDelay);
   }, true);
 })();
 </script>
