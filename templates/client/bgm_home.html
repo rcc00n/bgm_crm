@@ -770,6 +770,66 @@ nav a, .btn, .badge, .price strong {
     .site-header__close:hover{ background:#141414; }
   }
 </style>
+<style id="sidebar-fix-final">
+  /* Мобайл: левый выезжающий сайдбар — без блюра/затемнения и кликабельный */
+  @media (max-width:960px){
+    /* 1) Скрим под сайдбаром и прозрачный */
+    #navScrim.nav-scrim{
+      z-index: 2000 !important;                 /* ниже nav */
+      background: transparent !important;       /* без затемнения */
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    /* 2) Сайдбар поверх скрима, без blur */
+    .site-header nav{
+      z-index: 2100 !important;                 /* выше скрима */
+      position: fixed !important;
+      top:0; left:0; bottom:0; right:auto;
+      width: min(88vw, 420px);
+      background: #0a0a0a !important;          /* матовый фон */
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border-right: 1px solid var(--line);
+      box-shadow: 16px 0 44px rgba(0,0,0,.55);
+      transform: translateX(-100%) !important;  /* закрыто по умолчанию */
+      pointer-events: none !important;
+      will-change: transform;
+    }
+    .site-header--open nav,
+    .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+      transform: translateX(0) !important;
+      pointer-events: auto !important;
+    }
+
+    /* 3) Кликабельные пункты на всю ширину */
+    .site-header nav ul{
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:stretch !important;
+      gap:.45rem !important;
+      width:100% !important;
+    }
+    .site-header nav a,
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      width:100% !important;
+      justify-content:space-between !important;
+      background: rgba(255,255,255,.04) !important;
+      border:1px solid rgba(255,255,255,.08) !important;
+      border-radius:.85rem !important;
+      padding:.95rem 1rem !important;
+      font-size:1.05rem !important;
+      letter-spacing:.035em !important;
+    }
+    .site-header nav a:hover,
+    .site-header nav a[aria-current="page"]{
+      background: rgba(255,255,255,.1) !important;
+      border-color: rgba(255,255,255,.22) !important;
+      color:#fff !important;
+    }
+  }
+</style>
 
 </head>
 <body>
