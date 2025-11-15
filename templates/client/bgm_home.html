@@ -1656,9 +1656,11 @@ nav a, .btn, .badge, .price strong {
 
     const url = new URL(link.getAttribute('href'), location.href);
     const sameOrigin = url.origin === location.origin;
+    const samePath = sameOrigin && url.pathname === location.pathname;
+    const hasHash = !!url.hash;
 
     // Переход к секции на текущей странице
-    if (sameOrigin && url.pathname === location.pathname && url.hash) {
+    if (samePath && hasHash) {
       e.preventDefault();
       const id = decodeURIComponent(url.hash.slice(1));
       closeD();
@@ -1675,9 +1677,8 @@ nav a, .btn, .badge, .price strong {
     }
 
     // Обычная навигация (другая страница/маршрут)
-    e.preventDefault();
     closeD();
-    setTimeout(() => { location.href = url.href; }, 80);
+    // allow browser to perform navigation (internal/external)
   }, true);
 })();
 </script>
