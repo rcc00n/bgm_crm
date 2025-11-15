@@ -1,98 +1,124 @@
-{# Shared Under Construction banner script #}
+{# Shared Under Construction banner script — v3 #}
 <script id="site-notice-js">
-(function(){
+(function () {
   const notice = document.getElementById('siteNotice');
   if (!notice) return;
 
+  const panel = notice.querySelector('.site-notice__panel');
+  const dismissBtns = notice.querySelectorAll('[data-notice-dismiss]');
+  if (!panel || !dismissBtns.length) return;
+
+  // version + persistence
   const versionToken = (notice.getAttribute('data-version') || 'default').trim();
   const versionSafe = versionToken.replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'default';
   const storageKey = `bgm:site-notice:${versionSafe}`;
   const cookieKey = `bgm_site_notice_${versionSafe}`;
-  const dismissBtn = notice.querySelector('[data-notice-dismiss]');
-  if (!dismissBtn) return;
-
-  const focusSelector = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-  let lastFocused = null;
-
   const cookiePattern = new RegExp('(?:^|; )' + cookieKey.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&') + '=([^;]+)');
 
   const readState = () => {
-    try{
-      if (window.localStorage.getItem(storageKey) === 'dismissed') return true;
-    }catch(_err){}
-    const cookieMatch = document.cookie.match(cookiePattern);
-    return cookieMatch ? cookieMatch[1] === 'dismissed' : false;
+    try { if (window.localStorage.getItem(storageKey) === 'dismissed') return true; } catch(_){}
+    const m = document.cookie.match(cookiePattern);
+    return m ? m[1] === 'dismissed' : false;
   };
 
   const persistState = () => {
-    try{ window.localStorage.setItem(storageKey, 'dismissed'); }
-    catch(_err){}
+    try { window.localStorage.setItem(storageKey, 'dismissed'); } catch(_){}
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 180).toUTCString();
     document.cookie = `${cookieKey}=dismissed; expires=${expires}; path=/; SameSite=Lax`;
   };
 
   if (readState()) return;
 
+  // focus management
+  const focusSelector = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(',');
+
+  let lastFocused = null;
+  let undoInert = () => {};
+
+  const makeDocInert = () => {
+    const siblings = Array.from(document.body.children).filter(n => n !== notice);
+    const supportInert = 'inert' in HTMLElement.prototype;
+    siblings.forEach(n => {
+      if (supportInert) { n.inert = true; }
+      n.setAttribute('aria-hidden', 'true');
+    });
+    return () => {
+      siblings.forEach(n => {
+        if (supportInert) { n.inert = false; }
+        n.removeAttribute('aria-hidden');
+      });
+    };
+  };
+
   const restoreFocus = () => {
     if (lastFocused && document.contains(lastFocused)) {
-      try{ lastFocused.focus({ preventScroll:true }); } catch(_err){ lastFocused.focus(); }
+      try { lastFocused.focus({preventScroll: true}); } catch(_){ lastFocused.focus(); }
     }
     lastFocused = null;
   };
 
-  const handleKeydown = (event) => {
-    if (event.key === 'Escape'){
-      event.preventDefault();
-      closeNotice(true);
-      return;
-    }
+  const trapTab = (event) => {
     if (event.key !== 'Tab') return;
-
-    const focusable = Array.from(notice.querySelectorAll(focusSelector))
-      .filter(el => !el.hasAttribute('disabled') && el.getAttribute('tabindex') !== '-1' && el.offsetParent !== null);
+    const focusable = Array.from(panel.querySelectorAll(focusSelector))
+      .filter(el => el.offsetParent !== null && !el.hasAttribute('disabled'));
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
 
-    if (event.shiftKey){
-      if (document.activeElement === first || !notice.contains(document.activeElement)){
-        event.preventDefault();
-        last.focus();
+    if (event.shiftKey) {
+      if (document.activeElement === first || !panel.contains(document.activeElement)) {
+        event.preventDefault(); last.focus();
       }
-    } else if (document.activeElement === last){
+    } else {
+      if (document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    }
+  };
+
+  const onKeyDown = (event) => {
+    if (event.key === 'Escape') {
       event.preventDefault();
-      first.focus();
+      closeNotice(true);
+    } else {
+      trapTab(event);
     }
   };
 
   const onBackdrop = (event) => {
-    if (event.target === notice){
-      closeNotice(true);
-    }
+    if (event.target === notice) closeNotice(true);
   };
 
   const openNotice = () => {
     if (!notice.hasAttribute('hidden')) return;
+
     lastFocused = document.activeElement;
     notice.removeAttribute('hidden');
     document.body.classList.add('site-notice-open');
+    undoInert = makeDocInert();
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         notice.classList.add('site-notice--visible');
-        try{
-          dismissBtn.focus({ preventScroll:true });
-        }catch(_err){
-          dismissBtn.focus();
+        const firstFocusable = panel.querySelector(focusSelector);
+        if (firstFocusable) {
+          try { firstFocusable.focus({preventScroll: true}); } catch(_){ firstFocusable.focus(); }
         }
       });
     });
 
-    document.addEventListener('keydown', handleKeydown, true);
+    document.addEventListener('keydown', onKeyDown, true);
     notice.addEventListener('click', onBackdrop);
   };
 
-  function closeNotice(persist){
+  function closeNotice(persist) {
     notice.classList.remove('site-notice--visible');
     if (persist) persistState();
 
@@ -100,32 +126,31 @@
     const finish = () => {
       if (done) return;
       done = true;
-      notice.setAttribute('hidden','');
-      document.removeEventListener('keydown', handleKeydown, true);
+      notice.setAttribute('hidden', '');
+      document.removeEventListener('keydown', onKeyDown, true);
       notice.removeEventListener('click', onBackdrop);
       document.body.classList.remove('site-notice-open');
+      undoInert(); undoInert = () => {};
       restoreFocus();
     };
 
-    const onTransitionEnd = (event) => {
-      if (event.target === notice){
-        finish();
-      }
-    };
-    notice.addEventListener('transitionend', onTransitionEnd, { once:true });
-    setTimeout(finish, 360);
+    const onEnd = (e) => { if (e.target === panel || e.target === notice) finish(); };
+    panel.addEventListener('transitionend', onEnd, {once: true});
+    notice.addEventListener('transitionend', onEnd, {once: true});
+    setTimeout(finish, 380);
   }
 
-  dismissBtn.addEventListener('click', () => closeNotice(true));
+  dismissBtns.forEach(btn => btn.addEventListener('click', () => closeNotice(true)));
 
   const ready = () => {
-    setTimeout(openNotice, 320);
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(openNotice, prefersReduced ? 0 : 280);
   };
 
-  if (document.readyState === 'complete' || document.readyState === 'interactive'){
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
     ready();
   } else {
-    document.addEventListener('DOMContentLoaded', ready, { once:true });
+    document.addEventListener('DOMContentLoaded', ready, {once: true});
   }
 })();
 </script>

@@ -1,35 +1,71 @@
-{# Shared Under Construction banner markup #}
-{% with site_notice_version=site_notice_version|default:"uc-v2" %}
-<div id="siteNotice" class="site-notice" role="dialog" aria-modal="true"
-     aria-labelledby="siteNoticeTitle" aria-describedby="siteNoticeDescription"
-     data-version="{{ site_notice_version }}" hidden>
-  <div class="site-notice__panel">
-    <span class="site-notice__flare" aria-hidden="true"></span>
-    <div class="site-notice__eyebrow">Storefront update</div>
+{# Shared Under Construction banner markup — v3 #}
+{% with site_notice_version=site_notice_version|default:"uc-v3" %}
+<div id="siteNotice"
+     class="site-notice"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="siteNoticeTitle"
+     aria-describedby="siteNoticeDescription"
+     data-version="{{ site_notice_version }}"
+     hidden>
+
+  <div class="site-notice__panel" role="document">
+    <span class="site-notice__bgflare" aria-hidden="true"></span>
+
+    <header class="site-notice__header">
+      <div class="site-notice__eyebrow">
+        <span class="site-notice__dot" aria-hidden="true"></span>
+        <span>Storefront update</span>
+      </div>
+
+      <!-- Кнопка закрытия (иконка) -->
+      <button type="button"
+              class="site-notice__close"
+              data-notice-dismiss
+              aria-label="Close notice">
+        <svg viewBox="0 0 24 24" class="site-notice__close-icon" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </header>
+
     <h2 id="siteNoticeTitle" class="site-notice__title">🚧 Website Update In Progress 🚧</h2>
+
     <p id="siteNoticeDescription" class="site-notice__desc site-notice__desc--lead">
       We're finishing a few updates to the store. A couple of pages may be missing features,
       but you can still browse inventory, request a quote, or reach the team anytime.
     </p>
-    <div class="site-notice__contact">
-      <div class="site-notice__contact-name">Bad Guy Motors Inc.</div>
-      <div class="site-notice__contact-details">
+
+    <section class="site-notice__contact" aria-labelledby="noticeContactTitle">
+      <h3 id="noticeContactTitle" class="site-notice__contact-name">Bad Guy Motors Inc.</h3>
+
+      <dl class="site-notice__contact-details">
         <div class="site-notice__contact-row">
-          <div class="site-notice__contact-label">Address</div>
-          <div class="site-notice__contact-value">620 Porcelain Ave SE, Medicine Hat, AB</div>
+          <dt class="site-notice__contact-label">Address</dt>
+          <dd class="site-notice__contact-value">
+            620 Porcelain Ave SE, Medicine Hat, AB
+          </dd>
         </div>
+
         <div class="site-notice__contact-row">
-          <div class="site-notice__contact-label">Phone</div>
-          <div class="site-notice__contact-value">
-            <a href="tel:+14035250432">403-525-0432</a>
-          </div>
+          <dt class="site-notice__contact-label">Phone</dt>
+          <dd class="site-notice__contact-value">
+            <a href="tel:+14035250432" class="site-notice__link">403-525-0432</a>
+          </dd>
         </div>
-      </div>
-    </div>
+      </dl>
+    </section>
+
     <div class="site-notice__actions">
-      <button type="button" class="site-notice__cta" data-notice-dismiss>Okay, close</button>
+      <button type="button" class="site-notice__cta" data-notice-dismiss>
+        Okay, close
+      </button>
     </div>
-    <div class="site-notice__sub">Thanks for bearing with us while we wrap things up.</div>
+
+    <p class="site-notice__sub">
+      Thanks for bearing with us while we wrap things up.
+    </p>
   </div>
 </div>
 {% endwith %}
