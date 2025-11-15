@@ -1609,3 +1609,44 @@ nav a, .btn, .badge, .price strong {
   setOpen(false);
 })();
 </script>
+
+<script id="nav-click-defer-fix">
+(() => {
+  const header = document.querySelector('header.site-header');
+  const nav    = document.getElementById('siteNav');
+  const toggle = document.querySelector('.site-header__toggle');
+  const mq     = window.matchMedia('(max-width: 960px)');
+  if (!header || !nav || !toggle) return;
+
+  const closeD = () => {
+    header.classList.remove('site-header--open');
+    document.body.classList.remove('nav-open');
+    toggle.setAttribute('aria-expanded', 'false');
+  };
+
+  /* 1) Крестик внутри панели — закрыть сразу, не давая событию уйти выше */
+  nav.addEventListener('click', (e) => {
+    const btnClose = e.target.closest('.site-header__close');
+    if (!mq.matches || !btnClose) return;
+    e.stopPropagation();
+    e.preventDefault();
+    closeD();
+  }, true);
+
+  /* 2) Клик по пункту меню: позволяем переходу, а закрытие — чуть позже */
+  nav.addEventListener('click', (e) => {
+    if (!mq.matches) return;
+    const link = e.target.closest('a[href]');
+    if (!link) return;
+
+    // не вмешиваемся в модификаторы (новая вкладка и т.п.)
+    if (e.metaKey || e.ctrlKey || e.shiftKey || link.target === '_blank') return;
+
+    // останавливаем старый обработчик, который закрывает "мгновенно"
+    e.stopPropagation();
+
+    // даём браузеру выполнить переход, затем закрываем панель
+    setTimeout(closeD, 80);  // 50–100 мс — надёжно для iOS Safari
+  }, true);
+})();
+</script>
