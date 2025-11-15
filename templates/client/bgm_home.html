@@ -1577,13 +1577,13 @@ nav a, .btn, .badge, .price strong {
   closeInPanel && closeInPanel.addEventListener('click', () => { if (mq.matches) setOpen(false); });
 
   // close on link/button activation inside drawer
-  nav.addEventListener('click', (e) => {
-    if (!mq.matches) return;
-    const act = e.target.closest('a,button');
-    if (!act) return;
-    if (act.closest('form')) return;
-    setOpen(false);
-  });
+ // nav.addEventListener('click', (e) => { -->
+   // if (!mq.matches) return;
+    //const act = e.target.closest('a,button');
+    //if (!act) return;
+    //if (act.closest('form')) return;
+    //setOpen(false);
+  //});
 
   // esc to close
   document.addEventListener('keydown', (e) => {
