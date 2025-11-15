@@ -664,6 +664,81 @@ nav a, .btn, .badge, .price strong {
     }
   }
 </style>
+<style id="mobile-lite-and-sidebar">
+  /* === Dual-view toggles ============================================= */
+  :root{ --mobile-break: 860px; }
+  :where(.only-mobile){ display:none !important; }
+  :where(.only-desktop){ display:contents !important; } /* сохраняет потоки секций */
+
+  @media (max-width: 860px){
+    :where(.only-mobile){ display:block !important; }
+    :where(.only-desktop){ display:none !important; }
+  }
+
+  /* === Off-canvas sidebar for mobile nav ============================= */
+  @media (max-width: 960px){
+    .nav-scrim{
+      position:fixed; inset:0; z-index:2450;
+      background:rgba(0,0,0,.55); backdrop-filter:blur(2px);
+      display:none;
+    }
+    body.nav-open .nav-scrim{ display:block; }
+
+    .site-header nav{
+      position:fixed !important;
+      top:0; left:0; bottom:0; right:auto;
+      width:min(88vw, 420px);
+      padding-top:calc(var(--site-header-height) + 1rem) !important;
+      padding-inline:18px !important;
+      padding-bottom:clamp(20px, 12vh, 36px) !important;
+      border-right:1px solid var(--line);
+      background:rgba(8,8,8,.92) !important;
+      backdrop-filter:blur(14px) saturate(1.2);
+      box-shadow:16px 0 44px rgba(0,0,0,.55);
+      transform:translateX(-100%);
+      opacity:1 !important; pointer-events:none;
+      z-index:2500;
+      transition:transform .22s ease, visibility .22s ease;
+    }
+    .site-header--open nav,
+    .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+      transform:translateX(0); pointer-events:auto;
+    }
+    .site-header nav ul{
+      align-items:stretch !important;
+      gap:.35rem !important;
+    }
+  }
+
+  /* === Mobile quick actions / lite sections ========================== */
+  .mobi-quick, #mobileServices, #mobileProducts{ margin-top:.9rem; }
+  .mobi-actions{
+    display:grid; grid-template-columns:1fr 1fr; gap:.65rem;
+  }
+  .mobi-action{
+    display:flex; flex-direction:column; gap:.25rem; padding:.9rem;
+    border-radius:.85rem; border:1px solid var(--line);
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    text-decoration:none;
+  }
+  .mobi-action b{ font-weight:900; }
+  .mobi-sub{ color:var(--muted-2); font-size:.95rem; }
+
+  @media (min-width: 861px){
+    .mobi-actions{ display:none; } /* только мобильные */
+  }
+
+  /* === Упрощаем тяжёлые блоки на телефонах =========================== */
+  @media (max-width: 860px){
+    /* Сервисы: скрываем фильтры, лайв и серверную сетку — покажем lite */
+    #services .filters,
+    #services #liveTitle, #services #liveGrid,
+    #services #serverContent{ display:none !important; }
+
+    /* Продукты: скрываем тяжёлую сетку — покажем lite CTA */
+    #products .grid.grid--products{ display:none !important; }
+  }
+</style>
 
 </head>
 <body>
@@ -707,6 +782,7 @@ nav a, .btn, .badge, .price strong {
     </nav>
   </div>
 </header>
+<div id="navScrim" class="nav-scrim" hidden></div>
 
 
 <section class="hero" id="top">

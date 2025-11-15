@@ -18,6 +18,8 @@
       --accent:#d50000; --accent-2:#ff1a1a; --ok:#17d45b;
       --radius-lg:1.25rem; --radius-sm:.6rem; --shadow:0 12px 28px rgba(0,0,0,.55);
       --container:clamp(320px,92vw,1280px);
+      --site-header-height:72px;
+      --site-header-toggle-size:46px;
       --text-base:clamp(.98rem,1.05vw,1.05rem);
       --text-body:clamp(1.02rem,1.25vw,1.18rem);
       --text-detail:clamp(.9rem,1vw,1rem);
@@ -33,14 +35,74 @@
     a{color:inherit;text-decoration:none}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
 
-    /* ===== Topbar ===== */
-    .site-header{position:sticky;top:0;z-index:10;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
-    .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
-    .brand{display:flex;align-items:center;gap:.75rem;font-weight:900;letter-spacing:.5px}
-    .brand__logo{width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent));box-shadow:0 0 40px -6px var(--accent-2)}
-    nav ul{display:flex;list-style:none;gap:.75rem}
-    nav a{padding:.55rem .8rem;border-radius:.55rem}
-    nav a[aria-current="page"]{background:var(--panel);border:1px solid var(--line)}
+    /* ===== Topbar (mirror bgm_home) ===== */
+    .site-header{
+      position:sticky;
+      top:0;
+      z-index:1000;
+      background:#000;
+      border-bottom:1px solid var(--line);
+      backdrop-filter:none;
+    }
+    .site-header__inner{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1.25rem;
+      padding:.7rem 0;
+    }
+    .brand{
+      display:flex;
+      align-items:baseline;
+      gap:.9rem;
+      min-width:max-content;
+      font-weight:900;
+    }
+    .brand__logo{
+      display:inline-flex;
+      gap:.4rem;
+      font-weight:700;
+      font-size:1.1rem;
+      letter-spacing:.05em;
+      line-height:1;
+    }
+    .brand__word--white{color:#fff;}
+    .brand__word--red{color:#d50000;}
+    .brand__tagline{
+      margin-left:1rem;
+      font-size:.85rem;
+      letter-spacing:.08em;
+      color:rgba(255,255,255,.72);
+      white-space:nowrap;
+      font-weight:800;
+      text-transform:uppercase;
+    }
+    .site-header nav{margin-left:auto;}
+    .site-header nav ul{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:1.6rem;
+      list-style:none;
+      margin:0;
+      padding:0;
+      flex-wrap:nowrap;
+    }
+    .site-header nav a{
+      background:none!important;
+      border:0!important;
+      border-radius:0;
+      padding:0!important;
+      line-height:1;
+      text-transform:uppercase;
+      font-weight:800;
+      letter-spacing:.08em;
+      font-size:.82rem;
+      color:rgba(255,255,255,.75);
+    }
+    .site-header nav a:hover,
+    .site-header nav a[aria-current="page"]{color:#fff;}
+    .site-header .badge{padding:.12rem .5rem;font-size:.72rem;transform:translateY(-.04rem);}
 
     .btn{display:inline-flex;align-items:center;gap:.6em;padding:.78rem 1.15rem;border-radius:var(--radius-sm);font-weight:800;letter-spacing:.3px;border:1px solid transparent;cursor:pointer;transition:.2s}
     .btn--primary{background:var(--accent);color:#fff}
@@ -183,27 +245,7 @@ nav a,.btn,.badge {
   .hero__media{max-width:100%}
   .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
 }
-/* ===== CLEAN HEADER (brand | belt | nav) — unified ===== */
-
-/* контейнер на всю ширину с аккуратными отступами */
-.site-header .container{
-  width:100% !important;
-  max-width:none !important;
-  padding-inline:clamp(12px, 2vw, 28px) !important;
-}
-
-/* трёхколоночная сетка: бренд | слоган (сжимается) | меню */
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns:max-content minmax(0,1fr) max-content !important;
-  align-items:center !important;
-  column-gap:clamp(14px, 2vw, 36px) !important;
-  padding-block:.8rem !important;
-}
-
-
-
-</style></style>
+</style>
 
   
 <style id="about-topbar-force">
@@ -253,46 +295,6 @@ nav a,.btn,.badge {
   font-weight: 900 !important;
   letter-spacing: .02em;
 }
-/* Topbar шрифтом Diesel */
-.site-header,
-.site-header .brand,
-.site-header .belt,
-.site-header nav a,
-.site-header .badge {
-  font-family: var(--font-body) !important; /* Diesel */
-  font-style: normal !important;
-}
-
-/* === FORCE DIESEL FOR TOPBAR (overrides Ford) === */
-html body header.site-header nav a{
-  font-family: var(--font-body) !important;   /* Diesel */
-  font-style: normal !important;
-}
-html body header.site-header .brand,
-html body header.site-header .brand__word{
-  font-family: var(--font-body) !important;   /* Diesel */
-  font-style: normal !important;
-}
-html body header.site-header .belt,
-html body header.site-header .badge,
-html body header.site-header .btn{
-  font-family: var(--font-body) !important;   /* Diesel */
-  font-style: normal !important;
-}
-/* Увеличить логотип BAD GUY MOTORS и сдвинуть правее */
-html body header.site-header .brand__word{
-  font-size: clamp(1rem, 1.15vw, 1.2rem) !important; /* чуть крупнее */
-}
-
-html body header.site-header .brand{
-  margin-left: clamp(8px, 1.5vw, 28px) !important;   /* сдвиг вправо от края */
-  gap: .65rem !important;                             /* аккуратный интервал между словами */
-}
-
-/* на мобилке не переборщить со сдвигом */
-@media (max-width: 900px){
-  html body header.site-header .brand{ margin-left: 12px !important; }
-}
 
 #contact{ scroll-margin-top: 90px; }
 
@@ -301,8 +303,217 @@ html body header.site-header .brand{
   font-family: var(--font-body) !important; /* Diesel */
   font-style: normal !important;
 }
+</style>
 
+<style id="diesel-readability-patch">
+  /* логотип — немного крупнее */
+  .brand__logo,
+  .site-header .brand__logo{
+    font-size: clamp(1.15rem, 1.6vw, 1.4rem) !important;
+    letter-spacing: .06em !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+  }
 
+  /* навигация/кнопка Login и прочий мелкий текст в топбаре — Diesel */
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    font-family: var(--font-body) !important;
+    font-weight: 700 !important;
+    font-size: .95rem !important;
+    letter-spacing: .02em !important;
+    text-transform: none !important;
+    line-height: 1.15 !important;
+    color: rgba(255,255,255,.92) !important;
+  }
+
+  /* Кнопки и подписи — Diesel */
+  .btn,
+  .badge{
+    font-family: var(--font-body) !important;
+    font-weight: 800 !important;
+    letter-spacing: .02em !important;
+    text-transform: none !important;
+    line-height: 1.15 !important;
+    font-size: .98rem !important;
+  }
+  .section__desc,
+  .kicker{
+    font-family: var(--font-body) !important;
+    letter-spacing: .02em !important;
+  }
+</style>
+
+<style id="logo-to-diesel">
+  .site-header .brand__logo,
+  .site-header .brand__logo .brand__word{
+    font-family: var(--font-body) !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    text-transform: uppercase !important;
+    letter-spacing: .06em !important;
+    line-height: 1 !important;
+  }
+  .site-header .brand__logo{
+    font-size: clamp(1.2rem, 1.8vw, 1.55rem) !important;
+  }
+</style>
+
+<style id="belt-to-diesel">
+  .site-header .brand__tagline,
+  .site-header .belt{
+    font-family: var(--font-body) !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    text-transform: uppercase !important;
+    letter-spacing: .12em !important;
+    line-height: 1 !important;
+    color: rgba(255,255,255,.78) !important;
+    font-size: clamp(.78rem, .95vw, .95rem) !important;
+    white-space: nowrap !important;
+  }
+</style>
+
+<style id="topbar-responsive">
+  .sr-only{
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
+  }
+
+  .site-header__toggle{
+    display:none;
+    align-items:center;
+    justify-content:center;
+    width:var(--site-header-toggle-size);
+    height:var(--site-header-toggle-size);
+    border-radius:.85rem;
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.06);
+    color:#fff;
+    cursor:pointer;
+    transition:transform .18s ease, background .18s ease, border-color .18s ease;
+  }
+  .site-header__toggle:hover{
+    background:rgba(255,255,255,.12);
+    border-color:rgba(255,255,255,.28);
+  }
+  .site-header__toggle:focus-visible{
+    outline:2px solid rgba(255,255,255,.92);
+    outline-offset:3px;
+  }
+  .site-header__toggle-box{
+    position:relative;
+    width:20px;
+    height:14px;
+    display:block;
+  }
+  .site-header__toggle-lines,
+  .site-header__toggle-lines::before,
+  .site-header__toggle-lines::after{
+    content:"";
+    position:absolute;
+    left:0;
+    width:100%;
+    height:2px;
+    border-radius:999px;
+    background:currentColor;
+    transition:transform .22s ease, opacity .22s ease, background .22s ease;
+  }
+  .site-header__toggle-lines{ top:50%; transform:translateY(-50%); }
+  .site-header__toggle-lines::before{ top:-6px; }
+  .site-header__toggle-lines::after{ top:6px; }
+
+  .site-header--open .site-header__toggle{
+    background:rgba(255,255,255,.16);
+    border-color:rgba(255,255,255,.38);
+  }
+  .site-header--open .site-header__toggle-lines{ background:transparent; }
+  .site-header--open .site-header__toggle-lines::before{
+    transform:translateY(6px) rotate(45deg);
+  }
+  .site-header--open .site-header__toggle-lines::after{
+    transform:translateY(-6px) rotate(-45deg);
+  }
+
+  @media (max-width:1080px){
+    .site-header .belt{ display:none !important; }
+  }
+
+  @media (max-width:960px){
+    body.nav-open{ overflow:hidden; }
+    .site-header{
+      --site-header-height:max(62px, 10vh);
+    }
+    .site-header .brand__tagline{ display:none !important; }
+    .site-header .container{
+      padding-inline:clamp(16px, 4vw, 24px) !important;
+    }
+    .site-header__inner{
+      display:grid !important;
+      grid-template-columns:auto max-content !important;
+      align-items:center !important;
+      gap:clamp(12px, 3vw, 24px) !important;
+    }
+    .site-header__toggle{
+      display:inline-flex;
+    }
+    .site-header nav{
+      position:fixed;
+      inset:0;
+      padding-top:calc(var(--site-header-height) + 1rem);
+      padding-inline:clamp(20px, 6vw, 36px);
+      padding-bottom:clamp(28px, 12vh, 46px);
+      background:rgba(5,5,5,.88);
+      backdrop-filter:blur(18px) saturate(1.2);
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-start;
+      opacity:0;
+      pointer-events:none;
+      transform:translateY(-12px);
+      transition:opacity .22s ease, transform .22s ease;
+      z-index:900;
+    }
+    .site-header nav ul{
+      flex-direction:column !important;
+      align-items:stretch !important;
+      gap:.45rem !important;
+      width:100%;
+    }
+    .site-header nav li{ width:100%; }
+    .site-header nav a,
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      width:100%;
+      justify-content:space-between;
+      background:rgba(255,255,255,.04) !important;
+      border:1px solid rgba(255,255,255,.08) !important;
+      border-radius:.85rem !important;
+      padding:.95rem 1rem !important;
+      font-size:1.05rem !important;
+      letter-spacing:.035em !important;
+    }
+    .site-header nav a:hover,
+    .site-header nav a[aria-current="page"],
+    .site-header nav .btn:hover{
+      background:rgba(255,255,255,.1) !important;
+      border-color:rgba(255,255,255,.22) !important;
+      color:#fff !important;
+    }
+    .site-header--open nav{
+      opacity:1;
+      pointer-events:auto;
+      transform:translateY(0);
+    }
+  }
 </style>
 
 </head>
@@ -311,44 +522,41 @@ html body header.site-header .brand{
   <!-- smoke layer -->
   <div id="bg"></div>
 
+  <a href="#main" class="visually-hidden">Skip to main content</a>
+
   <!-- Topbar -->
 <header class="site-header" role="banner">
   <div class="container site-header__inner">
     <a class="brand" href="{% url 'home' %}">
-      <span class="brand__logo" aria-hidden="true"></span>
-      <span class="brand__word brand__word--white">BAD GUY</span>
-      <span class="brand__word brand__word--red">MOTORS</span>
+      <span class="brand__logo">
+        <span class="brand__word brand__word--white">BAD GUY</span>
+        <span class="brand__word brand__word--red">MOTORS</span>
+      </span>
+      <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
     </a>
 
-    <div class="belt">CUSTOM BUILDS • INSTALLS • UPGRADES</div>
+    <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
+      <span class="site-header__toggle-box" aria-hidden="true">
+        <span class="site-header__toggle-lines"></span>
+      </span>
+      <span class="sr-only">Toggle navigation</span>
+    </button>
 
-    <nav aria-label="Main">
+    <nav id="siteNav" aria-label="Main navigation">
       <ul>
-        <li><a href="{% url 'home' %}">Home</a></li>
         <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
         {% if user.is_authenticated %}
           <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
         {% else %}
           <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
         {% endif %}
-        <li><a href="{% url 'store' %}" aria-current="page">Products</a></li>
+        <li><a href="{% url 'store' %}">Products</a></li>
         <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
         <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
         <li><a href="{% url 'financing' %}">Financing</a></li>
-        <li><a href="{% url 'our-story' %}">About</a></li>
+        <li><a href="{% url 'our-story' %}" aria-current="page">About</a></li>
       </ul>
     </nav>
-    <!-- Mobile menu toggle (visible ≤900px) -->
-<button type="button"
-        id="mobileNavToggle"
-        class="mobile-nav-toggle"
-        aria-haspopup="true"
-        aria-expanded="false"
-        aria-controls="mobileNav">
-  <span class="mobile-nav-toggle__bars" aria-hidden="true"><i></i><i></i><i></i></span>
-  <span class="mobile-nav-toggle__label">Menu</span>
-</button>
-
   </div>
 </header>
 
@@ -372,7 +580,7 @@ html body header.site-header .brand{
 </section>
 
 
-  <main>
+  <main id="main">
     <!-- Row 1 -->
     <section class="section">
       <div class="container grid grid--2">
@@ -653,113 +861,93 @@ html body header.site-header .brand{
 </script>
 <!-- ==================================================================== -->
 
-{% include "includes/analytics_tracker.html" %}
-<!-- Mobile sidebar + overlay -->
-<div id="mobileOverlay" class="mobile-overlay" hidden></div>
+<!-- === Mobile header/sidebar hardening (shared) ======== -->
+<style id="home-mobile-nav-fix">
+  @media (max-width:960px){
+    .site-header nav{ z-index: 2400 !important; }
+    .site-header nav ul{
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:stretch !important;
+      gap:.45rem !important;
+      width:100% !important;
+    }
+    .site-header nav a,
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      width:100% !important;
+      justify-content:space-between !important;
+    }
+    .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+      opacity:1 !important; pointer-events:auto !important; transform:translateY(0) !important;
+    }
+  }
 
-<aside id="mobileNav"
-       class="mobile-nav"
-       aria-label="Mobile menu"
-       aria-hidden="true">
-  <div class="mobile-nav__header">
-    <div class="mobile-nav__brand">Bad Guy Motors</div>
-    <button type="button" id="mobileNavClose" class="mobile-nav__close" aria-label="Close menu">×</button>
-  </div>
-
-  <nav class="mobile-nav__scroll" aria-label="Mobile">
-    <ul class="mobile-nav__list"><!-- populated via JS --></ul>
-  </nav>
-</aside>
-
-<style id="mobile-sidebar-patch">
-/* ===== Mobile Sidebar Patch (keeps desktop untouched) ===== */
-
-:root{
-  --nav-width: min(82vw, 380px);
-}
-
-/* Toggle button — hidden on desktop */
-.mobile-nav-toggle{
-  display:none;
-  align-items:center; gap:.55rem;
-  padding:.5rem .7rem;
-  border-radius:.55rem; border:1px solid var(--line);
-  background:#0f0f0f; color:#fff; cursor:pointer;
-  font-family:var(--font-body, system-ui); font-weight:900; line-height:1;
-}
-.mobile-nav-toggle:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
-.mobile-nav-toggle__bars{ display:inline-flex; flex-direction:column; gap:4px; }
-.mobile-nav-toggle__bars i{ width:18px; height:2px; background:#fff; display:block; border-radius:2px; opacity:.92; }
-.mobile-nav-toggle__label{ font-size:.9rem; letter-spacing:.06em; text-transform:uppercase; }
-
-/* Sidebar + overlay (stack above contact modal) */
-.mobile-overlay{
-  position:fixed; inset:0; z-index:2390;
-  background:rgba(0,0,0,.55);
-  backdrop-filter:blur(2px);
-}
-
-.mobile-nav{
-  position:fixed; inset:0 auto 0 0; z-index:2400;
-  width:var(--nav-width); height:100vh;
-  transform:translate3d(-100%,0,0);
-  transition:transform .22s ease;
-  background:linear-gradient(180deg,#0c0c0c,#121212);
-  border-right:1px solid var(--line);
-  display:flex; flex-direction:column;
-  padding-top:calc(8px + env(safe-area-inset-top));
-  color:#fff;
-  box-shadow:0 18px 44px rgba(0,0,0,.55);
-}
-
-.mobile-nav__header{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:.8rem .9rem .6rem .9rem;
-  border-bottom:1px solid var(--line);
-}
-.mobile-nav__brand{
-  font-family:var(--font-head, system-ui);
-  font-weight:900; letter-spacing:.04em; text-transform:uppercase;
-}
-.mobile-nav__close{
-  width:38px; height:38px; border-radius:.55rem;
-  border:1px solid var(--line); background:#0f0f0f; color:#bdbdbd; cursor:pointer; font-size:20px;
-}
-.mobile-nav__close:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
-
-.mobile-nav__scroll{
-  overflow:auto; -webkit-overflow-scrolling:touch;
-  padding:.6rem .6rem calc(12px + env(safe-area-inset-bottom));
-}
-.mobile-nav__list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.25rem; }
-.mobile-nav__list > li > a{
-  display:block;
-  padding:.78rem .85rem;
-  border-radius:.65rem;
-  font-family:var(--font-body, system-ui);
-  font-weight:900; letter-spacing:.06em; text-transform:uppercase;
-  color:rgba(255,255,255,.92);
-  border:1px solid transparent;
-}
-.mobile-nav__list > li > a:hover{ background:#151515; border-color:rgba(255,255,255,.08); }
-.mobile-nav__list > li > a[aria-current="page"]{
-  background:#151515; border-color:rgba(255,255,255,.14);
-}
-
-/* Activation state (controlled by JS) */
-body.nav-open #mobileNav{ transform:translate3d(0,0,0); }
-body.nav-open{ overflow:hidden; }
-
-/* Enable enhancement only when JS is active */
-@media (max-width:900px){
-  .mobile-nav-toggle{ display:inline-flex; grid-column:3; justify-self:end; }
-}
-/* Hide desktop nav only when enhancement is active (JS adds .nav-enhanced) */
-@media (max-width:900px){
-  body.nav-enhanced .site-header nav{ display:none !important; }
-}
-/* Keep your existing desktop header styles intact */
+  body.nav-open .contact-fab{ display:none !important; }
 </style>
+
+<script id="home-mobile-nav-fix-js">
+(() => {
+  const header = document.querySelector('header.site-header');
+  const toggle = document.querySelector('.site-header__toggle');
+  const nav    = document.getElementById('siteNav');
+  const mq     = window.matchMedia('(max-width: 960px)');
+  if (!header || !toggle || !nav) return;
+
+  if (toggle.dataset.bgmTopbarBound === '1') return;
+  toggle.dataset.bgmTopbarBound = '1';
+
+  const isOpen = () => header.classList.contains('site-header--open') || toggle.getAttribute('aria-expanded') === 'true';
+
+  const setOpen = (open) => {
+    header.classList.toggle('site-header--open', !!open);
+    document.body.classList.toggle('nav-open', !!open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open && mq.matches) {
+      const first = nav.querySelector('a,button,[tabindex]:not([tabindex="-1"])');
+      first && first.focus({ preventScroll: true });
+    } else if (!open) {
+      toggle.focus({ preventScroll: true });
+    }
+  };
+
+  toggle.addEventListener('click', (e) => {
+    if (!mq.matches) return;
+    e.preventDefault();
+    setOpen(!isOpen());
+  });
+
+  nav.addEventListener('click', (e) => {
+    if (!mq.matches) return;
+    const act = e.target.closest('a,button');
+    if (!act || act.closest('form')) return;
+    setOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!mq.matches || !isOpen()) return;
+    if (e.key === 'Escape') setOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!mq.matches || !isOpen() || e.key !== 'Tab') return;
+    const focusables = nav.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
+    const list = Array.from(focusables).filter(el => !el.disabled && el.offsetParent !== null);
+    if (!list.length) return;
+    const first = list[0], last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  });
+
+  const onChange = (ev) => { if (!ev.matches) setOpen(false); };
+  (mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange));
+
+  setOpen(false);
+})();
+</script>
+
+{% include "includes/analytics_tracker.html" %}
+
 
 </body>
 </html>
