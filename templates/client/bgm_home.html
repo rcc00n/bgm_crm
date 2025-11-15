@@ -802,6 +802,23 @@ nav a, .btn, .badge, .price strong {
         <div class="stat"><b>24/7</b><br><span class="muted">Book online fast quotes</span></div>
       </div>
     </div>
+<!-- Mobile quick actions -->
+<div class="mobi-quick only-mobile" aria-label="Quick actions">
+  <div class="mobi-actions">
+    <a class="mobi-action" href="{% url 'client-dashboard' %}#services">
+      <b>Book a Service</b><span class="mobi-sub">Pick date &amp; time</span>
+    </a>
+    <a class="mobi-action" href="{% url 'store' %}">
+      <b>Shop Parts</b><span class="mobi-sub">In stock &amp; ready</span>
+    </a>
+    <a class="mobi-action" href="#contact">
+      <b>Contact Us</b><span class="mobi-sub">Call or e‑mail</span>
+    </a>
+    <a class="mobi-action" href="{% url 'our-story' %}">
+      <b>About</b><span class="mobi-sub">Who we are</span>
+    </a>
+  </div>
+</div>
 
 <div class="frame frame--media hero__media">
   <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'BGM hero' }}" loading="lazy" decoding="async">
@@ -822,6 +839,28 @@ nav a, .btn, .badge, .price strong {
         </div>
         <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Open services </a></div>
       </div>
+<!-- Mobile services lite -->
+<div id="mobileServices" class="only-mobile" aria-labelledby="servicesMobileTitle">
+  <h3 id="servicesMobileTitle" class="kicker">Quick picks</h3>
+  <div class="mobi-actions" style="margin-bottom:.6rem">
+    <a class="mobi-action" href="{% url 'client-dashboard' %}?q=fabrication#services">
+      <b>Fabrication</b><span class="mobi-sub">Bumpers, racks, swaps</span>
+    </a>
+    <a class="mobi-action" href="{% url 'client-dashboard' %}?q=suspension#services">
+      <b>Suspension</b><span class="mobi-sub">Lift kits &amp; 4‑links</span>
+    </a>
+    <a class="mobi-action" href="{% url 'client-dashboard' %}?q=tuning#services">
+      <b>Diesel Tuning</b><span class="mobi-sub">Turbo, injectors, ECU</span>
+    </a>
+    <a class="mobi-action" href="{% url 'client-dashboard' %}?q=coating#services">
+      <b>Coatings</b><span class="mobi-sub">Armadillo &amp; liner</span>
+    </a>
+  </div>
+  <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
+    <input class="input" type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
+    <button class="btn btn--ghost" type="submit">Search</button>
+  </form>
+</div>
 
       <!-- Filters -->
       <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
@@ -942,6 +981,18 @@ nav a, .btn, .badge, .price strong {
         </div>
         <div><a class="btn btn--primary" href="{% url 'store' %}">Open products</a></div>
       </div>
+<!-- Mobile products lite -->
+<div id="mobileProducts" class="only-mobile" aria-labelledby="productsMobileTitle">
+  <h3 id="productsMobileTitle" class="kicker">Quick shop</h3>
+  <div class="mobi-actions">
+    <a class="mobi-action" href="{% url 'store' %}">
+      <b>Shop Parts</b><span class="mobi-sub">Fresh stock</span>
+    </a>
+    <a class="mobi-action" href="{% url 'merch' %}">
+      <b>Merch</b><span class="mobi-sub">Coming soon</span>
+    </a>
+  </div>
+</div>
 
       {% if home_products %}
         <div class="grid grid--products">
@@ -1385,18 +1436,26 @@ nav a, .btn, .badge, .price strong {
   const mq     = window.matchMedia('(max-width: 960px)');
   if (!header || !toggle || !nav) return;
 
-  // Prevent double-binding
+  let scrim = document.getElementById('navScrim');
+  if (!scrim){
+    scrim = document.createElement('div');
+    scrim.id = 'navScrim';
+    scrim.className = 'nav-scrim';
+    document.body.insertBefore(scrim, document.body.firstChild);
+  }
+
   if (toggle.dataset.bgmTopbarBound === '1') return;
   toggle.dataset.bgmTopbarBound = '1';
 
-  const isOpen = () => header.classList.contains('site-header--open') || toggle.getAttribute('aria-expanded') === 'true';
+  const isOpen = () =>
+    header.classList.contains('site-header--open') ||
+    toggle.getAttribute('aria-expanded') === 'true';
 
   const setOpen = (open) => {
     header.classList.toggle('site-header--open', !!open);
     document.body.classList.toggle('nav-open', !!open);
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open && mq.matches) {
-      // focus first item for accessibility
       const first = nav.querySelector('a,button,[tabindex]:not([tabindex="-1"])');
       first && first.focus({ preventScroll: true });
     } else if (!open) {
@@ -1404,14 +1463,14 @@ nav a, .btn, .badge, .price strong {
     }
   };
 
-  // Toggle by button
   toggle.addEventListener('click', (e) => {
-    if (!mq.matches) return; // desktop: no overlay behavior
+    if (!mq.matches) return;
     e.preventDefault();
     setOpen(!isOpen());
   });
 
-  // Close on any nav item activation (links/buttons), but not on real forms
+  scrim.addEventListener('click', () => { if (mq.matches && isOpen()) setOpen(false); });
+
   nav.addEventListener('click', (e) => {
     if (!mq.matches) return;
     const act = e.target.closest('a,button');
@@ -1420,13 +1479,11 @@ nav a, .btn, .badge, .price strong {
     setOpen(false);
   });
 
-  // Escape to close
   document.addEventListener('keydown', (e) => {
     if (!mq.matches || !isOpen()) return;
     if (e.key === 'Escape') setOpen(false);
   });
 
-  // Trap focus within the open menu on mobile
   document.addEventListener('keydown', (e) => {
     if (!mq.matches || !isOpen() || e.key !== 'Tab') return;
     const focusables = nav.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
@@ -1437,14 +1494,13 @@ nav a, .btn, .badge, .price strong {
     else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
   });
 
-  // If breakpoint moves to desktop, ensure clean state
   const onChange = (ev) => { if (!ev.matches) setOpen(false); };
   (mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange));
 
-  // Initialize consistent state
   setOpen(false);
 })();
 </script>
+
 
 {% include "includes/analytics_tracker.html" %}
 </body>
