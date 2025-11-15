@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "phonenumbers",
     "accounts",
     "core",
+    "notifications",
     "dal",
     "dal_select2",
     # "storages",

@@ -158,6 +158,16 @@ Services & categories: Add service categories and services through the admin pan
 
 Products & categories: Create product categories, car makes, models and products. Specify compatibility and active status. Products appear on the store home page and category pages once added.
 
+Telegram operations bot
+
+The notifications app ships an operations-grade Telegram bot that lives alongside the Django project.
+
+- Configuration lives at “Telegram bot settings” in the admin panel. Add the BotFather token, at least one chat ID (comma or space separated), and optional whitelisted user IDs for interactive commands.
+- Once configured, run `python manage.py run_telegram_bot` on the Dokku host to start the long-polling worker. It understands `/today` (returns an inline digest) and `/digest` (pushes the summary to all recipients).
+- Real-time alerts fire automatically whenever an appointment or order is created as long as the corresponding toggles are enabled in the settings entry.
+- The same admin section exposes “Telegram reminders”. Staff can queue ad-hoc reminders from the admin UI, trigger them manually via the bulk action, or automate delivery with `python manage.py process_telegram_reminders`.
+- Optional daily digests can be sent via cron with `python manage.py send_telegram_digest` (includes a `--force` switch). Use the hour selector inside the settings model to control when the digest is allowed to send.
+
 Users & roles: Create users and assign roles via the admin interface or programmatically using assign_role
 GitHub
 . Granting the Admin or Master role will automatically set is_staff.
@@ -253,4 +263,3 @@ Test accounts:
     UN: user
     
     P: useruser!!!
-
