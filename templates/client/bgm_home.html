@@ -739,6 +739,37 @@ nav a, .btn, .badge, .price strong {
     #products .grid.grid--products{ display:none !important; }
   }
 </style>
+<style id="bgm-mobile-hero-and-nav-fixes">
+  /* --- Mobile: hide the 4 quick boxes in hero (keep on desktop) --- */
+  @media (max-width: 960px){
+    .mobi-quick{ display:none !important; }  /* exact section shown in the hero */
+  }
+
+  /* --- Mobile nav: crisp drawer (no blur) + close button --- */
+  @media (max-width: 960px){
+    .nav-scrim{
+      backdrop-filter:none !important;
+      -webkit-backdrop-filter:none !important;
+      background:rgba(0,0,0,.66) !important;
+    }
+    .site-header nav{
+      backdrop-filter:none !important;
+      -webkit-backdrop-filter:none !important;
+      background:#0a0a0a !important;
+      box-shadow:16px 0 44px rgba(0,0,0,.55) !important;
+    }
+    /* in-drawer close button */
+    .site-header__close{
+      position:absolute; top:10px; right:12px; z-index:1;
+      width:38px; height:38px; display:grid; place-items:center;
+      border-radius:.6rem; border:1px solid rgba(255,255,255,.12);
+      background:#101010; color:#fff; font-size:22px; line-height:1;
+      cursor:pointer;
+    }
+    .site-header__close:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
+    .site-header__close:hover{ background:#141414; }
+  }
+</style>
 
 </head>
 <body>
@@ -766,6 +797,8 @@ nav a, .btn, .badge, .price strong {
     </button>
 
     <nav id="siteNav" aria-label="Main navigation">
+      <button class="site-header__close only-mobile" type="button" aria-label="Close menu">×</button>
+
       <ul>
         <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
         {% if user.is_authenticated %}
@@ -1433,9 +1466,11 @@ nav a, .btn, .badge, .price strong {
   const header = document.querySelector('header.site-header');
   const toggle = document.querySelector('.site-header__toggle');
   const nav    = document.getElementById('siteNav');
+  const closeInPanel = nav ? nav.querySelector('.site-header__close') : null;
   const mq     = window.matchMedia('(max-width: 960px)');
   if (!header || !toggle || !nav) return;
 
+  // scrim (ensure it exists and is not "hidden")
   let scrim = document.getElementById('navScrim');
   if (!scrim){
     scrim = document.createElement('div');
@@ -1443,6 +1478,7 @@ nav a, .btn, .badge, .price strong {
     scrim.className = 'nav-scrim';
     document.body.insertBefore(scrim, document.body.firstChild);
   }
+  scrim.removeAttribute('hidden'); // ensure CSS can control visibility
 
   if (toggle.dataset.bgmTopbarBound === '1') return;
   toggle.dataset.bgmTopbarBound = '1';
@@ -1455,7 +1491,10 @@ nav a, .btn, .badge, .price strong {
     header.classList.toggle('site-header--open', !!open);
     document.body.classList.toggle('nav-open', !!open);
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    // scrim visibility is CSS-driven via .nav-open, but also keep ARIA-friendly state
+    scrim.style.display = open ? 'block' : '';
     if (open && mq.matches) {
+      // focus first actionable item inside drawer
       const first = nav.querySelector('a,button,[tabindex]:not([tabindex="-1"])');
       first && first.focus({ preventScroll: true });
     } else if (!open) {
@@ -1463,14 +1502,14 @@ nav a, .btn, .badge, .price strong {
     }
   };
 
+  // open/close handlers
   toggle.addEventListener('click', (e) => {
-    if (!mq.matches) return;
-    e.preventDefault();
-    setOpen(!isOpen());
+    if (!mq.matches) return; e.preventDefault(); setOpen(!isOpen());
   });
-
   scrim.addEventListener('click', () => { if (mq.matches && isOpen()) setOpen(false); });
+  closeInPanel && closeInPanel.addEventListener('click', () => { if (mq.matches) setOpen(false); });
 
+  // close on link/button activation inside drawer
   nav.addEventListener('click', (e) => {
     if (!mq.matches) return;
     const act = e.target.closest('a,button');
@@ -1479,11 +1518,13 @@ nav a, .btn, .badge, .price strong {
     setOpen(false);
   });
 
+  // esc to close
   document.addEventListener('keydown', (e) => {
     if (!mq.matches || !isOpen()) return;
     if (e.key === 'Escape') setOpen(false);
   });
 
+  // focus trap in drawer
   document.addEventListener('keydown', (e) => {
     if (!mq.matches || !isOpen() || e.key !== 'Tab') return;
     const focusables = nav.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
@@ -1494,15 +1535,10 @@ nav a, .btn, .badge, .price strong {
     else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
   });
 
+  // if viewport grows to desktop, force-close
   const onChange = (ev) => { if (!ev.matches) setOpen(false); };
   (mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange));
 
   setOpen(false);
 })();
 </script>
-
-
-{% include "includes/analytics_tracker.html" %}
-</body>
-
-</html>
