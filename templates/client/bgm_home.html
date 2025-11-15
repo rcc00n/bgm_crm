@@ -1617,25 +1617,23 @@ nav a, .btn, .badge, .price strong {
 (() => {
   const header = document.querySelector('header.site-header');
   const nav    = document.getElementById('siteNav');
-  const toggle = document.querySelector('.site-header__toggle');
   const mq     = window.matchMedia('(max-width: 960px)');
-  if (!header || !nav || !toggle) return;
-  if (nav.dataset.bgmNavBound === '2') return;
-  nav.dataset.bgmNavBound = '2';
+  if (!header || !nav) return;
+  if (nav.dataset.bgmNavBound === '3') return;
+  nav.dataset.bgmNavBound = '3';
 
   const scrim  = document.getElementById('navScrim');
   const setOpenFn = typeof header.bgmSetNavOpen === 'function' ? header.bgmSetNavOpen : null;
-
   const closeD = () => {
     if (setOpenFn) setOpenFn(false);
     else{
       header.classList.remove('site-header--open');
       document.body.classList.remove('nav-open');
-      toggle.setAttribute('aria-expanded','false');
+      const tgl = document.querySelector('.site-header__toggle');
       if (scrim) scrim.style.display = '';
+      if (tgl) tgl.setAttribute('aria-expanded','false');
     }
   };
-  const closeDelay = 220;
 
   nav.addEventListener('click', (e) => {
     if (!mq.matches) return;
@@ -1646,38 +1644,32 @@ nav a, .btn, .badge, .price strong {
     const link = e.target.closest('a[href]');
     if (!link) return;
 
-    // Разрешаем модификаторы/новую вкладку
-    const nonPrimary = (typeof e.button === 'number') ? e.button !== 0 : false; // <-- фикс
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || link.target === '_blank' || nonPrimary){
-      closeD();
-      return;
-    }
+    const raw = link.getAttribute('href') || '';
+    if (/^(mailto:|tel:|sms:)/i.test(raw)){ closeD(); return; }
 
-    const href = link.href;
-    // системные схемы — не перехватываем
-    if (/^(mailto:|tel:|sms:)/i.test(href)){ closeD(); return; }
+    const url = new URL(raw, location.href);
 
-    e.preventDefault();
-    closeD();
-
-    const url = new URL(href, location.href);
     // Якорь на текущей странице
     if (url.origin === location.origin && url.pathname === location.pathname && url.hash){
+      e.preventDefault();
+      closeD();
       const id = decodeURIComponent(url.hash.slice(1));
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         const el = document.getElementById(id);
-        if (el){
+        if (el) {
           history.pushState(null, '', url.hash);
           el.scrollIntoView({ behavior:'smooth', block:'start' });
         } else {
-          location.href = href;
+          location.href = url.href;
         }
-      }, closeDelay);
+      });
       return;
     }
 
-    // Обычная навигация
-    setTimeout(() => { location.assign(href); }, closeDelay);
-  }, true);
+    // Жёсткая навигация (главное изменение)
+    e.preventDefault();
+    // Не ждём закрытия: новое загрузит страницу и так
+    window.location.href = url.href;
+  }, { capture:false, passive:false });   // <- без capture
 })();
 </script>
