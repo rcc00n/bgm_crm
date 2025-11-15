@@ -276,6 +276,7 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "label": "Telegram Bot",
                 "icon": "fas fa-paper-plane",
                 "items": [
+                    {"model": "notifications.TelegramContact", "label": "Contacts"},
                     {"model": "notifications.TelegramBotSettings", "label": "Bot Settings"},
                     {"model": "notifications.TelegramReminder", "label": "Reminders"},
                     {"model": "notifications.TelegramMessageLog", "label": "Delivery Log"},
@@ -396,6 +397,7 @@ JAZZMIN_SETTINGS = {
         "notifications.TelegramBotSettings": "fas fa-robot",
         "notifications.TelegramReminder": "fas fa-stopwatch",
         "notifications.TelegramMessageLog": "fas fa-envelope-open-text",
+        "notifications.TelegramContact": "fas fa-address-book",
     },
     "custom_sidebar": ADMIN_SIDEBAR_SECTIONS,
     "theme": "None",

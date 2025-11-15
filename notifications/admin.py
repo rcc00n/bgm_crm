@@ -2,7 +2,12 @@ from django.contrib import admin, messages
 from django.utils import timezone
 
 from . import services
-from .models import TelegramBotSettings, TelegramMessageLog, TelegramReminder
+from .models import (
+    TelegramBotSettings,
+    TelegramMessageLog,
+    TelegramReminder,
+    TelegramContact,
+)
 
 
 @admin.register(TelegramBotSettings)
@@ -48,9 +53,10 @@ class TelegramReminderAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("title", "message")
     actions = ["send_selected_now"]
+    filter_horizontal = ("contacts",)
     readonly_fields = ("sent_at", "last_error", "created_at", "updated_at")
     fieldsets = (
-        ("Reminder", {"fields": ("title", "message", "scheduled_for", "target_chat_ids")}),
+        ("Reminder", {"fields": ("title", "message", "scheduled_for", "contacts", "target_chat_ids")}),
         ("Status", {"fields": ("status", "sent_at", "last_error")}),
         ("Meta", {"fields": ("created_at", "updated_at")}),
     )
@@ -68,3 +74,9 @@ class TelegramReminderAdmin(admin.ModelAdmin):
             services.deliver_reminder(reminder)
             sent += 1
         self.message_user(request, f"Triggered {sent} reminder(s).")
+
+
+@admin.register(TelegramContact)
+class TelegramContactAdmin(admin.ModelAdmin):
+    list_display = ("name", "chat_id", "updated_at")
+    search_fields = ("name", "chat_id")

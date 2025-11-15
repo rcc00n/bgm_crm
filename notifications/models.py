@@ -126,6 +126,26 @@ class TelegramMessageLog(models.Model):
         return f"{self.event_type} → {self.chat_id} ({state})"
 
 
+class TelegramContact(models.Model):
+    """
+    Address book for reusable Telegram recipients.
+    """
+
+    name = models.CharField(max_length=160)
+    chat_id = models.BigIntegerField(unique=True)
+    notes = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Telegram contact"
+        verbose_name_plural = "Telegram contacts"
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.chat_id})"
+
+
 class TelegramReminder(models.Model):
     """
     Allows staff to schedule ad-hoc reminders that the bot will deliver later.
@@ -142,6 +162,12 @@ class TelegramReminder(models.Model):
     target_chat_ids = models.TextField(
         blank=True,
         help_text="Optional override for chat IDs. Uses admin recipients when empty.",
+    )
+    contacts = models.ManyToManyField(
+        TelegramContact,
+        blank=True,
+        related_name="reminders",
+        help_text="Select saved contacts to receive this reminder.",
     )
     status = models.CharField(
         max_length=20,
@@ -164,7 +190,12 @@ class TelegramReminder(models.Model):
 
     @property
     def chat_id_list(self) -> list[int]:
-        return _parse_id_list(self.target_chat_ids)
+        manual_ids = _parse_id_list(self.target_chat_ids)
+        contact_ids: list[int] = []
+        if self.pk:
+            contact_ids = list(self.contacts.values_list("chat_id", flat=True))
+        combined = contact_ids + [cid for cid in manual_ids if cid not in contact_ids]
+        return combined
 
     def mark_sent(self, *, success: bool, error_message: str | None = None):
         self.status = self.Status.SENT if success else self.Status.FAILED

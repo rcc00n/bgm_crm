@@ -163,6 +163,7 @@ Telegram operations bot
 The notifications app ships an operations-grade Telegram bot that lives alongside the Django project.
 
 - Configuration lives at “Telegram bot settings” in the admin panel. Add the BotFather token, at least one chat ID (comma or space separated), and optional whitelisted user IDs for interactive commands.
+- Maintain a reusable address book under “Telegram contacts” so reminders can target people without memorizing chat IDs. Those contacts can be picked directly on the reminder form.
 - Once configured, run `python manage.py run_telegram_bot` on the Dokku host to start the long-polling worker. It understands `/today` (returns an inline digest) and `/digest` (pushes the summary to all recipients).
 - Real-time alerts fire automatically whenever an appointment or order is created as long as the corresponding toggles are enabled in the settings entry.
 - The same admin section exposes “Telegram reminders”. Staff can queue ad-hoc reminders from the admin UI, trigger them manually via the bulk action, or automate delivery with `python manage.py process_telegram_reminders`.
