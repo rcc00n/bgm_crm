@@ -1460,6 +1460,13 @@ nav a, .btn, .badge, .price strong {
   /* Avoid overlap with the floating Contact button */
   body.nav-open .contact-fab{ display:none !important; }
 </style>
+<style id="hide-hero-image-mobile">
+  /* Mobile: hide hero image, keep layout single-column */
+  @media (max-width: 860px){
+    .hero__media{ display:none !important; }
+    .hero__inner{ grid-template-columns: 1fr !important; }
+  }
+</style>
 
 <script id="home-mobile-nav-fix-js">
 (() => {

@@ -7,6 +7,7 @@
     align-items:center;
     justify-content:center;
     padding:clamp(20px, 6vw, 52px);
+    --notice-font-sans:"Inter","Segoe UI","Helvetica Neue",system-ui,-apple-system,BlinkMacSystemFont,Arial,sans-serif;
     background:
       radial-gradient(1200px 520px at 8% 12%, rgba(213,0,0,.32), transparent 58%),
       radial-gradient(960px 520px at 92% 18%, rgba(255,38,38,.18), transparent 62%),
@@ -77,8 +78,8 @@
   }
   .site-notice__title{
     margin-top:clamp(1.4rem, 4vw, 1.8rem);
-    font-family:var(--font-body, "Inter", system-ui, sans-serif);
-    font-weight:900;
+    font-family:var(--notice-font-sans, "Inter", "Segoe UI", system-ui, sans-serif);
+    font-weight:800;
     font-size:clamp(2rem, 4vw, 2.6rem);
     letter-spacing:.02em;
     text-transform:none;
