@@ -269,6 +269,21 @@ ADMIN_SIDEBAR_SECTIONS = [
         ],
     },
     {
+        "label": "Automation",
+        "icon": "fas fa-robot",
+        "groups": [
+            {
+                "label": "Telegram Bot",
+                "icon": "fas fa-paper-plane",
+                "items": [
+                    {"model": "notifications.TelegramBotSettings", "label": "Bot Settings"},
+                    {"model": "notifications.TelegramReminder", "label": "Reminders"},
+                    {"model": "notifications.TelegramMessageLog", "label": "Delivery Log"},
+                ],
+            },
+        ],
+    },
+    {
         "label": "Content & Insights",
         "icon": "fas fa-bullhorn",
         "groups": [
@@ -378,6 +393,9 @@ JAZZMIN_SETTINGS = {
         "store.Product": "fas fa-box-open",
         "store.ProductImage": "fas fa-images",
         "store.ProductOption": "fas fa-sliders-h",
+        "notifications.TelegramBotSettings": "fas fa-robot",
+        "notifications.TelegramReminder": "fas fa-stopwatch",
+        "notifications.TelegramMessageLog": "fas fa-envelope-open-text",
     },
     "custom_sidebar": ADMIN_SIDEBAR_SECTIONS,
     "theme": "None",

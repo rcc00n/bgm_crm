@@ -1604,76 +1604,50 @@ nav a, .btn, .badge, .price strong {
 })();
 </script>
 
-<script id="nav-click-defer-fix">
+<script id="nav-hard-nav">
 (() => {
   const header = document.querySelector('header.site-header');
-  const oldNav = document.getElementById('siteNav');
+  const nav    = document.getElementById('siteNav');
   const toggle = document.querySelector('.site-header__toggle');
-  if (!header || !oldNav) return;
+  if (!header || !nav) return;
 
-  // Сброс всех прежних обработчиков на <nav> — клон вместо исходного узла
-  const nav = oldNav.cloneNode(true);
-  oldNav.parentNode.replaceChild(nav, oldNav);
-
-  const mq = window.matchMedia('(max-width: 960px)');
-
-  const closeDrawer = () => {
+  const close = () => {
     header.classList.remove('site-header--open');
     document.body.classList.remove('nav-open');
     if (toggle) toggle.setAttribute('aria-expanded','false');
-    const scrim = document.getElementById('navScrim');
-    if (scrim) scrim.style.display = '';
+    const scr = document.getElementById('navScrim');
+    if (scr) scr.style.display = '';
   };
 
-  nav.addEventListener('click', (e) => {
-    // Отрабатываем только в мобильной шторке
-    if (!mq.matches) return;
+  const go = (href) => { try { location.assign(href); } catch { location.href = href; } };
 
-    // Кнопка «×» внутри шторки
-    const closer = e.target.closest('.site-header__close');
-    if (closer) { e.preventDefault(); closeDrawer(); return; }
-
+  const handler = (e) => {
     const a = e.target.closest('a[href]');
     if (!a) return;
 
-    // Модификаторы/новая вкладка — не мешаем браузеру
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target === '_blank') {
-      closeDrawer();
-      return;
-    }
-
     const raw = a.getAttribute('href') || '';
-    if (!raw) return;
-
-    // Системные схемы
-    if (/^(mailto:|tel:|sms:)/i.test(raw)) { closeDrawer(); return; }
+    // системные схемы — как есть
+    if (/^(mailto:|tel:|sms:)/i.test(raw)) { close(); return; }
 
     const url = new URL(raw, location.href);
+    const sameDoc = url.origin === location.origin &&
+                    url.pathname === location.pathname &&
+                    !!url.hash;
 
-    // Якорь на текущей странице
-    if (url.origin === location.origin && url.pathname === location.pathname && url.hash) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      closeDrawer();
-      const id = decodeURIComponent(url.hash.slice(1));
-      const el = document.getElementById(id);
-      if (el) {
-        history.pushState(null, '', url.hash);
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        try { window.location.assign(url.href); } catch { window.location.href = url.href; }
-      }
+    if (sameDoc) { // якорь в пределах текущей страницы
+      close();     // просто закрываем панель; скролл выполнит браузер
       return;
     }
 
-    // Жёсткая навигация на другой URL
+    // внешний переход: сделать до того, как кто-то отменит click
     e.preventDefault();
-    e.stopImmediatePropagation();
-    closeDrawer();
-    try { window.location.assign(url.href); } catch { window.location.href = url.href; }
-  }, false);
+    close();
+    go(url.href);
+  };
 
-  // На всякий случай: если страница уходит — гасим открытое меню
-  window.addEventListener('pagehide', closeDrawer);
+  // запускаем раньше любых click‑перехватчиков
+  nav.addEventListener('pointerdown', handler, { capture: true });
+  nav.addEventListener('touchstart', handler, { capture: true, passive: false });
+  nav.addEventListener('mousedown',  handler, { capture: true });
 })();
 </script>
