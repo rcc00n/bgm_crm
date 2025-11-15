@@ -1675,9 +1675,16 @@ nav a, .btn, .badge, .price strong {
       }, closeDelay);
       return;
     }
+    // Обычная навигация (другая страница/маршрут)
+e.preventDefault();                      // ключевая строка
+const href = link.href;
+closeD();
+setTimeout(() => {
+  window.location.assign(href);          // гарантируем переход
+}, closeDelay);
 
     // Обычная навигация (другая страница/маршрут)
-    closeD();
+    //closeD();
     // allow browser to perform navigation (internal/external)
   }, true);
 })();
