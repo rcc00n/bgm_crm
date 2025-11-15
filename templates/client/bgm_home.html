@@ -1568,6 +1568,9 @@ nav a, .btn, .badge, .price strong {
       toggle.focus({ preventScroll: true });
     }
   };
+  // expose helpers for other inline scripts (e.g., nav-click-defer-fix)
+  header.bgmSetNavOpen = setOpen;
+  header.bgmIsNavOpen = isOpen;
 
   // open/close handlers
   toggle.addEventListener('click', (e) => {
@@ -1619,11 +1622,22 @@ nav a, .btn, .badge, .price strong {
   if (!header || !nav || !toggle) return;
   if (nav.dataset.bgmNavBound === '1') return;
   nav.dataset.bgmNavBound = '1';
+  const scrim  = document.getElementById('navScrim');
+  const setOpenFn = typeof header.bgmSetNavOpen === 'function' ? header.bgmSetNavOpen : null;
 
   const closeD = () => {
+    if (setOpenFn) {
+      setOpenFn(false);
+      return;
+    }
     header.classList.remove('site-header--open');
     document.body.classList.remove('nav-open');
     toggle.setAttribute('aria-expanded', 'false');
+    if (scrim) scrim.style.display = '';
+    if (mq.matches) {
+      try { toggle.focus({ preventScroll: true }); }
+      catch { toggle.focus(); }
+    }
   };
   const closeDelay = 220; // длительность анимации панели
 
