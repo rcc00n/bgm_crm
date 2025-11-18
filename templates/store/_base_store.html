@@ -5,870 +5,420 @@
   <meta charset="utf-8" />
   <title>{% block title %}BGM — Store{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   {% block marketing_meta %}
     {% with meta_title="BGM Customs — Storefront" meta_description="Shop curated parts, aero, lighting, and performance upgrades from BGM Customs." meta_section="store" %}
       {% include "includes/marketing_head.html" %}
     {% endwith %}
   {% endblock %}
-  <!-- Preload custom fonts -->
-<link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
-<link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
-  <!-- Load Inter for crisp body copy -->
+
+  <!-- Fonts -->
+  <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
 
   <style>
+    /* ========================== VARIABLES & FONTS ========================== */
     :root{
-      --bg:#0a0a0a; --ink:#eaeaea; --muted:#bdbdbd;
-      --red:#d50000; --red-dark:#b60000;
-      --card-bg:rgba(18,18,18,.75); --card-border:rgba(255,255,255,.08);
-      --field-bg:rgba(255,255,255,.06);
-      --error-bg:#3b0000; --error-text:#ff8a80;
-      --line:rgba(255,255,255,.12);
+      --bg:#0a0a0a; --fg:#eaeaea; --muted:#bdbdbd; --muted-2:rgba(255,255,255,.78);
+      --accent:#d50000; --accent-2:#ff1a1a; --accent-dark:#b60000;
+      --panel:#121212; --panel-2:#131313; --line:rgba(255,255,255,.12);
+      --field-bg:rgba(255,255,255,.06); --card-border:rgba(255,255,255,.08);
       --radius-lg:1.25rem; --radius-sm:.6rem; --shadow:0 10px 30px rgba(0,0,0,.45);
       --container:clamp(320px,92vw,1280px);
       --site-header-height:72px;
       --site-header-toggle-size:46px;
+
+      --font-body: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
+      --font-display: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; /* brand mark */
+      --font-head: "Ford", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;       /* accent headers */
     }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--ink);font-family:var(--font-body) !important;}
-    a{color:inherit;text-decoration:none}
-    img{max-width:100%;display:block}
-    .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
-    .btn{display:inline-flex;align-items:center;gap:.6em;padding:.78rem 1.15rem;border-radius:var(--radius-sm);font-weight:800;letter-spacing:.3px;border:1px solid transparent;cursor:pointer;transition:.2s;min-height:44px;line-height:1.1}
-    .btn--primary{background:var(--red);color:#fff}
-    .btn--primary:hover{transform:translateY(-2px);box-shadow:0 12px 22px rgba(213,0,0,.25)}
-    .btn--ghost{background:transparent;border-color:var(--line);color:var(--ink)}
-    .btn--ghost:hover{border-color:var(--red);color:var(--red)}
-    .badge{display:inline-block;font-size:.78rem;padding:.15rem .55rem;border-radius:999px;background:var(--red);color:#fff}
-    .badge--dealer{background:rgba(23,212,91,.12);border:1px solid rgba(23,212,91,.4);color:#17d45b;}
+
+    @font-face{
+      font-family:"Diesel";
+      src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
+      font-weight:100 900; font-style:normal; font-display:swap;
+    }
+    @font-face{
+      font-family:"Ford";
+      src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
+      font-weight:100 900; font-style:normal; font-display:swap;
+    }
+
+    /* ============================== BASE / RESET ============================ */
+    *,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+    html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
+    body{ background:var(--bg); color:var(--fg); font-family:var(--font-body); }
+    img{ max-width:100%; height:auto; display:block; }
+    a{ color:inherit; text-decoration:none; }
+
+    .container{ width:var(--container); margin-inline:auto; padding-inline:1rem; }
+    .visually-hidden{ position:absolute!important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px); white-space:nowrap; }
+
+    /* Buttons & badges */
+    .btn{
+      display:inline-flex; align-items:center; gap:.6em;
+      padding:.78rem 1.15rem; min-height:44px; line-height:1.1;
+      border-radius:var(--radius-sm); border:1px solid transparent; cursor:pointer; transition:.2s;
+      font-weight:800; letter-spacing:.02em; font-family:var(--font-body);
+    }
+    .btn--primary{ background:var(--accent); color:#fff; }
+    .btn--primary:hover{ transform:translateY(-2px); box-shadow:0 12px 22px rgba(213,0,0,.25); }
+    .btn--ghost{ background:transparent; border-color:var(--line); color:var(--fg); }
+    .btn--ghost:hover{ border-color:var(--accent); color:var(--accent); }
+    .btn-row{ display:flex; gap:.6rem; margin-top:1.2rem; flex-wrap:wrap; }
+
+    .badge{ display:inline-block; padding:.15rem .55rem; border-radius:999px; background:var(--accent); color:#fff; font-size:.78rem; }
+    .badge--dealer{ background:rgba(23,212,91,.12); border:1px solid rgba(23,212,91,.4); color:#17d45b; }
+
+    /* ============================== HEADER ================================= */
     .site-header{
-      position:sticky;
-      top:0;
-      z-index:1000;
-      background:#000;
-      border-bottom:1px solid var(--line);
-      backdrop-filter:none;
+      position:sticky; top:0;
+      background:#000; border-bottom:1px solid var(--line);
+      z-index:3200; /* above content & FAB */
     }
     .site-header__inner{
-      display:grid;
-      grid-template-columns:auto 1fr;
-      align-items:center;
-      gap:1.25rem;
-      padding:.7rem 0;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:1.25rem; padding:.7rem 0;
     }
-    .brand{display:flex;align-items:center;gap:.75rem;font-weight:900;letter-spacing:.5px}
-    .brand__logo{width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, #ff1a1a, var(--red));box-shadow:0 0 40px -6px #ff1a1a}
-    .site-header .brand{
-      display:flex;
-      align-items:baseline;
-      gap:.9rem;
-      min-width:max-content;
-      font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.06em;
+
+    /* Brand (text mark uses Diesel) */
+    .brand{ display:flex; align-items:baseline; gap:.9rem; min-width:max-content; font-weight:900; letter-spacing:.06em; }
+    .brand__logo{ all:unset; display:inline-flex; gap:.5rem; line-height:1; font-weight:900; letter-spacing:.06em; font-size:clamp(1.2rem,1.8vw,1.55rem); font-family:var(--font-display); text-transform:uppercase; }
+    .brand__word--white{ color:#fff; }
+    .brand__word--red{ color:var(--accent); }
+    .brand__tagline{
+      margin-left:1.1rem; white-space:nowrap; font-size:.88rem;
+      font-weight:900; letter-spacing:.12em; color:rgba(255,255,255,.78); font-family:var(--font-body); text-transform:uppercase;
     }
-    .site-header .brand__logo{
-      all:unset;
-      display:inline-flex;
-      gap:.5rem;
-      line-height:1;
-      font-weight:900;
-      letter-spacing:.06em;
-      font-size:1rem;
+
+    /* Nav (desktop) */
+    nav{ margin-left:auto; }
+    nav ul{ display:flex; align-items:center; gap:1.6rem; list-style:none; }
+    nav a{ line-height:1; font-weight:700; letter-spacing:.02em; font-size:.9rem; text-transform:none; color:rgba(255,255,255,.92); }
+    nav a:hover, nav a[aria-current="page"]{ color:#fff; }
+    nav .btn, nav .btn--ghost{ padding:0; border:0; background:none; border-radius:0; }
+    nav .badge{ padding:.12rem .5rem; font-size:.72rem; transform:translateY(-.04rem); }
+
+    /* Mobile toggle (hamburger) */
+    .site-header__toggle{
+      display:none; align-items:center; justify-content:center;
+      width:var(--site-header-toggle-size); height:var(--site-header-toggle-size);
+      border-radius:.85rem; border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06); color:#fff; cursor:pointer;
+      transition:transform .18s, background .18s, border-color .18s;
     }
-    .site-header .brand__word--white{color:#fff;}
-    .site-header .brand__word--red{color:#d50000;}
-    .site-header .brand__tagline{
-      margin-left:1.1rem;
-      white-space:nowrap;
-      font-size:.82rem;
-      font-weight:800;
-      letter-spacing:.14em;
-      color:rgba(255,255,255,.72);
+    .site-header__toggle:hover{ background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.28); }
+    .site-header__toggle:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
+    .site-header__toggle-box{ position:relative; width:20px; height:14px; display:block; }
+    .site-header__toggle-lines,
+    .site-header__toggle-lines::before,
+    .site-header__toggle-lines::after{
+      content:""; position:absolute; left:0; width:100%; height:2px; border-radius:999px; background:currentColor; transition:transform .22s, opacity .22s, background .22s;
     }
-    nav ul{display:flex;list-style:none;gap:.75rem}
-    nav a{display:inline-flex;align-items:center;justify-content:center;padding:.65rem .9rem;border-radius:.55rem;min-height:44px}
-    nav a[aria-current="page"]{background:rgba(255,255,255,.04);border:1px solid var(--line)}
-    .site-header nav{
-      margin-left:auto;
-      display:flex;
-      justify-content:flex-end;
+    .site-header__toggle-lines{ top:50%; transform:translateY(-50%); }
+    .site-header__toggle-lines::before{ top:-6px; }
+    .site-header__toggle-lines::after{ top:6px; }
+    .site-header--open .site-header__toggle{ background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.38); }
+    .site-header--open .site-header__toggle-lines{ background:transparent; }
+    .site-header--open .site-header__toggle-lines::before{ transform:translateY(6px) rotate(45deg); }
+    .site-header--open .site-header__toggle-lines::after{ transform:translateY(-6px) rotate(-45deg); }
+
+    /* ============================== HERO / TYPO ============================ */
+    .hero{ background: radial-gradient(1000px 420px at 10% -10%, rgba(255,26,26,.15), transparent 60%), radial-gradient(800px 360px at 90% 0%, rgba(213,0,0,.18), transparent 65%), linear-gradient(180deg, #070707 0%, #000 100%); }
+    .hero__inner{ display:grid; grid-template-columns:1.1fr .9fr; gap:2rem; padding:clamp(2rem,6vw,4.5rem) 0; align-items:center; }
+
+    .title{ font-family:var(--font-head); font-size:clamp(2rem,4.6vw,3.4rem); font-weight:900; line-height:1.15; letter-spacing:.01em; text-transform:uppercase; color:#fff; text-shadow:0 0 18px rgba(213,0,0,.25); }
+    .lead{ color:var(--muted); }
+
+    /* =============================== CONTENT ============================== */
+    .section{ padding:clamp(2rem,6vw,4rem) 0; border-top:1px solid var(--line); }
+    .section__head{ display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1.1rem; }
+    .section__title{ font-family:var(--font-body); font-size:1.6rem; font-weight:900; color:#fff; }
+    .section__desc{ color:var(--muted); }
+
+    .grid{ display:grid; gap:1rem; }
+    .grid--cards{ grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
+
+    .card{
+      background:linear-gradient(180deg, rgba(18,18,18,.9), rgba(19,19,19,.9));
+      border:1px solid var(--card-border); border-radius:1rem; padding:1rem; box-shadow:var(--shadow);
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
-    .site-header nav ul{
-      display:flex;
-      align-items:center;
-      justify-content:flex-end;
-      gap:1.4rem;
-      list-style:none;
-      margin:0;
-      padding:0;
-      flex-wrap:nowrap;
+    .card:hover{ transform:translateY(-3px); border-color:rgba(213,0,0,.28); box-shadow:0 14px 36px rgba(0,0,0,.5), 0 0 24px rgba(213,0,0,.18); }
+    .card__img{ aspect-ratio:16/9; border-radius:.8rem; background:#0b0b0b; object-fit:cover; }
+
+    .price{ display:flex; align-items:center; gap:.5rem; font-family:var(--font-body); font-weight:800; }
+    .old{ color:rgba(255,255,255,.45); text-decoration:line-through; }
+
+    .field{ background:var(--field-bg); border:1px solid var(--card-border); border-radius:.6rem; padding:.6rem .8rem; color:var(--fg); font:inherit; }
+
+    /* =============================== FOOTER =============================== */
+    .site-footer{ border-top:1px solid var(--line); padding:1.6rem 0; color:var(--muted); font-size:.95rem; margin-top:2rem; }
+    .site-footer__inner{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+    .site-footer .brand__logo{ width:34px; height:34px; border-radius:10px; background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent)); box-shadow:0 0 40px -6px var(--accent-2); }
+
+    /* ============================= CONTACT FAB ============================ */
+    .contact-fab{
+      position:fixed; right:22px; bottom:22px; z-index:2100;
+      display:inline-flex; align-items:center; gap:.6em;
+      padding:.9rem 1.15rem; border-radius:999px; border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(180deg,var(--accent) 0%,var(--accent-dark) 100%);
+      color:#fff; font-weight:900; letter-spacing:.02em; line-height:1;
+      cursor:pointer; transition:.18s ease; box-shadow:0 12px 26px rgba(213,0,0,.28), 0 0 26px rgba(213,0,0,.18);
+      font-family:var(--font-body);
     }
-    .site-header nav li + li::before{content:none;}
-    .site-header nav a,
-    .site-header nav .btn,
-    .site-header nav .btn--ghost{
-      background:none;
-      border:0;
-      border-radius:0;
-      padding:0;
-      line-height:1;
-      min-height:auto;
-      text-transform:uppercase;
-      font-weight:800;
-      letter-spacing:.08em;
-      font-size:.82rem;
-      color:rgba(255,255,255,.78);
+    .contact-fab:hover{ transform:translateY(-2px); filter:saturate(1.05); }
+    .contact-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
+    .contact-fab svg{ width:20px; height:20px; fill:currentColor; opacity:.95; }
+
+    .contact-modal{
+      position:fixed; inset:0; z-index:2200; display:none;
+      align-items:center; justify-content:center; padding:1rem;
+      background:rgba(0,0,0,.65); backdrop-filter:blur(2px);
     }
-    .site-header nav a:hover,
-    .site-header nav a[aria-current="page"]{color:#fff;}
-    .site-header nav .badge{padding:.12rem .5rem;font-size:.72rem;transform:translateY(-.04rem);}
-    .hero{background: radial-gradient(1000px 420px at 10% -10%, rgba(255,26,26,.15), transparent 60%), radial-gradient(800px 360px at 90% 0%, rgba(213,0,0,.18), transparent 65%), linear-gradient(180deg, #070707 0%, #000 100%)}
-    .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(2rem,6vw,4.5rem) 0;align-items:center}
-    .title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15}
-    .lead{color:var(--muted)}
-    .section{padding:clamp(2rem,6vw,4rem) 0;border-top:1px solid var(--line)}
-    .section__head{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin-bottom:1.1rem}
-    .section__title{font-size:1.6rem;font-weight:900}
-    .section__desc{color:var(--muted)}
-    .grid{display:grid;gap:1rem}
-    .grid--cards{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
-    .card{background:linear-gradient(180deg,rgba(18,18,18,.9),rgba(19,19,19,.9));border:1px solid var(--card-border);border-radius:1rem;padding:1rem;box-shadow:var(--shadow)}
-    .card__img{aspect-ratio:16/9;border-radius:.8rem;background:#0b0b0b;object-fit:cover}
-    .price{display:flex;align-items:center;gap:.5rem}
-    .quote-note{
-      margin-top:.8rem;
-      padding:.65rem .85rem;
-      border:1px dashed var(--line);
-      border-radius:.8rem;
-      background:rgba(255,255,255,.04);
-      color:var(--muted);
-      font-size:.95rem;
-      line-height:1.4;
+    .contact-modal[open]{ display:flex; }
+    .contact-dialog{
+      width:min(560px, 92vw);
+      background:linear-gradient(180deg,#0c0c0c,#121212);
+      border:1px solid var(--line); border-radius:1rem;
+      padding:1.1rem 1.1rem .95rem; color:var(--fg);
+      box-shadow:0 18px 44px rgba(0,0,0,.55), 0 0 32px rgba(213,0,0,.18);
+      position:relative;
     }
-    .old{color:var(--muted);text-decoration:line-through}
-    .field{background:var(--field-bg);border:1px solid var(--card-border);border-radius:.6rem;padding:.6rem .8rem;color:var(--ink);font:inherit}
-    .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted);font-size:.95rem;margin-top:2rem}
-    @media (max-width: 900px){.hero__inner{grid-template-columns:1fr}}
-    @media (max-width: 1200px){
-      .site-header .brand__tagline{display:none;}
+    .contact-title{ font-family:var(--font-head); font-weight:900; letter-spacing:.005em; line-height:1.15; font-size:1.6rem; margin:.2rem 2.2rem 1rem .2rem; color:#fff; }
+    .contact-close{
+      position:absolute; right:12px; top:10px; width:36px; height:36px;
+      border:1px solid var(--line); border-radius:.5rem; background:#0f0f0f; color:#bdbdbd; cursor:pointer; font-size:20px; line-height:1;
     }
-/* === Custom fonts === */
-@font-face{
-  font-family:"Diesel";
-  src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
-  font-weight:100 900; font-style:normal; font-display:swap;
-}
-@font-face{
-  font-family:"Ford";
-  src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
-  font-weight:100 900; font-style:normal; font-display:swap;
-}
+    .contact-body{ display:grid; gap:.75rem; }
+    .contact-row{
+      display:flex; align-items:center; justify-content:space-between; gap:.6rem;
+      background:rgba(255,255,255,.06); border:1px solid var(--line);
+      border-radius:.7rem; padding:.7rem .8rem; font-family:var(--font-body);
+    }
+    .contact-row a{ color:#fff; font-weight:800; }
+    .contact-sub{ color:rgba(255,255,255,.72); font-size:.95rem; }
+    .contact-actions{ display:flex; gap:.6rem; margin-top:.9rem; flex-wrap:wrap; }
+    .contact-btn{
+      display:inline-flex; align-items:center; gap:.5em; padding:.7rem 1rem; border-radius:.55rem;
+      border:1px solid var(--line); background:#0f0f0f; color:#fff; cursor:pointer; font-family:var(--font-body); font-weight:800;
+    }
+    .contact-btn:hover{ border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.25); }
+    body.no-contact-fab .contact-fab{ display:none !important; }
 
-/* переменные семейств */
-:root{
-  --font-body: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
-  --font-display: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-head: "Ford",  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-}
+    /* =========================== MOBILE ADAPTATION ========================= */
+    @media (max-width:1200px){ .brand__tagline{ display:none; } }
+    @media (max-width:900px){ .hero__inner{ grid-template-columns:1fr; } }
 
-/* сглаживание */
-html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
+    /* Mobile sheet */
+    @media (max-width:960px){
+      body.nav-open{ overflow:hidden; }
 
-/* Keep body copy on Inter for readability */
-body{ font-family:var(--font-body) !important; }
+      .site-header{ --site-header-height:max(62px,10vh); }
+      .site-header .container{ padding-inline:clamp(16px,4vw,24px); }
+      .site-header__inner{ display:grid; grid-template-columns:auto max-content; align-items:center; gap:clamp(12px,3vw,24px); }
+      .site-header__toggle{ display:inline-flex; }
 
-/* заголовки/бренд/кнопки — Ford */
-h1,h2,h3,h4,h5,h6,
-.title,.section__title,
-.brand,.brand__word,
-nav a,.btn,.badge {
-  font-family:var(--font-head) !important;
-}
+      nav{
+        position:fixed; inset:0; height:100dvh;
+        padding-top:calc(var(--site-header-height) + 1rem + env(safe-area-inset-top));
+        padding-inline:clamp(20px,6vw,36px);
+        padding-bottom:calc(clamp(28px,12vh,46px) + env(safe-area-inset-bottom));
+        background:rgba(5,5,5,.88); backdrop-filter:blur(18px) saturate(1.2);
+        display:flex; align-items:flex-start;
+        opacity:0; pointer-events:none; transform:translateY(-12px);
+        transition:opacity .22s ease, transform .22s ease;
+        z-index:3300; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+      }
+      nav ul{ flex-direction:column; align-items:stretch; gap:1.15rem; width:100%; }
+      nav li{ width:100%; }
+      nav a, nav .btn, nav .btn--ghost{
+        width:100%; justify-content:space-between;
+        background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:1rem;
+        padding:1.1rem 1.2rem; font-size:1.05rem; letter-spacing:.035em; min-height:56px;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 10px 22px rgba(0,0,0,.18);
+      }
+      nav a .badge{ margin-left:.6rem; }
 
+      /* open states: support both toggling strategies */
+      .site-header--open nav,
+      body.nav-open nav{
+        opacity:1; pointer-events:auto; transform:translateY(0);
+      }
 
-/* Заголовки (Hero .title, секции) — без декоративного шрифта */
-.title,
-.section__title{
-  font-family: var(--font-body) !important;
-  font-weight: 900 !important;
-  font-size: clamp(1.9rem, 2.8vw, 2.3rem) !important;
-  letter-spacing: .005em !important;
-  line-height: 1.2 !important;
-  text-transform: none !important;
-  color:#fff !important;
-}
-.section__desc,
-.lead{
-  font-family: var(--font-body) !important;
-  font-weight: 400 !important;
-  font-size: clamp(1rem, 1.3vw, 1.06rem) !important;
-  color: rgba(255,255,255,.86) !important;
-}
+      /* keep toggle above the sheet and hide FAB while open */
+      .site-header__toggle{ position:relative; z-index:3400; }
+      body.nav-open .contact-fab, .site-header--open ~ .contact-fab{ display:none !important; }
+    }
 
-/* Карточки товара — чёткие заголовки/цены */
-.card h3{
-  font-family: var(--font-body) !important;
-  font-weight: 900 !important;
-  font-size: 1.08rem !important;
-  letter-spacing: .01em !important;
-  line-height: 1.25 !important;
-}
-.price{
-  font-family: var(--font-body) !important;
-  font-weight: 800 !important;
-}
-.old{ color: rgba(255,255,255,.45) !important; }
-
-/* Поля/фильтры — единая типографика */
-.field,
-input[type="search"],
-select{
-  font-family: var(--font-body) !important;
-  font-size: .98rem !important;
-}
-
-/* Кнопки в магазине — компактнее и чище */
-.btn{
-  font-family: var(--font-body) !important;
-  font-weight: 800 !important;
-  letter-spacing: .02em !important;
-  text-transform: none !important;
-}
-
-/* Ховеры карточек — деликатные, без сдвигов контента */
-.card{
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-}
-.card:hover{
-  transform: translateY(-3px);
-  border-color: rgba(213,0,0,.28);
-  box-shadow: 0 14px 36px rgba(0,0,0,.5), 0 0 24px rgba(213,0,0,.18);
-}
-
-/* Фокус для доступности */
-a:focus-visible,
-button:focus-visible{
-  outline: 2px solid var(--red);
-  outline-offset: 2px;
-  border-radius: .4rem;
-}
-
-/* === Store page: keep big text bold, rest clean ==================== */
-
-/* Крупные хедеры и hero — оставляем фирменный шрифт (Ford) */
-.title,
-h1{
-  font-family: var(--font-head) !important;
-  font-weight: 900 !important;
-  font-size: clamp(2rem, 4.6vw, 3.4rem) !important;
-  line-height: 1.15 !important;
-  letter-spacing: .01em !important;
-  text-transform: uppercase !important;
-  color:#fff !important;
-  text-shadow: 0 0 18px rgba(213,0,0,.25);
-}
-
-/* Все остальные заголовки, навигация и тексты — на body font */
-h2, h3, h4, h5, h6,
-.section__title,
-.section__desc,
-.lead,
-.card h3,
-.price,
-nav a,
-.btn,
-.badge,
-.field,
-input, select{
-  font-family: var(--font-body) !important;
-}
-
-/* Улучшаем контраст секций */
-.section__title{
-  font-weight: 900 !important;
-  font-size: 1.6rem !important;
-  line-height: 1.2 !important;
-  text-transform: none !important;
-  letter-spacing: .005em !important;
-  color:#fff !important;
-}
-.section__desc, .lead{
-  font-size: 1rem !important;
-  color: rgba(255,255,255,.85) !important;
-}
-
-/* Карточки */
-.card h3{
-  font-weight: 800 !important;
-  font-size: 1.08rem !important;
-  line-height: 1.25 !important;
-}
-.price{ font-weight: 800 !important; }
-.old{ color: rgba(255,255,255,.45) !important; }
-
-/* Навигация */
-.site-header nav a{
-  font-weight: 700 !important;
-  font-size: .92rem !important;
-  letter-spacing: .02em !important;
-  text-transform: none !important;
-  color: rgba(255,255,255,.9) !important;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-/* Мелкие полировки */
-nav a{ white-space: nowrap !important; }
-@media (max-width: 1150px){ .belt{ display:none !important; } }
-
+    @media (prefers-reduced-motion:reduce){
+      nav, .site-header__toggle, .site-header__toggle-lines, .card{ transition:none !important; }
+    }
   </style>
-  
 
-<style id="topbar-responsive">
-  .sr-only{
-    position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);
-    white-space:nowrap;border:0;
-  }
-
-  .site-header__toggle{
-    display:none;
-    align-items:center;justify-content:center;
-    width:var(--site-header-toggle-size);height:var(--site-header-toggle-size);
-    border-radius:.85rem;border:1px solid rgba(255,255,255,.16);
-    background:rgba(255,255,255,.06);color:#fff;cursor:pointer;
-    transition:transform .18s ease, background .18s ease, border-color .18s ease;
-  }
-  .site-header__toggle:hover{ background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.28); }
-  .site-header__toggle:focus-visible{ outline:2px solid rgba(255,255,255,.92); outline-offset:3px; }
-
-  .site-header__toggle-box{ position:relative; width:20px; height:14px; display:block; }
-  .site-header__toggle-lines,
-  .site-header__toggle-lines::before,
-  .site-header__toggle-lines::after{
-    content:""; position:absolute; left:0; width:100%; height:2px; border-radius:999px; background:currentColor;
-    transition:transform .22s ease, opacity .22s ease, background .22s ease;
-  }
-  .site-header__toggle-lines{ top:50%; transform:translateY(-50%); }
-  .site-header__toggle-lines::before{ top:-6px; }
-  .site-header__toggle-lines::after{ top:6px; }
-
-  .site-header--open .site-header__toggle{ background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.38); }
-  .site-header--open .site-header__toggle-lines{ background:transparent; }
-  .site-header--open .site-header__toggle-lines::before{ transform:translateY(6px) rotate(45deg); }
-  .site-header--open .site-header__toggle-lines::after{ transform:translateY(-6px) rotate(-45deg); }
-
-  @media (max-width:1080px){
-    .site-header .belt{ display:none !important; }
-  }
-
-  @media (max-width:960px){
-    body.nav-open{ overflow:hidden; }
-
-    .site-header{ --site-header-height:max(62px,10vh); }
-    .site-header .brand__tagline{ display:none !important; }
-    .site-header .container{ padding-inline:clamp(16px,4vw,24px) !important; }
-
-    .site-header__inner{
-      display:grid !important; grid-template-columns:auto max-content !important;
-      align-items:center !important; gap:clamp(12px,3vw,24px) !important;
-    }
-    .site-header__toggle{ display:inline-flex; }
-
-    /* Fullscreen sheet (higher than FAB and site chrome) */
-    .site-header nav{
-      position:fixed !important; inset:0 !important;
-      padding-top:calc(var(--site-header-height) + 1rem);
-      padding-inline:clamp(20px,6vw,36px);
-      padding-bottom:clamp(28px,12vh,46px);
-      background:rgba(5,5,5,.88);
-      backdrop-filter:blur(18px) saturate(1.2);
-      display:flex; align-items:flex-start; justify-content:flex-start;
-      opacity:0; pointer-events:none; transform:translateY(-12px);
-      transition:opacity .22s ease, transform .22s ease;
-      z-index:2400 !important;
-      height:100dvh !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; overscroll-behavior:contain !important;
-    }
-    .site-header nav ul{
-      flex-direction:column !important; align-items:stretch !important; gap:.55rem !important; width:100% !important;
-    }
-    .site-header nav li{ width:100% !important; }
-    .site-header nav a,
-    .site-header nav .btn,
-    .site-header nav .btn--ghost{
-      width:100% !important; justify-content:space-between !important;
-      background:rgba(255,255,255,.04) !important; border:1px solid rgba(255,255,255,.08) !important; border-radius:.85rem !important;
-      padding:.95rem 1rem !important; font-size:1.05rem !important; letter-spacing:.035em !important;
-    }
-    .site-header nav a:hover,
-    .site-header nav a[aria-current="page"],
-    .site-header nav .btn:hover{
-      background:rgba(255,255,255,.1) !important; border-color:rgba(255,255,255,.22) !important; color:#fff !important;
-    }
-
-    /* Open states */
-    .site-header--open nav{ opacity:1; pointer-events:auto; transform:translateY(0); }
-    /* Fallback: open when toggle has aria-expanded=true */
-    .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
-      opacity:1 !important; pointer-events:auto !important; transform:translateY(0) !important;
-    }
-  }
-
-  @media (prefers-reduced-motion:reduce){
-    .site-header nav, .site-header__toggle, .site-header__toggle-lines{ transition:none !important; }
-  }
-</style>
-
-
-<style id="store-touch-targets">
-  .site-header nav a{
-    display:inline-flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    min-height:44px !important;
-    padding:.65rem .95rem !important;
-    line-height:1.1 !important;
-  }
-  .btn{
-    min-height:44px !important;
-  }
-</style>
-<style id="store-topbar-parity">
-  /* === Header visual parity with Home (desktop) ======================= */
-  .site-header{
-    background:#000 !important;
-    backdrop-filter:none !important;
-    border-bottom:1px solid var(--line) !important;
-  }
-  .site-header__inner{
-    display:flex !important;
-    align-items:center !important;
-    justify-content:space-between !important;
-    gap:1.25rem !important;
-    padding:.7rem 0 !important;
-  }
-
-  /* Brand (text mark) */
-  .site-header .brand{display:flex !important; align-items:baseline !important; gap:.9rem !important; min-width:max-content;}
-  .site-header .brand__logo{
-    all:unset; display:inline-flex; gap:.5rem; line-height:1;
-    font-weight:900; letter-spacing:.06em; font-size:1rem;
-  }
-  .site-header .brand__word--white{color:#fff;}
-  .site-header .brand__word--red{color:#d50000;}
-  .site-header .brand__tagline{
-    margin-left:1.1rem; white-space:nowrap;
-    font-size:.82rem; font-weight:800; letter-spacing:.14em;
-    color:rgba(255,255,255,.72);
-  }
-
-  /* Nav (single row, right-aligned) */
-  .site-header nav{margin-left:auto !important; display:flex !important; justify-content:flex-end !important;}
-  .site-header nav ul{
-    display:flex !important; align-items:center !important; flex-wrap:nowrap !important;
-    gap:1.6rem !important; /* match Home */
-    margin:0 !important; padding:0 !important; list-style:none !important;
-  }
-  .site-header nav li+li::before{content:none !important;}
-
-  /* Readability like Home (sentence case, body font), remove "button-y" look */
-  .site-header nav a,
-  .site-header nav .btn,
-  .site-header nav .btn--ghost{
-    background:none !important; border:0 !important; border-radius:0 !important; padding:0 !important;
-    line-height:1 !important; text-transform:none !important;
-    font-family:var(--font-body) !important;
-    font-weight:700 !important; letter-spacing:.02em !important; font-size:.9rem !important;
-    color:rgba(255,255,255,.92) !important;
-  }
-  .site-header nav a:hover,
-  .site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-  /* Keep "Soon" badge compact */
-  .site-header .badge{ padding:.12rem .5rem !important; font-size:.72rem !important; transform:translateY(-.04rem) !important; }
-
-  /* Hide tagline earlier on narrow widths to keep one-line nav */
-  @media (max-width:1200px){ .site-header .brand__tagline{ display:none !important; } }
-</style>
-
-{% include "includes/site_notice_style.html" %}
-
+  {% include "includes/site_notice_style.html" %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
   {% include "includes/marketing_body.html" %}
-{% include "includes/site_notice_markup.html" with site_notice_version="uc-v2" %}
+  {% include "includes/site_notice_markup.html" with site_notice_version="uc-v2" %}
 
-<header class="site-header" role="banner">
-  <div class="container site-header__inner">
-    <a class="brand" href="{% url 'home' %}">
-      <span class="brand__logo">
-        <span class="brand__word brand__word--white">BAD GUY</span>
-        <span class="brand__word brand__word--red">MOTORS</span>
-      </span>
-      <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
-    </a>
+  <header class="site-header" role="banner">
+    <div class="container site-header__inner">
+      <a class="brand" href="{% url 'home' %}">
+        <span class="brand__logo">
+          <span class="brand__word brand__word--white">BAD GUY</span>
+          <span class="brand__word brand__word--red">MOTORS</span>
+        </span>
+        <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
+      </a>
 
-    <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
-      <span class="site-header__toggle-box" aria-hidden="true">
-        <span class="site-header__toggle-lines"></span>
-      </span>
-      <span class="sr-only">Toggle navigation</span>
-    </button>
+      <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
+        <span class="site-header__toggle-box" aria-hidden="true">
+          <span class="site-header__toggle-lines"></span>
+        </span>
+        <span class="visually-hidden">Toggle navigation</span>
+      </button>
 
-    <nav id="siteNav" aria-label="Main navigation">
-      <ul>
-        <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
-        {% if user.is_authenticated %}
-          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
-        {% else %}
-          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
-        {% endif %}
-        <li><a href="{% url 'store' %}" aria-current="page">Products</a></li>
-        <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
-        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-        <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>Financing</a></li>
-        <li><a href="{% url 'our-story' %}">About</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
+      <nav id="siteNav" aria-label="Main navigation">
+        <ul>
+          <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
+          {% if user.is_authenticated %}
+            <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+          {% else %}
+            <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
+          {% endif %}
+          <li><a href="{% url 'store' %}" aria-current="page">Products</a></li>
+          <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
+          <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
+          <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>Financing</a></li>
+          <li><a href="{% url 'our-story' %}">About</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
 
-{% block body %}{% endblock %}
+  {% block body %}{% endblock %}
 
   <footer class="site-footer" id="contact">
-  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:.75rem">
-      <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-      <strong>Contact us:</strong>
-      <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
-      <span aria-hidden="true">•</span>
-      <a href="tel:+14035250432">(403) 525-0432</a>
-    </div>
-
-    <div class="section__desc">© 2025 Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
-  </div>
-</footer>
-<!-- ===== CONTACT FAB + MODAL (BGM) =================================== -->
-<style id="contact-fab-css">
-  :root{
-    --ink:#eaeaea; --line:rgba(255,255,255,.12);
-    --red:var(--accent, #d50000); --red-dark:#b60000;
-  }
-  /* floating button */
-  .contact-fab{
-    position:fixed; right:22px; bottom:22px; z-index:2100;
-    display:inline-flex; align-items:center; gap:.6em;
-    padding:.9rem 1.15rem; border-radius:999px;
-    border:1px solid rgba(255,255,255,.08);
-    background:linear-gradient(180deg,var(--red) 0%,var(--red-dark) 100%);
-    color:#fff; font-weight:900; letter-spacing:.02em; line-height:1;
-    cursor:pointer; box-shadow:0 12px 26px rgba(213,0,0,.28), 0 0 26px rgba(213,0,0,.18);
-    transition:.18s ease; font-family:var(--font-body,"Inter"),system-ui,sans-serif;
-  }
-  .contact-fab:hover{ transform:translateY(-2px); filter:saturate(1.05); }
-  .contact-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
-  .contact-fab svg{ width:20px; height:20px; fill:currentColor; opacity:.95; }
-
-  /* modal */
-  .contact-modal{
-    position:fixed; inset:0; z-index:2200; display:none;
-    align-items:center; justify-content:center; padding:1rem;
-    background:rgba(0,0,0,.65); backdrop-filter:blur(2px);
-  }
-  .contact-modal[open]{ display:flex; }
-  .contact-dialog{
-    width:min(560px, 92vw);
-    background:linear-gradient(180deg,#0c0c0c,#121212);
-    border:1px solid var(--line); border-radius:1rem;
-    padding:1.1rem 1.1rem .95rem; color:var(--ink);
-    box-shadow:0 18px 44px rgba(0,0,0,.55), 0 0 32px rgba(213,0,0,.18);
-    position:relative;
-  }
-  .contact-title{
-    font-family:var(--font-head,"Ford"),system-ui,sans-serif;
-    font-weight:900; letter-spacing:.005em; line-height:1.15;
-    font-size:1.6rem; margin:.2rem 2.2rem 1rem .2rem; color:#fff;
-    text-transform:none;
-  }
-  .contact-close{
-    position:absolute; right:12px; top:10px; width:36px; height:36px;
-    border:1px solid var(--line); border-radius:.5rem; background:#0f0f0f;
-    color:#bdbdbd; cursor:pointer; font-size:20px; line-height:1;
-  }
-  .contact-body{ display:grid; gap:.75rem; }
-  .contact-row{
-    display:flex; align-items:center; justify-content:space-between; gap:.6rem;
-    background:rgba(255,255,255,.06); border:1px solid var(--line);
-    border-radius:.7rem; padding:.7rem .8rem;
-    font-family:var(--font-body,"Inter"),system-ui,sans-serif;
-  }
-  .contact-row a{ color:#fff; font-weight:800; text-decoration:none; }
-  .contact-sub{ color:rgba(255,255,255,.72); font-size:.95rem; }
-  .contact-actions{ display:flex; gap:.6rem; margin-top:.9rem; flex-wrap:wrap; }
-  .contact-btn{
-    display:inline-flex; align-items:center; gap:.5em; padding:.7rem 1rem; border-radius:.55rem;
-    border:1px solid var(--line); background:#0f0f0f; color:#fff; cursor:pointer;
-    font-family:var(--font-body,"Inter"),system-ui,sans-serif; font-weight:800;
-  }
-  .contact-btn:hover{ border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.25); }
-
-  /* hide everywhere if needed: add .no-contact-fab to <body> */
-  body.no-contact-fab .contact-fab{ display:none !important; }
-
-  @media (max-width:640px){
-    .contact-fab{ right:14px; bottom:14px; }
-    .contact-title{ font-size:1.45rem; }
-  }
-</style>
-<style id="mobile-nav-fix">
-  /* Keep sidebar under the modal (2200) and above page, but below the toggle */
-  @media (max-width:960px){
-    /* Ensure the hamburger stays tappable above the sheet */
-    .site-header__toggle{
-      position: relative;
-      z-index: 1001;
-    }
-    /* Sidebar sheet */
-    .site-header nav{
-      z-index: 1000;                       /* under toggle, over page */
-      position: fixed;
-      inset: 0;
-      height: 100dvh;                      /* stable on mobile devices */
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding-top: calc(var(--site-header-height) + .9rem + env(safe-area-inset-top));
-      padding-inline: clamp(20px, 6vw, 36px);
-      padding-bottom: max(28px, env(safe-area-inset-bottom));
-      background: rgba(5,5,5,.88);
-      backdrop-filter: blur(18px) saturate(1.2);
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(-12px);
-      transition: opacity .22s ease, transform .22s ease;
-    }
-    /* Vertical, full‑width items */
-    .site-header nav ul{
-      flex-direction: column !important;
-      align-items: stretch !important;
-      gap: .55rem !important;
-      width: 100% !important;
-    }
-    .site-header nav li{ width: 100% !important; }
-    .site-header nav a,
-    .site-header nav .btn,
-    .site-header nav .btn--ghost{
-      width: 100% !important;
-      justify-content: space-between !important;
-    }
-    /* Open state */
-    .site-header--open nav{
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(0);
-    }
-  }
-  @media (prefers-reduced-motion: reduce){
-    .site-header nav{ transition: none !important; }
-  }
-</style>
-
-<button type="button" id="contactFab" class="contact-fab"
-        aria-haspopup="dialog" aria-controls="contactModal" aria-expanded="false">
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
-  </svg>
-  Contact us
-</button>
-
-<div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
-  <div class="contact-dialog">
-    <button class="contact-close" type="button" aria-label="Close">×</button>
-    <h2 id="contactTitle" class="contact-title">Contact us</h2>
-
-    <div class="contact-body">
-      <div class="contact-row">
-        <div>
-          <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
-          <div class="contact-sub">E-mail</div>
-        </div>
-        <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+    <div class="container site-footer__inner">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <span class="brand__logo" aria-hidden="true" style="width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent));box-shadow:0 0 40px -6px var(--accent-2)"></span>
+        <b>Bad Guy Motors</b>
       </div>
 
-      <div class="contact-row">
-        <div>
-          <div><a href="tel:+14035250432">(403) 525-0432</a></div>
-          <div class="contact-sub">Phone</div>
-        </div>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-          <a class="contact-btn" href="tel:+14035250432">Call</a>
-          <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
-        </div>
+      <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+        <strong>Contact us:</strong>
+        <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
+        <span aria-hidden="true">•</span>
+        <a href="tel:+14035250432">(403) 525-0432</a>
       </div>
 
-      <div class="contact-actions">
-        <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write e-mail</a>
-        <a class="contact-btn" href="sms:+14035250432">Text us</a>
+      <div class="section__desc">© 2025 Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
+    </div>
+  </footer>
+
+  <!-- Contact FAB + Modal -->
+  <button type="button" id="contactFab" class="contact-fab"
+          aria-haspopup="dialog" aria-controls="contactModal" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
+    </svg>
+    Contact us
+  </button>
+
+  <div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
+    <div class="contact-dialog">
+      <button class="contact-close" type="button" aria-label="Close">×</button>
+      <h2 id="contactTitle" class="contact-title">Contact us</h2>
+
+      <div class="contact-body">
+        <div class="contact-row">
+          <div>
+            <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
+            <div class="contact-sub">E-mail</div>
+          </div>
+          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+        </div>
+
+        <div class="contact-row">
+          <div>
+            <div><a href="tel:+14035250432">(403) 525-0432</a></div>
+            <div class="contact-sub">Phone</div>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <a class="contact-btn" href="tel:+14035250432">Call</a>
+            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
+          </div>
+        </div>
+
+        <div class="contact-actions">
+          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write e-mail</a>
+          <a class="contact-btn" href="sms:+14035250432">Text us</a>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<script src="{% static 'js/topbar.js' %}"></script>
+  <!-- Scripts -->
+  <script src="{% static 'js/topbar.js' %}"></script>
+  {% include "includes/site_notice_script.html" %}
 
-{% include "includes/site_notice_script.html" %}
+  <script>
+    /* Contact modal & clipboard */
+    (function(){
+      const fab   = document.getElementById('contactFab');
+      const modal = document.getElementById('contactModal');
+      const closeBtn = modal.querySelector('.contact-close');
+      let lastFocus = null;
 
-<script id="contact-fab-js">
-(function(){
-  const fab   = document.getElementById('contactFab');
-  const modal = document.getElementById('contactModal');
-  const closeBtn = modal.querySelector('.contact-close');
-  let lastFocus = null;
+      function openModal(){
+        lastFocus = document.activeElement;
+        modal.setAttribute('open','');
+        fab.setAttribute('aria-expanded','true');
+        setTimeout(()=>closeBtn.focus(),0);
+        document.addEventListener('keydown', onKey);
+      }
+      function closeModal(){
+        modal.removeAttribute('open');
+        fab.setAttribute('aria-expanded','false');
+        if (lastFocus) lastFocus.focus();
+        document.removeEventListener('keydown', onKey);
+      }
+      function onKey(e){
+        if (e.key === 'Escape') closeModal();
+        if (e.key === 'Tab'){
+          const focusables = modal.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
+          const list = Array.from(focusables).filter(el=>!el.disabled && el.offsetParent!==null);
+          if(!list.length) return;
+          const first = list[0], last = list[list.length-1];
+          if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+          else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+        }
+      }
 
-  function openModal(){
-    lastFocus = document.activeElement;
-    modal.setAttribute('open','');
-    fab.setAttribute('aria-expanded','true');
-    setTimeout(()=>closeBtn.focus(),0);
-    document.addEventListener('keydown', onKey);
-  }
-  function closeModal(){
-    modal.removeAttribute('open');
-    fab.setAttribute('aria-expanded','false');
-    if (lastFocus) lastFocus.focus();
-    document.removeEventListener('keydown', onKey);
-  }
-  function onKey(e){
-    if (e.key === 'Escape') closeModal();
-    if (e.key === 'Tab'){
-      const focusables = modal.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
-      const list = Array.from(focusables).filter(el=>!el.disabled && el.offsetParent!==null);
-      if(!list.length) return;
-      const first = list[0], last = list[list.length-1];
-      if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
-      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
-    }
-  }
+      fab.addEventListener('click', openModal);
+      closeBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
 
-  fab.addEventListener('click', openModal);
-  closeBtn.addEventListener('click', closeModal);
-  modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+      modal.querySelectorAll('[data-copy]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          try{
+            await navigator.clipboard.writeText(btn.dataset.copy);
+            btn.textContent='Copied';
+            setTimeout(()=>btn.textContent='Copy',1200);
+          }catch{
+            btn.textContent='Copy failed';
+            setTimeout(()=>btn.textContent='Copy',1200);
+          }
+        });
+      });
+    })();
+  </script>
 
-  // copy helpers
-  modal.querySelectorAll('[data-copy]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy',1200); }
-      catch{ btn.textContent='Copy failed'; setTimeout(()=>btn.textContent='Copy',1200); }
-    });
-  });
-})();
-</script>
-<!-- ==================================================================== -->
-<script id="mobile-nav-fix-js">
-(() => {
-  if (window.__BGMStoreTopbarParity) return;   // idempotent
-  window.__BGMStoreTopbarParity = true;
-
-  const header = document.querySelector('.site-header');
-  const nav    = document.getElementById('siteNav');
-  const toggle = header && header.querySelector('.site-header__toggle');
-  if (!header || !nav || !toggle) return;
-
-  const mq = window.matchMedia('(max-width: 960px)');
-  let lastFocus = null;
-
-  const focusables = () =>
-    [...nav.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])')]
-      .filter(el => !el.disabled && el.offsetParent !== null);
-
-  const setOpen = (open) => {
-    header.classList.toggle('site-header--open', !!open);
-    document.body.classList.toggle('nav-open', !!open && mq.matches);
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    nav.setAttribute('aria-hidden', open ? 'false' : 'true');
-
-    if (open && mq.matches){
-      lastFocus = document.activeElement;
-      const first = focusables()[0];
-      first && first.focus({ preventScroll:true });
-      document.addEventListener('keydown', onKey, { passive:false });
-    } else {
-      document.removeEventListener('keydown', onKey);
-      (lastFocus || toggle).focus({ preventScroll:true });
-    }
-  };
-
-  const onKey = (e) => {
-    if (e.key === 'Escape'){ setOpen(false); return; }
-    if (e.key !== 'Tab') return;
-
-    const list = focusables();
-    if (!list.length) return;
-    const first = list[0], last = list[list.length - 1];
-
-    if (e.shiftKey && document.activeElement === first){
-      e.preventDefault(); last.focus();
-    } else if (!e.shiftKey && document.activeElement === last){
-      e.preventDefault(); first.focus();
-    }
-  };
-
-  // Cooperate with any existing handler (e.g., topbar.js)
-  toggle.addEventListener('click', () => {
-    if (!mq.matches) return;
-    const before = header.classList.contains('site-header--open') || toggle.getAttribute('aria-expanded') === 'true';
-    setTimeout(() => {
-      const after = header.classList.contains('site-header--open') || toggle.getAttribute('aria-expanded') === 'true';
-      if (before === after) setOpen(!before);
-    }, 0);
-  });
-
-  // Close on link/button activation inside the menu (ignore real forms)
-  nav.addEventListener('click', (e) => {
-    if (!mq.matches) return;
-    const act = e.target.closest('a,button');
-    if (act && !act.closest('form')) setOpen(false);
-  });
-
-  // Ensure clean state when switching to desktop
-  const onChange = (ev) => { if (!ev.matches) setOpen(false); };
-  (mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange));
-
-  // Initialize
-  setOpen(false);
-})();
-</script>
-
-<style id="mobile-nav-hotfix">
-  @media (max-width:960px){
-    /* Keep the hamburger/X above the sheet */
-    .site-header__toggle{
-      position: relative;
-      z-index: 2600 !important;
-    }
-    /* Drawer above floating UI (e.g., Contact FAB) */
-    .site-header nav{
-      z-index: 2500 !important;
-      position: fixed !important;
-      inset: 0 !important;
-      height: 100dvh !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      overscroll-behavior: contain !important;
-    }
-    /* Hide floating FAB while the menu is open */
-    .site-header--open ~ #contactFab,
-    .site-header--open ~ .contact-fab{
-      display: none !important;
-    }
-  }
-</style>
-
-{% include "includes/analytics_tracker.html" %}
+  {% include "includes/analytics_tracker.html" %}
 </body>
 </html>
