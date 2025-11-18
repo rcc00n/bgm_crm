@@ -943,6 +943,90 @@ html{ font-size: 17px; }                      /* было 16px */
     .site-header nav li + li{ margin-top:.95rem !important; }
   }
 }
+
+</style>
+<style id="financing-mobile-nav-hardening-v2">
+/* Mobile sidebar: stacking, hit-test and spacing fixes */
+@media (max-width:960px){
+  /* всегда поверх контента/фаба/дыма */
+  .site-header{ z-index: 3200 !important; }
+  .site-header nav{
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 3300 !important;
+
+    /* убираем blur — источник iOS hit‑test багов */
+    background: rgba(7,7,7,.92) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+
+    /* полноэкранный слой, скролл внутри меню */
+    padding-top: calc(var(--site-header-height) + 1rem) !important;
+    padding-inline: clamp(20px, 6vw, 36px) !important;
+    padding-bottom: clamp(28px, 12vh, 46px) !important;
+    height: 100dvh !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+
+    /* закрыто по умолчанию */
+    opacity: 0; transform: translateY(-12px);
+    pointer-events: none;
+  }
+
+  /* открыто — кликабельно и видно */
+  .site-header--open nav,
+  .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    pointer-events: auto !important;
+  }
+
+  /* аккуратные интервалы между пунктами */
+  .site-header nav ul{
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: clamp(.9rem, 2.6vh, 1.25rem) !important;
+    width: 100% !important;
+  }
+  .site-header nav li{ margin: 0 !important; } /* полагаемся на gap */
+
+  /* кнопки/ссылки в меню — крупные, удобные */
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    width: 100% !important;
+    min-height: 54px;
+    padding: 1.05rem 1.1rem !important;
+    border-radius: 1rem !important;
+
+    background: rgba(255,255,255,.05) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+  }
+  .site-header nav a:hover,
+  .site-header nav a[aria-current="page"],
+  .site-header nav .btn:hover{
+    background: rgba(255,255,255,.10) !important;
+    border-color: rgba(255,255,255,.22) !important;
+    color: #fff !important;
+  }
+
+  /* бейдж не наезжает на соседние элементы */
+  .site-header .badge{ margin-left: .5rem; transform: none !important; }
+
+  /* скрываем FAB при открытом меню и блокируем прокрутку страницы */
+  body.nav-open{ overflow: hidden; touch-action: none; }
+  body.nav-open .contact-fab{ display: none !important; }
+
+  /* fallback для старых iOS без flex-gap */
+  @supports not (gap: 1rem){
+    .site-header nav li + li{ margin-top: 1rem !important; }
+  }
+}
 </style>
 
 <script id="home-mobile-nav-fix-js">
