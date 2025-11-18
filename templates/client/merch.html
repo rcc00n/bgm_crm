@@ -337,6 +337,41 @@ body.nav-open .contact-fab,
   outline-offset: 3px;
   border-color: rgba(255,255,255,.22);
 }
+
+/* ==== Mobile: add spacing between nav buttons ==== */
+@media (max-width: 960px){
+  .site-header nav ul{
+    gap: .9rem !important;                 /* было ~.45rem */
+  }
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    padding: 1.05rem 1.15rem !important;   /* чуть больше hit‑area */
+  }
+}
+
+/* ==== Mobile: move disclaimer below image, keep 1 line ==== */
+@media (max-width: 900px){
+  /* убираем flex/фикс‑ratio у рамки медиа, чтобы текст лег под картинку */
+  .hero__media.frame{
+    display: block !important;
+    aspect-ratio: auto !important;
+  }
+  .hero__disclaimer{
+    position: static !important;           /* под картинкой */
+    display: inline-flex !important;
+    margin-top: .6rem !important;
+    white-space: nowrap !important;        /* одна строка */
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;    /* если вдруг не влезет */
+    letter-spacing: .08em !important;      /* чуть компактнее для узких экранов */
+    font-size: .7rem !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
 </style>
 
 </head>
