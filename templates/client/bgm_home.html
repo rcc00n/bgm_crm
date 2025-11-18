@@ -1603,6 +1603,90 @@ nav a, .btn, .badge, .price strong {
   setOpen(false);
 })();
 </script>
+<style id="home-mobile-sidebar-unify-v3">
+@media (max-width:960px){
+  /* поверх всего и без смешивания с контентом */
+  .site-header{ z-index: 3500 !important; }
+  .site-header nav{
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 3600 !important;
+    height: 100dvh !important;
+
+    /* безопасные отступы, чтобы ничего не пряталось под вырез */
+    padding-top: calc(var(--site-header-height) + max(1rem, env(safe-area-inset-top))) !important;
+    padding-inline: clamp(20px, 6vw, 36px) !important;
+    padding-bottom: calc(clamp(28px, 12vh, 46px) + env(safe-area-inset-bottom)) !important;
+
+    background:#0a0a0a !important;            /* матовый фон, без blur */
+    -webkit-backdrop-filter:none !important;
+    backdrop-filter:none !important;
+
+    display:flex; align-items:flex-start; justify-content:flex-start;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+
+    /* скрыто по умолчанию */
+    opacity:0; pointer-events:none; transform:translateY(-12px) !important;
+    border-right:none !important; box-shadow:none !important;
+    transition:opacity .22s ease, transform .22s ease;
+  }
+  .site-header--open nav,
+  .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+    opacity:1 !important;
+    pointer-events:auto !important;
+    transform:translateY(0) !important;
+  }
+
+  /* вертикальный список + «воздух» между пунктами */
+  .site-header nav ul{
+    flex-direction:column !important;
+    align-items:stretch !important;
+    gap:clamp(.9rem, 2.6vh, 1.25rem) !important;
+    width:100% !important;
+  }
+  .site-header nav li{ width:100% !important; margin:0 !important; }
+
+  /* крупные тач‑таргеты и аккуратные таблетки */
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    display:flex !important; align-items:center !important; justify-content:space-between !important;
+    gap:.75rem !important; width:100% !important; min-height:54px !important;
+    padding:1.1rem 1.2rem !important; border-radius:1rem !important;
+    background:rgba(255,255,255,.05) !important;
+    border:1px solid rgba(255,255,255,.10) !important;
+  }
+  .site-header nav a:hover,
+  .site-header nav a[aria-current="page"],
+  .site-header nav .btn:hover{
+    background:rgba(255,255,255,.10) !important;
+    border-color:rgba(255,255,255,.22) !important; color:#fff !important;
+  }
+  .site-header .badge{ margin-left:.5rem !important; transform:none !important; }
+
+  /* кнопка закрытия внутри оверлея */
+  .site-header__close{
+    position:absolute !important; top:10px !important; right:12px !important;
+    display:grid !important; place-items:center;
+    width:38px; height:38px; border-radius:.6rem;
+    border:1px solid rgba(255,255,255,.12); background:#101010; color:#fff;
+    z-index:1;
+  }
+  .site-header__close:hover{ background:#141414; }
+
+  /* блокируем клики по фону и убираем FAB */
+  body.nav-open{ overflow:hidden; }
+  body.nav-open .contact-fab{ display:none !important; }
+
+  /* если на странице осталась «скрима» — отключаем её как не нужную */
+  .nav-scrim{ display:none !important; }
+
+  /* fallback для старых iOS без flex-gap */
+  @supports not (gap: 1rem){
+    .site-header nav li + li{ margin-top:1rem !important; }
+  }
+}
+</style>
 
 <!-- <script id="nav-hard-nav">
 (() => {
