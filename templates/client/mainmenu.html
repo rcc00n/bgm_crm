@@ -1444,7 +1444,11 @@ main h3{
       }
       const desc = s.description ? `<p class="muted">${escapeHtml(s.description)}</p>` : '';
       const cat  = s.category ? `<div class="muted">${escapeHtml(s.category)}</div>` : '';
-      const media = `<div class="ph" aria-hidden="true">BGM • SERVICE</div>`;
+      const hasImage = typeof s.image === 'string' && s.image.trim().length > 0;
+      const media = hasImage
+        ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.name)}" loading="lazy" decoding="async">`
+        : `<div class="ph" aria-hidden="true">BGM • SERVICE</div>`;
+      const badge = s.category ? `<span class="service-card__badge">${escapeHtml(s.category)}</span>` : '';
       return `
         <article class="service-card"
                  data-service-id="${escapeHtml(s.id)}"
@@ -1452,6 +1456,7 @@ main h3{
                  tabindex="0" role="button" aria-label="Book ${escapeHtml(s.name)}">
           <div class="service-card__img" aria-label="Service image">
             ${media}
+            ${badge}
           </div>
           ${cat}
           <h3>${escapeHtml(s.name)}</h3>

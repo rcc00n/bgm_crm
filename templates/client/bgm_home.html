@@ -1,3 +1,4 @@
+
 {% load static dealer_extras %}
 <!DOCTYPE html>
 <html lang="en">
@@ -45,7 +46,7 @@
     .price__hint{font-size:.75rem;font-weight:800;color:var(--muted-2);text-transform:uppercase;letter-spacing:.08em;}
     .price__save{font-size:.75rem;color:var(--muted-2);}
 
-    /* Header (desktop remains as-is) */
+    /* Header (desktop intact) */
     .site-header{position:sticky;top:0;z-index:1000;background:#000;border-bottom:1px solid var(--line)}
     .site-header__inner{display:flex;align-items:center;gap:1.25rem;justify-content:space-between;padding:.7rem 0}
     .brand{display:flex;align-items:baseline;gap:.9rem;font-weight:900;letter-spacing:.5px}
@@ -55,7 +56,7 @@
     nav ul{display:flex;align-items:center;gap:1.4rem;list-style:none}
     nav a{display:inline-flex;align-items:center;gap:.45rem;line-height:1;text-transform:uppercase;font-weight:800;letter-spacing:.08em;font-size:.82rem;color:rgba(255,255,255,.78)}
     nav a:hover,nav a[aria-current="page"]{color:#fff}
-    nav .btn,nav .btn--ghost{padding:0;border:none;background:none} /* Login as link-look */
+    nav .btn,nav .btn--ghost{padding:0;border:none;background:none}
 
     .hero{position:relative;overflow:hidden;background:transparent}
     .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(2rem,6vw,4.5rem) 0;align-items:center}
@@ -127,7 +128,6 @@
     /* Content above smoke */
     .site-header,.hero,main,.site-footer{position:relative;z-index:1}
 
-    /* Desktop grid rules */
     .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1.25rem;padding:.7rem 0}
     @media (max-width:1200px){.brand__tagline{display:none !important}}
 
@@ -146,8 +146,8 @@
     html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
     body,button,input,select,textarea{ font-family:var(--font-body)!important }
 
-    /* Headings/brand/buttons on Ford for contrast, then normalize nav text readability */
-    h1,h2,h3,h4,h5,h6,.brand,.hero__title,.section__title,.kicker,nav a,.btn,.badge,.price strong{font-family:var(--font-head)!important}
+    /* Headings and UI (keep Ford where appropriate, not in top bar) */
+    h1,h2,h3,h4,h5,h6,.hero__title,.section__title,.kicker,.btn,.badge,.price strong{font-family:var(--font-head)!important}
     .hero__title,.section__title{letter-spacing:.01em}
     .section__title{font-family:var(--font-body)!important;font-weight:900!important;font-size:clamp(1.9rem,2.8vw,2.25rem)!important;letter-spacing:.005em!important;line-height:1.2!important}
     .section__desc{font-size:clamp(1rem,1.4vw,1.06rem)!important;color:rgba(255,255,255,.86)!important}
@@ -155,7 +155,7 @@
     .footer__nav a{font-family:var(--font-body)!important;font-weight:700!important;letter-spacing:.02em!important;text-transform:none!important;color:rgba(255,255,255,.9)!important}
     .footer__nav a:hover{color:#fff!important}
 
-    /* Card text readability on Diesel */
+    /* Card text readability */
     .card h3{font-family:var(--font-body)!important;font-weight:900!important;font-size:1.08rem!important;letter-spacing:.01em!important;line-height:1.25!important;color:#fff!important}
     .card .muted,.card .dur{font-family:var(--font-body)!important;font-weight:400!important;font-size:.98rem!important;line-height:1.4!important;color:rgba(255,255,255,.86)!important}
     .price strong{font-family:var(--font-body)!important;font-weight:800!important}
@@ -166,12 +166,21 @@
 
   {% include "includes/site_notice_style.html" %}
 
+  <!-- Top bar: force Diesel (non-italic) on both desktop and mobile -->
   <style id="logo-to-diesel">
+    .site-header .brand,
+    .site-header .brand__logo,
+    .site-header .brand__logo .brand__word,
+    .site-header .brand__tagline,
+    .site-header nav a,
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      font-family:var(--font-body)!important;
+      font-style:normal!important;
+    }
     .site-header .brand__logo,
     .site-header .brand__logo .brand__word{
-      font-family:var(--font-body)!important;
       font-weight:900!important;
-      font-style:normal!important;
       text-transform:uppercase!important;
       letter-spacing:.06em!important;
       line-height:1!important;
@@ -182,9 +191,7 @@
   <style id="belt-to-diesel">
     .site-header .brand__tagline,
     .site-header .belt{
-      font-family:var(--font-body)!important;
       font-weight:900!important;
-      font-style:normal!important;
       text-transform:uppercase!important;
       letter-spacing:.12em!important;
       line-height:1!important;
@@ -194,7 +201,7 @@
     }
   </style>
 
-  <!-- New mobile nav (same model as Merch) -->
+  <!-- Mobile nav (Merch model) -->
   <style id="mobile-nav-v2">
     .sr-only{
       position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
@@ -236,7 +243,7 @@
         background:rgba(5,5,5,.88);backdrop-filter:blur(18px) saturate(1.2);
         display:flex;align-items:flex-start;justify-content:flex-start;
         opacity:0;pointer-events:none;transform:translateY(-12px);
-        transition:opacity .22s ease, transform .22s ease;z-index:3300;
+        transition:opacity .22s ease, transform .22s ease;z-index:3700;
         overflow-y:auto;-webkit-overflow-scrolling:touch;border-right:none;box-shadow:none;
       }
       .site-header nav ul{
@@ -255,21 +262,25 @@
         background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#fff;
       }
       .brand__tagline{display:none !important}
-      /* Open states: header class or body class */
       .site-header--open nav, body.nav-open .site-header nav{
         opacity:1;pointer-events:auto;transform:translateY(0);
       }
     }
 
-    /* Hide Contact FAB while menu is open */
     body.nav-open .contact-fab, .site-header--open ~ .contact-fab{display:none !important}
-
-    /* Focus styles */
     .site-header nav a:focus{outline:none}
     .site-header nav a:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:3px;border-color:rgba(255,255,255,.22)}
   </style>
 
-  <!-- Mobile-only helpers and lite sections (no sidebar code here) -->
+  <!-- Layering: keep header/nav above page content -->
+  <style id="topbar-layering-fix">
+    .site-header{z-index:3600 !important;}
+    @media (max-width:960px){
+      .site-header nav{z-index:3700 !important;}
+    }
+  </style>
+
+  <!-- Mobile helpers -->
   <style id="mobile-lite">
     :root{ --mobile-break: 860px; }
     :where(.only-mobile){ display:none !important; }
@@ -310,7 +321,6 @@
   {% include "includes/marketing_body.html" %}
   {% include "includes/site_notice_markup.html" with site_notice_version="uc-v2" %}
 
-  <!-- Smoke -->
   <div id="bg"></div>
 
   <a href="#main" class="visually-hidden">Skip to main content</a>
@@ -428,7 +438,7 @@
           </form>
         </div>
 
-        <!-- Filters (desktop/large) -->
+        <!-- Filters -->
         <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
           <input class="input" type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
           <select class="select" name="cat" aria-label="Category">
@@ -709,11 +719,10 @@
     </div>
   </footer>
 
-  <!-- Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 
-  <!-- Live search (unchanged) -->
+  <!-- Live search -->
   <script>
   (function(){
     const qInput = document.querySelector('input[name="q"]');
@@ -809,7 +818,7 @@
   })();
   </script>
 
-  <!-- Contact FAB + Modal (unchanged) -->
+  <!-- Contact FAB + Modal -->
   <style id="contact-fab-css">
     :root{ --ink:#eaeaea; --line:rgba(255,255,255,.12); --red:var(--accent,#d50000); --red-dark:#b60000; }
     .contact-fab{
@@ -919,7 +928,7 @@
 
   {% include "includes/site_notice_script.html" %}
 
-  <!-- Unified topbar behavior (same script as Merch) -->
+  <!-- Unified topbar behavior -->
   <script src="{% static 'js/topbar.js' %}"></script>
 
   <!-- Contact modal bindings -->
@@ -971,3 +980,4 @@
   {% include "includes/analytics_tracker.html" %}
 </body>
 </html>
+
