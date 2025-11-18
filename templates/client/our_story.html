@@ -208,6 +208,39 @@
     .contact-fab{ right:14px; bottom:14px; }
     .contact-title{ font-size:1.45rem; }
   }
+
+  /* Mobile nav spacing upgrade */
+@media (max-width:960px){
+  /* Больше расстояния между кнопками */
+  .site-header nav ul{
+    gap: clamp(.75rem, 2.2vh, 1.1rem) !important; /* ~12–18px */
+  }
+
+  /* Кнопки крупнее и ровнее внутри */
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    display:flex;                 /* чтобы текст и бейдж выравнивались по центру */
+    align-items:center;
+    justify-content:space-between;
+    gap:.75rem;
+    width:100% !important;
+    padding: clamp(1rem, 1.8vh, 1.15rem) clamp(1rem, 4vw, 1.25rem) !important; /* больше «воздуха» */
+    border-radius:1rem !important;
+    min-height:52px;              /* комфортный тач‑таргет */
+    line-height:1.2;
+  }
+
+  /* Убираем микро‑сдвиг бейджа, чтобы он не залезал на следующую кнопку */
+  .site-header .badge{
+    margin-left:.5rem;
+    transform:none !important;
+  }
+
+  /* Полностью полагаемся на gap, чтобы не было случайных наслоений */
+  .site-header nav li{ margin:0 !important; }
+}
+
   </style>
 </head>
 
