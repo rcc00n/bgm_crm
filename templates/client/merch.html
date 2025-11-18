@@ -371,6 +371,44 @@ body.nav-open .contact-fab,
     backdrop-filter: none !important;
   }
 }
+/* ===== Mobile nav: more spacing, equal width, nicer rhythm ===== */
+@media (max-width: 960px){
+  /* Stack items with generous vertical rhythm */
+  .site-header nav ul{
+    gap: 1.1rem !important;                 /* larger space between items */
+    width: 100%;
+    padding-block: .25rem;
+  }
+
+  /* Fallback for older iOS Safari where flex gap can be flaky */
+  @supports not (gap: 1rem){
+    .site-header nav li{ margin-bottom: 1.1rem !important; }
+    .site-header nav li:last-child{ margin-bottom: 0 !important; }
+  }
+
+  .site-header nav li{ width: 100%; }
+
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    width: 100% !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.15rem 1.2rem !important;     /* bigger hit area */
+    min-height: 56px;                       /* comfortable touch target */
+    border-radius: 1rem !important;
+    background: rgba(255,255,255,.05) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35); /* subtle lift */
+  }
+
+  /* Keep the "Soon" badge tidy inside the pill */
+  .site-header nav a .badge{
+    margin-left: .6rem;
+    vertical-align: middle;
+  }
+}
 
 </style>
 
