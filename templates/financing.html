@@ -914,6 +914,36 @@ html{ font-size: 17px; }                      /* было 16px */
   }
   body.nav-open .contact-fab{ display:none !important; }
 </style>
+<style id="mobile-nav-spacing-upgrade-financing">
+/* Mobile nav: more space + larger touch targets (Financing) */
+@media (max-width:960px){
+  .site-header nav ul{
+    gap: clamp(.85rem, 2.4vh, 1.2rem) !important; /* ↑ vertical spacing */
+  }
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.75rem;
+    width:100% !important;
+    padding: 1.1rem 1.2rem !important;  /* ↑ inner padding */
+    min-height: 52px;                    /* comfortable hit area */
+    border-radius: 1rem !important;      /* cleaner pills */
+  }
+  .site-header .badge{
+    margin-left:.5rem;                   /* keep "Soon" off the label */
+    transform:none !important;
+  }
+  .site-header nav li{ margin:0 !important; } /* rely on gap only */
+
+  /* Fallback for older iOS Safari without flex-gap support */
+  @supports not (gap: 1rem){
+    .site-header nav li + li{ margin-top:.95rem !important; }
+  }
+}
+</style>
 
 <script id="home-mobile-nav-fix-js">
 (() => {
