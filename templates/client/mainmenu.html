@@ -163,9 +163,23 @@
     .slot-free:hover{border-color:rgba(213,0,0,.55);box-shadow:0 0 16px rgba(213,0,0,.25)}
     .slot-busy{color:#fff;background:var(--red);opacity:.9}
     .slot-selected{background:var(--red)!important;color:#fff;border-color:var(--red)!important;box-shadow:0 0 0 2px rgba(213,0,0,.35)}
+    .mobile-picker{display:none;flex-direction:column;gap:.75rem;margin-top:.75rem;border:1px solid var(--line);border-radius:var(--radius-md);padding:.85rem;background:#0a0a0a}
+    .mobile-picker__row{display:flex;flex-direction:column;gap:.35rem}
+    .mobile-picker__row label,.mobile-picker__label{font-size:.8rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+    .mobile-picker select{padding:.55rem .75rem;border:1px solid var(--line);border-radius:.6rem;background:#080808;color:var(--ink);font-size:1rem}
+    .mobile-picker__slots{display:flex;flex-wrap:wrap;gap:.45rem}
+    .mobile-slot-btn{flex:1 1 calc(50% - .45rem);min-width:120px;padding:.65rem 1rem;border-radius:.65rem;border:1px solid rgba(255,255,255,.18);background:#131313;color:#fff;font-weight:800;font-size:1rem;letter-spacing:.02em;cursor:pointer;text-align:center}
+    .mobile-slot-btn:hover{border-color:rgba(213,0,0,.55);box-shadow:0 0 16px rgba(213,0,0,.18)}
+    .mobile-slot-btn--selected{background:var(--red);border-color:var(--red);box-shadow:0 0 0 2px rgba(213,0,0,.35)}
+    .mobile-picker__empty{display:none;font-size:.9rem;color:var(--muted)}
     .modal__dialog{width:min(940px,calc(100dvw - 2rem));max-height:calc(100dvh - 2rem)}
     @supports not (height:100dvh){.modal__dialog{width:min(940px,calc(100vw - 2rem));max-height:calc(100vh - 2rem)}}
     @media (max-width:900px){.modal__dialog{width:min(96vw,720px)}.grid-2{grid-template-columns:1fr}.outlook__wrap{max-height:50vh}}
+    @media (max-width:768px){
+      .outlook{display:none}
+      .hint{display:none}
+      .mobile-picker{display:flex}
+    }
 
     /* Master picker (аватарки) */
     .masters{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.25rem}
@@ -810,6 +824,18 @@ main h3{
             </div>
           </div>
 
+          <div class="mobile-picker" id="mobileTimePicker" aria-live="polite" aria-hidden="true">
+            <div class="mobile-picker__row">
+              <label for="mobileDaySelect">Day</label>
+              <select id="mobileDaySelect"></select>
+            </div>
+            <div class="mobile-picker__row">
+              <span class="mobile-picker__label">Available times</span>
+              <div class="mobile-picker__slots" id="mobileSlots" role="listbox" aria-label="Available times"></div>
+              <div class="mobile-picker__empty" id="mobileSlotsEmpty">No open times for this day.</div>
+            </div>
+          </div>
+
           <div class="hint" style="margin-top:.5rem">Shift + scroll for horizontal scroll. Red = busy (unclickable).</div>
         </div>
       </div>
@@ -893,11 +919,35 @@ main h3{
     const olPrev=document.getElementById('olPrev');
     const olNext=document.getElementById('olNext');
     const olToday=document.getElementById('olToday');
+    const mobilePickerEl=document.getElementById('mobileTimePicker');
+    const mobileDaySelect=document.getElementById('mobileDaySelect');
+    const mobileSlotsEl=document.getElementById('mobileSlots');
+    const mobileSlotsEmpty=document.getElementById('mobileSlotsEmpty');
+    const mobileQuery = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
+    const mobileState = { keys:[], days:[], data:[], selectedKey:'' };
+    const SUMMARY_DEFAULT = 'Pick a staff member and time.';
 
     const WINDOW_DAYS = 14, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
     let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
     let baseStart = new Date(); baseStart.setHours(0,0,0,0);
     let availabilityCache = new Map();
+    if (mobilePickerEl){
+      const syncMobileVisibility = ()=> {
+        const active = mobileQuery ? mobileQuery.matches : false;
+        mobilePickerEl.setAttribute('aria-hidden', active ? 'false' : 'true');
+      };
+      syncMobileVisibility();
+      if (mobileQuery){
+        try{ mobileQuery.addEventListener('change', syncMobileVisibility); }
+        catch(_){ mobileQuery.addListener(syncMobileVisibility); }
+      }
+    }
+    if (mobileDaySelect){
+      mobileDaySelect.addEventListener('change', ()=>{
+        mobileState.selectedKey = mobileDaySelect.value;
+        renderMobileSlots();
+      });
+    }
 
     function hydrateContactForm(){
       Object.entries(contactInputs).forEach(([key, input])=>{
@@ -916,6 +966,108 @@ main h3{
     function contactIsComplete(){
       const c = getContactPayload();
       return Boolean(c.name && c.email && c.phone);
+    }
+
+    function setSummaryDefault(){
+      elSummary.textContent = SUMMARY_DEFAULT;
+    }
+
+    function getActiveStaffName(){
+      return elMaster.selectedOptions[0]?.text?.trim()
+        || elMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent?.trim()
+        || '—';
+    }
+
+    function selectSlot(slotIso){
+      if (!slotIso) return;
+      if (elMaster.value){
+        const parsedMaster = Number(elMaster.value);
+        if (!Number.isNaN(parsedMaster)) current.masterId = parsedMaster;
+      }
+      current.slot = slotIso;
+      const slotDate = parseISO(slotIso);
+      if (slotDate){
+        const dayLabel = slotDate.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'});
+        elSummary.textContent = `Staff: ${getActiveStaffName()}. Time: ${fmtHM(slotDate)}, ${dayLabel}.`;
+      }else{
+        elSummary.textContent = `Staff: ${getActiveStaffName()}. Time selected.`;
+      }
+      elError.style.display='none';
+      updateSubmitState();
+      syncSelectedSlotUI();
+    }
+
+    function syncSelectedSlotUI(){
+      const slot = current.slot;
+      if (olGrid){
+        olGrid.querySelectorAll('.slot-chip').forEach(btn=>{
+          btn.classList.toggle('slot-selected', Boolean(slot && btn.dataset.slot === slot));
+        });
+      }
+      if (mobileSlotsEl){
+        mobileSlotsEl.querySelectorAll('.mobile-slot-btn').forEach(btn=>{
+          btn.classList.toggle('mobile-slot-btn--selected', Boolean(slot && btn.dataset.slot === slot));
+        });
+      }
+    }
+
+    function renderMobileDayOptions(){
+      if (!mobileDaySelect) return;
+      const frag=document.createDocumentFragment();
+      mobileState.keys.forEach((key, idx)=>{
+        const opt=document.createElement('option');
+        opt.value=key;
+        opt.textContent = mobileState.days[idx].toLocaleDateString(LOCALE, {weekday:'short', month:'short', day:'numeric'});
+        frag.appendChild(opt);
+      });
+      mobileDaySelect.innerHTML='';
+      mobileDaySelect.appendChild(frag);
+      mobileDaySelect.value = mobileState.selectedKey;
+    }
+
+    function renderMobileSlots(){
+      if (!mobileSlotsEl) return;
+      mobileSlotsEl.innerHTML='';
+      const idx = mobileState.keys.indexOf(mobileState.selectedKey);
+      const entry = idx>=0 ? mobileState.data[idx] : null;
+      const timeKeys = entry?.set ? Array.from(entry.set) : [];
+      if (!timeKeys.length){
+        mobileSlotsEl.style.display='none';
+        if (mobileSlotsEmpty) mobileSlotsEmpty.style.display='block';
+        syncSelectedSlotUI();
+        return;
+      }
+      mobileSlotsEl.style.display='';
+      if (mobileSlotsEmpty) mobileSlotsEmpty.style.display='none';
+      timeKeys.sort();
+      const frag=document.createDocumentFragment();
+      timeKeys.forEach(hm=>{
+        const iso = entry?.iso?.get(hm);
+        if (!iso) return;
+        const slotDate = parseISO(iso);
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.className='mobile-slot-btn';
+        btn.textContent = slotDate ? fmtHM(slotDate) : hm;
+        btn.dataset.slot = iso;
+        btn.addEventListener('click', ()=>selectSlot(iso));
+        frag.appendChild(btn);
+      });
+      mobileSlotsEl.appendChild(frag);
+      syncSelectedSlotUI();
+    }
+
+    function updateMobilePicker(days, dayData){
+      if (!mobilePickerEl) return;
+      mobileState.keys = days.map(ymd);
+      mobileState.days = days.map(d=>new Date(d));
+      mobileState.data = dayData;
+      if (!mobileState.keys.includes(mobileState.selectedKey)){
+        const firstWithSlots = mobileState.keys.find((key, idx)=>Boolean(dayData[idx]?.set?.size));
+        mobileState.selectedKey = firstWithSlots || mobileState.keys[0] || '';
+      }
+      renderMobileDayOptions();
+      renderMobileSlots();
     }
 
     function updateSubmitState(){
@@ -941,8 +1093,9 @@ main h3{
       current={ serviceId, serviceName, masterId:null, slot:null, mastersData:[] };
       elServiceName.textContent=serviceName;
       elError.style.display='none'; elSuccess.style.display='none';
-      elSummary.textContent='Pick a staff member and time.';
+      setSummaryDefault();
       availabilityCache.clear();
+      syncSelectedSlotUI();
       baseStart = new Date(); baseStart.setHours(0,0,0,0);
       hydrateContactForm();
       updateSubmitState();
@@ -1035,7 +1188,8 @@ main h3{
           current.masterId = Number(m.id);
           current.slot = null;
           updateSubmitState();
-          elSummary.textContent='Pick a staff member and time.';
+          setSummaryDefault();
+          syncSelectedSlotUI();
           availabilityCache.clear();
           await renderWindow();
         });
@@ -1110,22 +1264,18 @@ main h3{
         const tcell=document.createElement('div'); tcell.className='outlook__cell time'; tcell.textContent=fmtHM(fake);
         olGrid.appendChild(tcell);
 
-        days.forEach((d,idx)=>{
+        days.forEach((_,idx)=>{
           const c=document.createElement('div'); c.className='outlook__cell';
-          const data = dayData[idx]; const isFree = data?.set?.has(t);
+          const data = dayData[idx];
+          const isoValue = data?.iso?.get(t) || '';
+          const isFree = Boolean(isoValue && data?.set?.has(t));
           const chip=document.createElement('button');
           chip.type='button'; chip.className='slot-chip ' + (isFree?'slot-free':'slot-busy');
           chip.textContent=fmtHM(fake);
+          if (isoValue) chip.dataset.slot = isoValue;
 
           if (isFree){
-            chip.addEventListener('click', ()=>{
-              olGrid.querySelectorAll('.slot-selected').forEach(el=>el.classList.remove('slot-selected'));
-              chip.classList.add('slot-selected');
-              current.masterId = Number(elMaster.value);
-              current.slot     = data.iso.get(t);
-              elSummary.textContent = `Staff: ${elMaster.selectedOptions[0]?.text || (elMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent || '')}. Time: ${chip.textContent}, ${d.toLocaleDateString()}.`;
-              updateSubmitState();
-            });
+            chip.addEventListener('click', ()=>selectSlot(isoValue));
           }else{
             chip.disabled=true;
           }
@@ -1136,6 +1286,8 @@ main h3{
 
       const todayIdx = days.findIndex(x=>x.toDateString()===new Date().toDateString());
       if (todayIdx>0){ const colWidth = 160; olWrap.scrollLeft = todayIdx * colWidth - colWidth; }
+      updateMobilePicker(days, dayData);
+      syncSelectedSlotUI();
     }
 
     async function shiftWindow(deltaDays){ baseStart = new Date(baseStart); baseStart.setDate(baseStart.getDate() + deltaDays); await renderWindow(); }
@@ -1633,17 +1785,31 @@ body.modal-open .contact-fab{ display:none !important; }
   /* 3) Drag‑scroll для сетки расписания на трекпадах/тачпадах */
   const wrap = document.getElementById('olWrap');
   if (wrap){
-    let down=false, startX=0, base=0;
+    let down=false, startX=0, base=0, pointerId=null;
+    const interactiveSelector='button, a, input, select, textarea, label';
+    const isInteractiveTarget = (target)=>!!(target && target.closest(interactiveSelector));
     wrap.addEventListener('pointerdown', e => {
-      down = true; startX = e.clientX; base = wrap.scrollLeft;
-      wrap.setPointerCapture(e.pointerId);
+      if (isInteractiveTarget(e.target)) return;
+      down = true; pointerId = e.pointerId;
+      startX = e.clientX; base = wrap.scrollLeft;
+      if (typeof wrap.setPointerCapture === 'function'){
+        try{ wrap.setPointerCapture(pointerId); }catch(_){}
+      }
     });
     wrap.addEventListener('pointermove', e => {
-      if (!down) return;
+      if (!down || (pointerId!==null && e.pointerId!==pointerId)) return;
       wrap.scrollLeft = base - (e.clientX - startX);
     });
+    const stopDrag = (e) => {
+      if (!down || (pointerId!==null && e.pointerId!==pointerId)) return;
+      down = false;
+      if (pointerId!==null && typeof wrap.releasePointerCapture === 'function'){
+        try{ wrap.releasePointerCapture(pointerId); }catch(_){}
+      }
+      pointerId = null;
+    };
     ['pointerup','pointercancel','pointerleave'].forEach(ev => {
-      wrap.addEventListener(ev, () => { down = false; });
+      wrap.addEventListener(ev, stopDrag);
     });
   }
 })();
