@@ -288,6 +288,57 @@
       .contact-title{ font-size:1.45rem; }
     }
   </style>
+  <style>
+/* === HOTFIX: mobile menu layering + header typography ================== */
+
+/* 1) Хедер и меню всегда поверх контента и FAB */
+.site-header{ z-index: 3200; } /* выше контента и дыма */
+@media (max-width:960px){
+  .site-header nav{
+    z-index: 3300;                 /* выше FAB */
+    overflow-y: auto;              /* скролл длинного меню */
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* 2) Открытие меню работает и при .site-header--open, и при body.nav-open */
+.site-header--open nav,
+body.nav-open nav{
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* Прячем FAB в любом состоянии открытого меню */
+body.nav-open .contact-fab,
+.site-header--open ~ .contact-fab{
+  display: none !important;
+}
+
+/* 3) Хедер без курсива — как на скрине №1 (шрифт Diesel) */
+.site-header .brand,
+.site-header .brand__logo,
+.site-header .brand__word,
+.site-header .brand__tagline,
+.site-header nav a,
+.site-header nav .btn,
+.site-header nav .btn--ghost{
+  font-family: var(--font-body) !important; /* Diesel */
+  font-style: normal !important;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 800;
+}
+
+/* 4) Аккуратные фокусы на iOS, без «огромных синих рамок» */
+.site-header nav a:focus{ outline: none; }
+.site-header nav a:focus-visible{
+  outline: 2px solid rgba(255,255,255,.6);
+  outline-offset: 3px;
+  border-color: rgba(255,255,255,.22);
+}
+</style>
+
 </head>
 
 <body>
