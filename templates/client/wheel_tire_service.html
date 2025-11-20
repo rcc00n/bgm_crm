@@ -3,10 +3,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Brake &amp; Suspension Service — Bad Guy Motors</title>
+  <title>Wheel &amp; Tire Service — Bad Guy Motors</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  {% with meta_title="Brake & Suspension Service — Bad Guy Motors" meta_description="Professional brake and suspension service in Medicine Hat. Diagnostics, repairs, and upgrades for daily drivers, work trucks, SUVs, and lifted rigs." meta_section="services" %}
+  {% with
+    meta_title="Wheel & Tire Service — Bad Guy Motors"
+    meta_description="Fast, professional wheel and tire service in Medicine Hat. Mounting, balancing, alignments, seasonal swaps, and oversized setups."
+    meta_section="services"
+  %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
 
@@ -222,6 +226,17 @@
       color:var(--accent);
     }
 
+    .tire-brand-list{
+      list-style:none;
+      margin:.6rem 0 1.2rem;
+      padding:0;
+      display:flex;
+      flex-wrap:wrap;
+      gap:.5rem 1.25rem;
+      font-size:.95rem;
+      color:var(--muted);
+    }
+
     /* Tiles / Why / Reviews */
     .tiles{
       display:grid;
@@ -277,6 +292,25 @@
       width:100%;height:100%;object-fit:cover;filter:contrast(1.05);
     }
 
+    /* Offer band */
+    .section--offer .offer-inner{
+      border-radius:var(--radius-lg);
+      border:1px solid var(--line);
+      padding:1.4rem 1.5rem;
+      background:radial-gradient(circle at top left,rgba(213,0,0,.18),transparent 55%),
+                 linear-gradient(180deg,var(--panel),var(--panel-2));
+      box-shadow:var(--shadow);
+    }
+    .offer-callout{
+      margin-top:.9rem;
+      padding:.8rem 1rem;
+      border-radius:.85rem;
+      border:1px dashed rgba(255,255,255,.3);
+      background:rgba(0,0,0,.55);
+      color:var(--muted);
+      font-size:.96rem;
+    }
+
     /* CTA */
     .cta-inner{
       display:flex;
@@ -325,12 +359,9 @@
     }
     :root{ --font-body:"Diesel",sans-serif; --font-head:"Ford",sans-serif; }
     html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
-    body,button,input,select,textarea{
-      font-family:var(--font-body)!important;
-      font-style:normal;
-    }
-    h1,
-    h2,
+    body,button,input,select,textarea{ font-family:var(--font-body)!important }
+
+    /* Только крупные заголовки — красивым шрифтом */
     .hero__title,
     .section__title{
       font-family:var(--font-head)!important;
@@ -507,13 +538,15 @@
   <section class="hero" id="top">
     <div class="container hero__inner">
       <div>
-        <p class="kicker">Brakes &amp; Suspension • Safety &amp; Control</p>
-        <h1 class="hero__title">Professional Brake and Suspension Service in Medicine Hat</h1>
+        <p class="kicker">Wheels &amp; Tires • Ride &amp; Control</p>
+        <h1 class="hero__title">Wheel and Tire Service in Medicine Hat You Can Rely On</h1>
         <p class="hero__lead">
-          Keep your vehicle safe, stable, and ready for the road with expert brake and suspension repair from Bad Guy Motors.
+          Fast, professional tire mounting, balancing, and alignment for cars, trucks, and SUVs.
         </p>
         <p class="hero__text">
-          If your brakes are squeaking, pulling, or feel soft – or your suspension feels loose or bouncy – it is time to get it checked. Our technicians diagnose the problem properly, explain what is going on in plain language, and fix it right the first time so you can drive with confidence.
+          From new tire installs to seasonal changeovers and alignments, we keep your vehicle driving
+          straight and riding smooth. We use proper equipment and take the time to do the job right,
+          including oversized and aftermarket setups that many shops do not want to touch.
         </p>
         <div class="hero__cta">
           <a href="#service-form" class="btn btn--primary">Request an Appointment</a>
@@ -522,23 +555,23 @@
 
         <div style="display:flex;gap:.6rem;margin-top:1.3rem;flex-wrap:wrap">
           <div class="stat">
-            <b>Same‑day slots</b><br>
-            <span>Subject to availability</span>
+            <b>Seasonal swaps</b><br>
+            <span>Winter / summer changeovers</span>
           </div>
           <div class="stat">
-            <b>All makes &amp; trucks</b><br>
-            <span>Daily, work &amp; lifted rigs</span>
+            <b>Oversized setups</b><br>
+            <span>Wide &amp; aftermarket wheels</span>
           </div>
           <div class="stat">
-            <b>Transparent quotes</b><br>
-            <span>No surprise charges</span>
+            <b>Alignments in-house</b><br>
+            <span>Keep it straight &amp; safe</span>
           </div>
         </div>
       </div>
 
       <aside class="hero__panel">
         <form id="service-form" class="form" autocomplete="on">
-          <h2>Request a Brake &amp; Suspension Appointment</h2>
+          <h2>Request a Wheel &amp; Tire Appointment</h2>
 
           <label>
             Name
@@ -557,29 +590,28 @@
 
           <label>
             Vehicle (Year / Make / Model)
-            <input type="text" name="vehicle" autocomplete="off" placeholder="e.g. 2018 Ram 3500">
+            <input type="text" name="vehicle" autocomplete="off" placeholder="e.g. 2021 F-150 on 20s">
           </label>
 
           <label>
             Service Needed
             <select name="service_needed" required>
               <option value="">Select an option</option>
-              <option>Brake and Suspension Service</option>
-              <option>Brake Inspection</option>
-              <option>Brake Repair</option>
-              <option>Suspension Inspection</option>
-              <option>Suspension Repair</option>
+              <option>New Tire Install</option>
+              <option>Seasonal Swap</option>
               <option>Alignment</option>
+              <option>Wheel Balance</option>
+              <option>Flat Repair</option>
               <option>Other</option>
             </select>
           </label>
 
           <label>
             Notes (optional)
-            <textarea name="notes" placeholder="Describe noises, vibrations, warning lights…"></textarea>
+            <textarea name="notes" placeholder="Vibration speed, tire size, wheel type…"></textarea>
           </label>
 
-          <small>We’ll contact you to confirm date and time. No obligation until you approve the estimate.</small>
+          <small>We'll contact you to confirm date and time. No obligation until you approve the estimate.</small>
 
           <button type="submit" class="btn btn--primary" style="margin-top:.6rem;width:100%">
             Submit Request
@@ -595,36 +627,69 @@
       <div class="container section__grid section__grid--two-col">
         <div>
           <p class="kicker">Service overview</p>
-          <h2 class="section__title">Complete brake and suspension repair you can count on</h2>
+          <h2 class="section__title">Complete tire and wheel services for every driver</h2>
           <p class="section__desc" style="margin-top:.6rem">
-            Brakes that squeak, pull to one side, or feel soft are more than annoying – they are unsafe. A tired suspension can make your vehicle feel unstable, wander on the highway, and wear out your tires faster than it should.
+            Worn tires, poor alignment, and unbalanced wheels do more than make your ride rough.
+            They cost you money in fuel, cause uneven wear, and can be unsafe on wet or icy roads.
           </p>
           <p style="margin-top:.8rem;color:var(--muted)">
-            At Bad Guy Motors, we provide professional brake and suspension service for all types of vehicles. From daily drivers and work trucks to SUVs and lifted rigs, our team follows proper procedures and uses quality parts so you are not back in the shop for the same issue twice.
+            Bad Guy Motors offers full tire and wheel service for drivers across Medicine Hat.
+            We mount, balance, and align using proper procedures so your tires wear evenly and
+            your vehicle feels solid on the road.
           </p>
           <p style="margin-top:.8rem;color:var(--muted)">
-            Whether you need a simple brake pad and rotor swap or a full suspension rebuild, we take the time to inspect, diagnose, and repair the problem the right way.
+            We also specialize in oversized, aftermarket, and custom wheel setups.
+            If the fitment is a bit different from stock, we are used to dealing with it.
           </p>
 
           <ul class="service-list">
-            <li>Brake pad and rotor replacement</li>
-            <li>Caliper repair and brake line service</li>
-            <li>Brake inspections and safety checks</li>
-            <li>Suspension inspection and diagnostics</li>
-            <li>Shocks, struts, control arm, and bushing replacement</li>
-            <li>Alignment and ride height adjustment for lifted vehicles</li>
+            <li>Tire mounting and balancing</li>
+            <li>Seasonal tire changes and rotations</li>
+            <li>Wheel alignment and steering calibration</li>
+            <li>Flat repair and tire inspections</li>
+            <li>Oversized and aftermarket wheel fitment</li>
+            <li>TPMS sensor replacement and reset</li>
+          </ul>
+
+          <h3 style="font-size:1.05rem;font-weight:900;margin-top:.3rem">Tire brands we carry</h3>
+          <p style="margin-top:.35rem;color:var(--muted)">We supply and install quality tires from trusted brands:</p>
+          <ul class="tire-brand-list">
+            <li>Nokian</li>
+            <li>Michelin</li>
+            <li>Nitto</li>
+            <li>Falken</li>
+            <li>Goodyear</li>
+            <li>Toyo</li>
+            <li>Cooper</li>
           </ul>
 
           <a href="#service-form" class="btn btn--primary">
-            Request a Brake &amp; Suspension Quote
+            Request a Wheel &amp; Tire Quote
           </a>
         </div>
 
         <div>
           <div class="frame frame--media" aria-hidden="false">
             <img src="{% static 'img/hero-services.jpg' %}"
-                 alt="Brake and suspension work at Bad Guy Motors">
+                 alt="Wheel and tire service at Bad Guy Motors">
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SPECIAL OFFER -->
+    <section class="section section--offer" id="offer">
+      <div class="container">
+        <div class="offer-inner">
+          <h2 class="section__title">Buy your tires through us and get them mounted right</h2>
+          <p class="section__desc" style="margin-top:.6rem">
+            Order your tires through Bad Guy Motors and we will mount and balance them properly,
+            torque everything to spec, and make sure your setup is safe and dialed in.
+          </p>
+          <p class="offer-callout">
+            Mounting and Balancing Special: <strong>$40 per tire</strong><br>
+            Applies to tires purchased through Bad Guy Motors.
+          </p>
         </div>
       </div>
     </section>
@@ -634,39 +699,39 @@
       <div class="container">
         <div class="section__head">
           <div>
-            <p class="kicker">Why drivers choose us</p>
-            <h2 class="section__title">Why drivers in Medicine Hat choose Bad Guy Motors</h2>
+            <p class="kicker">Why drivers trust us</p>
+            <h2 class="section__title">Why drivers trust us with their wheels and tires</h2>
             <p class="section__desc">
-              We treat safety work with the same discipline as performance builds – no shortcuts, no guesswork.
+              We combine proper equipment, experience with custom setups, and straightforward communication.
             </p>
           </div>
         </div>
 
         <div class="tiles">
           <div class="tile">
-            <div class="tile__icon">★</div>
-            <b>Family‑run &amp; personal</b>
-            <p>Family run shop that treats your vehicle like our own.</p>
+            <div class="tile__icon">💬</div>
+            <b>Straightforward advice</b>
+            <p>Clear guidance on tire options, fitment, and service — no upsell pressure.</p>
           </div>
           <div class="tile">
-            <div class="tile__icon">🔧</div>
-            <b>Full brake &amp; suspension</b>
-            <p>Full service brake and suspension work for all makes and models.</p>
+            <div class="tile__icon">⚙️</div>
+            <b>Done by the book</b>
+            <p>Proper mounting, balancing, and alignment for stock and modified vehicles.</p>
           </div>
           <div class="tile">
             <div class="tile__icon">⬆︎</div>
-            <b>Lifted &amp; modified trucks</b>
-            <p>Real experience with lifted, lowered, and aftermarket‑equipped trucks.</p>
+            <b>Oversized &amp; wide setups</b>
+            <p>Comfortable with oversized, wide, and aftermarket wheel setups that others avoid.</p>
           </div>
           <div class="tile">
-            <div class="tile__icon">💬</div>
-            <b>Clear communication</b>
-            <p>Clear communication, no surprise charges, and honest recommendations.</p>
+            <div class="tile__icon">⏱</div>
+            <b>Clear timelines &amp; pricing</b>
+            <p>Upfront pricing, realistic timelines, and communication if anything changes.</p>
           </div>
           <div class="tile">
-            <div class="tile__icon">📍</div>
-            <b>Local to Medicine Hat</b>
-            <p>Local shop in Medicine Hat with deep roots in the community.</p>
+            <div class="tile__icon">🏁</div>
+            <b>Local &amp; family-run</b>
+            <p>Family run shop that stands behind its work and cares about your safety.</p>
           </div>
         </div>
       </div>
@@ -678,25 +743,25 @@
         <div class="section__head">
           <div>
             <p class="kicker">Gallery</p>
-            <h2 class="section__title">See our work</h2>
+            <h2 class="section__title">See our wheel and tire work</h2>
             <p class="section__desc">
-              A look at real brake and suspension jobs that rolled through our bay.
+              A look at real wheel and tire jobs — from daily drivers to lifted rigs.
             </p>
           </div>
         </div>
 
         <div class="gallery-grid">
           <div class="frame frame--media">
-            <img src="{% static 'img/hero-products.jpg' %}" alt="Brake service at Bad Guy Motors">
+            <img src="{% static 'img/hero-products.jpg' %}" alt="Tire mounting and balancing">
           </div>
           <div class="frame frame--media">
-            <img src="{% static 'img/hero-dealers.jpg' %}" alt="Suspension work on a truck">
+            <img src="{% static 'img/hero-merch.jpg' %}" alt="Alignment on a truck">
           </div>
           <div class="frame frame--media">
-            <img src="{% static 'img/hero-about.jpg' %}" alt="Lifted truck brake and suspension setup">
+            <img src="{% static 'img/hero-about.jpg' %}" alt="Custom wheel and tire package">
           </div>
           <div class="frame frame--media">
-            <img src="{% static 'img/hero-home.jpg' %}" alt="Front end and alignment work">
+            <img src="{% static 'img/hero-home.jpg' %}" alt="Oversized wheel and tire setup">
           </div>
         </div>
       </div>
@@ -710,7 +775,7 @@
             <p class="kicker">Reviews</p>
             <h2 class="section__title">What our customers say</h2>
             <p class="section__desc">
-              Real feedback from drivers who trusted us with their brake and suspension work.
+              Feedback from drivers who trusted us with their wheel and tire setups.
             </p>
           </div>
         </div>
@@ -718,23 +783,23 @@
         <div class="reviews-grid">
           <article class="tile review-card">
             <p class="muted">
-              "Got my brakes done on short notice. They inspected everything, showed me what was worn, and had me back on the road the same day."
+              "Had my tires swapped and wheels balanced here. Smooth ride and they had me in and out quickly."
             </p>
-            <p class="review-author">Sarah M.</p>
+            <p class="review-author">Riley P.</p>
           </article>
 
           <article class="tile review-card">
             <p class="muted">
-              "Front end was clunking and wandering all over the highway. Bad Guy Motors found the issue, fixed it, and now the truck drives straight again."
+              "They set up my new wheel and tire package and took the time to make sure nothing rubbed. Truck drives great."
             </p>
-            <p class="review-author">Mike T.</p>
+            <p class="review-author">Jordan S.</p>
           </article>
 
           <article class="tile review-card">
             <p class="muted">
-              "Only shop that was comfortable working on my lifted truck. They checked the suspension, alignment, and made sure everything was safe."
+              "Only shop that did not complain about my oversized wheels. They just got it done."
             </p>
-            <p class="review-author">James R.</p>
+            <p class="review-author">Chris L.</p>
           </article>
         </div>
       </div>
@@ -744,9 +809,10 @@
     <section class="section" id="cta">
       <div class="container cta-inner">
         <div>
-          <h2 class="section__title">Need brake or suspension work?</h2>
+          <h2 class="section__title">Need tire or wheel service?</h2>
           <p class="section__desc">
-            If something does not feel right when you hit the brakes or drive over bumps, book an appointment and let our team inspect, diagnose, and repair the issue before it gets worse.
+            Whether you are putting on new tires, fixing a flat, or chasing a vibration on the highway,
+            we are here to help. Request an appointment and we will confirm a time that works for you.
           </p>
         </div>
         <div style="display:flex;gap:.6rem;flex-wrap:wrap">
@@ -769,7 +835,7 @@
           620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2
         </div>
         <div class="section__desc" style="font-size:.95rem">
-          Phone: <a href="tel:14035250432">(403) 525‑0432</a>
+          Phone: <a href="tel:14035250432">(403) 525-0432</a>
         </div>
       </div>
 
@@ -784,7 +850,7 @@
       </div>
 
       <div class="section__desc" style="font-size:.9rem">
-        © 2025 Bad Guy Motors • Brake &amp; suspension service in Medicine Hat. Engineered to last.
+        © 2025 Bad Guy Motors • Wheel &amp; tire service in Medicine Hat. Engineered to last.
       </div>
     </div>
   </footer>

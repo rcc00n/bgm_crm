@@ -471,6 +471,10 @@ def brake_suspension_view(request):
     return render(request, "client/brake_suspension.html")
 
 
+def wheel_tire_service_view(request):
+    return render(request, "client/wheel_tire_service.html")
+
+
 def project_journal_view(request):
     tag_filter = (request.GET.get("tag") or "").strip()
     normalized_tag = tag_filter.lower()
