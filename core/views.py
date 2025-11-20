@@ -467,6 +467,10 @@ def our_story_view(request):
     return render(request, "client/our_story.html")
 
 
+def brake_suspension_view(request):
+    return render(request, "client/brake_suspension.html")
+
+
 def project_journal_view(request):
     tag_filter = (request.GET.get("tag") or "").strip()
     normalized_tag = tag_filter.lower()
