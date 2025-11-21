@@ -301,6 +301,8 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "icon": "fas fa-globe",
                 "items": [
                     {"model": "core.LegalPage", "label": "Legal Pages"},
+                    {"model": "core.FontPreset", "label": "Font Library"},
+                    {"model": "core.PageFontSetting", "label": "Page Fonts"},
                     {"model": "core.ProjectJournalEntry", "label": "Project Journal"},
                     {"model": "core.HeroImage", "label": "Hero Assets"},
                 ],
@@ -365,6 +367,8 @@ JAZZMIN_SETTINGS = {
         "core.DealerApplication": "fas fa-user-check",
         "core.DealerTierLevel": "fas fa-medal",
         "core.HeroImage": "fas fa-panorama",
+        "core.FontPreset": "fas fa-font",
+        "core.PageFontSetting": "fas fa-heading",
         "core.LegalPage": "fas fa-scale-balanced",
         "core.MasterAvailability": "fas fa-business-time",
         "core.MasterProfile": "fas fa-user-tie",

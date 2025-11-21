@@ -346,8 +346,8 @@
     .site-header,.hero,main,.site-footer{position:relative;z-index:1}
 
     /* Fonts */
-    {% with fs=font_settings|default:{} %}
-    {% for font in fs.fonts|default:[] %}
+    {% with fs=font_settings %}
+    {% for font in fs.fonts %}
       {% if font.has_source %}
     @font-face{
       font-family:"{{ font.family }}";
