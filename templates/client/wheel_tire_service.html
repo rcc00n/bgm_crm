@@ -358,12 +358,16 @@
     }
       {% endif %}
     {% endfor %}
-    {% with body_stack=fs.body.stack|default:'"Diesel", sans-serif' heading_stack=fs.heading.stack|default:'"Ford", sans-serif' ui_stack=fs.ui.stack|default:body_stack %}
+    {% with body_stack=fs.body.stack|default:'"Diesel", sans-serif' %}
+    {% with heading_stack=fs.heading.stack|default:'"Ford", sans-serif' %}
+    {% with ui_stack=fs.ui.stack|default:body_stack %}
     :root{
       --font-body: {{ body_stack|safe }};
       --font-head: {{ heading_stack|safe }};
       --font-ui:   {{ ui_stack|safe }};
     }
+    {% endwith %}
+    {% endwith %}
     {% endwith %}
     {% endwith %}
     html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
