@@ -17,6 +17,51 @@ class MultipleFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
 
 # -----------------------------
+# Font settings
+# -----------------------------
+
+
+class PageFontSettingAdminForm(forms.ModelForm):
+    """
+    Admin-facing form that limits selectable fonts to active presets and
+    provides clear guidance on where each choice is applied.
+    """
+
+    class Meta:
+        model = PageFontSetting
+        fields = ["page", "body_font", "heading_font", "ui_font", "notes"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        active_fonts = FontPreset.objects.filter(is_active=True).order_by("name")
+        for field_name in ("body_font", "heading_font", "ui_font"):
+            if field_name in self.fields:
+                self.fields[field_name].queryset = active_fonts
+        if "body_font" in self.fields:
+            self.fields["body_font"].label = "Body font"
+            self.fields["body_font"].help_text = "Paragraphs, form inputs, and most UI copy."
+        if "heading_font" in self.fields:
+            self.fields["heading_font"].label = "Heading font"
+            self.fields["heading_font"].help_text = "Hero and section headings."
+        if "ui_font" in self.fields:
+            self.fields["ui_font"].label = "UI font (optional)"
+            self.fields["ui_font"].help_text = "Overrides nav/buttons if provided; otherwise inherits the body font."
+        if "page" in self.fields:
+            self.fields["page"].help_text = "Pick the public page that should use these fonts."
+
+    def clean(self):
+        cleaned = super().clean()
+        body_font = cleaned.get("body_font")
+        heading_font = cleaned.get("heading_font")
+        ui_font = cleaned.get("ui_font") or body_font
+        if not body_font:
+            raise forms.ValidationError("Body font is required.")
+        if not heading_font:
+            raise forms.ValidationError("Heading font is required.")
+        cleaned["ui_font"] = ui_font
+        return cleaned
+
+# -----------------------------
 # Appointment Form
 # -----------------------------
 

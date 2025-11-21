@@ -13,6 +13,7 @@ from .constants import STAFF_DISPLAY_NAME
 from django.conf import settings
 from django.db.models import Sum
 from django.core.validators import MinValueValidator
+from django.templatetags.static import static
 
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
@@ -111,6 +112,152 @@ class LegalPage(models.Model):
         if self.slug == "terms-and-conditions":
             return reverse("legal-terms")
         return reverse("legal-page", kwargs={"slug": self.slug})
+
+
+class FontPreset(models.Model):
+    """
+    Reusable font definition that can be applied to public-facing pages.
+    Supports static assets as well as uploaded font files.
+    """
+
+    class FontStyle(models.TextChoices):
+        NORMAL = "normal", "Normal"
+        ITALIC = "italic", "Italic"
+
+    slug = models.SlugField(max_length=50, unique=True)
+    name = models.CharField(max_length=120)
+    font_family = models.CharField(
+        max_length=120,
+        help_text="Primary CSS font-family name (without fallbacks).",
+    )
+    fallback_stack = models.CharField(
+        max_length=255,
+        default='system-ui, -apple-system, "Segoe UI", sans-serif',
+        help_text="Comma-separated fallbacks appended after the primary family.",
+    )
+    static_path = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Path inside STATIC files, e.g. fonts/Diesel.ttf.",
+    )
+    font_file = models.FileField(
+        upload_to="fonts/",
+        blank=True,
+        null=True,
+        help_text="Optional upload when hosting the font via MEDIA.",
+    )
+    mime_type = models.CharField(
+        max_length=40,
+        default="font/ttf",
+        help_text="Used for preload links (e.g. font/ttf, font/woff2).",
+    )
+    font_weight = models.CharField(
+        max_length=40,
+        default="100 900",
+        help_text="Value used in @font-face font-weight (e.g. '400' or '100 900').",
+    )
+    font_style = models.CharField(
+        max_length=20,
+        choices=FontStyle.choices,
+        default=FontStyle.NORMAL,
+    )
+    font_display = models.CharField(
+        max_length=20,
+        default="swap",
+        help_text="font-display value used in @font-face.",
+    )
+    preload = models.BooleanField(
+        default=True,
+        help_text="Preload tag will be emitted when this font is used on a page.",
+    )
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Font preset"
+        verbose_name_plural = "Font presets"
+        ordering = ("name",)
+
+    def __str__(self) -> str:
+        return self.name
+
+    @property
+    def url(self) -> str:
+        if self.font_file:
+            try:
+                return self.font_file.url
+            except Exception:
+                pass
+        if self.static_path:
+            return static(self.static_path)
+        return ""
+
+    @property
+    def format_hint(self) -> str:
+        if self.mime_type == "font/woff2":
+            return "woff2"
+        if self.mime_type == "font/woff":
+            return "woff"
+        if self.mime_type == "font/otf":
+            return "opentype"
+        return "truetype"
+
+    @property
+    def font_stack(self) -> str:
+        fallback = (self.fallback_stack or "").strip().rstrip(",")
+        fallback_part = f", {fallback}" if fallback else ""
+        return f'"{self.font_family}"{fallback_part}'
+
+
+class PageFontSetting(models.Model):
+    """
+    Per-page font mapping controllable from the admin UI.
+    """
+
+    class Page(models.TextChoices):
+        WHEEL_TIRE_SERVICE = "wheel_tire_service", "Wheel & Tire Service page"
+
+    page = models.CharField(
+        max_length=80,
+        choices=Page.choices,
+        unique=True,
+        help_text="Page that will consume the configured fonts.",
+    )
+    body_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.PROTECT,
+        related_name="body_font_settings",
+    )
+    heading_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.PROTECT,
+        related_name="heading_font_settings",
+    )
+    ui_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.PROTECT,
+        related_name="ui_font_settings",
+        null=True,
+        blank=True,
+        help_text="Optional override for navigation, buttons, and labels. Defaults to body font.",
+    )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Page font setting"
+        verbose_name_plural = "Page font settings"
+        ordering = ("page",)
+
+    def __str__(self) -> str:
+        return f"{self.get_page_display()} — body: {self.body_font} / heading: {self.heading_font}"
+
+    @property
+    def resolved_ui_font(self) -> FontPreset:
+        return self.ui_font or self.body_font
 
 class ProjectJournalQuerySet(models.QuerySet):
     def published(self):

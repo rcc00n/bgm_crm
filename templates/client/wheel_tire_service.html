@@ -11,8 +11,11 @@
   {% endwith %}
 
   <!-- Fonts -->
-  <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
-  <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
+  {% if font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% endif %}
 
   <style>
     :root{
@@ -36,7 +39,7 @@
     .btn{
       display:inline-flex;align-items:center;justify-content:center;gap:.6em;
       padding:.78rem 1.15rem;border-radius:var(--radius-sm);
-      font-weight:800;letter-spacing:.3px;cursor:pointer;transition:.24s;
+      font-family:var(--font-ui);font-weight:800;letter-spacing:.3px;cursor:pointer;transition:.24s;
       border:1px solid transparent;user-select:none;font-size:.98rem;
     }
     .btn:disabled{opacity:.45;cursor:not-allowed}
@@ -343,28 +346,37 @@
     .site-header,.hero,main,.site-footer{position:relative;z-index:1}
 
     /* Fonts */
+    {% with fs=font_settings|default:{} %}
+    {% for font in fs.fonts|default:[] %}
+      {% if font.has_source %}
     @font-face{
-      font-family:"Diesel";
-      src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
-      font-weight:100 900;font-style:normal;font-display:swap;
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
     }
-    @font-face{
-      font-family:"Ford";
-      src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
-      font-weight:100 900;font-style:normal;font-display:swap;
+      {% endif %}
+    {% endfor %}
+    {% with body_stack=fs.body.stack|default:'"Diesel", sans-serif' heading_stack=fs.heading.stack|default:'"Ford", sans-serif' ui_stack=fs.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui:   {{ ui_stack|safe }};
     }
-    :root{ --font-body:"Diesel",sans-serif; --font-head:"Ford",sans-serif; }
+    {% endwith %}
+    {% endwith %}
     html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
     body,button,input,select,textarea{ font-family:var(--font-body)!important }
 
-    /* Только крупные заголовки — красивым шрифтом */
+    /* Headlines use the dedicated heading font */
     .hero__title,
     .section__title{
       font-family:var(--font-head)!important;
       font-style:italic;
     }
 
-    /* Top bar: Diesel */
+    /* Top bar: UI font */
     .site-header .brand,
     .site-header .brand__logo,
     .site-header .brand__logo .brand__word,
@@ -372,7 +384,7 @@
     .site-header nav a,
     .site-header nav .btn,
     .site-header nav .btn--ghost{
-      font-family:var(--font-body)!important;
+      font-family:var(--font-ui)!important;
       font-style:normal!important;
     }
     .site-header .brand__logo,

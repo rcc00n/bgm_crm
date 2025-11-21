@@ -24,12 +24,14 @@ from core.models import (
     ProjectJournalEntry,
     PageView,
     VisitorSession,
+    PageFontSetting,
 )
 from core.services.booking import (
     get_available_slots, get_service_masters,
     get_or_create_status, get_default_payment_status, _tz_aware
 )
 from core.validators import clean_phone
+from core.services.fonts import build_page_font_context
 
 def _build_catalog_context(request):
     """Общий конструктор контекста каталога."""
@@ -472,7 +474,8 @@ def brake_suspension_view(request):
 
 
 def wheel_tire_service_view(request):
-    return render(request, "client/wheel_tire_service.html")
+    font_settings = build_page_font_context(PageFontSetting.Page.WHEEL_TIRE_SERVICE)
+    return render(request, "client/wheel_tire_service.html", {"font_settings": font_settings})
 
 
 def project_journal_view(request):

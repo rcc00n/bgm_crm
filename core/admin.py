@@ -1421,6 +1421,127 @@ class UserProfileAdmin(admin.ModelAdmin):
         self.message_user(request, f"Recomputed tiers for {queryset.count()} profile(s).")
 
 
+@admin.register(FontPreset)
+class FontPresetAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "slug",
+        "font_family",
+        "source_kind",
+        "mime_type",
+        "preload",
+        "is_active",
+        "updated_at",
+    )
+    list_filter = ("is_active", "preload", "font_style")
+    search_fields = ("name", "slug", "font_family", "static_path", "notes")
+    readonly_fields = ("created_at", "updated_at", "preview")
+    fieldsets = (
+        ("Identity", {"fields": ("name", "slug", "font_family", "fallback_stack", "notes")}),
+        ("Loading", {
+            "fields": (
+                "static_path",
+                "font_file",
+                "mime_type",
+                "font_weight",
+                "font_style",
+                "font_display",
+                "preload",
+                "is_active",
+                "preview",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="Source", ordering="static_path")
+    def source_kind(self, obj):
+        if obj.font_file:
+            return "Upload"
+        if obj.static_path:
+            return "Static"
+        return "—"
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        if not obj or not obj.url:
+            return "Provide a file or static path to preview."
+        face = (
+            f"@font-face{{font-family:'{obj.font_family}';"
+            f"src:url('{obj.url}') format('{obj.format_hint}');"
+            f"font-weight:{obj.font_weight};font-style:{obj.font_style};"
+            f"font-display:{obj.font_display};}}"
+        )
+        sample = (
+            f"<div style=\"font-family:{obj.font_stack};font-size:18px;"
+            f"padding:4px 0;\">The quick brown fox jumps over the lazy dog.</div>"
+        )
+        return format_html("<style>{}</style>{}", mark_safe(face), mark_safe(sample))
+
+
+@admin.register(PageFontSetting)
+class PageFontSettingAdmin(admin.ModelAdmin):
+    form = PageFontSettingAdminForm
+    list_display = (
+        "page",
+        "body_font",
+        "heading_font",
+        "ui_font_display",
+        "updated_at",
+    )
+    list_filter = ("page",)
+    search_fields = ("notes",)
+    readonly_fields = ("created_at", "updated_at", "preview")
+    fieldsets = (
+        ("Page", {"fields": ("page",)}),
+        ("Fonts", {"fields": ("body_font", "heading_font", "ui_font")}),
+        ("Notes", {"fields": ("notes",)}),
+        ("Preview", {"fields": ("preview",)}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="UI font")
+    def ui_font_display(self, obj):
+        if not obj:
+            return "—"
+        return obj.resolved_ui_font
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        if not obj:
+            return "Save to preview."
+        fonts = [obj.body_font, obj.heading_font, obj.resolved_ui_font]
+        faces = []
+        for font in fonts:
+            if not font or not font.url:
+                continue
+            faces.append(
+                f"@font-face{{font-family:'{font.font_family}';"
+                f"src:url('{font.url}') format('{font.format_hint}');"
+                f"font-weight:{font.font_weight};"
+                f"font-style:{font.font_style};"
+                f"font-display:{font.font_display};}}"
+            )
+        face_block = "".join(faces)
+        heading = (
+            f"<div style=\"font-family:{obj.heading_font.font_stack};"
+            f"font-size:20px;font-weight:800;padding:6px 0 2px;\">"
+            f"Heading sample — Wheel &amp; Tire Service</div>"
+        )
+        body = (
+            f"<div style=\"font-family:{obj.body_font.font_stack};"
+            f"font-size:16px;padding:4px 0;\">"
+            f"Body sample — The quick brown fox jumps over the lazy dog.</div>"
+        )
+        ui = (
+            f"<div style=\"font-family:{obj.resolved_ui_font.font_stack};"
+            f"font-size:14px;text-transform:uppercase;padding:4px 0;\">"
+            f"UI sample — Buttons &amp; navigation</div>"
+        )
+        preview_block = "".join([heading, body, ui])
+        return format_html("<style>{}</style>{}", mark_safe(face_block), mark_safe(preview_block))
+
+
 @admin.register(LegalPage)
 class LegalPageAdmin(admin.ModelAdmin):
     list_display = ("title", "slug", "is_active", "updated_at")
