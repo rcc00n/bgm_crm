@@ -115,6 +115,30 @@
       margin-top:.75rem;
       max-width:60ch;
     }
+    .hero__visual{
+      position:relative;
+      margin-top:clamp(1.5rem,3vw,2.4rem);
+      border-radius:1.2rem;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background:radial-gradient(circle at 18% 18%,rgba(213,0,0,.14),rgba(213,0,0,0)) #0a0a0a;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03),0 18px 32px rgba(0,0,0,.45);
+      aspect-ratio:16/9;
+      max-width:720px;
+    }
+    .hero__visual img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      filter:contrast(1.06) saturate(1.04);
+      opacity:.95;
+    }
+    .hero__visual::after{
+      content:"";
+      position:absolute;inset:0;
+      background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.32));
+      pointer-events:none;
+    }
 
     .stat{
       background:linear-gradient(180deg,var(--panel),var(--panel-2));
@@ -565,6 +589,11 @@
         <p class="hero__text">
           If your brakes are squeaking, pulling, or feel soft – or your suspension feels loose or bouncy – it is time to get it checked. Our technicians diagnose the problem properly, explain what is going on in plain language, and fix it right the first time so you can drive with confidence.
         </p>
+
+        <figure class="hero__visual">
+          <img src="{% static 'img/hero-dealers.jpg' %}"
+               alt="Brake and suspension work underway at Bad Guy Motors">
+        </figure>
       </div>
 
       <aside class="hero__panel">
