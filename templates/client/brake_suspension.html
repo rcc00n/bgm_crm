@@ -26,7 +26,13 @@
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
-    body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-height:1.55;}
+    body{
+      background:var(--bg);
+      color:var(--fg);
+      font-family:var(--font-body);
+      line-height:1.55;
+      padding-bottom:3.5rem; /* make room for sticky phone bar */
+    }
     img{max-width:100%;display:block}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
     a{color:inherit;text-decoration:none}
@@ -67,7 +73,10 @@
       display:flex;align-items:center;gap:1.25rem;
       justify-content:space-between;padding:.7rem 0;
     }
-    .brand{display:flex;align-items:baseline;gap:.9rem;font-weight:900;letter-spacing:.5px}
+    .brand{
+      display:flex;align-items:baseline;gap:.9rem;
+      font-weight:900;letter-spacing:.5px
+    }
     .brand__logo{all:unset;display:inline-flex;gap:.5rem;line-height:1;letter-spacing:.06em;font-size:1rem}
     .brand__word--white{color:#fff}
     .brand__word--red{color:#d50000}
@@ -106,9 +115,7 @@
       margin-top:.75rem;
       max-width:60ch;
     }
-    .hero__cta{
-      display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap;
-    }
+
     .stat{
       background:linear-gradient(180deg,var(--panel),var(--panel-2));
       border:1px solid var(--line);border-radius:var(--radius-lg);
@@ -122,10 +129,11 @@
       border:1px solid var(--line);
       background:linear-gradient(180deg,#0b0b0b,#111);
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.02),0 14px 28px rgba(0,0,0,.45);
-      padding:1.35rem 1.4rem;
+      padding:1.7rem 1.6rem;
       align-self:stretch;
       max-width:440px;
       margin-left:auto;
+      margin-top:.75rem;
     }
     .hero__panel h2{
       font-size:1.4rem;
@@ -160,10 +168,16 @@
       box-shadow:0 0 0 1px rgba(213,0,0,.55);
     }
     .form textarea{min-height:80px;resize:vertical;}
+    .form__note{
+      margin-top:.6rem;
+      font-size:.8rem;
+      color:var(--muted-2);
+      text-align:center;
+    }
 
     /* Sections */
     .section{
-      padding:clamp(2rem,5.5vw,4rem) 0;
+      padding:clamp(1.8rem,4.2vw,3.25rem) 0;
       border-top:1px solid var(--line);
     }
     .section__head{
@@ -222,6 +236,13 @@
       color:var(--accent);
     }
 
+    .service-highlights{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.6rem;
+      margin-top:1.2rem;
+    }
+
     /* Tiles / Why / Reviews */
     .tiles{
       display:grid;
@@ -271,10 +292,19 @@
       aspect-ratio:16/10;
       display:flex;align-items:center;justify-content:center;
       color:var(--muted-2);
+      position:relative;
+      overflow:hidden;
     }
-    .frame--media{position:relative;overflow:hidden}
     .frame--media img{
       width:100%;height:100%;object-fit:cover;filter:contrast(1.05);
+    }
+    .frame__caption{
+      position:absolute;
+      left:0;right:0;bottom:0;
+      padding:.45rem .75rem;
+      font-size:.82rem;
+      background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.8));
+      color:#fff;
     }
 
     /* CTA */
@@ -306,6 +336,38 @@
       font-size:.95rem;
     }
     .footer__nav a:hover{color:#fff}
+
+    /* Sticky phone bar */
+    .sticky-phone{
+      position:fixed;
+      inset-inline:0;
+      inset-block-end:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:.55rem;
+      padding:.6rem 1rem;
+      background:rgba(17,17,17,.9);
+      color:#fff;
+      text-decoration:none;
+      z-index:3800;
+      border-top:1px solid rgba(255,255,255,.14);
+      font-size:.95rem;
+    }
+    .sticky-phone span{display:inline-flex;align-items:center}
+    .sticky-phone:hover{background:rgba(20,20,20,.95)}
+
+    @media (min-width:960px){
+      .sticky-phone{
+        max-width:420px;
+        inset-inline:auto;
+        right:1rem;
+        inset-block-end:1rem;
+        border-radius:999px;
+        padding:.55rem 1.25rem;
+        font-size:.9rem;
+      }
+    }
 
     /* Smoke layer */
     #bg{position:fixed;inset:0;z-index:0;pointer-events:none}
@@ -437,7 +499,7 @@
       .hero__inner{
         grid-template-columns:1fr;
       }
-      .hero__panel{max-width:100%;margin:0}
+      .hero__panel{max-width:100%;margin:1.25rem 0 0}
       .section__grid--two-col{grid-template-columns:1fr}
     }
 
@@ -470,35 +532,23 @@
   <!-- HEADER -->
   <header class="site-header" role="banner">
     <div class="container site-header__inner">
-      <a class="brand" href="/">
+      <div class="brand">
         <span class="brand__logo">
           <span class="brand__word brand__word--white">BAD GUY</span>
           <span class="brand__word brand__word--red">MOTORS</span>
         </span>
         <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
-      </a>
+      </div>
 
-      <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
+      <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav" hidden>
         <span class="site-header__toggle-box" aria-hidden="true">
           <span class="site-header__toggle-lines"></span>
         </span>
         <span class="sr-only">Toggle navigation</span>
       </button>
 
-      <nav id="siteNav" aria-label="Main navigation">
-        <ul>
-          <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
-          {% if user.is_authenticated %}
-            <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
-          {% else %}
-            <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
-          {% endif %}
-          <li><a href="{% url 'store' %}">Products</a></li>
-          <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
-          <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-          <li><a href="{% url 'financing' %}">Financing</a></li>
-          <li><a href="{% url 'our-story' %}">About</a></li>
-        </ul>
+      <nav id="siteNav" aria-label="Main navigation" aria-hidden="true">
+        <ul aria-hidden="true"></ul>
       </nav>
     </div>
   </header>
@@ -515,25 +565,6 @@
         <p class="hero__text">
           If your brakes are squeaking, pulling, or feel soft – or your suspension feels loose or bouncy – it is time to get it checked. Our technicians diagnose the problem properly, explain what is going on in plain language, and fix it right the first time so you can drive with confidence.
         </p>
-        <div class="hero__cta">
-          <a href="#service-form" class="btn btn--primary">Request an Appointment</a>
-          <a href="{% url 'client-dashboard' %}#services" class="btn btn--secondary">Book Online</a>
-        </div>
-
-        <div style="display:flex;gap:.6rem;margin-top:1.3rem;flex-wrap:wrap">
-          <div class="stat">
-            <b>Same‑day slots</b><br>
-            <span>Subject to availability</span>
-          </div>
-          <div class="stat">
-            <b>All makes &amp; trucks</b><br>
-            <span>Daily, work &amp; lifted rigs</span>
-          </div>
-          <div class="stat">
-            <b>Transparent quotes</b><br>
-            <span>No surprise charges</span>
-          </div>
-        </div>
       </div>
 
       <aside class="hero__panel">
@@ -579,11 +610,12 @@
             <textarea name="notes" placeholder="Describe noises, vibrations, warning lights…"></textarea>
           </label>
 
-          <small>We’ll contact you to confirm date and time. No obligation until you approve the estimate.</small>
-
-          <button type="submit" class="btn btn--primary" style="margin-top:.6rem;width:100%">
+          <button type="submit" class="btn btn--primary" style="margin-top:.8rem;width:100%">
             Submit Request
           </button>
+          <p class="form__note">
+            We’ll call or email to confirm your appointment. No obligation.
+          </p>
         </form>
       </aside>
     </div>
@@ -615,7 +647,22 @@
             <li>Alignment and ride height adjustment for lifted vehicles</li>
           </ul>
 
-          <a href="#service-form" class="btn btn--primary">
+          <div class="service-highlights">
+            <div class="stat">
+              <b>Same‑day slots</b><br>
+              <span>Subject to availability</span>
+            </div>
+            <div class="stat">
+              <b>All makes &amp; trucks</b><br>
+              <span>Daily, work &amp; lifted rigs</span>
+            </div>
+            <div class="stat">
+              <b>Transparent quotes</b><br>
+              <span>No surprise charges</span>
+            </div>
+          </div>
+
+          <a href="#service-form" class="btn btn--primary" style="margin-top:1.25rem">
             Request a Brake &amp; Suspension Quote
           </a>
         </div>
@@ -672,37 +719,7 @@
       </div>
     </section>
 
-    <!-- GALLERY -->
-    <section class="section" id="gallery">
-      <div class="container">
-        <div class="section__head">
-          <div>
-            <p class="kicker">Gallery</p>
-            <h2 class="section__title">See our work</h2>
-            <p class="section__desc">
-              A look at real brake and suspension jobs that rolled through our bay.
-            </p>
-          </div>
-        </div>
-
-        <div class="gallery-grid">
-          <div class="frame frame--media">
-            <img src="{% static 'img/hero-products.jpg' %}" alt="Brake service at Bad Guy Motors">
-          </div>
-          <div class="frame frame--media">
-            <img src="{% static 'img/hero-dealers.jpg' %}" alt="Suspension work on a truck">
-          </div>
-          <div class="frame frame--media">
-            <img src="{% static 'img/hero-about.jpg' %}" alt="Lifted truck brake and suspension setup">
-          </div>
-          <div class="frame frame--media">
-            <img src="{% static 'img/hero-home.jpg' %}" alt="Front end and alignment work">
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- REVIEWS -->
+    <!-- REVIEWS (moved up, closer to top) -->
     <section class="section" id="reviews">
       <div class="container">
         <div class="section__head">
@@ -740,6 +757,36 @@
       </div>
     </section>
 
+    <!-- GALLERY -->
+    <section class="section" id="gallery">
+      <div class="container">
+        <div class="section__head">
+          <div>
+            <p class="kicker">Gallery</p>
+            <h2 class="section__title">See our work</h2>
+            <p class="section__desc">
+              A look at real brake and suspension jobs that rolled through our bay.
+            </p>
+          </div>
+        </div>
+
+        <div class="gallery-grid">
+          <div class="frame frame--media">
+            <img src="{% static 'img/hero-dealers.jpg' %}" alt="Suspension work on a truck at Bad Guy Motors">
+            <p class="frame__caption">Suspension inspection and repair on a work truck.</p>
+          </div>
+          <div class="frame frame--media">
+            <img src="{% static 'img/hero-about.jpg' %}" alt="Lifted truck brake and suspension setup">
+            <p class="frame__caption">Brake and suspension setup on a lifted truck.</p>
+          </div>
+          <div class="frame frame--media">
+            <img src="{% static 'img/hero-home.jpg' %}" alt="Front end and alignment work in the shop">
+            <p class="frame__caption">In-house alignment to keep your vehicle tracking straight.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- FINAL CTA -->
     <section class="section" id="cta">
       <div class="container cta-inner">
@@ -751,7 +798,6 @@
         </div>
         <div style="display:flex;gap:.6rem;flex-wrap:wrap">
           <a href="#service-form" class="btn btn--primary">Request an Appointment</a>
-          <a href="{% url 'client-dashboard' %}#services" class="btn btn--secondary">Book Online</a>
         </div>
       </div>
     </section>
@@ -771,15 +817,8 @@
         <div class="section__desc" style="font-size:.95rem">
           Phone: <a href="tel:14035250432">(403) 525‑0432</a>
         </div>
-      </div>
-
-      <div>
-        <h3 class="kicker">Follow us</h3>
-        <div class="footer__nav">
-          <a href="https://www.instagram.com" target="_blank" rel="noopener">Instagram</a>
-          <a href="https://www.facebook.com" target="_blank" rel="noopener">Facebook</a>
-          <a href="https://www.youtube.com" target="_blank" rel="noopener">YouTube</a>
-          <a href="https://www.tiktok.com" target="_blank" rel="noopener">TikTok</a>
+        <div class="section__desc" style="font-size:.95rem">
+          Hours: Please call for current hours.
         </div>
       </div>
 
@@ -788,6 +827,14 @@
       </div>
     </div>
   </footer>
+
+  <!-- Sticky phone bar (secondary CTA) -->
+  <a href="tel:14035250432"
+     class="sticky-phone"
+     aria-label="Call Bad Guy Motors at (403) 525-0432">
+    <span aria-hidden="true">📞</span>
+    <span>(403) 525‑0432 — Call Now</span>
+  </a>
 
   <!-- Smoke background -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
