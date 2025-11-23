@@ -12,7 +12,6 @@
 
   <!-- Fonts -->
   <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
-  <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
 
   <style>
     :root{
@@ -23,6 +22,9 @@
       --container:clamp(320px,92vw,1280px);
       --site-header-height:72px;
       --site-header-toggle-size:46px;
+
+      --font-body:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --font-head:"Diesel",system-ui,sans-serif;
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
@@ -31,7 +33,6 @@
       color:var(--fg);
       font-family:var(--font-body);
       line-height:1.55;
-      padding-bottom:3.5rem; /* make room for sticky phone bar */
     }
     img{max-width:100%;display:block}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
@@ -73,10 +74,7 @@
       display:flex;align-items:center;gap:1.25rem;
       justify-content:space-between;padding:.7rem 0;
     }
-    .brand{
-      display:flex;align-items:baseline;gap:.9rem;
-      font-weight:900;letter-spacing:.5px
-    }
+    .brand{display:flex;align-items:baseline;gap:.9rem;font-weight:900;letter-spacing:.5px}
     .brand__logo{all:unset;display:inline-flex;gap:.5rem;line-height:1;letter-spacing:.06em;font-size:1rem}
     .brand__word--white{color:#fff}
     .brand__word--red{color:#d50000}
@@ -98,8 +96,9 @@
     .hero{position:relative;overflow:hidden;background:transparent}
     .hero__inner{
       display:grid;grid-template-columns:1.1fr .9fr;
-      gap:2rem;padding:clamp(2rem,6vw,4.5rem) 0;
-      align-items:stretch;
+      gap:2.4rem;
+      padding:clamp(2rem,6vw,4.5rem) 0;
+      align-items:flex-start;
     }
     .hero__title{
       font-size:clamp(2rem,4.6vw,3.4rem);
@@ -115,31 +114,15 @@
       margin-top:.75rem;
       max-width:60ch;
     }
-    .hero__visual{
-      position:relative;
-      margin-top:clamp(1.5rem,3vw,2.4rem);
-      border-radius:1.2rem;
-      overflow:hidden;
-      border:1px solid var(--line);
-      background:radial-gradient(circle at 18% 18%,rgba(213,0,0,.14),rgba(213,0,0,0)) #0a0a0a;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03),0 18px 32px rgba(0,0,0,.45);
-      aspect-ratio:16/9;
-      max-width:720px;
+    .hero__cta{
+      display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap;
     }
-    .hero__visual img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      filter:contrast(1.06) saturate(1.04);
-      opacity:.95;
+    .stat-row{
+      display:flex;
+      gap:.6rem;
+      margin-top:1.3rem;
+      flex-wrap:wrap;
     }
-    .hero__visual::after{
-      content:"";
-      position:absolute;inset:0;
-      background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.32));
-      pointer-events:none;
-    }
-
     .stat{
       background:linear-gradient(180deg,var(--panel),var(--panel-2));
       border:1px solid var(--line);border-radius:var(--radius-lg);
@@ -153,11 +136,10 @@
       border:1px solid var(--line);
       background:linear-gradient(180deg,#0b0b0b,#111);
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.02),0 14px 28px rgba(0,0,0,.45);
-      padding:1.7rem 1.6rem;
+      padding:1.5rem 1.5rem;
       align-self:stretch;
       max-width:440px;
       margin-left:auto;
-      margin-top:.75rem;
     }
     .hero__panel h2{
       font-size:1.4rem;
@@ -192,16 +174,10 @@
       box-shadow:0 0 0 1px rgba(213,0,0,.55);
     }
     .form textarea{min-height:80px;resize:vertical;}
-    .form__note{
-      margin-top:.6rem;
-      font-size:.8rem;
-      color:var(--muted-2);
-      text-align:center;
-    }
 
     /* Sections */
     .section{
-      padding:clamp(1.8rem,4.2vw,3.25rem) 0;
+      padding:clamp(1.9rem,4.5vw,3rem) 0;
       border-top:1px solid var(--line);
     }
     .section__head{
@@ -260,13 +236,6 @@
       color:var(--accent);
     }
 
-    .service-highlights{
-      display:flex;
-      flex-wrap:wrap;
-      gap:.6rem;
-      margin-top:1.2rem;
-    }
-
     /* Tiles / Why / Reviews */
     .tiles{
       display:grid;
@@ -316,19 +285,18 @@
       aspect-ratio:16/10;
       display:flex;align-items:center;justify-content:center;
       color:var(--muted-2);
-      position:relative;
-      overflow:hidden;
     }
+    .frame--media{position:relative;overflow:hidden}
     .frame--media img{
       width:100%;height:100%;object-fit:cover;filter:contrast(1.05);
     }
     .frame__caption{
       position:absolute;
       left:0;right:0;bottom:0;
-      padding:.45rem .75rem;
-      font-size:.82rem;
-      background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.8));
-      color:#fff;
+      padding:.45rem .7rem;
+      font-size:.8rem;
+      background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.82));
+      color:var(--muted);
     }
 
     /* CTA */
@@ -361,42 +329,33 @@
     }
     .footer__nav a:hover{color:#fff}
 
-    /* Sticky phone bar */
-    .sticky-phone{
-      position:fixed;
-      inset-inline:0;
-      inset-block-end:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:.55rem;
-      padding:.6rem 1rem;
-      background:rgba(17,17,17,.9);
-      color:#fff;
-      text-decoration:none;
-      z-index:3800;
-      border-top:1px solid rgba(255,255,255,.14);
-      font-size:.95rem;
-    }
-    .sticky-phone span{display:inline-flex;align-items:center}
-    .sticky-phone:hover{background:rgba(20,20,20,.95)}
-
-    @media (min-width:960px){
-      .sticky-phone{
-        max-width:420px;
-        inset-inline:auto;
-        right:1rem;
-        inset-block-end:1rem;
-        border-radius:999px;
-        padding:.55rem 1.25rem;
-        font-size:.9rem;
-      }
-    }
-
     /* Smoke layer */
     #bg{position:fixed;inset:0;z-index:0;pointer-events:none}
     #bg canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
     .site-header,.hero,main,.site-footer{position:relative;z-index:1}
+
+    /* Sticky phone bar */
+    .phone-bar{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      background:rgba(17,17,17,.9);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:.5rem;
+      padding:.6rem .9rem;
+      font-size:.95rem;
+      z-index:3500;
+      text-decoration:none;
+      border-top:1px solid rgba(255,255,255,.12);
+    }
+    .phone-bar__icon{
+      font-size:1.1rem;
+      line-height:1;
+    }
 
     /* Fonts */
     @font-face{
@@ -404,12 +363,6 @@
       src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
       font-weight:100 900;font-style:normal;font-display:swap;
     }
-    @font-face{
-      font-family:"Ford";
-      src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
-      font-weight:100 900;font-style:normal;font-display:swap;
-    }
-    :root{ --font-body:"Diesel",sans-serif; --font-head:"Ford",sans-serif; }
     html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
     body,button,input,select,textarea{
       font-family:var(--font-body)!important;
@@ -420,7 +373,7 @@
     .hero__title,
     .section__title{
       font-family:var(--font-head)!important;
-      font-style:italic;
+      font-style:normal;
     }
 
     /* Top bar: Diesel */
@@ -431,7 +384,7 @@
     .site-header nav a,
     .site-header nav .btn,
     .site-header nav .btn--ghost{
-      font-family:var(--font-body)!important;
+      font-family:var(--font-head)!important;
       font-style:normal!important;
     }
     .site-header .brand__logo,
@@ -457,7 +410,8 @@
       position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
     }
     .site-header__toggle{
-      display:none;align-items:center;justify-content:center;
+      display:none!important;
+      align-items:center;justify-content:center;
       width:var(--site-header-toggle-size);height:var(--site-header-toggle-size);
       border-radius:.85rem;border:1px solid rgba(255,255,255,.16);
       background:rgba(255,255,255,.06);color:#fff;cursor:pointer;
@@ -488,7 +442,7 @@
         display:grid;grid-template-columns:auto max-content;
         align-items:center;gap:clamp(12px,3vw,24px)
       }
-      .site-header__toggle{display:inline-flex}
+
       .site-header nav{
         position:fixed;inset:0;padding-top:calc(var(--site-header-height) + 1rem);
         padding-inline:clamp(20px,6vw,36px);padding-bottom:clamp(28px,12vh,46px);
@@ -523,8 +477,25 @@
       .hero__inner{
         grid-template-columns:1fr;
       }
-      .hero__panel{max-width:100%;margin:1.25rem 0 0}
+      .hero__panel{max-width:100%;margin:1.5rem 0 0}
       .section__grid--two-col{grid-template-columns:1fr}
+
+      .stat-row{
+        margin-top:1rem;
+      }
+      .stat{
+        background:transparent;
+        border:none;
+        box-shadow:none;
+        padding:.4rem 0;
+        border-bottom:1px solid rgba(255,255,255,.16);
+        border-radius:0;
+      }
+      .stat:last-child{
+        border-bottom:none;
+      }
+
+      body{padding-bottom:3.1rem;}
     }
 
     @media (max-width:1200px){
@@ -564,15 +535,17 @@
         <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
       </div>
 
-      <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav" hidden>
+      <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
         <span class="site-header__toggle-box" aria-hidden="true">
           <span class="site-header__toggle-lines"></span>
         </span>
         <span class="sr-only">Toggle navigation</span>
       </button>
 
-      <nav id="siteNav" aria-label="Main navigation" aria-hidden="true">
-        <ul aria-hidden="true"></ul>
+      <nav id="siteNav" aria-label="Main navigation">
+        <ul>
+          <!-- Intentionally left empty for focused landing page funnel -->
+        </ul>
       </nav>
     </div>
   </header>
@@ -589,11 +562,9 @@
         <p class="hero__text">
           If your brakes are squeaking, pulling, or feel soft – or your suspension feels loose or bouncy – it is time to get it checked. Our technicians diagnose the problem properly, explain what is going on in plain language, and fix it right the first time so you can drive with confidence.
         </p>
-
-        <figure class="hero__visual">
-          <img src="{% static 'img/hero-dealers.jpg' %}"
-               alt="Brake and suspension work underway at Bad Guy Motors">
-        </figure>
+        <div class="hero__cta">
+          <a href="#service-form" class="btn btn--primary">Request an Appointment</a>
+        </div>
       </div>
 
       <aside class="hero__panel">
@@ -639,12 +610,11 @@
             <textarea name="notes" placeholder="Describe noises, vibrations, warning lights…"></textarea>
           </label>
 
-          <button type="submit" class="btn btn--primary" style="margin-top:.8rem;width:100%">
+          <small>We’ll call or email to confirm your appointment. No obligation.</small>
+
+          <button type="submit" class="btn btn--primary" style="margin-top:.6rem;width:100%">
             Submit Request
           </button>
-          <p class="form__note">
-            We’ll call or email to confirm your appointment. No obligation.
-          </p>
         </form>
       </aside>
     </div>
@@ -676,7 +646,7 @@
             <li>Alignment and ride height adjustment for lifted vehicles</li>
           </ul>
 
-          <div class="service-highlights">
+          <div class="stat-row">
             <div class="stat">
               <b>Same‑day slots</b><br>
               <span>Subject to availability</span>
@@ -691,7 +661,7 @@
             </div>
           </div>
 
-          <a href="#service-form" class="btn btn--primary" style="margin-top:1.25rem">
+          <a href="#service-form" class="btn btn--primary" style="margin-top:1.2rem">
             Request a Brake &amp; Suspension Quote
           </a>
         </div>
@@ -748,7 +718,7 @@
       </div>
     </section>
 
-    <!-- REVIEWS (moved up, closer to top) -->
+    <!-- REVIEWS -->
     <section class="section" id="reviews">
       <div class="container">
         <div class="section__head">
@@ -800,18 +770,18 @@
         </div>
 
         <div class="gallery-grid">
-          <div class="frame frame--media">
+          <figure class="frame frame--media">
             <img src="{% static 'img/hero-dealers.jpg' %}" alt="Suspension work on a truck at Bad Guy Motors">
-            <p class="frame__caption">Suspension inspection and repair on a work truck.</p>
-          </div>
-          <div class="frame frame--media">
-            <img src="{% static 'img/hero-about.jpg' %}" alt="Lifted truck brake and suspension setup">
-            <p class="frame__caption">Brake and suspension setup on a lifted truck.</p>
-          </div>
-          <div class="frame frame--media">
-            <img src="{% static 'img/hero-home.jpg' %}" alt="Front end and alignment work in the shop">
-            <p class="frame__caption">In-house alignment to keep your vehicle tracking straight.</p>
-          </div>
+            <figcaption class="frame__caption">Heavy‑duty suspension service on work trucks.</figcaption>
+          </figure>
+          <figure class="frame frame--media">
+            <img src="{% static 'img/hero-about.jpg' %}" alt="Lifted truck brake and suspension setup in the shop">
+            <figcaption class="frame__caption">Lifted truck brake and suspension setup checked for safety.</figcaption>
+          </figure>
+          <figure class="frame frame--media">
+            <img src="{% static 'img/hero-home.jpg' %}" alt="Front end and alignment work at Bad Guy Motors">
+            <figcaption class="frame__caption">Precision front end and alignment work for a straight drive.</figcaption>
+          </figure>
         </div>
       </div>
     </section>
@@ -846,9 +816,6 @@
         <div class="section__desc" style="font-size:.95rem">
           Phone: <a href="tel:14035250432">(403) 525‑0432</a>
         </div>
-        <div class="section__desc" style="font-size:.95rem">
-          Hours: Please call for current hours.
-        </div>
       </div>
 
       <div class="section__desc" style="font-size:.9rem">
@@ -857,11 +824,9 @@
     </div>
   </footer>
 
-  <!-- Sticky phone bar (secondary CTA) -->
-  <a href="tel:14035250432"
-     class="sticky-phone"
-     aria-label="Call Bad Guy Motors at (403) 525-0432">
-    <span aria-hidden="true">📞</span>
+  <!-- Sticky phone CTA -->
+  <a href="tel:14035250432" class="phone-bar">
+    <span class="phone-bar__icon" aria-hidden="true">📞</span>
     <span>(403) 525‑0432 — Call Now</span>
   </a>
 
