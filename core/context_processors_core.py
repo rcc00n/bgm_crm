@@ -1,12 +1,13 @@
 # core/context_processors_core.py
 from django.conf import settings
 from django.urls import resolve, reverse
-from django.templatetags.static import static
+
+from core.services.media import DEFAULT_MEDIA_CAPTION, resolve_media_asset
 
 from .models import HeroImage
 
 # Default static fallbacks for every public route that expects a hero.
-DEFAULT_CAPTION = "Product may not appear exactly as shown."
+DEFAULT_CAPTION = DEFAULT_MEDIA_CAPTION
 HERO_FALLBACKS = {
     "home": {"path": "img/hero-home.jpg", "alt": "Home hero"},
     "client-dashboard": {"path": "img/hero-services.jpg", "alt": "Services hero"},
@@ -15,6 +16,10 @@ HERO_FALLBACKS = {
     "dealer-status": {"path": "img/hero-dealers.jpg", "alt": "Dealer banner"},
     "financing": {"path": "img/hero-financing.jpg", "alt": "Financing hero"},
     "our-story": {"path": "img/hero-about.jpg", "alt": "About hero"},
+    "services-brake-suspension": {
+        "path": "img/hero-services.jpg",
+        "alt": "Brake & Suspension hero",
+    },
 }
 FALLBACK = {"path": "img/hero-preview.png", "alt": "BGM hero"}
 
@@ -24,6 +29,7 @@ HERO_DB_BINDINGS = {
     "dealer-status": HeroImage.Location.DEALER_STATUS,
     "store": HeroImage.Location.STORE,
     "merch": HeroImage.Location.MERCH,
+    "services-brake-suspension": HeroImage.Location.BRAKE_SUSPENSION_HERO,
 }
 
 
@@ -38,37 +44,14 @@ def _resolve_url_name(request) -> str:
 def hero_media(request):
     url_name = _resolve_url_name(request)
     defaults = HERO_FALLBACKS.get(url_name, FALLBACK)
-    payload = {
-        "src": static(defaults["path"]),
-        "alt": defaults.get("alt") or f"BGM — {url_name or 'preview'}",
-        "caption": defaults.get("caption", DEFAULT_CAPTION),
-        "location": url_name,
-        "is_custom": False,
-    }
-
     location_key = HERO_DB_BINDINGS.get(url_name)
-    if location_key:
-        try:
-            hero = (
-                HeroImage.objects.filter(location=location_key, is_active=True)
-                .exclude(image="")
-                .first()
-            )
-        except Exception:
-            hero = None
-        if hero and hero.image:
-            try:
-                payload.update(
-                    {
-                        "src": hero.image.url,
-                        "alt": hero.alt_text or hero.title or hero.get_location_display(),
-                        "caption": hero.caption or DEFAULT_CAPTION,
-                        "is_custom": True,
-                    }
-                )
-            except Exception:
-                pass
-
+    payload = resolve_media_asset(
+        location_key,
+        defaults["path"],
+        defaults.get("alt") or f"BGM — {url_name or 'preview'}",
+        defaults.get("caption", DEFAULT_CAPTION),
+    )
+    payload["location"] = url_name or payload.get("location", "")
     return {"hero_media": payload}
 
 

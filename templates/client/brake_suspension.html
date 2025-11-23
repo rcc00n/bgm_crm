@@ -668,8 +668,10 @@
 
         <div>
           <div class="frame frame--media" aria-hidden="false">
-            <img src="{% static 'img/hero-services.jpg' %}"
-                 alt="Brake and suspension work at Bad Guy Motors">
+            {% with hero=brake_media.hero %}
+              <img src="{{ hero.src }}"
+                   alt="{{ hero.alt|default:'Brake and suspension work at Bad Guy Motors' }}">
+            {% endwith %}
           </div>
         </div>
       </div>
@@ -770,18 +772,16 @@
         </div>
 
         <div class="gallery-grid">
-          <figure class="frame frame--media">
-            <img src="{% static 'img/hero-dealers.jpg' %}" alt="Suspension work on a truck at Bad Guy Motors">
-            <figcaption class="frame__caption">Heavy‑duty suspension service on work trucks.</figcaption>
-          </figure>
-          <figure class="frame frame--media">
-            <img src="{% static 'img/hero-about.jpg' %}" alt="Lifted truck brake and suspension setup in the shop">
-            <figcaption class="frame__caption">Lifted truck brake and suspension setup checked for safety.</figcaption>
-          </figure>
-          <figure class="frame frame--media">
-            <img src="{% static 'img/hero-home.jpg' %}" alt="Front end and alignment work at Bad Guy Motors">
-            <figcaption class="frame__caption">Precision front end and alignment work for a straight drive.</figcaption>
-          </figure>
+          {% with gallery=brake_media.gallery %}
+            {% for item in gallery %}
+              <figure class="frame frame--media">
+                <img src="{{ item.src }}" alt="{{ item.alt|default:'Brake & suspension work at Bad Guy Motors' }}">
+                {% if item.caption %}
+                  <figcaption class="frame__caption">{{ item.caption }}</figcaption>
+                {% endif %}
+              </figure>
+            {% endfor %}
+          {% endwith %}
         </div>
       </div>
     </section>

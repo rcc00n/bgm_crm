@@ -385,6 +385,10 @@ class HeroImage(models.Model):
         DEALER_STATUS = "dealer-status", "Dealer banner"
         STORE = "store", "Store hero"
         MERCH = "merch", "Merch hero"
+        BRAKE_SUSPENSION_HERO = "brake-suspension-hero", "Brake & Suspension hero"
+        BRAKE_SUSPENSION_GALLERY_A = "brake-suspension-gallery-a", "Brake & Suspension gallery — top"
+        BRAKE_SUSPENSION_GALLERY_B = "brake-suspension-gallery-b", "Brake & Suspension gallery — middle"
+        BRAKE_SUSPENSION_GALLERY_C = "brake-suspension-gallery-c", "Brake & Suspension gallery — bottom"
 
     location = models.CharField(
         "Placement",

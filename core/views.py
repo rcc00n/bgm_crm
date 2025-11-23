@@ -32,6 +32,7 @@ from core.services.booking import (
 )
 from core.validators import clean_phone
 from core.services.fonts import build_page_font_context
+from core.services.media import build_brake_suspension_media
 
 def _build_catalog_context(request):
     """Общий конструктор контекста каталога."""
@@ -470,7 +471,8 @@ def our_story_view(request):
 
 
 def brake_suspension_view(request):
-    return render(request, "client/brake_suspension.html")
+    media = build_brake_suspension_media()
+    return render(request, "client/brake_suspension.html", {"brake_media": media})
 
 
 def wheel_tire_service_view(request):
