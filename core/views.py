@@ -32,7 +32,11 @@ from core.services.booking import (
 )
 from core.validators import clean_phone
 from core.services.fonts import build_page_font_context
-from core.services.media import build_brake_suspension_media
+from core.services.media import (
+    build_brake_suspension_media,
+    build_electrical_work_media,
+    build_performance_tuning_media,
+)
 
 def _build_catalog_context(request):
     """Общий конструктор контекста каталога."""
@@ -475,9 +479,29 @@ def brake_suspension_view(request):
     return render(request, "client/brake_suspension.html", {"brake_media": media})
 
 
+def electrical_work_view(request):
+    media = build_electrical_work_media()
+    font_settings = build_page_font_context(PageFontSetting.Page.ELECTRICAL_WORK)
+    return render(
+        request,
+        "client/electrical_work.html",
+        {"electrical_media": media, "font_settings": font_settings},
+    )
+
+
 def wheel_tire_service_view(request):
     font_settings = build_page_font_context(PageFontSetting.Page.WHEEL_TIRE_SERVICE)
     return render(request, "client/wheel_tire_service.html", {"font_settings": font_settings})
+
+
+def performance_tuning_view(request):
+    media = build_performance_tuning_media()
+    font_settings = build_page_font_context(PageFontSetting.Page.PERFORMANCE_TUNING)
+    return render(
+        request,
+        "client/performance_tuning.html",
+        {"tuning_media": media, "font_settings": font_settings},
+    )
 
 
 def project_journal_view(request):

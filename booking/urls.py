@@ -72,8 +72,12 @@ urlpatterns = [
     path("our-story/", core_views.our_story_view, name="our-story"),
     # Hidden brake & suspension landing page (direct-link only)
     path("services/brake-suspension/", core_views.brake_suspension_view, name="services-brake-suspension"),
+    # Hidden electrical work landing page (direct-link only)
+    path("services/electrical-work/", core_views.electrical_work_view, name="services-electrical-work"),
     # Hidden wheel & tire landing page (direct-link only)
     path("services/wheel-tire/", core_views.wheel_tire_service_view, name="services-wheel-tire"),
+    # Hidden performance tuning landing page (direct-link only)
+    path("services/performance-tuning/", core_views.performance_tuning_view, name="services-performance-tuning"),
     path("project-journal/", core_views.project_journal_view, name="project-journal"),
     path("legal/terms/", core_views.TermsAndConditionsView.as_view(), name="legal-terms"),
     path("legal/<slug:slug>/", core_views.LegalPageView.as_view(), name="legal-page"),

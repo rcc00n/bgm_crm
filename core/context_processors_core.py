@@ -20,6 +20,14 @@ HERO_FALLBACKS = {
         "path": "img/hero-services.jpg",
         "alt": "Brake & Suspension hero",
     },
+    "services-electrical-work": {
+        "path": "img/hero-services.jpg",
+        "alt": "Electrical Work hero",
+    },
+    "services-performance-tuning": {
+        "path": "img/hero-services.jpg",
+        "alt": "Performance Tuning hero",
+    },
 }
 FALLBACK = {"path": "img/hero-preview.png", "alt": "BGM hero"}
 
@@ -30,6 +38,8 @@ HERO_DB_BINDINGS = {
     "store": HeroImage.Location.STORE,
     "merch": HeroImage.Location.MERCH,
     "services-brake-suspension": HeroImage.Location.BRAKE_SUSPENSION_HERO,
+    "services-electrical-work": HeroImage.Location.ELECTRICAL_WORK_HERO,
+    "services-performance-tuning": HeroImage.Location.PERFORMANCE_TUNING_HERO,
 }
 
 

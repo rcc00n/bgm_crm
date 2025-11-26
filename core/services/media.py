@@ -114,6 +114,109 @@ def build_brake_suspension_media():
     return {"hero": hero, "gallery": gallery}
 
 
+def build_electrical_work_media():
+    """
+    Assets for the Electrical Work landing page.
+    Returns hero + gallery slots with fallbacks to current static imagery.
+    """
+    locations = [
+        HeroImage.Location.ELECTRICAL_WORK_HERO,
+        HeroImage.Location.ELECTRICAL_WORK_GALLERY_A,
+        HeroImage.Location.ELECTRICAL_WORK_GALLERY_B,
+        HeroImage.Location.ELECTRICAL_WORK_GALLERY_C,
+    ]
+    asset_map = _prefetch_hero_assets(locations)
+
+    hero = resolve_media_asset(
+        HeroImage.Location.ELECTRICAL_WORK_HERO,
+        "img/hero-services.jpg",
+        "Auto electrical work at Bad Guy Motors",
+        "Electrical diagnostics and repair for reliable starts.",
+        asset=asset_map.get(HeroImage.Location.ELECTRICAL_WORK_HERO),
+    )
+    hero["slot"] = "hero"
+
+    gallery = [
+        resolve_media_asset(
+            HeroImage.Location.ELECTRICAL_WORK_GALLERY_A,
+            "img/hero-dealers.jpg",
+            "Electrical diagnostics on a truck at Bad Guy Motors",
+            "Electrical diagnostics, battery, and charging system checks.",
+            asset=asset_map.get(HeroImage.Location.ELECTRICAL_WORK_GALLERY_A),
+        ),
+        resolve_media_asset(
+            HeroImage.Location.ELECTRICAL_WORK_GALLERY_B,
+            "img/hero-about.jpg",
+            "Battery and wiring repair at Bad Guy Motors",
+            "Battery, cable, and wiring repair for dependable starts.",
+            asset=asset_map.get(HeroImage.Location.ELECTRICAL_WORK_GALLERY_B),
+        ),
+        resolve_media_asset(
+            HeroImage.Location.ELECTRICAL_WORK_GALLERY_C,
+            "img/hero-home.jpg",
+            "Lighting and accessory wiring install at Bad Guy Motors",
+            "Accessory lighting, power, and wiring installed cleanly.",
+            asset=asset_map.get(HeroImage.Location.ELECTRICAL_WORK_GALLERY_C),
+        ),
+    ]
+
+    for idx, asset in enumerate(gallery, start=1):
+        asset["slot"] = f"gallery-{idx}"
+
+    return {"hero": hero, "gallery": gallery}
+
+
+def build_performance_tuning_media():
+    """
+    Assets for the Performance Tuning landing page.
+    Returns hero + gallery slots with fallbacks to current static imagery.
+    """
+    locations = [
+        HeroImage.Location.PERFORMANCE_TUNING_HERO,
+        HeroImage.Location.PERFORMANCE_TUNING_GALLERY_A,
+        HeroImage.Location.PERFORMANCE_TUNING_GALLERY_B,
+        HeroImage.Location.PERFORMANCE_TUNING_GALLERY_C,
+    ]
+    asset_map = _prefetch_hero_assets(locations)
+
+    hero = resolve_media_asset(
+        HeroImage.Location.PERFORMANCE_TUNING_HERO,
+        "img/hero-services.jpg",
+        "Performance tuning and engine upgrades at Bad Guy Motors",
+        asset=asset_map.get(HeroImage.Location.PERFORMANCE_TUNING_HERO),
+    )
+    hero["slot"] = "hero"
+
+    gallery = [
+        resolve_media_asset(
+            HeroImage.Location.PERFORMANCE_TUNING_GALLERY_A,
+            "img/hero-home.jpg",
+            "Dyno-backed performance tuning at Bad Guy Motors",
+            "Dyno-backed performance tuning for reliable power.",
+            asset=asset_map.get(HeroImage.Location.PERFORMANCE_TUNING_GALLERY_A),
+        ),
+        resolve_media_asset(
+            HeroImage.Location.PERFORMANCE_TUNING_GALLERY_B,
+            "img/hero-about.jpg",
+            "Performance upgrades and airflow work in the bay",
+            "Performance upgrades, airflow, and supporting hardware installs.",
+            asset=asset_map.get(HeroImage.Location.PERFORMANCE_TUNING_GALLERY_B),
+        ),
+        resolve_media_asset(
+            HeroImage.Location.PERFORMANCE_TUNING_GALLERY_C,
+            "img/hero-dealers.jpg",
+            "Tuning technicians working on a truck",
+            "Technicians calibrating and verifying performance setups.",
+            asset=asset_map.get(HeroImage.Location.PERFORMANCE_TUNING_GALLERY_C),
+        ),
+    ]
+
+    for idx, asset in enumerate(gallery, start=1):
+        asset["slot"] = f"gallery-{idx}"
+
+    return {"hero": hero, "gallery": gallery}
+
+
 def _prefetch_hero_assets(locations: list[str | HeroImage.Location]) -> Dict[str, HeroImage]:
     """Fetch active hero assets for the provided locations in a single query."""
     if not locations:

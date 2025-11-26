@@ -218,6 +218,8 @@ class PageFontSetting(models.Model):
 
     class Page(models.TextChoices):
         WHEEL_TIRE_SERVICE = "wheel_tire_service", "Wheel & Tire Service page"
+        PERFORMANCE_TUNING = "performance_tuning", "Performance Tuning page"
+        ELECTRICAL_WORK = "electrical_work", "Electrical Work page"
 
     page = models.CharField(
         max_length=80,
@@ -389,6 +391,14 @@ class HeroImage(models.Model):
         BRAKE_SUSPENSION_GALLERY_A = "brake-suspension-gallery-a", "Brake & Suspension gallery — top"
         BRAKE_SUSPENSION_GALLERY_B = "brake-suspension-gallery-b", "Brake & Suspension gallery — middle"
         BRAKE_SUSPENSION_GALLERY_C = "brake-suspension-gallery-c", "Brake & Suspension gallery — bottom"
+        PERFORMANCE_TUNING_HERO = "performance-tuning-hero", "Performance Tuning hero"
+        PERFORMANCE_TUNING_GALLERY_A = "performance-tuning-gallery-a", "Performance Tuning gallery — top"
+        PERFORMANCE_TUNING_GALLERY_B = "performance-tuning-gallery-b", "Performance Tuning gallery — middle"
+        PERFORMANCE_TUNING_GALLERY_C = "performance-tuning-gallery-c", "Performance Tuning gallery — bottom"
+        ELECTRICAL_WORK_HERO = "electrical-work-hero", "Electrical Work hero"
+        ELECTRICAL_WORK_GALLERY_A = "electrical-work-gallery-a", "Electrical Work gallery — top"
+        ELECTRICAL_WORK_GALLERY_B = "electrical-work-gallery-b", "Electrical Work gallery — middle"
+        ELECTRICAL_WORK_GALLERY_C = "electrical-work-gallery-c", "Electrical Work gallery — bottom"
 
     location = models.CharField(
         "Placement",
