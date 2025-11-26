@@ -271,6 +271,13 @@
       font-size:.95rem;
     }
 
+    /* Review stars */
+    .review-stars{
+      font-size:.9rem;
+      color:var(--accent-2);
+      letter-spacing:.14em;
+    }
+
     /* Gallery */
     .gallery-grid{
       display:grid;
@@ -296,6 +303,28 @@
       padding:.45rem .7rem;
       font-size:.8rem;
       background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.82));
+      color:var(--muted);
+    }
+
+    /* Gallery captions moved below image */
+    .frame--gallery{
+      position:static;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      aspect-ratio:auto;
+    }
+    .frame--gallery img{
+      width:100%;
+      height:auto;
+      object-fit:cover;
+    }
+    .frame--gallery .frame__caption{
+      position:static;
+      padding:.6rem .8rem .7rem;
+      font-size:.9rem;
+      background:#050505;
+      border-top:1px solid var(--line);
       color:var(--muted);
     }
 
@@ -434,6 +463,42 @@
     .site-header--open .site-header__toggle-lines::before{transform:translateY(6px) rotate(45deg)}
     .site-header--open .site-header__toggle-lines::after{transform:translateY(-6px) rotate(-45deg)}
 
+    /* Service overview custom layout */
+    .service-overview-grid{
+      display:grid;
+      gap:1.9rem 2.4rem;
+      grid-template-columns:minmax(0,1.35fr) minmax(0,1.1fr);
+      grid-template-areas:
+        "overview-intro overview-image-right"
+        "overview-image-left overview-details";
+      align-items:flex-start;
+    }
+    .service-overview__intro{grid-area:overview-intro;}
+    .service-overview__details{grid-area:overview-details;}
+    .service-overview__image--right{grid-area:overview-image-right;}
+    .service-overview__image--left{grid-area:overview-image-left;}
+    .service-overview__details > p{
+      margin-top:.8rem;
+      color:var(--muted);
+    }
+    .service-overview__features{
+      margin-top:1.2rem;
+      display:flex;
+      flex-direction:column;
+      gap:.85rem;
+      align-items:center;
+      text-align:center;
+    }
+    .service-overview__features .stat-row{
+      margin-top:0;
+      justify-content:center;
+      width:100%;
+    }
+    .service-overview__cta{
+      margin-top:.2rem;
+      width:auto;
+    }
+
     @media (max-width:960px){
       body.nav-open{overflow:hidden}
       .site-header{--site-header-height:max(62px,10vh)}
@@ -496,10 +561,27 @@
       }
 
       body{padding-bottom:3.1rem;}
+
+      .service-overview-grid{
+        display:flex;
+        flex-direction:column;
+      }
+      .service-overview__features{
+        align-items:flex-start;
+        text-align:left;
+      }
+      .service-overview__features .stat-row{
+        justify-content:flex-start;
+      }
     }
 
     @media (max-width:1200px){
       .brand__tagline{display:none !important}
+    }
+
+    /* Slightly larger type on big screens */
+    @media (min-width:1200px){
+      html{font-size:17px;}
     }
 
     /* Layering fix */
@@ -623,8 +705,8 @@
   <main id="main">
     <!-- SERVICE OVERVIEW -->
     <section class="section" id="service-overview">
-      <div class="container section__grid section__grid--two-col">
-        <div>
+      <div class="container section__grid service-overview-grid">
+        <div class="service-overview__intro">
           <p class="kicker">Service overview</p>
           <h2 class="section__title">Complete brake and suspension repair you can count on</h2>
           <p class="section__desc" style="margin-top:.6rem">
@@ -633,7 +715,35 @@
           <p style="margin-top:.8rem;color:var(--muted)">
             At Bad Guy Motors, we provide professional brake and suspension service for all types of vehicles. From daily drivers and work trucks to SUVs and lifted rigs, our team follows proper procedures and uses quality parts so you are not back in the shop for the same issue twice.
           </p>
-          <p style="margin-top:.8rem;color:var(--muted)">
+        </div>
+
+        <!-- Existing image on the right -->
+        <div class="service-overview__image service-overview__image--right">
+          <div class="frame frame--media" aria-hidden="false">
+            {% with hero=brake_media.hero %}
+              <img src="{{ hero.src }}"
+                   alt="{{ hero.alt|default:'Brake and suspension work at Bad Guy Motors' }}">
+            {% endwith %}
+          </div>
+        </div>
+
+        <!-- New image on the left -->
+        <div class="service-overview__image service-overview__image--left">
+          <div class="frame frame--media">
+            {% with gallery=brake_media.gallery %}
+              {% if gallery %}
+                {% with first=gallery.0 %}
+                  <img src="{{ first.src }}"
+                       alt="{{ first.alt|default:'Brake and suspension work at Bad Guy Motors' }}">
+                {% endwith %}
+              {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+
+        <!-- Circled copy + features on the right -->
+        <div class="service-overview__details">
+          <p>
             Whether you need a simple brake pad and rotor swap or a full suspension rebuild, we take the time to inspect, diagnose, and repair the problem the right way.
           </p>
 
@@ -646,32 +756,25 @@
             <li>Alignment and ride height adjustment for lifted vehicles</li>
           </ul>
 
-          <div class="stat-row">
-            <div class="stat">
-              <b>Same‑day slots</b><br>
-              <span>Subject to availability</span>
+          <div class="service-overview__features">
+            <div class="stat-row">
+              <div class="stat">
+                <b>Same‑day slots</b><br>
+                <span>Subject to availability</span>
+              </div>
+              <div class="stat">
+                <b>All makes &amp; trucks</b><br>
+                <span>Daily, work &amp; lifted rigs</span>
+              </div>
+              <div class="stat">
+                <b>Transparent quotes</b><br>
+                <span>No surprise charges</span>
+              </div>
             </div>
-            <div class="stat">
-              <b>All makes &amp; trucks</b><br>
-              <span>Daily, work &amp; lifted rigs</span>
-            </div>
-            <div class="stat">
-              <b>Transparent quotes</b><br>
-              <span>No surprise charges</span>
-            </div>
-          </div>
 
-          <a href="#service-form" class="btn btn--primary" style="margin-top:1.2rem">
-            Request a Brake &amp; Suspension Quote
-          </a>
-        </div>
-
-        <div>
-          <div class="frame frame--media" aria-hidden="false">
-            {% with hero=brake_media.hero %}
-              <img src="{{ hero.src }}"
-                   alt="{{ hero.alt|default:'Brake and suspension work at Bad Guy Motors' }}">
-            {% endwith %}
+            <a href="#service-form" class="btn btn--primary service-overview__cta">
+              Request an Appointment
+            </a>
           </div>
         </div>
       </div>
@@ -735,24 +838,30 @@
 
         <div class="reviews-grid">
           <article class="tile review-card">
+            <div class="review-stars" aria-hidden="true">★★★★★</div>
             <p class="muted">
               "Awesome business and people to deal with. They got all the right parts and shipping dealt with. They kept me notified at all times, great shop, I'll be calling back again."
             </p>
             <p class="review-author">Tj Perry</p>
+            <span class="sr-only">5 star review</span>
           </article>
 
           <article class="tile review-card">
+            <div class="review-stars" aria-hidden="true">★★★★★</div>
             <p class="muted">
               "Thanks Kacie at BGM for fixing up my Duramax. Very good work and customer service."
             </p>
             <p class="review-author">pd88 pd88</p>
+            <span class="sr-only">5 star review</span>
           </article>
 
           <article class="tile review-card">
+            <div class="review-stars" aria-hidden="true">★★★★★</div>
             <p class="muted">
               "Amazing shop, definitely will be going to Bad Guy Motors again!"
             </p>
             <p class="review-author">Jake case</p>
+            <span class="sr-only">5 star review</span>
           </article>
         </div>
       </div>
@@ -774,7 +883,7 @@
         <div class="gallery-grid">
           {% with gallery=brake_media.gallery %}
             {% for item in gallery %}
-              <figure class="frame frame--media">
+              <figure class="frame frame--media frame--gallery">
                 <img src="{{ item.src }}" alt="{{ item.alt|default:'Brake & suspension work at Bad Guy Motors' }}">
                 {% if item.caption %}
                   <figcaption class="frame__caption">{{ item.caption }}</figcaption>
