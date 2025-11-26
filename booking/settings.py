@@ -28,7 +28,7 @@ MARKETING = {
     "default_image": SITE_DEFAULT_IMAGE,
     "organization_logo": SITE_ORG_LOGO,
     "organization_same_as": SITE_ORG_SAME_AS,
-    "google_tag_manager_id": os.getenv("GOOGLE_TAG_MANAGER_ID", ""),
+    "google_tag_manager_id": os.getenv("GOOGLE_TAG_MANAGER_ID", "GTM-M7FTNXV6"),
     "google_ads_id": os.getenv("GOOGLE_ADS_ID", ""),
     "google_ads_conversion_label": os.getenv("GOOGLE_ADS_CONVERSION_LABEL", ""),
     "google_ads_send_page_view": os.getenv("GOOGLE_ADS_SEND_PAGE_VIEW", "True") == "True",
