@@ -3,6 +3,7 @@ Utilities for the Telegram bot integration.
 """
 from __future__ import annotations
 
+import html
 from datetime import timedelta
 from decimal import Decimal
 from typing import Sequence
@@ -153,6 +154,42 @@ def notify_about_order(order_id) -> int:
     return send_telegram_message(
         message,
         event_type=TelegramMessageLog.EVENT_ORDER_CREATED,
+    )
+
+
+def notify_about_service_lead(lead_id) -> int:
+    """
+    Notify ops chat about a new marketing/landing page inquiry.
+    """
+    settings_obj = TelegramBotSettings.load_active()
+    if not settings_obj:
+        return 0
+
+    from core.models import ServiceLead  # late import to avoid circular dependency
+
+    lead = ServiceLead.objects.get(pk=lead_id)
+
+    def _safe(val: str | None) -> str:
+        return html.escape(val) if val else "—"
+
+    message = (
+        "<b>New service lead</b>\n"
+        f"Page: {_safe(lead.get_source_page_display())}\n"
+        f"Name: {_safe(lead.full_name)}\n"
+        f"Phone: {_safe(lead.phone)}\n"
+        f"Email: {_safe(lead.email)}\n"
+        f"Service: {_safe(lead.service_needed)}\n"
+    )
+    if lead.vehicle:
+        message += f"Vehicle: {_safe(lead.vehicle)}\n"
+    if lead.notes:
+        message += f"Notes: {_safe(lead.notes)}\n"
+    if lead.source_url:
+        message += f"Source: {_safe(lead.source_url)}"
+
+    return send_telegram_message(
+        message,
+        event_type=TelegramMessageLog.EVENT_SERVICE_LEAD,
     )
 
 

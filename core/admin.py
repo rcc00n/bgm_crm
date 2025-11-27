@@ -873,6 +873,34 @@ class ClientReviewAdmin(ExportCsvMixin ,admin.ModelAdmin):
         return obj.appointment.master.get_full_name()
 
 
+# -----------------------------
+# Landing Page Review Admin
+# -----------------------------
+@admin.register(LandingPageReview)
+class LandingPageReviewAdmin(ExportCsvMixin, admin.ModelAdmin):
+    list_display = ("reviewer_name", "page", "rating", "display_order", "is_published", "updated_at")
+    list_filter = ("page", "rating", "is_published")
+    search_fields = ("reviewer_name", "quote", "reviewer_title")
+    ordering = ("page", "display_order", "-updated_at")
+    export_fields = [
+        "page",
+        "reviewer_name",
+        "reviewer_title",
+        "rating",
+        "quote",
+        "display_order",
+        "is_published",
+        "updated_at",
+    ]
+    list_editable = ("display_order", "is_published")
+    fieldsets = (
+        (None, {"fields": ("page", "reviewer_name", "reviewer_title", "rating", "quote")}),
+        ("Display", {"fields": ("display_order", "is_published")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+    readonly_fields = ("created_at", "updated_at")
+
+
 #-----------------------------
 # Discounts Admin
 #-----------------------------
@@ -1648,6 +1676,29 @@ class HeroImageAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("location", "title", "is_active")}),
         ("Media", {"fields": ("image", "image_preview", "alt_text", "caption")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+
+@admin.register(ServiceLead)
+class ServiceLeadAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "full_name", "service_needed", "phone", "email", "source_page", "status")
+    list_filter = ("status", "source_page", "created_at")
+    search_fields = (
+        "full_name",
+        "phone",
+        "email",
+        "vehicle",
+        "service_needed",
+        "notes",
+        "source_url",
+    )
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-created_at",)
+    fieldsets = (
+        (None, {"fields": ("status", "source_page", "source_url")}),
+        ("Contact", {"fields": ("full_name", "phone", "email")}),
+        ("Vehicle & request", {"fields": ("vehicle", "service_needed", "notes")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
 

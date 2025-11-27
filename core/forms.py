@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 
 from dal import autocomplete
@@ -8,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 from .models import *
 from .constants import STAFF_DISPLAY_NAME
+from core.validators import clean_phone
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -493,3 +495,68 @@ class DealerApplicationForm(forms.ModelForm):
                     )
                     for tier in tiers
                 ]
+
+
+class ServiceLeadForm(forms.ModelForm):
+    """
+    Public-facing form used by landing pages to capture service inquiries.
+    """
+
+    class Meta:
+        model = ServiceLead
+        fields = [
+            "full_name",
+            "phone",
+            "email",
+            "vehicle",
+            "service_needed",
+            "notes",
+            "source_page",
+            "source_url",
+        ]
+        widgets = {
+            "source_page": forms.HiddenInput(),
+            "source_url": forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].required = True
+        self.fields["full_name"].label = "Name"
+        self.fields["service_needed"].label = "Service needed"
+
+    def clean_full_name(self):
+        name = (self.cleaned_data.get("full_name") or "").strip()
+        if not name:
+            raise forms.ValidationError("Name is required.")
+        return name
+
+    def clean_phone(self):
+        raw = (self.cleaned_data.get("phone") or "").strip()
+        if not raw:
+            raise forms.ValidationError("Phone is required.")
+        normalized = re.sub(r"\D", "", raw)
+        if raw.startswith("+"):
+            normalized = f"+{normalized}"
+        try:
+            return clean_phone(normalized)
+        except ValidationError as exc:
+            raise forms.ValidationError(exc.messages[0])
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip()
+        if not email:
+            raise forms.ValidationError("Email is required.")
+        return email
+
+    def clean_service_needed(self):
+        service = (self.cleaned_data.get("service_needed") or "").strip()
+        if not service:
+            raise forms.ValidationError("Please choose the service needed.")
+        return service
+
+    def clean_vehicle(self):
+        return (self.cleaned_data.get("vehicle") or "").strip()
+
+    def clean_notes(self):
+        return (self.cleaned_data.get("notes") or "").strip()

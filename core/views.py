@@ -1,6 +1,7 @@
 # core/views.py
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Prefetch, Q
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_GET, require_POST
@@ -9,7 +10,8 @@ from django.utils.dateparse import parse_date, parse_datetime
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.utils.http import url_has_allowed_host_and_scheme
 from datetime import datetime
 import json
 from django.utils.functional import cached_property
@@ -25,7 +27,9 @@ from core.models import (
     PageView,
     VisitorSession,
     PageFontSetting,
+    LandingPageReview,
 )
+from core.forms import ServiceLeadForm
 from core.services.booking import (
     get_available_slots, get_service_masters,
     get_or_create_status, get_default_payment_status, _tz_aware
@@ -37,6 +41,7 @@ from core.services.media import (
     build_electrical_work_media,
     build_performance_tuning_media,
 )
+from notifications.services import notify_about_service_lead
 
 def _build_catalog_context(request):
     """Общий конструктор контекста каталога."""
@@ -63,6 +68,16 @@ def _build_catalog_context(request):
         "has_any_services": services_qs.exists(),
         "uncategorized": services_qs.filter(category__isnull=True),
     }
+
+
+def _get_landing_reviews(page_slug: str):
+    """
+    Fetch published landing-page reviews in display order.
+    """
+    return (
+        LandingPageReview.objects.filter(page=page_slug, is_published=True)
+        .order_by("display_order", "-created_at")
+    )
 
 @ensure_csrf_cookie
 def public_mainmenu(request):
@@ -476,16 +491,23 @@ def our_story_view(request):
 
 def brake_suspension_view(request):
     media = build_brake_suspension_media()
-    return render(request, "client/brake_suspension.html", {"brake_media": media})
+    font_settings = build_page_font_context(PageFontSetting.Page.BRAKE_SUSPENSION)
+    reviews = _get_landing_reviews(LandingPageReview.Page.BRAKE_SUSPENSION)
+    return render(
+        request,
+        "client/brake_suspension.html",
+        {"brake_media": media, "font_settings": font_settings, "reviews": reviews},
+    )
 
 
 def electrical_work_view(request):
     media = build_electrical_work_media()
     font_settings = build_page_font_context(PageFontSetting.Page.ELECTRICAL_WORK)
+    reviews = _get_landing_reviews(LandingPageReview.Page.ELECTRICAL_WORK)
     return render(
         request,
         "client/electrical_work.html",
-        {"electrical_media": media, "font_settings": font_settings},
+        {"electrical_media": media, "font_settings": font_settings, "reviews": reviews},
     )
 
 
@@ -497,11 +519,52 @@ def wheel_tire_service_view(request):
 def performance_tuning_view(request):
     media = build_performance_tuning_media()
     font_settings = build_page_font_context(PageFontSetting.Page.PERFORMANCE_TUNING)
+    reviews = _get_landing_reviews(LandingPageReview.Page.PERFORMANCE_TUNING)
     return render(
         request,
         "client/performance_tuning.html",
-        {"tuning_media": media, "font_settings": font_settings},
+        {"tuning_media": media, "font_settings": font_settings, "reviews": reviews},
     )
+
+
+def _lead_redirect_target(request, *, fallback: str = "/") -> str:
+    """
+    Safely resolve where to send the user after submitting a landing lead.
+    """
+    candidates = [
+        request.POST.get("next"),
+        request.POST.get("source_url"),
+        request.META.get("HTTP_REFERER"),
+        fallback,
+    ]
+    for target in candidates:
+        if target and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
+            return target
+    return fallback
+
+
+@require_POST
+@csrf_protect
+def submit_service_lead(request):
+    """
+    Capture marketing/landing page leads and fan out notifications.
+    """
+    form = ServiceLeadForm(request.POST)
+    if form.is_valid():
+        lead = form.save()
+        notify_about_service_lead(lead.pk)
+        messages.success(
+            request,
+            "Thanks! Your request reached our team. Expect a reply shortly.",
+        )
+        return HttpResponseRedirect(_lead_redirect_target(request))
+
+    errors = [err for field_errors in form.errors.values() for err in field_errors]
+    error_msg = "Please correct the highlighted fields and try again."
+    if errors:
+        error_msg = f"{error_msg} ({'; '.join(errors)})"
+    messages.error(request, error_msg)
+    return HttpResponseRedirect(_lead_redirect_target(request))
 
 
 def project_journal_view(request):

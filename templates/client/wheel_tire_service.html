@@ -163,6 +163,17 @@
       box-shadow:0 0 0 1px rgba(213,0,0,.55);
     }
     .form textarea{min-height:80px;resize:vertical;}
+    .form-alerts{display:flex;flex-direction:column;gap:.45rem;margin-top:.25rem;}
+    .form-alert{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      padding:.6rem .7rem;
+      border-radius:.6rem;
+      font-size:.92rem;
+      color:var(--fg);
+    }
+    .form-alert--success{border-color:rgba(23,212,91,.55);background:rgba(23,212,91,.08);color:#9df5ba;}
+    .form-alert--error{border-color:rgba(213,0,0,.55);background:rgba(213,0,0,.08);color:#ffc0c0;}
 
     /* Sections */
     .section{
@@ -582,12 +593,23 @@
       </div>
 
       <aside class="hero__panel">
-        <form id="service-form" class="form" autocomplete="on">
+        <form id="service-form" class="form" method="post" action="{% url 'service-lead-submit' %}" autocomplete="on">
+          {% csrf_token %}
+          <input type="hidden" name="source_page" value="wheel_tire_service">
+          <input type="hidden" name="source_url" value="{{ request.build_absolute_uri }}">
+          <input type="hidden" name="next" value="{{ request.build_absolute_uri }}#service-form">
           <h2>Request a Wheel &amp; Tire Appointment</h2>
+          {% if messages %}
+            <div class="form-alerts">
+              {% for message in messages %}
+                <div class="form-alert form-alert--{{ message.tags|default:'info' }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
 
           <label>
             Name
-            <input type="text" name="name" autocomplete="name" required>
+            <input type="text" name="full_name" autocomplete="name" required>
           </label>
 
           <label>

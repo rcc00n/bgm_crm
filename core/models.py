@@ -12,7 +12,7 @@ from core.validators import clean_phone
 from .constants import STAFF_DISPLAY_NAME
 from django.conf import settings
 from django.db.models import Sum
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.templatetags.static import static
 
 from storages.backends.s3boto3 import S3Boto3Storage
@@ -217,6 +217,7 @@ class PageFontSetting(models.Model):
     """
 
     class Page(models.TextChoices):
+        BRAKE_SUSPENSION = "brake_suspension", "Brake & Suspension page"
         WHEEL_TIRE_SERVICE = "wheel_tire_service", "Wheel & Tire Service page"
         PERFORMANCE_TUNING = "performance_tuning", "Performance Tuning page"
         ELECTRICAL_WORK = "electrical_work", "Electrical Work page"
@@ -1346,6 +1347,106 @@ class AppointmentPromoCode(models.Model):
             raise ValidationError({
                 "promocode": "This Service already has a discount. Promocode can't be applied"
             })
+
+
+class ServiceLead(models.Model):
+    """
+    Inbound lead captured from public service landing pages.
+    """
+
+    class Status(models.TextChoices):
+        NEW = ("new", "New")
+        CONTACTED = ("contacted", "Contacted")
+        CLOSED = ("closed", "Closed")
+
+    class SourcePage(models.TextChoices):
+        PERFORMANCE_TUNING = ("performance_tuning", "Performance tuning")
+        ELECTRICAL_WORK = ("electrical_work", "Electrical work")
+        BRAKE_SUSPENSION = ("brake_suspension", "Brake & suspension")
+        WHEEL_TIRE_SERVICE = ("wheel_tire_service", "Wheel & tire service")
+        OTHER = ("other", "Other")
+
+    full_name = models.CharField(max_length=160)
+    phone = models.CharField(max_length=40)
+    email = models.EmailField(blank=True)
+    vehicle = models.CharField(max_length=160, blank=True)
+    service_needed = models.CharField(max_length=160)
+    notes = models.TextField(blank=True)
+    source_page = models.CharField(
+        max_length=64,
+        choices=SourcePage.choices,
+        default=SourcePage.OTHER,
+        db_index=True,
+    )
+    source_url = models.URLField(
+        max_length=600,
+        blank=True,
+        help_text="Original URL the lead submitted from.",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NEW,
+        db_index=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Service lead"
+        verbose_name_plural = "Service leads"
+
+    def __str__(self) -> str:
+        return f"{self.full_name} — {self.service_needed}"
+
+
+class LandingPageReview(models.Model):
+    """
+    Marketing review snippets shown on specific landing pages.
+    """
+
+    class Page(models.TextChoices):
+        PERFORMANCE_TUNING = ("performance_tuning", "Performance tuning")
+        ELECTRICAL_WORK = ("electrical_work", "Electrical work")
+        BRAKE_SUSPENSION = ("brake_suspension", "Brake & suspension")
+
+    page = models.CharField(
+        max_length=64,
+        choices=Page.choices,
+        db_index=True,
+        help_text="Landing page that will display this review.",
+    )
+    reviewer_name = models.CharField(max_length=160)
+    reviewer_title = models.CharField(
+        max_length=160,
+        blank=True,
+        help_text="Optional label such as vehicle, platform, or role.",
+    )
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="Rating between 1 (worst) and 5 (best).",
+    )
+    quote = models.TextField(help_text="Review text that will be shown publicly.")
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Lower numbers appear first on the landing page.",
+    )
+    is_published = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("page", "display_order", "-created_at")
+        verbose_name = "Landing page review"
+        verbose_name_plural = "Landing page reviews"
+
+    def __str__(self) -> str:
+        return f"{self.get_page_display()}: {self.rating}★ by {self.reviewer_name}"
+
+    @property
+    def star_range(self):
+        return range(self.rating or 0)
 
 
 class VisitorSession(models.Model):

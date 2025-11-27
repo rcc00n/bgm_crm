@@ -105,6 +105,7 @@ class TelegramMessageLog(models.Model):
 
     EVENT_APPOINTMENT_CREATED = "appointment_created"
     EVENT_ORDER_CREATED = "order_created"
+    EVENT_SERVICE_LEAD = "service_lead"
     EVENT_REMINDER = "reminder"
     EVENT_DIGEST = "digest"
     EVENT_MANUAL = "manual"

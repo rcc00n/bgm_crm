@@ -178,6 +178,17 @@
       box-shadow:0 0 0 1px rgba(213,0,0,.55);
     }
     .form textarea{min-height:80px;resize:vertical;}
+    .form-alerts{display:flex;flex-direction:column;gap:.45rem;margin-top:.25rem;}
+    .form-alert{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      padding:.6rem .7rem;
+      border-radius:.6rem;
+      font-size:.92rem;
+      color:var(--fg);
+    }
+    .form-alert--success{border-color:rgba(23,212,91,.55);background:rgba(23,212,91,.08);color:#9df5ba;}
+    .form-alert--error{border-color:rgba(213,0,0,.55);background:rgba(213,0,0,.08);color:#ffc0c0;}
 
     /* Sections */
     .section{
@@ -673,12 +684,23 @@
       </div>
 
       <aside class="hero__panel">
-        <form id="service-form" class="form" autocomplete="on">
+        <form id="service-form" class="form" method="post" action="{% url 'service-lead-submit' %}" autocomplete="on">
+          {% csrf_token %}
+          <input type="hidden" name="source_page" value="performance_tuning">
+          <input type="hidden" name="source_url" value="{{ request.build_absolute_uri }}">
+          <input type="hidden" name="next" value="{{ request.build_absolute_uri }}#service-form">
           <h2>Request a Performance &amp; Tuning Appointment</h2>
+          {% if messages %}
+            <div class="form-alerts">
+              {% for message in messages %}
+                <div class="form-alert form-alert--{{ message.tags|default:'info' }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
 
           <label>
             Name
-            <input type="text" name="name" autocomplete="name" required>
+            <input type="text" name="full_name" autocomplete="name" required>
           </label>
 
           <label>
@@ -867,32 +889,24 @@
         </div>
 
         <div class="reviews-grid">
-          <article class="tile review-card">
-            <div class="review-stars" aria-hidden="true">★★★★★</div>
-            <p class="muted">
-              "Bad Guy Motors tuned my truck and the difference is night and day. Smooth power and great communication."
-            </p>
-            <p class="review-author">Alex M.</p>
-            <span class="sr-only">5 star review</span>
-          </article>
-
-        <article class="tile review-card">
-            <div class="review-stars" aria-hidden="true">★★★★★</div>
-            <p class="muted">
-              "They installed my intake and exhaust properly and helped me plan out the next upgrades. Very professional."
-            </p>
-            <p class="review-author">Jordan S.</p>
-            <span class="sr-only">5 star review</span>
-          </article>
-
-          <article class="tile review-card">
-            <div class="review-stars" aria-hidden="true">★★★★★</div>
-            <p class="muted">
-              "Only shop in Medicine Hat I trust for performance work. Honest and skilled team."
-            </p>
-            <p class="review-author">Tyler R.</p>
-            <span class="sr-only">5 star review</span>
-          </article>
+          {% if reviews %}
+            {% for review in reviews %}
+              <article class="tile review-card">
+                <div class="review-stars" aria-hidden="true">
+                  {% for _ in review.star_range %}★{% endfor %}
+                </div>
+                <p class="muted">
+                  &ldquo;{{ review.quote }}&rdquo;
+                </p>
+                <p class="review-author">
+                  {{ review.reviewer_name }}{% if review.reviewer_title %} &mdash; {{ review.reviewer_title }}{% endif %}
+                </p>
+                <span class="sr-only">{{ review.rating }} star review</span>
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="muted">Reviews coming soon.</p>
+          {% endif %}
         </div>
 
         <div style="margin-top:1.5rem;display:flex;gap:.6rem;flex-wrap:wrap">
