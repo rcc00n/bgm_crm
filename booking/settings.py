@@ -226,6 +226,13 @@ ADMIN_SIDEBAR_SECTIONS = [
                 ],
             },
             {
+                "label": "Inbound Leads",
+                "icon": "fas fa-inbox",
+                "items": [
+                    {"model": "core.ServiceLead", "label": "Service Leads"},
+                ],
+            },
+            {
                 "label": "Dealer Program",
                 "icon": "fas fa-user-shield",
                 "items": [
@@ -387,6 +394,7 @@ JAZZMIN_SETTINGS = {
         "core.Service": "fas fa-screwdriver-wrench",
         "core.ServiceCategory": "fas fa-diagram-project",
         "core.ServiceDiscount": "fas fa-badge-percent",
+        "core.ServiceLead": "fas fa-inbox",
         "core.ServiceMaster": "fas fa-user-gear",
         "core.UserProfile": "fas fa-id-badge",
         "core.UserRole": "fas fa-user-tag",
