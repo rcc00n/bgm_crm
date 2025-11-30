@@ -7,11 +7,18 @@ from .models import (
     TelegramMessageLog,
     TelegramReminder,
     TelegramContact,
+    TelegramRecipientSlot,
 )
 
 
 @admin.register(TelegramBotSettings)
 class TelegramBotSettingsAdmin(admin.ModelAdmin):
+    class RecipientSlotInline(admin.TabularInline):
+        model = TelegramRecipientSlot
+        extra = 1
+        fields = ("chat_id", "label", "updated_at")
+        readonly_fields = ("updated_at",)
+
     list_display = (
         "name",
         "enabled",
@@ -23,11 +30,19 @@ class TelegramBotSettingsAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at", "last_digest_sent_on")
     fieldsets = (
         ("Bot identity", {"fields": ("name", "bot_token", "enabled")}),
-        ("Recipients", {"fields": ("admin_chat_ids", "allowed_user_ids")}),
+        (
+            "Recipients",
+            {
+                "description": "Add one chat ID per slot, or use the legacy free-form field. "
+                "Duplicates are ignored automatically.",
+                "fields": ("admin_chat_ids", "allowed_user_ids"),
+            },
+        ),
         ("Automation", {"fields": ("notify_on_new_appointment", "notify_on_new_order")}),
         ("Daily digest", {"fields": ("digest_enabled", "digest_hour_local", "last_digest_sent_on")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
+    inlines = (RecipientSlotInline,)
 
     def has_add_permission(self, request):
         if TelegramBotSettings.objects.exists():

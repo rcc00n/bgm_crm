@@ -162,12 +162,17 @@ Telegram operations bot
 
 The notifications app ships an operations-grade Telegram bot that lives alongside the Django project.
 
-- Configuration lives at “Telegram bot settings” in the admin panel. Add the BotFather token, at least one chat ID (comma or space separated), and optional whitelisted user IDs for interactive commands.
-- Maintain a reusable address book under “Telegram contacts” so reminders can target people without memorizing chat IDs. Those contacts can be picked directly on the reminder form.
-- Once configured, run `python manage.py run_telegram_bot` on the Dokku host to start the long-polling worker. It understands `/today` (returns an inline digest) and `/digest` (pushes the summary to all recipients).
-- Real-time alerts fire automatically whenever an appointment or order is created as long as the corresponding toggles are enabled in the settings entry.
-- The same admin section exposes “Telegram reminders”. Staff can queue ad-hoc reminders from the admin UI, trigger them manually via the bulk action, or automate delivery with `python manage.py process_telegram_reminders`.
-- Optional daily digests can be sent via cron with `python manage.py send_telegram_digest` (includes a `--force` switch). Use the hour selector inside the settings model to control when the digest is allowed to send.
+- Configuration lives at “Telegram bot settings” in the admin. Fill BotFather token, enable the bot, and add recipients via the new “Recipient slots” (one chat ID per slot). The legacy free-form field still works and is merged with the slots.
+- “Allowed user IDs” controls who can run bot commands. Leave blank to fall back to all recipients.
+- Commands: `/today` returns a snapshot of operations; `/digest` pushes the daily summary to every configured chat. Real-time alerts fire on new appointments and orders when toggles are enabled.
+- Address book & reminders: “Telegram contacts” stores reusable IDs. “Telegram reminders” can be queued, sent manually via the admin action, or processed with `python manage.py process_telegram_reminders`. Daily digests can also be forced with `python manage.py send_telegram_digest --force`.
+- Dokku deploy / restart:
+  - Procfile includes `telegrambot: python manage.py run_telegram_bot`.
+  - `git push dokku main:master` (or your branch) to deploy.
+  - Scale/start: `dokku ps:scale bgm web=1 telegrambot=1`.
+  - Restart bot only: `dokku ps:restart bgm telegrambot`; all processes: `dokku ps:restart bgm`.
+  - Logs: `dokku logs bgm -p telegrambot`.
+  - One-off manual run (non-daemon): `dokku run bgm python manage.py run_telegram_bot`.
 
 Users & roles: Create users and assign roles via the admin interface or programmatically using assign_role
 GitHub

@@ -40,6 +40,7 @@ class TelegramBotSettings(models.Model):
         help_text="Disable to temporarily stop sending Telegram notifications.",
     )
     admin_chat_ids = models.TextField(
+        blank=True,
         help_text="Comma or space separated chat IDs that should receive automated alerts.",
     )
     allowed_user_ids = models.TextField(
@@ -74,8 +75,20 @@ class TelegramBotSettings(models.Model):
             raise ValidationError("Only one Telegram bot configuration is allowed.")
 
     @property
+    def slot_chat_ids(self) -> list[int]:
+        if not self.pk:
+            return []
+        return list(self.recipient_slots.values_list("chat_id", flat=True))
+
+    @property
     def chat_id_list(self) -> list[int]:
-        return _parse_id_list(self.admin_chat_ids)
+        """
+        Returns configured recipients from structured slots first,
+        then falls back to free-form IDs (keeps legacy behavior).
+        """
+        slot_ids = self.slot_chat_ids
+        legacy_ids = [cid for cid in _parse_id_list(self.admin_chat_ids) if cid not in slot_ids]
+        return slot_ids + legacy_ids
 
     @property
     def allowed_user_id_list(self) -> list[int]:
@@ -96,6 +109,35 @@ class TelegramBotSettings(models.Model):
         if obj and obj.is_ready:
             return obj
         return None
+
+
+class TelegramRecipientSlot(models.Model):
+    """
+    Discrete slots for Telegram recipients (easier than a raw text field).
+    """
+
+    settings = models.ForeignKey(
+        TelegramBotSettings,
+        related_name="recipient_slots",
+        on_delete=models.CASCADE,
+    )
+    chat_id = models.BigIntegerField(unique=True)
+    label = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Optional hint about who owns this chat ID.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["chat_id"]
+        verbose_name = "Telegram recipient slot"
+        verbose_name_plural = "Telegram recipient slots"
+
+    def __str__(self) -> str:
+        suffix = f" — {self.label}" if self.label else ""
+        return f"{self.chat_id}{suffix}"
 
 
 class TelegramMessageLog(models.Model):
