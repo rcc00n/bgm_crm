@@ -4,7 +4,7 @@
 {% firstof page_meta.url meta_url marketing.page_url marketing.canonical_url as meta_url_resolved %}
 {% firstof page_meta.type meta_type "website" as meta_type_resolved %}
 {% firstof page_meta.image meta_image marketing.default_image as meta_image_resolved %}
-{% firstof page_meta.keywords meta_keywords "" as meta_keywords_resolved %}
+{% firstof page_meta.keywords meta_keywords marketing.default_keywords "" as meta_keywords_resolved %}
 {% firstof page_meta.robots meta_robots "" as meta_robots_resolved %}
 {% firstof page_meta.locale meta_locale "en_US" as meta_locale_resolved %}
 {% firstof page_meta.section meta_section "" as meta_section_resolved %}

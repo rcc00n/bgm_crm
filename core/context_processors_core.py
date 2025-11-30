@@ -157,6 +157,7 @@ def marketing_tags(request):
             "organization_logo": organization_logo,
             "organization_logo_absolute": organization_logo_absolute,
             "organization_same_as": config.get("organization_same_as") or [],
+            "default_keywords": config.get("default_keywords") or "",
             "canonical_url": canonical_url,
             "page_url": page_url or canonical_url,
             "origin": origin,
