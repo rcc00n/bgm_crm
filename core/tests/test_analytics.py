@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from core.models import PageView, VisitorSession
-from core.services.analytics import summarize_web_analytics
+from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
 
 
 class AnalyticsCollectViewTests(TestCase):
@@ -94,3 +94,36 @@ class AnalyticsSummaryTests(TestCase):
         self.assertAlmostEqual(summary["engagement"]["median_seconds"], 4.5)
         self.assertEqual(summary["engagement"]["sample_size"], 1)
         self.assertEqual(summary["traffic_highlights"]["busiest_day"]["count"], 1)
+
+
+class AnalyticsPeriodSummaryTests(TestCase):
+    def test_period_helper_returns_multiple_windows(self):
+        session = VisitorSession.objects.create(
+            session_key="period-session",
+            landing_path="/",
+            user_agent="pytest",
+        )
+        PageView.objects.create(
+            session=session,
+            user=None,
+            page_instance_id="period-pv",
+            path="/",
+            full_path="/",
+            page_title="Home",
+            referrer="",
+            started_at=timezone.now() - timedelta(minutes=5),
+            duration_ms=3000,
+            timezone_offset=-360,
+            viewport_width=1280,
+            viewport_height=720,
+        )
+
+        cached_week = summarize_web_analytics(window_days=7)
+        periods = summarize_web_analytics_periods([1, 7, 30], cache={7: cached_week})
+
+        self.assertEqual(len(periods), 3)
+        self.assertEqual(periods[0]["label"], "Today")
+        self.assertEqual(periods[1]["label"], "Last 7 days")
+        self.assertEqual(periods[2]["label"], "Last 30 days")
+        self.assertEqual(periods[0]["totals"].get("visits"), 1)
+        self.assertEqual(periods[0]["engagement"].get("sample_size"), 1)

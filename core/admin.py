@@ -26,7 +26,7 @@ from django.http import HttpResponse
 from .filters import *
 from .models import *
 from .forms import *
-from core.services.analytics import summarize_web_analytics
+from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
 from core.utils import get_staff_queryset, format_currency
 from datetime import timedelta, time
 # -----------------------------
@@ -172,6 +172,14 @@ def custom_index(request):
         })
 
     analytics_summary = summarize_web_analytics(window_days=7) if not is_master else None
+    analytics_periods = (
+        summarize_web_analytics_periods(
+            windows=[1, 7, 30],
+            cache={7: analytics_summary} if analytics_summary else None,
+        )
+        if not is_master
+        else None
+    )
 
     context = admin.site.each_context(request)
     context.update({
@@ -194,6 +202,7 @@ def custom_index(request):
         "payment_methods": payment_methods,
         "status_trend": status_trend,
         "web_analytics": analytics_summary,
+        "web_analytics_periods": analytics_periods,
     })
     return TemplateResponse(request, "admin/index.html", context)
 # ───────────────────────────────────────────────────────────────────────────────

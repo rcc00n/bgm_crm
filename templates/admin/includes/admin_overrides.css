@@ -678,6 +678,78 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   color: var(--admin-text-muted);
 }
 
+.period-breakdown {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.period-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.period-card {
+  border: 1px solid var(--admin-divider);
+  border-radius: var(--admin-radius-md);
+  padding: 14px;
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-sm);
+}
+
+.period-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.04);
+  color: var(--admin-text-strong);
+}
+
+.pill.muted {
+  color: var(--admin-text-muted);
+}
+
+.period-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.period-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.period-row span {
+  font-size: 13px;
+  color: var(--admin-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  min-width: 110px;
+}
+
+.period-row div {
+  font-weight: 600;
+  color: var(--admin-text-strong);
+  line-height: 1.35;
+}
+
 .analytics-table {
   width: 100%;
   border-collapse: collapse;
@@ -743,6 +815,17 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
 @media (max-width: 1024px) {
   .engagement-insight-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .period-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .period-row span {
+    min-width: unset;
   }
 }
 

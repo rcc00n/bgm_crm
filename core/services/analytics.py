@@ -177,3 +177,36 @@ def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
         },
         "recent_signed_in_sessions": signed_in_sessions,
     }
+
+
+def summarize_web_analytics_periods(
+    windows: List[int], cache: Optional[Dict[int, Dict[str, object]]] = None
+) -> List[Dict[str, object]]:
+    """
+    Produce compact summaries for multiple windows, reusing cached summaries when provided.
+    """
+
+    normalized_seen = set()
+    results: List[Dict[str, object]] = []
+    cache = cache or {}
+
+    for days in windows:
+        normalized = max(1, min(days, 31))
+        if normalized in normalized_seen:
+            continue
+        normalized_seen.add(normalized)
+
+        summary = cache.get(normalized) or summarize_web_analytics(window_days=normalized)
+        label = "Today" if normalized == 1 else f"Last {normalized} days"
+
+        results.append(
+            {
+                "label": label,
+                "window_days": normalized,
+                "totals": summary.get("totals", {}),
+                "engagement": summary.get("engagement", {}),
+                "traffic_highlights": summary.get("traffic_highlights", {}),
+            }
+        )
+
+    return results

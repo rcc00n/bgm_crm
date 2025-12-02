@@ -284,6 +284,47 @@
           {% endwith %}
         </div>
       </div>
+
+      {% if web_analytics_periods %}
+        <div class="period-breakdown">
+          <div class="period-breakdown-header">
+            <div class="eyebrow">Period breakdown</div>
+            <p class="panel-subtitle" style="margin-bottom: 8px;">Today, last 7 days, last 30 days</p>
+          </div>
+          <div class="period-grid">
+            {% for period in web_analytics_periods %}
+              <div class="period-card">
+                <div class="period-card-header">
+                  <strong>{{ period.label }}</strong>
+                  <span class="pill muted">{{ period.window_days }} days</span>
+                </div>
+                <div class="period-rows">
+                  <div class="period-row">
+                    <span>Traffic</span>
+                    <div>{{ period.totals.visits }} visits · {{ period.totals.page_views }} page views</div>
+                  </div>
+                  <div class="period-row">
+                    <span>Engagement</span>
+                    <div>{{ period.engagement.average_seconds }}s avg · median {{ period.engagement.median_seconds }}s · p90 {{ period.engagement.p90_seconds }}s</div>
+                  </div>
+                  <div class="period-row">
+                    <span>Depth</span>
+                    <div>{{ period.engagement.avg_pages_per_visit }} pages/visit · longest {{ period.engagement.max_seconds }}s</div>
+                  </div>
+                  <div class="period-row">
+                    <span>Signed-in</span>
+                    <div>{{ period.totals.signed_in }} sessions · {{ period.totals.signed_in_pct }}% of visits · avg {{ period.engagement.avg_signed_in_seconds }}s</div>
+                  </div>
+                  <div class="period-row">
+                    <span>Guests</span>
+                    <div>{{ period.engagement.avg_anonymous_seconds }}s avg · Views analysed {{ period.engagement.sample_size }}</div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
     </section>
 
     <section class="data-panel analytics-table-panel">
