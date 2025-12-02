@@ -198,14 +198,90 @@
           <small>Mean engagements</small>
         </div>
       </div>
-      <div class="analytics-chart-grid">
-        <div>
-          <div class="panel-subtitle">Visitors per day</div>
-          <canvas id="visitorTrafficChart" aria-label="Visitors per day"></canvas>
+      <div class="engagement-insight-grid">
+        <div class="engagement-column">
+          <div class="engagement-highlight">
+            <div class="eyebrow">Average dwell time</div>
+            <div class="engagement-value">{{ web_analytics.engagement.average_seconds }}s</div>
+            <p class="engagement-lede">Active seconds per page view in the last {{ web_analytics.window_days }} days.</p>
+            <div class="engagement-chips">
+              <span class="chip">Signed-in avg {{ web_analytics.engagement.avg_signed_in_seconds }}s</span>
+              <span class="chip">Guest avg {{ web_analytics.engagement.avg_anonymous_seconds }}s</span>
+              <span class="chip">Pages per visit {{ web_analytics.engagement.avg_pages_per_visit }}</span>
+              <span class="chip">Views analysed {{ web_analytics.engagement.sample_size }}</span>
+            </div>
+          </div>
+
+          <div class="engagement-stats-grid">
+            <div class="engagement-stat">
+              <span>Median dwell time</span>
+              <strong>{{ web_analytics.engagement.median_seconds }}s</strong>
+              <p>Half of page views reach at least this reading time.</p>
+            </div>
+            <div class="engagement-stat">
+              <span>90th percentile</span>
+              <strong>{{ web_analytics.engagement.p90_seconds }}s</strong>
+              <p>The top 10% of page views stay this long or longer.</p>
+            </div>
+            <div class="engagement-stat">
+              <span>Longest read</span>
+              <strong>{{ web_analytics.engagement.max_seconds }}s</strong>
+              <p>Single heaviest session in the selected window.</p>
+            </div>
+          </div>
+
+          <div class="stat-legend">
+            <strong>How to read these numbers</strong>
+            <p><strong>Signed-in/Guest avg</strong> highlights whether authenticated visitors stay longer than guests.</p>
+            <p><strong>Pages per visit</strong> is the average depth of navigation per visit.</p>
+            <p><strong>Views analysed</strong> counts the page views included in these calculations.</p>
+          </div>
         </div>
-        <div>
-          <div class="panel-subtitle">Average dwell time (s)</div>
-          <canvas id="engagementQualityChart" aria-label="Average time on page"></canvas>
+
+        <div class="traffic-card">
+          <div class="traffic-card-header">
+            <div>
+              <div class="eyebrow">Traffic highlights</div>
+              <p class="panel-subtitle" style="margin-bottom: 8px;">Snapshot without charts</p>
+            </div>
+          </div>
+          {% with highlights=web_analytics.traffic_highlights %}
+            {% if highlights.busiest_day or highlights.best_engagement_day or highlights.quietest_day %}
+              <ul class="traffic-list">
+                {% if highlights.busiest_day %}
+                  <li>
+                    <span>Busiest day</span>
+                    <div>
+                      <strong>{{ highlights.busiest_day.label }}</strong>
+                      <small>{{ highlights.busiest_day.count }} visits</small>
+                    </div>
+                  </li>
+                {% endif %}
+                {% if highlights.quietest_day %}
+                  <li>
+                    <span>Quietest day</span>
+                    <div>
+                      <strong>{{ highlights.quietest_day.label }}</strong>
+                      <small>{{ highlights.quietest_day.count }} visits</small>
+                    </div>
+                  </li>
+                {% endif %}
+                {% if highlights.best_engagement_day %}
+                  <li>
+                    <span>Highest engagement</span>
+                    <div>
+                      <strong>{{ highlights.best_engagement_day.label }}</strong>
+                      <small>{{ highlights.best_engagement_day.avg }}s avg · {{ highlights.best_engagement_day.views }} views</small>
+                    </div>
+                  </li>
+                {% endif %}
+              </ul>
+            {% else %}
+              <div class="empty-state">
+                <p>No visit data for this period.</p>
+              </div>
+            {% endif %}
+          {% endwith %}
         </div>
       </div>
     </section>
@@ -326,10 +402,6 @@
 {{ weekday_counts|json_script:"weekday-counts" }}
 {{ payment_methods|json_script:"payment-methods" }}
 {{ status_trend|json_script:"status-trend" }}
-{% if web_analytics %}
-  {{ web_analytics.visitor_timeseries|json_script:"web-visitor-series" }}
-  {{ web_analytics.engagement_timeseries|json_script:"web-engagement-series" }}
-{% endif %}
 
 <script>
   const $json = (id) => JSON.parse(document.getElementById(id)?.textContent || '[]');
@@ -339,6 +411,8 @@
   if (window.Chart) {
     Chart.defaults.font.family = "Inter, 'Segoe UI', system-ui, sans-serif";
     Chart.defaults.color = '#0f172a';
+    Chart.defaults.animation = false;
+    Chart.defaults.animations = {};
   }
 
   (function renderSales(){
@@ -489,68 +563,6 @@
       },
       options: {
         maintainAspectRatio: false,
-        scales: {
-          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
-          y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }
-        }
-      }
-    });
-  })();
-
-  (function renderVisitorTraffic(){
-    const el = document.getElementById('visitorTrafficChart');
-    if(!el) return;
-    const d = $json('web-visitor-series');
-    if(!Array.isArray(d) || !d.length) return;
-    new Chart(el, {
-      type: 'line',
-      data: {
-        labels: d.map(x => x.label),
-        datasets: [{
-          label: 'Visitors',
-          data: d.map(x => x.count),
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37,99,235,0.15)',
-          fill: true,
-          tension: 0.35,
-          pointRadius: 3,
-          pointBackgroundColor: '#1d4ed8'
-        }]
-      },
-      options: {
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
-          y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }
-        }
-      }
-    });
-  })();
-
-  (function renderEngagement(){
-    const el = document.getElementById('engagementQualityChart');
-    if(!el) return;
-    const d = $json('web-engagement-series');
-    if(!Array.isArray(d) || !d.length) return;
-    new Chart(el, {
-      type: 'line',
-      data: {
-        labels: d.map(x => x.label),
-        datasets: [{
-          label: 'Avg seconds on page',
-          data: d.map(x => x.avg),
-          borderColor: '#f97316',
-          backgroundColor: 'rgba(249,115,22,0.18)',
-          fill: true,
-          tension: 0.35,
-          pointRadius: 3,
-          pointBackgroundColor: '#ea580c'
-        }]
-      },
-      options: {
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { color: tickColor }, grid: { color: gridColor } },
           y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }

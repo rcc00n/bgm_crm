@@ -1,13 +1,28 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from django.db.models import Avg, Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from core.models import PageView, VisitorSession
+
+
+def _percentile(sorted_values: List[int], percentile: float) -> float:
+    if not sorted_values:
+        return 0.0
+    if percentile <= 0:
+        return float(sorted_values[0])
+    if percentile >= 1:
+        return float(sorted_values[-1])
+
+    k = (len(sorted_values) - 1) * percentile
+    lower = int(k)
+    upper = min(lower + 1, len(sorted_values) - 1)
+    weight = k - lower
+    return float(sorted_values[lower]) * (1 - weight) + float(sorted_values[upper]) * weight
 
 
 def _day_range(window_days: int):
@@ -29,12 +44,26 @@ def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
     signed_in = recent_sessions.filter(user__isnull=False).count()
     total_page_views = recent_views.count()
 
-    avg_duration_ms = recent_views.aggregate(avg=Avg("duration_ms"))[
-        "avg"
-    ] or 0
+    avg_duration_ms = recent_views.aggregate(avg=Avg("duration_ms"))["avg"] or 0
     avg_duration_seconds = round(avg_duration_ms / 1000, 1)
     avg_pages_per_visit = round(total_page_views / visits, 2) if visits else 0.0
     signed_in_pct = round((signed_in / visits) * 100, 1) if visits else 0.0
+
+    duration_values = list(
+        recent_views.exclude(duration_ms__isnull=True)
+        .order_by("duration_ms")
+        .values_list("duration_ms", flat=True)
+    )
+    max_duration_seconds = round((duration_values[-1] if duration_values else 0) / 1000, 1)
+    median_seconds = round(_percentile(duration_values, 0.5) / 1000, 1)
+    p90_seconds = round(_percentile(duration_values, 0.9) / 1000, 1)
+
+    signed_in_avg_ms = (
+        recent_views.filter(user__isnull=False).aggregate(avg=Avg("duration_ms"))["avg"] or 0
+    )
+    anonymous_avg_ms = (
+        recent_views.filter(user__isnull=True).aggregate(avg=Avg("duration_ms"))["avg"] or 0
+    )
 
     visitor_counts = (
         recent_sessions
@@ -69,6 +98,22 @@ def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
         }
         for day in day_list
     ]
+
+    def _first_or_none(items: List[Dict[str, object]]) -> Optional[Dict[str, object]]:
+        return items[0] if items else None
+
+    busiest_visit_day: Optional[Dict[str, object]] = None
+    quietest_visit_day: Optional[Dict[str, object]] = None
+    if visits:
+        visitors_desc = sorted(visitor_timeseries, key=lambda x: x["count"], reverse=True)
+        visitors_asc = list(reversed(visitors_desc)) if visitors_desc else []
+        busiest_visit_day = _first_or_none(visitors_desc)
+        quietest_visit_day = _first_or_none(visitors_asc)
+
+    best_engagement_day: Optional[Dict[str, object]] = None
+    if total_page_views:
+        populated_engagement = [entry for entry in engagement_timeseries if entry.get("views")]
+        best_engagement_day = max(populated_engagement, key=lambda x: x["avg"], default=None)
 
     top_pages = list(
         recent_views.values("path")
@@ -114,7 +159,21 @@ def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
         "top_pages": top_pages,
         "slow_pages": slow_pages,
         "top_referrers": top_referrers,
-        "visitor_timeseries": visitor_timeseries,
-        "engagement_timeseries": engagement_timeseries,
+        "engagement": {
+            "average_seconds": avg_duration_seconds,
+            "median_seconds": median_seconds,
+            "p90_seconds": p90_seconds,
+            "max_seconds": max_duration_seconds,
+            "avg_signed_in_seconds": round(signed_in_avg_ms / 1000, 1),
+            "avg_anonymous_seconds": round(anonymous_avg_ms / 1000, 1),
+            "avg_pages_per_visit": avg_pages_per_visit,
+            "total_page_views": total_page_views,
+            "sample_size": len(duration_values),
+        },
+        "traffic_highlights": {
+            "busiest_day": busiest_visit_day,
+            "quietest_day": quietest_visit_day,
+            "best_engagement_day": best_engagement_day,
+        },
         "recent_signed_in_sessions": signed_in_sessions,
     }

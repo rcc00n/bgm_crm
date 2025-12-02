@@ -90,4 +90,7 @@ class AnalyticsSummaryTests(TestCase):
         self.assertEqual(summary["totals"]["visits"], 1)
         self.assertEqual(summary["totals"]["page_views"], 1)
         self.assertAlmostEqual(summary["totals"]["avg_duration_seconds"], 4.5)
-        self.assertGreaterEqual(len(summary["visitor_timeseries"]), 1)
+        self.assertAlmostEqual(summary["engagement"]["average_seconds"], 4.5)
+        self.assertAlmostEqual(summary["engagement"]["median_seconds"], 4.5)
+        self.assertEqual(summary["engagement"]["sample_size"], 1)
+        self.assertEqual(summary["traffic_highlights"]["busiest_day"]["count"], 1)
