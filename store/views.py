@@ -19,6 +19,7 @@ from square.client import Square, SquareEnvironment
 
 from .models import Category, Order, OrderItem, Product, ProductOption, CarMake, CarModel
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm
+from core.models import Payment, PaymentMethod
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,58 @@ def _charge_square(source_token: str, amount_cents: int, currency: str, *, note:
         "last_4": getattr(card, "last_4", "") if card else "",
         "fee_money": fee_money,
     }
+
+
+def _record_payment_entry(
+    order: Order,
+    *,
+    amount: Decimal,
+    balance_due: Decimal,
+    pay_mode: str,
+    payment_resp: Dict,
+    payment_fee: Decimal,
+):
+    """
+    Persist a Payment row so it shows up in the admin Payments section.
+    """
+    try:
+        method, _ = PaymentMethod.objects.get_or_create(name="Square")
+    except Exception:
+        logger.exception("Failed to get/create Square payment method")
+        return
+
+    currency = getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD")
+    fee_amount = Decimal("0.00")
+    fee_cents = payment_resp.get("fee_money")
+    if fee_cents is not None:
+        try:
+            fee_amount = (Decimal(str(fee_cents)) / Decimal("100")).quantize(PAYMENT_QUANT)
+        except Exception:
+            fee_amount = Decimal("0.00")
+    elif payment_fee:
+        try:
+            fee_amount = Decimal(str(payment_fee)).quantize(PAYMENT_QUANT)
+        except Exception:
+            fee_amount = Decimal("0.00")
+
+    try:
+        Payment.objects.create(
+            order=order,
+            amount=Decimal(str(amount)),
+            currency=currency,
+            method=method,
+            payment_mode=pay_mode,
+            balance_due=Decimal(str(balance_due)) if balance_due is not None else Decimal("0.00"),
+            processor="square",
+            processor_payment_id=payment_resp.get("id", ""),
+            receipt_url=payment_resp.get("receipt_url", ""),
+            card_brand=payment_resp.get("card_brand", ""),
+            card_last4=payment_resp.get("last_4", ""),
+            fee_amount=fee_amount,
+            created_at=getattr(order, "created_at", None) or None,
+        )
+    except Exception:
+        logger.exception("Failed to record payment for order %s", getattr(order, "id", None))
 
 
 # ────────────────────────── Публичные страницы ──────────────────────────
@@ -821,6 +874,15 @@ def checkout(request):
                         kwargs[option_field] = it["option"]
 
                     OrderItem.objects.create(**kwargs)
+
+                _record_payment_entry(
+                    order=order,
+                    amount=charge_amount,
+                    balance_due=balance_due,
+                    pay_mode=pay_mode,
+                    payment_resp=payment_resp,
+                    payment_fee=charge_fee,
+                )
 
                 # очистить корзину
                 request.session[CART_KEY] = {"items": []}

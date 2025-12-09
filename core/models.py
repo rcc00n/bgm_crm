@@ -1101,13 +1101,70 @@ class PaymentMethod(models.Model):
 
 class Payment(models.Model):
     """
-    Stores payment records for appointments.
+    Stores payment records for appointments and store orders.
     """
+    class PaymentMode(models.TextChoices):
+        FULL = ("full", "Paid in full")
+        DEPOSIT_50 = ("deposit_50", "50% deposit")
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
+    appointment = models.ForeignKey(
+        Appointment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="Linked appointment, if this payment came from a booking.",
+    )
+    order = models.ForeignKey(
+        "store.Order",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payments",
+        help_text="Linked store order, if this payment came from checkout.",
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(
+        max_length=8,
+        default=getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD"),
+    )
     method = models.ForeignKey(PaymentMethod, on_delete=models.CASCADE)
+    payment_mode = models.CharField(
+        max_length=20,
+        choices=PaymentMode.choices,
+        default=PaymentMode.FULL,
+        db_index=True,
+    )
+    balance_due = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Outstanding balance (e.g., when only a deposit was collected).",
+    )
+    processor = models.CharField(max_length=32, blank=True, default="")
+    processor_payment_id = models.CharField(max_length=140, blank=True, default="")
+    receipt_url = models.URLField(blank=True, default="")
+    card_brand = models.CharField(max_length=40, blank=True, default="")
+    card_last4 = models.CharField(max_length=8, blank=True, default="")
+    fee_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Processor fee collected for this payment, if available.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        prefix = "Payment"
+        if self.order_id:
+            prefix = f"Order #{self.order_id}"
+        elif self.appointment_id:
+            prefix = f"Appt {self.appointment}"
+        return f"{prefix} — {self.amount} {self.currency}"
+
+    @property
+    def is_deposit(self) -> bool:
+        return self.payment_mode == self.PaymentMode.DEPOSIT_50
 
 # --- 5. PREPAYMENTS ---
 

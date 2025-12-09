@@ -1,4 +1,5 @@
 from bisect import bisect_left
+from decimal import Decimal
 
 from django.contrib.admin import DateFieldListFilter
 
@@ -711,14 +712,85 @@ class PaymentAdmin(ExportCsvMixin ,admin.ModelAdmin):
     """
     Admin interface for payments.
     """
-    list_display = ('appointment', 'amount', 'method')
-    list_filter = ('method',)
-    export_fields = ['appointment', 'amount', 'method']
+    list_display = (
+        'source',
+        'amount_with_currency',
+        'mode_badge',
+        'balance_due_display',
+        'method',
+        'processor',
+        'card_summary',
+        'receipt_link',
+        'created_at',
+    )
+    list_filter = ('method', 'payment_mode', 'processor')
+    export_fields = [
+        'order',
+        'appointment',
+        'amount',
+        'currency',
+        'payment_mode',
+        'balance_due',
+        'method',
+        'processor',
+        'processor_payment_id',
+        'receipt_url',
+        'card_brand',
+        'card_last4',
+        'fee_amount',
+        'created_at',
+    ]
     search_fields = (
         'appointment__client__first_name', 'appointment__client__last_name',
         'appointment__master__first_name', 'appointment__master__last_name',
         'appointment__service__name',
+        'order__customer_name', 'order__email', 'order__phone', 'order__id',
+        'processor_payment_id', 'card_last4'
     )
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)
+
+    @admin.display(description="Source", ordering="order__id")
+    def source(self, obj):
+        if getattr(obj, "order_id", None):
+            return f"Order #{obj.order_id}"
+        if getattr(obj, "appointment", None):
+            return obj.appointment
+        return "—"
+
+    @admin.display(description="Amount")
+    def amount_with_currency(self, obj):
+        amount = (obj.amount or Decimal("0.00")).quantize(Decimal("0.01"))
+        curr = obj.currency or ""
+        return f"{curr} {amount}"
+
+    @admin.display(description="Paid")
+    def mode_badge(self, obj):
+        label = obj.get_payment_mode_display() if hasattr(obj, "get_payment_mode_display") else ""
+        return label or "—"
+
+    @admin.display(description="Balance due")
+    def balance_due_display(self, obj):
+        quant = Decimal("0.01")
+        if obj.balance_due and obj.balance_due > 0:
+            return f"{obj.currency} {(obj.balance_due or Decimal('0.00')).quantize(quant)}"
+        if getattr(obj, "order", None) and obj.order.payment_balance_due:
+            return f"{obj.currency} {(obj.order.payment_balance_due or Decimal('0.00')).quantize(quant)}"
+        return "—"
+
+    @admin.display(description="Card")
+    def card_summary(self, obj):
+        if obj.card_brand or obj.card_last4:
+            brand = obj.card_brand or ""
+            last4 = f"•{obj.card_last4}" if obj.card_last4 else ""
+            return f"{brand} {last4}".strip()
+        return "—"
+
+    @admin.display(description="Receipt")
+    def receipt_link(self, obj):
+        if obj.receipt_url:
+            return format_html('<a href="{}" target="_blank" rel="noopener">View</a>', obj.receipt_url)
+        return "—"
 
 
 # -----------------------------
