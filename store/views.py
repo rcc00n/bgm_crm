@@ -50,6 +50,21 @@ def _square_client() -> Square:
     return Square(token=token, environment=environment)
 
 
+def _get_decimal_setting(name: str, default: str) -> Decimal:
+    """
+    Safe Decimal coercion for numeric settings with a non-negative fallback.
+    """
+    try:
+        raw = getattr(settings, name, default)
+    except Exception:
+        raw = default
+    try:
+        val = Decimal(str(raw))
+    except Exception:
+        val = Decimal(default)
+    return val if val >= 0 else Decimal(default)
+
+
 def _gross_up_with_fee(base: Decimal) -> tuple[Decimal, Decimal]:
     """
     Gross-up helper: returns (charge_amount, fee_component) so that after Square
@@ -617,24 +632,41 @@ def checkout(request):
     dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
     positions, total, retail_total = _cart_positions(request.session, dealer_discount=dealer_discount)
 
-    half_total = (total * Decimal("0.5")).quantize(PAYMENT_QUANT) if total else Decimal("0.00")
-    full_charge, full_fee = _gross_up_with_fee(total)
-    deposit_charge, deposit_fee = _gross_up_with_fee(half_total)
+    gst_rate = _get_decimal_setting("STORE_GST_RATE", "0.05")
+    processing_rate = _get_decimal_setting("STORE_PROCESSING_FEE_RATE", "0.035")
+    if gst_rate >= 1:
+        gst_rate = gst_rate / Decimal("100")
+    if processing_rate >= 1:
+        processing_rate = processing_rate / Decimal("100")
+
+    order_gst = (total * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
+    order_processing = (total * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
+    order_total_with_fees = (total + order_gst + order_processing).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+
+    def payment_plan(label: str, portion: Decimal):
+        base_portion = (total * portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
+        gst_portion = (base_portion * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
+        processing_portion = (base_portion * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
+        charge_amount = (base_portion + gst_portion + processing_portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+        balance_due = (order_total_with_fees - charge_amount).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+        if balance_due < 0:
+            balance_due = Decimal("0.00")
+        return {
+            "label": label,
+            "base": base_portion,
+            "gst": gst_portion,
+            "processing_fee": processing_portion,
+            "charge": charge_amount,
+            "balance_due": balance_due,
+            "order_subtotal": total,
+            "order_gst": order_gst,
+            "order_processing": order_processing,
+            "order_total_with_fees": order_total_with_fees,
+        }
+
     payment_options = {
-        "full": {
-            "label": "Pay 100% now",
-            "base": total,
-            "charge": full_charge,
-            "fee": full_fee,
-            "balance_due": Decimal("0.00"),
-        },
-        "deposit_50": {
-            "label": "Pay 50% deposit",
-            "base": half_total,
-            "charge": deposit_charge,
-            "fee": deposit_fee,
-            "balance_due": (total - half_total).quantize(PAYMENT_QUANT) if total else Decimal("0.00"),
-        },
+        "full": payment_plan("Pay 100% now", Decimal("1.0")),
+        "deposit_50": payment_plan("Pay 50% deposit", Decimal("0.5")),
     }
 
     pay_mode = request.POST.get("pay_mode") or request.GET.get("pay_mode") or "full"
@@ -715,7 +747,7 @@ def checkout(request):
 
         selected_payment = payment_options[pay_mode]
         charge_amount = selected_payment["charge"]
-        charge_fee = selected_payment["fee"]
+        charge_processing_fee = selected_payment["processing_fee"]
         balance_due = selected_payment["balance_due"]
         square_token = request.POST.get("square_payment_token")
 
@@ -765,7 +797,7 @@ def checkout(request):
             if "payment_amount" in o_fields:
                 order_kwargs["payment_amount"] = charge_amount
             if "payment_fee" in o_fields:
-                order_kwargs["payment_fee"] = charge_fee
+                order_kwargs["payment_fee"] = charge_processing_fee
             if "payment_balance_due" in o_fields:
                 order_kwargs["payment_balance_due"] = balance_due
             if "payment_processor" in o_fields:
@@ -881,7 +913,7 @@ def checkout(request):
                     balance_due=balance_due,
                     pay_mode=pay_mode,
                     payment_resp=payment_resp,
-                    payment_fee=charge_fee,
+                    payment_fee=charge_processing_fee,
                 )
 
                 # очистить корзину
@@ -896,9 +928,14 @@ def checkout(request):
         key: {
             "label": data["label"],
             "base": float(data["base"]),
+            "gst": float(data["gst"]),
+            "processing_fee": float(data["processing_fee"]),
             "charge": float(data["charge"]),
-            "fee": float(data["fee"]),
             "balance_due": float(data["balance_due"]),
+            "order_subtotal": float(data["order_subtotal"]),
+            "order_gst": float(data["order_gst"]),
+            "order_processing": float(data["order_processing"]),
+            "order_total_with_fees": float(data["order_total_with_fees"]),
         } for key, data in payment_options.items()
     }
 
@@ -916,6 +953,11 @@ def checkout(request):
             "dealer_discount_percent": dealer_discount,
             "pay_mode": pay_mode,
             "payment_options": payment_options,
+            "order_gst": order_gst,
+            "order_processing": order_processing,
+            "order_total_with_fees": order_total_with_fees,
+            "gst_rate_percent": (gst_rate * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            "processing_rate_percent": (processing_rate * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             "square_application_id": getattr(settings, "SQUARE_APPLICATION_ID", ""),
             "square_location_id": getattr(settings, "SQUARE_LOCATION_ID", ""),
             "square_env": getattr(settings, "SQUARE_ENVIRONMENT", "sandbox"),

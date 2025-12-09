@@ -207,6 +207,8 @@ SQUARE_APPLICATION_ID = os.getenv("SQUARE_APPLICATION_ID", "")
 SQUARE_ENVIRONMENT = os.getenv("SQUARE_ENVIRONMENT", "sandbox").lower()
 SQUARE_FEE_PERCENT = _dec_env("SQUARE_FEE_PERCENT", "0.029")  # 2.9% default
 SQUARE_FEE_FIXED = _dec_env("SQUARE_FEE_FIXED", "0.30")      # $0.30 default
+STORE_GST_RATE = _dec_env("STORE_GST_RATE", "0.05")          # 5% GST
+STORE_PROCESSING_FEE_RATE = _dec_env("STORE_PROCESSING_FEE_RATE", "0.035")  # 3.5% processing fee
 
 # ── Приложения ───────────────────────────────────────────────────────────
 INSTALLED_APPS = [

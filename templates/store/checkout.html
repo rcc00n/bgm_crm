@@ -143,7 +143,7 @@
           <section>
             <div class="section__head" style="margin-bottom:.45rem;">
               <h3 class="block-title">Payment</h3>
-              <p class="section__desc">Pick a 50% deposit or pay in full. Card processing fees are passed through and shown in the totals.</p>
+              <p class="section__desc">Pick a 50% deposit or pay in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee — nothing else.</p>
             </div>
 
             <fieldset class="options options--pay">
@@ -152,8 +152,8 @@
                 <div>
                   <div class="opt__title">Pay 50% now</div>
                   <div class="opt__sub">
-                    Charge now {{ payment_options.deposit_50.charge|money }} (includes {{ payment_options.deposit_50.fee|money }} card fee).
-                    Balance later {{ payment_options.deposit_50.balance_due|money }}.
+                    Charge now {{ payment_options.deposit_50.charge|money }} (items {{ payment_options.deposit_50.base|money }} + GST {{ payment_options.deposit_50.gst|money }} + processing {{ payment_options.deposit_50.processing_fee|money }}).
+                    Balance later {{ payment_options.deposit_50.balance_due|money }} (remaining items + GST/processing).
                   </div>
                 </div>
               </label>
@@ -162,7 +162,7 @@
                 <div>
                   <div class="opt__title">Pay 100% now</div>
                   <div class="opt__sub">
-                    Charge now {{ payment_options.full.charge|money }} (includes {{ payment_options.full.fee|money }} card fee).
+                    Charge now {{ payment_options.full.charge|money }} (items {{ payment_options.full.base|money }} + GST {{ payment_options.full.gst|money }} + processing {{ payment_options.full.processing_fee|money }}).
                     Balance later {{ payment_options.full.balance_due|money }}.
                   </div>
                 </div>
@@ -283,17 +283,37 @@
           {% endif %}
 
           <div class="summary__divider"></div>
+          <div class="summary__charges">
+            <div class="summary__row">
+              <span class="section__desc">GST ({{ gst_rate_percent }}%)</span>
+              <span id="orderGst">{{ order_gst|money }}</span>
+            </div>
+            <div class="summary__row">
+              <span class="section__desc">Processing fee ({{ processing_rate_percent }}%)</span>
+              <span id="orderProcessing">{{ order_processing|money }}</span>
+            </div>
+            <div class="summary__row summary__row--em">
+              <span class="summary__total-label">Order total with fees</span>
+              <span class="summary__total-sum" id="orderTotalWithFees">{{ order_total_with_fees|money }}</span>
+            </div>
+          </div>
+
+          <div class="summary__divider"></div>
           <div class="summary__pay">
             <div class="summary__row">
               <span class="summary__total-label">Paying now</span>
               <span class="summary__total-sum" id="summaryCharge">{{ selected_payment.charge|money }}</span>
             </div>
             <div class="summary__row">
-              <span class="section__desc">Card fee passed through</span>
-              <span id="summaryFee">{{ selected_payment.fee|money }}</span>
+              <span class="section__desc">GST in this charge</span>
+              <span id="summaryGst">{{ selected_payment.gst|money }}</span>
             </div>
             <div class="summary__row">
-              <span class="section__desc">Covers products worth</span>
+              <span class="section__desc">Processing fee in this charge</span>
+              <span id="summaryProcessing">{{ selected_payment.processing_fee|money }}</span>
+            </div>
+            <div class="summary__row">
+              <span class="section__desc">Item subtotal covered now</span>
               <span id="summaryBase">{{ selected_payment.base|money }}</span>
             </div>
             <div class="summary__row" id="balanceRow" {% if selected_payment.balance_due <= 0 %}hidden{% endif %}>
@@ -442,6 +462,8 @@
   .summary__total-sum{font-weight:900;}
   .summary__total-savings span{color:#17d45b;}
   .summary__divider{ height:1px; background:var(--card-border); margin:.9rem 0; }
+  .summary__charges{ display:grid; gap:.35rem; }
+  .summary__row--em{ font-weight:800; }
   .summary__pay{ display:grid; gap:.45rem; }
   .badge{
     display:inline-flex; align-items:center; gap:.3rem;
@@ -494,7 +516,8 @@
     const cardErrors = document.getElementById('card-errors');
     const tokenInput = document.getElementById('squarePaymentToken');
     const summaryCharge = document.getElementById('summaryCharge');
-    const summaryFee = document.getElementById('summaryFee');
+    const summaryGst = document.getElementById('summaryGst');
+    const summaryProcessing = document.getElementById('summaryProcessing');
     const summaryBase = document.getElementById('summaryBase');
     const summaryBalance = document.getElementById('summaryBalance');
     const balanceRow = document.getElementById('balanceRow');
@@ -613,9 +636,10 @@
 
     function updatePaymentSummary(){
       const mode = document.querySelector('input[name="pay_mode"]:checked')?.value || 'full';
-      const data = paymentOptions[mode] || paymentOptions.full || {charge:0, fee:0, base:0, balance_due:0};
+      const data = paymentOptions[mode] || paymentOptions.full || {charge:0, processing_fee:0, gst:0, base:0, balance_due:0};
       if (summaryCharge) summaryCharge.textContent = formatMoney(data.charge);
-      if (summaryFee) summaryFee.textContent = formatMoney(data.fee);
+      if (summaryGst) summaryGst.textContent = formatMoney(data.gst);
+      if (summaryProcessing) summaryProcessing.textContent = formatMoney(data.processing_fee);
       if (summaryBase) summaryBase.textContent = formatMoney(data.base);
       if (balanceRow){
         if ((data.balance_due || 0) > 0.009){
