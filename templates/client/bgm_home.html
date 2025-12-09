@@ -9,8 +9,11 @@
   {% with meta_title="BGM Customs — Performance Builds & VIP Service" meta_description="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM Customs in Calgary." meta_image=hero_media.src meta_section="home" %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
-  <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
-  <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
+  {% if font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% endif %}
 
   <style>
     :root{
@@ -132,41 +135,63 @@
     @media (max-width:1200px){.brand__tagline{display:none !important}}
 
     /* Fonts */
+    {% with fs=font_settings %}
+    {% for font in fs.fonts %}
+      {% if font.has_source %}
     @font-face{
-      font-family:"Diesel";
-      src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
-      font-weight:100 900;font-style:normal;font-display:swap;
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
     }
-    @font-face{
-      font-family:"Ford";
-      src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
-      font-weight:100 900;font-style:normal;font-display:swap;
+      {% endif %}
+    {% endfor %}
+    {% with body_stack=fs.body.stack|default:'"Diesel", system-ui, sans-serif' %}
+    {% with heading_stack=fs.heading.stack|default:'"Ford", system-ui, sans-serif' %}
+    {% with ui_stack=fs.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui:   {{ ui_stack|safe }};
     }
-    :root{ --font-body:"Diesel",sans-serif; --font-head:"Ford",sans-serif; }
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
     html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
     body,button,input,select,textarea{ font-family:var(--font-body)!important }
 
     /* Headings and UI (keep Ford where appropriate, not in top bar) */
-    h1,h2,h3,h4,h5,h6,.hero__title,.section__title,.kicker,.btn,.badge,.price strong{font-family:var(--font-head)!important}
-    .hero__title,.section__title{letter-spacing:.01em}
+    h1,h2,h3,h4,h5,h6,.hero__title{font-family:var(--font-head)!important;letter-spacing:.01em;font-style:normal}
     .section__title{font-family:var(--font-body)!important;font-weight:900!important;font-size:clamp(1.9rem,2.8vw,2.25rem)!important;letter-spacing:.005em!important;line-height:1.2!important}
+    .section__title,.hero__title{letter-spacing:.01em}
     .section__desc{font-size:clamp(1rem,1.4vw,1.06rem)!important;color:rgba(255,255,255,.86)!important}
-    .kicker{color:rgba(255,255,255,.78)!important}
-    .footer__nav a{font-family:var(--font-body)!important;font-weight:700!important;letter-spacing:.02em!important;text-transform:none!important;color:rgba(255,255,255,.9)!important}
+    .kicker{
+      color:rgba(255,255,255,.78)!important;
+      font-family:var(--font-ui)!important;
+    }
+    .footer__nav a{
+      font-family:var(--font-ui)!important;
+      font-weight:700!important;
+      letter-spacing:.02em!important;
+      text-transform:none!important;
+      color:rgba(255,255,255,.9)!important;
+    }
     .footer__nav a:hover{color:#fff!important}
 
     /* Card text readability */
     .card h3{font-family:var(--font-body)!important;font-weight:900!important;font-size:1.08rem!important;letter-spacing:.01em!important;line-height:1.25!important;color:#fff!important}
     .card .muted,.card .dur{font-family:var(--font-body)!important;font-weight:400!important;font-size:.98rem!important;line-height:1.4!important;color:rgba(255,255,255,.86)!important}
     .price strong{font-family:var(--font-body)!important;font-weight:800!important}
-    .card__badge,.badge{font-family:var(--font-body)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important}
-    .btn{font-family:var(--font-body)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important;line-height:1.15!important;font-size:.98rem!important}
-    .input,.select,.filters .input,.filters .select{font-family:var(--font-body)!important;font-size:.95rem!important;line-height:1.2!important}
+    .card__badge,.badge{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important}
+    .btn{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important;line-height:1.15!important;font-size:.98rem!important}
+    .input,.select,.filters .input,.filters .select{font-family:var(--font-ui)!important;font-size:.95rem!important;line-height:1.2!important}
   </style>
 
   {% include "includes/site_notice_style.html" %}
 
-  <!-- Top bar: force Diesel (non-italic) on both desktop and mobile -->
+  <!-- Top bar: force UI font (non-italic) on both desktop and mobile -->
   <style id="logo-to-diesel">
     .site-header .brand,
     .site-header .brand__logo,
@@ -175,7 +200,7 @@
     .site-header nav a,
     .site-header nav .btn,
     .site-header nav .btn--ghost{
-      font-family:var(--font-body)!important;
+      font-family:var(--font-ui,var(--font-body))!important;
       font-style:normal!important;
     }
     .site-header .brand__logo,
@@ -820,7 +845,7 @@
 
   <!-- Contact FAB + Modal -->
   <style id="contact-fab-css">
-    :root{ --ink:#eaeaea; --line:rgba(255,255,255,.12); --red:var(--accent,#d50000); --red-dark:#b60000; --contact-font:"Helvetica Neue", Arial, sans-serif; }
+    :root{ --ink:#eaeaea; --line:rgba(255,255,255,.12); --red:var(--accent,#d50000); --red-dark:#b60000; --contact-font:var(--font-ui,var(--font-body)); }
     .contact-fab{
       position:fixed; right:22px; bottom:22px; z-index:2100;
       display:inline-flex; align-items:center; gap:.6em;

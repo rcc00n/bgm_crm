@@ -24,7 +24,9 @@ from core.models import (
     Appointment,
     AppointmentStatusHistory,
     ClientFile,
+    PageFontSetting,
 )
+from core.services.fonts import build_page_font_context
 
 from .forms import (
     ClientRegistrationForm,
@@ -316,6 +318,7 @@ class HomeView(TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]
