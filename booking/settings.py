@@ -1,9 +1,20 @@
 from pathlib import Path
+from decimal import Decimal, InvalidOperation
 import os
 import dj_database_url
 from decouple import config, Csv  # оставил, если используешь .env локально
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _dec_env(name: str, default: str) -> Decimal:
+    """
+    Safe Decimal parser for numeric env vars.
+    """
+    try:
+        return Decimal(os.getenv(name, default))
+    except (InvalidOperation, TypeError):
+        return Decimal(default)
 
 # ── Основное ─────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
@@ -188,6 +199,14 @@ MARKETING = {
 # ── Currency ──────────────────────────────────────────────────────────────
 DEFAULT_CURRENCY_CODE = os.getenv("DEFAULT_CURRENCY_CODE", "CAD")
 DEFAULT_CURRENCY_SYMBOL = os.getenv("DEFAULT_CURRENCY_SYMBOL", "$")
+
+# ── Payments (Square) ────────────────────────────────────────────────────
+SQUARE_ACCESS_TOKEN = os.getenv("SQUARE_ACCESS_TOKEN", "")
+SQUARE_LOCATION_ID = os.getenv("SQUARE_LOCATION_ID", "")
+SQUARE_APPLICATION_ID = os.getenv("SQUARE_APPLICATION_ID", "")
+SQUARE_ENVIRONMENT = os.getenv("SQUARE_ENVIRONMENT", "sandbox").lower()
+SQUARE_FEE_PERCENT = _dec_env("SQUARE_FEE_PERCENT", "0.029")  # 2.9% default
+SQUARE_FEE_FIXED = _dec_env("SQUARE_FEE_FIXED", "0.30")      # $0.30 default
 
 # ── Приложения ───────────────────────────────────────────────────────────
 INSTALLED_APPS = [

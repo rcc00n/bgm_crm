@@ -1,7 +1,9 @@
 # store/views.py
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Iterable
 import logging
+import uuid
+import json
 
 from django.conf import settings
 from django.contrib import messages
@@ -13,6 +15,7 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from PIL import Image, UnidentifiedImageError
+from square.client import Square, SquareEnvironment
 
 from .models import Category, Order, OrderItem, Product, ProductOption, CarMake, CarModel
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm
@@ -22,6 +25,100 @@ logger = logging.getLogger(__name__)
 
 REFERENCE_IMAGE_MAX_MB = getattr(settings, "STORE_REFERENCE_IMAGE_MAX_MB", 8)
 REFERENCE_IMAGE_MAX_BYTES = int(REFERENCE_IMAGE_MAX_MB * 1024 * 1024)
+
+PAYMENT_QUANT = Decimal("0.01")
+
+
+def _square_ready() -> bool:
+    """
+    Minimal flag to avoid trying to charge without credentials.
+    """
+    return bool(
+        getattr(settings, "SQUARE_ACCESS_TOKEN", "")
+        and getattr(settings, "SQUARE_LOCATION_ID", "")
+        and getattr(settings, "SQUARE_APPLICATION_ID", "")
+    )
+
+
+def _square_client() -> Square:
+    token = getattr(settings, "SQUARE_ACCESS_TOKEN", "")
+    if not token:
+        raise RuntimeError("Square access token is not configured.")
+    env = getattr(settings, "SQUARE_ENVIRONMENT", "sandbox") or "sandbox"
+    environment = SquareEnvironment.PRODUCTION if env.lower().startswith("prod") else SquareEnvironment.SANDBOX
+    return Square(token=token, environment=environment)
+
+
+def _gross_up_with_fee(base: Decimal) -> tuple[Decimal, Decimal]:
+    """
+    Gross-up helper: returns (charge_amount, fee_component) so that after Square
+    takes its fee you still net the target base amount.
+    """
+    if base <= 0:
+        return Decimal("0.00"), Decimal("0.00")
+    try:
+        percent = Decimal(getattr(settings, "SQUARE_FEE_PERCENT", "0"))
+    except Exception:
+        percent = Decimal("0")
+    # allow both 0.029 and 2.9 formats
+    if percent >= 1:
+        percent = percent / Decimal("100")
+
+    fixed = getattr(settings, "SQUARE_FEE_FIXED", Decimal("0"))
+    try:
+        fixed = Decimal(fixed)
+    except Exception:
+        fixed = Decimal("0.00")
+
+    denominator = Decimal("1.00") - percent
+    if denominator <= 0:
+        denominator = Decimal("1.00")
+    gross = ((base + fixed) / denominator).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+    fee = (gross - base).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+    return gross, fee
+
+
+def _charge_square(source_token: str, amount_cents: int, currency: str, *, note: str = "", buyer_email: str = ""):
+    """
+    Create a Square payment and return a dict with the key bits we need.
+    """
+    client = _square_client()
+    payment = client.payments.create(
+        source_id=source_token,
+        idempotency_key=str(uuid.uuid4()),
+        amount_money={"amount": amount_cents, "currency": currency},
+        autocomplete=True,
+        location_id=getattr(settings, "SQUARE_LOCATION_ID", ""),
+        buyer_email_address=buyer_email or None,
+        note=note[:500] if note else None,
+    )
+    if getattr(payment, "errors", None):
+        errors = [getattr(err, "detail", None) or getattr(err, "category", None) for err in payment.errors]
+        raise RuntimeError("; ".join([e for e in errors if e]) or "Payment was declined. Please try another card.")
+
+    pay_obj = getattr(payment, "payment", None)
+    if not pay_obj:
+        raise RuntimeError("Payment was not created. Please try another card.")
+
+    card_details = getattr(pay_obj, "card_details", None)
+    card = getattr(card_details, "card", None) if card_details else None
+
+    fee_money = None
+    for fee in getattr(pay_obj, "processing_fee", None) or []:
+        money = getattr(fee, "amount_money", None)
+        fee_money = getattr(money, "amount", None)
+        if fee_money is not None:
+            break
+
+    return {
+        "id": getattr(pay_obj, "id", "") or "",
+        "status": (getattr(pay_obj, "status", "") or "").lower(),
+        "receipt_url": getattr(pay_obj, "receipt_url", "") or "",
+        "card_brand": getattr(card, "card_brand", "") if card else "",
+        "last_4": getattr(card, "last_4", "") if card else "",
+        "fee_money": fee_money,
+    }
+
 
 # ────────────────────────── Публичные страницы ──────────────────────────
 
@@ -467,12 +564,36 @@ def checkout(request):
     dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
     positions, total, retail_total = _cart_positions(request.session, dealer_discount=dealer_discount)
 
+    half_total = (total * Decimal("0.5")).quantize(PAYMENT_QUANT) if total else Decimal("0.00")
+    full_charge, full_fee = _gross_up_with_fee(total)
+    deposit_charge, deposit_fee = _gross_up_with_fee(half_total)
+    payment_options = {
+        "full": {
+            "label": "Pay 100% now",
+            "base": total,
+            "charge": full_charge,
+            "fee": full_fee,
+            "balance_due": Decimal("0.00"),
+        },
+        "deposit_50": {
+            "label": "Pay 50% deposit",
+            "base": half_total,
+            "charge": deposit_charge,
+            "fee": deposit_fee,
+            "balance_due": (total - half_total).quantize(PAYMENT_QUANT) if total else Decimal("0.00"),
+        },
+    }
+
+    pay_mode = request.POST.get("pay_mode") or request.GET.get("pay_mode") or "full"
+    if pay_mode not in payment_options:
+        pay_mode = "full"
+
     reference_file = None
     if request.method == "POST" and not positions:
         messages.error(request, "The cart is empty.")
         return redirect("store:store-cart")
 
-    form = {"delivery_method": "shipping"}
+    form = {"delivery_method": "shipping", "pay_mode": pay_mode}
     errors: Dict[str, str] = {}
 
     if request.method == "POST":
@@ -494,6 +615,7 @@ def checkout(request):
             "pickup_notes": val("pickup_notes"),
             "comment": val("comment"),
             "agree": request.POST.get("agree") == "1",
+            "pay_mode": pay_mode,
         }
 
         # валидация
@@ -535,6 +657,45 @@ def checkout(request):
                 except (UnidentifiedImageError, OSError):
                     errors["reference_image"] = "Unsupported image. Use JPG, PNG, or WEBP."
 
+        if any(getattr(it["product"], "contact_for_estimate", False) for it in positions):
+            errors["payment"] = "Items that require an estimate must be invoiced manually. Please remove them to pay online."
+
+        selected_payment = payment_options[pay_mode]
+        charge_amount = selected_payment["charge"]
+        charge_fee = selected_payment["fee"]
+        balance_due = selected_payment["balance_due"]
+        square_token = request.POST.get("square_payment_token")
+
+        if charge_amount <= 0:
+            errors["payment"] = "Order total is zero — nothing to charge."
+        if not square_token:
+            errors["payment"] = "Please enter your card details to complete payment."
+        if not _square_ready():
+            errors["payment"] = "Square credentials are not configured. Please contact support."
+
+        cents = 0
+        if not errors:
+            try:
+                cents = int((charge_amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+            except Exception:
+                cents = 0
+            if cents <= 0:
+                errors["payment"] = "Charge amount is invalid."
+
+        payment_resp = {}
+        if not errors:
+            try:
+                payment_resp = _charge_square(
+                    square_token,
+                    cents,
+                    settings.DEFAULT_CURRENCY_CODE,
+                    note=f"BGM store order ({pay_mode}) — {form['customer_name']}",
+                    buyer_email=form["email"],
+                )
+            except Exception as exc:
+                logger.exception("Square payment failed")
+                errors["payment"] = str(exc) or "Card was declined. Please try again."
+
         if not errors:
             o_fields = _model_field_names(Order)
 
@@ -546,6 +707,26 @@ def checkout(request):
             # Если в модели есть поле total — положим туда сумму (иначе total будет считаться @property)
             if "total" in o_fields:
                 order_kwargs["total"] = total
+            if "payment_mode" in o_fields:
+                order_kwargs["payment_mode"] = pay_mode
+            if "payment_amount" in o_fields:
+                order_kwargs["payment_amount"] = charge_amount
+            if "payment_fee" in o_fields:
+                order_kwargs["payment_fee"] = charge_fee
+            if "payment_balance_due" in o_fields:
+                order_kwargs["payment_balance_due"] = balance_due
+            if "payment_processor" in o_fields:
+                order_kwargs["payment_processor"] = "square"
+            if "payment_id" in o_fields:
+                order_kwargs["payment_id"] = payment_resp.get("id", "")
+            if "payment_receipt_url" in o_fields:
+                order_kwargs["payment_receipt_url"] = payment_resp.get("receipt_url", "")
+            if "payment_card_brand" in o_fields:
+                order_kwargs["payment_card_brand"] = payment_resp.get("card_brand", "")
+            if "payment_last4" in o_fields:
+                order_kwargs["payment_last4"] = payment_resp.get("last_4", "")
+            if "payment_status" in o_fields:
+                order_kwargs["payment_status"] = Order.PaymentStatus.PAID
 
             # способ доставки
             name = _first_present(o_fields, ["delivery_method", "shipping_method"])
@@ -648,6 +829,17 @@ def checkout(request):
             messages.success(request, f"Order created successfully. Thank you! Order #: {order.id}")
             return redirect("store:store")
 
+    selected_payment = payment_options.get(pay_mode, payment_options["full"])
+    payment_options_payload = {
+        key: {
+            "label": data["label"],
+            "base": float(data["base"]),
+            "charge": float(data["charge"]),
+            "fee": float(data["fee"]),
+            "balance_due": float(data["balance_due"]),
+        } for key, data in payment_options.items()
+    }
+
     return render(
         request,
         "store/checkout.html",
@@ -660,5 +852,15 @@ def checkout(request):
             "retail_total": retail_total,
             "cart_savings": (retail_total - total) if retail_total and total else Decimal("0.00"),
             "dealer_discount_percent": dealer_discount,
+            "pay_mode": pay_mode,
+            "payment_options": payment_options,
+            "square_application_id": getattr(settings, "SQUARE_APPLICATION_ID", ""),
+            "square_location_id": getattr(settings, "SQUARE_LOCATION_ID", ""),
+            "square_env": getattr(settings, "SQUARE_ENVIRONMENT", "sandbox"),
+            "square_ready": _square_ready(),
+            "payment_options_json": json.dumps(payment_options_payload),
+            "currency_symbol": getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$"),
+            "currency_code": getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD"),
+            "selected_payment": selected_payment,
         },
     )

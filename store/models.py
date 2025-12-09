@@ -264,6 +264,15 @@ class ProductImage(models.Model):
 # ─────────────────────────── Store: orders ───────────────────────────
 
 class Order(models.Model):
+    class PaymentStatus(models.TextChoices):
+        UNPAID = ("unpaid", "Unpaid")
+        PAID = ("paid", "Paid")
+        FAILED = ("failed", "Failed")
+
+    class PaymentMode(models.TextChoices):
+        FULL = ("full", "Pay in full")
+        DEPOSIT = ("deposit_50", "50% deposit")
+
     STATUS_PROCESSING = "processing"   # В обработке
     STATUS_SHIPPED    = "shipped"      # Отправлен
     STATUS_COMPLETED  = "completed"    # Выполнен
@@ -308,6 +317,27 @@ class Order(models.Model):
         blank=True,
         help_text="Optional photo reference uploaded at checkout.",
     )
+
+    # payment
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.UNPAID,
+        db_index=True,
+    )
+    payment_mode = models.CharField(
+        max_length=20,
+        choices=PaymentMode.choices,
+        default=PaymentMode.FULL,
+    )
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    payment_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    payment_balance_due = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    payment_processor = models.CharField(max_length=32, blank=True, default="")
+    payment_id = models.CharField(max_length=140, blank=True, default="")
+    payment_receipt_url = models.URLField(blank=True, default="")
+    payment_card_brand = models.CharField(max_length=40, blank=True, default="")
+    payment_last4 = models.CharField(max_length=8, blank=True, default="")
 
     # who created
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)

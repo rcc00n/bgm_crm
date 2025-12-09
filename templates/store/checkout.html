@@ -139,6 +139,56 @@
             </div>
           </section>
 
+          <!-- Payment -->
+          <section>
+            <div class="section__head" style="margin-bottom:.45rem;">
+              <h3 class="block-title">Payment</h3>
+              <p class="section__desc">Pick a 50% deposit or pay in full. Card processing fees are passed through and shown in the totals.</p>
+            </div>
+
+            <fieldset class="options options--pay">
+              <label class="opt opt--wide">
+                <input type="radio" name="pay_mode" value="deposit_50" {% if pay_mode == 'deposit_50' %}checked{% endif %}>
+                <div>
+                  <div class="opt__title">Pay 50% now</div>
+                  <div class="opt__sub">
+                    Charge now {{ payment_options.deposit_50.charge|money }} (includes {{ payment_options.deposit_50.fee|money }} card fee).
+                    Balance later {{ payment_options.deposit_50.balance_due|money }}.
+                  </div>
+                </div>
+              </label>
+              <label class="opt opt--wide">
+                <input type="radio" name="pay_mode" value="full" {% if pay_mode != 'deposit_50' %}checked{% endif %}>
+                <div>
+                  <div class="opt__title">Pay 100% now</div>
+                  <div class="opt__sub">
+                    Charge now {{ payment_options.full.charge|money }} (includes {{ payment_options.full.fee|money }} card fee).
+                    Balance later {{ payment_options.full.balance_due|money }}.
+                  </div>
+                </div>
+              </label>
+            </fieldset>
+
+            {% if errors.payment %}
+              <div class="callout callout--err"><div class="callout__body">{{ errors.payment }}</div></div>
+            {% endif %}
+
+            <div class="card-frame-wrap">
+              <label class="label" for="card-container">Card details</label>
+              <div id="card-container" class="card-frame" aria-live="polite"></div>
+              <div id="card-errors" class="err" aria-live="polite"></div>
+              <input type="hidden" name="square_payment_token" id="squarePaymentToken" value="">
+            </div>
+
+            {% if not square_ready %}
+              <div class="callout callout--err">
+                <div class="callout__body">
+                  Square credentials are missing. Add SQUARE_APPLICATION_ID, SQUARE_LOCATION_ID, and SQUARE_ACCESS_TOKEN to enable checkout.
+                </div>
+              </div>
+            {% endif %}
+          </section>
+
           <!-- Order notes -->
           <section>
             <h3 class="block-title">Order notes</h3>
@@ -182,7 +232,7 @@
           {% if errors.agree %}<div class="err">{{ errors.agree }}</div>{% endif %}
 
           <div class="actions">
-            <button id="submitBtn" class="btn btn--primary" type="submit">Place order</button>
+            <button id="submitBtn" class="btn btn--primary" type="submit">Pay {{ selected_payment.charge|money }} now</button>
             <a class="btn btn--ghost" href="{% url 'store-cart' %}">Return to cart</a>
           </div>
         </div>
@@ -231,6 +281,26 @@
           {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
             <p class="section__desc">Retail before discount: {{ retail_total|money }}</p>
           {% endif %}
+
+          <div class="summary__divider"></div>
+          <div class="summary__pay">
+            <div class="summary__row">
+              <span class="summary__total-label">Paying now</span>
+              <span class="summary__total-sum" id="summaryCharge">{{ selected_payment.charge|money }}</span>
+            </div>
+            <div class="summary__row">
+              <span class="section__desc">Card fee passed through</span>
+              <span id="summaryFee">{{ selected_payment.fee|money }}</span>
+            </div>
+            <div class="summary__row">
+              <span class="section__desc">Covers products worth</span>
+              <span id="summaryBase">{{ selected_payment.base|money }}</span>
+            </div>
+            <div class="summary__row" id="balanceRow" {% if selected_payment.balance_due <= 0 %}hidden{% endif %}>
+              <span class="section__desc">Balance later</span>
+              <span id="summaryBalance">{{ selected_payment.balance_due|money }}</span>
+            </div>
+          </div>
         {% else %}
           <p class="section__desc">Your cart is empty. <a href="{% url 'store' %}">Browse catalog</a></p>
         {% endif %}
@@ -238,6 +308,9 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+    {% if square_ready %}
+      <script src="https://{% if square_env|lower|startswith:'sandbox' %}sandbox.{% endif %}web.squarecdn.com/v1/square.js"></script>
+    {% endif %}
 
   </div>
 </section>
@@ -286,6 +359,10 @@
     border:1px solid var(--card-border); border-radius:.6rem; background:var(--field-bg);
   }
   .opt input{ accent-color:var(--red); }
+  .options--pay{ grid-template-columns:1fr; }
+  .opt--wide{ align-items:flex-start; }
+  .opt__title{ font-weight:800; }
+  .opt__sub{ color:var(--muted); font-size:.9rem; }
 
   .addr, .pickup{ margin-top:.8rem; }
   .pickup{ display:none; }
@@ -294,6 +371,7 @@
   .check input{ margin-top:.2rem; accent-color:var(--red); }
 
   .actions{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
+  .btn.is-busy{ opacity:.7; cursor:progress; }
   .btn--small{ padding:.45rem .75rem; font-size:.85rem; }
 
   .upload-card{
@@ -338,6 +416,15 @@
     border-radius:12px; border:1px solid rgba(255,255,255,.12);
   }
 
+  .card-frame-wrap{ margin-top:.8rem; }
+  .card-frame{
+    border:1px solid var(--card-border);
+    border-radius:.6rem;
+    padding:.8rem;
+    background:var(--field-bg);
+    min-height:56px;
+  }
+
   .summary__list{ list-style:none; display:grid; gap:.6rem; margin:0; padding:0; }
   .summary__row{
     display:flex; justify-content:space-between; gap:.8rem;
@@ -354,6 +441,8 @@
   .summary__total-label{font-weight:800;}
   .summary__total-sum{font-weight:900;}
   .summary__total-savings span{color:#17d45b;}
+  .summary__divider{ height:1px; background:var(--card-border); margin:.9rem 0; }
+  .summary__pay{ display:grid; gap:.45rem; }
   .badge{
     display:inline-flex; align-items:center; gap:.3rem;
     padding:.18rem .5rem; border-radius:.5rem;
@@ -395,6 +484,23 @@
     const refPreviewImg = document.getElementById('referencePreviewImg');
     const refPreviewName = document.getElementById('referencePreviewName');
     const refPreviewMeta = document.getElementById('referencePreviewMeta');
+    const formEl = document.querySelector('.checkout-form');
+    const payRadios = document.querySelectorAll('input[name="pay_mode"]');
+    const paymentOptions = JSON.parse('{{ payment_options_json|escapejs }}' || '{}');
+    const currencySymbol = "{{ currency_symbol }}";
+    const squareReady = {{ square_ready|yesno:"true,false" }};
+    const squareAppId = "{{ square_application_id }}";
+    const squareLocationId = "{{ square_location_id }}";
+    const cardErrors = document.getElementById('card-errors');
+    const tokenInput = document.getElementById('squarePaymentToken');
+    const summaryCharge = document.getElementById('summaryCharge');
+    const summaryFee = document.getElementById('summaryFee');
+    const summaryBase = document.getElementById('summaryBase');
+    const summaryBalance = document.getElementById('summaryBalance');
+    const balanceRow = document.getElementById('balanceRow');
+    const serverPaymentError = "{{ errors.payment|default_if_none:'' }}";
+    let cardInstance = null;
+    let processingPayment = false;
 
     function syncDelivery(){
       const val = document.querySelector('input[name="delivery_method"]:checked')?.value;
@@ -500,9 +606,90 @@
       });
     }
 
+    function formatMoney(value){
+      const num = Number(value || 0);
+      return `${currencySymbol}${num.toFixed(2)}`;
+    }
+
+    function updatePaymentSummary(){
+      const mode = document.querySelector('input[name="pay_mode"]:checked')?.value || 'full';
+      const data = paymentOptions[mode] || paymentOptions.full || {charge:0, fee:0, base:0, balance_due:0};
+      if (summaryCharge) summaryCharge.textContent = formatMoney(data.charge);
+      if (summaryFee) summaryFee.textContent = formatMoney(data.fee);
+      if (summaryBase) summaryBase.textContent = formatMoney(data.base);
+      if (balanceRow){
+        if ((data.balance_due || 0) > 0.009){
+          balanceRow.hidden = false;
+          if (summaryBalance) summaryBalance.textContent = formatMoney(data.balance_due);
+        }else{
+          balanceRow.hidden = true;
+        }
+      }
+      if (submit) submit.textContent = `Pay ${formatMoney(data.charge)} now`;
+      return data;
+    }
+
+    async function setupSquare(){
+      if (!squareReady || !window.Square || !squareAppId || !squareLocationId){
+        if (!squareReady && cardErrors){
+          cardErrors.textContent = 'Payments are not configured yet. Please contact us to place the order.';
+        }
+        return;
+      }
+      try{
+        const payments = window.Square.payments(squareAppId, squareLocationId);
+        cardInstance = await payments.card();
+        await cardInstance.attach('#card-container');
+      }catch(err){
+        console.error(err);
+        if (cardErrors) cardErrors.textContent = 'Could not load the card form. Please refresh or contact us.';
+      }
+    }
+
+    async function handleSubmit(event){
+      if (!formEl || !submit) return;
+      if (processingPayment){
+        event.preventDefault();
+        return;
+      }
+      event.preventDefault();
+      if (!agree.checked){
+        syncAgree();
+        return;
+      }
+      if (!cardInstance){
+        if (cardErrors) cardErrors.textContent = 'Payment form is not ready yet.';
+        return;
+      }
+      processingPayment = true;
+      submit.disabled = true;
+      submit.classList.add('is-busy');
+      if (cardErrors) cardErrors.textContent = '';
+      const result = await cardInstance.tokenize();
+      if (result.status === 'OK'){
+        if (tokenInput) tokenInput.value = result.token;
+        formEl.submit();
+      }else{
+        const msg = (result.errors && result.errors[0] && result.errors[0].message) || 'Card was declined. Please check details.';
+        if (cardErrors) cardErrors.textContent = msg;
+        processingPayment = false;
+        submit.disabled = !agree.checked;
+        submit.classList.remove('is-busy');
+      }
+    }
+
+    methodInputs.forEach(i => i.addEventListener('change', syncDelivery));
+    if (agree)  agree.addEventListener('change', syncAgree);
+    if (postal) postal.addEventListener('blur', normalizePostal);
+    payRadios.forEach(r => r.addEventListener('change', updatePaymentSummary));
+    if (formEl) formEl.addEventListener('submit', handleSubmit);
+
     document.addEventListener('DOMContentLoaded', function(){
       syncDelivery();
       syncAgree();
+      updatePaymentSummary();
+      if (serverPaymentError && cardErrors){ cardErrors.textContent = serverPaymentError; }
+      setupSquare();
     });
   })();
 </script>
