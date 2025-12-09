@@ -1,5 +1,5 @@
-{# Shared Under Construction banner markup — v3 #}
-{% with site_notice_version=site_notice_version|default:"uc-v3" %}
+{# Shared promo banner markup — v1 #}
+{% with site_notice_version=site_notice_version|default:"offer-v1" %}
 <div id="siteNotice"
      class="site-notice"
      role="dialog"
@@ -15,7 +15,7 @@
     <header class="site-notice__header">
       <div class="site-notice__eyebrow">
         <span class="site-notice__dot" aria-hidden="true"></span>
-        <span>Storefront update</span>
+        <span>Email exclusive</span>
       </div>
 
       <!-- Кнопка закрытия (иконка) -->
@@ -30,41 +30,66 @@
       </button>
     </header>
 
-    <h2 id="siteNoticeTitle" class="site-notice__title">🚧 Website Update In Progress 🚧</h2>
+    <h2 id="siteNoticeTitle" class="site-notice__title">Welcome gift: 5% off your first order</h2>
 
     <p id="siteNoticeDescription" class="site-notice__desc site-notice__desc--lead">
-      We're finishing a few updates to the store. A couple of pages may be missing features,
-      but you can still browse inventory, request a quote, or reach the team anytime.
+      Join the Bad Guy Motors email list for product drops, garage inspo, and VIP invites.
+      We'll email a one-time 5% off code as soon as you subscribe.
     </p>
 
-    <section class="site-notice__contact" aria-labelledby="noticeContactTitle">
-      <h3 id="noticeContactTitle" class="site-notice__contact-name">Bad Guy Motors Inc.</h3>
+    <form class="site-notice__form" id="siteNoticeForm" aria-label="Email signup form">
+      <label class="site-notice__label" for="siteNoticeEmail">Email address</label>
+      <div class="site-notice__input-row">
+        <input type="email"
+               id="siteNoticeEmail"
+               name="email"
+               class="site-notice__input"
+               placeholder="you@example.com"
+               required>
+        <button type="submit" class="site-notice__cta site-notice__cta--solid">
+          Send me the code
+        </button>
+      </div>
+      <p class="site-notice__fineprint">No spam—just drops, events, and the occasional perk.</p>
+    </form>
 
-      <dl class="site-notice__contact-details">
-        <div class="site-notice__contact-row">
-          <dt class="site-notice__contact-label">Address</dt>
-          <dd class="site-notice__contact-value">
-            620 Porcelain Ave SE, Medicine Hat, AB
-          </dd>
+    <section class="site-notice__perks" aria-label="Perks for subscribers">
+      <div class="site-notice__perk">
+        <span class="site-notice__perk-icon" aria-hidden="true">✓</span>
+        <div>
+          <p class="site-notice__perk-title">One-time 5% welcome code</p>
+          <p class="site-notice__perk-desc">Good on any product or service invoice.</p>
         </div>
+      </div>
 
-        <div class="site-notice__contact-row">
-          <dt class="site-notice__contact-label">Phone</dt>
-          <dd class="site-notice__contact-value">
-            <a href="tel:+14035250432" class="site-notice__link">403-525-0432</a>
-          </dd>
+      <div class="site-notice__perk">
+        <span class="site-notice__perk-icon" aria-hidden="true">✓</span>
+        <div>
+          <p class="site-notice__perk-title">Early access</p>
+          <p class="site-notice__perk-desc">Be first to hear about limited builds, gear, and events.</p>
         </div>
-      </dl>
+      </div>
+
+      <div class="site-notice__perk">
+        <span class="site-notice__perk-icon" aria-hidden="true">✓</span>
+        <div>
+          <p class="site-notice__perk-title">Direct inbox</p>
+          <p class="site-notice__perk-desc">
+            Need help? Reply to any email and the crew will jump in fast.
+          </p>
+        </div>
+      </div>
     </section>
 
     <div class="site-notice__actions">
-      <button type="button" class="site-notice__cta" data-notice-dismiss>
-        Okay, close
+      <button type="button" class="site-notice__cta site-notice__cta--ghost" data-notice-dismiss>
+        Maybe later
       </button>
     </div>
 
     <p class="site-notice__sub">
-      Thanks for bearing with us while we wrap things up.
+      Prefer texting? Call <a href="tel:+14035250432" class="site-notice__link">403-525-0432</a>
+      or email <a href="mailto:support@badguymotors.com" class="site-notice__link">support@badguymotors.com</a>.
     </p>
   </div>
 </div>

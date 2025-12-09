@@ -142,6 +142,22 @@
 
   dismissBtns.forEach(btn => btn.addEventListener('click', () => closeNotice(true)));
 
+  const signupForm = notice.querySelector('#siteNoticeForm');
+  if (signupForm) {
+    signupForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const emailField = signupForm.querySelector('input[type="email"]');
+      const email = emailField ? (emailField.value || '').trim() : '';
+      const subject = encodeURIComponent('Send my 5% welcome code');
+      const baseBody = `I'd like to join the Bad Guy Motors email list and get the 5% welcome code.`;
+      const bodyLines = [baseBody, email ? `Email: ${email}` : '', 'Name: ', 'Vehicle: ']
+        .filter(Boolean)
+        .join('\\n');
+      window.location.href = `mailto:support@badguymotors.com?subject=${subject}&body=${encodeURIComponent(bodyLines)}`;
+      closeNotice(true);
+    });
+  }
+
   const ready = () => {
     const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     setTimeout(openNotice, prefersReduced ? 0 : 280);
