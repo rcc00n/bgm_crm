@@ -76,6 +76,8 @@ urlpatterns = [
     path("services/electrical-work/", core_views.electrical_work_view, name="services-electrical-work"),
     # Hidden wheel & tire landing page (direct-link only)
     path("services/wheel-tire/", core_views.wheel_tire_service_view, name="services-wheel-tire"),
+    # Hidden general request intake (direct-link only)
+    path("services/request/", core_views.general_service_request_view, name="services-general-request"),
     # Hidden performance tuning landing page (direct-link only)
     path("services/performance-tuning/", core_views.performance_tuning_view, name="services-performance-tuning"),
     path("services/lead/", core_views.submit_service_lead, name="service-lead-submit"),

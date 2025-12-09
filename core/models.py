@@ -1361,6 +1361,7 @@ class ServiceLead(models.Model):
         CLOSED = ("closed", "Closed")
 
     class SourcePage(models.TextChoices):
+        GENERAL_REQUEST = ("general_request", "General request")
         PERFORMANCE_TUNING = ("performance_tuning", "Performance tuning")
         ELECTRICAL_WORK = ("electrical_work", "Electrical work")
         BRAKE_SUSPENSION = ("brake_suspension", "Brake & suspension")

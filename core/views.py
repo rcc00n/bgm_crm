@@ -516,6 +516,13 @@ def wheel_tire_service_view(request):
     return render(request, "client/wheel_tire_service.html", {"font_settings": font_settings})
 
 
+def general_service_request_view(request):
+    """
+    Direct-link general request landing with the service lead form.
+    """
+    return render(request, "client/general_request.html")
+
+
 def performance_tuning_view(request):
     media = build_performance_tuning_media()
     font_settings = build_page_font_context(PageFontSetting.Page.PERFORMANCE_TUNING)
