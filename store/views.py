@@ -858,6 +858,7 @@ def checkout(request):
             "square_location_id": getattr(settings, "SQUARE_LOCATION_ID", ""),
             "square_env": getattr(settings, "SQUARE_ENVIRONMENT", "sandbox"),
             "square_ready": _square_ready(),
+            "square_is_sandbox": str(getattr(settings, "SQUARE_ENVIRONMENT", "sandbox")).lower().startswith("sandbox"),
             "payment_options_json": json.dumps(payment_options_payload),
             "currency_symbol": getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$"),
             "currency_code": getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD"),

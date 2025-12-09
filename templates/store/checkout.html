@@ -309,7 +309,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
     {% if square_ready %}
-      <script src="https://{% if square_env|lower|startswith:'sandbox' %}sandbox.{% endif %}web.squarecdn.com/v1/square.js"></script>
+      <script src="https://{% if square_is_sandbox %}sandbox.{% endif %}web.squarecdn.com/v1/square.js"></script>
     {% endif %}
 
   </div>
