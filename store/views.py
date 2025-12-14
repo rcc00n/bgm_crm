@@ -642,6 +642,10 @@ def checkout(request):
     order_gst = (total * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
     order_processing = (total * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
     order_total_with_fees = (total + order_gst + order_processing).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+    currency_code = getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD")
+    currency_symbol = getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$")
+    etransfer_email = getattr(settings, "ETRANSFER_EMAIL", "")
+    etransfer_memo_hint = getattr(settings, "ETRANSFER_MEMO_HINT", "")
 
     def payment_plan(label: str, portion: Decimal):
         base_portion = (total * portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
@@ -672,18 +676,28 @@ def checkout(request):
     pay_mode = request.POST.get("pay_mode") or request.GET.get("pay_mode") or "full"
     if pay_mode not in payment_options:
         pay_mode = "full"
+    payment_method = request.POST.get("payment_method") or request.GET.get("payment_method") or "card"
+    if payment_method not in ("card", "etransfer"):
+        payment_method = "card"
 
     reference_file = None
     if request.method == "POST" and not positions:
         messages.error(request, "The cart is empty.")
         return redirect("store:store-cart")
 
-    form = {"delivery_method": "shipping", "pay_mode": pay_mode}
+    form = {"delivery_method": "shipping", "pay_mode": pay_mode, "payment_method": payment_method}
     errors: Dict[str, str] = {}
 
     if request.method == "POST":
         def val(name, default=""):
             return (request.POST.get(name) or default).strip()
+
+        def normalize_postal_code(raw: str) -> str:
+            cleaned = "".join(ch for ch in (raw or "").upper() if ch.isalnum())
+            if len(cleaned) >= 6:
+                cleaned = cleaned[:6]
+                return f"{cleaned[:3]} {cleaned[3:]}"
+            return cleaned
 
         reference_file = request.FILES.get("reference_image")
         form = {
@@ -695,13 +709,18 @@ def checkout(request):
             "address_line2": val("address_line2"),
             "city": val("city"),
             "region": val("region"),
-            "postal_code": val("postal_code"),
+            "postal_code": normalize_postal_code(val("postal_code")),
             "country": val("country") or "Canada",
             "pickup_notes": val("pickup_notes"),
             "comment": val("comment"),
             "agree": request.POST.get("agree") == "1",
             "pay_mode": pay_mode,
+            "payment_method": payment_method,
         }
+        payment_method = val("payment_method", payment_method) or "card"
+        if payment_method not in ("card", "etransfer"):
+            payment_method = "card"
+        form["payment_method"] = payment_method
 
         # валидация
         if not form["customer_name"]:
@@ -750,16 +769,20 @@ def checkout(request):
         charge_processing_fee = selected_payment["processing_fee"]
         balance_due = selected_payment["balance_due"]
         square_token = request.POST.get("square_payment_token")
+        is_etransfer = payment_method == "etransfer"
 
         if charge_amount <= 0:
             errors["payment"] = "Order total is zero — nothing to charge."
-        if not square_token:
+        if not errors and is_etransfer:
+            if not getattr(settings, "ETRANSFER_EMAIL", ""):
+                errors["payment"] = "Interac e-Transfer is not available right now. Please choose card or contact support."
+        if not errors and not is_etransfer and not square_token:
             errors["payment"] = "Please enter your card details to complete payment."
-        if not _square_ready():
+        if not errors and not is_etransfer and not _square_ready():
             errors["payment"] = "Square credentials are not configured. Please contact support."
 
         cents = 0
-        if not errors:
+        if not errors and not is_etransfer:
             try:
                 cents = int((charge_amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
             except Exception:
@@ -768,12 +791,12 @@ def checkout(request):
                 errors["payment"] = "Charge amount is invalid."
 
         payment_resp = {}
-        if not errors:
+        if not errors and not is_etransfer:
             try:
                 payment_resp = _charge_square(
                     square_token,
                     cents,
-                    settings.DEFAULT_CURRENCY_CODE,
+                    currency_code,
                     note=f"BGM store order ({pay_mode}) — {form['customer_name']}",
                     buyer_email=form["email"],
                 )
@@ -795,23 +818,25 @@ def checkout(request):
             if "payment_mode" in o_fields:
                 order_kwargs["payment_mode"] = pay_mode
             if "payment_amount" in o_fields:
-                order_kwargs["payment_amount"] = charge_amount
+                order_kwargs["payment_amount"] = Decimal("0.00") if is_etransfer else charge_amount
             if "payment_fee" in o_fields:
-                order_kwargs["payment_fee"] = charge_processing_fee
+                order_kwargs["payment_fee"] = Decimal("0.00") if is_etransfer else charge_processing_fee
             if "payment_balance_due" in o_fields:
-                order_kwargs["payment_balance_due"] = balance_due
+                order_kwargs["payment_balance_due"] = order_total_with_fees if is_etransfer else balance_due
             if "payment_processor" in o_fields:
-                order_kwargs["payment_processor"] = "square"
-            if "payment_id" in o_fields:
+                order_kwargs["payment_processor"] = "etransfer" if is_etransfer else "square"
+            if "payment_id" in o_fields and not is_etransfer:
                 order_kwargs["payment_id"] = payment_resp.get("id", "")
-            if "payment_receipt_url" in o_fields:
+            if "payment_receipt_url" in o_fields and not is_etransfer:
                 order_kwargs["payment_receipt_url"] = payment_resp.get("receipt_url", "")
-            if "payment_card_brand" in o_fields:
+            if "payment_card_brand" in o_fields and not is_etransfer:
                 order_kwargs["payment_card_brand"] = payment_resp.get("card_brand", "")
-            if "payment_last4" in o_fields:
+            if "payment_last4" in o_fields and not is_etransfer:
                 order_kwargs["payment_last4"] = payment_resp.get("last_4", "")
             if "payment_status" in o_fields:
-                order_kwargs["payment_status"] = Order.PaymentStatus.PAID
+                order_kwargs["payment_status"] = (
+                    Order.PaymentStatus.UNPAID if is_etransfer else Order.PaymentStatus.PAID
+                )
 
             # способ доставки
             name = _first_present(o_fields, ["delivery_method", "shipping_method"])
@@ -854,6 +879,18 @@ def checkout(request):
                              form["region"], form["postal_code"], form["country"]]
                         ).strip(", ").replace("  ", " ")
                         extra_blocks.append(f"[Delivery] {addr_text}")
+                if is_etransfer:
+                    et_email = getattr(settings, "ETRANSFER_EMAIL", "")
+                    memo_hint = getattr(settings, "ETRANSFER_MEMO_HINT", "")
+                    payment_note_parts = [
+                        f"Customer chose Interac e-Transfer ({pay_mode}).",
+                        f"Amount requested now: {charge_amount} {currency_code}.",
+                    ]
+                    if et_email:
+                        payment_note_parts.append(f"Send to {et_email}.")
+                    if memo_hint:
+                        payment_note_parts.append(memo_hint)
+                    extra_blocks.append("[Payment] " + " ".join(payment_note_parts))
                 if extra_blocks:
                     order_kwargs[comment_field] = "\n".join(extra_blocks)
 
@@ -907,20 +944,35 @@ def checkout(request):
 
                     OrderItem.objects.create(**kwargs)
 
-                _record_payment_entry(
-                    order=order,
-                    amount=charge_amount,
-                    balance_due=balance_due,
-                    pay_mode=pay_mode,
-                    payment_resp=payment_resp,
-                    payment_fee=charge_processing_fee,
-                )
+                if not is_etransfer:
+                    _record_payment_entry(
+                        order=order,
+                        amount=charge_amount,
+                        balance_due=balance_due,
+                        pay_mode=pay_mode,
+                        payment_resp=payment_resp,
+                        payment_fee=charge_processing_fee,
+                    )
 
                 # очистить корзину
                 request.session[CART_KEY] = {"items": []}
                 request.session.modified = True
 
-            messages.success(request, f"Order created successfully. Thank you! Order #: {order.id}")
+            if is_etransfer:
+                et_email = etransfer_email
+                memo_hint = etransfer_memo_hint
+                amount_str = f"{currency_symbol}{charge_amount.quantize(PAYMENT_QUANT)}"
+                memo_suffix = (
+                    f" with “Order #{order.id} — {memo_hint}”."
+                    if memo_hint else
+                    f" and include Order #{order.id} in the transfer message."
+                )
+                messages.success(
+                    request,
+                    f"Order created. Order #: {order.id}. Send {amount_str} via Interac e-Transfer to {et_email or 'our payments email'}{memo_suffix}",
+                )
+            else:
+                messages.success(request, f"Order created successfully. Thank you! Order #: {order.id}")
             return redirect("store:store")
 
     selected_payment = payment_options.get(pay_mode, payment_options["full"])
@@ -952,6 +1004,7 @@ def checkout(request):
             "cart_savings": (retail_total - total) if retail_total and total else Decimal("0.00"),
             "dealer_discount_percent": dealer_discount,
             "pay_mode": pay_mode,
+            "payment_method": payment_method,
             "payment_options": payment_options,
             "order_gst": order_gst,
             "order_processing": order_processing,
@@ -964,8 +1017,10 @@ def checkout(request):
             "square_ready": _square_ready(),
             "square_is_sandbox": str(getattr(settings, "SQUARE_ENVIRONMENT", "sandbox")).lower().startswith("sandbox"),
             "payment_options_json": json.dumps(payment_options_payload),
-            "currency_symbol": getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$"),
-            "currency_code": getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD"),
+            "currency_symbol": currency_symbol,
+            "currency_code": currency_code,
             "selected_payment": selected_payment,
+            "etransfer_email": etransfer_email,
+            "etransfer_memo_hint": etransfer_memo_hint,
         },
     )

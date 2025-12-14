@@ -200,15 +200,21 @@ MARKETING = {
 DEFAULT_CURRENCY_CODE = os.getenv("DEFAULT_CURRENCY_CODE", "CAD")
 DEFAULT_CURRENCY_SYMBOL = os.getenv("DEFAULT_CURRENCY_SYMBOL", "$")
 
-# ── Payments (Square) ────────────────────────────────────────────────────
+# ── Payments (Square / Interac) ──────────────────────────────────────────
 SQUARE_ACCESS_TOKEN = os.getenv("SQUARE_ACCESS_TOKEN", "")
 SQUARE_LOCATION_ID = os.getenv("SQUARE_LOCATION_ID", "")
 SQUARE_APPLICATION_ID = os.getenv("SQUARE_APPLICATION_ID", "")
-SQUARE_ENVIRONMENT = os.getenv("SQUARE_ENVIRONMENT", "sandbox").lower()
+SQUARE_ENVIRONMENT = os.getenv("SQUARE_ENVIRONMENT", "production").lower()
 SQUARE_FEE_PERCENT = _dec_env("SQUARE_FEE_PERCENT", "0.029")  # 2.9% default
 SQUARE_FEE_FIXED = _dec_env("SQUARE_FEE_FIXED", "0.30")      # $0.30 default
 STORE_GST_RATE = _dec_env("STORE_GST_RATE", "0.05")          # 5% GST
 STORE_PROCESSING_FEE_RATE = _dec_env("STORE_PROCESSING_FEE_RATE", "0.035")  # 3.5% processing fee
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "")
+ETRANSFER_EMAIL = os.getenv("ETRANSFER_EMAIL", SUPPORT_EMAIL or "payments@badguymotors.com")
+ETRANSFER_MEMO_HINT = os.getenv(
+    "ETRANSFER_MEMO_HINT",
+    "Include your order number and phone in the transfer message.",
+)
 
 # ── Приложения ───────────────────────────────────────────────────────────
 INSTALLED_APPS = [

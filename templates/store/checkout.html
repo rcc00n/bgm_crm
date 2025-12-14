@@ -114,10 +114,11 @@
                   {% if errors.region %}<div class="err">{{ errors.region }}</div>{% endif %}
                 </div>
                 <div>
-                  <label class="label" for="postal_code">Postal / ZIP*</label>
+                  <label class="label" for="postal_code">Postal code (Canada)*</label>
                   <input id="postal_code" class="input{% if errors.postal_code %} input--invalid{% endif %}"
                          type="text" name="postal_code" autocomplete="postal-code"
-                         placeholder="T2X 1A1" value="{{ form.postal_code|default_if_none:'' }}">
+                         inputmode="text" pattern="[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d"
+                         placeholder="A1A 1A1" value="{{ form.postal_code|default_if_none:'' }}">
                   {% if errors.postal_code %}<div class="err">{{ errors.postal_code }}</div>{% endif %}
                 </div>
               </div>
@@ -169,15 +170,55 @@
               </label>
             </fieldset>
 
+            <div class="section__head" style="margin-bottom:.3rem;">
+              <h4 class="block-title" style="margin:0;">How would you like to pay?</h4>
+              <p class="section__desc">Card runs through Square. Interac e-Transfer lets you send funds directly from your bank.</p>
+            </div>
+
+            <fieldset class="options options--pay options--method">
+              <label class="opt opt--wide">
+                <input type="radio" name="payment_method" value="card" {% if payment_method != 'etransfer' %}checked{% endif %}>
+                <div>
+                  <div class="opt__title">Credit / debit card</div>
+                  <div class="opt__sub">Pay securely with Square. Charged right away.</div>
+                </div>
+              </label>
+              <label class="opt opt--wide">
+                <input type="radio" name="payment_method" value="etransfer" {% if payment_method == 'etransfer' %}checked{% endif %}>
+                <div>
+                  <div class="opt__title">Interac e-Transfer</div>
+                  <div class="opt__sub">Send {{ selected_payment.charge|money }} manually; we’ll confirm once it arrives.</div>
+                </div>
+              </label>
+            </fieldset>
+
             {% if errors.payment %}
               <div class="callout callout--err"><div class="callout__body">{{ errors.payment }}</div></div>
             {% endif %}
 
-            <div class="card-frame-wrap">
+            <div id="cardBlock" class="card-frame-wrap" {% if payment_method == 'etransfer' %}hidden{% endif %}>
               <label class="label" for="card-container">Card details</label>
               <div id="card-container" class="card-frame" aria-live="polite"></div>
               <div id="card-errors" class="err" aria-live="polite"></div>
               <input type="hidden" name="square_payment_token" id="squarePaymentToken" value="">
+            </div>
+
+            <div id="etransferBlock" class="etransfer-block" {% if payment_method != 'etransfer' %}hidden{% endif %}>
+              <div class="callout callout--ok">
+                <div class="callout__body">
+                  <p class="section__desc" style="margin-bottom:.5rem;">Interac e-Transfer instructions</p>
+                  <p>Send <strong data-etransfer-amount>{{ selected_payment.charge|money }}</strong> to
+                    <code data-etransfer-email>{{ etransfer_email|default:"payments@badguymotors.com" }}</code>.
+                  </p>
+                  <p class="section__desc">Add this message so we can match it:</p>
+                  <div class="memo" data-etransfer-memo>Order # (shown after you submit) — {{ etransfer_memo_hint|default:"Include your name and phone." }}</div>
+                  <div class="etransfer-actions">
+                    <button type="button" class="btn btn--ghost btn--small" id="etransferCopyEmail">Copy email</button>
+                    <button type="button" class="btn btn--ghost btn--small" id="etransferCopyMemo">Copy message</button>
+                    <button type="button" class="btn btn--primary btn--small" id="etransferShow">View full instructions</button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {% if not square_ready %}
@@ -326,6 +367,18 @@
         {% endif %}
       </aside>
     </div>
+
+    <div id="etransferModal" class="modal" hidden>
+      <div class="modal__overlay"></div>
+      <div class="modal__card" role="dialog" aria-modal="true" aria-label="Interac e-Transfer details">
+        <button type="button" class="modal__close" id="etransferClose" aria-label="Close">×</button>
+        <h3 class="block-title" style="margin-top:0;">Interac e-Transfer</h3>
+        <p>Send <strong data-etransfer-amount>{{ selected_payment.charge|money }}</strong> to <code data-etransfer-email>{{ etransfer_email|default:"payments@badguymotors.com" }}</code>.</p>
+        <p class="section__desc">Use this message:</p>
+        <div class="memo memo--modal" data-etransfer-memo>Order # (shown after you submit) — {{ etransfer_memo_hint|default:"Include your name and phone." }}</div>
+        <p class="section__desc">We’ll confirm your order once the transfer lands.</p>
+      </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
     {% if square_ready %}
@@ -380,6 +433,7 @@
   }
   .opt input{ accent-color:var(--red); }
   .options--pay{ grid-template-columns:1fr; }
+  .options--method{ grid-template-columns:1fr; }
   .opt--wide{ align-items:flex-start; }
   .opt__title{ font-weight:800; }
   .opt__sub{ color:var(--muted); font-size:.9rem; }
@@ -443,6 +497,37 @@
     padding:.8rem;
     background:var(--field-bg);
     min-height:56px;
+  }
+  .etransfer-block .callout{ margin-bottom:0; }
+  .etransfer-actions{ display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.6rem; }
+  .memo{
+    background:rgba(255,255,255,.04);
+    border:1px solid var(--card-border);
+    border-radius:.5rem;
+    padding:.65rem .75rem;
+    font-family:var(--code-font, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+    word-break:break-word;
+  }
+  .memo--modal{ background:rgba(0,0,0,.2); }
+  .modal{
+    position:fixed; inset:0; z-index:30;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal[hidden]{ display:none; }
+  .modal__overlay{ position:absolute; inset:0; background:rgba(0,0,0,.6); }
+  .modal__card{
+    position:relative; z-index:1;
+    width:90%; max-width:520px;
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:12px;
+    padding:1.2rem;
+    box-shadow:0 14px 60px rgba(0,0,0,.45);
+  }
+  .modal__close{
+    position:absolute; top:.4rem; right:.4rem;
+    border:none; background:transparent; color:var(--muted);
+    font-size:1.4rem; cursor:pointer;
   }
 
   .summary__list{ list-style:none; display:grid; gap:.6rem; margin:0; padding:0; }
@@ -508,6 +593,19 @@
     const refPreviewMeta = document.getElementById('referencePreviewMeta');
     const formEl = document.querySelector('.checkout-form');
     const payRadios = document.querySelectorAll('input[name="pay_mode"]');
+    const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
+    const cardBlock = document.getElementById('cardBlock');
+    const etransferBlock = document.getElementById('etransferBlock');
+    const etransferModal = document.getElementById('etransferModal');
+    const etransferShow = document.getElementById('etransferShow');
+    const etransferClose = document.getElementById('etransferClose');
+    const etransferCopyEmail = document.getElementById('etransferCopyEmail');
+    const etransferCopyMemo = document.getElementById('etransferCopyMemo');
+    const etransferMemoEls = document.querySelectorAll('[data-etransfer-memo]');
+    const etransferAmountEls = document.querySelectorAll('[data-etransfer-amount]');
+    const etransferEmailEls = document.querySelectorAll('[data-etransfer-email]');
+    const etransferMemoHint = "{{ etransfer_memo_hint|default:'Include your order number and phone.'|escapejs }}";
+    const etransferEmailValue = "{{ etransfer_email|default:'payments@badguymotors.com'|escapejs }}";
     const paymentOptions = JSON.parse('{{ payment_options_json|escapejs }}' || '{}');
     const currencySymbol = "{{ currency_symbol }}";
     const squareReady = {{ square_ready|yesno:"true,false" }};
@@ -539,7 +637,14 @@
     }
     function normalizePostal(){
       if (!postal) return;
-      postal.value = postal.value.toUpperCase().replace(/\s+/g,'').replace(/(.{3})/,'$1 ');
+      const cleaned = (postal.value || '').toUpperCase().replace(/[^A-Z0-9]/g,'');
+      if (!cleaned){
+        postal.value = '';
+        return;
+      }
+      const first = cleaned.slice(0, 3);
+      const last = cleaned.slice(3, 6);
+      postal.value = last ? `${first} ${last}` : first;
     }
     function bytesToString(bytes){
       if (!bytes && bytes !== 0) return '';
@@ -586,10 +691,16 @@
       }
       showPreview(file);
     }
+    function getPaymentMethod(){
+      return document.querySelector('input[name="payment_method"]:checked')?.value || 'card';
+    }
+    function setEtransferDetails(amountText){
+      etransferAmountEls.forEach(el => { el.textContent = amountText; });
+      const memoText = `Order # (shown after you submit) — ${etransferMemoHint || 'Include your order number and phone.'}`;
+      etransferMemoEls.forEach(el => { el.textContent = memoText; });
+      etransferEmailEls.forEach(el => { el.textContent = etransferEmailValue || 'payments@badguymotors.com'; });
+    }
 
-    methodInputs.forEach(i => i.addEventListener('change', syncDelivery));
-    if (agree)  agree.addEventListener('change', syncAgree);
-    if (postal) postal.addEventListener('blur', normalizePostal);
     if (refInput){
       refInput.addEventListener('change', () => {
         if (!refInput.files.length){
@@ -637,6 +748,7 @@
     function updatePaymentSummary(){
       const mode = document.querySelector('input[name="pay_mode"]:checked')?.value || 'full';
       const data = paymentOptions[mode] || paymentOptions.full || {charge:0, processing_fee:0, gst:0, base:0, balance_due:0};
+      const method = getPaymentMethod();
       if (summaryCharge) summaryCharge.textContent = formatMoney(data.charge);
       if (summaryGst) summaryGst.textContent = formatMoney(data.gst);
       if (summaryProcessing) summaryProcessing.textContent = formatMoney(data.processing_fee);
@@ -649,11 +761,32 @@
           balanceRow.hidden = true;
         }
       }
-      if (submit) submit.textContent = `Pay ${formatMoney(data.charge)} now`;
+      const amountText = formatMoney(data.charge);
+      if (submit){
+        submit.textContent = method === 'etransfer'
+          ? `Place order & pay ${amountText} via e-Transfer`
+          : `Pay ${amountText} now`;
+      }
+      setEtransferDetails(amountText);
       return data;
     }
 
+    function syncPaymentMethod(){
+      const method = getPaymentMethod();
+      const isEtransfer = method === 'etransfer';
+      if (cardBlock) cardBlock.hidden = isEtransfer;
+      if (etransferBlock) etransferBlock.hidden = !isEtransfer;
+      if (!cardInstance && method === 'card'){
+        setupSquare();
+      }
+      updatePaymentSummary();
+    }
+
     async function setupSquare(){
+      const method = getPaymentMethod();
+      if (method !== 'card' || cardInstance){
+        return;
+      }
       if (!squareReady || !window.Square || !squareAppId || !squareLocationId){
         if (!squareReady && cardErrors){
           cardErrors.textContent = 'Payments are not configured yet. Please contact us to place the order.';
@@ -670,6 +803,21 @@
       }
     }
 
+    function toggleEtransferModal(show){
+      if (!etransferModal) return;
+      etransferModal.hidden = !show;
+    }
+
+    async function copyToClipboard(text){
+      if (!text) return;
+      try{
+        await navigator.clipboard.writeText(text);
+        alert('Copied to clipboard');
+      }catch(_){
+        window.prompt('Copy the text below', text);
+      }
+    }
+
     async function handleSubmit(event){
       if (!formEl || !submit) return;
       if (processingPayment){
@@ -679,6 +827,14 @@
       event.preventDefault();
       if (!agree.checked){
         syncAgree();
+        return;
+      }
+      const method = getPaymentMethod();
+      if (method === 'etransfer'){
+        processingPayment = true;
+        submit.disabled = true;
+        submit.classList.add('is-busy');
+        formEl.submit();
         return;
       }
       if (!cardInstance){
@@ -706,14 +862,32 @@
     if (agree)  agree.addEventListener('change', syncAgree);
     if (postal) postal.addEventListener('blur', normalizePostal);
     payRadios.forEach(r => r.addEventListener('change', updatePaymentSummary));
+    paymentMethodRadios.forEach(r => r.addEventListener('change', syncPaymentMethod));
+    if (etransferShow) etransferShow.addEventListener('click', (e) => { e.preventDefault(); toggleEtransferModal(true); });
+    if (etransferClose) etransferClose.addEventListener('click', (e) => { e.preventDefault(); toggleEtransferModal(false); });
+    if (etransferModal){
+      const overlay = etransferModal.querySelector('.modal__overlay');
+      if (overlay) overlay.addEventListener('click', () => toggleEtransferModal(false));
+      etransferModal.addEventListener('click', (e) => {
+        if (e.target === etransferModal) toggleEtransferModal(false);
+      });
+    }
+    if (etransferCopyEmail) etransferCopyEmail.addEventListener('click', (e) => {
+      e.preventDefault();
+      copyToClipboard(etransferEmailValue);
+    });
+    if (etransferCopyMemo) etransferCopyMemo.addEventListener('click', (e) => {
+      e.preventDefault();
+      copyToClipboard(etransferMemoEls[0]?.textContent || '');
+    });
     if (formEl) formEl.addEventListener('submit', handleSubmit);
 
     document.addEventListener('DOMContentLoaded', function(){
       syncDelivery();
       syncAgree();
-      updatePaymentSummary();
-      if (serverPaymentError && cardErrors){ cardErrors.textContent = serverPaymentError; }
-      setupSquare();
+      syncPaymentMethod();
+      if (serverPaymentError && cardErrors && getPaymentMethod() === 'card'){ cardErrors.textContent = serverPaymentError; }
+      if (getPaymentMethod() === 'card'){ setupSquare(); }
     });
   })();
 </script>
