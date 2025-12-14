@@ -611,6 +611,7 @@
     const squareReady = {{ square_ready|yesno:"true,false" }};
     const squareAppId = "{{ square_application_id }}";
     const squareLocationId = "{{ square_location_id }}";
+    let squareInitPromise = null;
     const cardErrors = document.getElementById('card-errors');
     const tokenInput = document.getElementById('squarePaymentToken');
     const summaryCharge = document.getElementById('summaryCharge');
@@ -793,14 +794,21 @@
         }
         return;
       }
-      try{
-        const payments = window.Square.payments(squareAppId, squareLocationId);
-        cardInstance = await payments.card();
-        await cardInstance.attach('#card-container');
-      }catch(err){
-        console.error(err);
-        if (cardErrors) cardErrors.textContent = 'Could not load the card form. Please refresh or contact us.';
+      if (squareInitPromise){
+        return squareInitPromise;
       }
+      squareInitPromise = (async () => {
+        try{
+          const payments = window.Square.payments(squareAppId, squareLocationId);
+          cardInstance = await payments.card();
+          await cardInstance.attach('#card-container');
+        }catch(err){
+          console.error(err);
+          if (cardErrors) cardErrors.textContent = 'Could not load the card form. Please refresh or contact us.';
+          squareInitPromise = null;
+        }
+      })();
+      return squareInitPromise;
     }
 
     function toggleEtransferModal(show){
@@ -887,7 +895,6 @@
       syncAgree();
       syncPaymentMethod();
       if (serverPaymentError && cardErrors && getPaymentMethod() === 'card'){ cardErrors.textContent = serverPaymentError; }
-      if (getPaymentMethod() === 'card'){ setupSquare(); }
     });
   })();
 </script>
