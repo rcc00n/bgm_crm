@@ -595,6 +595,7 @@
     const payRadios = document.querySelectorAll('input[name="pay_mode"]');
     const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
     const cardBlock = document.getElementById('cardBlock');
+    const cardContainer = document.getElementById('card-container');
     const etransferBlock = document.getElementById('etransferBlock');
     const etransferModal = document.getElementById('etransferModal');
     const etransferShow = document.getElementById('etransferShow');
@@ -611,7 +612,8 @@
     const squareReady = {{ square_ready|yesno:"true,false" }};
     const squareAppId = "{{ square_application_id }}";
     const squareLocationId = "{{ square_location_id }}";
-    let squareInitPromise = null;
+    const squareState = window.__bgmSquareState || (window.__bgmSquareState = {});
+    let squareInitPromise = squareState.squareInitPromise || null;
     const cardErrors = document.getElementById('card-errors');
     const tokenInput = document.getElementById('squarePaymentToken');
     const summaryCharge = document.getElementById('summaryCharge');
@@ -621,7 +623,7 @@
     const summaryBalance = document.getElementById('summaryBalance');
     const balanceRow = document.getElementById('balanceRow');
     const serverPaymentError = "{{ errors.payment|default_if_none:'' }}";
-    let cardInstance = null;
+    let cardInstance = squareState.cardInstance || null;
     let processingPayment = false;
 
     function syncDelivery(){
@@ -783,9 +785,21 @@
       updatePaymentSummary();
     }
 
+    function cleanupCardContainer(){
+      if (!cardContainer) return;
+      const kids = Array.from(cardContainer.children || []);
+      if (kids.length > 1){
+        kids.slice(1).forEach(node => node.remove());
+      }
+    }
+
     async function setupSquare(){
       const method = getPaymentMethod();
-      if (method !== 'card' || cardInstance){
+      if (method !== 'card'){
+        return;
+      }
+      if (cardInstance){
+        cleanupCardContainer();
         return;
       }
       if (!squareReady || !window.Square || !squareAppId || !squareLocationId){
@@ -797,17 +811,25 @@
       if (squareInitPromise){
         return squareInitPromise;
       }
+      if (cardContainer){
+        cardContainer.innerHTML = '';
+      }
       squareInitPromise = (async () => {
         try{
           const payments = window.Square.payments(squareAppId, squareLocationId);
-          cardInstance = await payments.card();
-          await cardInstance.attach('#card-container');
+          const card = await payments.card();
+          await card.attach('#card-container');
+          cardInstance = card;
+          squareState.cardInstance = cardInstance;
+          cleanupCardContainer();
         }catch(err){
           console.error(err);
           if (cardErrors) cardErrors.textContent = 'Could not load the card form. Please refresh or contact us.';
-          squareInitPromise = null;
+          squareInitPromise = squareState.squareInitPromise = null;
+          cardInstance = squareState.cardInstance = null;
         }
       })();
+      squareState.squareInitPromise = squareInitPromise;
       return squareInitPromise;
     }
 
