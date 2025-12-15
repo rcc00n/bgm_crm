@@ -208,7 +208,7 @@
                 <div class="callout__body">
                   <p class="section__desc" style="margin-bottom:.5rem;">Interac e-Transfer instructions</p>
                   <p>Send <strong data-etransfer-amount>{{ selected_payment.charge|money }}</strong> to
-                    <code data-etransfer-email>{{ etransfer_email|default:"payments@badguymotors.ca" }}</code>.
+                    <code data-etransfer-email>{{ etransfer_email|default:"Payments@badguymotors.ca" }}</code>.
                   </p>
                   <p class="section__desc">Add this message so we can match it:</p>
                   <div class="memo" data-etransfer-memo>Order # (shown after you submit) — {{ etransfer_memo_hint|default:"Include your name and phone." }}</div>
@@ -373,7 +373,7 @@
       <div class="modal__card" role="dialog" aria-modal="true" aria-label="Interac e-Transfer details">
         <button type="button" class="modal__close" id="etransferClose" aria-label="Close">×</button>
         <h3 class="block-title" style="margin-top:0;">Interac e-Transfer</h3>
-        <p>Send <strong data-etransfer-amount>{{ selected_payment.charge|money }}</strong> to <code data-etransfer-email>{{ etransfer_email|default:"payments@badguymotors.ca" }}</code>.</p>
+        <p>Send <strong data-etransfer-amount>{{ selected_payment.charge|money }}</strong> to <code data-etransfer-email>{{ etransfer_email|default:"Payments@badguymotors.ca" }}</code>.</p>
         <p class="section__desc">Use this message:</p>
         <div class="memo memo--modal" data-etransfer-memo>Order # (shown after you submit) — {{ etransfer_memo_hint|default:"Include your name and phone." }}</div>
         <p class="section__desc">We’ll confirm your order once the transfer lands.</p>
@@ -606,7 +606,7 @@
     const etransferAmountEls = document.querySelectorAll('[data-etransfer-amount]');
     const etransferEmailEls = document.querySelectorAll('[data-etransfer-email]');
     const etransferMemoHint = "{{ etransfer_memo_hint|default:'Include your order number and phone.'|escapejs }}";
-    const etransferEmailValue = "{{ etransfer_email|default:'payments@badguymotors.ca'|escapejs }}";
+    const etransferEmailValue = "{{ etransfer_email|default:'Payments@badguymotors.ca'|escapejs }}";
     const paymentOptions = JSON.parse('{{ payment_options_json|escapejs }}' || '{}');
     const currencySymbol = "{{ currency_symbol }}";
     const squareReady = {{ square_ready|yesno:"true,false" }};
@@ -701,7 +701,7 @@
       etransferAmountEls.forEach(el => { el.textContent = amountText; });
       const memoText = `Order # (shown after you submit) — ${etransferMemoHint || 'Include your order number and phone.'}`;
       etransferMemoEls.forEach(el => { el.textContent = memoText; });
-      etransferEmailEls.forEach(el => { el.textContent = etransferEmailValue || 'payments@badguymotors.ca'; });
+      etransferEmailEls.forEach(el => { el.textContent = etransferEmailValue || 'Payments@badguymotors.ca'; });
     }
 
     if (refInput){

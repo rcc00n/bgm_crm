@@ -210,7 +210,7 @@ SQUARE_FEE_FIXED = _dec_env("SQUARE_FEE_FIXED", "0.30")      # $0.30 default
 STORE_GST_RATE = _dec_env("STORE_GST_RATE", "0.05")          # 5% GST
 STORE_PROCESSING_FEE_RATE = _dec_env("STORE_PROCESSING_FEE_RATE", "0.035")  # 3.5% processing fee
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "")
-ETRANSFER_EMAIL = os.getenv("ETRANSFER_EMAIL", SUPPORT_EMAIL or "payments@badguymotors.ca")
+ETRANSFER_EMAIL = os.getenv("ETRANSFER_EMAIL", SUPPORT_EMAIL or "Payments@badguymotors.ca")
 ETRANSFER_MEMO_HINT = os.getenv(
     "ETRANSFER_MEMO_HINT",
     "Include your order number and phone in the transfer message.",

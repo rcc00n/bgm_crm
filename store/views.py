@@ -1,5 +1,6 @@
 # store/views.py
 from decimal import Decimal, ROUND_HALF_UP
+import re
 from typing import Dict, Iterable
 import logging
 import uuid
@@ -276,6 +277,19 @@ def _notify_fitment_request(request_obj):
         logger.exception("Failed to notify about custom fitment request (id=%s)", request_obj.pk)
 
 
+def _normalize_etransfer_email(raw: str | None) -> str:
+    """
+    Force legacy .com addresses to .ca to keep customer instructions current.
+    """
+    email = (raw or "").strip()
+    if not email:
+        return ""
+    email = re.sub(r"(?i)@badguymotors\\.com$", "@badguymotors.ca", email)
+    if email.lower() == "payments@badguymotors.ca":
+        return "Payments@badguymotors.ca"
+    return email
+
+
 def _send_order_confirmation(
     order: Order,
     *,
@@ -314,7 +328,7 @@ def _send_order_confirmation(
     ]
 
     if payment_method == "etransfer":
-        send_to = etransfer_email or getattr(settings, "ETRANSFER_EMAIL", "")
+        send_to = _normalize_etransfer_email(etransfer_email or getattr(settings, "ETRANSFER_EMAIL", ""))
         lines.append("Payment method: Interac e-Transfer.")
         lines.append(f"Amount to send now: {currency_symbol}{amount_now} {currency_code}.")
         if send_to:
@@ -355,7 +369,7 @@ def _send_order_confirmation(
     sender = (
         getattr(settings, "DEFAULT_FROM_EMAIL", None)
         or getattr(settings, "SUPPORT_EMAIL", None)
-        or getattr(settings, "ETRANSFER_EMAIL", None)
+        or _normalize_etransfer_email(getattr(settings, "ETRANSFER_EMAIL", None))
     )
     try:
         send_mail(
@@ -737,7 +751,7 @@ def checkout(request):
     order_total_with_fees = (total + order_gst + order_processing).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
     currency_code = getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD")
     currency_symbol = getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$")
-    etransfer_email = getattr(settings, "ETRANSFER_EMAIL", "")
+    etransfer_email = _normalize_etransfer_email(getattr(settings, "ETRANSFER_EMAIL", "")) or "Payments@badguymotors.ca"
     etransfer_memo_hint = getattr(settings, "ETRANSFER_MEMO_HINT", "")
 
     def payment_plan(label: str, portion: Decimal):
@@ -973,8 +987,8 @@ def checkout(request):
                         ).strip(", ").replace("  ", " ")
                         extra_blocks.append(f"[Delivery] {addr_text}")
                 if is_etransfer:
-                    et_email = getattr(settings, "ETRANSFER_EMAIL", "")
-                    memo_hint = getattr(settings, "ETRANSFER_MEMO_HINT", "")
+                    et_email = etransfer_email
+                    memo_hint = etransfer_memo_hint
                     payment_note_parts = [
                         f"Customer chose Interac e-Transfer ({pay_mode}).",
                         f"Amount requested now: {charge_amount} {currency_code}.",
