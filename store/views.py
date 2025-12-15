@@ -276,6 +276,99 @@ def _notify_fitment_request(request_obj):
         logger.exception("Failed to notify about custom fitment request (id=%s)", request_obj.pk)
 
 
+def _send_order_confirmation(
+    order: Order,
+    *,
+    payment_method: str,
+    pay_mode: str,
+    charge_amount: Decimal,
+    balance_due: Decimal,
+    order_total_with_fees: Decimal,
+    currency_symbol: str,
+    currency_code: str,
+    etransfer_email: str = "",
+    etransfer_memo_hint: str = "",
+    receipt_url: str = "",
+):
+    """
+    Notify the customer via email once checkout succeeds.
+    """
+    recipient = (getattr(order, "email", "") or "").strip()
+    if not recipient:
+        return
+
+    brand = getattr(settings, "SITE_BRAND_NAME", "BGM Customs")
+    pay_mode_label = "Pay in full" if pay_mode != Order.PaymentMode.DEPOSIT else "50% deposit"
+    amount_now = (charge_amount or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+    balance_left = (balance_due or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+    total_with_fees = (order_total_with_fees or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+
+    subject = f"{brand} order #{order.id} confirmed"
+    lines = [
+        f"Hi {order.customer_name},",
+        f"Thanks for your order with {brand}. We've got it and will follow up shortly.",
+        "",
+        f"Order #: {order.id}",
+        f"Payment option: {pay_mode_label}",
+        f"Order total (incl. GST/fees): {currency_symbol}{total_with_fees} {currency_code}",
+    ]
+
+    if payment_method == "etransfer":
+        send_to = etransfer_email or getattr(settings, "ETRANSFER_EMAIL", "")
+        lines.append("Payment method: Interac e-Transfer.")
+        lines.append(f"Amount to send now: {currency_symbol}{amount_now} {currency_code}.")
+        if send_to:
+            lines.append(f"Send to: {send_to}.")
+        if etransfer_memo_hint:
+            lines.append(f"Include this message: Order #{order.id} — {etransfer_memo_hint}")
+        else:
+            lines.append(f"Include your Order #{order.id} in the transfer message.")
+        if balance_left > 0:
+            lines.append(f"Balance after this payment: {currency_symbol}{balance_left} {currency_code}.")
+    else:
+        receipt = receipt_url or getattr(order, "payment_receipt_url", "")
+        lines.append("Payment method: Card (Square).")
+        lines.append(f"Charged now: {currency_symbol}{amount_now} {currency_code}.")
+        if balance_left > 0:
+            lines.append(f"Balance remaining: {currency_symbol}{balance_left} {currency_code}. We'll invoice this before delivery.")
+        if receipt:
+            lines.append(f"Square receipt: {receipt}")
+
+    try:
+        items = list(order.items.select_related("product", "option").all())
+    except Exception:
+        items = []
+    if items:
+        lines.append("")
+        lines.append("Items:")
+        for it in items:
+            name = getattr(it.product, "name", "Item")
+            if getattr(it, "option", None):
+                name = f"{name} ({it.option.name})"
+            lines.append(f"- {name} × {it.qty}")
+
+    lines.extend([
+        "",
+        "Questions? Reply to this email and we'll help.",
+    ])
+
+    sender = (
+        getattr(settings, "DEFAULT_FROM_EMAIL", None)
+        or getattr(settings, "SUPPORT_EMAIL", None)
+        or getattr(settings, "ETRANSFER_EMAIL", None)
+    )
+    try:
+        send_mail(
+            subject=subject,
+            message="\n".join(lines),
+            from_email=sender,
+            recipient_list=[recipient],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception("Failed to send order confirmation email for order %s", getattr(order, "pk", None))
+
+
 def store_home(request):
     categories = Category.objects.all()  # Meta.ordering = ["name"]
     form = ProductFilterForm(request.GET or None)
@@ -957,6 +1050,20 @@ def checkout(request):
                 # очистить корзину
                 request.session[CART_KEY] = {"items": []}
                 request.session.modified = True
+
+                transaction.on_commit(lambda: _send_order_confirmation(
+                    order=order,
+                    payment_method=payment_method,
+                    pay_mode=pay_mode,
+                    charge_amount=charge_amount,
+                    balance_due=balance_due,
+                    order_total_with_fees=order_total_with_fees,
+                    currency_symbol=currency_symbol,
+                    currency_code=currency_code,
+                    etransfer_email=etransfer_email,
+                    etransfer_memo_hint=etransfer_memo_hint,
+                    receipt_url=payment_resp.get("receipt_url", ""),
+                ))
 
             if is_etransfer:
                 et_email = etransfer_email
