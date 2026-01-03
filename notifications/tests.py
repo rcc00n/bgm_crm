@@ -37,3 +37,31 @@ class TelegramBotSettingsTests(TestCase):
         settings.admin_chat_ids = "999"
         settings.save(update_fields=["admin_chat_ids"])
         self.assertTrue(settings.is_ready)
+
+    def test_allowed_user_id_list_prefers_explicit_ids(self):
+        settings = TelegramBotSettings.objects.create(
+            admin_chat_ids="111",
+            allowed_user_ids="222 333",
+            enabled=True,
+            bot_token="token",
+        )
+        self.assertEqual(settings.allowed_user_id_list, [222, 333])
+
+    def test_allowed_user_id_list_falls_back_to_chat_ids(self):
+        settings = TelegramBotSettings.objects.create(
+            admin_chat_ids="111",
+            enabled=True,
+            bot_token="token",
+        )
+        self.assertEqual(settings.allowed_user_id_list, [111])
+
+    def test_load_active_returns_ready_settings(self):
+        settings = TelegramBotSettings.objects.create(
+            admin_chat_ids="111",
+            enabled=True,
+            bot_token="token",
+        )
+        self.assertEqual(TelegramBotSettings.load_active(), settings)
+
+    def test_slot_chat_ids_empty_for_unsaved_instance(self):
+        self.assertEqual(TelegramBotSettings().slot_chat_ids, [])
