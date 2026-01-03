@@ -1,6 +1,16 @@
-from django.test import SimpleTestCase, TestCase
+from datetime import timedelta
 
-from notifications.models import TelegramBotSettings, TelegramRecipientSlot, _parse_id_list
+from django.core.exceptions import ValidationError
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
+
+from notifications.models import (
+    TelegramBotSettings,
+    TelegramContact,
+    TelegramRecipientSlot,
+    TelegramReminder,
+    _parse_id_list,
+)
 
 
 class ParseIdListTests(SimpleTestCase):
@@ -65,3 +75,55 @@ class TelegramBotSettingsTests(TestCase):
 
     def test_slot_chat_ids_empty_for_unsaved_instance(self):
         self.assertEqual(TelegramBotSettings().slot_chat_ids, [])
+
+
+class TelegramReminderTests(TestCase):
+    def test_chat_id_list_combines_contacts_and_manual_ids(self):
+        contact_a = TelegramContact.objects.create(name="Alpha", chat_id=100)
+        contact_b = TelegramContact.objects.create(name="Zulu", chat_id=200)
+        reminder = TelegramReminder.objects.create(
+            title="Follow up",
+            message="Ping",
+            target_chat_ids="200 300",
+        )
+        reminder.contacts.add(contact_a, contact_b)
+
+        self.assertEqual(reminder.chat_id_list, [100, 200, 300])
+
+    def test_mark_sent_updates_status_and_timestamp(self):
+        reminder = TelegramReminder.objects.create(title="Ping", message="Hello")
+        reminder.mark_sent(success=True)
+        reminder.refresh_from_db()
+
+        self.assertEqual(reminder.status, TelegramReminder.Status.SENT)
+        self.assertIsNotNone(reminder.sent_at)
+        self.assertEqual(reminder.last_error, "")
+
+    def test_clean_rejects_old_pending_reminders(self):
+        reminder = TelegramReminder(
+            title="Old",
+            message="Hello",
+            scheduled_for=timezone.now() - timedelta(days=31),
+        )
+        with self.assertRaises(ValidationError):
+            reminder.full_clean()
+
+    def test_due_returns_pending_reminders_ready_to_send(self):
+        due = TelegramReminder.objects.create(
+            title="Due",
+            message="Ready",
+            scheduled_for=timezone.now() - timedelta(minutes=5),
+        )
+        TelegramReminder.objects.create(
+            title="Future",
+            message="Later",
+            scheduled_for=timezone.now() + timedelta(days=1),
+        )
+        TelegramReminder.objects.create(
+            title="Sent",
+            message="Done",
+            scheduled_for=timezone.now() - timedelta(minutes=5),
+            status=TelegramReminder.Status.SENT,
+        )
+
+        self.assertEqual(list(TelegramReminder.due()), [due])
