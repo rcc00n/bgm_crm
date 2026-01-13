@@ -1,4 +1,4 @@
-{% load static %}
+{% load static dealer_extras %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -74,7 +74,12 @@
     .card__badge{position:absolute;left:.6rem;bottom:.6rem;font-size:.72rem;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
     .card__head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
     .price{display:flex;gap:.5rem;align-items:baseline;white-space:nowrap}
+    .price{display:flex;gap:.45rem;align-items:baseline;}
+    .price--stacked{flex-direction:column;align-items:flex-start;gap:.25rem;}
+    .price__retail-row{display:flex;gap:.4rem;align-items:baseline;}
+    .price__dealer-row{display:inline-flex;gap:.35rem;align-items:baseline;background:rgba(213,0,0,.12);border:1px solid rgba(213,0,0,.35);border-radius:.5rem;padding:.2rem .45rem;}
     .price__hint{font-size:.75rem;font-weight:800;color:var(--muted-2);text-transform:uppercase;letter-spacing:.08em;}
+    .price__save{font-size:.75rem;color:var(--muted-2);}
     .old{color:var(--muted-2);text-decoration:line-through}
     .dur{color:var(--muted-2);font-size:.92rem}
     .empty{color:var(--muted-2);font-style:italic;padding:1rem}
@@ -191,21 +196,28 @@
                 <div class="card__head">
                   <h3 style="font-weight:900">{{ s.name }}</h3>
                   <div class="price">
-                    {% with disc=s.get_active_discount %}
-                      {% if disc %}
-                        <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                        <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                        <span class="badge">-{{ disc.discount_percent|floatformat:0 }}%</span>
-                      {% else %}
-                        <strong>${{ s.base_price|floatformat:2 }}</strong>
+                    {% if s.contact_for_estimate %}
+                      <strong>Contact for estimate</strong>
+                      {% if s.estimate_from_price %}
+                        <span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>
                       {% endif %}
-                    {% endwith %}
+                    {% else %}
+                      {% with disc=s.get_active_discount %}
+                        {% if disc %}
+                          <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                          <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                          <span class="badge">-{{ disc.discount_percent|floatformat:0 }}%</span>
+                        {% else %}
+                          <strong>${{ s.base_price|floatformat:2 }}</strong>
+                        {% endif %}
+                      {% endwith %}
+                    {% endif %}
                   </div>
                 </div>
                 {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
                 <div class="dur">Duration: {{ s.duration_min }} min</div>
                 <div style="margin-top:.4rem">
-                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a>
+                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">Book now</a>
                 </div>
               </article>
             {% empty %}
@@ -227,21 +239,28 @@
                 <div class="card__head">
                   <h3 style="font-weight:900">{{ s.name }}</h3>
                   <div class="price">
-                    {% with disc=s.get_active_discount %}
-                      {% if disc %}
-                        <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                        <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                        <span class="badge">-{{ disc.discount_percent|floatformat:0 }}%</span>
-                      {% else %}
-                        <strong>${{ s.base_price|floatformat:2 }}</strong>
+                    {% if s.contact_for_estimate %}
+                      <strong>Contact for estimate</strong>
+                      {% if s.estimate_from_price %}
+                        <span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>
                       {% endif %}
-                    {% endwith %}
+                    {% else %}
+                      {% with disc=s.get_active_discount %}
+                        {% if disc %}
+                          <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                          <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                          <span class="badge">-{{ disc.discount_percent|floatformat:0 }}%</span>
+                        {% else %}
+                          <strong>${{ s.base_price|floatformat:2 }}</strong>
+                        {% endif %}
+                      {% endwith %}
+                    {% endif %}
                   </div>
                 </div>
                 {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
                 <div class="dur">Duration: {{ s.duration_min }} min</div>
                 <div style="margin-top:.4rem">
-                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a>
+                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">Book now</a>
                 </div>
               </article>
             {% endfor %}
@@ -277,16 +296,33 @@
                 </div>
                 <div class="card__head" style="margin-top:.35rem">
                   <h3 style="font-weight:900">{{ p.name }}</h3>
-                  <div class="price">
-                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>${{ p.display_price|floatformat:2 }}</strong>
-                    {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                  <div class="price price--stacked">
+                    {% if p.contact_for_estimate %}
+                      <strong>Contact for estimate</strong>
+                      {% if p.estimate_from_price %}<span class="price__hint">From ${{ p.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                    {% else %}
+                      <div class="price__retail-row">
+                        {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                        <strong>${{ p.display_price|floatformat:2 }}</strong>
+                        {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+                      </div>
+                      {% if dealer_portal.show_discount %}
+                        <div class="price__dealer-row">
+                          <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                          <strong>${{ p.display_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}</strong>
+                          <span class="price__save">Save ${{ p.display_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}</span>
+                        </div>
+                      {% endif %}
+                    {% endif %}
                   </div>
                 </div>
                 {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
               </a>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
-                {% if p.has_active_options %}
+                {% if p.contact_for_estimate %}
+                  <a class="btn btn--primary" href="{% url 'home' %}#contact">Contact us</a>
+                  <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                {% elif p.has_active_options %}
                   <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
                   <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
                 {% else %}
@@ -409,16 +445,34 @@
   const skel = (n=8)=> Array.from({length:n}).map(()=>'<div class="sk"></div>').join('');
   const showLive = ()=>{ liveTitle.style.display='block'; liveGrid.style.display='grid'; server.style.display='none'; }
   const hideLive = ()=>{ liveTitle.style.display='none'; liveGrid.style.display='none'; server.style.display='block'; }
+  const bookingBaseUrl = "{% url 'client-dashboard' %}";
+  const toBookingUrl = (serviceId) => serviceId ? `${bookingBaseUrl}?book=${encodeURIComponent(serviceId)}#services` : `${bookingBaseUrl}#services`;
   const esc = s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  const formatMoney = (val) => {
+    const num = Number(val);
+    if (Number.isFinite(num)) return num.toFixed(2);
+    return val || "";
+  };
 
   function cardHTML(s){
-    const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent>0;
-    const price = hasDisc
-      ? `<span class="old">$${esc(s.base_price)}</span> <strong>$${esc(s.price)}</strong> <span class="badge">-${esc(String(s.discount_percent))}%</span>`
-      : `<strong>$${esc(s.price||s.base_price)}</strong>`;
+    let price;
+    if (s.contact_for_estimate){
+      const fromVal = s.estimate_from_price ? formatMoney(s.estimate_from_price) : "";
+      const hint = fromVal ? `<span class="price__hint">From $${esc(fromVal)}</span>` : "";
+      price = `<strong>Contact for estimate</strong>${hint ? " " + hint : ""}`;
+    } else {
+      const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent>0;
+      if (hasDisc){
+        price = `<span class="old">$${esc(formatMoney(s.base_price))}</span> <strong>$${esc(formatMoney(s.price))}</strong> <span class="badge">-${esc(String(s.discount_percent))}%</span>`;
+      } else {
+        const current = s.price || s.base_price;
+        price = `<strong>$${esc(formatMoney(current))}</strong>`;
+      }
+    }
     const media = s.image ? `<img src="${esc(s.image)}" alt="${esc(s.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
     const cat   = s.category ? `<span class="card__badge">${esc(s.category)}</span>` : '';
     const desc  = s.description ? `<p class="muted">${esc(s.description)}</p>` : '';
+    const bookingHref = toBookingUrl(s.id);
     return `
       <article class="card">
         <div class="card__img">${media}${cat}</div>
@@ -428,7 +482,7 @@
         </div>
         ${desc}
         <div class="dur">Duration: ${esc(String(s.duration_min))} min</div>
-        <div style="margin-top:.4rem"><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a></div>
+        <div style="margin-top:.4rem"><a class="btn btn--primary" href="${bookingHref}">Book now</a></div>
       </article>`;
   }
 

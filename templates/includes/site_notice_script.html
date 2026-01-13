@@ -1,0 +1,172 @@
+{# Shared Under Construction banner script — v3 #}
+<script id="site-notice-js">
+(function () {
+  const notice = document.getElementById('siteNotice');
+  if (!notice) return;
+
+  const panel = notice.querySelector('.site-notice__panel');
+  const dismissBtns = notice.querySelectorAll('[data-notice-dismiss]');
+  if (!panel || !dismissBtns.length) return;
+
+  // version + persistence
+  const versionToken = (notice.getAttribute('data-version') || 'default').trim();
+  const versionSafe = versionToken.replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'default';
+  const storageKey = `bgm:site-notice:${versionSafe}`;
+  const cookieKey = `bgm_site_notice_${versionSafe}`;
+  const cookiePattern = new RegExp('(?:^|; )' + cookieKey.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&') + '=([^;]+)');
+
+  const readState = () => {
+    try { if (window.localStorage.getItem(storageKey) === 'dismissed') return true; } catch(_){}
+    const m = document.cookie.match(cookiePattern);
+    return m ? m[1] === 'dismissed' : false;
+  };
+
+  const persistState = () => {
+    try { window.localStorage.setItem(storageKey, 'dismissed'); } catch(_){}
+    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 180).toUTCString();
+    document.cookie = `${cookieKey}=dismissed; expires=${expires}; path=/; SameSite=Lax`;
+  };
+
+  if (readState()) return;
+
+  // focus management
+  const focusSelector = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(',');
+
+  let lastFocused = null;
+  let undoInert = () => {};
+
+  const makeDocInert = () => {
+    const siblings = Array.from(document.body.children).filter(n => n !== notice);
+    const supportInert = 'inert' in HTMLElement.prototype;
+    siblings.forEach(n => {
+      if (supportInert) { n.inert = true; }
+      n.setAttribute('aria-hidden', 'true');
+    });
+    return () => {
+      siblings.forEach(n => {
+        if (supportInert) { n.inert = false; }
+        n.removeAttribute('aria-hidden');
+      });
+    };
+  };
+
+  const restoreFocus = () => {
+    if (lastFocused && document.contains(lastFocused)) {
+      try { lastFocused.focus({preventScroll: true}); } catch(_){ lastFocused.focus(); }
+    }
+    lastFocused = null;
+  };
+
+  const trapTab = (event) => {
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(panel.querySelectorAll(focusSelector))
+      .filter(el => el.offsetParent !== null && !el.hasAttribute('disabled'));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey) {
+      if (document.activeElement === first || !panel.contains(document.activeElement)) {
+        event.preventDefault(); last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    }
+  };
+
+  const onKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeNotice(true);
+    } else {
+      trapTab(event);
+    }
+  };
+
+  const onBackdrop = (event) => {
+    if (event.target === notice) closeNotice(true);
+  };
+
+  const openNotice = () => {
+    if (!notice.hasAttribute('hidden')) return;
+
+    lastFocused = document.activeElement;
+    notice.removeAttribute('hidden');
+    document.body.classList.add('site-notice-open');
+    undoInert = makeDocInert();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        notice.classList.add('site-notice--visible');
+        const firstFocusable = panel.querySelector(focusSelector);
+        if (firstFocusable) {
+          try { firstFocusable.focus({preventScroll: true}); } catch(_){ firstFocusable.focus(); }
+        }
+      });
+    });
+
+    document.addEventListener('keydown', onKeyDown, true);
+    notice.addEventListener('click', onBackdrop);
+  };
+
+  function closeNotice(persist) {
+    notice.classList.remove('site-notice--visible');
+    if (persist) persistState();
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      notice.setAttribute('hidden', '');
+      document.removeEventListener('keydown', onKeyDown, true);
+      notice.removeEventListener('click', onBackdrop);
+      document.body.classList.remove('site-notice-open');
+      undoInert(); undoInert = () => {};
+      restoreFocus();
+    };
+
+    const onEnd = (e) => { if (e.target === panel || e.target === notice) finish(); };
+    panel.addEventListener('transitionend', onEnd, {once: true});
+    notice.addEventListener('transitionend', onEnd, {once: true});
+    setTimeout(finish, 380);
+  }
+
+  dismissBtns.forEach(btn => btn.addEventListener('click', () => closeNotice(true)));
+
+  const signupForm = notice.querySelector('#siteNoticeForm');
+  if (signupForm) {
+    signupForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const emailField = signupForm.querySelector('input[type="email"]');
+      const email = emailField ? (emailField.value || '').trim() : '';
+      const subject = encodeURIComponent('Send my 5% welcome code');
+      const baseBody = `I'd like to join the Bad Guy Motors email list and get the 5% welcome code.`;
+      const bodyLines = [baseBody, email ? `Email: ${email}` : '', 'Name: ', 'Vehicle: ']
+        .filter(Boolean)
+        .join('\\n');
+      window.location.href = `mailto:support@badguymotors.com?subject=${subject}&body=${encodeURIComponent(bodyLines)}`;
+      closeNotice(true);
+    });
+  }
+
+  const ready = () => {
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(openNotice, prefersReduced ? 0 : 280);
+  };
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    ready();
+  } else {
+    document.addEventListener('DOMContentLoaded', ready, {once: true});
+  }
+})();
+</script>

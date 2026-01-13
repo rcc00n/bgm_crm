@@ -158,6 +158,22 @@ Services & categories: Add service categories and services through the admin pan
 
 Products & categories: Create product categories, car makes, models and products. Specify compatibility and active status. Products appear on the store home page and category pages once added.
 
+Telegram operations bot
+
+The notifications app ships an operations-grade Telegram bot that lives alongside the Django project.
+
+- Configuration lives at “Telegram bot settings” in the admin. Fill BotFather token, enable the bot, and add recipients via the new “Recipient slots” (one chat ID per slot). The legacy free-form field still works and is merged with the slots.
+- “Allowed user IDs” controls who can run bot commands. Leave blank to fall back to all recipients.
+- Commands: `/today` returns a snapshot of operations; `/digest` pushes the daily summary to every configured chat. Real-time alerts fire on new appointments and orders when toggles are enabled.
+- Address book & reminders: “Telegram contacts” stores reusable IDs. “Telegram reminders” can be queued, sent manually via the admin action, or processed with `python manage.py process_telegram_reminders`. Daily digests can also be forced with `python manage.py send_telegram_digest --force`.
+- Dokku deploy / restart:
+  - Procfile includes `telegrambot: python manage.py run_telegram_bot`.
+  - `git push dokku main:master` (or your branch) to deploy.
+  - Scale/start: `dokku ps:scale bgm web=1 telegrambot=1`.
+  - Restart bot only: `dokku ps:restart bgm telegrambot`; all processes: `dokku ps:restart bgm`.
+  - Logs: `dokku logs bgm -p telegrambot`.
+  - One-off manual run (non-daemon): `dokku run bgm python manage.py run_telegram_bot`.
+
 Users & roles: Create users and assign roles via the admin interface or programmatically using assign_role
 GitHub
 . Granting the Admin or Master role will automatically set is_staff.
@@ -253,4 +269,3 @@ Test accounts:
     UN: user
     
     P: useruser!!!
-

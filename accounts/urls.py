@@ -10,6 +10,8 @@ from .views import (
     ClientAppointmentsListView,
     ClientRegisterView,
     MainMenuView,
+    ClientFileUploadView,
+    ClientFileDeleteView,
 )
 from core.views import (
     public_mainmenu, api_availability, api_book,
@@ -33,6 +35,8 @@ urlpatterns = [
 
     # ЛК и API — без изменений
     path("dashboard/", ClientDashboardView.as_view(), name="dashboard"),
+    path("dashboard/files/upload/", ClientFileUploadView.as_view(), name="dashboard-file-upload"),
+    path("dashboard/files/<uuid:file_id>/delete/", ClientFileDeleteView.as_view(), name="dashboard-file-delete"),
     path("master/",    MasterDashboardView.as_view(), name="master_dashboard"),
     path("client/appointments/", ClientAppointmentsListView.as_view(), name="client_appointments"),
 

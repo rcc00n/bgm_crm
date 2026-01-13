@@ -1,0 +1,34 @@
+<header class="site-header" role="banner">
+  <div class="container site-header__inner">
+    <a class="brand" href="{% url 'home' %}">
+      <span class="brand__logo">
+        <span class="brand__word brand__word--white">BAD GUY</span>
+        <span class="brand__word brand__word--red">MOTORS</span>
+      </span>
+      <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
+    </a>
+
+    <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
+      <span class="site-header__toggle-box" aria-hidden="true">
+        <span class="site-header__toggle-lines"></span>
+      </span>
+      <span class="visually-hidden">Toggle navigation</span>
+    </button>
+
+    <nav id="siteNav" aria-label="Main navigation">
+      <ul>
+        <li><a href="{% url 'client-dashboard' %}" title="Services catalog" {% if current == 'services' %}aria-current="page"{% endif %}>Services</a></li>
+        {% if user.is_authenticated %}
+          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+        {% else %}
+          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
+        {% endif %}
+        <li><a href="{% url 'store' %}">Products</a></li>
+        <li><a href="{% url 'merch' %}" {% if current == 'merch' %}aria-current="page"{% endif %}>Merch <span class="badge">Soon</span></a></li>
+        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
+        <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>Financing</a></li>
+        <li><a href="{% url 'our-story' %}" {% if current == 'about' %}aria-current="page"{% endif %}>About</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>

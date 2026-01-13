@@ -1,0 +1,432 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ page_title }} | Bad Guy Motors</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with resolved_title=page_title|default:"Project Journal" %}
+    {% with meta_title=resolved_title|add:" | Bad Guy Motors" meta_description=meta_description|default:"Project deep dives from Bad Guy Motors." meta_section="journal" meta_robots="noindex,nofollow" %}
+      {% include "includes/marketing_head.html" %}
+    {% endwith %}
+  {% endwith %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#050505;
+      --bg-muted:#0b0b0f;
+      --ink:#f5f5f5;
+      --muted:#b7b7c7;
+      --accent:#ff2d2d;
+      --accent-dark:#b80707;
+      --card:#0f0f17;
+      --card-border:rgba(255,255,255,0.08);
+      --line:rgba(255,255,255,0.12);
+      --glow:0 20px 50px rgba(0,0,0,.6);
+      --radius-lg:22px;
+      --radius-md:16px;
+      --radius-sm:10px;
+      --body-font:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --display-font:"Space Grotesk","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    *,*::before,*::after { box-sizing:border-box; }
+    body {
+      margin:0;
+      font-family:var(--body-font);
+      background:linear-gradient(120deg,#020202,#070709 55%,#050505);
+      color:var(--ink);
+      min-height:100vh;
+      padding:3rem 1.25rem 4rem;
+    }
+    .page {
+      max-width:1200px;
+      margin:0 auto;
+    }
+    .eyebrow {
+      text-transform:uppercase;
+      letter-spacing:.3em;
+      font-size:.75rem;
+      color:var(--muted);
+    }
+    .hero {
+      text-align:center;
+      margin-bottom:2.5rem;
+    }
+    .hero h1 {
+      font-family:var(--display-font);
+      font-size:clamp(2.5rem,4vw,3.5rem);
+      letter-spacing:-1px;
+      margin:.5rem 0;
+    }
+    .hero p.lead {
+      max-width:720px;
+      margin:0 auto;
+      color:var(--muted);
+      font-size:1.05rem;
+      line-height:1.6;
+    }
+    .tag-filter {
+      margin-top:2rem;
+      display:flex;
+      gap:.75rem;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+    .tag-filter a {
+      padding:.55rem 1.1rem;
+      border-radius:999px;
+      border:1px solid var(--line);
+      color:var(--ink);
+      font-size:.9rem;
+      transition:all .2s ease;
+      text-decoration:none;
+    }
+    .tag-filter a:hover {
+      border-color:var(--accent);
+      color:var(--accent);
+    }
+    .tag-filter a.active {
+      background:linear-gradient(120deg,var(--accent),var(--accent-dark));
+      border-color:transparent;
+      box-shadow:0 0 25px rgba(255,45,45,.35);
+    }
+    .featured {
+      margin-bottom:3.5rem;
+    }
+    .featured-card {
+      position:relative;
+      border-radius:var(--radius-lg);
+      padding:2.5rem;
+      overflow:hidden;
+      border:1px solid var(--card-border);
+      background:linear-gradient(145deg,#101018,#040406);
+      min-height:420px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+      isolation:isolate;
+      box-shadow:var(--glow);
+    }
+    .featured-card::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image:var(--cover, radial-gradient(circle at top,#ff2d2d22,#000));
+      background-size:cover;
+      background-position:center;
+      opacity:0.35;
+      z-index:-2;
+      transition:opacity .3s ease;
+    }
+    .featured-card::after {
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg,rgba(1,1,3,0) 0%,rgba(1,1,3,.9) 75%);
+      z-index:-1;
+    }
+    .featured-card:hover::before {
+      opacity:.5;
+    }
+    .featured-meta {
+      display:flex;
+      flex-wrap:wrap;
+      gap:1rem;
+      font-size:.9rem;
+      color:var(--muted);
+    }
+    .featured h2 {
+      font-size:2rem;
+      margin:.75rem 0 .5rem;
+    }
+    .featured .excerpt {
+      max-width:720px;
+      font-size:1rem;
+      line-height:1.7;
+      color:var(--ink);
+      margin-bottom:1.5rem;
+    }
+    .chip {
+      padding:.4rem .9rem;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.2);
+      font-size:.85rem;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .chip--accent {
+      border:none;
+      background:linear-gradient(120deg,var(--accent),var(--accent-dark));
+      box-shadow:0 10px 25px rgba(255,45,45,.25);
+      color:#fff;
+    }
+    .featured .actions {
+      display:flex;
+      flex-wrap:wrap;
+      gap:.75rem;
+      margin-top:auto;
+    }
+    .btn {
+      padding:.85rem 1.4rem;
+      border-radius:var(--radius-sm);
+      border:1px solid var(--line);
+      color:var(--ink);
+      font-weight:600;
+      text-transform:uppercase;
+      font-size:.85rem;
+      letter-spacing:.08em;
+      text-decoration:none;
+      display:inline-flex;
+      gap:.5rem;
+      align-items:center;
+    }
+    .btn--primary {
+      border:none;
+      background:linear-gradient(120deg,var(--accent),var(--accent-dark));
+      box-shadow:0 15px 35px rgba(255,45,45,.35);
+    }
+    .btn svg {
+      width:16px;
+      height:16px;
+    }
+    .card-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:1.5rem;
+    }
+    .post-card {
+      background:var(--card);
+      padding:1.5rem;
+      border-radius:var(--radius-md);
+      border:1px solid var(--card-border);
+      box-shadow:var(--glow);
+      display:flex;
+      flex-direction:column;
+      gap:1rem;
+      position:relative;
+    }
+    .post-card::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      padding:1px;
+      background:linear-gradient(120deg,rgba(255,45,45,.35),rgba(255,45,45,0));
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite:exclude;
+      opacity:.3;
+      pointer-events:none;
+    }
+    .post-card img {
+      width:100%;
+      height:180px;
+      object-fit:cover;
+      border-radius:var(--radius-sm);
+    }
+    .post-card h3 {
+      margin:.5rem 0 0;
+      font-size:1.3rem;
+    }
+    .meta-line {
+      display:flex;
+      flex-wrap:wrap;
+      gap:.6rem 1.2rem;
+      font-size:.85rem;
+      color:var(--muted);
+    }
+    .tag-row {
+      display:flex;
+      gap:.4rem;
+      flex-wrap:wrap;
+    }
+    .tag-row span {
+      padding:.25rem .75rem;
+      border-radius:999px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      font-size:.75rem;
+      letter-spacing:.05em;
+    }
+    details summary {
+      cursor:pointer;
+      list-style:none;
+      font-weight:600;
+      display:flex;
+      align-items:center;
+      gap:.4rem;
+      color:var(--accent);
+      margin-top:.5rem;
+    }
+    details summary::-webkit-details-marker {
+      display:none;
+    }
+    details summary svg {
+      width:14px;
+      height:14px;
+      transition:transform .2s ease;
+    }
+    details[open] summary svg {
+      transform:rotate(90deg);
+    }
+    details .body-copy {
+      margin-top:.75rem;
+      color:var(--muted);
+      line-height:1.65;
+    }
+    .empty-state {
+      border:1px dashed var(--line);
+      border-radius:var(--radius-lg);
+      padding:3rem 1.5rem;
+      text-align:center;
+      color:var(--muted);
+      background:rgba(255,255,255,.02);
+    }
+    @media (max-width:720px) {
+      body {
+        padding:2rem 1rem 3rem;
+      }
+      .featured-card {
+        padding:1.75rem;
+      }
+      .tag-filter {
+        justify-content:flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% include "includes/marketing_body.html" %}
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Internal spotlight</p>
+      <h1>{{ page_title }}</h1>
+      <p class="lead">
+        Quietly showcasing recent wraps, detailing jobs, and special builds before we share them publicly.
+        Save this URL and pass it only to people who should see it.
+      </p>
+      {% if available_tags %}
+      <div class="tag-filter" aria-label="Filter by tag">
+        <a href="{% url 'project-journal' %}" class="{% if not tag_filter %}active{% endif %}">All projects</a>
+        {% for tag in available_tags %}
+          {% with lower=tag|lower %}
+          <a href="{% url 'project-journal' %}?tag={{ tag|urlencode }}" class="{% if tag_filter and tag|lower == tag_filter|lower %}active{% endif %}">
+            {{ tag }}
+          </a>
+          {% endwith %}
+        {% endfor %}
+        {% if tag_filter %}
+          <a href="{% url 'project-journal' %}" class="chip">Clear filter</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </header>
+
+    {% if has_posts and featured_post %}
+    <section class="featured" id="project-{{ featured_post.slug }}">
+      {% if featured_post.cover_image %}
+        {% with image_url=featured_post.cover_image.url %}
+        <article class="featured-card" style="--cover:url('{{ image_url }}');">
+        {% endwith %}
+      {% else %}
+        <article class="featured-card">
+      {% endif %}
+        <div class="featured-meta">
+          <span>{{ featured_post.published_at|date:"M d, Y" }}</span>
+          {% if featured_post.client_name %}
+            <span>Client · {{ featured_post.client_name }}</span>
+          {% endif %}
+          {% if featured_post.location %}
+            <span>{{ featured_post.location }}</span>
+          {% endif %}
+          <span>{{ featured_post.reading_time }} min read</span>
+        </div>
+        <h2>{{ featured_post.hero_title }}</h2>
+        {% if featured_post.result_highlight %}
+          <div class="chip chip--accent">{{ featured_post.result_highlight }}</div>
+        {% endif %}
+        <p class="excerpt">
+          {{ featured_post.excerpt|default:"This build highlight is ready whenever you are." }}
+        </p>
+        {% if featured_post.services_list %}
+          <div class="tag-row" aria-label="Services performed">
+            {% for service in featured_post.services_list %}
+              <span>{{ service }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if featured_post.tag_list %}
+          <div class="tag-row" aria-label="Tags">
+            {% for tag in featured_post.tag_list %}
+              <span>#{{ tag }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+        <details>
+          <summary>
+            Read the full report
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </summary>
+          <div class="body-copy">
+            {{ featured_post.body|linebreaks }}
+          </div>
+        </details>
+      </article>
+    </section>
+    {% endif %}
+
+    {% if has_posts %}
+      {% if journal_posts %}
+      <section class="card-grid">
+        {% for post in journal_posts %}
+          <article class="post-card" id="project-{{ post.slug }}">
+            {% if post.cover_image %}
+              <img src="{{ post.cover_image.url }}" alt="{{ post.title }} cover">
+            {% endif %}
+            <div class="meta-line">
+              <span>{{ post.published_at|date:"M d, Y" }}</span>
+              <span>{{ post.reading_time }} min read</span>
+            </div>
+            <h3>{{ post.title }}</h3>
+            <p>{{ post.excerpt|default:"Full write-up inside the report panel." }}</p>
+            {% if post.tag_list %}
+              <div class="tag-row">
+                {% for tag in post.tag_list %}
+                  <span>#{{ tag }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            <details>
+              <summary>
+                Open report
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </summary>
+              <div class="body-copy">
+                {{ post.body|linebreaks }}
+              </div>
+            </details>
+          </article>
+        {% endfor %}
+      </section>
+      {% endif %}
+    {% else %}
+      <section class="empty-state">
+        {% if tag_filter %}
+          No posts found for “{{ tag_filter }}”. Remove the filter to see everything we have documented so far.
+        {% else %}
+          The journal is empty right now. Once the team adds a post in the admin panel it will appear here automatically.
+        {% endif %}
+      </section>
+    {% endif %}
+  </main>
+{% include "includes/analytics_tracker.html" %}
+</body>
+</html>

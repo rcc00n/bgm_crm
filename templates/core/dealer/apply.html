@@ -1,12 +1,15 @@
-{% load static %}
+{% load static dealer_extras %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Dealer Application</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with meta_title="Dealer Application — BGM Customs" meta_description="Apply for wholesale pricing, protected territories, and launch support with the BGM Customs dealer program." meta_section="dealer" meta_type="article" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
 
-  <style>
+<style>
     /* ===== BGM palette ===== */
     :root{
       --bg:#0a0a0a; --ink:#eaeaea; --muted:#bdbdbd;
@@ -37,7 +40,7 @@
     nav a[aria-current="page"]{background:rgba(18,18,18,.75);border:1px solid var(--card-border)}
 
     /* buttons (работают и для <a>, и для <button>) */
-    .btn, a.btn{display:inline-flex;align-items:center;gap:.6em;padding:.78rem 1.1rem;border-radius:var(--radius-sm);font-weight:800;border:1px solid transparent;cursor:pointer;transition:.2s}
+    .btn, a.btn{display:inline-flex;align-items:center;gap:.6em;padding:.78rem 1.1rem;border-radius:var(--radius-sm);font-weight:800;border:1px solid transparent;cursor:pointer;transition:.2s;min-height:44px;line-height:1.1}
     .btn--primary{background:var(--red);color:#fff}
     .btn--primary:hover{transform:translateY(-2px);box-shadow:0 12px 22px rgba(213,0,0,.25)}
     .btn--ghost{background:transparent;border-color:var(--line);color:var(--ink)}
@@ -56,8 +59,10 @@
     .grid{display:grid;grid-template-columns:1fr;gap:12px}
     @media(min-width:820px){.grid{grid-template-columns:1fr 1fr}}
     .grid > div{display:flex;flex-direction:column}
+    .field-hint{font-size:.85rem;color:var(--muted);margin:.35rem 0 0}
+    .field-error{font-size:.85rem;color:var(--error-text);margin-top:.35rem}
 
-    .card input,.card textarea{
+    .card input,.card textarea,.card select{
       width:100%;background:var(--field-bg);color:var(--ink);
       border:1px solid var(--card-border);border-radius:12px;padding:12px;
       outline:none
@@ -150,9 +155,64 @@
   .site-header nav::-webkit-scrollbar{ display:none; }
 }
 
-  </style>
+</style>
+<style id="dealer-touch-targets">
+  .site-header nav a{
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    min-height:44px !important;
+    padding:.65rem .95rem !important;
+    line-height:1.1 !important;
+  }
+  .btn,
+  a.btn{
+    min-height:44px !important;
+  }
+  .tier-panel{
+    margin:1.2rem 0;
+    padding:1.2rem;
+    border:1px solid var(--card-border);
+    border-radius:var(--radius-lg);
+    background:var(--card-bg);
+  }
+  .tier-panel__head{
+    display:flex;
+    flex-direction:column;
+    gap:.3rem;
+  }
+  .tier-panel__list{
+    display:flex;
+    flex-direction:column;
+    gap:.65rem;
+    margin-top:.8rem;
+  }
+  .tier-pill{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.35rem;
+    justify-content:space-between;
+    padding:.75rem .9rem;
+    border-radius:.85rem;
+    border:1px solid var(--card-border);
+    background:rgba(255,255,255,.02);
+  }
+  .tier-pill__name{
+    font-weight:700;
+  }
+  .tier-pill__meta{
+    color:var(--muted);
+    font-size:.9rem;
+  }
+  .tier-pill__desc{
+    flex-basis:100%;
+    color:var(--muted);
+    font-size:.9rem;
+  }
+</style>
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
   <!-- smoke -->
   <div id="bg"></div>
 
@@ -200,6 +260,24 @@
         <div class="errors">{{ form.non_field_errors }}</div>
       {% endif %}
 
+      {% if tier_levels %}
+        <section class="tier-panel" aria-labelledby="tierOverview">
+          <div class="tier-panel__head">
+            <h2 id="tierOverview" class="h" style="font-size:1.1rem">Dealer tier overview</h2>
+            <p class="muted" style="font-size:.95rem">All thresholds are denominated in CAD and can be updated by the ops team as programs evolve.</p>
+          </div>
+          <div class="tier-panel__list">
+            {% for tier in tier_levels %}
+              <div class="tier-pill">
+                <div class="tier-pill__name">{{ tier.label }}</div>
+                <div class="tier-pill__meta">{{ tier.minimum_spend|money }}+ · {{ tier.discount_percent }}% off</div>
+                {% if tier.description %}<div class="tier-pill__desc">{{ tier.description }}</div>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
       <form method="post" novalidate>
         {% csrf_token %}
 
@@ -207,21 +285,32 @@
           <div>
             <label for="{{ form.business_name.id_for_label }}">Business name</label>
             {{ form.business_name }}
+            {% if form.business_name.errors %}<div class="field-error">{{ form.business_name.errors.0 }}</div>{% endif %}
           </div>
 
           <div>
             <label for="{{ form.website.id_for_label }}">Website</label>
             {{ form.website }}
+            {% if form.website.errors %}<div class="field-error">{{ form.website.errors.0 }}</div>{% endif %}
           </div>
 
           <div>
             <label for="{{ form.phone.id_for_label }}">Phone</label>
             {{ form.phone }}
+            {% if form.phone.errors %}<div class="field-error">{{ form.phone.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div>
+            <label for="{{ form.preferred_tier.id_for_label }}">Projected tier</label>
+            {{ form.preferred_tier }}
+            {% if form.preferred_tier.help_text %}<p class="field-hint">{{ form.preferred_tier.help_text }}</p>{% endif %}
+            {% if form.preferred_tier.errors %}<div class="field-error">{{ form.preferred_tier.errors.0 }}</div>{% endif %}
           </div>
 
           <div style="grid-column:1 / -1">
             <label for="{{ form.notes.id_for_label }}">Notes</label>
             {{ form.notes }}
+            {% if form.notes.errors %}<div class="field-error">{{ form.notes.errors.0 }}</div>{% endif %}
           </div>
         </div>
 

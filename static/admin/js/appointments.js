@@ -264,20 +264,28 @@ function showTooltip(box) {
         </div>
     `;
     }
-    const tooltipWidth = 375;
-    const tooltipHeight = 210;
+    const card = tooltip.querySelector('.tooltip-card');
+    const tooltipWidth = card ? card.offsetWidth : Math.min(320, document.documentElement.clientWidth * 0.8);
+    const tooltipHeight = card ? card.offsetHeight : 200;
+    const scrollX = window.scrollX || document.documentElement.scrollLeft || 0;
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight;
 
-    let top = rect.top + window.scrollY;
-    let left = rect.left + window.scrollX - tooltipWidth - 10;
+    let top = rect.top + scrollY + rect.height / 2 - tooltipHeight / 2;
+    let left = rect.left + scrollX - tooltipWidth - 12;
 
-
-    // Чтобы не вышел за верхний край экрана
-    if (top + tooltipHeight > window.scrollY + window.innerHeight) {
-        top = window.scrollY + window.innerHeight - tooltipHeight - 20;
+    if (left < scrollX + 12) {
+        left = rect.right + scrollX + 12;
     }
-    if (left < 0) {
-        left = rect.left + window.scrollX + box.offsetWidth + 10;
+    if (left + tooltipWidth > scrollX + viewportWidth - 12) {
+        left = scrollX + viewportWidth - tooltipWidth - 12;
     }
+
+    const minTop = scrollY + 12;
+    const maxTop = scrollY + viewportHeight - tooltipHeight - 12;
+    top = Math.min(Math.max(top, minTop), maxTop);
+    left = Math.max(left, scrollX + 12);
 
     tooltip.style.top = `${top}px`;
     tooltip.style.left = `${left}px`;
@@ -317,23 +325,32 @@ function showUnavailableTooltip(cell) {
             </div>
         </div>
     `;
-    const tooltipWidth = 375;
-    const tooltipHeight = 120; // можно скорректировать
-    const middleY = rect.top + rect.height / 2 + window.scrollY;
-    const leftX = rect.left + window.scrollX - tooltipWidth - 10;
-    const rightX = rect.right + window.scrollX + 10;
+    const card = tooltip.querySelector('.tooltip-card');
+    const tooltipWidth = card ? card.offsetWidth : Math.min(320, document.documentElement.clientWidth * 0.8);
+    const tooltipHeight = card ? card.offsetHeight : 150;
+    const scrollX = window.scrollX || document.documentElement.scrollLeft || 0;
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight;
+    const middleY = rect.top + rect.height / 2 + scrollY;
 
-    // Установим начальные координаты
-    tooltip.style.top = `${middleY - tooltipHeight / 2}px`;
-
-    // Если не влезает слева — показываем справа
-    if (leftX < 0) {
-        tooltip.style.left = `${rightX}px`;
-    } else {
-        tooltip.style.left = `${leftX}px`;
+    let leftX = rect.left + scrollX - tooltipWidth - 12;
+    let rightX = rect.right + scrollX + 12;
+    let left = leftX;
+    if (leftX < scrollX + 12) {
+        left = rightX;
+    }
+    if (left + tooltipWidth > scrollX + viewportWidth - 12) {
+        left = scrollX + viewportWidth - tooltipWidth - 12;
     }
 
+    let top = middleY - tooltipHeight / 2;
+    const minTop = scrollY + 12;
+    const maxTop = scrollY + viewportHeight - tooltipHeight - 12;
+    top = Math.min(Math.max(top, minTop), maxTop);
 
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
     tooltip.classList.remove("hidden");
     tooltip.classList.add("visible");
 }

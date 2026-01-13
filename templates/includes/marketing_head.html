@@ -1,0 +1,123 @@
+{% load static marketing_extras %}
+{% firstof page_meta.title meta_title marketing.site_name as meta_title_resolved %}
+{% firstof page_meta.description meta_description marketing.default_description as meta_description_resolved %}
+{% firstof page_meta.url meta_url marketing.page_url marketing.canonical_url as meta_url_resolved %}
+{% firstof page_meta.type meta_type "website" as meta_type_resolved %}
+{% firstof page_meta.image meta_image marketing.default_image as meta_image_resolved %}
+{% firstof page_meta.keywords meta_keywords marketing.default_keywords "" as meta_keywords_resolved %}
+{% firstof page_meta.robots meta_robots "" as meta_robots_resolved %}
+{% firstof page_meta.locale meta_locale "en_US" as meta_locale_resolved %}
+{% firstof page_meta.section meta_section "" as meta_section_resolved %}
+{% firstof page_meta.published meta_published "" as meta_published_resolved %}
+{% firstof page_meta.updated meta_updated "" as meta_updated_resolved %}
+{% firstof page_meta.twitter_card meta_twitter_card "summary_large_image" as meta_twitter_card_resolved %}
+{% firstof page_meta.schema_type meta_schema_type "WebSite" as meta_schema_type_resolved %}
+{% with meta_image_candidate=meta_image_resolved|default:marketing.default_image %}
+  {% with meta_image_absolute=meta_image_candidate|absolute_url:marketing.origin|default:marketing.default_image_absolute %}
+
+  <meta name="description" content="{{ meta_description_resolved }}">
+  {% if meta_keywords_resolved %}<meta name="keywords" content="{{ meta_keywords_resolved }}">{% endif %}
+  <meta name="robots" content="{{ meta_robots_resolved|default:'index,follow' }}">
+  {% if meta_url_resolved %}<link rel="canonical" href="{{ meta_url_resolved }}">{% endif %}
+  <meta property="og:type" content="{{ meta_type_resolved }}">
+  <meta property="og:title" content="{{ meta_title_resolved }}">
+  <meta property="og:description" content="{{ meta_description_resolved }}">
+  <meta property="og:site_name" content="{{ marketing.site_name }}">
+  {% if meta_url_resolved %}<meta property="og:url" content="{{ meta_url_resolved }}">{% endif %}
+  <meta property="og:image" content="{{ meta_image_absolute }}">
+  <meta property="og:locale" content="{{ meta_locale_resolved }}">
+  {% if meta_section_resolved %}<meta property="article:section" content="{{ meta_section_resolved }}">{% endif %}
+  {% if meta_published_resolved %}<meta property="article:published_time" content="{{ meta_published_resolved }}">{% endif %}
+  {% if meta_updated_resolved %}<meta property="article:modified_time" content="{{ meta_updated_resolved }}">{% endif %}
+  <meta name="twitter:card" content="{{ meta_twitter_card_resolved }}">
+  <meta name="twitter:title" content="{{ meta_title_resolved }}">
+  <meta name="twitter:description" content="{{ meta_description_resolved }}">
+  <meta name="twitter:image" content="{{ meta_image_absolute }}">
+  <link rel="stylesheet" href="{% static 'css/topbar-products.css' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "{{ meta_schema_type_resolved }}",
+    "name": "{{ marketing.site_name }}",
+    "url": "{{ meta_url_resolved|default:marketing.canonical_url }}",
+    "description": "{{ meta_description_resolved }}",
+    "publisher": {
+      "@type": "Organization",
+      "name": "{{ marketing.site_name }}",
+      "legalName": "{{ marketing.site_name }}",
+      "url": "{{ marketing.canonical_url|default:marketing.page_url }}",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "{{ marketing.organization_logo_absolute|default:meta_image_absolute }}"
+      }{% if marketing.organization_same_as %},
+      "sameAs": [{% for url in marketing.organization_same_as %}"{{ url|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %}]
+      {% endif %}
+    }
+  }
+  </script>
+
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: "page_view",
+      page: {
+        title: "{{ meta_title_resolved|escapejs }}",
+        url: "{{ meta_url_resolved|default:marketing.page_url|escapejs }}",
+        type: "{{ meta_type_resolved|escapejs }}",
+        section: "{{ meta_section_resolved|escapejs }}",
+        robots: "{{ meta_robots_resolved|default:'index,follow'|escapejs }}"
+      },
+      user: {
+        status: "{{ request.user.is_authenticated|yesno:'authenticated,guest' }}"
+      }
+    });
+  </script>
+
+  {% with marketing.google_tag_manager_id|default:"GTM-M7FTNXV6" as gtm_id %}
+  {% if gtm_id %}
+    <script>
+      (function(w,d,s,l,i){
+        w[l]=w[l]||[];
+        w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
+        var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),
+            dl=l!='dataLayer'?'&l='+l:'';
+        j.async=true;
+        j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+        f.parentNode.insertBefore(j,f);
+      })(window,document,'script','dataLayer','{{ gtm_id }}');
+    </script>
+  {% endif %}
+  {% endwith %}
+
+  {% if marketing.google_ads_id %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ marketing.google_ads_id }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ marketing.google_ads_id }}', {
+        'allow_enhanced_conversions': true,
+        'send_page_view': {{ marketing.google_ads_send_page_view|yesno:"true,false" }}
+      });
+    </script>
+    {% if marketing.google_ads_conversion_label %}
+      <script>
+        window.__bgmConversion = function(details){
+          details = details || {};
+          if (typeof gtag !== "function") {
+            return;
+          }
+          gtag('event', 'conversion', Object.assign({
+            'send_to': '{{ marketing.google_ads_id }}/{{ marketing.google_ads_conversion_label }}'
+          }, details));
+        };
+      </script>
+    {% endif %}
+  {% endif %}
+  {% endwith %}
+{% endwith %}

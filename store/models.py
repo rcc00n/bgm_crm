@@ -76,7 +76,7 @@ class Product(models.Model):
     sku = models.CharField(max_length=64, unique=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default=settings.DEFAULT_CURRENCY_CODE)
     inventory = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
 
@@ -89,6 +89,22 @@ class Product(models.Model):
 
     # compatibility
     compatible_models = models.ManyToManyField(CarModel, blank=True, related_name="compatible_products")
+    compatibility = models.TextField(blank=True, help_text="Free-form compatibility notes shown on the product page.")
+
+    contact_for_estimate = models.BooleanField(
+        "Contact for estimate",
+        default=False,
+        help_text='Show “Contact for estimate” instead of the numeric price on the storefront.',
+    )
+    estimate_from_price = models.DecimalField(
+        "Starting from",
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Optional hint that displays as “From $X”.",
+    )
 
     # SEO/meta
     short_description = models.CharField(max_length=240, blank=True)
@@ -197,6 +213,7 @@ class ProductOption(models.Model):
         verbose_name="Product",
     )
     name = models.CharField("Name", max_length=120)
+    sku = models.CharField("SKU", max_length=64, unique=True, null=True, blank=True)
     description = models.CharField("Description", max_length=240, blank=True)
     price = models.DecimalField(
         "Price override",
@@ -221,7 +238,8 @@ class ProductOption(models.Model):
         unique_together = ("product", "name")
 
     def __str__(self):
-        return f"{self.product}: {self.name}"
+        label = f"{self.product}: {self.name}"
+        return f"{label} ({self.sku})" if self.sku else label
 
     def get_effective_price(self) -> Decimal:
         return self.product.get_unit_price(self)
@@ -248,6 +266,15 @@ class ProductImage(models.Model):
 # ─────────────────────────── Store: orders ───────────────────────────
 
 class Order(models.Model):
+    class PaymentStatus(models.TextChoices):
+        UNPAID = ("unpaid", "Unpaid")
+        PAID = ("paid", "Paid")
+        FAILED = ("failed", "Failed")
+
+    class PaymentMode(models.TextChoices):
+        FULL = ("full", "Pay in full")
+        DEPOSIT = ("deposit_50", "50% deposit")
+
     STATUS_PROCESSING = "processing"   # В обработке
     STATUS_SHIPPED    = "shipped"      # Отправлен
     STATUS_COMPLETED  = "completed"    # Выполнен
@@ -286,6 +313,33 @@ class Order(models.Model):
     vehicle_model = models.CharField(max_length=64, blank=True)
     vehicle_year = models.PositiveIntegerField(null=True, blank=True)
     notes = models.TextField(blank=True)
+    reference_image = models.ImageField(
+        upload_to="store/order_attachments/",
+        null=True,
+        blank=True,
+        help_text="Optional photo reference uploaded at checkout.",
+    )
+
+    # payment
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.UNPAID,
+        db_index=True,
+    )
+    payment_mode = models.CharField(
+        max_length=20,
+        choices=PaymentMode.choices,
+        default=PaymentMode.FULL,
+    )
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    payment_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    payment_balance_due = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    payment_processor = models.CharField(max_length=32, blank=True, default="")
+    payment_id = models.CharField(max_length=140, blank=True, default="")
+    payment_receipt_url = models.URLField(blank=True, default="")
+    payment_card_brand = models.CharField(max_length=40, blank=True, default="")
+    payment_last4 = models.CharField(max_length=8, blank=True, default="")
 
     # who created
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
@@ -392,3 +446,88 @@ class OrderItem(models.Model):
             return (qty * price).quantize(Decimal("0.01"))
         except (InvalidOperation, TypeError):
             return Decimal("0.00")
+
+
+# ─────────────────────────── Custom fitment / quote requests ───────────────────────────
+
+class CustomFitmentRequest(models.Model):
+    class Status(models.TextChoices):
+        NEW = ("new", "New")
+        IN_PROGRESS = ("in_progress", "In progress")
+        RESPONDED = ("responded", "Responded")
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fitment_requests",
+        help_text="Product the request originated from (if it still exists).",
+    )
+    product_name = models.CharField(
+        max_length=180,
+        blank=True,
+        help_text="Snapshot of the product name so context is not lost if the product is removed.",
+    )
+
+    customer_name = models.CharField("Customer name", max_length=140)
+    email = models.EmailField()
+    phone = models.CharField(max_length=40, blank=True)
+    vehicle = models.CharField(
+        max_length=180,
+        blank=True,
+        help_text="Chassis, platform, or vehicle description shared by the customer.",
+    )
+    submodel = models.CharField(
+        max_length=140,
+        blank=True,
+        help_text="Trim or submodel details provided by the customer.",
+    )
+    performance_goals = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Power goals or intended usage spelled out by the customer.",
+    )
+    budget = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Budget or target spend shared by the customer.",
+    )
+    timeline = models.CharField(
+        max_length=140,
+        blank=True,
+        help_text="Requested timing or deadline for the build.",
+    )
+    message = models.TextField(
+        blank=True,
+        help_text="Free-form notes provided by the customer.",
+    )
+    source_url = models.URLField(
+        blank=True,
+        help_text="Where on the site the request originated.",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NEW,
+        db_index=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Custom fitment request"
+        verbose_name_plural = "Custom fitment requests"
+
+    def __str__(self):
+        return f"{self.customer_name} — {self.product_name or 'Custom build'}"
+
+    def save(self, *args, **kwargs):
+        """
+        Preserve product context even if the catalog entry disappears later.
+        """
+        if self.product and not self.product_name:
+            self.product_name = self.product.name
+        super().save(*args, **kwargs)

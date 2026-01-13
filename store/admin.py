@@ -11,6 +11,7 @@ from .models import (
     ProductOption,
     Order,
     OrderItem,
+    CustomFitmentRequest,
 )
 from .forms_store import ProductAdminForm
 
@@ -35,7 +36,7 @@ class CarModelAdmin(admin.ModelAdmin):
 class ProductOptionInline(admin.TabularInline):
     model = ProductOption
     extra = 1
-    fields = ("name", "description", "price", "is_active", "sort_order")
+    fields = ("name", "sku", "description", "price", "is_active", "sort_order")
     ordering = ("sort_order", "id")
 
 
@@ -75,8 +76,8 @@ class ProductAdmin(admin.ModelAdmin):
     - галерея через inline
     """
     form = ProductAdminForm
-    list_display = ("name", "sku", "category", "price", "currency", "inventory", "is_active")
-    list_filter = ("is_active", "category", "currency")
+    list_display = ("name", "sku", "category", "price", "currency", "inventory", "is_active", "contact_for_estimate")
+    list_filter = ("is_active", "category", "currency", "contact_for_estimate")
     search_fields = ("name", "sku", "description")
     prepopulated_fields = {"slug": ("name",)}
     list_select_related = ("category",)
@@ -86,10 +87,12 @@ class ProductAdmin(admin.ModelAdmin):
 
     fields = (
         "name", "slug", "sku", "category",
-        "price", "currency", "inventory", "is_active",
+        ("price", "contact_for_estimate"),
+        "estimate_from_price",
+        "currency", "inventory", "is_active",
         "main_image",
         "short_description", "description",
-        "compatible_models",
+        "compatible_models", "compatibility",
         "specs_text", "specs_preview",
         "created_at", "updated_at",
     )
@@ -125,9 +128,9 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductOption)
 class ProductOptionAdmin(admin.ModelAdmin):
-    list_display = ("name", "product", "price", "is_active", "sort_order")
+    list_display = ("name", "sku", "product", "price", "is_active", "sort_order")
     list_filter = ("is_active",)
-    search_fields = ("name", "product__name", "product__sku")
+    search_fields = ("name", "sku", "product__name", "product__sku")
     autocomplete_fields = ("product",)
     ordering = ("product__name", "sort_order", "id")
 
@@ -166,7 +169,7 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
         return "—"
     
     change_list_template = "admin/store/order/change_list.html"
-    list_display = ("id", "created_display", "customer_name", "status_badge", "status", "total")
+    list_display = ("id", "created_display", "customer_name", "status_badge", "status", "has_reference_image", "total")
     list_display_links = ("id", "customer_name")
     list_editable = ("status",)  # редактирование статуса прямо в списке
 
@@ -175,7 +178,15 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
     search_fields = ("customer_name", "email", "phone", "id")
     ordering = ("-id",)  # вместо date_hierarchy
     inlines = [OrderItemInline]
-    readonly_fields = ("shipped_at", "completed_at", "cancelled_at")
+    readonly_fields = ("shipped_at", "completed_at", "cancelled_at", "reference_image_preview")
+    fieldsets = (
+        ("Status & ownership", {"fields": ("status", "user", "created_by")}),
+        ("Contact", {"fields": ("customer_name", "email", "phone")}),
+        ("Vehicle", {"fields": ("vehicle_make", "vehicle_model", "vehicle_year")}),
+        ("Notes", {"fields": ("notes",)}),
+        ("Client photo reference", {"fields": ("reference_image", "reference_image_preview")}),
+        ("Timeline", {"fields": ("shipped_at", "completed_at", "cancelled_at")}),
+    )
 
     actions = ("mark_processing", "mark_shipped", "mark_completed", "mark_cancelled")
 
@@ -195,3 +206,42 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
     mark_shipped.short_description    = "Mark as shipped"
     mark_completed.short_description  = "Mark as completed"
     mark_cancelled.short_description  = "Mark as cancelled"
+
+    @admin.display(description="Photo", boolean=True)
+    def has_reference_image(self, obj):
+        return bool(getattr(obj, "reference_image", None))
+
+    @admin.display(description="Reference preview")
+    def reference_image_preview(self, obj):
+        if obj.reference_image:
+            return format_html(
+                '<a href="{0}" target="_blank" rel="noopener">'
+                '<img src="{0}" style="max-height:160px;border-radius:10px;border:1px solid rgba(255,255,255,.2)"/>'
+                "</a>",
+                obj.reference_image.url,
+            )
+        return "—"
+
+
+@admin.register(CustomFitmentRequest)
+class CustomFitmentRequestAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "customer_name", "product_name", "status", "email", "phone")
+    list_filter = ("status",)
+    search_fields = (
+        "customer_name",
+        "email",
+        "phone",
+        "product_name",
+        "vehicle",
+        "submodel",
+        "performance_goals",
+        "budget",
+    )
+    readonly_fields = ("created_at", "updated_at")
+    autocomplete_fields = ("product",)
+    fieldsets = (
+        ("Request", {"fields": ("status", "product", "product_name", "source_url")}),
+        ("Customer", {"fields": ("customer_name", "email", "phone")}),
+        ("Build details", {"fields": ("vehicle", "submodel", "performance_goals", "budget", "timeline", "message")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )

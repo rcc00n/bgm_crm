@@ -1,12 +1,19 @@
-{% load static %}
+
+{% load static dealer_extras %}
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>BGM Customs — Home</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
-<link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
+  {% with meta_title="BGM Customs — Performance Builds & VIP Service" meta_description="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM Customs in Calgary." meta_image=hero_media.src meta_section="home" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+  {% if font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% endif %}
 
   <style>
     :root{
@@ -20,7 +27,7 @@
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
-    body{background:var(--bg);color:var(--fg);background:var(--bg); color:var(--fg); font-family:var(--font-body); line-height:1.55;}
+    body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-height:1.55;}
     img{max-width:100%;display:block}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
     a{color:inherit;text-decoration:none}
@@ -35,65 +42,39 @@
     .btn--ghost:hover{border-color:var(--accent);color:var(--accent)}
     .btn--link{padding:0;border:none;background:transparent;color:var(--accent)}
     .badge{display:inline-block;font-size:.78rem;padding:.15rem .55rem;border-radius:999px;background:var(--accent);color:#fff}
+    .price{display:flex;gap:.45rem;align-items:baseline;}
+    .price--stacked{flex-direction:column;align-items:flex-start;gap:.25rem;}
+    .price__retail-row{display:flex;gap:.4rem;align-items:baseline;}
+    .price__dealer-row{display:inline-flex;gap:.35rem;align-items:baseline;background:rgba(213,0,0,.12);border:1px solid rgba(213,0,0,.35);border-radius:.5rem;padding:.2rem .45rem;}
     .price__hint{font-size:.75rem;font-weight:800;color:var(--muted-2);text-transform:uppercase;letter-spacing:.08em;}
+    .price__save{font-size:.75rem;color:var(--muted-2);}
 
-    .site-header{position:sticky;top:0;z-index:1000;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
-    .site-header__inner{display:flex;align-items:center;gap:1rem;justify-content:space-between;padding:.8rem 0}
-    .brand{display:flex;align-items:center;gap:.75rem;font-weight:900;letter-spacing:.5px}
-    .brand__logo{width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent));box-shadow:0 0 40px -6px var(--accent-2)}
-    nav ul{display:flex;align-items:center;gap:.75rem;list-style:none}
-    nav a{display:inline-flex;align-items:center;gap:.45rem;padding:.55rem .8rem;border-radius:.55rem}
-    nav a[aria-current="page"]{background:var(--panel);border:1px solid var(--line)}
-    .nav--soon{opacity:.55;pointer-events:none}
-    .nav--soon .badge{background:transparent;border:1px solid var(--line);color:var(--muted-2)}
+    /* Header (desktop intact) */
+    .site-header{position:sticky;top:0;z-index:1000;background:#000;border-bottom:1px solid var(--line)}
+    .site-header__inner{display:flex;align-items:center;gap:1.25rem;justify-content:space-between;padding:.7rem 0}
+    .brand{display:flex;align-items:baseline;gap:.9rem;font-weight:900;letter-spacing:.5px}
+    .brand__logo{all:unset;display:inline-flex;gap:.5rem;line-height:1;letter-spacing:.06em;font-size:1rem}
+    .brand__word--white{color:#fff}.brand__word--red{color:#d50000}
+    .brand__tagline{margin-left:1.1rem;white-space:nowrap;font-size:.82rem;font-weight:800;letter-spacing:.14em;color:rgba(255,255,255,.72)}
+    nav ul{display:flex;align-items:center;gap:1.4rem;list-style:none}
+    nav a{display:inline-flex;align-items:center;gap:.45rem;line-height:1;text-transform:uppercase;font-weight:800;letter-spacing:.08em;font-size:.82rem;color:rgba(255,255,255,.78)}
+    nav a:hover,nav a[aria-current="page"]{color:#fff}
+    nav .btn,nav .btn--ghost{padding:0;border:none;background:none}
 
-    .hero{position:relative;overflow:hidden;background:
-      radial-gradient(1000px 420px at 10% -10%, rgba(255,26,26,.15), transparent 60%),
-      radial-gradient(800px 360px at 90% 0%, rgba(213,0,0,.18), transparent 65%),
-      linear-gradient(180deg,#070707 0%, #000 100%)}
+    .hero{position:relative;overflow:hidden;background:transparent}
     .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(2rem,6vw,4.5rem) 0;align-items:center}
     .hero__title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15}
     .hero__lead{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);max-width:54ch;margin-top:1rem}
     .hero__cta{display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap}
     .stat{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow)}
     .stat b{font-size:1.35rem}
-    .frame{border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), 0 14px 28px rgba(0,0,0,.45);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted-2)}
-.frame--media { position: relative; overflow: hidden; }
-.frame--media img{
-  width:100%; height:100%; object-fit:cover; display:block;
-  filter:contrast(1.05);
-}
-.frame__play{
-  position:absolute; inset:0; margin:auto; width:72px; height:72px;
-  border-radius:999px; display:grid; place-items:center; font-size:28px;
-  background:rgba(0,0,0,.45); backdrop-filter:blur(4px);
-  border:1px solid rgba(255,255,255,.18); color:#fff;
-}
+    .frame{border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02),0 14px 28px rgba(0,0,0,.45);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted-2)}
+    .frame--media{position:relative;overflow:hidden}
+    .frame--media img{width:100%;height:100%;object-fit:cover;display:block;filter:contrast(1.05)}
+    .frame__play{position:absolute;inset:0;margin:auto;width:72px;height:72px;border-radius:999px;display:grid;place-items:center;font-size:28px;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.18);color:#fff}
     .hero__media{position:relative}
-    .hero__disclaimer{
-      position:absolute;
-      left:1.1rem;
-      bottom:1.1rem;
-      padding:.35rem .9rem;
-      border-radius:.85rem;
-      border:1px solid rgba(255,255,255,.18);
-      background:rgba(0,0,0,.6);
-      color:rgba(255,255,255,.82);
-      font-size:.72rem;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      display:inline-flex;
-      align-items:center;
-      gap:.45rem;
-      backdrop-filter:blur(6px);
-    }
-    .hero__disclaimer::before{
-      content:"";
-      width:18px;
-      height:1px;
-      background:rgba(255,255,255,.45);
-      flex-shrink:0;
-    }
+    .hero__disclaimer{position:absolute;left:1.1rem;bottom:1.1rem;padding:.35rem .9rem;border-radius:.85rem;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.6);color:rgba(255,255,255,.82);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;display:inline-flex;align-items:center;gap:.45rem;backdrop-filter:blur(6px)}
+    .hero__disclaimer::before{content:"";width:18px;height:1px;background:rgba(255,255,255,.45);flex-shrink:0}
     @media (max-width:900px){
       .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
     }
@@ -116,8 +97,10 @@
     .card__img{position:relative;aspect-ratio:16/9;border-radius:.8rem;overflow:hidden;background:#0b0b0b;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-size:.95rem}
     .card__img img{width:100%;height:100%;object-fit:cover;display:block}
     .card__badge{position:absolute;left:.6rem;bottom:.6rem;font-size:.72rem;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
-    .card__head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
-    .price{display:flex;gap:.5rem;align-items:baseline;white-space:nowrap}
+    .card__head{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap}
+    .card__head h3{flex:1 1 auto;min-width:0}
+    .price{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;white-space:normal;max-width:100%}
+    .card__head .price{margin-left:auto;text-align:right}
     .old{color:var(--muted-2);text-decoration:line-through}
     .dur{color:var(--muted-2);font-size:.92rem}
     .empty{color:var(--muted-2);font-style:italic;padding:1rem}
@@ -125,6 +108,10 @@
     .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
     .tile{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:1rem;padding:1rem}
     .tile__icon{font-size:1.4rem;color:var(--accent);margin-bottom:.25rem}
+    .tile--link{display:flex;flex-direction:column;gap:.4rem;min-height:100%;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
+    .tile--link .tile__cta{margin-top:.1rem;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--muted);display:inline-flex;align-items:center;gap:.35rem}
+    .tile--link:hover,.tile--link:focus-visible{border-color:rgba(213,0,0,.65);box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 20px rgba(213,0,0,.2);transform:translateY(-2px);outline:none}
+    .tile--link:hover .tile__cta,.tile--link:focus-visible .tile__cta{color:var(--accent)}
 
     details{background:var(--panel);border:1px solid var(--line);border-radius:.8rem;padding:.8rem}
     summary{cursor:pointer;font-weight:700}
@@ -140,1030 +127,885 @@
 
     @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-    /* smoke layer */
-#bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
-#bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
+    /* Smoke layer */
+    #bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+    #bg canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+    /* Content above smoke */
+    .site-header,.hero,main,.site-footer{position:relative;z-index:1}
 
-/* контент поверх дыма */
-.site-header, .hero, main, .site-footer{position:relative; z-index:1;}
+    .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1.25rem;padding:.7rem 0}
+    @media (max-width:1200px){.brand__tagline{display:none !important}}
 
-/* показываем дым за hero — убираем градиент */
-.hero{background:transparent !important;}
-.brand__logo {
-  display: inline-flex;
-  gap: .4rem;
-  font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: .05em;
-}
+    /* Fonts */
+    {% with fs=font_settings %}
+    {% for font in fs.fonts %}
+      {% if font.has_source %}
+    @font-face{
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
+    }
+      {% endif %}
+    {% endfor %}
+    {% with body_stack=fs.body.stack|default:'"Diesel", system-ui, sans-serif' %}
+    {% with heading_stack=fs.heading.stack|default:'"Ford", system-ui, sans-serif' %}
+    {% with ui_stack=fs.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui:   {{ ui_stack|safe }};
+    }
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+    html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
+    body,button,input,select,textarea{ font-family:var(--font-body)!important }
 
-.brand__word--white { color: #fff; }
-.brand__word--red   { color: #d50000; }
+    /* Headings and UI (keep Ford where appropriate, not in top bar) */
+    h1,h2,h3,h4,h5,h6,.hero__title{font-family:var(--font-head)!important;letter-spacing:.01em;font-style:normal}
+    .section__title{font-family:var(--font-body)!important;font-weight:900!important;font-size:clamp(1.9rem,2.8vw,2.25rem)!important;letter-spacing:.005em!important;line-height:1.2!important}
+    .section__title,.hero__title{letter-spacing:.01em}
+    .section__desc{font-size:clamp(1rem,1.4vw,1.06rem)!important;color:rgba(255,255,255,.86)!important}
+    .kicker{
+      color:rgba(255,255,255,.78)!important;
+      font-family:var(--font-ui)!important;
+    }
+    .footer__nav a{
+      font-family:var(--font-ui)!important;
+      font-weight:700!important;
+      letter-spacing:.02em!important;
+      text-transform:none!important;
+      color:rgba(255,255,255,.9)!important;
+    }
+    .footer__nav a:hover{color:#fff!important}
 
-.brand__tagline {
-  margin-left: 1rem;
-  font-size: .85rem;
-  letter-spacing: .08em;
-  color: rgba(255,255,255,.72);
-  white-space: nowrap;
-}
-/* ==== HEADER (clean) ================================================== */
-.site-header{
-  position:sticky; top:0; z-index:1000;
-  background:#000; border-bottom:1px solid var(--line);
-  backdrop-filter:none;
-}
-.site-header__inner{
-  /* бренд слева, меню вправо */
-  display:grid; grid-template-columns:auto 1fr;
-  align-items:center; gap:1.25rem; padding:.7rem 0;
-}
-
-/* ==== BRAND =========================================================== */
-.brand{display:flex; align-items:baseline; gap:.9rem; min-width:max-content; font-weight:900;}
-.brand__logo{all:unset; display:inline-flex; gap:.5rem; line-height:1; letter-spacing:.06em; font-size:1rem;}
-.brand__word--white{color:#fff;} .brand__word--red{color:#d50000;}
-.brand__tagline{
-  margin-left:1.1rem; white-space:nowrap;
-  font-size:.82rem; font-weight:800; letter-spacing:.14em;
-  color:rgba(255,255,255,.72);
-}
-
-/* ==== NAV (compact, one row) ========================================= */
-.site-header nav{margin-left:auto;}
-.site-header nav ul{
-  display:flex; align-items:center; justify-content:flex-end;
-  gap:1.6rem; list-style:none; margin:0; padding:0; flex-wrap:nowrap;
-}
-.site-header nav li + li::before{content:none;}               /* без разделителей */
-.site-header nav a{
-  background:none!important; border:0!important; border-radius:0;
-  padding:0!important; line-height:1;
-  text-transform:uppercase; font-weight:800;
-  letter-spacing:.08em; font-size:.82rem;
-  color:rgba(255,255,255,.75);
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{color:#fff;}
-.site-header .badge{padding:.12rem .5rem; font-size:.72rem; transform:translateY(-.04rem);} /* Merch: Soon */
-
-/* ЛЕВО/ПРАВО: бренд слева, меню вправо */
-.site-header__inner{
-  display:grid;
-  grid-template-columns:auto 1fr;  /* бренд = auto, меню = 1fr */
-  align-items:center;
-  gap:1.2rem;
-}
-
-/* бренд как есть */
-.brand{display:flex; align-items:baseline; gap:.9rem; min-width:max-content;}
-.brand__logo{all:unset; display:inline-flex; gap:.5rem; line-height:1; font-weight:900; letter-spacing:.06em; font-size:1rem;}
-.brand__tagline{margin-left:1.1rem; white-space:nowrap; font-size:.82rem; letter-spacing:.14em; font-weight:800; color:rgba(255,255,255,.72);}
-
-/* ключ: nav занимает весь 1fr и ПРИЖИМАЕТ содержимое вправо */
-.site-header nav{
-  display:flex;
-  justify-content:flex-end;   /* тянем список к правому краю */
-  margin-left:0;              /* убираем прежние auto-марджины */
-}
-
-/* сам список — просто ряд с фикс-gap, без своего выравнивания */
-.site-header nav ul{
-  display:flex; align-items:center; flex-wrap:nowrap;
-  gap:1.6rem; margin:0; padding:0; list-style:none;
-  justify-content:unset;      /* убрать возможные прошлые правила */
-}
-
-/* компактные ссылки */
-.site-header nav a{
-  background:none!important; border:0!important; border-radius:0; padding:0!important; line-height:1;
-  text-transform:uppercase; font-weight:800; letter-spacing:.08em; font-size:.82rem; color:rgba(255,255,255,.75);
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff; }
-
-/* узко — скрываем слоган, чтобы меню оставалось в один ряд */
-@media (max-width:1100px){ .brand__tagline{ display:none; } }
-
-/* ==== CLEAN HEADER OVERRIDE ========================================= */
-.site-header{background:#000 !important; backdrop-filter:none !important; border-bottom:1px solid var(--line);}
-
-.site-header .site-header__inner{
-  display:flex !important;
-  align-items:center !important;
-  justify-content:space-between !important;
-  gap:1.25rem !important;
-  padding:.7rem 0 !important;
-}
-
-/* Бренд слева */
-.site-header .brand{display:flex !important; align-items:baseline !important; gap:.9rem !important; min-width:max-content;}
-.site-header .brand__logo{
-  all:unset; display:inline-flex; gap:.5rem; line-height:1; font-weight:900; letter-spacing:.06em; font-size:1rem;
-}
-.site-header .brand__word--white{color:#fff;}
-.site-header .brand__word--red{color:#d50000;}
-.site-header .brand__tagline{
-  margin-left:1.1rem; white-space:nowrap; font-size:.82rem; font-weight:800;
-  letter-spacing:.14em; color:rgba(255,255,255,.72);
-}
-
-/* Меню вправо, в одну строку */
-.site-header nav{margin-left:auto !important;}
-.site-header nav ul{
-  display:flex !important; align-items:center !important; flex-wrap:nowrap !important;
-  justify-content:flex-end !important; gap:1.4rem !important;
-  margin:0 !important; padding:0 !important; list-style:none !important;
-}
-.site-header nav li+li::before{content:none !important;}
-.site-header nav a{
-  background:none !important; border:0 !important; border-radius:0 !important; padding:0 !important; line-height:1;
-  text-transform:uppercase; font-weight:800; letter-spacing:.08em; font-size:.82rem;
-  color:rgba(255,255,255,.78);
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{color:#fff !important;}
-/* убираем «кнопочность» у Login */
-.site-header nav .btn, .site-header nav .btn--ghost{padding:0 !important; border:none !important; background:none !important;}
-
-@media (max-width:1200px){
-  .site-header .brand__tagline{display:none !important;}
-}
-
-
-/* 1) Регистрируем шрифты */
-@font-face{
-  font-family:"Diesel";
-  src: url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face{
-  font-family:"Ford";
-  src: url("{% static 'fonts/Ford.ttf' %}") format("truetype");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* 2) Глобальные переменные шрифтов */
-:root{
-  --font-body: "Diesel", sans-serif;
-  --font-head: "Ford",  sans-serif;
-}
-
-/* 3) Глобальная замена */
-html{ text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
-body, button, input, select, textarea { font-family: var(--font-body) !important; }
-
-/* 4) Заголовки/бренд/крупные элементы на Ford */
-h1,h2,h3,h4,h5,h6,
-.brand, .hero__title, .section__title, .kicker,
-nav a, .btn, .badge, .price strong {
-  font-family: var(--font-head) !important;
-}
-
-/* (опционально) небольшая плотность для заголовков */
-.hero__title, .section__title { letter-spacing: .01em; }
-
-/* === Readability tweaks (topbar + section titles) ===================== */
-
-/* Topbar: всё кроме логотипа — проще и читабельней */
-.site-header nav a,
-.site-header nav .btn,
-.site-header nav .btn--ghost {
-  font-family: var(--font-body) !important;
-  font-weight: 700 !important;
-  font-size: .9rem !important;
-  letter-spacing: .02em !important;
-  line-height: 1.15 !important;
-  text-transform: none !important;
-  color: rgba(255,255,255,.92) !important;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{
-  color:#fff !important;
-  text-decoration: none !important;
-}
-
-/* Читабельные заголовки секций (Featured services, Products, How we work, и т.д.) */
-.section__title{
-  font-family: var(--font-body) !important;
-  font-weight: 900 !important;
-  font-size: clamp(1.9rem, 2.8vw, 2.25rem) !important;
-  letter-spacing: .005em !important;
-  line-height: 1.2 !important;
-}
-.section__desc{
-  font-size: clamp(1rem, 1.4vw, 1.06rem) !important;
-  color: rgba(255,255,255,.86) !important;
-}
-
-/* Подзаголовки-кэтчеры и мелкие надписи — чуть контрастней */
-.kicker{ color: rgba(255,255,255,.78) !important; }
-
-/* В футере — тот же читаемый стиль ссылок */
-.footer__nav a{
-  font-family: var(--font-body) !important;
-  font-weight: 700 !important;
-  letter-spacing: .02em !important;
-  text-transform: none !important;
-  color: rgba(255,255,255,.9) !important;
-}
-.footer__nav a:hover{ color:#fff !important; }
-
+    /* Card text readability */
+    .card h3{font-family:var(--font-body)!important;font-weight:900!important;font-size:1.08rem!important;letter-spacing:.01em!important;line-height:1.25!important;color:#fff!important}
+    .card .muted,.card .dur{font-family:var(--font-body)!important;font-weight:400!important;font-size:.98rem!important;line-height:1.4!important;color:rgba(255,255,255,.86)!important}
+    .price strong{font-family:var(--font-body)!important;font-weight:800!important}
+    .card__badge,.badge{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important}
+    .btn{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important;line-height:1.15!important;font-size:.98rem!important}
+    .input,.select,.filters .input,.filters .select{font-family:var(--font-ui)!important;font-size:.95rem!important;line-height:1.2!important}
   </style>
 
-  <style id="diesel-readability-patch">
-  /* ===== Header / “sidebar” ===== */
-  /* логотип — немного крупнее */
-  .brand__logo,
-  .site-header .brand__logo{
-    font-size: clamp(1.15rem, 1.6vw, 1.4rem) !important;
-    letter-spacing: .06em !important;
-    font-weight: 900 !important;
-    line-height: 1 !important;
-  }
+  {% include "includes/site_notice_style.html" %}
 
-  /* навигация/кнопка Login и прочий мелкий текст в топбаре — Diesel */
-  .site-header nav a,
-  .site-header nav .btn,
-  .site-header nav .btn--ghost{
-    font-family: var(--font-body) !important; /* Diesel */
-    font-weight: 700 !important;
-    font-size: .95rem !important;
-    letter-spacing: .02em !important;
-    text-transform: none !important;
-    line-height: 1.15 !important;
-    color: rgba(255,255,255,.92) !important;
-  }
-
-  /* ===== Cards (services & products) — всё мелкое на Diesel и читабельно ===== */
-  .card h3{
-    font-family: var(--font-body) !important;  /* Diesel */
-    font-weight: 900 !important;
-    font-size: 1.08rem !important;
-    letter-spacing: .01em !important;
-    line-height: 1.25 !important;
-    color:#fff !important;
-  }
-  .card .muted,
-  .card .dur{
-    font-family: var(--font-body) !important;  /* Diesel */
-    font-weight: 400 !important;
-    font-size: .98rem !important;
-    line-height: 1.4 !important;
-    color: rgba(255,255,255,.86) !important;
-  }
-  .price strong{
-    font-family: var(--font-body) !important;  /* Diesel */
-    font-weight: 800 !important;
-  }
-  .card__badge,
-  .badge{
-    font-family: var(--font-body) !important;  /* Diesel */
-    font-weight: 800 !important;
-    letter-spacing: .02em !important;
-    text-transform: none !important;
-  }
-
-  /* Кнопки (включая мелкие) везде — Diesel и без капса */
-  .btn{
-    font-family: var(--font-body) !important;  /* Diesel */
-    font-weight: 800 !important;
-    letter-spacing: .02em !important;
-    text-transform: none !important;
-    line-height: 1.15 !important;
-    font-size: .98rem !important;
-  }
-
-  /* Поля фильтров/поиска — единый размер и шрифт */
-  .input, .select,
-  .filters .input, .filters .select{
-    font-family: var(--font-body) !important;  /* Diesel */
-    font-size: .95rem !important;
-    line-height: 1.2 !important;
-  }
-
-  /* Подзаголовки-кэтчеры/описания секций — чуть контрастней и на Diesel */
-  .section__desc, .kicker{
-    font-family: var(--font-body) !important;
-    letter-spacing: .02em !important;
-  }
-</style>
-<style id="logo-to-diesel">
-  /* Только логотип в хедере — на Diesel */
-  .site-header .brand__logo,
-  .site-header .brand__logo .brand__word{
-    font-family: var(--font-body) !important;   /* Diesel */
-    font-weight: 900 !important;
-    font-style: normal !important;              /* на всякий случай глушим курсив */
-    text-transform: uppercase !important;
-    letter-spacing: .06em !important;
-    line-height: 1 !important;
-  }
-
-  /* слегка крупнее, чтобы читалось как знак */
-  .site-header .brand__logo{
-    font-size: clamp(1.2rem, 1.8vw, 1.55rem) !important;
-  }
-</style>
-<style id="belt-to-diesel">
-  /* Текст-пояс (между логотипом и меню) — Diesel */
-  .site-header .brand__tagline,
-.site-header .belt{
-    font-family: var(--font-body) !important;   /* Diesel */
-    font-weight: 900 !important;
-    font-style: normal !important;
-    text-transform: uppercase !important;
-    letter-spacing: .12em !important;
-    line-height: 1 !important;
-    color: rgba(255,255,255,.78) !important;
-    font-size: clamp(.78rem, .95vw, .95rem) !important;
-    white-space: nowrap !important;
-  }
-</style>
-
-<style id="topbar-responsive">
-  .sr-only{
-    position:absolute;
-    width:1px;
-    height:1px;
-    padding:0;
-    margin:-1px;
-    overflow:hidden;
-    clip:rect(0,0,0,0);
-    white-space:nowrap;
-    border:0;
-  }
-
-  .site-header__toggle{
-    display:none;
-    align-items:center;
-    justify-content:center;
-    width:var(--site-header-toggle-size);
-    height:var(--site-header-toggle-size);
-    border-radius:.85rem;
-    border:1px solid rgba(255,255,255,.16);
-    background:rgba(255,255,255,.06);
-    color:#fff;
-    cursor:pointer;
-    transition:transform .18s ease, background .18s ease, border-color .18s ease;
-  }
-  .site-header__toggle:hover{
-    background:rgba(255,255,255,.12);
-    border-color:rgba(255,255,255,.28);
-  }
-  .site-header__toggle:focus-visible{
-    outline:2px solid rgba(255,255,255,.92);
-    outline-offset:3px;
-  }
-  .site-header__toggle-box{
-    position:relative;
-    width:20px;
-    height:14px;
-    display:block;
-  }
-  .site-header__toggle-lines,
-  .site-header__toggle-lines::before,
-  .site-header__toggle-lines::after{
-    content:"";
-    position:absolute;
-    left:0;
-    width:100%;
-    height:2px;
-    border-radius:999px;
-    background:currentColor;
-    transition:transform .22s ease, opacity .22s ease, background .22s ease;
-  }
-  .site-header__toggle-lines{ top:50%; transform:translateY(-50%); }
-  .site-header__toggle-lines::before{ top:-6px; }
-  .site-header__toggle-lines::after{ top:6px; }
-
-  .site-header--open .site-header__toggle{
-    background:rgba(255,255,255,.16);
-    border-color:rgba(255,255,255,.38);
-  }
-  .site-header--open .site-header__toggle-lines{ background:transparent; }
-  .site-header--open .site-header__toggle-lines::before{
-    transform:translateY(6px) rotate(45deg);
-  }
-  .site-header--open .site-header__toggle-lines::after{
-    transform:translateY(-6px) rotate(-45deg);
-  }
-
-  @media (max-width:1080px){
-    .site-header .belt{ display:none !important; }
-  }
-
-  @media (max-width:960px){
-    body.nav-open{ overflow:hidden; }
-
-    .site-header{
-      --site-header-height:max(62px, 10vh);
-    }
-    .site-header .brand__tagline{ display:none !important; }
-    .site-header .container{
-      padding-inline:clamp(16px, 4vw, 24px) !important;
-    }
-    .site-header__inner{
-      display:grid !important;
-      grid-template-columns:auto max-content !important;
-      align-items:center !important;
-      gap:clamp(12px, 3vw, 24px) !important;
-    }
-    .site-header__toggle{
-      display:inline-flex;
-    }
-    .site-header nav{
-      position:fixed;
-      inset:0;
-      padding-top:calc(var(--site-header-height) + 1rem);
-      padding-inline:clamp(20px, 6vw, 36px);
-      padding-bottom:clamp(28px, 12vh, 46px);
-      background:rgba(5,5,5,.88);
-      backdrop-filter:blur(18px) saturate(1.2);
-      display:flex;
-      align-items:flex-start;
-      justify-content:flex-start;
-      opacity:0;
-      pointer-events:none;
-      transform:translateY(-12px);
-      transition:opacity .22s ease, transform .22s ease;
-      z-index:900;
-    }
-      .site-header nav ul{
-      flex-direction:column !important;
-      align-items:stretch !important;
-      gap:.45rem !important;
-      width:100%;
-    }
-    .site-header nav li{ width:100%; }
+  <!-- Top bar: force UI font (non-italic) on both desktop and mobile -->
+  <style id="logo-to-diesel">
+    .site-header .brand,
+    .site-header .brand__logo,
+    .site-header .brand__logo .brand__word,
+    .site-header .brand__tagline,
     .site-header nav a,
     .site-header nav .btn,
     .site-header nav .btn--ghost{
-      width:100%;
-      justify-content:space-between;
-      background:rgba(255,255,255,.04) !important;
-      border:1px solid rgba(255,255,255,.08) !important;
-      border-radius:.85rem !important;
-      padding:.95rem 1rem !important;
-      font-size:1.05rem !important;
-      letter-spacing:.035em !important;
+      font-family:var(--font-ui,var(--font-body))!important;
+      font-style:normal!important;
     }
-    .site-header nav a:hover,
-    .site-header nav a[aria-current="page"],
-    .site-header nav .btn:hover{
-      background:rgba(255,255,255,.1) !important;
-      border-color:rgba(255,255,255,.22) !important;
-      color:#fff !important;
+    .site-header .brand__logo,
+    .site-header .brand__logo .brand__word{
+      font-weight:900!important;
+      text-transform:uppercase!important;
+      letter-spacing:.06em!important;
+      line-height:1!important;
     }
-    .site-header--open nav{
-      opacity:1;
-      pointer-events:auto;
-      transform:translateY(0);
-    }
-  }
-</style>
+    .site-header .brand__logo{font-size:clamp(1.2rem,1.8vw,1.55rem)!important}
+  </style>
 
+  <style id="belt-to-diesel">
+    .site-header .brand__tagline,
+    .site-header .belt{
+      font-weight:900!important;
+      text-transform:uppercase!important;
+      letter-spacing:.12em!important;
+      line-height:1!important;
+      color:rgba(255,255,255,.78)!important;
+      font-size:clamp(.78rem,.95vw,.95rem)!important;
+      white-space:nowrap!important;
+    }
+  </style>
+
+  <!-- Mobile nav (Merch model) -->
+  <style id="mobile-nav-v2">
+    .sr-only{
+      position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+    }
+    .site-header__toggle{
+      display:none;align-items:center;justify-content:center;
+      width:var(--site-header-toggle-size);height:var(--site-header-toggle-size);
+      border-radius:.85rem;border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);color:#fff;cursor:pointer;
+      transition:transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+    .site-header__toggle:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
+    .site-header__toggle:focus-visible{outline:2px solid #fff;outline-offset:3px}
+    .site-header__toggle-box{position:relative;width:20px;height:14px;display:block}
+    .site-header__toggle-lines,
+    .site-header__toggle-lines::before,
+    .site-header__toggle-lines::after{
+      content:"";position:absolute;left:0;width:100%;height:2px;border-radius:999px;background:currentColor;
+      transition:transform .22s ease, opacity .22s ease, background .22s ease;
+    }
+    .site-header__toggle-lines{top:50%;transform:translateY(-50%)}
+    .site-header__toggle-lines::before{top:-6px}
+    .site-header__toggle-lines::after{top:6px}
+    .site-header--open .site-header__toggle{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.38)}
+    .site-header--open .site-header__toggle-lines{background:transparent}
+    .site-header--open .site-header__toggle-lines::before{transform:translateY(6px) rotate(45deg)}
+    .site-header--open .site-header__toggle-lines::after{transform:translateY(-6px) rotate(-45deg)}
+
+    @media (max-width:960px){
+      body.nav-open{overflow:hidden}
+      .site-header{--site-header-height:max(62px,10vh)}
+      .site-header .container{padding-inline:clamp(16px,4vw,24px)}
+      .site-header__inner{display:grid;grid-template-columns:auto max-content;align-items:center;gap:clamp(12px,3vw,24px)}
+      .site-header__toggle{display:inline-flex}
+
+      .site-header nav{
+        position:fixed;inset:0;padding-top:calc(var(--site-header-height) + 1rem);
+        padding-inline:clamp(20px,6vw,36px);padding-bottom:clamp(28px,12vh,46px);
+        background:rgba(5,5,5,.88);backdrop-filter:blur(18px) saturate(1.2);
+        display:flex;align-items:flex-start;justify-content:flex-start;
+        opacity:0;pointer-events:none;transform:translateY(-12px);
+        transition:opacity .22s ease, transform .22s ease;z-index:3700;
+        overflow-y:auto;-webkit-overflow-scrolling:touch;border-right:none;box-shadow:none;
+      }
+      .site-header nav ul{
+        flex-direction:column;align-items:stretch;gap:.9rem;width:100%;margin:0;padding:0;list-style:none;
+      }
+      .site-header nav li{width:100%}
+      .site-header nav a,.site-header nav .btn,.site-header nav .btn--ghost{
+        width:100%;display:flex;align-items:center;justify-content:space-between;
+        min-height:56px;padding:1.05rem 1.15rem;border-radius:1rem;
+        background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+        font-size:1.05rem;letter-spacing:.035em;box-shadow:0 8px 24px rgba(0,0,0,.35);
+      }
+      .site-header nav a:hover,
+      .site-header nav a[aria-current="page"],
+      .site-header nav .btn:hover{
+        background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#fff;
+      }
+      .brand__tagline{display:none !important}
+      .site-header--open nav, body.nav-open .site-header nav{
+        opacity:1;pointer-events:auto;transform:translateY(0);
+      }
+    }
+
+    body.nav-open .contact-fab, .site-header--open ~ .contact-fab{display:none !important}
+    .site-header nav a:focus{outline:none}
+    .site-header nav a:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:3px;border-color:rgba(255,255,255,.22)}
+  </style>
+
+  <!-- Layering: keep header/nav above page content -->
+  <style id="topbar-layering-fix">
+    .site-header{z-index:3600 !important;}
+    @media (max-width:960px){
+      .site-header nav{z-index:3700 !important;}
+    }
+  </style>
+
+  <!-- Mobile helpers -->
+  <style id="mobile-lite">
+    :root{ --mobile-break: 860px; }
+    :where(.only-mobile){ display:none !important; }
+    :where(.only-desktop){ display:contents !important; }
+    @media (max-width: 860px){
+      :where(.only-mobile){ display:block !important; }
+      :where(.only-desktop){ display:none !important; }
+    }
+
+    .mobi-quick, #mobileServices, #mobileProducts{ margin-top:.9rem; }
+    .mobi-actions{ display:grid; grid-template-columns:1fr 1fr; gap:.65rem; }
+    .mobi-action{
+      display:flex; flex-direction:column; gap:.25rem; padding:.9rem;
+      border-radius:.85rem; border:1px solid var(--line);
+      background:linear-gradient(180deg, var(--panel), var(--panel-2));
+      text-decoration:none;
+    }
+    .mobi-action b{ font-weight:900; }
+    .mobi-sub{ color:var(--muted-2); font-size:.95rem; }
+
+    @media (max-width: 860px){
+      #services .filters,
+      #services #liveTitle, #services #liveGrid,
+      #services #serverContent{ display:none !important; }
+      #products .grid.grid--products{ display:none !important; }
+    }
+  </style>
+
+  <style id="hide-hero-image-mobile">
+    @media (max-width: 860px){
+      .hero__media{ display:none !important; }
+      .hero__inner{ grid-template-columns: 1fr !important; }
+    }
+  </style>
 </head>
+
 <body>
+  {% include "includes/marketing_body.html" %}
+  {% include "includes/site_notice_markup.html" with site_notice_version="offer-v1" %}
+
   <div id="bg"></div>
 
-<a href="#main" class="visually-hidden">Skip to main content</a>
+  <a href="#main" class="visually-hidden">Skip to main content</a>
 
-<header class="site-header" role="banner">
-  <div class="container site-header__inner">
-    <a class="brand" href="/">
-      <span class="brand__logo">
-        <span class="brand__word brand__word--white">BAD GUY</span>
-        <span class="brand__word brand__word--red">MOTORS</span>
-      </span>
-      <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
-    </a>
+  <header class="site-header" role="banner">
+    <div class="container site-header__inner">
+      <a class="brand" href="/">
+        <span class="brand__logo">
+          <span class="brand__word brand__word--white">BAD GUY</span>
+          <span class="brand__word brand__word--red">MOTORS</span>
+        </span>
+        <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
+      </a>
 
-    <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
-      <span class="site-header__toggle-box" aria-hidden="true">
-        <span class="site-header__toggle-lines"></span>
-      </span>
-      <span class="sr-only">Toggle navigation</span>
-    </button>
+      <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
+        <span class="site-header__toggle-box" aria-hidden="true">
+          <span class="site-header__toggle-lines"></span>
+        </span>
+        <span class="sr-only">Toggle navigation</span>
+      </button>
 
-    <nav id="siteNav" aria-label="Main navigation">
-      <ul>
-        <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
-        {% if user.is_authenticated %}
-          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
-        {% else %}
-          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
-        {% endif %}
-        <li><a href="{% url 'store' %}" >Products</a></li>
-        <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
-        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-        <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>Financing</a></li>
-        <li><a href="{% url 'our-story' %}">About</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
-
-
-<section class="hero" id="top">
-  <div class="container hero__inner">
-    <div>
-      <p class="kicker">Custom fabrication • Diesel performance</p>
-      <h1 class="hero__title">Built to be bad. Engineered to last.</h1>
-      <p class="hero__lead">Bad Guy Motors is Medicine Hat’s premier custom fab and diesel shop. We design and build bumpers, body swaps, lift kits & four-links, and performance upgrades—then finish them with Armadillo or Smooth Criminal Liner. Book a consult and we’ll map your build from concept to keys.</p>
-      <div class="hero__cta">
-        <a class="btn btn--primary" href="#services">Explore services</a>
-        <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Booking</a>
-      </div>
-
-      <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
-        <div class="stat"><b>Alberta-made</b><br><span class="muted">built in Medicine Hat</span></div>
-        <div class="stat"><b>Custom only</b><br><span class="muted">no cookie‑cutter kits</span></div>
-        <div class="stat"><b>24/7</b><br><span class="muted">Book online fast quotes</span></div>
-      </div>
+      <nav id="siteNav" aria-label="Main navigation">
+        <ul>
+          <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
+          {% if user.is_authenticated %}
+            <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+          {% else %}
+            <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
+          {% endif %}
+          <li><a href="{% url 'store' %}">Products</a></li>
+          <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
+          <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
+          <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>Financing</a></li>
+          <li><a href="{% url 'our-story' %}">About</a></li>
+        </ul>
+      </nav>
     </div>
+  </header>
 
-<div class="frame frame--media hero__media">
-  <img src="{% static 'img/hero-home.jpg' %}" alt="Home hero" loading="lazy" decoding="async">
-  <p class="hero__disclaimer">Product may not appear exactly as shown.</p>
-</div>
-
-  </div>
-</section>
-
-<main id="main">
-  <!-- ========================= SERVICES on Home (limit 8) ========================= -->
-  <section id="services" class="section">
-    <div class="container">
-      <div class="section__head">
-        <div>
-          <h2 class="section__title">What we build</h2>
-          <p class="section__desc">From bolt‑on to one‑off: bumpers, chase racks, headache racks, mudflaps, running boards, lift kits & 4‑links, diesel tuning & hard parts, coatings & liners, body swaps, and more. Browse packages or request a custom quote.</p>
-        </div>
-        <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Open services </a></div>
-      </div>
-
-      <!-- Filters -->
-      <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
-        <input class="input" type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
-        <select class="select" name="cat" aria-label="Category">
-          <option value="">All categories</option>
-          {% for c in filter_categories %}
-            <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
-          {% endfor %}
-        </select>
-        <button class="btn btn--ghost" type="submit">Search</button>
-        {% if q or active_category %}
-          <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">Reset filters</a>
-        {% endif %}
-      </form>
-
-      <!-- Live search -->
-      <h3 id="liveTitle" class="kicker" style="display:none">Search results</h3>
-      <div id="liveGrid" class="grid grid--services" style="display:none"></div>
-
-      <!-- Server-rendered -->
-      <div id="serverContent">
-        {% if search_results %}
-          <h3 class="kicker" style="margin:.5rem 0 1rem">Results</h3>
-          <div class="grid grid--services">
-            {% for s in search_results|slice:":8" %}
-              <article class="card">
-                <div class="card__img">
-                  {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
-                  {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
-                </div>
-                <div class="card__head">
-                  <h3 style="font-weight:900">{{ s.name }}</h3>
-                  <div class="price">
-                    {% with disc=s.get_active_discount %}
-                      {% if disc %}
-                        <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                        <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                        <span class="badge">-{{ disc.discount_percent|floatformat:0 }}%</span>
-                      {% else %}
-                        <strong>${{ s.base_price|floatformat:2 }}</strong>
-                      {% endif %}
-                    {% endwith %}
-                  </div>
-                </div>
-                {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
-                <div class="dur">Duration: {{ s.duration_min }} min</div>
-                <div style="margin-top:.4rem">
-                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a>
-                </div>
-              </article>
-            {% empty %}
-              <div class="empty">No results for your query.</div>
-            {% endfor %}
-          </div>
-          <hr style="margin:1.5rem 0;border:0;border-top:1px solid var(--line)">
-        {% endif %}
-
-        {% if home_services %}
-          <h3 class="kicker" style="margin:.5rem 0 1rem">Featured services</h3>
-          <div class="grid grid--services">
-            {% for s in home_services|slice:":8" %}
-              <article class="card">
-                <div class="card__img">
-                  {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
-                  {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
-                </div>
-                <div class="card__head">
-                  <h3 style="font-weight:900">{{ s.name }}</h3>
-                  <div class="price">
-                    {% with disc=s.get_active_discount %}
-                      {% if disc %}
-                        <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                        <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                        <span class="badge">-{{ disc.discount_percent|floatformat:0 }}%</span>
-                      {% else %}
-                        <strong>${{ s.base_price|floatformat:2 }}</strong>
-                      {% endif %}
-                    {% endwith %}
-                  </div>
-                </div>
-                {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
-                <div class="dur">Duration: {{ s.duration_min }} min</div>
-                <div style="margin-top:.4rem">
-                  <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a>
-                </div>
-              </article>
-            {% endfor %}
-          </div>
-        {% elif not search_results and not has_any_services %}
-          <div class="empty">The catalog will be available soon 👍</div>
-        {% endif %}
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================= PRODUCTS ========================= -->
-  <section id="products" class="section">
-    <div class="container">
-      <div class="section__head">
-        <div>
-          <h2 class="section__title">Products</h2>
-          <p class="section__desc">Performance parts curated by BGM. Fresh stock, ready to ship.</p>
-        </div>
-        <div><a class="btn btn--primary" href="{% url 'store' %}">Open products</a></div>
-      </div>
-
-      {% if home_products %}
-        <div class="grid grid--products">
-          {% for p in home_products|slice:":8" %}
-            <article class="card">
-              <a href="{% url 'store-product' slug=p.slug %}">
-                <div class="card__img">
-                  {% if p.main_image %}<img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
-                  {% elif p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
-                  {% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
-                  {% if p.category %}<span class="card__badge">{{ p.category.name }}</span>{% endif %}
-                </div>
-                <div class="card__head" style="margin-top:.35rem">
-                  <h3 style="font-weight:900">{{ p.name }}</h3>
-                  <div class="price">
-                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>${{ p.display_price|floatformat:2 }}</strong>
-                    {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
-                  </div>
-                </div>
-                {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
-              </a>
-              <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
-                {% if p.has_active_options %}
-                  <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
-                  <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
-                {% else %}
-                  <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
-                    <button class="btn btn--primary" type="submit">Add to cart</button>
-                  </form>
-                  <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
-                {% endif %}
-              </div>
-            </article>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="empty">
-          No products yet. <a class="btn btn--link" href="{% url 'store' %}">Explore products</a>
-        </div>
-      {% endif %}
-    </div>
-  </section>
-
-  <!-- ========================= HOW IT WORKS ========================= -->
-  <section class="section">
-    <div class="container">
-      <div class="section__head">
-        <h2 class="section__title">How we work</h2>
-        <p class="section__desc">A transparent cycle—from booking to delivery.</p>
-      </div>
-      <div class="tiles">
-        <div class="tile"><div class="tile__icon">①</div><b>Consult & scope</b><p class="muted">Tell us your goals, budget, and timeline.</p></div>
-        <div class="tile"><div class="tile__icon">②</div><b>Design & quote</b><p class="muted">CAD as needed, milestones, and a written estimate.</p></div>
-        <div class="tile"><div class="tile__icon">③</div><b>Fabricate & update</b><p class="muted">Progress pics, approvals, and clear communication.</p></div>
-        <div class="tile"><div class="tile__icon">④</div><b>Delivery & aftercare</b><p class="muted">Test drive, torque check, and a care guide.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================= WHY BGM ========================= -->
-  <section class="section">
-    <div class="container">
-      <div class="section__head">
-        <h2 class="section__title">Why choose BGM</h2>
-        <p class="section__desc">We combine aesthetics with engineering discipline.</p>
-      </div>
-      <div class="tiles">
-        <div class="tile"><div class="tile__icon">★</div><b>No‑compromise materials</b><p class="muted">DOM tubing, proper hardware, and proven parts.</p></div>
-        <div class="tile"><div class="tile__icon">⏱</div><b>On‑time, transparent</b><p class="muted">Clear updates, zero guesswork.</p></div>
-        <div class="tile"><div class="tile__icon">🔒</div><b>Built for abuse</b><p class="muted">Designed to work hard, not just look pretty.</p></div>
-        <div class="tile"><div class="tile__icon">💬</div><b>Warranty & support
-</b><p class="muted">We stand behind our work and make things right.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================= FAQ ========================= -->
-  <section class="section">
-    <div class="container">
-      <div class="section__head">
-        <h2 class="section__title">FAQ</h2>
-        <p class="section__desc">Short and sweet</p>
-      </div>
-      <div class="grid">
-        <details><summary>Do I need a prepayment?</summary><p>For some services — yes (the “prepayment” option in the service card). Others — pay upon completion.</p></details>
-        <details><summary>Can I reschedule?</summary><p>Yes. In the client portal you can cancel or reschedule, and we’ll auto-suggest free slots.</p></details>
-        <details><summary>Do you work with companies and dealers?</summary><p>Yes. The “Dealers” section is coming soon. Leave a request via the contact form.</p></details>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================= FINAL CTA ========================= -->
-  <section class="section" aria-labelledby="cta">
-    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+  <section class="hero" id="top">
+    <div class="container hero__inner">
       <div>
-        <h2 id="cta" class="section__title">Ready to upgrade?</h2>
-        <p class="section__desc">We’ll secure your slot and lock the terms today.</p>
+        <p class="kicker">Custom fabrication • Diesel performance</p>
+        <h1 class="hero__title">Built to be bad. Engineered to last.</h1>
+        <p class="hero__lead">Bad Guy Motors is Medicine Hat’s premier custom fab and diesel shop. We design and build bumpers, body swaps, lift kits & four-links, and performance upgrades—then finish them with Armadillo or Smooth Criminal Liner. Book a consult and we’ll map your build from concept to keys.</p>
+        <div class="hero__cta">
+          <a class="btn btn--primary" href="#services">Explore services</a>
+          <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Booking</a>
+        </div>
+
+        <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
+          <div class="stat"><b>Alberta-made</b><br><span class="muted">built in Medicine Hat</span></div>
+          <div class="stat"><b>Custom only</b><br><span class="muted">no cookie‑cutter kits</span></div>
+          <div class="stat"><b>24/7</b><br><span class="muted">Book online fast quotes</span></div>
+        </div>
       </div>
-      <div style="display:flex;gap:.6rem">
-        <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Explore services</a>
-        {% if user.is_authenticated %}
-          <a class="btn btn--ghost" href="{% url 'dashboard' %}">Client Portal</a>
-        {% else %}
-          <a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dashboard' %}">Login</a>
-        {% endif %}
+
+      <!-- Mobile quick actions -->
+      <div class="mobi-quick only-mobile" aria-label="Quick actions">
+        <div class="mobi-actions">
+          <a class="mobi-action" href="{% url 'client-dashboard' %}#services">
+            <b>Book a Service</b><span class="mobi-sub">Pick date &amp; time</span>
+          </a>
+          <a class="mobi-action" href="{% url 'store' %}">
+            <b>Shop Parts</b><span class="mobi-sub">In stock &amp; ready</span>
+          </a>
+          <a class="mobi-action" href="#contact">
+            <b>Contact Us</b><span class="mobi-sub">Call or e‑mail</span>
+          </a>
+          <a class="mobi-action" href="{% url 'our-story' %}">
+            <b>About</b><span class="mobi-sub">Who we are</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="frame frame--media hero__media">
+        <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'BGM hero' }}" loading="lazy" decoding="async">
+        <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
       </div>
     </div>
   </section>
-</main>
 
-<footer class="site-footer" id="contact">
-  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:.75rem">
-      <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-      <strong>Contact us:</strong>
-      <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
-      <span aria-hidden="true">•</span>
-      <a href="tel:+14035250432">(403) 525-0432</a>
-    </div>
-
-    <div class="section__desc">© 2025 Bad Guy Motors • Built to be bad. Engineered to last.</div>
-  </div>
-</footer>
- <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
-
-<script>
-(function(){
-  // Live search with images
-  const qInput = document.querySelector('input[name="q"]');
-  const catSel = document.querySelector('select[name="cat"]');
-  const liveTitle = document.getElementById('liveTitle');
-  const liveGrid  = document.getElementById('liveGrid');
-  const server    = document.getElementById('serverContent');
-  if(!qInput || !catSel) return;
-
-  const skel = (n=8)=> Array.from({length:n}).map(()=>'<div class="sk"></div>').join('');
-  const showLive = ()=>{ liveTitle.style.display='block'; liveGrid.style.display='grid'; server.style.display='none'; }
-  const hideLive = ()=>{ liveTitle.style.display='none'; liveGrid.style.display='none'; server.style.display='block'; }
-  const esc = s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
-
-  function cardHTML(s){
-    const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent>0;
-    const price = hasDisc
-      ? `<span class="old">$${esc(s.base_price)}</span> <strong>$${esc(s.price)}</strong> <span class="badge">-${esc(String(s.discount_percent))}%</span>`
-      : `<strong>$${esc(s.price||s.base_price)}</strong>`;
-    const media = s.image ? `<img src="${esc(s.image)}" alt="${esc(s.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
-    const cat   = s.category ? `<span class="card__badge">${esc(s.category)}</span>` : '';
-    const desc  = s.description ? `<p class="muted">${esc(s.description)}</p>` : '';
-    return `
-      <article class="card">
-        <div class="card__img">${media}${cat}</div>
-        <div class="card__head">
-          <h3 style="font-weight:900">${esc(s.name)}</h3>
-          <div class="price">${price}</div>
+  <main id="main">
+    <!-- ========================= SERVICES on Home (limit 8) ========================= -->
+    <section id="services" class="section">
+      <div class="container">
+        <div class="section__head">
+          <div>
+            <h2 class="section__title">What we build</h2>
+            <p class="section__desc">From bolt‑on to one‑off: bumpers, chase racks, headache racks, mudflaps, running boards, lift kits & 4‑links, diesel tuning & hard parts, coatings & liners, body swaps, and more. Browse packages or request a custom quote.</p>
+          </div>
+          <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Open services </a></div>
         </div>
-        ${desc}
-        <div class="dur">Duration: ${esc(String(s.duration_min))} min</div>
-        <div style="margin-top:.4rem"><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book now</a></div>
-      </article>`;
-  }
 
-  function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
-  let aborter=null;
-  async function fetchServices(q,cat){
-    if(aborter) aborter.abort();
-    aborter = new AbortController();
-    const p=new URLSearchParams(); if(q) p.set('q',q); if(cat) p.set('cat',cat);
-    const r=await fetch(`/accounts/api/services/search/?${p.toString()}`,{signal:aborter.signal,credentials:'same-origin'});
-    if(!r.ok) throw new Error('Load error'); return r.json();
-  }
+        <!-- Mobile services lite -->
+        <div id="mobileServices" class="only-mobile" aria-labelledby="servicesMobileTitle">
+          <h3 id="servicesMobileTitle" class="kicker">Quick picks</h3>
+          <div class="mobi-actions" style="margin-bottom:.6rem">
+            <a class="mobi-action" href="{% url 'client-dashboard' %}?q=fabrication#services">
+              <b>Fabrication</b><span class="mobi-sub">Bumpers, racks, swaps</span>
+            </a>
+            <a class="mobi-action" href="{% url 'client-dashboard' %}?q=suspension#services">
+              <b>Suspension</b><span class="mobi-sub">Lift kits &amp; 4‑links</span>
+            </a>
+            <a class="mobi-action" href="{% url 'client-dashboard' %}?q=tuning#services">
+              <b>Diesel Tuning</b><span class="mobi-sub">Turbo, injectors, ECU</span>
+            </a>
+            <a class="mobi-action" href="{% url 'client-dashboard' %}?q=coating#services">
+              <b>Coatings</b><span class="mobi-sub">Armadillo &amp; liner</span>
+            </a>
+          </div>
+          <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
+            <input class="input" type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
+            <button class="btn btn--ghost" type="submit">Search</button>
+          </form>
+        </div>
 
-  const run = debounce(async ()=>{
-    const q=qInput.value.trim(), cat=catSel.value;
-    if(!q && !cat){ hideLive(); return; }
-    showLive(); liveGrid.innerHTML = skel(8);
-    try{
-      const data=await fetchServices(q,cat);
-      const items=(data&&data.results)||[];
-      liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="empty">Nothing found.</div>`;
-    }catch{ liveGrid.innerHTML = `<div class="empty">Failed to load. Please try again.</div>`; }
-  },300);
+        <!-- Filters -->
+        <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
+          <input class="input" type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
+          <select class="select" name="cat" aria-label="Category">
+            <option value="">All categories</option>
+            {% for c in filter_categories %}
+              <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn--ghost" type="submit">Search</button>
+          {% if q or active_category %}
+            <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">Reset filters</a>
+          {% endif %}
+        </form>
 
-  qInput.addEventListener('input', run);
-  catSel.addEventListener('change', run);
-})();
-</script>
-<!-- ===== CONTACT FAB + MODAL (BGM) =================================== -->
-<style id="contact-fab-css">
-  :root{
-    --ink:#eaeaea; --line:rgba(255,255,255,.12);
-    --red:var(--accent, #d50000); --red-dark:#b60000;
-  }
-  /* floating button */
-  .contact-fab{
-    position:fixed; right:22px; bottom:22px; z-index:2100;
-    display:inline-flex; align-items:center; gap:.6em;
-    padding:.9rem 1.15rem; border-radius:999px;
-    border:1px solid rgba(255,255,255,.08);
-    background:linear-gradient(180deg,var(--red) 0%,var(--red-dark) 100%);
-    color:#fff; font-weight:900; letter-spacing:.02em; line-height:1;
-    cursor:pointer; box-shadow:0 12px 26px rgba(213,0,0,.28), 0 0 26px rgba(213,0,0,.18);
-    transition:.18s ease; font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
-  }
-  .contact-fab:hover{ transform:translateY(-2px); filter:saturate(1.05); }
-  .contact-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
-  .contact-fab svg{ width:20px; height:20px; fill:currentColor; opacity:.95; }
+        <!-- Live search -->
+        <h3 id="liveTitle" class="kicker" style="display:none">Search results</h3>
+        <div id="liveGrid" class="grid grid--services" style="display:none"></div>
 
-  /* modal */
-  .contact-modal{
-    position:fixed; inset:0; z-index:2200; display:none;
-    align-items:center; justify-content:center; padding:1rem;
-    background:rgba(0,0,0,.65); backdrop-filter:blur(2px);
-  }
-  .contact-modal[open]{ display:flex; }
-  .contact-dialog{
-    width:min(560px, 92vw);
-    background:linear-gradient(180deg,#0c0c0c,#121212);
-    border:1px solid var(--line); border-radius:1rem;
-    padding:1.1rem 1.1rem .95rem; color:var(--ink);
-    box-shadow:0 18px 44px rgba(0,0,0,.55), 0 0 32px rgba(213,0,0,.18);
-    position:relative;
-  }
-  .contact-title{
-    font-family:var(--font-head,"Ford"),system-ui,sans-serif;
-    font-weight:900; letter-spacing:.005em; line-height:1.15;
-    font-size:1.6rem; margin:.2rem 2.2rem 1rem .2rem; color:#fff;
-    text-transform:none;
-  }
-  .contact-close{
-    position:absolute; right:12px; top:10px; width:36px; height:36px;
-    border:1px solid var(--line); border-radius:.5rem; background:#0f0f0f;
-    color:#bdbdbd; cursor:pointer; font-size:20px; line-height:1;
-  }
-  .contact-body{ display:grid; gap:.75rem; }
-  .contact-row{
-    display:flex; align-items:center; justify-content:space-between; gap:.6rem;
-    background:rgba(255,255,255,.06); border:1px solid var(--line);
-    border-radius:.7rem; padding:.7rem .8rem;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
-  }
-  .contact-row a{ color:#fff; font-weight:800; text-decoration:none; }
-  .contact-sub{ color:rgba(255,255,255,.72); font-size:.95rem; }
-  .contact-actions{ display:flex; gap:.6rem; margin-top:.9rem; flex-wrap:wrap; }
-  .contact-btn{
-    display:inline-flex; align-items:center; gap:.5em; padding:.7rem 1rem; border-radius:.55rem;
-    border:1px solid var(--line); background:#0f0f0f; color:#fff; cursor:pointer;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif; font-weight:800;
-  }
-  .contact-btn:hover{ border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.25); }
+        <!-- Server-rendered -->
+        <div id="serverContent">
+          {% if search_results %}
+            <h3 class="kicker" style="margin:.5rem 0 1rem">Results</h3>
+            <div class="grid grid--services">
+              {% for s in search_results|slice:":8" %}
+                <article class="card">
+                  <div class="card__img">
+                    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+                    {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
+                  </div>
+                  <div class="card__head">
+                    <h3 style="font-weight:900">{{ s.name }}</h3>
+                    <div class="price">
+                      {% if s.contact_for_estimate %}
+                        <strong>Contact for estimate</strong>
+                        {% if s.estimate_from_price %}
+                          <span class="price__hint">From {{ s.estimate_from_price|money }}</span>
+                        {% endif %}
+                      {% else %}
+                        {% with disc=s.get_active_discount %}
+                          {% if disc %}
+                            <span class="old">{{ s.base_price|money }}</span>
+                            <strong>{{ s.get_discounted_price|money }}</strong>
+                            <span class="badge">-{{ disc.discount_percent|floatformat:0 }}%</span>
+                          {% else %}
+                            <strong>{{ s.base_price|money }}</strong>
+                          {% endif %}
+                        {% endwith %}
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
+                  <div class="dur">Duration: {{ s.duration_min }} min</div>
+                  <div style="margin-top:.4rem">
+                    <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">Book now</a>
+                  </div>
+                </article>
+              {% empty %}
+                <div class="empty">No results for your query.</div>
+              {% endfor %}
+            </div>
+            <hr style="margin:1.5rem 0;border:0;border-top:1px solid var(--line)">
+          {% endif %}
 
-  /* hide everywhere if needed: add .no-contact-fab to <body> */
-  body.no-contact-fab .contact-fab{ display:none !important; }
+          {% if home_services %}
+            <h3 class="kicker" style="margin:.5rem 0 1rem">Featured services</h3>
+            <div class="grid grid--services">
+              {% for s in home_services|slice:":8" %}
+                <article class="card">
+                  <div class="card__img">
+                    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+                    {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
+                  </div>
+                  <div class="card__head">
+                    <h3 style="font-weight:900">{{ s.name }}</h3>
+                    <div class="price">
+                      {% if s.contact_for_estimate %}
+                        <strong>Contact for estimate</strong>
+                        {% if s.estimate_from_price %}
+                          <span class="price__hint">From {{ s.estimate_from_price|money }}</span>
+                        {% endif %}
+                      {% else %}
+                        {% with disc=s.get_active_discount %}
+                          {% if disc %}
+                            <span class="old">{{ s.base_price|money }}</span>
+                            <strong>{{ s.get_discounted_price|money }}</strong>
+                            <span class="badge">-{{ disc.discount_percent|floatformat:0 }}%</span>
+                          {% else %}
+                            <strong>{{ s.base_price|money }}</strong>
+                          {% endif %}
+                        {% endwith %}
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
+                  <div class="dur">Duration: {{ s.duration_min }} min</div>
+                  <div style="margin-top:.4rem">
+                    <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">Book now</a>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          {% elif not search_results and not has_any_services %}
+            <div class="empty">The catalog will be available soon 👍</div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
 
-  @media (max-width:640px){
-    .contact-fab{ right:14px; bottom:14px; }
-    .contact-title{ font-size:1.45rem; }
-  }
-</style>
+    <!-- ========================= PRODUCTS ========================= -->
+    <section id="products" class="section">
+      <div class="container">
+        <div class="section__head">
+          <div>
+            <h2 class="section__title">Products</h2>
+            <p class="section__desc">Performance parts curated by BGM. Fresh stock, ready to ship.</p>
+          </div>
+          <div><a class="btn btn--primary" href="{% url 'store' %}">Open products</a></div>
+        </div>
 
-<button type="button" id="contactFab" class="contact-fab"
-        aria-haspopup="dialog" aria-controls="contactModal" aria-expanded="false">
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
-  </svg>
-  Contact us
-</button>
+        <!-- Mobile products lite -->
+        <div id="mobileProducts" class="only-mobile" aria-labelledby="productsMobileTitle">
+          <h3 id="productsMobileTitle" class="kicker">Quick shop</h3>
+          <div class="mobi-actions">
+            <a class="mobi-action" href="{% url 'store' %}">
+              <b>Shop Parts</b><span class="mobi-sub">Fresh stock</span>
+            </a>
+            <a class="mobi-action" href="{% url 'merch' %}">
+              <b>Merch</b><span class="mobi-sub">Coming soon</span>
+            </a>
+          </div>
+        </div>
 
-<div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
-  <div class="contact-dialog">
-    <button class="contact-close" type="button" aria-label="Close">×</button>
-    <h2 id="contactTitle" class="contact-title">Contact us</h2>
+        {% if home_products %}
+          <div class="grid grid--products">
+            {% for p in home_products|slice:":8" %}
+              <article class="card">
+                <a href="{% url 'store-product' slug=p.slug %}">
+                  <div class="card__img">
+                    {% if p.main_image %}<img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+                    {% elif p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+                    {% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+                    {% if p.category %}<span class="card__badge">{{ p.category.name }}</span>{% endif %}
+                  </div>
+                  <div class="card__head" style="margin-top:.35rem">
+                    <h3 style="font-weight:900">{{ p.name }}</h3>
+                    <div class="price price--stacked">
+                      {% if p.contact_for_estimate %}
+                        <strong>Contact for estimate</strong>
+                        {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
+                      {% else %}
+                        <div class="price__retail-row">
+                          {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                          <strong>{{ p.display_price|money }}</strong>
+                          {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
+                        </div>
+                        {% if dealer_portal.show_discount %}
+                          <div class="price__dealer-row">
+                            <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                            <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+                            <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                          </div>
+                        {% endif %}
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
+                </a>
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
+                  {% if p.contact_for_estimate %}
+                    <a class="btn btn--primary" href="{% url 'home' %}#contact">Contact us</a>
+                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                  {% elif p.has_active_options %}
+                    <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
+                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                  {% else %}
+                    <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
+                      <button class="btn btn--primary" type="submit">Add to cart</button>
+                    </form>
+                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty">
+            No products yet. <a class="btn btn--link" href="{% url 'store' %}">Explore products</a>
+          </div>
+        {% endif %}
+      </div>
+    </section>
 
-    <div class="contact-body">
-      <div class="contact-row">
+    <!-- ========================= HOW IT WORKS ========================= -->
+    <section class="section">
+      <div class="container">
+        <div class="section__head">
+          <h2 class="section__title">How we work</h2>
+          <p class="section__desc">A transparent cycle—from booking to delivery.</p>
+        </div>
+        <div class="tiles">
+          <div class="tile"><div class="tile__icon">①</div><b>Consult & scope</b><p class="muted">Tell us your goals, budget, and timeline.</p></div>
+          <div class="tile"><div class="tile__icon">②</div><b>Design & quote</b><p class="muted">CAD as needed, milestones, and a written estimate.</p></div>
+          <div class="tile"><div class="tile__icon">③</div><b>Fabricate & update</b><p class="muted">Progress pics, approvals, and clear communication.</p></div>
+          <div class="tile"><div class="tile__icon">④</div><b>Delivery & aftercare</b><p class="muted">Test drive, torque check, and a care guide.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= WHY BGM ========================= -->
+    <section class="section">
+      <div class="container">
+        <div class="section__head">
+          <h2 class="section__title">Why choose BGM</h2>
+          <p class="section__desc">We combine aesthetics with engineering discipline.</p>
+        </div>
+        <div class="tiles">
+          <div class="tile"><div class="tile__icon">★</div><b>No‑compromise materials</b><p class="muted">DOM tubing, proper hardware, and proven parts.</p></div>
+          <div class="tile"><div class="tile__icon">⏱</div><b>On‑time, transparent</b><p class="muted">Clear updates, zero guesswork.</p></div>
+          <div class="tile"><div class="tile__icon">🔒</div><b>Built for abuse</b><p class="muted">Designed to work hard, not just look pretty.</p></div>
+          <a class="tile tile--link" href="{% url 'legal-terms' %}" aria-label="Read Terms &amp; Conditions" title="Warranty &amp; support details">
+            <div class="tile__icon">💬</div>
+            <b>Warranty &amp; support</b>
+            <p class="muted">We stand behind our work and make things right.</p>
+            <span class="tile__cta">Read terms →</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= FAQ ========================= -->
+    <section class="section">
+      <div class="container">
+        <div class="section__head">
+          <h2 class="section__title">FAQ</h2>
+          <p class="section__desc">Short and sweet</p>
+        </div>
+        <div class="grid">
+          <details><summary>Do I need a prepayment?</summary><p>For some services — yes (the “prepayment” option in the service card). Others — pay upon completion.</p></details>
+          <details><summary>Can I reschedule?</summary><p>Yes. In the client portal you can cancel or reschedule, and we’ll auto-suggest free slots.</p></details>
+          <details><summary>Do you work with companies and dealers?</summary><p>Yes. The “Dealers” section is coming soon. Leave a request via the contact form.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= FINAL CTA ========================= -->
+    <section class="section" aria-labelledby="cta">
+      <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
         <div>
-          <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
-          <div class="contact-sub">E-mail</div>
+          <h2 id="cta" class="section__title">Ready to upgrade?</h2>
+          <p class="section__desc">We’ll secure your slot and lock the terms today.</p>
         </div>
-        <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+        <div style="display:flex;gap:.6rem">
+          <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Explore services</a>
+          {% if user.is_authenticated %}
+            <a class="btn btn--ghost" href="{% url 'dashboard' %}">Client Portal</a>
+          {% else %}
+            <a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dashboard' %}">Login</a>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" id="contact">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
       </div>
 
-      <div class="contact-row">
-        <div>
-          <div><a href="tel:+14035250432">(403) 525-0432</a></div>
-          <div class="contact-sub">Phone</div>
-        </div>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-          <a class="contact-btn" href="tel:+14035250432">Call</a>
-          <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
-        </div>
+      <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+        <strong>Contact us:</strong>
+        <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
+        <span aria-hidden="true">•</span>
+        <a href="tel:+14035250432">(403) 525-0432</a>
       </div>
 
-      <div class="contact-actions">
-        <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write e-mail</a>
-        <a class="contact-btn" href="sms:+14035250432">Text us</a>
-      </div>
+      <div class="section__desc">© 2025 Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
     </div>
-  </div>
-</div>
+  </footer>
 
-<script id="contact-fab-js">
-(function(){
-  const fab   = document.getElementById('contactFab');
-  const modal = document.getElementById('contactModal');
-  const closeBtn = modal.querySelector('.contact-close');
-  let lastFocus = null;
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 
-  function openModal(){
-    lastFocus = document.activeElement;
-    modal.setAttribute('open','');
-    fab.setAttribute('aria-expanded','true');
-    setTimeout(()=>closeBtn.focus(),0);
-    document.addEventListener('keydown', onKey);
-  }
-  function closeModal(){
-    modal.removeAttribute('open');
-    fab.setAttribute('aria-expanded','false');
-    if (lastFocus) lastFocus.focus();
-    document.removeEventListener('keydown', onKey);
-  }
-  function onKey(e){
-    if (e.key === 'Escape') closeModal();
-    if (e.key === 'Tab'){
-      const focusables = modal.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
-      const list = Array.from(focusables).filter(el=>!el.disabled && el.offsetParent!==null);
-      if(!list.length) return;
-      const first = list[0], last = list[list.length-1];
-      if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
-      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+  <!-- Live search -->
+  <script>
+  (function(){
+    const qInput = document.querySelector('input[name="q"]');
+    const catSel = document.querySelector('select[name="cat"]');
+    const liveTitle = document.getElementById('liveTitle');
+    const liveGrid  = document.getElementById('liveGrid');
+    const server    = document.getElementById('serverContent');
+    if(!qInput || !catSel) return;
+
+    const currencyCode = "{{ currency.code }}";
+    const currencySymbol = "{{ currency.symbol }}";
+    const bookingBaseUrl = "{% url 'client-dashboard' %}";
+    const toBookingUrl = (serviceId) => {
+      if (serviceId) {
+        return `${bookingBaseUrl}?book=${encodeURIComponent(serviceId)}#services`;
+      }
+      return `${bookingBaseUrl}#services`;
+    };
+
+    const skel = (n=8)=> Array.from({length:n}).map(()=>'<div class="sk"></div>').join('');
+    const showLive = ()=>{ liveTitle.style.display='block'; liveGrid.style.display='grid'; server.style.display='none'; }
+    const hideLive = ()=>{ liveTitle.style.display='none'; liveGrid.style.display='none'; server.style.display='block'; }
+    const esc = s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    const formatMoney = (val) => {
+      const num = Number(val);
+      let normalized = "";
+      if (Number.isFinite(num)) {
+        normalized = num.toFixed(2);
+      } else if (typeof val === "string" && val.trim()) {
+        normalized = val.trim();
+      }
+      if (!normalized) return "";
+      const symbol = currencySymbol || "$";
+      return currencyCode ? `${currencyCode} ${symbol}${normalized}` : `${symbol}${normalized}`;
+    };
+
+    function cardHTML(s){
+      let price;
+      if (s.contact_for_estimate){
+        const fromVal = s.estimate_from_price ? formatMoney(s.estimate_from_price) : "";
+        const hint = fromVal ? `<span class="price__hint">From ${esc(fromVal)}</span>` : "";
+        price = `<strong>Contact for estimate</strong>${hint ? " " + hint : ""}`;
+      } else {
+        const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent>0;
+        const base = formatMoney(s.base_price);
+        if (hasDisc){
+          price = `<span class="old">${esc(base)}</span> <strong>${esc(formatMoney(s.price))}</strong> <span class="badge">-${esc(String(s.discount_percent))}%</span>`;
+        } else {
+          const current = s.price || s.base_price;
+          price = `<strong>${esc(formatMoney(current))}</strong>`;
+        }
+      }
+      const media = s.image ? `<img src="${esc(s.image)}" alt="${esc(s.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
+      const cat   = s.category ? `<span class="card__badge">${esc(s.category)}</span>` : '';
+      const desc  = s.description ? `<p class="muted">${esc(s.description)}</p>` : '';
+      const bookingHref = toBookingUrl(s.id);
+      return `
+        <article class="card">
+          <div class="card__img">${media}${cat}</div>
+          <div class="card__head">
+            <h3 style="font-weight:900">${esc(s.name)}</h3>
+            <div class="price">${price}</div>
+          </div>
+          ${desc}
+          <div class="dur">Duration: ${esc(String(s.duration_min))} min</div>
+          <div style="margin-top:.4rem"><a class="btn btn--primary" href="${bookingHref}">Book now</a></div>
+        </article>`;
     }
-  }
 
-  fab.addEventListener('click', openModal);
-  closeBtn.addEventListener('click', closeModal);
-  modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+    function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+    let aborter=null;
+    async function fetchServices(q,cat){
+      if(aborter) aborter.abort();
+      aborter = new AbortController();
+      const p=new URLSearchParams(); if(q) p.set('q',q); if(cat) p.set('cat',cat);
+      const r=await fetch(`/accounts/api/services/search/?${p.toString()}`,{signal:aborter.signal,credentials:'same-origin'});
+      if(!r.ok) throw new Error('Load error'); return r.json();
+    }
 
-  // copy helpers
-  modal.querySelectorAll('[data-copy]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy',1200); }
-      catch{ btn.textContent='Copy failed'; setTimeout(()=>btn.textContent='Copy',1200); }
+    const run = debounce(async ()=>{
+      const q=qInput.value.trim(), cat=catSel.value;
+      if(!q && !cat){ hideLive(); return; }
+      showLive(); liveGrid.innerHTML = skel(8);
+      try{
+        const data=await fetchServices(q,cat);
+        const items=(data&&data.results)||[];
+        liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="empty">Nothing found.</div>`;
+      }catch{ liveGrid.innerHTML = `<div class="empty">Failed to load. Please try again.</div>`; }
+    },300);
+
+    qInput.addEventListener('input', run);
+    catSel.addEventListener('change', run);
+  })();
+  </script>
+
+  <!-- Contact FAB + Modal -->
+  <style id="contact-fab-css">
+    :root{ --ink:#eaeaea; --line:rgba(255,255,255,.12); --red:var(--accent,#d50000); --red-dark:#b60000; --contact-font:var(--font-ui,var(--font-body)); }
+    .contact-fab{
+      position:fixed; right:22px; bottom:22px; z-index:2100;
+      display:inline-flex; align-items:center; gap:.6em;
+      padding:.9rem 1.15rem; border-radius:999px;
+      border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(180deg,var(--red) 0%,var(--red-dark) 100%);
+      color:#fff; font-weight:900; letter-spacing:.02em; line-height:1;
+      cursor:pointer; box-shadow:0 12px 26px rgba(213,0,0,.28), 0 0 26px rgba(213,0,0,.18);
+      transition:.18s ease; font-family:var(--contact-font) !important; font-style:normal !important;
+    }
+    .contact-fab:hover{ transform:translateY(-2px); filter:saturate(1.05); }
+    .contact-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
+    .contact-fab svg{ width:20px; height:20px; fill:currentColor; opacity:.95; }
+
+    .contact-modal{
+      position:fixed; inset:0; z-index:2200; display:none;
+      align-items:center; justify-content:center; padding:1rem;
+      background:rgba(0,0,0,.65); backdrop-filter:blur(2px);
+    }
+    .contact-modal[open]{ display:flex; }
+    .contact-dialog{
+      width:min(560px,92vw);
+      background:linear-gradient(180deg,#0c0c0c,#121212);
+      border:1px solid var(--line); border-radius:1rem;
+      padding:1.1rem 1.1rem .95rem; color:var(--ink);
+      box-shadow:0 18px 44px rgba(0,0,0,.55), 0 0 32px rgba(213,0,0,.18);
+      position:relative;
+    }
+    .contact-title{
+      font-family:var(--font-head,"Ford"),system-ui,sans-serif;
+      font-weight:900; letter-spacing:.005em; line-height:1.15;
+      font-size:1.6rem; margin:.2rem 2.2rem 1rem .2rem; color:#fff;
+      text-transform:none;
+    }
+    .contact-close{
+      position:absolute; right:12px; top:10px; width:36px; height:36px;
+      border:1px solid var(--line); border-radius:.5rem; background:#0f0f0f;
+      color:#bdbdbd; cursor:pointer; font-size:20px; line-height:1;
+    }
+    .contact-body{ display:grid; gap:.75rem; }
+    .contact-row{
+      display:flex; align-items:center; justify-content:space-between; gap:.6rem;
+      background:rgba(255,255,255,.06); border:1px solid var(--line);
+      border-radius:.7rem; padding:.7rem .8rem;
+      font-family:var(--contact-font) !important; font-style:normal !important;
+    }
+    .contact-row a{ color:#fff; font-weight:800; text-decoration:none; }
+    .contact-sub{ color:rgba(255,255,255,.72); font-size:.95rem; }
+    .contact-actions{ display:flex; gap:.6rem; margin-top:.9rem; flex-wrap:wrap; }
+    .contact-btn{
+      display:inline-flex; align-items:center; gap:.5em; padding:.7rem 1rem; border-radius:.55rem;
+      border:1px solid var(--line); background:#0f0f0f; color:#fff; cursor:pointer;
+      font-family:var(--contact-font) !important; font-weight:800; font-style:normal !important;
+    }
+    .contact-btn:hover{ border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.25); }
+
+    body.no-contact-fab .contact-fab{ display:none !important; }
+
+    @media (max-width:640px){
+      .contact-fab{ right:14px; bottom:14px; }
+      .contact-title{ font-size:1.45rem; }
+    }
+  </style>
+
+  <button type="button" id="contactFab" class="contact-fab"
+          aria-haspopup="dialog" aria-controls="contactModal" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
+    </svg>
+    Contact us
+  </button>
+
+  <div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
+    <div class="contact-dialog">
+      <button class="contact-close" type="button" aria-label="Close">×</button>
+      <h2 id="contactTitle" class="contact-title">Contact us</h2>
+
+      <div class="contact-body">
+        <div class="contact-row">
+          <div>
+            <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
+            <div class="contact-sub">E-mail</div>
+          </div>
+          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+        </div>
+
+        <div class="contact-row">
+          <div>
+            <div><a href="tel:+14035250432">(403) 525-0432</a></div>
+            <div class="contact-sub">Phone</div>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <a class="contact-btn" href="tel:+14035250432">Call</a>
+            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
+          </div>
+        </div>
+
+        <div class="contact-actions">
+          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write e-mail</a>
+          <a class="contact-btn" href="sms:+14035250432">Text us</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% include "includes/site_notice_script.html" %}
+
+  <!-- Unified topbar behavior -->
+  <script src="{% static 'js/topbar.js' %}"></script>
+
+  <!-- Contact modal bindings -->
+  <script id="contact-fab-js">
+  (function(){
+    const fab   = document.getElementById('contactFab');
+    const modal = document.getElementById('contactModal');
+    const closeBtn = modal.querySelector('.contact-close');
+    let lastFocus = null;
+
+    function openModal(){
+      lastFocus = document.activeElement;
+      modal.setAttribute('open','');
+      fab.setAttribute('aria-expanded','true');
+      setTimeout(()=>closeBtn.focus(),0);
+      document.addEventListener('keydown', onKey);
+    }
+    function closeModal(){
+      modal.removeAttribute('open');
+      fab.setAttribute('aria-expanded','false');
+      if (lastFocus) lastFocus.focus();
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e){
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Tab'){
+        const focusables = modal.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
+        const list = Array.from(focusables).filter(el=>!el.disabled && el.offsetParent!==null);
+        if(!list.length) return;
+        const first = list[0], last = list[list.length-1];
+        if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+      }
+    }
+
+    fab.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+
+    modal.querySelectorAll('[data-copy]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        try{ await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy',1200); }
+        catch{ btn.textContent='Copy failed'; setTimeout(()=>btn.textContent='Copy',1200); }
+      });
     });
-  });
-})();
-</script>
-<!-- ==================================================================== -->
+  })();
+  </script>
 
+  {% include "includes/analytics_tracker.html" %}
 </body>
-
 </html>
+
+     

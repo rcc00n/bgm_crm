@@ -5,6 +5,9 @@
 <meta charset="utf-8">
 <title>Sign in • Bad Guy Motors</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+{% with meta_title="Sign in • Bad Guy Motors" meta_description="Log in or create an account to manage appointments, orders, and financing with Bad Guy Motors." meta_section="auth" meta_robots="noindex,nofollow" %}
+  {% include "includes/marketing_head.html" %}
+{% endwith %}
 <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
 
 <!-- ===== S T Y L E S ===== -->
@@ -19,7 +22,10 @@
 }
 
 /* единая переменная семейства */
-:root{ --font-body: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+:root{
+  --font-body: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-credentials: "Inter", "Segoe UI", -apple-system, system-ui, Roboto, Arial, sans-serif;
+}
 
 /* применяем Diesel ВЕЗДЕ + аккуратный кернинг */
 html, body,
@@ -59,6 +65,17 @@ h1.title{
 .reg-form .field select{
   font-family: var(--font-body) !important;
   letter-spacing: .01em;
+}
+
+/* Credential inputs stay readable (Diesel renders uppercase only) */
+.login-form input[name="username"],
+.login-form input[name="password"],
+.reg-form input[name="username"],
+.reg-form input[name="password1"],
+.reg-form input[name="password2"]{
+  font-family: var(--font-credentials) !important;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 /* ===== BGM palette (dark + red) ===== */
@@ -127,19 +144,19 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
 .field{position:relative;}
 .field svg{position:absolute;left:22px;top:50%;transform:translateY(-50%);
   width:22px;height:22px;fill:var(--red);opacity:.95;}
-.field input{
+.field input:not([type="checkbox"]):not([type="radio"]){
   width:100%;box-sizing:border-box;height:62px;padding:0 22px 0 64px;line-height:62px;
   font-size:16px;font-weight:500;border:none;border-radius:18px;background:var(--field-bg);color:var(--ink);
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);transition:box-shadow .3s,background .3s;
 }
-.field input:focus{outline:none;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 3px var(--red);}
-.field input::placeholder{color:transparent;}
+.field input:not([type="checkbox"]):not([type="radio"]):focus{outline:none;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 3px var(--red);}
+.field input:not([type="checkbox"]):not([type="radio"])::placeholder{color:transparent;}
 .field label{
   position:absolute;left:64px;top:50%;transform:translateY(-50%);pointer-events:none;
   font-size:16px;font-weight:500;opacity:.6;color:var(--muted);transition:all .25s;
 }
-.field input:focus+label,
-.field input:not(:placeholder-shown)+label{ top:10px;transform:none;font-size:12px;opacity:.95; color:#fff; }
+.field input:not([type="checkbox"]):not([type="radio"]):focus+label,
+.field input:not([type="checkbox"]):not([type="radio"]):not(:placeholder-shown)+label{ top:10px;transform:none;font-size:12px;opacity:.95; color:#fff; }
 
 /* ===== Buttons ===== */
 .btn{
@@ -173,9 +190,162 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
 }
 .modal__close{position:absolute;top:18px;right:22px;border:none;background:none;font-size:26px;font-weight:600;cursor:pointer;color:var(--muted);}
 .modal h2{margin:0 0 1.2rem;font-size:1.9rem;font-weight:700;text-align:center;color:#fff;}
-.reg-form{display:flex;flex-direction:column;gap:1rem;}
-.reg-form .field input{height:56px;padding:0 20px;font-size:15px;background:var(--field-bg);color:var(--ink);}
-.reg-form .field select,.reg-form .field textarea{background:var(--field-bg);color:var(--ink);border:none;border-radius:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);}
+.reg-form{
+  display:flex;
+  flex-direction:column;
+  gap:1.5rem;
+}
+.reg-form__grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:1rem 1.3rem;
+}
+.reg-form__grid .field{
+  margin:0;
+}
+.reg-form__grid .field[data-span="full"]{
+  grid-column:1 / -1;
+}
+.reg-form .field input:not([type="checkbox"]):not([type="radio"]),
+.reg-form .field select,
+.reg-form .field textarea{
+  box-sizing:border-box;
+  width:100%;
+  height:56px;
+  padding:22px 20px 10px;
+  font-size:15px;
+  font-weight:500;
+  background:var(--field-bg);
+  color:var(--ink);
+  border:none;
+  border-radius:18px;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);
+  transition:box-shadow .25s ease,background .25s ease;
+}
+.reg-form .field input:not([type="checkbox"]):not([type="radio"]){
+  line-height:1.25;
+}
+.reg-form .field textarea{
+  min-height:72px;
+  padding-top:24px;
+  line-height:1.4;
+  resize:vertical;
+}
+.reg-form .field select{
+  padding:22px 48px 10px 20px;
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23bdbdbd' d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 18px center;
+  background-size:18px;
+  cursor:pointer;
+}
+.reg-form .field select option{
+  background:#0f0f0f;
+  color:var(--ink);
+}
+.reg-form .field select:focus,
+.reg-form .field textarea:focus,
+.reg-form .field input:not([type="checkbox"]):not([type="radio"]):focus{
+  outline:none;
+  box-shadow:inset 0 0 0 3px var(--red);
+  background:rgba(255,255,255,.08);
+}
+.reg-form .field label{
+  left:20px;
+  color:var(--muted);
+}
+.reg-form .field textarea + label{
+  pointer-events:none;
+}
+.reg-form .field select + label{
+  top:8px;
+  transform:none;
+  font-size:12px;
+  opacity:.95;
+  color:#fff;
+}
+.reg-form__agreements{
+  display:flex;
+  flex-direction:column;
+  gap:.9rem;
+}
+.field--agree{
+  background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:20px;
+  padding:1rem 1.2rem;
+  display:flex;
+  align-items:flex-start;
+  gap:.85rem;
+}
+.field--agree input{
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  width:26px;
+  height:26px;
+  margin-top:.2rem;
+  border-radius:9px;
+  border:2px solid rgba(255,255,255,.35);
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0));
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  flex-shrink:0;
+  position:relative;
+  transition:border-color .2s ease,background .2s ease,box-shadow .2s ease;
+}
+.field--agree input::after{
+  content:"";
+  width:10px;
+  height:16px;
+  border-right:2px solid #fff;
+  border-bottom:2px solid #fff;
+  transform-origin:bottom left;
+  transform:scale(0) rotate(45deg);
+  transition:transform .15s ease;
+}
+.field--agree input:checked{
+  background:linear-gradient(135deg,var(--red) 0%,var(--red-dark) 100%);
+  border-color:var(--red);
+  box-shadow:0 10px 24px rgba(213,0,0,.35);
+}
+.field--agree input:checked::after{
+  transform:scale(1) rotate(45deg);
+}
+.field--agree input:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(213,0,0,.4);
+}
+.field--agree label{
+  position:static;
+  transform:none;
+  opacity:1;
+  font-size:.95rem;
+  line-height:1.45;
+  color:var(--ink);
+}
+.field--agree a{
+  color:#ff5a5a;
+  font-weight:600;
+  text-decoration:none;
+}
+.field--agree a:hover{
+  text-decoration:underline;
+}
+@supports not (appearance:none){
+  .field--agree input{
+    appearance:auto;
+    -webkit-appearance:auto;
+    -moz-appearance:auto;
+    border-radius:4px;
+    background:#0a0a0a;
+  }
+  .field--agree input::after{display:none;}
+}
 
 /* ===== Responsive ===== */
 @media(max-width:500px){
@@ -198,151 +368,27 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
 @media (max-height:680px){ .modal__dialog{ max-height:96vh; } }
 
 /* Floating labels inside modal */
-.reg-form .field label{ left:20px; color:var(--muted); }
-.reg-form .field input:focus + label,
-.reg-form .field input:not(:placeholder-shown) + label,
+.reg-form .field input:not([type="checkbox"]):not([type="radio"]):focus + label,
+.reg-form .field input:not([type="checkbox"]):not([type="radio"]):not(:placeholder-shown) + label,
 .reg-form .field textarea:focus + label,
 .reg-form .field textarea:not(:placeholder-shown) + label{
   top:10px; transform:none; font-size:12px; opacity:.95; color:#fff;
 }
-.reg-form .field select + label{ top:10px; transform:none; font-size:12px; opacity:.95; left:20px; color:#fff; }
-
-
-/* FIX: prevent bottom overlap; make controls full-width */
-.reg-form .field select,
-.reg-form .field textarea{
-  width:100%;
-  display:block;
-}
-
-.reg-form .field select{
-  height:56px;
-  line-height:56px;
-  padding:0 20px;
-}
-
-/* make Address look like the inputs and not shrink */
-.reg-form .field textarea{
-  min-height:72px;
-  padding:12px 20px;
-  line-height:1.35;
-  resize:vertical;
-}
-
-/* ADDRESS: exact height */
-.reg-form .field textarea{
-  height:56px;              /* фикс вместо min-height */
-  padding:18px 20px 10px;   /* место под "плавающий" лейбл */
-  line-height:1.35;
-  resize:vertical;
-  width:100%;
-  display:block;
-}
-
-/* SELECT: отступ сверху под лейбл + тёмный стиль и стрелка */
-.reg-form .field select{
-  width:100%;
-  height:64px;                       /* чуть выше, чтобы поместить лейбл */
-  padding:22px 48px 10px 20px;       /* top 22px даёт место лейблу */
-  line-height:1.2;                   /* убираем вертикальный центринг */
-  border:none;
-  border-radius:18px;
-  box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);
-  background:var(--field-bg);
-  color:var(--ink);
-  appearance:none; -webkit-appearance:none; -moz-appearance:none;
-
-  /* стрелка */
-background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'> <path fill='%23bdbdbd' d='M7 10l5 5 5-5z'/></svg>");
-  background-repeat:no-repeat;
-  background-size:18px 18px;
-  background-position:right 16px center;
-}
-.reg-form .field select:focus{
-  outline:0;
-  box-shadow:inset 0 0 0 3px var(--red);
-}
-
-/* Лейбл у select — маленьким сверху, без перекрытия */
-.reg-form .field select + label{
-  top:8px;
-  left:20px;
-  transform:none;
-  font-size:12px;
-  opacity:.95;
-  color:#fff;
-  pointer-events:none;
-}
-
-/* Тёмные options там, где поддерживается */
-.reg-form .field select option{
-  background:#0f0f0f;
-  color:var(--ink);
-}
-
-/* Включаем системную тёмную тему для нативных попапов где можно */
-.modal__dialog,
-.reg-form .field select,
-.reg-form .field input,
-.reg-form .field textarea{
-  color-scheme:dark;
-}
-
-/* --- Unified fields: text, phone, textarea, select --- */
-.reg-form .field input,
-.reg-form .field textarea,
-.reg-form .field select{
-  box-sizing:border-box;
-  width:100%;
-  height:56px;
-  border-radius:18px;
-}
-
-/* Give room for the floating label when value is present (fixes +1 too) */
-.reg-form .field input:focus,
-.reg-form .field input:not(:placeholder-shown){
-  padding:22px 20px 10px;   /* pushes text down */
-  line-height:1.2;
-}
-
-/* Address: same height look, can expand if user resizes */
-.reg-form .field textarea{
-  padding:18px 20px 10px;
-  line-height:1.35;
-  resize:vertical;
-  min-height:56px;
-}
-
-/* Select: same height, clean arrow, dark popup */
-.reg-form .field select{
-  padding:22px 48px 10px 20px; /* top space for label + arrow room */
-  border:none;
-  box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);
-  background:var(--field-bg);
-  color:var(--ink);
-  appearance:none; -webkit-appearance:none; -moz-appearance:none;
-  background-image:url("data:image/svg+xml;utf8, <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'> <path fill='%23bdbdbd' d='M7 10l5 5 5-5z'/></svg>");
-  background-repeat:no-repeat;
-  background-size:18px 18px;
-  background-position:right 16px center;
-}
-.reg-form .field select:focus{ outline:0; box-shadow:inset 0 0 0 3px var(--red); }
-
-/* Select label stays small on top, no overlap */
-.reg-form .field select + label{
-  top:8px; left:20px; transform:none;
-  font-size:12px; opacity:.95; color:#fff; pointer-events:none;
-}
 
 /* Dark dropdown where supported */
-.reg-form .field select option{ background:#0f0f0f; color:var(--ink); }
-.modal__dialog, .reg-form .field select, .reg-form .field input, .reg-form .field textarea{ color-scheme:dark; }
+.modal__dialog,
+.reg-form .field select,
+.reg-form .field textarea,
+.reg-form .field input:not([type="checkbox"]):not([type="radio"]){
+  color-scheme:dark;
+}
 
 
 </style>
 </head>
 
 <body>
+{% include "includes/marketing_body.html" %}
 <div id="bg"></div>
 
 <div class="wrapper">
@@ -384,67 +430,82 @@ background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000
     <h2>Create account</h2>
     <form id="regForm" class="reg-form" method="post" action="{% url 'register' %}">
       {% csrf_token %}
-      <div class="field"><input type="text" name="username" placeholder=" " required><label>Username</label></div>
-      <div class="field"><input type="email" name="email" placeholder=" " required><label>E-mail</label></div>
-      <div class="field">
-        <input
-          type="tel"
-          id="regPhone"
-          name="phone"
-          placeholder="(555) 123‑4567"
-          value="+1 "
-          required
-          inputmode="tel"
-          autocomplete="tel"
-        />
-        <label for="regPhone">Phone</label>
-      </div>
-      <div class="field">
-        <input type="password" name="password1" placeholder=" " required>
-        <label>Password</label>
-        <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
-          <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-          <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
-        </button>
-      </div>
-
-      <div class="field">
-        <input type="password" name="password2" placeholder=" " required>
-        <label>Confirm password</label>
-        <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
-          <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-          <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
-        </button>
-      </div>
-
-      <!-- Address -->
-      <div class="field">
-        <textarea name="address" placeholder=" " rows="2"></textarea>
-        <label>Address</label>
-      </div>
-
-      <!-- How did you hear about us -->
-      <div class="field">
-        <select name="how_heard" placeholder=" ">
-          <option value="">— Select —</option>
-          <option value="google">Google search</option>
-          <option value="instagram">Instagram</option>
-          <option value="tiktok">TikTok</option>
-          <option value="friend">Friends/Family</option>
-          <option value="other">Other</option>
-        </select>
-        <label>How did you hear about us?</label>
-      </div>
-
-      <!-- Consent -->
-      <div class="field" style="display:flex;align-items:center;gap:.6rem;">
-        <input id="consentEmail" type="checkbox" name="email_marketing_consent" style="width:auto;height:auto;">
-        <label for="consentEmail" style="position:static;transform:none;opacity:1;font-size:14px;color:var(--muted);">
-          I agree to receive e‑mail updates and offers
-        </label>
+      <div class="reg-form__grid">
+        <div class="field">
+          <input type="text" name="username" placeholder=" " required>
+          <label>Username</label>
+        </div>
+        <div class="field">
+          <input type="email" name="email" placeholder=" " required>
+          <label>E-mail</label>
+        </div>
+        <div class="field">
+          <input
+            type="tel"
+            id="regPhone"
+            name="phone"
+            placeholder="(555) 123‑4567"
+            value="+1 "
+            required
+            inputmode="tel"
+            autocomplete="tel"
+          />
+          <label for="regPhone">Phone</label>
+        </div>
+        <div class="field">
+          <input type="password" name="password1" placeholder=" " required>
+          <label>Password</label>
+          <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+            <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+            <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+          </button>
+        </div>
+        <div class="field">
+          <input type="password" name="password2" placeholder=" " required>
+          <label>Confirm password</label>
+          <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+            <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+            <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+          </button>
+        </div>
+        <div class="field" data-span="full">
+          <textarea name="address" placeholder=" " rows="2"></textarea>
+          <label>Address</label>
+        </div>
+        <div class="field" data-span="full">
+          <select name="how_heard" placeholder=" ">
+            <option value="">— Select —</option>
+            <option value="google">Google search</option>
+            <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
+            <option value="tiktok">TikTok</option>
+            <option value="friend">Friends/Family</option>
+            <option value="other">Other</option>
+          </select>
+          <label>How did you hear about us?</label>
+        </div>
       </div>
 
-      <ul class="errorlist" id="regErrors" style="display:none;"></ul>
+      <div class="reg-form__agreements">
+        <div class="field field--agree">
+          <input id="consentEmail" type="checkbox" name="email_marketing_consent">
+          <label for="consentEmail">
+            I agree to receive e‑mail updates and offers.
+          </label>
+        </div>
+
+        <div class="field field--agree">
+          <input id="acceptTerms" type="checkbox" name="accepted_terms" required>
+          <label for="acceptTerms">
+            I have read and agree to the
+            <a href="{% url 'legal-terms' %}" target="_blank" rel="noopener">
+              Terms &amp; Conditions
+            </a>.
+          </label>
+        </div>
+      </div>
+
+      <ul class="errorlist" id="regErrors" role="alert" aria-live="assertive" style="display:none;"></ul>
       <button type="submit" class="btn">Sign up</button>
     </form>
   </div>
@@ -581,5 +642,6 @@ setTimeout(fitCard,0);
   document.querySelectorAll('#regModal .field .toggle-eye').forEach(attachEye);
 })();
 </script>
+{% include "includes/analytics_tracker.html" %}
 </body>
 </html>

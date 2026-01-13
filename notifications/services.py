@@ -1,0 +1,289 @@
+"""
+Utilities for the Telegram bot integration.
+"""
+from __future__ import annotations
+
+import html
+from datetime import timedelta
+from decimal import Decimal
+from typing import Sequence
+
+from django.db.models import (
+    DecimalField,
+    ExpressionWrapper,
+    F,
+    Sum,
+    Value,
+)
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from django.utils.timezone import localtime
+from telebot import TeleBot
+from telebot.apihelper import ApiTelegramException
+
+from .models import (
+    TelegramBotSettings,
+    TelegramMessageLog,
+    TelegramReminder,
+)
+
+
+class TelegramConfigurationError(Exception):
+    """Raised when Telegram bot actions are requested without valid settings."""
+
+
+def build_bot(settings_obj: TelegramBotSettings | None = None) -> tuple[TeleBot, TelegramBotSettings]:
+    settings_obj = settings_obj or TelegramBotSettings.load_active()
+    if not settings_obj:
+        raise TelegramConfigurationError("Telegram bot is not configured or disabled.")
+    bot = TeleBot(settings_obj.bot_token, parse_mode="HTML", threaded=False)
+    return bot, settings_obj
+
+
+def send_telegram_message(
+    message: str,
+    *,
+    event_type: str,
+    chat_ids: Sequence[int] | None = None,
+) -> int:
+    """
+    Sends a Telegram message and persists the send result.
+    """
+    try:
+        bot, settings_obj = build_bot()
+    except TelegramConfigurationError:
+        return 0
+
+    recipients = list(chat_ids or settings_obj.chat_id_list)
+    if not recipients:
+        return 0
+
+    delivered = 0
+    for chat_id in recipients:
+        success = True
+        error_text = ""
+        try:
+            bot.send_message(chat_id, message, disable_web_page_preview=True)
+            delivered += 1
+        except ApiTelegramException as exc:
+            success = False
+            error_text = f"{exc.__class__.__name__}: {exc}"
+        except Exception as exc:
+            success = False
+            error_text = f"{exc.__class__.__name__}: {exc}"
+
+        TelegramMessageLog.objects.create(
+            chat_id=chat_id,
+            event_type=event_type,
+            payload=message,
+            success=success,
+            error_message=error_text[:500],
+        )
+    return delivered
+
+
+def notify_about_appointment(appointment_id) -> int:
+    settings_obj = TelegramBotSettings.load_active()
+    if not settings_obj or not settings_obj.notify_on_new_appointment:
+        return 0
+    from core.models import Appointment
+
+    appointment = Appointment.objects.select_related(
+        "service",
+        "master",
+        "client",
+    ).get(pk=appointment_id)
+
+    client_name = appointment.contact_name
+    if not client_name and appointment.client:
+        client_name = appointment.client.get_full_name() or appointment.client.username
+    client_name = client_name or "Guest"
+
+    master_name = appointment.master.get_full_name() or appointment.master.username
+    service_name = appointment.service.name
+    start = localtime(appointment.start_time).strftime("%Y-%m-%d %H:%M")
+    message = (
+        f"<b>New appointment booked</b>\n"
+        f"Client: {client_name}\n"
+        f"Service: {service_name}\n"
+        f"Master: {master_name}\n"
+        f"When: {start}\n"
+    )
+    if appointment.contact_phone:
+        message += f"Phone: {appointment.contact_phone}\n"
+    if appointment.contact_email:
+        message += f"Email: {appointment.contact_email}\n"
+
+    return send_telegram_message(
+        message,
+        event_type=TelegramMessageLog.EVENT_APPOINTMENT_CREATED,
+    )
+
+
+def notify_about_order(order_id) -> int:
+    settings_obj = TelegramBotSettings.load_active()
+    if not settings_obj or not settings_obj.notify_on_new_order:
+        return 0
+
+    from store.models import Order
+
+    order = (
+        Order.objects.select_related("user")
+        .prefetch_related("items__product", "items__option")
+        .get(pk=order_id)
+    )
+
+    lines = []
+    for item in order.items.all():
+        option_label = f" ({item.option.name})" if getattr(item, "option", None) else ""
+        lines.append(f"• {item.product.name}{option_label} × {item.qty}")
+
+    total = f"{order.total:.2f}"
+    message = (
+        f"<b>New order #{order.pk}</b>\n"
+        f"Customer: {order.customer_name}\n"
+        f"Email: {order.email}\n"
+        f"Phone: {order.phone or '—'}\n"
+        f"Total: {total}\n"
+    )
+    if lines:
+        message += "Items:\n" + "\n".join(lines)
+    if order.notes:
+        message += f"\nNote: {order.notes}"
+
+    return send_telegram_message(
+        message,
+        event_type=TelegramMessageLog.EVENT_ORDER_CREATED,
+    )
+
+
+def notify_about_service_lead(lead_id) -> int:
+    """
+    Notify ops chat about a new marketing/landing page inquiry.
+    """
+    settings_obj = TelegramBotSettings.load_active()
+    if not settings_obj:
+        return 0
+
+    from core.models import ServiceLead  # late import to avoid circular dependency
+
+    lead = ServiceLead.objects.get(pk=lead_id)
+
+    def _safe(val: str | None) -> str:
+        return html.escape(val) if val else "—"
+
+    message = (
+        "<b>New service lead</b>\n"
+        f"Page: {_safe(lead.get_source_page_display())}\n"
+        f"Name: {_safe(lead.full_name)}\n"
+        f"Phone: {_safe(lead.phone)}\n"
+        f"Email: {_safe(lead.email)}\n"
+        f"Service: {_safe(lead.service_needed)}\n"
+    )
+    if lead.vehicle:
+        message += f"Vehicle: {_safe(lead.vehicle)}\n"
+    if lead.notes:
+        message += f"Notes: {_safe(lead.notes)}\n"
+    if lead.source_url:
+        message += f"Source: {_safe(lead.source_url)}"
+
+    return send_telegram_message(
+        message,
+        event_type=TelegramMessageLog.EVENT_SERVICE_LEAD,
+    )
+
+
+def build_operations_digest() -> str:
+    """
+    Returns a daily overview of appointments and store activity.
+    """
+    from core.models import Appointment
+    from store.models import Order, OrderItem
+
+    today = timezone.localdate()
+    now = timezone.now()
+    today_appointments = Appointment.objects.filter(start_time__date=today)
+    appt_count = today_appointments.count()
+    upcoming = (
+        Appointment.objects.filter(start_time__gte=now)
+        .select_related("service", "master")
+        .order_by("start_time")[:3]
+    )
+    orders_processing = Order.objects.filter(status=Order.STATUS_PROCESSING).count()
+    recent_window = today - timedelta(days=7)
+    money_expr = ExpressionWrapper(
+        Coalesce(F("price_at_moment"), Value(0)) * F("qty"),
+        output_field=DecimalField(max_digits=12, decimal_places=2),
+    )
+    revenue_val = (
+        OrderItem.objects.filter(order__completed_at__date__gte=recent_window)
+        .aggregate(total=Sum(money_expr))
+        .get("total")
+        or Decimal("0.00")
+    )
+    message = (
+        f"<b>Daily operations — {today.strftime('%Y-%m-%d')}</b>\n"
+        f"Appointments today: {appt_count}\n"
+        f"Open orders: {orders_processing}\n"
+        f"Completed revenue (7d): {revenue_val:.2f}\n"
+    )
+    if upcoming:
+        message += "\nNext appointments:\n"
+        for slot in upcoming:
+            slot_time = localtime(slot.start_time).strftime("%b %d %H:%M")
+            master_name = slot.master.get_full_name() or slot.master.username
+            message += f"• {slot.service.name} with {master_name} at {slot_time}\n"
+    return message
+
+
+def send_daily_digest(force: bool = False) -> int:
+    settings_obj = TelegramBotSettings.load_active()
+    if not settings_obj or (not settings_obj.digest_enabled and not force):
+        return 0
+
+    today = timezone.localdate()
+    current_hour = localtime(timezone.now()).hour
+    if not force and current_hour < settings_obj.digest_hour_local:
+        return 0
+    if not force and settings_obj.last_digest_sent_on == today:
+        return 0
+
+    delivered = send_telegram_message(
+        build_operations_digest(),
+        event_type=TelegramMessageLog.EVENT_DIGEST,
+    )
+    if delivered:
+        settings_obj.last_digest_sent_on = today
+        settings_obj.save(update_fields=["last_digest_sent_on", "updated_at"])
+    return delivered
+
+
+def deliver_reminder(reminder: TelegramReminder) -> int:
+    settings_obj = TelegramBotSettings.load_active()
+    recipients = reminder.chat_id_list or (settings_obj.chat_id_list if settings_obj else [])
+    if not recipients:
+        reminder.mark_sent(
+            success=False,
+            error_message="Telegram bot is disabled or no recipients are configured.",
+        )
+        return 0
+
+    text = f"<b>{reminder.title}</b>\n{reminder.message}"
+    delivered = send_telegram_message(
+        text,
+        event_type=TelegramMessageLog.EVENT_REMINDER,
+        chat_ids=recipients,
+    )
+    if delivered:
+        reminder.mark_sent(success=True)
+    else:
+        reminder.mark_sent(success=False, error_message="Failed to deliver reminder.")
+    return delivered
+
+
+def process_due_reminders() -> int:
+    processed = 0
+    for reminder in TelegramReminder.due().order_by("scheduled_for"):
+        deliver_reminder(reminder)
+        processed += 1
+    return processed

@@ -5,6 +5,9 @@
   <meta charset="utf-8" />
   <title>BGM Customs — Store (Coming Soon)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {% with meta_title="BGM Customs — Store (Coming Soon)" meta_description="Get on the waitlist for the BGM Customs store featuring aero, lighting, and track-proven performance parts." meta_section="store" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
   <style>
     :root{
       --bg:#000000; --fg:#FFFFFF; --muted:rgba(255,255,255,.72); --muted-2:rgba(255,255,255,.55);
@@ -290,10 +293,33 @@
         pointer-events:auto;
         transform:translateY(0);
       }
+      /* Keep overlay above everything else (needed because nav lives inside the header) */
+.site-header{ z-index: 1000; }
+
+/* Smooth mobile panel scroll & prevent bounce issues */
+@media (max-width:960px){
+  .site-header nav{
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
     }
+    /* Keep overlay above everything else (needed because nav lives inside the header) */
+.site-header{ z-index: 1000; }
+
+/* Smooth mobile panel scroll & prevent bounce issues */
+@media (max-width:960px){
+  .site-header nav{
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
   </style>
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
   <div id="bg"></div>
 
 <header class="site-header" role="banner">
@@ -385,6 +411,7 @@
 <script src="{% static 'js/topbar.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+{% include "includes/analytics_tracker.html" %}
 
 </body>
 </html>

@@ -5,6 +5,9 @@
   <meta charset="utf-8">
   <title>Bad Guy Motors — Upgrades & Booking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with meta_title="Bad Guy Motors — Upgrades & Booking" meta_description="Browse detailing, protection, and performance services with live pricing from Bad Guy Motors." meta_section="services" meta_keywords=marketing.default_keywords %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
 
   <!-- Performance hints -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,6 +39,7 @@
     img{max-width:100%;display:block}
     a{color:inherit;text-decoration:none}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
+    .visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
     /* Buttons */
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;padding:.78rem 1.15rem;border-radius:var(--radius-sm);
@@ -93,7 +97,8 @@
       color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
 
     .service-card h3{font-size:1.06rem;font-weight:900;letter-spacing:.2px}
-    .service-meta{font-size:.92rem;color:var(--muted)}
+    .service-meta{font-size:.92rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.35rem .5rem;align-items:baseline}
+    .service-meta .price__hint{white-space:normal}
     .stub{font-style:italic;color:var(--muted);padding:1rem;border:1px dashed var(--line);border-radius:.5rem;background:rgba(255,255,255,.02)}
     .muted{color:var(--muted);font-size:.95rem}
     .old{color:rgba(255,255,255,.35);text-decoration:line-through}
@@ -115,8 +120,18 @@
     .modal__dialog{background:linear-gradient(180deg, #0c0c0c, #121212);border-radius:1rem;box-shadow:0 14px 36px rgba(0,0,0,.75), 0 0 32px rgba(213,0,0,.18);
       width:min(940px,96vw);border:1px solid var(--line);padding:1.2rem 1.25rem 1rem;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:var(--ink)}
     .modal__header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
-    .modal__title{font:900 1.18rem/1 Inter;text-transform:uppercase;letter-spacing:.6px}
-    .modal__title span{color:var(--red)}
+    .modal__title{
+      font-family:var(--font-body);
+      font-weight:900;
+      font-size:1.35rem;
+      line-height:1.2;
+      letter-spacing:.04em;
+      text-transform:none;
+    }
+    .modal__title span{
+      color:var(--red);
+      font-family:inherit;
+    }
     .modal__close{background:transparent;border:1px solid var(--line);font-size:1.2rem;line-height:1;cursor:pointer;color:var(--muted);border-radius:.5rem;width:36px;height:36px}
     .grid-2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:1rem;flex:1 1 auto;min-height:0}
     .grid-2>div{min-height:0}
@@ -149,9 +164,34 @@
     .slot-free:hover{border-color:rgba(213,0,0,.55);box-shadow:0 0 16px rgba(213,0,0,.25)}
     .slot-busy{color:#fff;background:var(--red);opacity:.9}
     .slot-selected{background:var(--red)!important;color:#fff;border-color:var(--red)!important;box-shadow:0 0 0 2px rgba(213,0,0,.35)}
+    .mobile-picker{display:none;flex-direction:column;gap:1rem;margin-top:.75rem;border:1px solid var(--line);border-radius:var(--radius-md);padding:1rem;background:linear-gradient(180deg,#080808,#0d0d0d)}
+    .mobile-picker__headline{display:flex;align-items:center;justify-content:space-between;gap:.75rem}
+    .mobile-picker__eyebrow{font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+    .mobile-picker__selected{font-weight:900;font-size:1.05rem;line-height:1.2}
+    .mobile-picker__today{border:1px solid var(--line);background:#111;border-radius:999px;padding:.4rem .95rem;font-size:.85rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink);cursor:pointer}
+    .mobile-picker__today:active{transform:scale(.98)}
+    .mobile-day-scroll{display:flex;gap:.45rem;overflow-x:auto;padding-bottom:.1rem;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+    .mobile-day-scroll::-webkit-scrollbar{display:none}
+    .mobile-day-pill{display:flex;flex-direction:column;gap:.05rem;min-width:96px;border-radius:.9rem;border:1px solid rgba(255,255,255,.14);background:#131313;padding:.55rem .7rem;color:#fff;cursor:pointer;text-align:left;font-weight:600;transition:.2s}
+    .mobile-day-pill span{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+    .mobile-day-pill strong{font-size:.98rem;font-weight:900}
+    .mobile-day-pill--selected{border-color:var(--red);background:var(--red);box-shadow:0 0 0 2px rgba(213,0,0,.35)}
+    .mobile-picker__row{display:flex;flex-direction:column;gap:.5rem}
+    .mobile-picker__row label,.mobile-picker__label{font-size:.8rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+    .mobile-picker__slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem}
+    .mobile-slot-btn{padding:.75rem 1rem;border-radius:.8rem;border:1px solid rgba(255,255,255,.18);background:#131313;color:#fff;font-weight:800;font-size:1rem;letter-spacing:.02em;cursor:pointer;text-align:center;transition:.2s}
+    .mobile-slot-btn:hover,.mobile-slot-btn:focus-visible{border-color:rgba(213,0,0,.55);box-shadow:0 0 16px rgba(213,0,0,.18)}
+    .mobile-slot-btn--selected{background:var(--red);border-color:var(--red);box-shadow:0 0 0 2px rgba(213,0,0,.35)}
+    .mobile-slot-btn[disabled]{opacity:.45;cursor:not-allowed}
+    .mobile-picker__empty{display:none;font-size:.95rem;color:var(--muted);font-weight:600;text-align:center}
     .modal__dialog{width:min(940px,calc(100dvw - 2rem));max-height:calc(100dvh - 2rem)}
     @supports not (height:100dvh){.modal__dialog{width:min(940px,calc(100vw - 2rem));max-height:calc(100vh - 2rem)}}
     @media (max-width:900px){.modal__dialog{width:min(96vw,720px)}.grid-2{grid-template-columns:1fr}.outlook__wrap{max-height:50vh}}
+    @media (max-width:768px){
+      .outlook{display:none}
+      .hint{display:none}
+      .mobile-picker{display:flex}
+    }
 
     /* Master picker (аватарки) */
     .masters{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.25rem}
@@ -175,259 +215,6 @@
 
 /* убираем прежний фон у hero, чтобы был виден дым */
 .hero{background:transparent;}
-/* ===== TOP BAR — как на странице бронирования ===== */
-
-/* фон + blur + бордер */
-.site-header{
-  background:rgba(0,0,0,.65) !important;
-  backdrop-filter:saturate(1.2) blur(8px) !important;
-  border-bottom:1px solid var(--line) !important;
-}
-
-/* контейнер: слева бренд, справа меню */
-.site-header__inner{
-  display:flex !important;
-  align-items:center !important;
-  justify-content:space-between !important;
-  gap:1rem !important;
-  padding:.8rem 0 !important;
-}
-
-/* бренд */
-.brand{ display:flex !important; align-items:center !important; gap:.75rem !important; font-weight:900 !important; letter-spacing:.5px !important; }
-
-/* делаем квадрат-логотип, слова BAD GUY / MOTORS скрываем */
-.brand__logo{
-  width:34px !important; height:34px !important; border-radius:10px !important;
-
-  box-shadow:0 0 40px -6px #ff1a1a !important;
-  display:inline-block !important;
-}
-.brand__logo .brand__word{ display:none !important; }
-
-/* подпись "BGM Customs" как на второй странице */
-.brand::after{
-  font-weight:900; letter-spacing:.5px;
-}
-
-/* убираем слоган на первой странице */
-.brand__tagline{ display:none !important; }
-
-/* меню */
-.site-header nav{ margin-left:auto !important; }
-.site-header nav ul{
-  display:flex !important; align-items:center !important; gap:.75rem !important;
-  list-style:none !important; margin:0 !important; padding:0 !important; flex-wrap:nowrap !important;
-}
-.site-header nav a{
-  padding:.55rem .8rem !important; border-radius:.55rem !important;
-  background:transparent !important; border:1px solid transparent !important;
-  color:inherit !important; line-height:1 !important;
-}
-.site-header nav a[aria-current="page"]{
-  background:rgba(255,255,255,.04) !important; border-color:var(--line) !important;
-}
-
-/* badge S O O N — такой же */
-.site-header .badge{ font-size:.78rem; padding:.15rem .55rem; border-radius:999px;
-  background:var(--accent) !important; color:#fff !important; border:1px solid rgba(255,255,255,.14) !important;
-}
-
-/* «Login» в хедере — Ghost как на второй странице */
-.site-header nav .btn,
-.site-header nav .btn--ghost{
-  background:transparent !important; border:1px solid var(--accent) !important;
-  padding:.55rem .8rem !important; border-radius:.55rem !important; line-height:1 !important;
-}
-
-/* на узких можно сжать подпись бренда */
-@media (max-width: 900px){
-  .brand::after{ content:"BGM"; }
-}
-
-/* ===== TOP BAR (один в один как на бронировании) ===== */
-.site-header{
-  position:sticky; top:0; z-index:10;
-  background:rgba(0,0,0,.65);
-  backdrop-filter:saturate(1.2) blur(8px);
-  border-bottom:1px solid var(--line);
-}
-.site-header__inner{
-  display:flex; align-items:center; justify-content:space-between;
-  gap:1rem; padding:.8rem 0;
-}
-.brand{ display:flex; align-items:center; gap:.75rem; font-weight:900; letter-spacing:.5px; }
-
-/* квадрат-логотип с тем же свечением */
-.brand__logo{
-  width:34px; height:34px; border-radius:10px;
-  background:radial-gradient(90% 90% at 30% 30%, #ff1a1a, var(--red));
-  box-shadow:0 0 40px -6px #ff1a1a;
-}
-
-/* если внутри логотипа есть старые слова — прячем их; если текста бренда нет, подставим его псевдо-элементом */
-.brand__logo .brand__word{ display:none; }
-.brand:not(:has(> span:not(.brand__logo)))::after{
-  content:"BGM Customs"; margin-left:.4rem;
-}
-
-/* меню: как на второй странице */
-.site-header nav ul{ display:flex; list-style:none; gap:.75rem; margin:0; padding:0; }
-.site-header nav a{
-  padding:.55rem .8rem; border-radius:.55rem;
-}
-.site-header nav a[aria-current="page"]{
-  background:rgba(255,255,255,.04); border:1px solid var(--line);
-}
-
-/* «Login» — тот же ghost-баттон */
-.site-header nav .btn.btn--ghost{
-  background:transparent; color:var(--ink); border:1px solid var(--red);
-}
-.site-header nav .btn.btn--ghost:hover{ box-shadow:0 0 18px rgba(213,0,0,.35); transform:translateY(-1px); }
-
-/* плашка Soon — та же форма */
-.site-header .badge{
-  font-size:.78rem; padding:.15rem .55rem; border-radius:999px;
-  background:var(--red); color:#fff; border:1px solid rgba(255,255,255,.14);
-}
-
-/* на узких можно укорачивать подпись */
-@media (max-width:900px){
-  .brand:has(> span:not(.brand__logo)) span:last-child{ display:none; } /* скрыть длинный текст, если есть */
-  .brand:not(:has(> span:not(.brand__logo)))::after{ content:"BGM"; }
-}
-/* === TOP BAR: как на второй картинке ================================== */
-.site-header{
-  position:sticky; top:0; z-index:1000;
-  background:#000 !important;           /* без полупрозрачности/blur */
-  border-bottom:1px solid rgba(255,255,255,.12) !important;
-  backdrop-filter:none !important;
-}
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns:auto 1fr !important; /* бренд слева, меню вправо */
-  align-items:center !important;
-  gap:1.2rem !important;
-  padding:.7rem 0 !important;
-}
-
-/* Бренд: BAD GUY (белый) + MOTORS (красный) + слоган справа от логотипа */
-.brand{display:flex !important; align-items:baseline !important; gap:.9rem !important; min-width:max-content;}
-.brand__logo{all:unset !important; display:inline-flex !important; gap:.5rem !important; line-height:1; font-weight:900; letter-spacing:.06em; font-size:1rem;}
-.brand__word--white{color:#fff !important;}
-.brand__word--red{color:#d50000 !important;}
-.brand__tagline{
-  margin-left:1.1rem !important; white-space:nowrap !important;
-  font-size:.82rem !important; font-weight:800 !important;
-  letter-spacing:.14em !important; color:rgba(255,255,255,.72) !important;
-  text-transform:uppercase !important;
-}
-
-/* Меню: одной строкой, капсом, с трекингом, как на второй картинке */
-.site-header nav{margin-left:auto !important;}
-.site-header nav ul{
-  display:flex !important; align-items:center !important; flex-wrap:nowrap !important;
-  gap:1.6rem !important; margin:0 !important; padding:0 !important; list-style:none !important;
-}
-.site-header nav a{
-  background:none !important; border:0 !important; border-radius:0 !important; padding:0 !important; line-height:1 !important;
-  text-transform:uppercase !important; font-weight:800 !important; letter-spacing:.08em !important; font-size:.82rem !important;
-  color:rgba(255,255,255,.78) !important;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-/* Красная плашка SOON (caps) */
-.site-header .badge{
-  display:inline-block; font-size:.72rem !important; padding:.18rem .55rem !important;
-  border-radius:999px !important; background:#d50000 !important; color:#fff !important;
-  border:1px solid rgba(255,255,255,.14) !important; text-transform:uppercase !important; letter-spacing:.06em;
-}
-
-/* «Login» выглядит как обычный пункт меню (не кнопка) */
-.site-header nav .btn,
-.site-header nav .btn--ghost{ all:unset !important; cursor:pointer !important; }
-
-/* На узких — прячем слоган, чтобы всё было в одну строку */
-@media (max-width:1100px){ .brand__tagline{ display:none !important; } }
-/* вернуть текст BAD GUY / MOTORS и слоган */
-.brand::after{ content:none !important; }                /* убираем псевдо-текст "BGM Customs" */
-.brand__logo .brand__word{ display:inline !important; }  /* показываем слова снова */
-.brand__tagline{ display:inline !important; }            /* на всякий случай */
-
-/* оформление как на главной */
-.brand{
-  display:flex !important; align-items:baseline !important; gap:.9rem !important;
-  font-weight:900 !important; letter-spacing:.06em !important; min-width:max-content;
-  text-transform:uppercase;
-}
-.brand__word--white{ color:#fff !important; }
-.brand__word--red  { color:#d50000 !important; }
-.brand__tagline{
-  margin-left:1.1rem; white-space:nowrap;
-  font-size:.82rem; font-weight:800; letter-spacing:.14em;
-  color:rgba(255,255,255,.72); text-transform:uppercase;
-}
-
-/* бренд слева, меню вправо — одна линия */
-.site-header__inner{
-  display:grid !important; grid-template-columns:auto 1fr !important;
-  align-items:center !important; gap:1.2rem !important;
-}
-.site-header nav{ margin-left:auto !important; }
-
-/* на узких экранах прячем слоган, чтобы меню не ломалось */
-@media (max-width:1100px){ .brand__tagline{ display:none !important; } }
-/* ===== ONE-LINE, FULL-WIDTH TOP BAR ===== */
-
-/* растянуть контейнер хедера на всю ширину окна */
-.site-header .container{
-  width:100% !important;
-  max-width:none !important;
-  padding-inline:24px !important; /* чуть воздуха по краям */
-}
-
-/* сетка: слева бренд+слоган, справа меню */
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns:auto 1fr !important;
-  align-items:center !important;
-  gap:1.2rem !important;
-}
-
-/* бренд и слоган — не переносятся */
-.brand{min-width:max-content !important;}
-.brand__tagline{white-space:nowrap !important;}
-
-/* меню — одна линия, без переносов слов */
-.site-header nav{justify-self:end; min-width:0;}
-.site-header nav ul{
-  display:flex !important;
-  flex-wrap:nowrap !important;
-  gap:1.6rem !important;
-}
-.site-header nav a{
-  display:inline-flex !important;
-  align-items:center !important;
-  white-space:nowrap !important;   /* ← ключ от "CLIENT" / "PORTAL" в две строки */
-  line-height:1 !important;
-}
-
-/* если становится тесно — прячем слоган и немного уменьшаем gap */
-@media (max-width:1240px){
-  .brand__tagline{display:none !important;}
-}
-@media (max-width:1080px){
-  .site-header nav ul{gap:1.1rem !important;}
-}
-
-/* (опция) на очень узких экранах лучше проскроллить, чем ломать в 2 строки */
-@media (max-width:900px){
-  .site-header nav{overflow-x:auto; scrollbar-width:none;}
-  .site-header nav::-webkit-scrollbar{display:none;}
-}
-
   </style>
 
   <style>
@@ -456,7 +243,7 @@
     /* заголовки и акценты */
     h1,h2,h3,h4,h5,h6,
     .brand, .brand__word,
-    .btn, .badge, nav a, .modal__title{
+    .btn, .badge, nav a{
       font-family:var(--font-head) !important;
     }
     /* === Booking page — readability & topbar overrides ==================== */
@@ -606,19 +393,100 @@ main h3{
   }
 </style>
 
-<style id="topbar-responsive">
-  .sr-only{
-    position:absolute;
-    width:1px;
-    height:1px;
-    padding:0;
-    margin:-1px;
-    overflow:hidden;
-    clip:rect(0,0,0,0);
+<style id="topbar-home-clone">
+  /* desktop baseline */
+  .site-header{
+    position:sticky;
+    top:0;
+    z-index:1000;
+    background:#000;
+    border-bottom:1px solid var(--line);
+    backdrop-filter:none;
+  }
+  .site-header__inner{
+    display:grid;
+    grid-template-columns:auto 1fr;
+    align-items:center;
+    gap:1.25rem;
+    padding:.7rem 0;
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:.9rem;
+    min-width:max-content;
+    font-weight:900;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+  }
+  .brand__logo{
+    all:unset;
+    display:inline-flex;
+    gap:.5rem;
+    line-height:1;
+    font-weight:900;
+    letter-spacing:.06em;
+    font-size:1rem;
+  }
+  .brand__word--white{color:#fff;}
+  .brand__word--red{color:#d50000;}
+  .brand__tagline{
+    margin-left:1.1rem;
     white-space:nowrap;
-    border:0;
+    font-size:.82rem;
+    font-weight:800;
+    letter-spacing:.14em;
+    color:rgba(255,255,255,.72);
+  }
+  .site-header nav{
+    margin-left:auto;
+    display:flex;
+    justify-content:flex-end;
+    min-width:0;
+  }
+  .site-header nav ul{
+    display:flex;
+    align-items:center;
+    gap:1.6rem;
+    margin:0;
+    padding:0;
+    list-style:none;
+    flex-wrap:nowrap;
+  }
+  .site-header nav li + li::before{content:none;}
+  .site-header nav a{
+    background:none!important;
+    border:0!important;
+    border-radius:0;
+    padding:0!important;
+    line-height:1;
+    text-transform:uppercase;
+    font-weight:800;
+    letter-spacing:.08em;
+    font-size:.82rem;
+    color:rgba(255,255,255,.75);
+  }
+  .site-header nav a:hover,
+  .site-header nav a[aria-current=\"page\"]{
+    color:#fff;
+  }
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    padding:0!important;
+    border:none!important;
+    background:none!important;
+  }
+  .site-header .badge{
+    padding:.12rem .5rem;
+    font-size:.72rem;
+    transform:translateY(-.04rem);
   }
 
+  @media (max-width:1200px){
+    .brand__tagline{display:none;}
+  }
+
+  /* mobile toggle */
   .site-header__toggle{
     display:none;
     align-items:center;
@@ -630,43 +498,43 @@ main h3{
     background:rgba(255,255,255,.06);
     color:#fff;
     cursor:pointer;
-    transition:transform .18s ease, background .18s ease, border-color .18s ease;
+    transition:transform .2s ease, border-color .2s ease, background .2s ease;
   }
   .site-header__toggle:hover{
+    border-color:rgba(255,255,255,.35);
     background:rgba(255,255,255,.12);
-    border-color:rgba(255,255,255,.28);
   }
   .site-header__toggle:focus-visible{
-    outline:2px solid rgba(255,255,255,.92);
-    outline-offset:3px;
+    outline:2px solid #fff;
+    outline-offset:2px;
   }
   .site-header__toggle-box{
-    position:relative;
-    width:20px;
-    height:14px;
-    display:block;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    height:100%;
   }
   .site-header__toggle-lines,
   .site-header__toggle-lines::before,
   .site-header__toggle-lines::after{
-    content:"";
+    content:\"\"; display:block;
+    width:20px; height:2px;
+    border-radius:999px;
+    background:#fff;
+    position:relative;
+    transition:transform .2s ease, opacity .2s ease;
+  }
+  .site-header__toggle-lines::before,
+  .site-header__toggle-lines::after{
     position:absolute;
     left:0;
-    width:100%;
-    height:2px;
-    border-radius:999px;
-    background:currentColor;
-    transition:transform .22s ease, opacity .22s ease, background .22s ease;
   }
-  .site-header__toggle-lines{ top:50%; transform:translateY(-50%); }
   .site-header__toggle-lines::before{ top:-6px; }
   .site-header__toggle-lines::after{ top:6px; }
-
-  .site-header--open .site-header__toggle{
-    background:rgba(255,255,255,.16);
-    border-color:rgba(255,255,255,.38);
+  .site-header--open .site-header__toggle-lines{
+    background:transparent;
   }
-  .site-header--open .site-header__toggle-lines{ background:transparent; }
   .site-header--open .site-header__toggle-lines::before{
     transform:translateY(6px) rotate(45deg);
   }
@@ -674,24 +542,14 @@ main h3{
     transform:translateY(-6px) rotate(-45deg);
   }
 
-  @media (max-width:1080px){
-    .site-header .belt{ display:none !important; }
-  }
-
   @media (max-width:960px){
     body.nav-open{ overflow:hidden; }
-
     .site-header{
       --site-header-height:max(62px, 10vh);
     }
-    .site-header .brand__tagline{ display:none !important; }
-    .site-header .container{
-      padding-inline:clamp(16px, 4vw, 24px) !important;
-    }
     .site-header__inner{
-      grid-template-columns:auto max-content !important;
-      align-items:center !important;
-      gap:clamp(12px, 3vw, 24px) !important;
+      grid-template-columns:auto max-content;
+      gap:clamp(12px, 3vw, 24px);
     }
     .site-header__toggle{
       display:inline-flex;
@@ -711,12 +569,12 @@ main h3{
       pointer-events:none;
       transform:translateY(-12px);
       transition:opacity .22s ease, transform .22s ease;
-      z-index:900;
+      z-index:2400;
     }
     .site-header nav ul{
-      flex-direction:column !important;
-      align-items:stretch !important;
-      gap:.45rem !important;
+      flex-direction:column;
+      align-items:stretch;
+      gap:.45rem;
       width:100%;
     }
     .site-header nav li{ width:100%; }
@@ -725,69 +583,46 @@ main h3{
     .site-header nav .btn--ghost{
       width:100%;
       justify-content:space-between;
-      background:rgba(255,255,255,.04) !important;
-      border:1px solid rgba(255,255,255,.08) !important;
-      border-radius:.85rem !important;
-      padding:.95rem 1rem !important;
-      font-size:1.05rem !important;
-      letter-spacing:.035em !important;
+      background:rgba(255,255,255,.04)!important;
+      border:1px solid rgba(255,255,255,.08)!important;
+      border-radius:.85rem!important;
+      padding:.95rem 1rem!important;
+      font-size:1.05rem!important;
+      letter-spacing:.035em!important;
     }
     .site-header nav a:hover,
-    .site-header nav a[aria-current="page"],
+    .site-header nav a[aria-current=\"page\"],
     .site-header nav .btn:hover{
-      background:rgba(255,255,255,.1) !important;
-      border-color:rgba(255,255,255,.22) !important;
-      color:#fff !important;
+      background:rgba(255,255,255,.1)!important;
+      border-color:rgba(255,255,255,.22)!important;
+      color:#fff!important;
     }
     .site-header--open nav{
       opacity:1;
       pointer-events:auto;
       transform:translateY(0);
     }
+    .site-header .site-header__toggle[aria-expanded=\"true\"] ~ nav{
+      opacity:1!important;
+      pointer-events:auto!important;
+      transform:translateY(0)!important;
+    }
   }
+
+  body.nav-open .contact-fab{ display:none !important; }
 </style>
+
+
 
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
 <div id="bg"></div>
+<a href="#services" class="visually-hidden">Skip to main content</a>
 
-<header class="site-header" role="banner">
-  <div class="container site-header__inner">
-    <a class="brand" href="{% url 'home' %}">
-  <span class="brand__logo">
-    <span class="brand__word brand__word--white">BAD GUY</span>
-    <span class="brand__word brand__word--red">MOTORS</span>
-  </span>
-  <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
-</a>
-
-
-    <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
-      <span class="site-header__toggle-box" aria-hidden="true">
-        <span class="site-header__toggle-lines"></span>
-      </span>
-      <span class="sr-only">Toggle navigation</span>
-    </button>
-
-
-    <nav id="siteNav" aria-label="Main navigation">
-      <ul>
-        <li><a href="{% url 'home' %}">Home</a></li>
-        <li><a href="{% url 'client-dashboard' %}">Services</a></li>
-        {% if user.is_authenticated %}
-          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
-        {% else %}
-          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}">Login</a></li>
-        {% endif %}
-        <li><a href="{% url 'store' %}">Products</a></li>
-        <li><a href="{% url 'merch' %}">Merch <span class="badge">SOON</span></a></li>
-        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-        <li><a href="{% url 'financing' %}">Financing</a></li>
-        <li><a href="{% url 'our-story' %}">About</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
+{% with current='services' %}
+  {% include "includes/site_header.html" %}
+{% endwith %}
 
 
 <section class="hero">
@@ -833,15 +668,20 @@ main h3{
             <h3>{{ s.name }}</h3>
             {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
             <div class="service-meta">
-              {% with disc=s.get_active_discount %}
-                {% if disc %}
-                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                  <span class="badge">-{{ disc.discount_percent }}%</span>
-                {% else %}
-                  <strong>${{ s.base_price|floatformat:2 }}</strong>
-                {% endif %}
-              {% endwith %}
+              {% if s.contact_for_estimate %}
+                <strong>Contact for estimate</strong>
+                {% if s.estimate_from_price %}<span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+              {% else %}
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <strong>${{ s.base_price|floatformat:2 }}</strong>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
               · {{ s.duration_min }} min
             </div>
             <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
@@ -865,15 +705,20 @@ main h3{
             <h3>{{ s.name }}</h3>
             {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
             <div class="service-meta">
-              {% with disc=s.get_active_discount %}
-                {% if disc %}
-                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                  <span class="badge">-{{ disc.discount_percent }}%</span>
-                {% else %}
-                  <strong>${{ s.base_price|floatformat:2 }}</strong>
-                {% endif %}
-              {% endwith %}
+              {% if s.contact_for_estimate %}
+                <strong>Contact for estimate</strong>
+                {% if s.estimate_from_price %}<span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+              {% else %}
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <strong>${{ s.base_price|floatformat:2 }}</strong>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
               · {{ s.duration_min }} min
             </div>
             <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
@@ -895,15 +740,20 @@ main h3{
             <h3>{{ s.name }}</h3>
             {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
             <div class="service-meta">
-              {% with disc=s.get_active_discount %}
-                {% if disc %}
-                  <span class="old">${{ s.base_price|floatformat:2 }}</span>
-                  <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
-                  <span class="badge">-{{ disc.discount_percent }}%</span>
-                {% else %}
-                  <strong>${{ s.base_price|floatformat:2 }}</strong>
-                {% endif %}
-              {% endwith %}
+              {% if s.contact_for_estimate %}
+                <strong>Contact for estimate</strong>
+                {% if s.estimate_from_price %}<span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+              {% else %}
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="old">${{ s.base_price|floatformat:2 }}</span>
+                    <strong>${{ s.get_discounted_price|floatformat:2 }}</strong>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <strong>${{ s.base_price|floatformat:2 }}</strong>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
               · {{ s.duration_min }} min
             </div>
             <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
@@ -931,11 +781,11 @@ main h3{
     <div class="grid-2">
       <div>
         <div class="field">
-          <label for="bookMaster">Master</label>
+          <label for="bookMaster">Staff</label>
           <!-- Скрытый/select для доступности -->
           <select id="bookMaster" class="sr-only" aria-hidden="true"></select>
           <!-- Пикер мастеров -->
-          <div id="masterPicker" class="masters" role="listbox" aria-label="Pick a master"></div>
+          <div id="masterPicker" class="masters" role="listbox" aria-label="Pick a staff member"></div>
         </div>
 
         <div class="field" style="margin-top:.5rem">
@@ -955,6 +805,23 @@ main h3{
             </div>
           </div>
 
+          <div class="mobile-picker" id="mobileTimePicker" aria-live="polite" aria-hidden="true">
+            <div class="mobile-picker__headline">
+              <div>
+                <span class="mobile-picker__eyebrow">Day</span>
+                <div class="mobile-picker__selected" id="mobileSelectedDay">Pick a day</div>
+              </div>
+              <button class="mobile-picker__today" id="mobileTodayBtn" type="button">Jump to today</button>
+            </div>
+            <div class="mobile-day-scroll" id="mobileDayList" role="tablist" aria-label="Pick a day"></div>
+            <select id="mobileDaySelect" class="sr-only" aria-hidden="true"></select>
+            <div class="mobile-picker__row">
+              <span class="mobile-picker__label">Available times</span>
+              <div class="mobile-picker__slots" id="mobileSlots" role="listbox" aria-label="Available times"></div>
+              <div class="mobile-picker__empty" id="mobileSlotsEmpty">No open times for this day.</div>
+            </div>
+          </div>
+
           <div class="hint" style="margin-top:.5rem">Shift + scroll for horizontal scroll. Red = busy (unclickable).</div>
         </div>
       </div>
@@ -962,8 +829,28 @@ main h3{
       <div>
         <div class="field">
           <label>Summary</label>
-          <div class="muted" id="bookSummary">Pick a master and time.</div>
+          <div class="muted" id="bookSummary">Pick a staff member and time.</div>
         </div>
+        <div class="field" style="margin-top:1rem;">
+          <label for="contactName">Full name*</label>
+          <input id="contactName" name="contact_name" type="text" maxlength="120"
+                 class="input" autocomplete="name" required
+                 placeholder="John Doe">
+        </div>
+        <div class="field">
+          <label for="contactEmail">Email*</label>
+          <input id="contactEmail" name="contact_email" type="email"
+                 class="input" autocomplete="email" required
+                 placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label for="contactPhone">Phone*</label>
+          <input id="contactPhone" name="contact_phone" type="tel"
+                 class="input" autocomplete="tel" inputmode="tel"
+                 pattern="\+?\d{10,15}" title="Use digits only, optionally starting with +"
+                 required placeholder="+1 5551234567">
+        </div>
+        <p class="hint">No account needed — we confirm bookings by email and phone.</p>
         <div class="error" id="bookError" style="display:none;"></div>
         <div class="success" id="bookSuccess" style="display:none;"></div>
       </div>
@@ -979,12 +866,15 @@ main h3{
 
 </div>
 
+{{ contact_prefill|json_script:"contactPrefillData" }}
+
 <script>
   (function(){
-    const isAuth  = {{ user.is_authenticated|yesno:"true,false" }};
+    const contactPrefillEl = document.getElementById('contactPrefillData');
+    const contactPrefill = contactPrefillEl ? JSON.parse(contactPrefillEl.textContent) : {name:'', email:'', phone:''};
+    const contactDraft = {...contactPrefill};
     const LOCALE = 'en-US'; // можно 'en-US'
 
-    const loginUrl= "{% url 'login' %}?next={{ request.path }}";
     const apiAvail= "/accounts/api/availability/";
     const apiBook = "/accounts/api/book/";
 
@@ -1003,6 +893,11 @@ main h3{
     const elSummary=document.getElementById('bookSummary');
     const elError=document.getElementById('bookError');
     const elSuccess=document.getElementById('bookSuccess');
+    const contactInputs = {
+      name: document.getElementById('contactName'),
+      email: document.getElementById('contactEmail'),
+      phone: document.getElementById('contactPhone'),
+    };
 
     const olGrid=document.getElementById('olGrid');
     const olWrap=document.getElementById('olWrap');
@@ -1010,21 +905,293 @@ main h3{
     const olPrev=document.getElementById('olPrev');
     const olNext=document.getElementById('olNext');
     const olToday=document.getElementById('olToday');
+    const mobilePickerEl=document.getElementById('mobileTimePicker');
+    const mobileDaySelect=document.getElementById('mobileDaySelect');
+    const mobileDayList=document.getElementById('mobileDayList');
+    const mobileDaySummary=document.getElementById('mobileSelectedDay');
+    const mobileTodayBtn=document.getElementById('mobileTodayBtn');
+    const mobileSlotsEl=document.getElementById('mobileSlots');
+    const mobileSlotsEmpty=document.getElementById('mobileSlotsEmpty');
+    const mobileQuery = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
+    const mobileState = { keys:[], days:[], data:[], selectedKey:'' };
+    const SUMMARY_DEFAULT = 'Pick a staff member and time.';
 
     const WINDOW_DAYS = 14, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
     let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
     let baseStart = new Date(); baseStart.setHours(0,0,0,0);
     let availabilityCache = new Map();
+    if (mobilePickerEl){
+      const syncMobileVisibility = ()=> {
+        const active = mobileQuery ? mobileQuery.matches : false;
+        mobilePickerEl.setAttribute('aria-hidden', active ? 'false' : 'true');
+      };
+      syncMobileVisibility();
+      if (mobileQuery){
+        try{ mobileQuery.addEventListener('change', syncMobileVisibility); }
+        catch(_){ mobileQuery.addListener(syncMobileVisibility); }
+      }
+    }
+    if (mobileDaySelect){
+      mobileDaySelect.addEventListener('change', ()=>{
+        applyMobileSelection(mobileDaySelect.value, { focusBehavior:'auto' });
+      });
+    }
+    if (mobileTodayBtn){
+      mobileTodayBtn.addEventListener('click', ()=>{
+        if (!mobileState.keys.length) return;
+        const todayKey = ymd(new Date());
+        const firstWithSlots = mobileState.keys.find((key, idx)=>Boolean(mobileState.data[idx]?.set?.size));
+        const target = mobileState.keys.includes(todayKey) ? todayKey : (firstWithSlots || mobileState.keys[0]);
+        if (target) applyMobileSelection(target, { focusBehavior:'smooth' });
+      });
+    }
+
+    function hydrateContactForm(){
+      Object.entries(contactInputs).forEach(([key, input])=>{
+        input.value = contactDraft[key] || "";
+      });
+    }
+
+    function getContactPayload(){
+      return {
+        name: contactInputs.name.value.trim(),
+        email: contactInputs.email.value.trim(),
+        phone: contactInputs.phone.value.trim(),
+      };
+    }
+
+    function contactIsComplete(){
+      const c = getContactPayload();
+      return Boolean(c.name && c.email && c.phone);
+    }
+
+    function setSummaryDefault(){
+      elSummary.textContent = SUMMARY_DEFAULT;
+    }
+
+    function getActiveStaffName(){
+      return elMaster.selectedOptions[0]?.text?.trim()
+        || elMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent?.trim()
+        || '—';
+    }
+
+    function selectSlot(slotIso){
+      if (!slotIso) return;
+      if (elMaster.value){
+        const parsedMaster = Number(elMaster.value);
+        if (!Number.isNaN(parsedMaster)) current.masterId = parsedMaster;
+      }
+      current.slot = slotIso;
+      const slotDate = parseISO(slotIso);
+      if (slotDate){
+        const dayLabel = slotDate.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'});
+        elSummary.textContent = `Staff: ${getActiveStaffName()}. Time: ${fmtHM(slotDate)}, ${dayLabel}.`;
+      }else{
+        elSummary.textContent = `Staff: ${getActiveStaffName()}. Time selected.`;
+      }
+      elError.style.display='none';
+      updateSubmitState();
+      syncSelectedSlotUI();
+    }
+
+    function syncSelectedSlotUI(){
+      const slot = current.slot;
+      if (olGrid){
+        olGrid.querySelectorAll('.slot-chip').forEach(btn=>{
+          btn.classList.toggle('slot-selected', Boolean(slot && btn.dataset.slot === slot));
+        });
+      }
+      if (mobileSlotsEl){
+        mobileSlotsEl.querySelectorAll('.mobile-slot-btn').forEach(btn=>{
+          const isSelected = Boolean(slot && btn.dataset.slot === slot);
+          btn.classList.toggle('mobile-slot-btn--selected', isSelected);
+          btn.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+        });
+      }
+    }
+
+    function renderMobileDayOptions(){
+      if (!mobileDaySelect) return;
+      const frag=document.createDocumentFragment();
+      mobileState.keys.forEach((key, idx)=>{
+        const opt=document.createElement('option');
+        opt.value=key;
+        const dayObj = mobileState.days[idx];
+        opt.textContent = dayObj ? dayObj.toLocaleDateString(LOCALE, {weekday:'short', month:'short', day:'numeric'}) : key;
+        frag.appendChild(opt);
+      });
+      mobileDaySelect.innerHTML='';
+      mobileDaySelect.appendChild(frag);
+      mobileDaySelect.value = mobileState.selectedKey;
+    }
+
+    function updateMobileDaySummary(){
+      if (!mobileDaySummary) return;
+      const idx = mobileState.keys.indexOf(mobileState.selectedKey);
+      const dayObj = idx>=0 ? mobileState.days[idx] : null;
+      if (dayObj){
+        mobileDaySummary.textContent = dayObj.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'});
+      }else if (mobileState.keys.length){
+        mobileDaySummary.textContent = 'Pick a day';
+      }else{
+        mobileDaySummary.textContent = 'No availability yet';
+      }
+    }
+
+    function focusMobileDayChip(behavior='auto'){
+      if (!mobileDayList) return;
+      const active = mobileDayList.querySelector('.mobile-day-pill--selected');
+      if (!active) return;
+      const offset = Math.max(active.offsetLeft - (mobileDayList.clientWidth / 2 - active.offsetWidth / 2), 0);
+      if (behavior === 'auto' || typeof mobileDayList.scrollTo !== 'function'){
+        mobileDayList.scrollLeft = offset;
+      }else{
+        mobileDayList.scrollTo({left: offset, behavior});
+      }
+    }
+
+    function renderMobileDayChips(focusBehavior='auto'){
+      if (!mobileDayList) return;
+      mobileDayList.innerHTML='';
+      const frag=document.createDocumentFragment();
+      mobileState.keys.forEach((key, idx)=>{
+        const dayObj = mobileState.days[idx];
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.className='mobile-day-pill';
+        if (key===mobileState.selectedKey) btn.classList.add('mobile-day-pill--selected');
+        btn.dataset.key=key;
+        btn.setAttribute('role','tab');
+        btn.setAttribute('aria-selected', key===mobileState.selectedKey ? 'true':'false');
+        const weekday = dayObj ? dayObj.toLocaleDateString(LOCALE, {weekday:'short'}) : key;
+        const monthDay = dayObj ? dayObj.toLocaleDateString(LOCALE, {month:'short', day:'numeric'}) : '';
+        btn.innerHTML = `<span>${weekday}</span><strong>${monthDay}</strong>`;
+        btn.addEventListener('click', ()=>applyMobileSelection(key, { focusBehavior:'smooth' }));
+        frag.appendChild(btn);
+      });
+      mobileDayList.appendChild(frag);
+      updateMobileDaySummary();
+      focusMobileDayChip(focusBehavior);
+    }
+
+    function applyMobileSelection(nextKey, { focusBehavior='auto' } = {}){
+      if (!mobilePickerEl) return;
+      if (!mobileState.keys.length){
+        mobileState.selectedKey='';
+        if (mobileDaySelect) mobileDaySelect.innerHTML='';
+        if (mobileDayList) mobileDayList.innerHTML='';
+        if (mobileSlotsEl){
+          mobileSlotsEl.innerHTML='';
+          mobileSlotsEl.style.display='none';
+        }
+        if (mobileSlotsEmpty){
+          mobileSlotsEmpty.textContent='No availability yet.';
+          mobileSlotsEmpty.style.display='block';
+        }
+        updateMobileDaySummary();
+        return;
+      }
+      const isValid = Boolean(nextKey && mobileState.keys.includes(nextKey));
+      if (isValid){
+        mobileState.selectedKey = nextKey;
+      }else if (!mobileState.selectedKey){
+        const firstWithSlots = mobileState.keys.find((key, idx)=>Boolean(mobileState.data[idx]?.set?.size));
+        mobileState.selectedKey = firstWithSlots || mobileState.keys[0];
+      }
+      renderMobileDayOptions();
+      renderMobileDayChips(focusBehavior);
+      renderMobileSlots();
+    }
+
+    function renderMobileSlots(){
+      if (!mobileSlotsEl) return;
+      mobileSlotsEl.innerHTML='';
+      const idx = mobileState.keys.indexOf(mobileState.selectedKey);
+      const entry = idx>=0 ? mobileState.data[idx] : null;
+      const timeKeys = entry?.set ? Array.from(entry.set) : [];
+      if (!timeKeys.length){
+        mobileSlotsEl.style.display='none';
+        if (mobileSlotsEmpty){
+          const dayObj = idx>=0 ? mobileState.days[idx] : null;
+          mobileSlotsEmpty.textContent = dayObj
+            ? `No open times on ${dayObj.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'})}.`
+            : 'No open times for this day.';
+          mobileSlotsEmpty.style.display='block';
+        }
+        syncSelectedSlotUI();
+        return;
+      }
+      mobileSlotsEl.style.display='';
+      if (mobileSlotsEmpty) mobileSlotsEmpty.style.display='none';
+      timeKeys.sort();
+      const frag=document.createDocumentFragment();
+      timeKeys.forEach(hm=>{
+        const iso = entry?.iso?.get(hm);
+        if (!iso) return;
+        const slotDate = parseISO(iso);
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.className='mobile-slot-btn';
+        btn.setAttribute('role','option');
+        btn.textContent = slotDate ? fmtHM(slotDate) : hm;
+        btn.dataset.slot = iso;
+        btn.setAttribute('aria-selected', current.slot === iso ? 'true' : 'false');
+        btn.addEventListener('click', ()=>selectSlot(iso));
+        frag.appendChild(btn);
+      });
+      mobileSlotsEl.appendChild(frag);
+      syncSelectedSlotUI();
+    }
+
+    function updateMobilePicker(days, dayData){
+      if (!mobilePickerEl) return;
+      mobileState.keys = days.map(ymd);
+      mobileState.days = days.map(d=>new Date(d));
+      mobileState.data = dayData;
+      if (!mobileState.keys.includes(mobileState.selectedKey)){
+        mobileState.selectedKey = '';
+      }
+      applyMobileSelection(mobileState.selectedKey, { focusBehavior:'auto' });
+    }
+
+    function updateSubmitState(){
+      const ready = current.serviceId && current.masterId && current.slot && contactIsComplete();
+      btnSubmit.disabled = !ready;
+    }
+
+    Object.values(contactInputs).forEach(input=>{
+      input.addEventListener('input', ()=>{
+        const payload = getContactPayload();
+        contactDraft.name = payload.name;
+        contactDraft.email = payload.email;
+        contactDraft.phone = payload.phone;
+        elError.style.display='none';
+        updateSubmitState();
+      });
+    });
+
+    hydrateContactForm();
+    updateSubmitState();
 
     function openModal(serviceId, serviceName){
-      if(!isAuth){ window.location=loginUrl; return; }
       current={ serviceId, serviceName, masterId:null, slot:null, mastersData:[] };
+      mobileState.keys=[]; mobileState.days=[]; mobileState.data=[]; mobileState.selectedKey='';
+      if (mobileDaySelect) mobileDaySelect.innerHTML='';
+      if (mobileDayList) mobileDayList.innerHTML='';
+      if (mobileDaySummary) mobileDaySummary.textContent='Pick a day';
+      if (mobileSlotsEl){
+        mobileSlotsEl.innerHTML='';
+        mobileSlotsEl.style.display='none';
+      }
+      if (mobileSlotsEmpty) mobileSlotsEmpty.style.display='none';
       elServiceName.textContent=serviceName;
       elError.style.display='none'; elSuccess.style.display='none';
-      btnSubmit.disabled=true;
-      elSummary.textContent='Pick a master and time.';
+      setSummaryDefault();
       availabilityCache.clear();
+      syncSelectedSlotUI();
       baseStart = new Date(); baseStart.setHours(0,0,0,0);
+      hydrateContactForm();
+      updateSubmitState();
       modal.classList.add('modal--open');
       loadMastersAndRender();
     }
@@ -1112,8 +1279,10 @@ main h3{
 
           elMaster.value = String(m.id);
           current.masterId = Number(m.id);
-          current.slot = null; btnSubmit.disabled = true;
-          elSummary.textContent='Pick a master and time.';
+          current.slot = null;
+          updateSubmitState();
+          setSummaryDefault();
+          syncSelectedSlotUI();
           availabilityCache.clear();
           await renderWindow();
         });
@@ -1130,7 +1299,9 @@ main h3{
     }
 
     async function loadMastersAndRender(){
-      elError.style.display='none'; btnSubmit.disabled=true; current.slot=null;
+      elError.style.display='none';
+      current.slot=null;
+      updateSubmitState();
       try{
         const first = await fetchAvailability(ymd(baseStart), null);
         const masters = (first.raw && first.raw.masters) || [];
@@ -1138,7 +1309,7 @@ main h3{
 
         if(masters.length===0){
           elMaster.innerHTML='';
-          elMasterPicker.innerHTML='<div class="stub">No masters available</div>';
+          elMasterPicker.innerHTML='<div class="stub">No staff available</div>';
           olGrid.innerHTML='<div class="skeleton" style="height:240px;margin:.5rem;"></div>';
           return;
         }
@@ -1186,22 +1357,18 @@ main h3{
         const tcell=document.createElement('div'); tcell.className='outlook__cell time'; tcell.textContent=fmtHM(fake);
         olGrid.appendChild(tcell);
 
-        days.forEach((d,idx)=>{
+        days.forEach((_,idx)=>{
           const c=document.createElement('div'); c.className='outlook__cell';
-          const data = dayData[idx]; const isFree = data?.set?.has(t);
+          const data = dayData[idx];
+          const isoValue = data?.iso?.get(t) || '';
+          const isFree = Boolean(isoValue && data?.set?.has(t));
           const chip=document.createElement('button');
           chip.type='button'; chip.className='slot-chip ' + (isFree?'slot-free':'slot-busy');
           chip.textContent=fmtHM(fake);
+          if (isoValue) chip.dataset.slot = isoValue;
 
           if (isFree){
-            chip.addEventListener('click', ()=>{
-              olGrid.querySelectorAll('.slot-selected').forEach(el=>el.classList.remove('slot-selected'));
-              chip.classList.add('slot-selected');
-              current.masterId = Number(elMaster.value);
-              current.slot     = data.iso.get(t);
-              elSummary.textContent = `Master: ${elMaster.selectedOptions[0]?.text || (elMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent || '')}. Time: ${chip.textContent}, ${d.toLocaleDateString()}.`;
-              btnSubmit.disabled=false;
-            });
+            chip.addEventListener('click', ()=>selectSlot(isoValue));
           }else{
             chip.disabled=true;
           }
@@ -1212,6 +1379,8 @@ main h3{
 
       const todayIdx = days.findIndex(x=>x.toDateString()===new Date().toDateString());
       if (todayIdx>0){ const colWidth = 160; olWrap.scrollLeft = todayIdx * colWidth - colWidth; }
+      updateMobilePicker(days, dayData);
+      syncSelectedSlotUI();
     }
 
     async function shiftWindow(deltaDays){ baseStart = new Date(baseStart); baseStart.setDate(baseStart.getDate() + deltaDays); await renderWindow(); }
@@ -1221,22 +1390,39 @@ main h3{
 
     async function submitBooking(){
       if(!current.serviceId||!current.masterId||!current.slot) return;
+      if(!contactIsComplete()){
+        elError.textContent='Please add your name, email and phone.';
+        elError.style.display='block';
+        return;
+      }
+      const contact = getContactPayload();
       btnSubmit.disabled=true; elError.style.display='none'; elSuccess.style.display='none';
       try{
         const resp=await fetch(apiBook,{
           method:'POST',
           headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
           credentials:'same-origin',
-          body:JSON.stringify({ service:current.serviceId, master:current.masterId, start_time:current.slot })
+          body:JSON.stringify({
+            service:current.serviceId,
+            master:current.masterId,
+            start_time:current.slot,
+            contact
+          })
         });
         const data=await resp.json().catch(()=>({}));
-        if(!resp.ok){ throw new Error((data&&(data.error||data.detail))||'Could not create an appointment'); }
+        if(!resp.ok){
+          const contactErrors = data?.errors?.contact;
+          let message = (contactErrors && Object.values(contactErrors).find(Boolean)) || data?.error || data?.detail || 'Could not create an appointment';
+          if (Array.isArray(message)) message = message[0];
+          throw new Error(message);
+        }
         elSuccess.textContent='Appointment created! ' + (data.appointment?.start_time?('Time: '+new Date(data.appointment.start_time).toLocaleString()):'');
         elSuccess.style.display='block';
         setTimeout(()=>{ window.location.reload(); }, 700);
       }catch(err){
         elError.textContent=err.message||'Booking error';
-        elError.style.display='block'; btnSubmit.disabled=false;
+        elError.style.display='block';
+        updateSubmitState();
       }
     }
 
@@ -1263,6 +1449,39 @@ main h3{
       }
     });
 
+    function maybeOpenDeepLinkedService(){
+      const params = new URLSearchParams(window.location.search);
+      const serviceId = (params.get('book') || '').trim();
+      if (!serviceId) return;
+
+      const cleanupQuery = () => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('book');
+        const nextSearch = url.searchParams.toString();
+        const nextUrl = url.pathname + (nextSearch ? `?${nextSearch}` : '') + (url.hash || '');
+        window.history.replaceState({}, document.title, nextUrl);
+      };
+
+      const attemptOpen = (retries = 6) => {
+        const safeId = window.CSS && CSS.escape ? CSS.escape(serviceId) : serviceId.replace(/"/g, '\\"');
+        const card = document.querySelector(`.service-card[data-service-id="${safeId}"]`);
+        if (card){
+          const serviceName = card.dataset.serviceName || card.querySelector('h3')?.textContent?.trim() || 'service';
+          openModal(serviceId, serviceName);
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          cleanupQuery();
+          return;
+        }
+        if (retries > 0){
+          setTimeout(() => attemptOpen(retries - 1), 200);
+        }
+      };
+
+      attemptOpen();
+    }
+
+    maybeOpenDeepLinkedService();
+
     btnClose.addEventListener('click',()=>modal.classList.remove('modal--open'));
     btnCancel.addEventListener('click',()=>modal.classList.remove('modal--open'));
     modal.addEventListener('click',(e)=>{ if(e.target===modal) modal.classList.remove('modal--open'); });
@@ -1283,6 +1502,11 @@ main h3{
 
     function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
     function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+    function formatMoney(val){
+      const num = Number(val);
+      if (Number.isFinite(num)) return num.toFixed(2);
+      return val || '';
+    }
     function showLive(){ liveTitle.style.display='block'; liveGrid.style.display='grid'; serverContent.style.display='none'; }
     function hideLive(){ liveTitle.style.display='none'; liveGrid.style.display='none'; serverContent.style.display='block'; }
     function skeleton(n=8){
@@ -1295,15 +1519,29 @@ main h3{
         </article>`).join('');
     }
     function cardHTML(s){
-      const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
-      const priceBlock = hasDisc
-        ? `<span class="old">$${escapeHtml(s.base_price)}</span>
-           <strong>$${escapeHtml(s.price)}</strong>
-           <span class="badge">-${escapeHtml(String(s.discount_percent))}%</span>`
-        : `<strong>$${escapeHtml(s.price || s.base_price)}</strong>`;
+      let priceBlock;
+      if (s.contact_for_estimate){
+        const fromVal = s.estimate_from_price ? formatMoney(s.estimate_from_price) : '';
+        const hint = fromVal ? `<span class="price__hint">From $${escapeHtml(fromVal)}</span>` : '';
+        priceBlock = `<strong>Contact for estimate</strong>${hint ? ' ' + hint : ''}`;
+      } else {
+        const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
+        if (hasDisc){
+          priceBlock = `<span class="old">$${escapeHtml(formatMoney(s.base_price))}</span>
+             <strong>$${escapeHtml(formatMoney(s.price))}</strong>
+             <span class="badge">-${escapeHtml(String(s.discount_percent))}%</span>`;
+        } else {
+          const current = s.price || s.base_price;
+          priceBlock = `<strong>$${escapeHtml(formatMoney(current))}</strong>`;
+        }
+      }
       const desc = s.description ? `<p class="muted">${escapeHtml(s.description)}</p>` : '';
       const cat  = s.category ? `<div class="muted">${escapeHtml(s.category)}</div>` : '';
-      const media = `<div class="ph" aria-hidden="true">BGM • SERVICE</div>`;
+      const hasImage = typeof s.image === 'string' && s.image.trim().length > 0;
+      const media = hasImage
+        ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.name)}" loading="lazy" decoding="async">`
+        : `<div class="ph" aria-hidden="true">BGM • SERVICE</div>`;
+      const badge = s.category ? `<span class="service-card__badge">${escapeHtml(s.category)}</span>` : '';
       return `
         <article class="service-card"
                  data-service-id="${escapeHtml(s.id)}"
@@ -1311,6 +1549,7 @@ main h3{
                  tabindex="0" role="button" aria-label="Book ${escapeHtml(s.name)}">
           <div class="service-card__img" aria-label="Service image">
             ${media}
+            ${badge}
           </div>
           ${cat}
           <h3>${escapeHtml(s.name)}</h3>
@@ -1369,6 +1608,7 @@ main h3{
   :root{
     --ink:#eaeaea; --line:rgba(255,255,255,.12);
     --red:var(--accent, #d50000); --red-dark:#b60000;
+    --contact-font:"Helvetica Neue", Arial, sans-serif;
   }
   /* floating button */
   .contact-fab{
@@ -1379,7 +1619,7 @@ main h3{
     background:linear-gradient(180deg,var(--red) 0%,var(--red-dark) 100%);
     color:#fff; font-weight:900; letter-spacing:.02em; line-height:1;
     cursor:pointer; box-shadow:0 12px 26px rgba(213,0,0,.28), 0 0 26px rgba(213,0,0,.18);
-    transition:.18s ease; font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
+    transition:.18s ease; font-family:var(--contact-font); font-style:normal;
   }
   .contact-fab:hover{ transform:translateY(-2px); filter:saturate(1.05); }
   .contact-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
@@ -1416,7 +1656,7 @@ main h3{
     display:flex; align-items:center; justify-content:space-between; gap:.6rem;
     background:rgba(255,255,255,.06); border:1px solid var(--line);
     border-radius:.7rem; padding:.7rem .8rem;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
+    font-family:var(--contact-font); font-style:normal;
   }
   .contact-row a{ color:#fff; font-weight:800; text-decoration:none; }
   .contact-sub{ color:rgba(255,255,255,.72); font-size:.95rem; }
@@ -1424,7 +1664,7 @@ main h3{
   .contact-btn{
     display:inline-flex; align-items:center; gap:.5em; padding:.7rem 1rem; border-radius:.55rem;
     border:1px solid var(--line); background:#0f0f0f; color:#fff; cursor:pointer;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif; font-weight:800;
+    font-family:var(--contact-font); font-weight:800; font-style:normal;
   }
   .contact-btn:hover{ border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.25); }
 
@@ -1435,6 +1675,95 @@ main h3{
     .contact-fab{ right:14px; bottom:14px; }
     .contact-title{ font-size:1.45rem; }
   }
+
+
+</style>
+<style>
+/* === MOBILE ADAPTATION PATCH (safe, additive) ========================== */
+/* 1) Header/menu layers & mobile nav behavior (поверх FAB и контента) */
+.site-header{ z-index:3200; } /* выше контента и FAB */
+@media (max-width:960px){
+  .site-header nav{
+    z-index:3300;                       /* меню поверх FAB */
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
+  /* Открытие меню работает при .site-header--open и при body.nav-open */
+  .site-header--open nav,
+  body.nav-open nav{
+    opacity:1; pointer-events:auto; transform:translateY(0);
+  }
+  /* Больше расстояние и уверенные hit‑areas */
+  .site-header nav ul{
+    gap:1.1rem !important;
+    width:100%; padding-block:.25rem;
+  }
+  .site-header nav li{ width:100%; }
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    width:100% !important;
+    display:flex !important; align-items:center; justify-content:space-between;
+    padding:1.15rem 1.2rem !important; min-height:56px;
+    border-radius:1rem !important;
+    background:rgba(255,255,255,.05) !important;
+    border:1px solid rgba(255,255,255,.12) !important;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  .site-header nav a:hover,
+  .site-header nav a[aria-current="page"],
+  .site-header nav .btn:hover{
+    background:rgba(255,255,255,.1) !important;
+    border-color:rgba(255,255,255,.22) !important;
+    color:#fff !important;
+  }
+}
+/* Прячем FAB при открытом мобильном меню (любой вариант открытия) */
+body.nav-open .contact-fab,
+.site-header--open ~ .contact-fab{
+  display:none !important;
+}
+
+/* 2) Фильтры — на телефоне в столбик, элементы на всю ширину */
+@media (max-width:720px){
+  .filters{ display:grid; grid-template-columns:1fr; gap:.6rem; }
+  .filters input, .filters select, .filters .btn{ width:100%; }
+}
+
+/* 3) Карточки — компактнее паддинги и уверенная кнопка */
+@media (max-width:720px){
+  .service-card{ padding:.9rem; }
+  .service-card__img{ aspect-ratio:16/10; }
+  .service-card .btn{ width:100%; }
+}
+
+/* 4) Модалка — одна колонка и крупнее слоты на телефоне */
+@media (max-width:900px){
+  .grid-2{ grid-template-columns:1fr; }
+  .outlook__wrap{ max-height:50svh; } /* iOS‑friendly */
+  .slot-chip{ min-width:3.1rem; height:2rem; font-size:.95rem; }
+  .modal__footer{
+    position:sticky; bottom:0;
+    background:linear-gradient(180deg, rgba(0,0,0,0), #0c0c0c);
+    padding-top:.75rem;
+  }
+}
+
+/* 5) Аккуратные фокусы для iOS */
+.site-header nav a:focus{ outline:none; }
+.site-header nav a:focus-visible{
+  outline:2px solid rgba(255,255,255,.6); outline-offset:3px;
+  border-color:rgba(255,255,255,.22);
+}
+
+/* 6) FAB с учётом safe‑area и скрытие, когда открыта любая модалка */
+.contact-fab{ bottom:calc(22px + env(safe-area-inset-bottom)); }
+body.modal-open .contact-fab{ display:none !important; }
+
+/* 7) Меньше анимаций при reduce motion */
+@media (prefers-reduced-motion:reduce){
+  .skeleton, .ph{ animation:none !important; }
+  .btn, .service-card{ transition:none !important; }
+}
 </style>
 
 <button type="button" id="contactFab" class="contact-fab"
@@ -1526,6 +1855,74 @@ main h3{
 })();
 </script>
 <!-- ==================================================================== -->
+<script>
+/* === MOBILE ADAPTATION PATCH (safe, additive) ========================== */
+(function(){
+  /* 1) Отслеживаем состояние модалки бронирования и прячем FAB без правок вашего кода */
+  const bookModal = document.getElementById('bookModal');
+  if (bookModal){
+    const syncModalFlag = () => {
+      document.body.classList.toggle('modal-open', bookModal.classList.contains('modal--open'));
+    };
+    syncModalFlag();
+    new MutationObserver(syncModalFlag).observe(bookModal, { attributes:true, attributeFilter:['class'] });
+  }
+
+  /* 2) Подсказка для тач‑устройств: меняем текст про скролл */
+  const hintEl = document.querySelector('.hint');
+  if (hintEl){
+    const mq = window.matchMedia('(pointer: coarse)');
+    const setHint = () => {
+      hintEl.textContent = mq.matches
+        ? 'Swipe left/right to see more days. Red = busy (unclickable).'
+        : 'Shift + scroll for horizontal scroll. Red = busy (unclickable).';
+    };
+    setHint();
+    try{ mq.addEventListener('change', setHint); }catch(_){ mq.onchange = setHint; }
+  }
+
+  /* 3) Drag‑scroll для сетки расписания на трекпадах/тачпадах */
+  const wrap = document.getElementById('olWrap');
+  if (wrap){
+    let down=false, startX=0, base=0, pointerId=null;
+    const interactiveSelector='button, a, input, select, textarea, label';
+    const isInteractiveTarget = (target)=>!!(target && target.closest(interactiveSelector));
+    wrap.addEventListener('pointerdown', e => {
+      if (isInteractiveTarget(e.target)) return;
+      down = true; pointerId = e.pointerId;
+      startX = e.clientX; base = wrap.scrollLeft;
+      if (typeof wrap.setPointerCapture === 'function'){
+        try{ wrap.setPointerCapture(pointerId); }catch(_){}
+      }
+    });
+    wrap.addEventListener('pointermove', e => {
+      if (!down || (pointerId!==null && e.pointerId!==pointerId)) return;
+      wrap.scrollLeft = base - (e.clientX - startX);
+    });
+    const stopDrag = (e) => {
+      if (!down || (pointerId!==null && e.pointerId!==pointerId)) return;
+      down = false;
+      if (pointerId!==null && typeof wrap.releasePointerCapture === 'function'){
+        try{ wrap.releasePointerCapture(pointerId); }catch(_){}
+      }
+      pointerId = null;
+    };
+    ['pointerup','pointercancel','pointerleave'].forEach(ev => {
+      wrap.addEventListener(ev, stopDrag);
+    });
+  }
+})();
+</script>
+
+
+
+<!-- === Mobile sidebar hardening (safe, additive) ======================= -->
+
+
+
+
+{% include "includes/analytics_tracker.html" %}
+
 
 </body>
 </html>

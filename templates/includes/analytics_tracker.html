@@ -1,0 +1,9 @@
+{% load static %}
+<script
+  src="{% static 'js/analytics-tracker.js' %}"
+  data-analytics-tracker="true"
+  data-endpoint="{% url 'analytics-collect' %}"
+  data-sample-rate="1"
+  data-flush-interval="15000"
+  defer
+></script>

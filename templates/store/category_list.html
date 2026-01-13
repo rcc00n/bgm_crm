@@ -1,4 +1,5 @@
 {% extends "store/_base_store.html" %}
+{% load dealer_extras %}
 {% block title %}BGM — {{ category.name }}{% endblock %}
 
 {% block body %}
@@ -46,15 +47,32 @@
           <div class="product__meta">
             <h3 class="product__title"><a href="{% url 'store-product' slug=p.slug %}">{{ p.name }}</a></h3>
             {% if p.short_description %}<p class="section__desc">{{ p.short_description }}</p>{% endif %}
-            <div class="price">
-              {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-              <strong>${{ p.display_price|floatformat:2 }}</strong>
-              {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
+            <div class="price price--stacked">
+              {% if p.contact_for_estimate %}
+                <strong>Contact for estimate</strong>
+                {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
+              {% else %}
+                <div class="price__retail-row">
+                  {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                  <strong>{{ p.display_price|money }}</strong>
+                  {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
+                </div>
+                {% if dealer_portal.show_discount %}
+                  <div class="price__dealer-row">
+                    <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                    <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+                    <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                  </div>
+                {% endif %}
+              {% endif %}
             </div>
 
             <!-- quick actions -->
             <div class="quick row">
-              {% if p.has_active_options %}
+              {% if p.contact_for_estimate %}
+                <a class="btn btn--primary" href="{% url 'home' %}#contact">Contact us</a>
+                <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View product</a>
+              {% elif p.has_active_options %}
                 <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
                 <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View product</a>
               {% else %}
@@ -93,8 +111,21 @@
   .product__meta{padding:.8rem}
   .product__title{margin:.6rem 0 0}
   .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
+  .price--stacked{flex-direction:column;align-items:flex-start;gap:.3rem}
+  .price__retail-row{display:flex;gap:.45rem;align-items:baseline}
+  .price__dealer-row{
+    display:inline-flex;
+    gap:.35rem;
+    flex-wrap:wrap;
+    align-items:baseline;
+    background:rgba(213,0,0,.12);
+    border:1px solid rgba(213,0,0,.35);
+    border-radius:.6rem;
+    padding:.2rem .5rem;
+  }
   .price__hint{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
   .price .old{color:var(--muted);text-decoration:line-through}
+  .price__save{font-size:.78rem;color:var(--muted)}
   .quick.row{margin-top:.7rem;display:flex;gap:.5rem;flex-wrap:wrap}
 
   .ph{

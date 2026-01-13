@@ -4,9 +4,10 @@
 {% block object-tools %}
     {{ block.super }}
     {% if export_url %}
-            <a href="{{ export_url }}" class="btn btn-success float-right">
-                📥 Export CSV
-            </a>
+        <a href="{{ export_url }}" class="btn btn-outline-primary page-action-btn" title="Export filtered data as CSV">
+            <i class="fas fa-file-download"></i>
+            <span>Export CSV</span>
+        </a>
 
     {% endif %}
 {% endblock %}

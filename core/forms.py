@@ -1,3 +1,6 @@
+import re
+from decimal import Decimal
+
 from dal import autocomplete
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
@@ -6,6 +9,59 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 from .models import *
 from .constants import STAFF_DISPLAY_NAME
+from core.validators import clean_phone
+
+
+class MultipleFileInput(forms.ClearableFileInput):
+    """
+    ClearableFileInput variant that allows selecting multiple files.
+    """
+    allow_multiple_selected = True
+
+# -----------------------------
+# Font settings
+# -----------------------------
+
+
+class PageFontSettingAdminForm(forms.ModelForm):
+    """
+    Admin-facing form that limits selectable fonts to active presets and
+    provides clear guidance on where each choice is applied.
+    """
+
+    class Meta:
+        model = PageFontSetting
+        fields = ["page", "body_font", "heading_font", "ui_font", "notes"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        active_fonts = FontPreset.objects.filter(is_active=True).order_by("name")
+        for field_name in ("body_font", "heading_font", "ui_font"):
+            if field_name in self.fields:
+                self.fields[field_name].queryset = active_fonts
+        if "body_font" in self.fields:
+            self.fields["body_font"].label = "Body font"
+            self.fields["body_font"].help_text = "Paragraphs, form inputs, and most UI copy."
+        if "heading_font" in self.fields:
+            self.fields["heading_font"].label = "Heading font"
+            self.fields["heading_font"].help_text = "Hero and section headings."
+        if "ui_font" in self.fields:
+            self.fields["ui_font"].label = "UI font (optional)"
+            self.fields["ui_font"].help_text = "Overrides nav/buttons if provided; otherwise inherits the body font."
+        if "page" in self.fields:
+            self.fields["page"].help_text = "Pick the public page that should use these fonts."
+
+    def clean(self):
+        cleaned = super().clean()
+        body_font = cleaned.get("body_font")
+        heading_font = cleaned.get("heading_font")
+        ui_font = cleaned.get("ui_font") or body_font
+        if not body_font:
+            raise forms.ValidationError("Body font is required.")
+        if not heading_font:
+            raise forms.ValidationError("Heading font is required.")
+        cleaned["ui_font"] = ui_font
+        return cleaned
 
 # -----------------------------
 # Appointment Form
@@ -37,12 +93,45 @@ class AppointmentForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        client_obj = cleaned_data.get("client")
+
+        if client_obj:
+            contact_name = (cleaned_data.get("contact_name") or "").strip()
+            if not contact_name:
+                contact_name = (
+                    client_obj.get_full_name()
+                    or client_obj.username
+                    or client_obj.email
+                    or ""
+                )
+                cleaned_data["contact_name"] = contact_name
+
+            contact_email = (cleaned_data.get("contact_email") or "").strip()
+            if not contact_email and client_obj.email:
+                cleaned_data["contact_email"] = client_obj.email
+
+            if not (cleaned_data.get("contact_phone") or "").strip():
+                profile = getattr(client_obj, "userprofile", None)
+                phone = getattr(profile, "phone", "") if profile else ""
+                if phone:
+                    cleaned_data["contact_phone"] = phone
+
         instance = self.instance
 
         # Обнови instance перед вызовом clean()
-        instance.master = cleaned_data.get("master")
-        instance.start_time = cleaned_data.get("start_time")
-        instance.service = cleaned_data.get("service")
+        # Keep the model instance in sync so Appointment.clean() validates actual form data.
+        for field in (
+            "client",
+            "contact_name",
+            "contact_email",
+            "contact_phone",
+            "master",
+            "service",
+            "start_time",
+            "payment_status",
+        ):
+            if field in cleaned_data:
+                setattr(instance, field, cleaned_data.get(field))
         promocode_str = cleaned_data.get("promocode")
         service = cleaned_data.get("service")
         try:
@@ -67,7 +156,9 @@ class AppointmentForm(forms.ModelForm):
 
         promocode = self.cleaned_data.get("applied_promocode")
         if promocode:
-            discount = instance.service.base_price * (promocode.discount_percent / 100)
+            base_amount = instance.service.base_price_amount()
+            percent = Decimal(promocode.discount_percent) / Decimal("100")
+            discount = base_amount * percent
             AppointmentPromoCode.objects.create(
                 appointment=instance,
                 promocode=promocode,
@@ -167,8 +258,9 @@ class CustomUserChangeForm(UserChangeForm):
 
     files = forms.FileField(
         required=False,
-        widget=forms.ClearableFileInput(attrs={'multiple': False}),
-        label="Upload files"
+        widget=MultipleFileInput(attrs={'multiple': True}),
+        label="Upload files",
+        help_text="Attach one or more files to this profile."
     )
     class Meta:
         model = User
@@ -220,7 +312,8 @@ class CustomUserChangeForm(UserChangeForm):
             ClientFile.objects.create(
                 user=user,
                 file=f,
-                file_type=""
+                uploaded_by=ClientFile.ADMIN,
+                description="Uploaded via admin panel"
             )
         return user
 
@@ -357,16 +450,18 @@ class MasterCreateFullForm(forms.ModelForm):
             return super().save(commit=commit)
         
 from django import forms
-from core.models import DealerApplication
+from core.models import DealerApplication, DealerTierLevel
+from core.utils import format_currency
 
 class DealerApplicationForm(forms.ModelForm):
     class Meta:
         model = DealerApplication
-        fields = ["business_name", "website", "phone", "notes"]
+        fields = ["business_name", "website", "phone", "preferred_tier", "notes"]
         widgets = {
             "business_name": forms.TextInput(attrs={"placeholder": "Business name"}),
             "website": forms.URLInput(attrs={"placeholder": "Website (optional)"}),
             "phone": forms.TextInput(attrs={"placeholder": "Phone"}),
+            "preferred_tier": forms.Select(attrs={"class": "field"}),
             "notes": forms.Textarea(attrs={"placeholder": "Tell us about your business...", "rows": 4}),
         }
 
@@ -382,3 +477,86 @@ class DealerApplicationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.current_user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
+        tier_field = self.fields.get("preferred_tier")
+        if tier_field:
+            tier_field.label = "Projected tier"
+            tier_field.help_text = "Select the tier that matches your planned annual CAD volume."
+            try:
+                tiers = list(
+                    DealerTierLevel.objects.filter(is_active=True).order_by("minimum_spend", "sort_order", "code")
+                )
+            except Exception:
+                tiers = []
+            if tiers:
+                tier_field.choices = [
+                    (
+                        tier.code,
+                        f"{tier.label} — {format_currency(tier.minimum_spend)}+ · {tier.discount_percent}% off",
+                    )
+                    for tier in tiers
+                ]
+
+
+class ServiceLeadForm(forms.ModelForm):
+    """
+    Public-facing form used by landing pages to capture service inquiries.
+    """
+
+    class Meta:
+        model = ServiceLead
+        fields = [
+            "full_name",
+            "phone",
+            "email",
+            "vehicle",
+            "service_needed",
+            "notes",
+            "source_page",
+            "source_url",
+        ]
+        widgets = {
+            "source_page": forms.HiddenInput(),
+            "source_url": forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].required = True
+        self.fields["full_name"].label = "Name"
+        self.fields["service_needed"].label = "Service needed"
+
+    def clean_full_name(self):
+        name = (self.cleaned_data.get("full_name") or "").strip()
+        if not name:
+            raise forms.ValidationError("Name is required.")
+        return name
+
+    def clean_phone(self):
+        raw = (self.cleaned_data.get("phone") or "").strip()
+        if not raw:
+            raise forms.ValidationError("Phone is required.")
+        normalized = re.sub(r"\D", "", raw)
+        if raw.startswith("+"):
+            normalized = f"+{normalized}"
+        try:
+            return clean_phone(normalized)
+        except ValidationError as exc:
+            raise forms.ValidationError(exc.messages[0])
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip()
+        if not email:
+            raise forms.ValidationError("Email is required.")
+        return email
+
+    def clean_service_needed(self):
+        service = (self.cleaned_data.get("service_needed") or "").strip()
+        if not service:
+            raise forms.ValidationError("Please choose the service needed.")
+        return service
+
+    def clean_vehicle(self):
+        return (self.cleaned_data.get("vehicle") or "").strip()
+
+    def clean_notes(self):
+        return (self.cleaned_data.get("notes") or "").strip()

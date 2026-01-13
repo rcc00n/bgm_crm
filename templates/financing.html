@@ -5,7 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BGM Customs — Financing Options</title>
-  <meta name="description" content="Flexible financing for builds, parts, and installs at BGM Customs: Medicard, Canadian Financial, and Afterpay (Square)." />
+  {% with meta_title="BGM Customs — Financing Options" meta_description="Flexible financing partners for builds, parts, and installs including Medicard, Canadian Financial, and Afterpay." meta_section="financing" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
 <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
 
@@ -25,6 +27,7 @@
     a{color:inherit;text-decoration:none}
     img{max-width:100%;display:block}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
+    .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
 
     .btn{display:inline-flex;align-items:center;gap:.6em;padding:.78rem 1.15rem;border-radius:var(--radius-sm);font-weight:800;letter-spacing:.3px;border:1px solid transparent;cursor:pointer;transition:.2s}
     .btn--primary{background:var(--accent);color:#fff}
@@ -33,12 +36,12 @@
     .btn--ghost:hover{border-color:var(--accent);color:var(--accent)}
     .badge{display:inline-block;font-size:.78rem;padding:.15rem .55rem;border-radius:999px;background:var(--accent);color:#fff}
 
-    .site-header{position:sticky;top:0;z-index:10;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
+    .site-header{position:sticky;top:0;z-index:1000;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
     .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
     .brand{display:flex;align-items:center;gap:.75rem;font-weight:900;letter-spacing:.5px}
     .brand__logo{width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent));box-shadow:0 0 40px -6px var(--accent-2)}
-    nav ul{display:flex;list-style:none;gap:.75rem}
-    nav a{padding:.55rem .8rem;border-radius:.55rem}
+    nav ul{display:flex;align-items:center;gap:.75rem;list-style:none}
+    nav a{display:inline-flex;align-items:center;gap:.45rem;padding:.55rem .8rem;border-radius:.55rem}
     nav a[aria-current="page"]{background:var(--panel);border:1px solid var(--line)}
 
     /* hero прозрачный — чтобы был виден дым */
@@ -130,92 +133,6 @@ nav a[aria-current="page"]{background:var(--panel);border:1px solid var(--line)}
 #bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
 #bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
 .site-header, .hero, main, footer{position:relative; z-index:1;}
-/* ===== CLEAN HEADER (brand | belt | nav) — как на Merch ===== */
-
-/* контейнер в край, аккуратные паддинги */
-.site-header .container{
-  width:100% !important;
-  max-width:none !important;
-  padding-inline:clamp(12px, 2vw, 28px) !important;
-}
-
-/* сетка: бренд | центр (сжимается) | меню */
-.site-header__inner{
-  display:grid !important;
-  grid-template-columns:max-content minmax(0,1fr) max-content !important;
-  align-items:center !important;
-  column-gap:clamp(14px, 2vw, 36px) !important;
-  padding-block:.8rem !important;
-}
-
-/* бренд — как на втором */
-.brand__logo{ display:none !important; }
-.brand{
-  display:flex !important;
-  align-items:baseline !important;
-  gap:.55rem !important;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-}
-.brand__word{ font-size:clamp(.9rem, 1vw, 1rem); line-height:1; }
-.brand__word--white{ color:#fff; }
-.brand__word--red{ color:#d50000; }
-
-/* центральная лента */
-.belt{
-  justify-self:center;
-  min-width:0;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  color:rgba(255,255,255,.72);
-  font-size:clamp(.78rem, .95vw, .95rem);
-}
-
-/* меню справа */
-.site-header nav{ justify-self:end; min-width:0; }
-.site-header nav ul{
-  display:flex; align-items:center; list-style:none;
-  gap:clamp(8px, 1vw, 18px) !important;
-  margin:0; padding:0; flex-wrap:nowrap;
-}
-.site-header nav a{
-  display:inline-flex; align-items:center;
-  padding:.38rem .58rem !important;
-  background:none !important; border:0 !important; border-radius:.55rem;
-  text-transform:uppercase; font-weight:900;
-  letter-spacing:.06em;
-  color:rgba(255,255,255,.82);
-  font-size:clamp(.72rem, .9vw, .92rem) !important;
-  white-space:nowrap; line-height:1;
-}
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"]{ color:#fff !important; }
-
-.site-header .badge{
-  padding:.08rem .42rem !important;
-  font-size:.68rem !important;
-  line-height:1; border-radius:999px;
-  background:#d50000; color:#fff;
-}
-
-/* адаптация */
-@media (max-width: 1300px){
-  .site-header nav ul{ gap:.6rem !important; }
-  .site-header nav a{ font-size:.72rem !important; letter-spacing:.05em !important; }
-}
-@media (max-width: 1150px){
-  .belt{ display:none !important; }
-}
-@media (max-width: 900px){
-  .site-header nav{ overflow-x:auto; scrollbar-width:none; }
-  .site-header nav::-webkit-scrollbar{ display:none; }
-}
-
 /* обычный текст/инпуты */
 body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip {
   font-family: var(--font-body) !important;
@@ -320,41 +237,143 @@ html{ font-size: 17px; }                      /* было 16px */
 /* на очень узких оставляем читаемость */
 @media (max-width: 900px){
   html{ font-size: 16px; }              /* чтобы не разъезжалось */
-  .site-header nav a{ font-size: .95rem !important; }
+.site-header nav a{ font-size: .95rem !important; }
 }
 
   </style>
-  <style id="financing-diesel-overrides">
-/* всё: топбар и кнопки шрифтом Diesel */
-.site-header,
-.site-header .brand,
-.site-header .brand__word,
-.site-header .belt,
-.site-header nav a,
-.site-header .badge,
-.btn, .badge {
-  font-family: var(--font-body) !important; /* Diesel */
-  font-style: normal !important;
-}
-
-/* если где-то .btn переопределяли на Ford — прибьём локальным классом */
-.btn--diesel{
-  font-family: var(--font-body) !important; /* Diesel */
-  font-style: normal !important;
-}
-
-/* чуть крупнее имя в логотипе, как на About */
-.brand__word{ font-size: clamp(1rem, 1.15vw, 1.2rem) !important; }
-
-/* сгладим нав-линки (как на About) */
-.site-header nav a{
-  letter-spacing:.04em !important;
-  padding:.5rem .72rem !important;
-}
-.site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted-2);font-size:.95rem}
-
-</style>
-
+  {% include "includes/site_notice_style.html" %}
+  <style id="topbar-desktop">
+    .brand__tagline{
+      margin-left:1.1rem;
+      font-size:.82rem;
+      letter-spacing:.14em;
+      font-weight:800;
+      color:rgba(255,255,255,.72);
+      white-space:nowrap;
+    }
+    .site-header{
+      background:#000 !important;
+      border-bottom:1px solid var(--line);
+      backdrop-filter:none !important;
+    }
+    .site-header .site-header__inner{
+      display:flex !important;
+      align-items:center !important;
+      justify-content:space-between !important;
+      gap:1.25rem !important;
+      padding:.7rem 0 !important;
+    }
+    .site-header .brand{
+      display:flex !important;
+      align-items:baseline !important;
+      gap:.9rem !important;
+      min-width:max-content;
+    }
+    .site-header .brand__logo{
+      all:unset;
+      display:inline-flex;
+      gap:.5rem;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:.06em;
+      font-size:1rem;
+    }
+    .site-header .brand__word--white{color:#fff;}
+    .site-header .brand__word--red{color:#d50000;}
+    .site-header .brand__tagline{
+      margin-left:1.1rem;
+      white-space:nowrap;
+      font-size:.82rem;
+      font-weight:800;
+      letter-spacing:.14em;
+      color:rgba(255,255,255,.72);
+    }
+    .site-header nav{
+      margin-left:auto !important;
+      display:flex;
+      justify-content:flex-end;
+    }
+    .site-header nav ul{
+      display:flex !important;
+      align-items:center !important;
+      flex-wrap:nowrap !important;
+      justify-content:flex-end !important;
+      gap:1.4rem !important;
+      margin:0 !important;
+      padding:0 !important;
+      list-style:none !important;
+    }
+    .site-header nav li+li::before{content:none !important;}
+    .site-header nav a{
+      background:none !important;
+      border:0 !important;
+      border-radius:0 !important;
+      padding:0 !important;
+      line-height:1;
+      text-transform:uppercase;
+      font-weight:800;
+      letter-spacing:.08em;
+      font-size:.82rem;
+      color:rgba(255,255,255,.78);
+    }
+    .site-header nav a:hover,
+    .site-header nav a[aria-current="page"]{color:#fff !important;}
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      padding:0 !important;
+      border:none !important;
+      background:none !important;
+    }
+    @media (max-width:1200px){
+      .site-header .brand__tagline{display:none !important;}
+    }
+  </style>
+  <style id="logo-to-diesel">
+    .site-header .brand__logo,
+    .site-header .brand__logo .brand__word{
+      font-family: var(--font-body) !important;
+      font-weight: 900 !important;
+      font-style: normal !important;
+      text-transform: uppercase !important;
+      letter-spacing: .06em !important;
+      line-height: 1 !important;
+    }
+    .site-header .brand__logo{
+      font-size: clamp(1.2rem, 1.8vw, 1.55rem) !important;
+    }
+  </style>
+  <style id="belt-to-diesel">
+    .site-header .brand__tagline,
+    .site-header .belt{
+      font-family: var(--font-body) !important;
+      font-weight: 900 !important;
+      font-style: normal !important;
+      text-transform: uppercase !important;
+      letter-spacing: .12em !important;
+      line-height: 1 !important;
+      color: rgba(255,255,255,.78) !important;
+      font-size: clamp(.78rem, .95vw, .95rem) !important;
+      white-space: nowrap !important;
+    }
+  </style>
+  <style id="topbar-readability">
+    .site-header nav a,
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      font-family: var(--font-body) !important;
+      font-weight: 700 !important;
+      font-size: .9rem !important;
+      letter-spacing: .02em !important;
+      line-height: 1.15 !important;
+      text-transform: none !important;
+      color: rgba(255,255,255,.92) !important;
+    }
+    .site-header nav a:hover,
+    .site-header nav a[aria-current="page"]{
+      color:#fff !important;
+      text-decoration:none !important;
+    }
+  </style>
   <style id="topbar-responsive">
     .sr-only{
       position:absolute;
@@ -438,6 +457,7 @@ html{ font-size: 17px; }                      /* было 16px */
         padding-inline:clamp(16px, 4vw, 24px) !important;
       }
       .site-header__inner{
+        display:grid !important;
         grid-template-columns:auto max-content !important;
         align-items:center !important;
         gap:clamp(12px, 3vw, 24px) !important;
@@ -495,46 +515,29 @@ html{ font-size: 17px; }                      /* было 16px */
       }
     }
   </style>
+  <style id="financing-diesel-overrides">
+.btn--diesel{
+  font-family: var(--font-body) !important;
+  font-style: normal !important;
+  text-transform:none !important;
+  letter-spacing:.02em !important;
+}
+.site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted-2);font-size:.95rem}
+
+</style>
+
 
 </head>
 <body>
+  {% include "includes/marketing_body.html" %}
+  {% include "includes/site_notice_markup.html" with site_notice_version="offer-v1" %}
   <div id="bg"></div>
 
-  <header class="site-header" role="banner">
-  <div class="container site-header__inner">
-    <a class="brand" href="{% url 'home' %}">
-      <span class="brand__logo" aria-hidden="true"></span>
-      <span class="brand__word brand__word--white">BAD GUY</span>
-      <span class="brand__word brand__word--red">MOTORS</span>
-    </a>
+<a href="#main" class="visually-hidden">Skip to main content</a>
 
-    <div class="belt">CUSTOM BUILDS • INSTALLS • UPGRADES</div>
-
-    <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
-      <span class="site-header__toggle-box" aria-hidden="true">
-        <span class="site-header__toggle-lines"></span>
-      </span>
-      <span class="sr-only">Toggle navigation</span>
-    </button>
-
-    <nav id="siteNav" aria-label="Main">
-      <ul>
-        <li><a href="{% url 'home' %}">Home</a></li>
-        <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
-        {% if user.is_authenticated %}
-          <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
-        {% else %}
-          <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
-        {% endif %}
-        <li><a href="{% url 'store' %}" aria-current="page">Products</a></li>
-        <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
-        <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-        <li><a href="{% url 'financing' %}">Financing</a></li>
-        <li><a href="{% url 'our-story' %}">About</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
+{% with current='financing' %}
+  {% include "includes/site_header.html" %}
+{% endwith %}
 
   <section class="hero">
   <div class="container hero__inner">
@@ -555,9 +558,7 @@ html{ font-size: 17px; }                      /* было 16px */
   </div>
 </section>
 
-
-
-  <main>
+  <main id="main">
     <section id="providers" class="section">
       <div class="container">
         <div class="section__head">
@@ -599,7 +600,7 @@ html{ font-size: 17px; }                      /* было 16px */
           <article class="card">
             <div class="card__head">
               <h3 class="card__title">Afterpay (via Square)</h3>
-              <span class="card__meta">Good up to ≈ $2,000</span>
+              <span class="card__meta">Good up to ≈ {{ currency.code }} {{ currency.symbol }}2,000</span>
             </div>
             <p class="section__desc">Split smaller purchases into interest-free payments at checkout. Perfect for parts and minor installs.</p>
             <div class="card__actions">
@@ -664,7 +665,7 @@ html{ font-size: 17px; }                      /* было 16px */
           </article>
           <article class="card">
             <h3 class="card__title">Afterpay limits</h3>
-            <p class="section__desc">Afterpay via Square is typically suitable for purchases up to about $2,000 and is best used for smaller jobs and parts orders.</p>
+            <p class="section__desc">Afterpay via Square is typically suitable for purchases up to about {{ currency.code }} {{ currency.symbol }}2,000 and is best used for smaller jobs and parts orders.</p>
           </article>
           <article class="card">
             <h3 class="card__title">Questions?</h3>
@@ -689,7 +690,7 @@ html{ font-size: 17px; }                      /* было 16px */
       <a href="tel:+14035250432">(403) 525-0432</a>
     </div>
 
-    <div class="section__desc">© {{ now|date:"Y" }} Bad Guy Motors • Built to be bad. Engineered to last.</div>
+    <div class="section__desc">© {{ now|date:"Y" }} Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
   </div>
 </footer>
 
@@ -701,6 +702,7 @@ html{ font-size: 17px; }                      /* было 16px */
   :root{
     --ink:#eaeaea; --line:rgba(255,255,255,.12);
     --red:var(--accent, #d50000); --red-dark:#b60000;
+    --contact-font:"Helvetica Neue", Arial, sans-serif;
   }
   /* floating button */
   .contact-fab{
@@ -711,7 +713,7 @@ html{ font-size: 17px; }                      /* было 16px */
     background:linear-gradient(180deg,var(--red) 0%,var(--red-dark) 100%);
     color:#fff; font-weight:900; letter-spacing:.02em; line-height:1;
     cursor:pointer; box-shadow:0 12px 26px rgba(213,0,0,.28), 0 0 26px rgba(213,0,0,.18);
-    transition:.18s ease; font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
+    transition:.18s ease; font-family:var(--contact-font) !important; font-style:normal !important;
   }
   .contact-fab:hover{ transform:translateY(-2px); filter:saturate(1.05); }
   .contact-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
@@ -748,7 +750,7 @@ html{ font-size: 17px; }                      /* было 16px */
     display:flex; align-items:center; justify-content:space-between; gap:.6rem;
     background:rgba(255,255,255,.06); border:1px solid var(--line);
     border-radius:.7rem; padding:.7rem .8rem;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
+    font-family:var(--contact-font) !important; font-style:normal !important;
   }
   .contact-row a{ color:#fff; font-weight:800; text-decoration:none; }
   .contact-sub{ color:rgba(255,255,255,.72); font-size:.95rem; }
@@ -756,7 +758,7 @@ html{ font-size: 17px; }                      /* было 16px */
   .contact-btn{
     display:inline-flex; align-items:center; gap:.5em; padding:.7rem 1rem; border-radius:.55rem;
     border:1px solid var(--line); background:#0f0f0f; color:#fff; cursor:pointer;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif; font-weight:800;
+    font-family:var(--contact-font) !important; font-weight:800; font-style:normal !important;
   }
   .contact-btn:hover{ border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.25); }
 
@@ -810,8 +812,6 @@ html{ font-size: 17px; }                      /* было 16px */
 </div>
 </div>
 
-<script src="{% static 'js/topbar.js' %}"></script>
-
 <script id="contact-fab-js">
 (function(){
   const fab   = document.getElementById('contactFab');
@@ -857,7 +857,208 @@ html{ font-size: 17px; }                      /* было 16px */
   });
 })();
 </script>
+<!-- === Mobile header/nav parity with home =========================== -->
+<style id="home-mobile-nav-fix">
+  @media (max-width:960px){
+    .site-header nav{ z-index:2400 !important; }
+    .site-header nav ul{
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:stretch !important;
+      gap:.45rem !important;
+      width:100% !important;
+    }
+    .site-header nav a,
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      width:100% !important;
+      justify-content:space-between !important;
+    }
+    .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+      opacity:1 !important;
+      pointer-events:auto !important;
+      transform:translateY(0) !important;
+    }
+  }
+  body.nav-open .contact-fab{ display:none !important; }
+</style>
+<style id="mobile-nav-spacing-upgrade-financing">
+/* Mobile nav: more space + larger touch targets (Financing) */
+@media (max-width:960px){
+  .site-header nav ul{
+    gap: clamp(.85rem, 2.4vh, 1.2rem) !important; /* ↑ vertical spacing */
+  }
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.75rem;
+    width:100% !important;
+    padding: 1.1rem 1.2rem !important;  /* ↑ inner padding */
+    min-height: 52px;                    /* comfortable hit area */
+    border-radius: 1rem !important;      /* cleaner pills */
+  }
+  .site-header .badge{
+    margin-left:.5rem;                   /* keep "Soon" off the label */
+    transform:none !important;
+  }
+  .site-header nav li{ margin:0 !important; } /* rely on gap only */
+
+  /* Fallback for older iOS Safari without flex-gap support */
+  @supports not (gap: 1rem){
+    .site-header nav li + li{ margin-top:.95rem !important; }
+  }
+}
+
+</style>
+<style id="financing-mobile-nav-hardening-v2">
+/* Mobile sidebar: stacking, hit-test and spacing fixes */
+@media (max-width:960px){
+  /* всегда поверх контента/фаба/дыма */
+  .site-header{ z-index: 3200 !important; }
+  .site-header nav{
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 3300 !important;
+
+    /* убираем blur — источник iOS hit‑test багов */
+    background: rgba(7,7,7,.92) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+
+    /* полноэкранный слой, скролл внутри меню */
+    padding-top: calc(var(--site-header-height) + 1rem) !important;
+    padding-inline: clamp(20px, 6vw, 36px) !important;
+    padding-bottom: clamp(28px, 12vh, 46px) !important;
+    height: 100dvh !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+
+    /* закрыто по умолчанию */
+    opacity: 0; transform: translateY(-12px);
+    pointer-events: none;
+  }
+
+  /* открыто — кликабельно и видно */
+  .site-header--open nav,
+  .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    pointer-events: auto !important;
+  }
+
+  /* аккуратные интервалы между пунктами */
+  .site-header nav ul{
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: clamp(.9rem, 2.6vh, 1.25rem) !important;
+    width: 100% !important;
+  }
+  .site-header nav li{ margin: 0 !important; } /* полагаемся на gap */
+
+  /* кнопки/ссылки в меню — крупные, удобные */
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    width: 100% !important;
+    min-height: 54px;
+    padding: 1.05rem 1.1rem !important;
+    border-radius: 1rem !important;
+
+    background: rgba(255,255,255,.05) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+  }
+  .site-header nav a:hover,
+  .site-header nav a[aria-current="page"],
+  .site-header nav .btn:hover{
+    background: rgba(255,255,255,.10) !important;
+    border-color: rgba(255,255,255,.22) !important;
+    color: #fff !important;
+  }
+
+  /* бейдж не наезжает на соседние элементы */
+  .site-header .badge{ margin-left: .5rem; transform: none !important; }
+
+  /* скрываем FAB при открытом меню и блокируем прокрутку страницы */
+  body.nav-open{ overflow: hidden; touch-action: none; }
+  body.nav-open .contact-fab{ display: none !important; }
+
+  /* fallback для старых iOS без flex-gap */
+  @supports not (gap: 1rem){
+    .site-header nav li + li{ margin-top: 1rem !important; }
+  }
+}
+</style>
+
+<script id="home-mobile-nav-fix-js">
+(() => {
+  const header = document.querySelector('header.site-header');
+  const toggle = document.querySelector('.site-header__toggle');
+  const nav    = document.getElementById('siteNav');
+  const mq     = window.matchMedia('(max-width: 960px)');
+  if (!header || !toggle || !nav) return;
+
+  if (toggle.dataset.bgmTopbarBound === '1') return;
+  toggle.dataset.bgmTopbarBound = '1';
+
+  const isOpen = () => header.classList.contains('site-header--open') || toggle.getAttribute('aria-expanded') === 'true';
+
+  const setOpen = (open) => {
+    header.classList.toggle('site-header--open', !!open);
+    document.body.classList.toggle('nav-open', !!open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open && mq.matches) {
+      const first = nav.querySelector('a,button,[tabindex]:not([tabindex="-1"])');
+      first && first.focus({ preventScroll: true });
+    } else if (!open) {
+      toggle.focus({ preventScroll: true });
+    }
+  };
+
+  toggle.addEventListener('click', (e) => {
+    if (!mq.matches) return;
+    e.preventDefault();
+    setOpen(!isOpen());
+  });
+
+  nav.addEventListener('click', (e) => {
+    if (!mq.matches) return;
+    const act = e.target.closest('a,button');
+    if (!act) return;
+    if (act.closest('form')) return;
+    setOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!mq.matches || !isOpen()) return;
+    if (e.key === 'Escape') setOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!mq.matches || !isOpen() || e.key !== 'Tab') return;
+    const focusables = nav.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
+    const list = Array.from(focusables).filter(el => !el.disabled && el.offsetParent !== null);
+    if (!list.length) return;
+    const first = list[0], last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  });
+
+  const onChange = (ev) => { if (!ev.matches) setOpen(false); };
+  (mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange));
+
+  setOpen(false);
+})();
+</script>
 <!-- ==================================================================== -->
 
+  {% include "includes/analytics_tracker.html" %}
 </body>
 </html>

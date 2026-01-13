@@ -1,17 +1,193 @@
 # store/views.py
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
+import re
 from typing import Dict, Iterable
+import logging
+import uuid
+import json
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+from PIL import Image, UnidentifiedImageError
+from square.client import Square, SquareEnvironment
 
 from .models import Category, Order, OrderItem, Product, ProductOption, CarMake, CarModel
-from .forms_store import ProductFilterForm
+from .forms_store import ProductFilterForm, CustomFitmentRequestForm
+from core.models import Payment, PaymentMethod
+from core.utils import apply_dealer_discount, get_dealer_discount_percent
+
+logger = logging.getLogger(__name__)
+
+REFERENCE_IMAGE_MAX_MB = getattr(settings, "STORE_REFERENCE_IMAGE_MAX_MB", 8)
+REFERENCE_IMAGE_MAX_BYTES = int(REFERENCE_IMAGE_MAX_MB * 1024 * 1024)
+
+PAYMENT_QUANT = Decimal("0.01")
+
+
+def _square_ready() -> bool:
+    """
+    Minimal flag to avoid trying to charge without credentials.
+    """
+    return bool(
+        getattr(settings, "SQUARE_ACCESS_TOKEN", "")
+        and getattr(settings, "SQUARE_LOCATION_ID", "")
+        and getattr(settings, "SQUARE_APPLICATION_ID", "")
+    )
+
+
+def _square_client() -> Square:
+    token = getattr(settings, "SQUARE_ACCESS_TOKEN", "")
+    if not token:
+        raise RuntimeError("Square access token is not configured.")
+    env = getattr(settings, "SQUARE_ENVIRONMENT", "sandbox") or "sandbox"
+    environment = SquareEnvironment.PRODUCTION if env.lower().startswith("prod") else SquareEnvironment.SANDBOX
+    return Square(token=token, environment=environment)
+
+
+def _get_decimal_setting(name: str, default: str) -> Decimal:
+    """
+    Safe Decimal coercion for numeric settings with a non-negative fallback.
+    """
+    try:
+        raw = getattr(settings, name, default)
+    except Exception:
+        raw = default
+    try:
+        val = Decimal(str(raw))
+    except Exception:
+        val = Decimal(default)
+    return val if val >= 0 else Decimal(default)
+
+
+def _gross_up_with_fee(base: Decimal) -> tuple[Decimal, Decimal]:
+    """
+    Gross-up helper: returns (charge_amount, fee_component) so that after Square
+    takes its fee you still net the target base amount.
+    """
+    if base <= 0:
+        return Decimal("0.00"), Decimal("0.00")
+    try:
+        percent = Decimal(getattr(settings, "SQUARE_FEE_PERCENT", "0"))
+    except Exception:
+        percent = Decimal("0")
+    # allow both 0.029 and 2.9 formats
+    if percent >= 1:
+        percent = percent / Decimal("100")
+
+    fixed = getattr(settings, "SQUARE_FEE_FIXED", Decimal("0"))
+    try:
+        fixed = Decimal(fixed)
+    except Exception:
+        fixed = Decimal("0.00")
+
+    denominator = Decimal("1.00") - percent
+    if denominator <= 0:
+        denominator = Decimal("1.00")
+    gross = ((base + fixed) / denominator).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+    fee = (gross - base).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+    return gross, fee
+
+
+def _charge_square(source_token: str, amount_cents: int, currency: str, *, note: str = "", buyer_email: str = ""):
+    """
+    Create a Square payment and return a dict with the key bits we need.
+    """
+    client = _square_client()
+    payment = client.payments.create(
+        source_id=source_token,
+        idempotency_key=str(uuid.uuid4()),
+        amount_money={"amount": amount_cents, "currency": currency},
+        autocomplete=True,
+        location_id=getattr(settings, "SQUARE_LOCATION_ID", ""),
+        buyer_email_address=buyer_email or None,
+        note=note[:500] if note else None,
+    )
+    if getattr(payment, "errors", None):
+        errors = [getattr(err, "detail", None) or getattr(err, "category", None) for err in payment.errors]
+        raise RuntimeError("; ".join([e for e in errors if e]) or "Payment was declined. Please try another card.")
+
+    pay_obj = getattr(payment, "payment", None)
+    if not pay_obj:
+        raise RuntimeError("Payment was not created. Please try another card.")
+
+    card_details = getattr(pay_obj, "card_details", None)
+    card = getattr(card_details, "card", None) if card_details else None
+
+    fee_money = None
+    for fee in getattr(pay_obj, "processing_fee", None) or []:
+        money = getattr(fee, "amount_money", None)
+        fee_money = getattr(money, "amount", None)
+        if fee_money is not None:
+            break
+
+    return {
+        "id": getattr(pay_obj, "id", "") or "",
+        "status": (getattr(pay_obj, "status", "") or "").lower(),
+        "receipt_url": getattr(pay_obj, "receipt_url", "") or "",
+        "card_brand": getattr(card, "card_brand", "") if card else "",
+        "last_4": getattr(card, "last_4", "") if card else "",
+        "fee_money": fee_money,
+    }
+
+
+def _record_payment_entry(
+    order: Order,
+    *,
+    amount: Decimal,
+    balance_due: Decimal,
+    pay_mode: str,
+    payment_resp: Dict,
+    payment_fee: Decimal,
+):
+    """
+    Persist a Payment row so it shows up in the admin Payments section.
+    """
+    try:
+        method, _ = PaymentMethod.objects.get_or_create(name="Square")
+    except Exception:
+        logger.exception("Failed to get/create Square payment method")
+        return
+
+    currency = getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD")
+    fee_amount = Decimal("0.00")
+    fee_cents = payment_resp.get("fee_money")
+    if fee_cents is not None:
+        try:
+            fee_amount = (Decimal(str(fee_cents)) / Decimal("100")).quantize(PAYMENT_QUANT)
+        except Exception:
+            fee_amount = Decimal("0.00")
+    elif payment_fee:
+        try:
+            fee_amount = Decimal(str(payment_fee)).quantize(PAYMENT_QUANT)
+        except Exception:
+            fee_amount = Decimal("0.00")
+
+    try:
+        Payment.objects.create(
+            order=order,
+            amount=Decimal(str(amount)),
+            currency=currency,
+            method=method,
+            payment_mode=pay_mode,
+            balance_due=Decimal(str(balance_due)) if balance_due is not None else Decimal("0.00"),
+            processor="square",
+            processor_payment_id=payment_resp.get("id", ""),
+            receipt_url=payment_resp.get("receipt_url", ""),
+            card_brand=payment_resp.get("card_brand", ""),
+            card_last4=payment_resp.get("last_4", ""),
+            fee_amount=fee_amount,
+            created_at=getattr(order, "created_at", None) or None,
+        )
+    except Exception:
+        logger.exception("Failed to record payment for order %s", getattr(order, "id", None))
+
 
 # ────────────────────────── Публичные страницы ──────────────────────────
 
@@ -43,6 +219,168 @@ def _apply_filters(qs, form: ProductFilterForm):
         )
 
     return qs.distinct()
+
+
+def _quote_notification_recipients() -> list[str]:
+    """
+    Resolve the notification list for custom fitment requests with sensible fallbacks.
+    """
+    recipients = getattr(settings, "STORE_QUOTE_RECIPIENTS", None)
+    if isinstance(recipients, str):
+        return [recipients]
+    if recipients:
+        return list(recipients)
+
+    support_email = getattr(settings, "SUPPORT_EMAIL", None)
+    if support_email:
+        return [support_email]
+    default = getattr(settings, "DEFAULT_FROM_EMAIL", None)
+    if default:
+        return [default]
+    return ["support@badguymotors.com"]
+
+
+def _notify_fitment_request(request_obj):
+    """
+    Send a concise email to the internal inbox so the sales team can follow up fast.
+    """
+    recipients = _quote_notification_recipients()
+    if not recipients:
+        return
+
+    subject = f"Custom fitment request — {request_obj.product_name or 'Custom build'}"
+    lines = [
+        f"Product: {request_obj.product_name or '—'}",
+        f"Customer: {request_obj.customer_name}",
+        f"Email: {request_obj.email}",
+        f"Phone: {request_obj.phone or '—'}",
+        f"Vehicle: {request_obj.vehicle or '—'}",
+        f"Submodel: {request_obj.submodel or '—'}",
+        f"Performance goals: {request_obj.performance_goals or '—'}",
+        f"Budget: {request_obj.budget or '—'}",
+        f"Timeline: {request_obj.timeline or '—'}",
+        f"Notes:\n{request_obj.message or '—'}",
+    ]
+    if request_obj.source_url:
+        lines.append(f"Source: {request_obj.source_url}")
+
+    sender = getattr(settings, "DEFAULT_FROM_EMAIL", None) or recipients[0]
+    try:
+        send_mail(
+            subject=subject,
+            message="\n".join(lines),
+            from_email=sender,
+            recipient_list=recipients,
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception("Failed to notify about custom fitment request (id=%s)", request_obj.pk)
+
+
+def _normalize_etransfer_email(raw: str | None) -> str:
+    """
+    Force legacy .com addresses to .ca to keep customer instructions current.
+    """
+    email = (raw or "").strip()
+    if not email:
+        return ""
+    email = re.sub(r"(?i)@badguymotors\\.com$", "@badguymotors.ca", email)
+    if email.lower() == "payments@badguymotors.ca":
+        return "Payments@badguymotors.ca"
+    return email
+
+
+def _send_order_confirmation(
+    order: Order,
+    *,
+    payment_method: str,
+    pay_mode: str,
+    charge_amount: Decimal,
+    balance_due: Decimal,
+    order_total_with_fees: Decimal,
+    currency_symbol: str,
+    currency_code: str,
+    etransfer_email: str = "",
+    etransfer_memo_hint: str = "",
+    receipt_url: str = "",
+):
+    """
+    Notify the customer via email once checkout succeeds.
+    """
+    recipient = (getattr(order, "email", "") or "").strip()
+    if not recipient:
+        return
+
+    brand = getattr(settings, "SITE_BRAND_NAME", "BGM Customs")
+    pay_mode_label = "Pay in full" if pay_mode != Order.PaymentMode.DEPOSIT else "50% deposit"
+    amount_now = (charge_amount or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+    balance_left = (balance_due or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+    total_with_fees = (order_total_with_fees or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+
+    subject = f"{brand} order #{order.id} confirmed"
+    lines = [
+        f"Hi {order.customer_name},",
+        f"Thanks for your order with {brand}. We've got it and will follow up shortly.",
+        "",
+        f"Order #: {order.id}",
+        f"Payment option: {pay_mode_label}",
+        f"Order total (incl. GST/fees): {currency_symbol}{total_with_fees} {currency_code}",
+    ]
+
+    if payment_method == "etransfer":
+        send_to = _normalize_etransfer_email(etransfer_email or getattr(settings, "ETRANSFER_EMAIL", ""))
+        lines.append("Payment method: Interac e-Transfer.")
+        lines.append(f"Amount to send now: {currency_symbol}{amount_now} {currency_code}.")
+        if send_to:
+            lines.append(f"Send to: {send_to}.")
+        if etransfer_memo_hint:
+            lines.append(f"Include this message: Order #{order.id} — {etransfer_memo_hint}")
+        else:
+            lines.append(f"Include your Order #{order.id} in the transfer message.")
+        if balance_left > 0:
+            lines.append(f"Balance after this payment: {currency_symbol}{balance_left} {currency_code}.")
+    else:
+        receipt = receipt_url or getattr(order, "payment_receipt_url", "")
+        lines.append("Payment method: Card (Square).")
+        lines.append(f"Charged now: {currency_symbol}{amount_now} {currency_code}.")
+        if balance_left > 0:
+            lines.append(f"Balance remaining: {currency_symbol}{balance_left} {currency_code}. We'll invoice this before delivery.")
+        if receipt:
+            lines.append(f"Square receipt: {receipt}")
+
+    try:
+        items = list(order.items.select_related("product", "option").all())
+    except Exception:
+        items = []
+    if items:
+        lines.append("")
+        lines.append("Items:")
+        for it in items:
+            name = getattr(it.product, "name", "Item")
+            if getattr(it, "option", None):
+                name = f"{name} ({it.option.name})"
+            lines.append(f"- {name} × {it.qty}")
+
+    lines.extend([
+        "",
+        "Questions? Reply to this email and we'll help.",
+    ])
+
+    sender = (
+        getattr(settings, "DEFAULT_FROM_EMAIL", None)
+        or getattr(settings, "SUPPORT_EMAIL", None)
+        or _normalize_etransfer_email(getattr(settings, "ETRANSFER_EMAIL", None))
+    )
+    try:
+        send_mail(
+            subject=subject,
+            message="\n".join(lines),
+            from_email=sender,
+            recipient_list=[recipient],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception("Failed to send order confirmation email for order %s", getattr(order, "pk", None))
 
 
 def store_home(request):
@@ -119,6 +457,27 @@ def product_detail(request, slug: str):
         .order_by("-created_at")[:8]
     )
     go_along = product.get_companion_items(limit=3)
+    quote_initial = {
+        "product": product.pk,
+        "source_url": request.build_absolute_uri(),
+    }
+    quote_form = CustomFitmentRequestForm(initial=quote_initial)
+
+    if request.method == "POST" and request.POST.get("form_type") == "custom_fitment":
+        form_data = request.POST.copy()
+        form_data["product"] = product.pk
+        form_data.setdefault("source_url", request.build_absolute_uri())
+        quote_form = CustomFitmentRequestForm(form_data)
+        if quote_form.is_valid():
+            fitment_request = quote_form.save()
+            _notify_fitment_request(fitment_request)
+            messages.success(
+                request,
+                "Thanks! Your build notes reached our team. Expect a reply within 1-2 business days.",
+            )
+            return redirect(product.get_absolute_url() + "#quote-request")
+        messages.error(request, "Please correct the fields highlighted below.")
+
     return render(
         request,
         "store/product_detail.html",
@@ -127,6 +486,7 @@ def product_detail(request, slug: str):
             "related": related,
             "product_options": options,
             "go_along": go_along,
+            "quote_form": quote_form,
         },
     )
 
@@ -199,9 +559,10 @@ def _cart_add_item(session, *, product_id: int, qty: int, option_id: int | None 
     return cart
 
 
-def _cart_positions(session):
+def _cart_positions(session, *, dealer_discount: int = 0):
     """
     Build hydrated cart positions for rendering/checkout.
+    Returns (positions, dealer_total, retail_total).
     """
     cart = _cart(session)
     items = cart.get("items", [])
@@ -223,6 +584,8 @@ def _cart_positions(session):
 
     positions = []
     total = Decimal("0.00")
+    retail_total = Decimal("0.00")
+    dealer_discount = int(dealer_discount or 0)
 
     for entry in items:
         product = products.get(entry["product_id"])
@@ -235,24 +598,43 @@ def _cart_positions(session):
             option = None
         qty = entry["qty"]
         unit = product.get_unit_price(option)
-        line_total = (unit * qty).quantize(quant)
+        retail_unit = unit
+        retail_line = (retail_unit * qty).quantize(quant)
+
+        discounted_unit = retail_unit
+        if dealer_discount:
+            discounted_unit = apply_dealer_discount(retail_unit, dealer_discount)
+        line_total = (discounted_unit * qty).quantize(quant)
+
         total += line_total
+        retail_total += retail_line
         positions.append(
             {
                 "product": product,
                 "option": option,
                 "qty": qty,
-                "unit_price": unit,
+                "unit_price": discounted_unit,
+                "retail_unit_price": retail_unit,
                 "line_total": line_total,
+                "retail_line_total": retail_line,
+                "savings": (retail_line - line_total).quantize(quant),
+                "discount_percent": dealer_discount if dealer_discount else 0,
                 "option_id": entry["option_id"],
             }
         )
 
-    return positions, (total.quantize(quant) if positions else Decimal("0.00"))
+    total_quantized = total.quantize(quant) if positions else Decimal("0.00")
+    retail_quantized = retail_total.quantize(quant) if positions else Decimal("0.00")
+    return positions, total_quantized, retail_quantized
 
 @require_POST
 def cart_add(request, slug: str):
     product = get_object_or_404(Product, slug=slug, is_active=True)
+
+    if product.contact_for_estimate:
+        messages.error(request, "This build is quoted individually. Please contact us to get an estimate.")
+        return redirect("store:store-product", slug=product.slug)
+
     try:
         qty = int(request.POST.get("qty", 1))
     except (TypeError, ValueError):
@@ -292,8 +674,17 @@ def cart_add(request, slug: str):
 
 
 def cart_view(request):
-    positions, total = _cart_positions(request.session)
-    return render(request, "store/cart.html", {"positions": positions, "total": total})
+    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    positions, total, retail_total = _cart_positions(request.session, dealer_discount=dealer_discount)
+    savings = (retail_total - total) if retail_total and total else Decimal("0.00")
+    context = {
+        "positions": positions,
+        "total": total,
+        "retail_total": retail_total,
+        "cart_savings": savings,
+        "dealer_discount_percent": dealer_discount,
+    }
+    return render(request, "store/cart.html", context)
 
 
 @require_POST
@@ -345,19 +736,77 @@ def _first_present(model_fields: set, candidates: Iterable[str]):
 
 def checkout(request):
     # собрать позиции заказа из корзины
-    positions, total = _cart_positions(request.session)
+    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    positions, total, retail_total = _cart_positions(request.session, dealer_discount=dealer_discount)
 
+    gst_rate = _get_decimal_setting("STORE_GST_RATE", "0.05")
+    processing_rate = _get_decimal_setting("STORE_PROCESSING_FEE_RATE", "0.035")
+    if gst_rate >= 1:
+        gst_rate = gst_rate / Decimal("100")
+    if processing_rate >= 1:
+        processing_rate = processing_rate / Decimal("100")
+
+    order_gst = (total * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
+    order_processing = (total * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
+    order_total_with_fees = (total + order_gst + order_processing).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+    currency_code = getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD")
+    currency_symbol = getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$")
+    etransfer_email = _normalize_etransfer_email(getattr(settings, "ETRANSFER_EMAIL", "")) or "Payments@badguymotors.ca"
+    etransfer_memo_hint = getattr(settings, "ETRANSFER_MEMO_HINT", "")
+
+    def payment_plan(label: str, portion: Decimal):
+        base_portion = (total * portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
+        gst_portion = (base_portion * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
+        processing_portion = (base_portion * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
+        charge_amount = (base_portion + gst_portion + processing_portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+        balance_due = (order_total_with_fees - charge_amount).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+        if balance_due < 0:
+            balance_due = Decimal("0.00")
+        return {
+            "label": label,
+            "base": base_portion,
+            "gst": gst_portion,
+            "processing_fee": processing_portion,
+            "charge": charge_amount,
+            "balance_due": balance_due,
+            "order_subtotal": total,
+            "order_gst": order_gst,
+            "order_processing": order_processing,
+            "order_total_with_fees": order_total_with_fees,
+        }
+
+    payment_options = {
+        "full": payment_plan("Pay 100% now", Decimal("1.0")),
+        "deposit_50": payment_plan("Pay 50% deposit", Decimal("0.5")),
+    }
+
+    pay_mode = request.POST.get("pay_mode") or request.GET.get("pay_mode") or "full"
+    if pay_mode not in payment_options:
+        pay_mode = "full"
+    payment_method = request.POST.get("payment_method") or request.GET.get("payment_method") or "card"
+    if payment_method not in ("card", "etransfer"):
+        payment_method = "card"
+
+    reference_file = None
     if request.method == "POST" and not positions:
         messages.error(request, "The cart is empty.")
         return redirect("store:store-cart")
 
-    form = {"delivery_method": "shipping"}
+    form = {"delivery_method": "shipping", "pay_mode": pay_mode, "payment_method": payment_method}
     errors: Dict[str, str] = {}
 
     if request.method == "POST":
         def val(name, default=""):
             return (request.POST.get(name) or default).strip()
 
+        def normalize_postal_code(raw: str) -> str:
+            cleaned = "".join(ch for ch in (raw or "").upper() if ch.isalnum())
+            if len(cleaned) >= 6:
+                cleaned = cleaned[:6]
+                return f"{cleaned[:3]} {cleaned[3:]}"
+            return cleaned
+
+        reference_file = request.FILES.get("reference_image")
         form = {
             "customer_name": val("customer_name"),
             "email": val("email"),
@@ -367,12 +816,18 @@ def checkout(request):
             "address_line2": val("address_line2"),
             "city": val("city"),
             "region": val("region"),
-            "postal_code": val("postal_code"),
+            "postal_code": normalize_postal_code(val("postal_code")),
             "country": val("country") or "Canada",
             "pickup_notes": val("pickup_notes"),
             "comment": val("comment"),
             "agree": request.POST.get("agree") == "1",
+            "pay_mode": pay_mode,
+            "payment_method": payment_method,
         }
+        payment_method = val("payment_method", payment_method) or "card"
+        if payment_method not in ("card", "etransfer"):
+            payment_method = "card"
+        form["payment_method"] = payment_method
 
         # валидация
         if not form["customer_name"]:
@@ -394,11 +849,67 @@ def checkout(request):
                 errors["region"] = "State/region is required."
             if not form["postal_code"]:
                 errors["postal_code"] = "Postal code is required."
-            if not form["country"]:
-                errors["country"] = "Country is required."
+        if not form["country"]:
+            errors["country"] = "Country is required."
 
         if not form["agree"]:
             errors["agree"] = "You must agree to the terms."
+
+        if reference_file:
+            if reference_file.size > REFERENCE_IMAGE_MAX_BYTES:
+                errors["reference_image"] = f"Image is too large. Limit: {REFERENCE_IMAGE_MAX_MB} MB."
+            elif not (reference_file.content_type or "").lower().startswith("image/"):
+                errors["reference_image"] = "Please upload an image file."
+            else:
+                try:
+                    with Image.open(reference_file) as img:
+                        img.verify()
+                    reference_file.seek(0)
+                except (UnidentifiedImageError, OSError):
+                    errors["reference_image"] = "Unsupported image. Use JPG, PNG, or WEBP."
+
+        if any(getattr(it["product"], "contact_for_estimate", False) for it in positions):
+            errors["payment"] = "Items that require an estimate must be invoiced manually. Please remove them to pay online."
+
+        selected_payment = payment_options[pay_mode]
+        charge_amount = selected_payment["charge"]
+        charge_processing_fee = selected_payment["processing_fee"]
+        balance_due = selected_payment["balance_due"]
+        square_token = request.POST.get("square_payment_token")
+        is_etransfer = payment_method == "etransfer"
+
+        if charge_amount <= 0:
+            errors["payment"] = "Order total is zero — nothing to charge."
+        if not errors and is_etransfer:
+            if not getattr(settings, "ETRANSFER_EMAIL", ""):
+                errors["payment"] = "Interac e-Transfer is not available right now. Please choose card or contact support."
+        if not errors and not is_etransfer and not square_token:
+            errors["payment"] = "Please enter your card details to complete payment."
+        if not errors and not is_etransfer and not _square_ready():
+            errors["payment"] = "Square credentials are not configured. Please contact support."
+
+        cents = 0
+        if not errors and not is_etransfer:
+            try:
+                cents = int((charge_amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+            except Exception:
+                cents = 0
+            if cents <= 0:
+                errors["payment"] = "Charge amount is invalid."
+
+        payment_resp = {}
+        if not errors and not is_etransfer:
+            try:
+                payment_resp = _charge_square(
+                    square_token,
+                    cents,
+                    currency_code,
+                    note=f"BGM store order ({pay_mode}) — {form['customer_name']}",
+                    buyer_email=form["email"],
+                )
+            except Exception as exc:
+                logger.exception("Square payment failed")
+                errors["payment"] = str(exc) or "Card was declined. Please try again."
 
         if not errors:
             o_fields = _model_field_names(Order)
@@ -411,6 +922,28 @@ def checkout(request):
             # Если в модели есть поле total — положим туда сумму (иначе total будет считаться @property)
             if "total" in o_fields:
                 order_kwargs["total"] = total
+            if "payment_mode" in o_fields:
+                order_kwargs["payment_mode"] = pay_mode
+            if "payment_amount" in o_fields:
+                order_kwargs["payment_amount"] = Decimal("0.00") if is_etransfer else charge_amount
+            if "payment_fee" in o_fields:
+                order_kwargs["payment_fee"] = Decimal("0.00") if is_etransfer else charge_processing_fee
+            if "payment_balance_due" in o_fields:
+                order_kwargs["payment_balance_due"] = order_total_with_fees if is_etransfer else balance_due
+            if "payment_processor" in o_fields:
+                order_kwargs["payment_processor"] = "etransfer" if is_etransfer else "square"
+            if "payment_id" in o_fields and not is_etransfer:
+                order_kwargs["payment_id"] = payment_resp.get("id", "")
+            if "payment_receipt_url" in o_fields and not is_etransfer:
+                order_kwargs["payment_receipt_url"] = payment_resp.get("receipt_url", "")
+            if "payment_card_brand" in o_fields and not is_etransfer:
+                order_kwargs["payment_card_brand"] = payment_resp.get("card_brand", "")
+            if "payment_last4" in o_fields and not is_etransfer:
+                order_kwargs["payment_last4"] = payment_resp.get("last_4", "")
+            if "payment_status" in o_fields:
+                order_kwargs["payment_status"] = (
+                    Order.PaymentStatus.UNPAID if is_etransfer else Order.PaymentStatus.PAID
+                )
 
             # способ доставки
             name = _first_present(o_fields, ["delivery_method", "shipping_method"])
@@ -453,6 +986,18 @@ def checkout(request):
                              form["region"], form["postal_code"], form["country"]]
                         ).strip(", ").replace("  ", " ")
                         extra_blocks.append(f"[Delivery] {addr_text}")
+                if is_etransfer:
+                    et_email = etransfer_email
+                    memo_hint = etransfer_memo_hint
+                    payment_note_parts = [
+                        f"Customer chose Interac e-Transfer ({pay_mode}).",
+                        f"Amount requested now: {charge_amount} {currency_code}.",
+                    ]
+                    if et_email:
+                        payment_note_parts.append(f"Send to {et_email}.")
+                    if memo_hint:
+                        payment_note_parts.append(memo_hint)
+                    extra_blocks.append("[Payment] " + " ".join(payment_note_parts))
                 if extra_blocks:
                     order_kwargs[comment_field] = "\n".join(extra_blocks)
 
@@ -463,6 +1008,9 @@ def checkout(request):
                 # для совместимости также проставим created_by, если есть и пусто
                 if "created_by" in o_fields:
                     order_kwargs.setdefault("created_by", request.user)
+
+            if reference_file and "reference_image" in o_fields:
+                order_kwargs["reference_image"] = reference_file
 
             with transaction.atomic():
                 order = Order.objects.create(**order_kwargs)
@@ -497,18 +1045,72 @@ def checkout(request):
                     if line_field:
                         kwargs[line_field] = line_total
                     if currency_field:
-                        kwargs[currency_field] = getattr(p, "currency", "USD")
+                        kwargs[currency_field] = getattr(p, "currency", settings.DEFAULT_CURRENCY_CODE)
                     if option_field and it.get("option"):
                         kwargs[option_field] = it["option"]
 
                     OrderItem.objects.create(**kwargs)
 
+                if not is_etransfer:
+                    _record_payment_entry(
+                        order=order,
+                        amount=charge_amount,
+                        balance_due=balance_due,
+                        pay_mode=pay_mode,
+                        payment_resp=payment_resp,
+                        payment_fee=charge_processing_fee,
+                    )
+
                 # очистить корзину
                 request.session[CART_KEY] = {"items": []}
                 request.session.modified = True
 
-            messages.success(request, f"Order created successfully. Thank you! Order #: {order.id}")
+                transaction.on_commit(lambda: _send_order_confirmation(
+                    order=order,
+                    payment_method=payment_method,
+                    pay_mode=pay_mode,
+                    charge_amount=charge_amount,
+                    balance_due=balance_due,
+                    order_total_with_fees=order_total_with_fees,
+                    currency_symbol=currency_symbol,
+                    currency_code=currency_code,
+                    etransfer_email=etransfer_email,
+                    etransfer_memo_hint=etransfer_memo_hint,
+                    receipt_url=payment_resp.get("receipt_url", ""),
+                ))
+
+            if is_etransfer:
+                et_email = etransfer_email
+                memo_hint = etransfer_memo_hint
+                amount_str = f"{currency_symbol}{charge_amount.quantize(PAYMENT_QUANT)}"
+                memo_suffix = (
+                    f" with “Order #{order.id} — {memo_hint}”."
+                    if memo_hint else
+                    f" and include Order #{order.id} in the transfer message."
+                )
+                messages.success(
+                    request,
+                    f"Order created. Order #: {order.id}. Send {amount_str} via Interac e-Transfer to {et_email or 'our payments email'}{memo_suffix}",
+                )
+            else:
+                messages.success(request, f"Order created successfully. Thank you! Order #: {order.id}")
             return redirect("store:store")
+
+    selected_payment = payment_options.get(pay_mode, payment_options["full"])
+    payment_options_payload = {
+        key: {
+            "label": data["label"],
+            "base": float(data["base"]),
+            "gst": float(data["gst"]),
+            "processing_fee": float(data["processing_fee"]),
+            "charge": float(data["charge"]),
+            "balance_due": float(data["balance_due"]),
+            "order_subtotal": float(data["order_subtotal"]),
+            "order_gst": float(data["order_gst"]),
+            "order_processing": float(data["order_processing"]),
+            "order_total_with_fees": float(data["order_total_with_fees"]),
+        } for key, data in payment_options.items()
+    }
 
     return render(
         request,
@@ -518,5 +1120,28 @@ def checkout(request):
             "total": total,
             "form": form,
             "errors": errors,
+            "reference_image_limit_mb": REFERENCE_IMAGE_MAX_MB,
+            "retail_total": retail_total,
+            "cart_savings": (retail_total - total) if retail_total and total else Decimal("0.00"),
+            "dealer_discount_percent": dealer_discount,
+            "pay_mode": pay_mode,
+            "payment_method": payment_method,
+            "payment_options": payment_options,
+            "order_gst": order_gst,
+            "order_processing": order_processing,
+            "order_total_with_fees": order_total_with_fees,
+            "gst_rate_percent": (gst_rate * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            "processing_rate_percent": (processing_rate * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            "square_application_id": getattr(settings, "SQUARE_APPLICATION_ID", ""),
+            "square_location_id": getattr(settings, "SQUARE_LOCATION_ID", ""),
+            "square_env": getattr(settings, "SQUARE_ENVIRONMENT", "sandbox"),
+            "square_ready": _square_ready(),
+            "square_is_sandbox": str(getattr(settings, "SQUARE_ENVIRONMENT", "sandbox")).lower().startswith("sandbox"),
+            "payment_options_json": json.dumps(payment_options_payload),
+            "currency_symbol": currency_symbol,
+            "currency_code": currency_code,
+            "selected_payment": selected_payment,
+            "etransfer_email": etransfer_email,
+            "etransfer_memo_hint": etransfer_memo_hint,
         },
     )

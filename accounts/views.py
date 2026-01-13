@@ -6,26 +6,37 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
+from django.views import View
 from django.views.generic import TemplateView, ListView
 from django.views.generic.edit import CreateView
 
 from django.utils import timezone
 from django.db.models import OuterRef, Subquery, Count
 from django.db.models.functions import TruncMonth
+from django.conf import settings
+from django.template.defaultfilters import filesizeformat
+import os
 
 from core.models import (
     Service,
     Appointment,
     AppointmentStatusHistory,
+    ClientFile,
+    PageFontSetting,
 )
+from core.services.fonts import build_page_font_context
 
 from .forms import (
     ClientRegistrationForm,
     ClientProfileForm,
 )
 
+CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
+CLIENT_PORTAL_FILE_MAX_BYTES = CLIENT_PORTAL_FILE_MAX_MB * 1024 * 1024
+CLIENT_PORTAL_ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".pdf"}
+CLIENT_PORTAL_ALLOWED_MIME_TYPES = {"application/pdf"}
 
 # =========================
 # Аутентификация и доступ
@@ -118,6 +129,12 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
             .order_by("-start_time")
         )
         ctx["appointments"] = qs
+        ctx["client_files"] = (
+            ClientFile.objects
+            .filter(user=user)
+            .order_by("-uploaded_at")
+        )
+        ctx["client_file_max_mb"] = CLIENT_PORTAL_FILE_MAX_MB
 
         # прошлые и будущие
         ctx["recent_appointments"] = qs.filter(start_time__lt=now)[:5]
@@ -158,6 +175,85 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         ctx = self.get_context_data()
         ctx["profile_form_errors"] = form.errors
         return self.render_to_response(ctx, status=400)
+
+
+def serialize_client_file(file_obj: ClientFile) -> dict[str, str]:
+    uploaded_at = file_obj.uploaded_at
+    uploaded_at_iso = timezone.localtime(uploaded_at).isoformat() if uploaded_at else ""
+    uploaded_at_display = (
+        timezone.localtime(uploaded_at).strftime("%b %d, %Y %H:%M") if uploaded_at else ""
+    )
+    is_image = file_obj.is_image
+    return {
+        "id": str(file_obj.id),
+        "name": file_obj.filename or os.path.basename(file_obj.file.name),
+        "url": file_obj.file.url,
+        "size": filesizeformat(file_obj.file_size) if file_obj.file_size else "—",
+        "uploaded_at": uploaded_at_iso,
+        "uploaded_at_display": uploaded_at_display,
+        "uploaded_by": file_obj.get_uploaded_by_display(),
+        "description": file_obj.description or "",
+        "can_delete": file_obj.uploaded_by == ClientFile.USER,
+        "delete_url": reverse("dashboard-file-delete", args=[file_obj.id]) if file_obj.uploaded_by == ClientFile.USER else "",
+        "is_image": is_image,
+    }
+
+
+class ClientFileUploadView(LoginRequiredMixin, View):
+    """
+    Handles uploads from the Files tab inside the client dashboard.
+    """
+
+    def post(self, request, *args, **kwargs):
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return JsonResponse({"error": "Please choose a file."}, status=400)
+
+        if uploaded.size > CLIENT_PORTAL_FILE_MAX_BYTES:
+            return JsonResponse(
+                {"error": f"File is too large. Limit: {CLIENT_PORTAL_FILE_MAX_MB} MB."},
+                status=400,
+            )
+
+        if not self._is_allowed(uploaded):
+            return JsonResponse(
+                {"error": "Unsupported format. Only images or PDF files are allowed."},
+                status=400,
+            )
+
+        description = (request.POST.get("description") or "").strip()[:255]
+        client_file = ClientFile.objects.create(
+            user=request.user,
+            file=uploaded,
+            description=description,
+            uploaded_by=ClientFile.USER,
+        )
+        return JsonResponse({"file": serialize_client_file(client_file)}, status=201)
+
+    def _is_allowed(self, uploaded_file) -> bool:
+        content_type = (uploaded_file.content_type or "").lower()
+        extension = os.path.splitext(uploaded_file.name)[1].lower()
+        return (
+            content_type.startswith("image/")
+            or content_type in CLIENT_PORTAL_ALLOWED_MIME_TYPES
+            or extension in CLIENT_PORTAL_ALLOWED_EXTENSIONS
+        )
+
+
+class ClientFileDeleteView(LoginRequiredMixin, View):
+    """
+    Allows a user to delete only the files they personally uploaded.
+    """
+
+    def post(self, request, file_id, *args, **kwargs):
+        client_file = get_object_or_404(ClientFile, pk=file_id, user=request.user)
+        if client_file.uploaded_by != ClientFile.USER:
+            return JsonResponse(
+                {"error": "Files uploaded by the team cannot be deleted here."},
+                status=403,
+            )
+        client_file.delete()
+        return JsonResponse({"ok": True})
 
 
 # =========================
@@ -222,6 +318,7 @@ class HomeView(TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]

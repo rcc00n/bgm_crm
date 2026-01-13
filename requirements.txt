@@ -11,6 +11,7 @@ phonenumbers==9.0.10
 psycopg2-binary==2.9.10
 python-dateutil==2.9.0.post0
 python-decouple==3.8
+squareup==43.2.0.20251016
 s3transfer==0.13.0
 six==1.17.0
 sqlparse==0.5.3
@@ -24,3 +25,4 @@ django-storages==1.14.6
 boto3==1.39.4
 
 Pillow==10.4.0
+pyTelegramBotAPI==4.23.0

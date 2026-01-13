@@ -1,0 +1,1003 @@
+{% load static dealer_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Performance Tuning &amp; Engine Upgrades — Bad Guy Motors</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  {% with meta_title="Performance Tuning & Engine Upgrades — Bad Guy Motors" meta_description="Professional performance tuning and engine upgrades in Medicine Hat. Dyno-backed tuning, airflow and exhaust upgrades, and performance installs for daily drivers, trucks, and modified vehicles." meta_section="services" meta_keywords=marketing.default_keywords %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+
+  <!-- Fonts -->
+  {% if font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% endif %}
+
+  <style>
+    :root{
+      --bg:#000; --fg:#fff; --muted:rgba(255,255,255,.72); --muted-2:rgba(255,255,255,.55);
+      --line:rgba(255,255,255,.12); --panel:#0E0E0E; --panel-2:#131313;
+      --accent:#d50000; --accent-2:#ff1a1a; --ok:#17d45b;
+      --radius-lg:1.25rem; --radius-sm:.6rem; --shadow:0 10px 30px rgba(0,0,0,.45);
+      --container:clamp(320px,92vw,1280px);
+      --site-header-height:72px;
+      --site-header-toggle-size:46px;
+
+      --font-body:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --font-head:"Diesel",system-ui,sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:16px;scroll-behavior:smooth}
+    body{
+      background:var(--bg);
+      color:var(--fg);
+      font-family:var(--font-body);
+      line-height:1.55;
+    }
+    img{max-width:100%;display:block}
+    .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
+    a{color:inherit;text-decoration:none}
+    .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+    .muted{color:var(--muted);font-size:.98rem}
+
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:.6em;
+      padding:.78rem 1.15rem;border-radius:var(--radius-sm);
+      font-weight:800;letter-spacing:.3px;cursor:pointer;transition:.24s;
+      border:1px solid transparent;user-select:none;font-size:.98rem;
+    }
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .btn--primary{background:var(--accent);color:#fff}
+    .btn--primary:hover{transform:translateY(-2px);box-shadow:0 12px 22px rgba(213,0,0,.25)}
+    .btn--ghost{background:transparent;border-color:var(--line);color:var(--fg)}
+    .btn--ghost:hover{border-color:var(--accent);color:var(--accent)}
+    .btn--link{padding:0;border:none;background:transparent;color:var(--accent)}
+    .btn--secondary{
+      background:transparent;
+      border-color:var(--line);
+      color:var(--fg);
+    }
+    .btn--secondary:hover{border-color:var(--accent);color:var(--accent)}
+
+    .badge{
+      display:inline-block;font-size:.78rem;
+      padding:.15rem .55rem;border-radius:999px;
+      background:var(--accent);color:#fff;
+    }
+
+    /* Header */
+    .site-header{
+      position:sticky;top:0;z-index:1000;
+      background:#000;border-bottom:1px solid var(--line);
+    }
+    .site-header__inner{
+      display:flex;align-items:center;gap:1.25rem;
+      justify-content:space-between;padding:.7rem 0;
+    }
+    .brand{display:flex;align-items:baseline;gap:.9rem;font-weight:900;letter-spacing:.5px}
+    .brand__logo{all:unset;display:inline-flex;gap:.5rem;line-height:1;letter-spacing:.06em;font-size:1rem}
+    .brand__word--white{color:#fff}
+    .brand__word--red{color:#d50000}
+    .brand__tagline{
+      margin-left:1.1rem;white-space:nowrap;
+      font-size:.82rem;font-weight:800;letter-spacing:.14em;
+      color:rgba(255,255,255,.72)
+    }
+    nav ul{display:flex;align-items:center;gap:1.4rem;list-style:none}
+    nav a{
+      display:inline-flex;align-items:center;gap:.45rem;line-height:1;
+      text-transform:uppercase;font-weight:800;letter-spacing:.08em;
+      font-size:.82rem;color:rgba(255,255,255,.78)
+    }
+    nav a:hover,nav a[aria-current="page"]{color:#fff}
+    nav .btn,nav .btn--ghost{padding:0;border:none;background:none}
+
+    /* Hero */
+    .hero{position:relative;overflow:hidden;background:transparent}
+    .hero__inner{
+      display:grid;grid-template-columns:1.1fr .9fr;
+      gap:2.4rem;
+      padding:clamp(2rem,6vw,4.5rem) 0;
+      align-items:flex-start;
+    }
+    .hero__title{
+      font-size:clamp(2rem,4.6vw,3.4rem);
+      font-weight:900;line-height:1.15;
+    }
+    .hero__lead{
+      color:var(--muted);
+      font-size:clamp(1rem,1.5vw,1.15rem);
+      max-width:54ch;margin-top:1rem;
+    }
+    .hero__text{
+      color:var(--muted-2);
+      margin-top:.75rem;
+      max-width:60ch;
+    }
+    .hero__cta{
+      display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap;
+    }
+    .stat-row{
+      display:flex;
+      gap:.6rem;
+      margin-top:1.3rem;
+      flex-wrap:wrap;
+    }
+    .stat{
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));
+      border:1px solid var(--line);border-radius:var(--radius-lg);
+      padding:1rem 1.1rem;box-shadow:var(--shadow);
+    }
+    .stat b{font-size:1.1rem}
+    .stat span{font-size:.92rem;color:var(--muted-2)}
+
+    .hero__panel{
+      border-radius:var(--radius-lg);
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,#0b0b0b,#111);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02),0 14px 28px rgba(0,0,0,.45);
+      padding:1.5rem 1.5rem;
+      align-self:stretch;
+      max-width:440px;
+      margin-left:auto;
+    }
+    .hero__panel h2{
+      font-size:1.4rem;
+      font-weight:900;
+      margin-bottom:.8rem;
+    }
+
+    /* Form */
+    .form{
+      display:flex;flex-direction:column;gap:.55rem;
+    }
+    .form label{
+      display:flex;flex-direction:column;gap:.25rem;
+      font-size:.92rem;
+    }
+    .form small{color:var(--muted-2);font-size:.8rem}
+    .form input,
+    .form select,
+    .form textarea{
+      background:#050505;
+      border:1px solid var(--line);
+      border-radius:.55rem;
+      padding:.6rem .7rem;
+      color:var(--fg);
+      font:inherit;
+      outline:none;
+    }
+    .form input:focus,
+    .form select:focus,
+    .form textarea:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px rgba(213,0,0,.55);
+    }
+    .form textarea{min-height:80px;resize:vertical;}
+    .form-alerts{display:flex;flex-direction:column;gap:.45rem;margin-top:.25rem;}
+    .form-alert{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      padding:.6rem .7rem;
+      border-radius:.6rem;
+      font-size:.92rem;
+      color:var(--fg);
+    }
+    .form-alert--success{border-color:rgba(23,212,91,.55);background:rgba(23,212,91,.08);color:#9df5ba;}
+    .form-alert--error{border-color:rgba(213,0,0,.55);background:rgba(213,0,0,.08);color:#ffc0c0;}
+
+    /* Sections */
+    .section{
+      padding:clamp(1.9rem,4.5vw,3rem) 0;
+      border-top:1px solid var(--line);
+    }
+    .section__head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      margin-bottom:1.3rem;
+      gap:1rem;
+      flex-wrap:wrap;
+    }
+    .section__title{
+      font-size:clamp(1.9rem,2.8vw,2.25rem);
+      font-weight:900;
+      letter-spacing:.005em;
+      line-height:1.2;
+    }
+    .section__desc{
+      color:rgba(255,255,255,.86);
+      font-size:clamp(1rem,1.4vw,1.06rem);
+      max-width:46ch;
+    }
+    .kicker{
+      color:rgba(255,255,255,.78);
+      font-weight:800;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      font-size:.78rem;
+      margin-bottom:.4rem;
+    }
+
+    .section__grid{
+      display:grid;
+      gap:1.6rem;
+      align-items:flex-start;
+    }
+    .section__grid--two-col{
+      grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
+    }
+
+    .service-list{
+      list-style:none;
+      margin:1rem 0 1.1rem;
+      padding:0;
+      display:grid;
+      gap:.45rem;
+    }
+    .service-list li{
+      position:relative;
+      padding-left:1.2rem;
+      color:var(--muted);
+      font-size:.98rem;
+    }
+    .service-list li::before{
+      content:"•";
+      position:absolute;left:0;top:.15rem;
+      color:var(--accent);
+    }
+
+    /* Tiles / Why / Reviews */
+    .tiles{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:1rem;
+    }
+    .tile{
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));
+      border:1px solid var(--line);
+      border-radius:1rem;
+      padding:1rem;
+      min-height:100%;
+    }
+    .tile__icon{
+      font-size:1.3rem;
+      color:var(--accent);
+      margin-bottom:.35rem;
+    }
+    .tile p{color:var(--muted);font-size:.98rem}
+    .reviews-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+      gap:1rem;
+    }
+    .review-card{
+      display:flex;
+      flex-direction:column;
+      gap:.6rem;
+    }
+    .review-card .review-author{
+      font-weight:800;
+      color:rgba(255,255,255,.9);
+      font-size:.95rem;
+    }
+
+    /* Review stars */
+    .review-stars{
+      font-size:.9rem;
+      color:var(--accent-2);
+      letter-spacing:.14em;
+    }
+
+    /* Gallery */
+    .gallery-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:1rem;
+    }
+    .frame{
+      border-radius:1.2rem;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,#0b0b0b,#0a0a0a);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02),0 14px 28px rgba(0,0,0,.45);
+      aspect-ratio:16/10;
+      display:flex;align-items:center;justify-content:center;
+      color:var(--muted-2);
+    }
+    .frame--media{position:relative;overflow:hidden}
+    .frame--media img{
+      width:100%;height:100%;object-fit:cover;filter:contrast(1.05);
+    }
+    .frame__caption{
+      position:absolute;
+      left:0;right:0;bottom:0;
+      padding:.45rem .7rem;
+      font-size:.8rem;
+      background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.82));
+      color:var(--muted);
+    }
+
+    /* Gallery captions moved below image */
+    .frame--gallery{
+      position:static;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      aspect-ratio:auto;
+    }
+    .frame--gallery img{
+      width:100%;
+      height:auto;
+      object-fit:cover;
+    }
+    .frame--gallery .frame__caption{
+      position:static;
+      padding:.6rem .8rem .7rem;
+      font-size:.9rem;
+      background:#050505;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+    }
+
+    /* CTA */
+    .cta-inner{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      flex-wrap:wrap;
+    }
+
+    /* Footer */
+    .site-footer{
+      border-top:1px solid var(--line);
+      padding:1.6rem 0;
+      color:var(--muted-2);
+      font-size:.95rem;
+    }
+    .footer__nav{
+      display:flex;
+      gap:.75rem;
+      flex-wrap:wrap;
+    }
+    .footer__nav a{
+      font-weight:700;
+      letter-spacing:.02em;
+      text-transform:none;
+      color:rgba(255,255,255,.9);
+      font-size:.95rem;
+    }
+    .footer__nav a:hover{color:#fff}
+
+    /* Smoke layer */
+    #bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+    #bg canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+    .site-header,.hero,main,.site-footer{position:relative;z-index:1}
+
+    /* Sticky phone bar */
+    .phone-bar{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      background:rgba(17,17,17,.9);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:.5rem;
+      padding:.6rem .9rem;
+      font-size:.95rem;
+      z-index:3500;
+      text-decoration:none;
+      border-top:1px solid rgba(255,255,255,.12);
+    }
+    .phone-bar__icon{
+      font-size:1.1rem;
+      line-height:1;
+    }
+
+    /* Fonts */
+    {% with fs=font_settings %}
+    {% for font in fs.fonts %}
+      {% if font.has_source %}
+    @font-face{
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
+    }
+      {% endif %}
+    {% endfor %}
+    {% with body_stack=fs.body.stack|default:'\"Diesel\", system-ui, sans-serif' %}
+    {% with heading_stack=fs.heading.stack|default:'\"Diesel\", system-ui, sans-serif' %}
+    {% with ui_stack=fs.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui:   {{ ui_stack|safe }};
+    }
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+    html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
+    body,button,input,select,textarea{
+      font-family:var(--font-body)!important;
+      font-style:normal;
+    }
+    h1,
+    h2,
+    .hero__title,
+    .section__title{
+      font-family:var(--font-head)!important;
+      font-style:normal;
+    }
+
+    /* Top bar fonts */
+    .site-header .brand,
+    .site-header .brand__logo,
+    .site-header .brand__logo .brand__word,
+    .site-header .brand__tagline,
+    .site-header nav a,
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      font-family:var(--font-head)!important;
+      font-style:normal!important;
+    }
+    .site-header .brand__logo,
+    .site-header .brand__logo .brand__word{
+      font-weight:900!important;
+      text-transform:uppercase!important;
+      letter-spacing:.06em!important;
+      line-height:1!important;
+    }
+    .site-header .brand__logo{font-size:clamp(1.2rem,1.8vw,1.55rem)!important}
+    .site-header .brand__tagline{
+      font-weight:900!important;
+      text-transform:uppercase!important;
+      letter-spacing:.12em!important;
+      line-height:1!important;
+      color:rgba(255,255,255,.78)!important;
+      font-size:clamp(.78rem,.95vw,.95rem)!important;
+      white-space:nowrap!important;
+    }
+
+    /* Mobile nav */
+    .sr-only{
+      position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+    }
+    .site-header__toggle{
+      display:none!important;
+      align-items:center;justify-content:center;
+      width:var(--site-header-toggle-size);height:var(--site-header-toggle-size);
+      border-radius:.85rem;border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);color:#fff;cursor:pointer;
+      transition:transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+    .site-header__toggle:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
+    .site-header__toggle:focus-visible{outline:2px solid #fff;outline-offset:3px}
+    .site-header__toggle-box{position:relative;width:20px;height:14px;display:block}
+    .site-header__toggle-lines,
+    .site-header__toggle-lines::before,
+    .site-header__toggle-lines::after{
+      content:"";position:absolute;left:0;width:100%;height:2px;border-radius:999px;background:currentColor;
+      transition:transform .22s ease, opacity .22s ease, background .22s ease;
+    }
+    .site-header__toggle-lines{top:50%;transform:translateY(-50%)}
+    .site-header__toggle-lines::before{top:-6px}
+    .site-header__toggle-lines::after{top:6px}
+    .site-header--open .site-header__toggle{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.38)}
+    .site-header--open .site-header__toggle-lines{background:transparent}
+    .site-header--open .site-header__toggle-lines::before{transform:translateY(6px) rotate(45deg)}
+    .site-header--open .site-header__toggle-lines::after{transform:translateY(-6px) rotate(-45deg)}
+
+    /* Service overview custom layout */
+    .service-overview-grid{
+      display:grid;
+      gap:1.9rem 2.4rem;
+      grid-template-columns:minmax(0,1.35fr) minmax(0,1.1fr);
+      grid-template-areas:
+        "overview-intro overview-image-right"
+        "overview-image-left overview-details";
+      align-items:flex-start;
+    }
+    .service-overview__intro{grid-area:overview-intro;}
+    .service-overview__details{grid-area:overview-details;}
+    .service-overview__image--right{grid-area:overview-image-right;}
+    .service-overview__image--left{grid-area:overview-image-left;}
+    .service-overview__details > p{
+      margin-top:.8rem;
+      color:var(--muted);
+    }
+    .service-overview__features{
+      margin-top:1.2rem;
+      display:flex;
+      flex-direction:column;
+      gap:.85rem;
+      align-items:center;
+      text-align:center;
+    }
+    .service-overview__features .stat-row{
+      margin-top:0;
+      justify-content:center;
+      width:100%;
+    }
+    .service-overview__cta{
+      margin-top:.2rem;
+      width:auto;
+    }
+
+    @media (max-width:960px){
+      body.nav-open{overflow:hidden}
+      .site-header{--site-header-height:max(62px,10vh)}
+      .site-header .container{padding-inline:clamp(16px,4vw,24px)}
+      .site-header__inner{
+        display:grid;grid-template-columns:auto max-content;
+        align-items:center;gap:clamp(12px,3vw,24px)
+      }
+
+      .site-header nav{
+        position:fixed;inset:0;padding-top:calc(var(--site-header-height) + 1rem);
+        padding-inline:clamp(20px,6vw,36px);padding-bottom:clamp(28px,12vh,46px);
+        background:rgba(5,5,5,.88);backdrop-filter:blur(18px) saturate(1.2);
+        display:flex;align-items:flex-start;justify-content:flex-start;
+        opacity:0;pointer-events:none;transform:translateY(-12px);
+        transition:opacity .22s ease, transform .22s ease;z-index:3700;
+        overflow-y:auto;-webkit-overflow-scrolling:touch;border-right:none;box-shadow:none;
+      }
+      .site-header nav ul{
+        flex-direction:column;align-items:stretch;gap:.9rem;width:100%;margin:0;padding:0;list-style:none;
+      }
+      .site-header nav li{width:100%}
+      .site-header nav a,
+      .site-header nav .btn,
+      .site-header nav .btn--ghost{
+        width:100%;display:flex;align-items:center;justify-content:space-between;
+        min-height:56px;padding:1.05rem 1.15rem;border-radius:1rem;
+        background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+        font-size:1.05rem;letter-spacing:.035em;box-shadow:0 8px 24px rgba(0,0,0,.35);
+      }
+      .site-header nav a:hover,
+      .site-header nav a[aria-current="page"],
+      .site-header nav .btn:hover{
+        background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#fff;
+      }
+      .brand__tagline{display:none !important}
+      .site-header--open nav, body.nav-open .site-header nav{
+        opacity:1;pointer-events:auto;transform:translateY(0);
+      }
+
+      .hero__inner{
+        grid-template-columns:1fr;
+      }
+      .hero__panel{max-width:100%;margin:1.5rem 0 0}
+      .section__grid--two-col{grid-template-columns:1fr}
+
+      .stat-row{
+        margin-top:1rem;
+      }
+      .stat{
+        background:transparent;
+        border:none;
+        box-shadow:none;
+        padding:.4rem 0;
+        border-bottom:1px solid rgba(255,255,255,.16);
+        border-radius:0;
+      }
+      .stat:last-child{
+        border-bottom:none;
+      }
+
+      body{padding-bottom:3.1rem;}
+
+      .service-overview-grid{
+        display:flex;
+        flex-direction:column;
+      }
+      .service-overview__features{
+        align-items:flex-start;
+        text-align:left;
+      }
+      .service-overview__features .stat-row{
+        justify-content:flex-start;
+      }
+    }
+
+    @media (max-width:1200px){
+      .brand__tagline{display:none !important}
+    }
+
+    /* Slightly larger type on big screens */
+    @media (min-width:1200px){
+      html{font-size:17px;}
+    }
+
+    /* Layering fix */
+    .site-header{z-index:3600 !important;}
+    @media (max-width:960px){
+      .site-header nav{z-index:3700 !important;}
+    }
+
+    @media (prefers-reduced-motion:reduce){
+      *{animation:none!important;transition:none!important}
+    }
+  </style>
+
+  {% include "includes/site_notice_style.html" %}
+</head>
+
+<body>
+  {% include "includes/marketing_body.html" %}
+  {% include "includes/site_notice_markup.html" with site_notice_version="offer-v1" %}
+
+  <div id="bg"></div>
+
+  <a href="#main" class="visually-hidden">Skip to main content</a>
+
+  <!-- HEADER -->
+  <header class="site-header" role="banner">
+    <div class="container site-header__inner">
+      <div class="brand">
+        <span class="brand__logo">
+          <span class="brand__word brand__word--white">BAD GUY</span>
+          <span class="brand__word brand__word--red">MOTORS</span>
+        </span>
+        <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
+      </div>
+
+      <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
+        <span class="site-header__toggle-box" aria-hidden="true">
+          <span class="site-header__toggle-lines"></span>
+        </span>
+        <span class="sr-only">Toggle navigation</span>
+      </button>
+
+      <nav id="siteNav" aria-label="Main navigation">
+        <ul>
+          <!-- Intentionally left empty for focused landing page funnel -->
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO + FORM -->
+  <section class="hero" id="top">
+    <div class="container hero__inner">
+      <div>
+        <p class="kicker">Performance Tuning • Engine Upgrades</p>
+        <h1 class="hero__title">Professional Performance Tuning and Engine Upgrades in Medicine Hat</h1>
+        <p class="hero__lead">
+          Reliable, dyno-backed tuning, airflow upgrades, and performance installs for daily drivers, trucks, and modified vehicles.
+        </p>
+        <p class="hero__text">
+          Whether you want better power delivery, improved throttle response, or a complete performance build, our technicians upgrade and tune your vehicle properly and safely.
+        </p>
+        <div class="hero__cta">
+          <a href="#service-form" class="btn btn--primary">Request a Performance &amp; Tuning Quote</a>
+        </div>
+      </div>
+
+      <aside class="hero__panel">
+        <form id="service-form" class="form" method="post" action="{% url 'service-lead-submit' %}" autocomplete="on">
+          {% csrf_token %}
+          <input type="hidden" name="source_page" value="performance_tuning">
+          <input type="hidden" name="source_url" value="{{ request.build_absolute_uri }}">
+          <input type="hidden" name="next" value="{{ request.build_absolute_uri }}#service-form">
+          <h2>Request a Performance &amp; Tuning Appointment</h2>
+          {% if messages %}
+            <div class="form-alerts">
+              {% for message in messages %}
+                <div class="form-alert form-alert--{{ message.tags|default:'info' }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <label>
+            Name
+            <input type="text" name="full_name" autocomplete="name" required>
+          </label>
+
+          <label>
+            Phone
+            <input type="tel" name="phone" autocomplete="tel" required>
+          </label>
+
+          <label>
+            Email
+            <input type="email" name="email" autocomplete="email" required>
+          </label>
+
+          <label>
+            Vehicle (Year / Make / Model)
+            <input type="text" name="vehicle" autocomplete="off" placeholder="e.g. 2018 Ram 3500">
+          </label>
+
+          <label>
+            Service Needed
+            <select name="service_needed" required>
+              <option value="">Select an option</option>
+              <option>ECU/PCM tuning</option>
+              <option>Intake and airflow upgrades</option>
+              <option>Exhaust upgrades</option>
+              <option>Turbo or supercharger install</option>
+              <option>Fuel system upgrades</option>
+              <option>Performance diagnostics</option>
+              <option>Other</option>
+            </select>
+          </label>
+
+          <label>
+            Notes (optional)
+            <textarea name="notes" placeholder="Describe current mods, goals, dyno info…"></textarea>
+          </label>
+
+          <small>We will call or email to confirm your appointment. No obligation.</small>
+
+          <button type="submit" class="btn btn--primary" style="margin-top:.6rem;width:100%">
+            Submit Request
+          </button>
+        </form>
+      </aside>
+    </div>
+  </section>
+
+  <main id="main">
+    <!-- SERVICE OVERVIEW -->
+    <section class="section" id="service-overview">
+      <div class="container section__grid service-overview-grid">
+        <div class="service-overview__intro">
+          <p class="kicker">Service overview</p>
+          <h2 class="section__title">Complete performance and tuning services you can count on</h2>
+          <p class="section__desc" style="margin-top:.6rem">
+            Bad Guy Motors provides safe, reliable performance upgrades for cars, trucks, SUVs, diesels, and modified rigs. We follow proper tuning procedures and use quality components to deliver real gains in power and drivability without sacrificing reliability.
+          </p>
+          <p style="margin-top:.8rem;color:var(--muted)">
+            From intake and exhaust upgrades to tuning and forced induction support, our team takes the time to inspect, calibrate, and complete the work the right way.
+          </p>
+        </div>
+
+        <!-- Existing image on the right -->
+        <div class="service-overview__image service-overview__image--right">
+          <div class="frame frame--media" aria-hidden="false">
+            {% with hero=tuning_media.hero %}
+              <img src="{{ hero.src }}"
+                   alt="{{ hero.alt|default:'Performance tuning and engine upgrades at Bad Guy Motors' }}">
+            {% endwith %}
+          </div>
+        </div>
+
+        <!-- New image on the left -->
+        <div class="service-overview__image service-overview__image--left">
+          <div class="frame frame--media">
+            {% with gallery=tuning_media.gallery %}
+              {% if gallery %}
+                {% with first=gallery.0 %}
+                  <img src="{{ first.src }}"
+                       alt="{{ first.alt|default:'Performance work at Bad Guy Motors' }}">
+                {% endwith %}
+              {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+
+        <!-- Text, key services + micro features -->
+        <div class="service-overview__details">
+          <p>
+            We focus on safe, repeatable performance. Every upgrade is matched to your vehicle, your use case, and your long‑term goals.
+          </p>
+
+          <ul class="service-list">
+            <li>ECU and PCM tuning</li>
+            <li>Cold air intake and airflow upgrades</li>
+            <li>Performance exhaust systems (cat-back, headers, mufflers)</li>
+            <li>Turbo and supercharger installation</li>
+            <li>Fuel system upgrades (injectors, pumps, regulators)</li>
+            <li>Cooling system and supporting hardware upgrades</li>
+            <li>Transmission tuning support where applicable</li>
+            <li>Performance diagnostics and troubleshooting</li>
+            <li>Sensor calibration and post‑install verification</li>
+          </ul>
+
+          <div class="service-overview__features">
+            <div class="stat-row">
+              <div class="stat">
+                <b>Same‑day scheduling</b><br>
+                <span>Available on select jobs</span>
+              </div>
+              <div class="stat">
+                <b>All makes &amp; power levels</b><br>
+                <span>Cars, trucks &amp; diesels</span>
+              </div>
+              <div class="stat">
+                <b>Reliable horsepower</b><br>
+                <span>Safe, proven methods</span>
+              </div>
+            </div>
+
+            <a href="#service-form" class="btn btn--primary service-overview__cta">
+              Request a Performance &amp; Tuning Quote
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHY CHOOSE US -->
+    <section class="section" id="why-bgm">
+      <div class="container">
+        <div class="section__head">
+          <div>
+            <p class="kicker">Why drivers choose us</p>
+            <h2 class="section__title">Why drivers in Medicine Hat choose Bad Guy Motors for performance work</h2>
+            <p class="section__desc">
+              We combine technical expertise with straightforward advice. Whether you need a simple upgrade or a full performance transformation, our process ensures your vehicle drives better, stronger, and safer – with long‑term reliability in mind.
+            </p>
+          </div>
+        </div>
+
+        <div class="tiles">
+          <div class="tile">
+            <div class="tile__icon">★</div>
+            <b>Safe, reliable tuning</b>
+            <p>Proper procedures, datalogging, and calibration for every tuning job.</p>
+          </div>
+          <div class="tile">
+            <div class="tile__icon">🔧</div>
+            <b>Full install capabilities</b>
+            <p>From bolt‑on intakes and exhausts to full turbo and supercharger systems.</p>
+          </div>
+          <div class="tile">
+            <div class="tile__icon">⬆︎</div>
+            <b>Built for modified vehicles</b>
+            <p>Experience with lifted, lowered, and aftermarket‑equipped trucks and cars.</p>
+          </div>
+          <div class="tile">
+            <div class="tile__icon">💬</div>
+            <b>Honest recommendations</b>
+            <p>Clear communication, realistic expectations, and no pressure upsells.</p>
+          </div>
+          <div class="tile">
+            <div class="tile__icon">📍</div>
+            <b>Local family‑run shop</b>
+            <p>Serving Medicine Hat and area with performance‑focused service.</p>
+          </div>
+        </div>
+
+        <div style="margin-top:1.5rem;display:flex;gap:.6rem;flex-wrap:wrap">
+          <a href="#service-form" class="btn btn--primary">Request an Appointment</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- REVIEWS -->
+    <section class="section" id="reviews">
+      <div class="container">
+        <div class="section__head">
+          <div>
+            <p class="kicker">Reviews</p>
+            <h2 class="section__title">What our customers say</h2>
+            <p class="section__desc">
+              Real feedback from drivers who trusted us with their tuning and performance upgrades.
+            </p>
+          </div>
+        </div>
+
+        <div class="reviews-grid">
+          {% if reviews %}
+            {% for review in reviews %}
+              <article class="tile review-card">
+                <div class="review-stars" aria-hidden="true">
+                  {% for _ in review.star_range %}★{% endfor %}
+                </div>
+                <p class="muted">
+                  &ldquo;{{ review.quote }}&rdquo;
+                </p>
+                <p class="review-author">
+                  {{ review.reviewer_name }}{% if review.reviewer_title %} &mdash; {{ review.reviewer_title }}{% endif %}
+                </p>
+                <span class="sr-only">{{ review.rating }} star review</span>
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="muted">Reviews coming soon.</p>
+          {% endif %}
+        </div>
+
+        <div style="margin-top:1.5rem;display:flex;gap:.6rem;flex-wrap:wrap">
+          <a href="#service-form" class="btn btn--primary">Request an Appointment</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section class="section" id="gallery">
+      <div class="container">
+        <div class="section__head">
+          <div>
+            <p class="kicker">Gallery</p>
+            <h2 class="section__title">See our work</h2>
+            <p class="section__desc">
+              A look at real performance tuning, installs, and engine upgrade jobs from our bay.
+            </p>
+          </div>
+        </div>
+
+        <div class="gallery-grid">
+          {% with gallery=tuning_media.gallery %}
+            {% for item in gallery %}
+              <figure class="frame frame--media frame--gallery">
+                <img src="{{ item.src }}" alt="{{ item.alt|default:'Performance tuning & upgrades at Bad Guy Motors' }}">
+                {% if item.caption %}
+                  <figcaption class="frame__caption">{{ item.caption }}</figcaption>
+                {% endif %}
+              </figure>
+            {% endfor %}
+          {% endwith %}
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="section" id="cta">
+      <div class="container cta-inner">
+        <div>
+          <h2 class="section__title">Ready to upgrade your vehicle&rsquo;s performance?</h2>
+          <p class="section__desc">
+            Request a quote today and see why drivers across Medicine Hat trust Bad Guy Motors for reliable, professional tuning and performance work.
+          </p>
+        </div>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+          <a href="#service-form" class="btn btn--primary">Request an Appointment</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer" id="contact">
+    <div class="container" style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div>
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.45rem">
+          <span class="brand__logo" aria-hidden="true"></span>
+          <b>Bad Guy Motors</b>
+        </div>
+        <div class="section__desc" style="font-size:.95rem">
+          620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2
+        </div>
+        <div class="section__desc" style="font-size:.95rem">
+          Phone: <a href="tel:14035250432">(403) 525‑0432</a>
+        </div>
+
+        <!-- Optional: Google Map embed -->
+        {# Paste your Google Maps iframe embed here if desired #}
+      </div>
+
+      <div class="section__desc" style="font-size:.9rem">
+        © 2025 Bad Guy Motors • Performance tuning &amp; engine upgrades in Medicine Hat. Engineered to last.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Sticky phone CTA -->
+  <a href="tel:14035250432" class="phone-bar">
+    <span class="phone-bar__icon" aria-hidden="true">📞</span>
+    <span>(403) 525‑0432 — Call Now</span>
+  </a>
+
+  <!-- Smoke background -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+
+  <!-- Unified topbar behavior -->
+  <script src="{% static 'js/topbar.js' %}"></script>
+
+  {% include "includes/site_notice_script.html" %}
+  {% include "includes/analytics_tracker.html" %}
+</body>
+</html>

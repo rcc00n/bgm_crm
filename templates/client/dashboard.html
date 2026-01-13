@@ -1,8 +1,13 @@
-{% load i18n tz %}<!DOCTYPE html>
+{% load i18n tz static dealer_extras %}<!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Bad Guy Motors | Client Portal</title>
+  {% static 'img/bad-guy-preview.png' as preview_image %}
+  {% with meta_title="Bad Guy Motors | Client Portal" meta_description="Manage appointments, check project status, and review invoices in the client portal." meta_image=preview_image meta_section="client-portal" meta_robots="noindex,nofollow" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
 
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -149,6 +154,201 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   font-family: var(--font-body) !important;
 }
   </style>
+  <style id="dashboard-responsive">
+    :root{
+      --sidebar-width: clamp(260px, 28vw, 320px);
+    }
+    body{
+      min-height:100svh;
+      background:var(--bg);
+    }
+    .app-wrap{
+      min-height:100svh;
+      display:flex;
+      flex-direction:row;
+      align-items:stretch;
+      gap:0;
+    }
+    .sidebar{
+      width:var(--sidebar-width);
+      flex-shrink:0;
+      transition:transform .35s ease;
+    }
+    .sidebar__close{
+      display:none;
+      margin:0 1.25rem 1rem;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(0,0,0,.35);
+      color:#fff;
+      font-weight:700;
+      justify-content:center;
+      min-height:44px;
+    }
+    .sidebar-link,
+    .logout-btn{
+      min-height:44px;
+      padding:.85rem 1rem;
+    }
+    .logout-btn{
+      font-weight:700;
+    }
+    .sidebar-link span{
+      flex:1;
+      min-width:0;
+    }
+    main{
+      flex:1;
+      width:100%;
+      padding:clamp(1.25rem, 2vw, 2.75rem);
+      overflow-x:hidden;
+    }
+    .tab{
+      display:block;
+      max-width:1150px;
+      margin-inline:auto;
+    }
+    .panel{
+      border-radius:var(--radius);
+      overflow:hidden;
+    }
+    .panel table{
+      width:100%;
+    }
+    .panel table th,
+    .panel table td{
+      padding:.65rem .75rem;
+    }
+    .btn,
+    button.btn,
+    a.btn{
+      min-height:44px;
+      padding-inline:clamp(.85rem,2vw,1.4rem);
+    }
+    .btn-ghost{
+      border:1px solid var(--grid);
+    }
+    .appt-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.45rem;
+    }
+    .appt-actions .link{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid var(--grid);
+      border-radius:999px;
+      padding:0 .9rem;
+      min-height:44px;
+      font-weight:700;
+    }
+    .mobile-portal-bar{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      margin-bottom:1.5rem;
+      padding:.75rem 1rem;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      background:rgba(0,0,0,.35);
+      box-shadow:var(--shadow);
+    }
+    .mobile-portal-bar__title{
+      display:flex;
+      align-items:center;
+      gap:.35rem;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .mobile-portal-bar__title .mark{
+      padding:.2rem .5rem;
+      border-radius:.8rem;
+      background:var(--red);
+    }
+    .sidebar-toggle{
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      font-weight:800;
+      padding:.5rem 1.2rem;
+      min-height:44px;
+    }
+    .sidebar-toggle__icon{
+      width:20px;
+      height:2px;
+      background:#fff;
+      position:relative;
+      display:block;
+    }
+    .sidebar-toggle__icon::before,
+    .sidebar-toggle__icon::after{
+      content:"";
+      position:absolute;
+      left:0;
+      width:20px;
+      height:2px;
+      background:#fff;
+    }
+    .sidebar-toggle__icon::before{ top:-6px; }
+    .sidebar-toggle__icon::after{ top:6px; }
+    .sidebar-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.65);
+      backdrop-filter:blur(4px);
+      opacity:0;
+      visibility:hidden;
+      transition:opacity .2s ease;
+      z-index:70;
+    }
+    body.has-drawer-open .sidebar-backdrop{
+      opacity:1;
+      visibility:visible;
+    }
+    @media (max-width:1024px){
+      .app-wrap{
+        flex-direction:column;
+      }
+      .sidebar{
+        position:fixed;
+        inset:0 auto 0 0;
+        height:100%;
+        max-width:min(320px, calc(100vw - 48px));
+        width:min(320px, calc(100vw - 48px));
+        transform:translateX(-110%);
+        z-index:80;
+        overflow-y:auto;
+        border-right:1px solid rgba(255,255,255,.12);
+      }
+      .sidebar.sidebar--open{
+        transform:translateX(0);
+      }
+      body.has-drawer-open{
+        overflow:hidden;
+      }
+      .sidebar__close{
+        display:flex;
+      }
+      .mobile-portal-bar{
+        display:flex;
+      }
+    }
+    @media (max-width:640px){
+      main{
+        padding:clamp(1rem,4vw,1.5rem);
+      }
+      .grid.lg\:grid-cols-3{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
   <style id="bgm-fonts-override">
   /* REG */
   @font-face{
@@ -259,6 +459,72 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     font-family: var(--font-body) !important; /* Diesel */
   }
 </style>
+<style id="file-upload-styles">
+  #tab-files .file-dropzone{
+    border:1px dashed rgba(255,255,255,.25);
+    border-radius:var(--radius);
+    padding:1.75rem 1.25rem;
+    text-align:center;
+    background:rgba(255,255,255,.03);
+    transition:all .2s ease;
+    cursor:pointer;
+  }
+  #tab-files .file-dropzone:hover,
+  #tab-files .file-dropzone.is-dragover{
+    border-color:var(--red);
+    background:rgba(213,0,0,.08);
+  }
+  #tab-files .file-dropzone.is-uploading{
+    opacity:.6;
+    pointer-events:none;
+  }
+  #tab-files .file-dropzone__icon{
+    font-size:2rem;
+    margin-bottom:.5rem;
+  }
+  .file-card{
+    display:flex;
+    gap:1rem;
+    align-items:flex-start;
+    padding:1rem;
+    border:1px solid var(--grid);
+    border-radius:var(--radius);
+    background:rgba(255,255,255,.03);
+  }
+  .file-card__icon{
+    font-size:1.4rem;
+    width:40px;
+    height:40px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(255,255,255,.04);
+  }
+  .file-card__body{
+    flex:1;
+    min-width:0;
+  }
+  .file-card__name{
+    font-weight:700;
+    color:#fff;
+    display:inline-flex;
+    align-items:center;
+    gap:.35rem;
+  }
+  .file-card__desc{
+    color:var(--muted);
+    margin:.25rem 0;
+  }
+  .file-card__delete{
+    margin-left:auto;
+    color:#ff8282;
+    background:transparent;
+    border:0;
+    font-weight:700;
+    cursor:pointer;
+  }
+</style>
 <style id="font-lock-brand">
   .brand {
     font-size: 1.6rem !important;   /* общий размер */
@@ -275,6 +541,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
 </head>
 <body class="h-full">
+  {% include "includes/marketing_body.html" %}
 
 <!-- <div class="smoke" id="smoke-layer"></div> -->
 <div id="bg"></div>
@@ -285,8 +552,9 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
 <div class="app-wrap">
   <!-- SIDEBAR -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="portalSidebar">
     <div class="brand"><span class="mark">BGM</span><span class="name">Client Portal</span></div>
+    <button type="button" class="sidebar__close" id="sidebarClose">Close menu</button>
 
     <nav id="sidebar" class="space-y-1 px-3 text-sm">
       <a href="#" data-tab="dashboard"     class="sidebar-link">🏁 <span>Overview</span></a>
@@ -305,9 +573,20 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       </form>
     </nav>
   </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 
   <!-- MAIN -->
   <main>
+    <div class="mobile-portal-bar" aria-label="Portal controls">
+      <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="portalSidebar" aria-expanded="false">
+        <span class="sidebar-toggle__icon" aria-hidden="true"></span>
+        Menu
+      </button>
+      <div class="mobile-portal-bar__title">
+        <span class="mark">BGM</span>
+        <span>Client Portal</span>
+      </div>
+    </div>
     <!-- DASHBOARD -->
     <section id="tab-dashboard" class="tab">
       <h1 class="text-4xl font-black mb-2 tracking-wide">
@@ -357,7 +636,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
                 <tr class="text-left">
                   <th class="py-2 pl-3 pr-4">Date</th>
                   <th class="py-2 pr-4">Service</th>
-                  <th class="py-2 pr-4">Master</th>
+                  <th class="py-2 pr-4">Staff</th>
                   <th class="py-2 pr-4">Status</th>
                   <th class="py-2 pr-3">Amount</th>
                 </tr>
@@ -369,7 +648,13 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
                     <td class="py-2 pr-4">{{ a.service.name }}</td>
                     <td class="py-2 pr-4">{{ a.master.get_full_name }}</td>
                     <td class="py-2 pr-4">{{ a.current_status }}</td>
-                    <td class="py-2 pr-3">{{ a.price|default:"—" }}</td>
+                    <td class="py-2 pr-3">
+                      {% if a.price is not None %}
+                        {{ a.price|money }}
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
                   </tr>
                 {% endfor %}
               </tbody>
@@ -385,10 +670,10 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
           <h2 class="text-lg font-bold mb-4">Rates</h2>
           <div class="space-y-2 text-sm">
             <div class="flex items-center justify-between">
-              <span class="muted">Shop rate</span><span class="font-bold">$130/hr</span>
+              <span class="muted">Shop rate</span><span class="font-bold">{{ currency.code }} {{ currency.symbol }}130/hr</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="muted">Design/CAD rate</span><span class="font-bold">$150/hr</span>
+              <span class="muted">Design/CAD rate</span><span class="font-bold">{{ currency.code }} {{ currency.symbol }}150/hr</span>
             </div>
           </div>
         </div>
@@ -466,132 +751,16 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         <a href="{% url 'store' %}" class="ml-auto btn btn-ghost">Go to products</a>
       </div>
 
-      {# 1) если в контексте уже есть `orders` #}
       {% if orders %}
-        {% with orders as orders_qs %}
-          <div class="space-y-3">
-            {% for o in orders_qs %}
-              <div class="panel panel-pad">
-                <div class="flex flex-wrap items-center gap-3">
-                  <div class="text-sm muted">Order</div>
-                  <div class="font-bold">#{{ o.id }}</div>
-                  <div class="text-sm muted">
-                    · {{
-                      o.created_at|default:o.shipped_at|default:o.completed_at|default:o.cancelled_at
-                      |localtime|date:"d M Y, H:i"
-                    }}
-                  </div>
-                  <div class="ml-auto flex items-center gap-3">
-                    <span class="badge st-{{ o.status|default:'processing' }}">
-                      {{ o.status_label|default:o.get_status_display|default:o.status }}
-                    </span>
-                    <div class="font-bold">${{ o.total|floatformat:2 }}</div>
-                  </div>
-                </div>
-
-                {% with items=o.items.all %}
-                  {% if items %}
-                    <div class="mt-3 border-t border-[color:var(--grid)] pt-3">
-                      {% for it in items %}
-                        <div class="flex items-center justify-between py-1 text-sm">
-                          <div class="truncate">
-                            <span class="font-semibold">{{ it.product.name }}</span>
-                            {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
-                          </div>
-                          <div class="muted-2">x {{ it.qty }}</div>
-                          <div class="font-semibold">${{ it.subtotal|floatformat:2 }}</div>
-                        </div>
-                      {% endfor %}
-                    </div>
-                  {% endif %}
-                {% endwith %}
-              </div>
-            {% endfor %}
-          </div>
-        {% endwith %}
-
-      {# 2) иначе — если юзер залогинен, пробуем его связанные `orders` #}
+        {% include "client/_order_cards.html" with orders=orders %}
       {% elif request.user.is_authenticated %}
         {% with user_orders=request.user.orders.all %}
           {% if user_orders %}
-            {% with user_orders as orders_qs %}
-              <div class="space-y-3">
-                {% for o in orders_qs %}
-                  <div class="panel panel-pad">
-                    <div class="flex flex-wrap items-center gap-3">
-                      <div class="text-sm muted">Order</div>
-                      <div class="font-bold">#{{ o.id }}</div>
-                      <div class="text-sm muted">
-                        · {{ o.created_at|default:o.shipped_at|default:o.completed_at|default:o.cancelled_at|localtime|date:"d M Y, H:i" }}
-                      </div>
-                      <div class="ml-auto flex items-center gap-3">
-                        <span class="badge st-{{ o.status|default:'processing' }}">
-                          {{ o.status_label|default:o.get_status_display|default:o.status }}
-                        </span>
-                        <div class="font-bold">${{ o.total|floatformat:2 }}</div>
-                      </div>
-                    </div>
-                    {% with items=o.items.all %}
-                      {% if items %}
-                        <div class="mt-3 border-t border-[color:var(--grid)] pt-3">
-                          {% for it in items %}
-                            <div class="flex items-center justify-between py-1 text-sm">
-                              <div class="truncate">
-                                <span class="font-semibold">{{ it.product.name }}</span>
-                                {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
-                              </div>
-                              <div class="muted-2">x {{ it.qty }}</div>
-                              <div class="font-semibold">${{ it.subtotal|floatformat:2 }}</div>
-                            </div>
-                          {% endfor %}
-                        </div>
-                      {% endif %}
-                    {% endwith %}
-                  </div>
-                {% endfor %}
-              </div>
-            {% endwith %}
+            {% include "client/_order_cards.html" with orders=user_orders %}
           {% else %}
-            {# 3) финальный фолбэк: если вдруг related_name другой (order_set) #}
             {% with legacy_orders=request.user.order_set.all %}
               {% if legacy_orders %}
-                {% with legacy_orders as orders_qs %}
-                  <div class="space-y-3">
-                    {% for o in orders_qs %}
-                      <div class="panel panel-pad">
-                        <div class="flex flex-wrap items-center gap-3">
-                          <div class="text-sm muted">Order</div>
-                          <div class="font-bold">#{{ o.id }}</div>
-                          <div class="text-sm muted">
-                            · {{ o.created_at|default:o.shipped_at|default:o.completed_at|default:o.cancelled_at|localtime|date:"d M Y, H:i" }}
-                          </div>
-                          <div class="ml-auto flex items-center gap-3">
-                            <span class="badge st-{{ o.status|default:'processing' }}">
-                              {{ o.status_label|default:o.get_status_display|default:o.status }}
-                            </span>
-                            <div class="font-bold">${{ o.total|floatformat:2 }}</div>
-                          </div>
-                        </div>
-                        {% with items=o.items.all %}
-                          {% if items %}
-                            <div class="mt-3 border-t border-[color:var(--grid)] pt-3">
-                              {% for it in items %}
-                                <div class="flex items-center justify-between py-1 text-sm">
-                                  <div class="truncate">
-                                    <span class="font-semibold">{{ it.product.name }}</span>
-                                    {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
-                                  </div>
-                                  <div class="muted-2">x {{ it.qty }}</div>
-                                  <div class="font-semibold">${{ it.subtotal|floatformat:2 }}</div>
-                                </div>
-                              {% endfor %}
-                            </div>
-                          {% endif %}
-                        {% endwith %}
-                      </div>
-                    {% endfor %}
-                  </div>
-                {% endwith %}
+                {% include "client/_order_cards.html" with orders=legacy_orders %}
               {% else %}
                 <p class="muted-2">No orders yet.</p>
               {% endif %}
@@ -605,8 +774,77 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
     <!-- FILES -->
     <section id="tab-files" class="tab hidden">
-      <h2 class="text-2xl font-bold mb-6">Files</h2>
-      <p class="muted-2">Coming soon.</p>
+      <div class="flex flex-col md:flex-row md:items-end gap-2 mb-6">
+        <div>
+          <h2 class="text-2xl font-bold">Files</h2>
+          <p class="muted-2">Upload insurance papers, IDs, or inspiration photos for our team.</p>
+        </div>
+        <span class="text-sm muted-2 md:ml-auto">Max size: {{ client_file_max_mb }} MB</span>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6">
+        <form id="fileUploadForm"
+              class="panel panel-pad space-y-5"
+              data-upload-url="{% url 'dashboard-file-upload' %}"
+              data-max-mb="{{ client_file_max_mb }}">
+          {% csrf_token %}
+          <div>
+            <label class="block text-sm muted mb-1" for="fileDescription">Description (optional)</label>
+            <input id="fileDescription" name="description" type="text" placeholder="e.g. Insurance approval" />
+          </div>
+
+          <div id="fileDropzone" class="file-dropzone" role="button" tabindex="0">
+            <input id="filePicker" type="file" accept="image/*,.pdf" hidden />
+            <div class="file-dropzone__icon">⬆️</div>
+            <p class="font-semibold">Drop a file here or click to browse</p>
+            <p class="muted-2 text-sm">Accepted: images (JPG, PNG, WEBP, HEIC) or PDF. Max {{ client_file_max_mb }} MB.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" id="fileBrowseBtn" class="btn btn-primary">Choose file</button>
+            <p id="fileStatus" class="text-sm muted-2"></p>
+          </div>
+        </form>
+
+        <div class="panel panel-pad">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold">Your files</h3>
+            <span class="muted-2 text-sm" id="fileCount">{{ client_files|length }} total</span>
+          </div>
+          <p id="fileEmpty" class="muted-2 {% if client_files %}hidden{% endif %}">
+            No files yet. Upload your first document or photo.
+          </p>
+          <div id="fileCards" class="space-y-4">
+            {% for file in client_files %}
+              <div class="file-card"
+                   data-file-id="{{ file.id }}"
+                   {% if file.uploaded_by == file.USER %}data-delete-url="{% url 'dashboard-file-delete' file.id %}"{% endif %}>
+                <div class="file-card__icon">{% if file.is_image %}🖼️{% else %}📎{% endif %}</div>
+                <div class="file-card__body">
+                  <a href="{{ file.file.url }}" target="_blank" rel="noopener" class="file-card__name">
+                    {{ file.filename|default:file.file.name }}
+                  </a>
+                  {% if file.description %}
+                    <p class="file-card__desc">{{ file.description }}</p>
+                  {% endif %}
+                  <p class="file-card__meta text-sm muted-2">
+                    {{ file.uploaded_at|localtime|date:"d M Y, H:i" }} ·
+                    {% if file.file_size %}
+                      {{ file.file_size|filesizeformat }}
+                    {% else %}
+                      —
+                    {% endif %}
+                    · {{ file.get_uploaded_by_display }}
+                  </p>
+                </div>
+                {% if file.uploaded_by == file.USER %}
+                  <button type="button" class="file-card__delete">Remove</button>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- NOTIFICATIONS -->
@@ -656,7 +894,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
     <div class="space-y-3" style="padding-top:.75rem">
       <div>
-        <label class="text-sm muted">Master</label>
+        <label class="text-sm muted">Staff</label>
         <select id="resMaster" class="w-full"></select>
       </div>
 
@@ -690,6 +928,41 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 </div>
 
 <script>
+
+  (function(){
+    const drawer = document.getElementById('portalSidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const closeBtn = document.getElementById('sidebarClose');
+    const media = window.matchMedia('(max-width: 1024px)');
+    if (!drawer) return;
+
+    const setOpen = (open) => {
+      drawer.classList.toggle('sidebar--open', !!open);
+      document.body.classList.toggle('has-drawer-open', !!open);
+      if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    const closeDrawer = () => setOpen(false);
+
+    if (toggle) {
+      toggle.addEventListener('click', () => setOpen(!drawer.classList.contains('sidebar--open')));
+    }
+    if (backdrop) {
+      backdrop.addEventListener('click', closeDrawer);
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeDrawer);
+    }
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeDrawer();
+    });
+    const mqHandler = (event) => { if (!event.matches) closeDrawer(); };
+    if (media.addEventListener) {
+      media.addEventListener('change', mqHandler);
+    } else if (media.addListener) {
+      media.addListener(mqHandler);
+    }
+  })();
 
   /* ==== табы ==== */
   const links = document.querySelectorAll('.sidebar-link');
@@ -860,7 +1133,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(resState.baseStart); d.setDate(d.getDate()+i); return d;});
       const dayStrs = days.map(ymd);
       const dayData = dayStrs.map(ds => resState.cache.get(ds));
-      const timeRows = buildTimeRows(dayData.map(x=>x?.set));
+      const timeRows = buildTimeRows(dayData.map(item => (item && item.set) ? item.set : null));
 
       const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
       const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
@@ -890,12 +1163,16 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
         days.forEach((d, idx)=>{
           const cell=document.createElement('div'); cell.className='ol2__cell';
-          const data = dayData[idx]; const isFree = data?.set?.has(t);
+          const data = dayData[idx];
+          const slotSet = (data && data.set) ? data.set : null;
+          const hasSlot = slotSet ? slotSet.has(t) : false;
+          const canSelect = Boolean(hasSlot && data && data.iso);
+
           const chip=document.createElement('button');
-          chip.type='button'; chip.className='chip ' + (isFree?'chip--free':'chip--busy');
+          chip.type='button'; chip.className='chip ' + (canSelect?'chip--free':'chip--busy');
           chip.textContent = fmtHM(fake);
 
-          if(isFree){
+          if(canSelect){
             chip.addEventListener('click', ()=>{
               rsGrid.querySelectorAll('.chip--sel').forEach(x=>x.classList.remove('chip--sel'));
               chip.classList.add('chip--sel');
@@ -942,11 +1219,14 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       });
       const data = await r.json().catch(()=> ({}));
       if(r.ok){
-        resOk.textContent = 'Rescheduled to ' + (data.appointment?.start_time || '');
+        const appointmentStart = (data && data.appointment && data.appointment.start_time) ? data.appointment.start_time : '';
+        resOk.textContent = 'Rescheduled to ' + (appointmentStart || '');
         resOk.style.display='block';
-        document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
-          try{ dt.textContent = new Date(data.appointment.start_time).toLocaleString(); }catch(_){}
-        });
+        if (appointmentStart) {
+          document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
+            try{ dt.textContent = new Date(appointmentStart).toLocaleString(); }catch(_){}
+          });
+        }
         setTimeout(()=> location.reload(), 700);
       }else{
         resErr.textContent = data.error || data.detail || 'Reschedule failed';
@@ -965,12 +1245,200 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     resSubmit.addEventListener('click', submitRes);
   }
 
+  /* ==== Files upload ==== */
+  const fileForm = document.getElementById('fileUploadForm');
+  if (fileForm) {
+    const dropzone = document.getElementById('fileDropzone');
+    const picker = document.getElementById('filePicker');
+    const browseBtn = document.getElementById('fileBrowseBtn');
+    const cardsEl = document.getElementById('fileCards');
+    const emptyEl = document.getElementById('fileEmpty');
+    const descriptionInput = document.getElementById('fileDescription');
+    const statusEl = document.getElementById('fileStatus');
+    const countEl = document.getElementById('fileCount');
+    const uploadUrl = fileForm.dataset.uploadUrl;
+    const maxMb = Number(fileForm.dataset.maxMb || 10);
+
+    if (dropzone && picker && browseBtn && cardsEl && uploadUrl) {
+      const showStatus = (message = '', isError = false) => {
+        if (!statusEl) return;
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? '#ff8a80' : 'var(--muted)';
+      };
+
+      const toggleEmptyState = () => {
+        if (!emptyEl) return;
+        const hasCards = !!cardsEl.querySelector('.file-card');
+        emptyEl.classList.toggle('hidden', hasCards);
+      };
+
+      const updateCount = () => {
+        if (!countEl) return;
+        const count = cardsEl.querySelectorAll('.file-card').length;
+        countEl.textContent = `${count} total`;
+      };
+
+      const attachDeleteHandler = (card) => {
+        const btn = card.querySelector('.file-card__delete');
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+          const url = card.dataset.deleteUrl;
+          if (!url) return;
+          btn.disabled = true;
+          const originalText = btn.textContent;
+          btn.textContent = 'Removing…';
+          try {
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: {'X-CSRFToken': csrftoken},
+              credentials: 'same-origin',
+            });
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(payload.error || 'Unable to delete file.');
+            card.remove();
+            toggleEmptyState();
+            updateCount();
+            showStatus('File removed.');
+            setTimeout(() => showStatus(''), 1600);
+          } catch (err) {
+            showStatus(err.message || 'Delete failed.', true);
+          } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+          }
+        });
+      };
+
+      const createCard = (file) => {
+        if (!file) return null;
+        const card = document.createElement('div');
+        card.className = 'file-card';
+        card.dataset.fileId = file.id;
+        if (file.delete_url) {
+          card.dataset.deleteUrl = file.delete_url;
+        }
+
+        const icon = document.createElement('div');
+        icon.className = 'file-card__icon';
+        icon.textContent = file.is_image ? '🖼️' : '📎';
+
+        const body = document.createElement('div');
+        body.className = 'file-card__body';
+
+        const name = document.createElement('a');
+        name.href = file.url || '#';
+        name.target = '_blank';
+        name.rel = 'noopener';
+        name.className = 'file-card__name';
+        name.textContent = file.name || 'File';
+        body.appendChild(name);
+
+        if (file.description) {
+          const desc = document.createElement('p');
+          desc.className = 'file-card__desc';
+          desc.textContent = file.description;
+          body.appendChild(desc);
+        }
+
+        const meta = document.createElement('p');
+        meta.className = 'file-card__meta text-sm muted-2';
+        meta.textContent = `${file.uploaded_at_display || ''} · ${file.size || '—'} · ${file.uploaded_by || ''}`;
+        body.appendChild(meta);
+
+        card.appendChild(icon);
+        card.appendChild(body);
+
+        if (file.can_delete) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'file-card__delete';
+          btn.textContent = 'Remove';
+          card.appendChild(btn);
+        }
+
+        attachDeleteHandler(card);
+        return card;
+      };
+
+      const uploadFile = async (file) => {
+        if (!file) return;
+        if (file.size > maxMb * 1024 * 1024) {
+          showStatus(`File exceeds ${maxMb} MB limit.`, true);
+          return;
+        }
+        const formData = new FormData();
+        formData.append('file', file);
+        const descValue = descriptionInput ? descriptionInput.value.trim() : '';
+        formData.append('description', descValue);
+        try {
+          dropzone.classList.add('is-uploading');
+          browseBtn.disabled = true;
+          showStatus('Uploading…');
+          const res = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken},
+            body: formData,
+            credentials: 'same-origin',
+          });
+          const payload = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(payload.error || 'Upload failed.');
+          if (!payload.file) throw new Error('Upload failed.');
+          const card = createCard(payload.file);
+          if (card) {
+            cardsEl.prepend(card);
+            toggleEmptyState();
+            updateCount();
+          }
+          if (descriptionInput) descriptionInput.value = '';
+          picker.value = '';
+          showStatus('Uploaded successfully.');
+          setTimeout(() => showStatus(''), 2000);
+        } catch (err) {
+          showStatus(err.message || 'Upload failed.', true);
+        } finally {
+          browseBtn.disabled = false;
+          dropzone.classList.remove('is-uploading');
+        }
+      };
+
+      const handleFiles = (files) => {
+        if (!files || !files.length) return;
+        uploadFile(files[0]);
+      };
+
+      picker.addEventListener('change', () => handleFiles(picker.files));
+      browseBtn.addEventListener('click', () => picker.click());
+      dropzone.addEventListener('click', () => picker.click());
+      ['dragenter', 'dragover'].forEach(evt => {
+        dropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropzone.classList.add('is-dragover');
+        });
+      });
+      ['dragleave', 'dragend'].forEach(evt => {
+        dropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('is-dragover');
+        });
+      });
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('is-dragover');
+        handleFiles(e.dataTransfer.files);
+      });
+
+      cardsEl.querySelectorAll('.file-card').forEach(attachDeleteHandler);
+      updateCount();
+    }
+  }
+
 </script>
 <!-- ===== CONTACT FAB + MODAL (BGM) =================================== -->
 <style id="contact-fab-css">
   :root{
     --ink:#eaeaea; --line:rgba(255,255,255,.12);
     --red:var(--accent, #d50000); --red-dark:#b60000;
+    --contact-font:"Helvetica Neue", Arial, sans-serif;
   }
   /* floating button */
   .contact-fab{
@@ -981,7 +1449,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     background:linear-gradient(180deg,var(--red) 0%,var(--red-dark) 100%);
     color:#fff; font-weight:900; letter-spacing:.02em; line-height:1;
     cursor:pointer; box-shadow:0 12px 26px rgba(213,0,0,.28), 0 0 26px rgba(213,0,0,.18);
-    transition:.18s ease; font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
+    transition:.18s ease; font-family:var(--contact-font); font-style:normal;
   }
   .contact-fab:hover{ transform:translateY(-2px); filter:saturate(1.05); }
   .contact-fab:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
@@ -1018,7 +1486,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     display:flex; align-items:center; justify-content:space-between; gap:.6rem;
     background:rgba(255,255,255,.06); border:1px solid var(--line);
     border-radius:.7rem; padding:.7rem .8rem;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif;
+    font-family:var(--contact-font); font-style:normal;
   }
   .contact-row a{ color:#fff; font-weight:800; text-decoration:none; }
   .contact-sub{ color:rgba(255,255,255,.72); font-size:.95rem; }
@@ -1026,7 +1494,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   .contact-btn{
     display:inline-flex; align-items:center; gap:.5em; padding:.7rem 1rem; border-radius:.55rem;
     border:1px solid var(--line); background:#0f0f0f; color:#fff; cursor:pointer;
-    font-family:var(--font-body,"Diesel"),system-ui,sans-serif; font-weight:800;
+    font-family:var(--contact-font); font-weight:800; font-style:normal;
   }
   .contact-btn:hover{ border-color:rgba(213,0,0,.45); box-shadow:0 0 16px rgba(213,0,0,.25); }
 
@@ -1126,6 +1594,79 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 })();
 </script>
 <!-- ==================================================================== -->
+<!-- ============ Client Portal — MOBILE SIDEBAR FIX (safe overrides) ============ -->
+<style id="portal-mobile-fix">
+  @media (max-width:1024px){
+    /* Ensure vertical stack + full width items inside the drawer */
+    #portalSidebar nav#sidebar{
+      display:flex;
+      flex-direction:column;
+    }
+    #portalSidebar nav#sidebar > *{ width:100%; }
+    #portalSidebar nav#sidebar .sidebar-link,
+    #portalSidebar nav#sidebar .logout-btn{
+      display:flex; align-items:center; gap:.8rem;
+      width:100%; min-height:44px; border-radius:10px;
+    }
 
+    /* Smooth scroll inside drawer, no background interference */
+    #portalSidebar{ -webkit-overflow-scrolling:touch; }
+
+    /* Do not overlap the floating contact button while drawer is open */
+    body.has-drawer-open .contact-fab{ display:none !important; }
+  }
+
+  /* No extra animations for users preferring reduced motion */
+  @media (prefers-reduced-motion:reduce){
+    #portalSidebar{ scroll-behavior:auto; }
+  }
+</style>
+
+<script id="portal-mobile-fix-js">
+(() => {
+  const drawer   = document.getElementById('portalSidebar');
+  const toggle   = document.getElementById('sidebarToggle');
+  const nav      = document.getElementById('sidebar');       // the nav inside the drawer
+  const mqMobile = window.matchMedia('(max-width: 1024px)');
+  if (!drawer || !nav) return;
+
+  // Guard against double-binding
+  if (drawer.dataset.bgmPortalMobileBound === '1') return;
+  drawer.dataset.bgmPortalMobileBound = '1';
+
+  const closeDrawer = () => {
+    drawer.classList.remove('sidebar--open');
+    document.body.classList.remove('has-drawer-open');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  };
+
+  // 1) Close drawer when any nav item (link/button) is clicked on mobile
+  nav.addEventListener('click', (e) => {
+    const action = e.target.closest('a,button');
+    if (!action) return;
+    if (mqMobile.matches) closeDrawer();
+  });
+
+  // 2) Keep focus inside drawer while open (mobile)
+  document.addEventListener('keydown', (e) => {
+    if (!mqMobile.matches || !drawer.classList.contains('sidebar--open')) return;
+    if (e.key !== 'Tab') return;
+
+    const focusables = drawer.querySelectorAll('a,button,select,[tabindex]:not([tabindex="-1"])');
+    const list = Array.from(focusables).filter(el => !el.disabled && el.offsetParent !== null);
+    if (!list.length) return;
+
+    const first = list[0], last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  });
+
+  // 3) If breakpoint jumps to desktop, ensure clean state
+  mqMobile.addEventListener?.('change', (ev) => { if (!ev.matches) closeDrawer(); });
+})();
+</script>
+<!-- ========================== END MOBILE SIDEBAR FIX =========================== -->
+
+{% include "includes/analytics_tracker.html" %}
 </body>
 </html>

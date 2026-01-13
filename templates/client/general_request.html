@@ -1,0 +1,318 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Service Request - Bad Guy Motors</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  {% with meta_title="Service Request - Bad Guy Motors" meta_description="Share what you need done and the Bad Guy Motors team will follow up with next steps." meta_section="services" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+
+  <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="{% static 'fonts/Ford.ttf' %}" as="font" type="font/ttf" crossorigin>
+
+  <style>
+    :root{
+      --bg:#030303; --fg:#ffffff; --muted:rgba(255,255,255,.7); --muted-2:rgba(255,255,255,.55);
+      --line:rgba(255,255,255,.12); --panel:#0c0c0c; --panel-2:#101010;
+      --accent:#d50000; --accent-2:#ff2626; --ok:#17d45b;
+      --radius-lg:1.1rem; --radius-sm:.65rem; --shadow:0 18px 40px rgba(0,0,0,.45);
+      --container:clamp(320px,92vw,1120px);
+      --font-body:"Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      --font-head:"Ford", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    @font-face{
+      font-family:"Diesel";
+      src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
+      font-weight:100 900; font-style:normal; font-display:swap;
+    }
+    @font-face{
+      font-family:"Ford";
+      src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
+      font-weight:100 900; font-style:normal; font-display:swap;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:radial-gradient(circle at 10% 20%, rgba(213,0,0,.14), transparent 35%),
+                 radial-gradient(circle at 80% 0%, rgba(255,60,60,.12), transparent 40%),
+                 radial-gradient(circle at 50% 90%, rgba(255,255,255,.06), transparent 35%),
+                 #020202;
+      color:var(--fg);
+      font-family:var(--font-body);
+      line-height:1.55;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+    img{max-width:100%;display:block}
+    a{color:inherit;text-decoration:none}
+    .container{width:var(--container);margin-inline:auto;padding-inline:1.2rem}
+
+    .site-header{
+      position:sticky;top:0;z-index:10;
+      border-bottom:1px solid var(--line);
+      backdrop-filter:blur(10px);
+      background:rgba(0,0,0,.65);
+    }
+    .site-header__inner{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:.9rem 0;gap:1rem;
+    }
+    .brand{
+      display:flex;align-items:baseline;gap:.75rem;
+      font-weight:900;letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .brand__logo{
+      width:36px;height:36px;border-radius:11px;
+      background:radial-gradient(110% 110% at 30% 30%, var(--accent-2), var(--accent));
+      box-shadow:0 0 32px -8px var(--accent-2);
+    }
+    .brand__word--white{color:#fff;font-family:var(--font-head);}
+    .brand__word--red{color:var(--accent);font-family:var(--font-head);}
+    .badge{
+      display:inline-flex;align-items:center;gap:.45rem;
+      padding:.3rem .65rem;border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:.82rem;letter-spacing:.05em;
+      text-transform:uppercase;
+      font-weight:800;
+    }
+
+    .hero{
+      padding:clamp(2rem,6vw,4rem) 0 clamp(2.5rem,6vw,4.5rem);
+      flex:1;
+    }
+    .hero__inner{
+      display:grid;
+      grid-template-columns:1.05fr .95fr;
+      gap:clamp(1.4rem,4vw,2.4rem);
+      align-items:start;
+    }
+    .hero__kicker{
+      color:var(--muted-2);
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      font-weight:800;
+      font-size:.82rem;
+    }
+    .hero__title{
+      font-family:var(--font-head);
+      font-size:clamp(2rem,4.8vw,3.2rem);
+      font-weight:900;
+      line-height:1.1;
+      margin-top:.4rem;
+    }
+    .hero__lead{
+      margin-top:.9rem;
+      color:var(--muted);
+      font-size:1.05rem;
+      max-width:50ch;
+    }
+    .hero__note{
+      margin-top:.85rem;
+      color:var(--muted-2);
+    }
+    .pill-row{
+      display:flex;flex-wrap:wrap;gap:.6rem;
+      margin-top:1.1rem;
+    }
+    .pill{
+      padding:.35rem .75rem;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      font-size:.9rem;
+    }
+
+    .panel{
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), var(--shadow);
+      padding:1.4rem 1.5rem;
+    }
+    .panel h2{
+      font-family:var(--font-head);
+      font-weight:900;
+      font-size:1.3rem;
+      margin-bottom:.4rem;
+    }
+    .panel small{color:var(--muted-2);}
+
+    .form{
+      display:flex;flex-direction:column;gap:.6rem;
+      margin-top:.35rem;
+    }
+    .form label{
+      display:flex;flex-direction:column;gap:.25rem;
+      font-size:.95rem;
+      color:var(--fg);
+    }
+    .form input,
+    .form select,
+    .form textarea{
+      background:#050505;
+      border:1px solid var(--line);
+      border-radius:var(--radius-sm);
+      padding:.65rem .75rem;
+      color:var(--fg);
+      font:inherit;
+      outline:none;
+      transition:border-color .18s, box-shadow .18s, transform .18s;
+    }
+    .form input:focus,
+    .form select:focus,
+    .form textarea:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px rgba(213,0,0,.55);
+    }
+    .form textarea{
+      min-height:100px;
+      resize:vertical;
+    }
+    .form button{
+      display:inline-flex;align-items:center;justify-content:center;
+      gap:.6em;width:100%;
+      padding:.85rem 1.1rem;
+      border-radius:var(--radius-sm);
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      border:1px solid rgba(213,0,0,.8);
+      color:#fff;
+      font-weight:800;
+      letter-spacing:.05em;
+      cursor:pointer;
+      transition:transform .18s, box-shadow .18s, filter .18s;
+    }
+    .form button:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(213,0,0,.25);}
+    .form button:active{transform:translateY(0);filter:brightness(.95);}
+
+    .form-alerts{display:flex;flex-direction:column;gap:.5rem;margin:.35rem 0;}
+    .form-alert{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      padding:.65rem .8rem;
+      border-radius:.7rem;
+      font-size:.92rem;
+      color:var(--fg);
+    }
+    .form-alert--success{border-color:rgba(23,212,91,.6);background:rgba(23,212,91,.08);color:#b7f5cb;}
+    .form-alert--error{border-color:rgba(213,0,0,.6);background:rgba(213,0,0,.08);color:#ffc0c0;}
+
+    footer{
+      border-top:1px solid var(--line);
+      padding:1.1rem 0;
+      color:var(--muted-2);
+      font-size:.92rem;
+    }
+
+    @media (max-width:960px){
+      .hero__inner{grid-template-columns:1fr;}
+      .panel{order:-1;}
+    }
+  </style>
+</head>
+<body>
+  {% include "includes/marketing_body.html" %}
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <div class="brand" aria-label="Bad Guy Motors">
+        <span class="brand__logo" aria-hidden="true"></span>
+        <span class="brand__word brand__word--white">Bad Guy</span>
+        <span class="brand__word brand__word--red">Motors</span>
+      </div>
+      <span class="badge">Direct link | Not listed</span>
+    </div>
+  </header>
+
+  <main class="hero">
+    <div class="container hero__inner">
+      <div>
+        <p class="hero__kicker">Request Intake</p>
+        <h1 class="hero__title">Tell us what you need and we will line it up</h1>
+        <p class="hero__lead">
+          Use this private form to share work requests, questions, or quotes. A member of the Bad Guy Motors team will follow up by phone or email.
+        </p>
+        <p class="hero__note">The link is not listed on the site, but stays on our domain for trust and easy follow up.</p>
+        <div class="pill-row" aria-label="Examples of requests">
+          <span class="pill">Diagnostics & troubleshooting</span>
+          <span class="pill">Upgrades & installs</span>
+          <span class="pill">Maintenance</span>
+          <span class="pill">Custom work</span>
+        </div>
+      </div>
+
+      <section class="panel" id="request-form" aria-labelledby="request-title">
+        <h2 id="request-title">Request a Call or Quote</h2>
+        <small>We reply during business hours. No obligation.</small>
+
+        {% if messages %}
+          <div class="form-alerts">
+            {% for message in messages %}
+              <div class="form-alert form-alert--{{ message.tags|default:'info' }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form class="form" method="post" action="{% url 'service-lead-submit' %}" autocomplete="on">
+          {% csrf_token %}
+          <input type="hidden" name="source_page" value="general_request">
+          <input type="hidden" name="source_url" value="{{ request.build_absolute_uri }}">
+          <input type="hidden" name="next" value="{{ request.build_absolute_uri }}#request-form">
+
+          <label>
+            Name
+            <input type="text" name="full_name" autocomplete="name" required>
+          </label>
+
+          <label>
+            Phone
+            <input type="tel" name="phone" autocomplete="tel" required>
+          </label>
+
+          <label>
+            Email
+            <input type="email" name="email" autocomplete="email" required>
+          </label>
+
+          <label>
+            Vehicle (Year / Make / Model)
+            <input type="text" name="vehicle" autocomplete="off" placeholder="e.g. 2018 Ram 3500">
+          </label>
+
+          <label>
+            Service Needed
+            <select name="service_needed" required>
+              <option value="">Select an option</option>
+              <option>Diagnostics / troubleshooting</option>
+              <option>Maintenance or general service</option>
+              <option>Upgrades or performance work</option>
+              <option>Electrical / wiring</option>
+              <option>Wheels, tires, or suspension</option>
+              <option>Custom request / other</option>
+            </select>
+          </label>
+
+          <label>
+            Notes (optional)
+            <textarea name="notes" placeholder="Describe the issue, your goals, or timing."></textarea>
+          </label>
+
+          <button type="submit">Submit Request</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      This intake goes straight to the BGM admin queue and Telegram notifications so the team can respond quickly.
+    </div>
+  </footer>
+</body>
+</html>

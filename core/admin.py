@@ -1,4 +1,5 @@
 from bisect import bisect_left
+from decimal import Decimal
 
 from django.contrib.admin import DateFieldListFilter
 
@@ -9,9 +10,11 @@ from django.contrib import admin
 from django.db.models import Sum, Count
 from itertools import cycle
 from django.utils.timezone import localtime, datetime, make_aware, localdate
+from django.utils import timezone
 from django.utils.html import escape
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
+from django.template.defaultfilters import filesizeformat
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
@@ -24,6 +27,8 @@ from django.http import HttpResponse
 from .filters import *
 from .models import *
 from .forms import *
+from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
+from core.utils import get_staff_queryset, format_currency
 from datetime import timedelta, time
 # -----------------------------
 # Custom filter for filtering users by Role
@@ -73,9 +78,8 @@ def custom_index(request):
     # tables
     top_services = Service.objects.annotate(count=Count("appointment")).order_by("-count")[:5]
 
-    master_role = Role.objects.filter(name="Master").first()
     first_day = today.replace(day=1)
-    masters = CustomUserDisplay.objects.filter(userrole__role=master_role).annotate(
+    masters = get_staff_queryset(active_only=False).annotate(
         total=Sum(
             "appointments_as_master__service__base_price",
             filter=models.Q(appointments_as_master__start_time__date__gte=first_day),
@@ -168,6 +172,16 @@ def custom_index(request):
             ).count(),
         })
 
+    analytics_summary = summarize_web_analytics(window_days=7) if not is_master else None
+    analytics_periods = (
+        summarize_web_analytics_periods(
+            windows=[1, 7, 30],
+            cache={7: analytics_summary} if analytics_summary else None,
+        )
+        if not is_master
+        else None
+    )
+
     context = admin.site.each_context(request)
     context.update({
         "is_master": is_master,
@@ -188,6 +202,8 @@ def custom_index(request):
         "weekday_counts": weekday_counts,
         "payment_methods": payment_methods,
         "status_trend": status_trend,
+        "web_analytics": analytics_summary,
+        "web_analytics_periods": analytics_periods,
     })
     return TemplateResponse(request, "admin/index.html", context)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -285,8 +301,9 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'birth_date')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Files', {'fields': ('files',)}),
+        ('Files', {'fields': ('files', 'files_overview')}),
     )
+    readonly_fields = BaseUserAdmin.readonly_fields + ('files_overview',)
 
     def get_fieldsets(self, request, obj=None):
         # Allow Django to use default fieldsets logic
@@ -299,6 +316,38 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
     def save_model(self, request, obj, form, change):
         # Save user and assign roles
         super().save_model(request, obj, form, change)
+
+    @admin.display(description="Existing files")
+    def files_overview(self, obj):
+        if not obj or not obj.pk:
+            return "Files will appear after the user is saved."
+        files_qs = obj.clientfile_set.order_by('-uploaded_at')
+        if not files_qs.exists():
+            return "No files yet."
+        rows = format_html_join(
+            "",
+            "<li style='margin-bottom:.4rem'>"
+            "<a href=\"{0}\" target=\"_blank\" rel=\"noopener\" style='font-weight:600'>{1}</a>"
+            "<div style='font-size:.85rem;color:#999'>"
+            "{2} • {3} • {4}"
+            "</div>"
+            "</li>",
+            (
+                (
+                    f.file.url,
+                    f.filename or f.file.name,
+                    filesizeformat(f.file_size) if f.file_size else "—",
+                    f.get_uploaded_by_display(),
+                    timezone.localtime(f.uploaded_at).strftime("%b %d, %Y %H:%M") if f.uploaded_at else "—",
+                )
+                for f in files_qs[:8]
+            )
+        )
+        extra = ""
+        remaining = files_qs.count() - 8
+        if remaining > 0:
+            extra = format_html("<div style='margin-top:.5rem;color:#999'>+ {} more file(s)</div>", remaining)
+        return format_html("<ul style='margin:0;padding-left:1rem;list-style:disc'>{}</ul>{}", rows, extra)
 
     # Custom display methods for user profile fields
     def phone(self, instance):
@@ -361,13 +410,8 @@ class MasterSelectorMixing:
     Restricts 'master' foreign key fields to users who have the 'Master' role.
     """
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "master":
-            master_role = Role.objects.filter(name="Master").first()
-            if master_role:
-                master_user_ids = UserRole.objects.filter(role=master_role).values_list('user_id', flat=True)
-                kwargs["queryset"] = CustomUserDisplay.objects.filter(id__in=master_user_ids)
-            else:
-                kwargs["queryset"] = User.objects.none()
+        if db_field.name == "master" and "queryset" not in kwargs:
+            kwargs["queryset"] = get_staff_queryset()
         field = super().formfield_for_foreignkey(db_field, request, **kwargs)
         if db_field.name == "master" and field:
             field.label = STAFF_DISPLAY_NAME
@@ -446,7 +490,19 @@ class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelA
 class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
     change_list_template = "admin/appointments_calendar.html"
     form = AppointmentForm
-    fields = ['client', 'master', 'service', 'start_time', 'payment_status', 'status']
+    fields = [
+        'client',
+        'contact_name',
+        'contact_email',
+        'contact_phone',
+        'master',
+        'service',
+        'start_time',
+        'payment_status',
+        'status',
+    ]
+    class Media:
+        js = ("admin/js/appointment_contact_autofill.js",)
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
 
@@ -534,7 +590,13 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         appointment_statuses = AppointmentStatus.objects.all()
         payment_statuses = PaymentStatus.objects.all()
 
-        appointments = Appointment.objects.select_related('client', 'service', 'master')
+        appointments = (
+            Appointment.objects.select_related('client', 'service', 'master')
+            .prefetch_related(
+                'appointmentstatushistory_set__status',
+                'appointmentpromocode__promocode',
+            )
+        )
         cancelled_status = AppointmentStatus.objects.filter(name="Cancelled").first()
         if not request.GET.get("status"):
             appointments = appointments.exclude(
@@ -547,12 +609,11 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
                 appointments = appointments.exclude(
                     appointmentstatushistory__status=cancelled_status
                 )
-        if hasattr(request.user, "master_profile"):
-            masters = CustomUserDisplay.objects.filter(id=request.user.id)
+        if hasattr(request.user, "master_profile") and not request.user.is_superuser:
+            masters_qs = CustomUserDisplay.objects.filter(id=request.user.id)
         else:
-            masters = CustomUserDisplay.objects.filter(
-                id__in=appointments.values_list('master_id', flat=True)
-            ).distinct()
+            masters_qs = get_staff_queryset(active_only=True)
+        masters = list(masters_qs.select_related("master_profile"))
         start_of_day = make_aware(datetime.combine(selected_date, datetime.min.time()))
         end_of_day = make_aware(datetime.combine(selected_date, datetime.max.time()))
 
@@ -560,6 +621,7 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
             start_time__lte=end_of_day,
             end_time__gte=start_of_day
         )
+        appointments = appointments.filter(start_time__gte=start_of_day, start_time__lte=end_of_day)
         if request.GET.get("service"):
             appointments = appointments.filter(service_id=request.GET["service"])
         if request.GET.get("status"):
@@ -567,18 +629,14 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         if request.GET.get("payment_status"):
             appointments = appointments.filter(payment_status_id__in=request.GET.getlist("payment_status"))
 
-        # Слоты по 15 минут
-        start_hour = 8
-        end_hour = 21
+        appointments_for_day = list(appointments)
         slot_times = []
-        time_pointer = datetime(2000, 1, 1, start_hour, 0)
-        end_time = datetime(2000, 1, 1, end_hour, 0)
+        grid_start, grid_end = determine_calendar_window(masters, appointments_for_day)
+        calendar_table = createTable(selected_date, grid_start, grid_end, slot_times, appointments_for_day, masters, availabilities)
 
 
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             action = request.GET.get("action")
-
-            calendar_table = createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities)
 
             if action == "filter":  # Фильтрация по форме
 
@@ -596,8 +654,6 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
                 }, request=request)
 
                 return JsonResponse({'html': html})
-
-        calendar_table = createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities)
 
         response = super().changelist_view(request, extra_context=extra_context)
 
@@ -656,14 +712,85 @@ class PaymentAdmin(ExportCsvMixin ,admin.ModelAdmin):
     """
     Admin interface for payments.
     """
-    list_display = ('appointment', 'amount', 'method')
-    list_filter = ('method',)
-    export_fields = ['appointment', 'amount', 'method']
+    list_display = (
+        'source',
+        'amount_with_currency',
+        'mode_badge',
+        'balance_due_display',
+        'method',
+        'processor',
+        'card_summary',
+        'receipt_link',
+        'created_at',
+    )
+    list_filter = ('method', 'payment_mode', 'processor')
+    export_fields = [
+        'order',
+        'appointment',
+        'amount',
+        'currency',
+        'payment_mode',
+        'balance_due',
+        'method',
+        'processor',
+        'processor_payment_id',
+        'receipt_url',
+        'card_brand',
+        'card_last4',
+        'fee_amount',
+        'created_at',
+    ]
     search_fields = (
         'appointment__client__first_name', 'appointment__client__last_name',
         'appointment__master__first_name', 'appointment__master__last_name',
         'appointment__service__name',
+        'order__customer_name', 'order__email', 'order__phone', 'order__id',
+        'processor_payment_id', 'card_last4'
     )
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)
+
+    @admin.display(description="Source", ordering="order__id")
+    def source(self, obj):
+        if getattr(obj, "order_id", None):
+            return f"Order #{obj.order_id}"
+        if getattr(obj, "appointment", None):
+            return obj.appointment
+        return "—"
+
+    @admin.display(description="Amount")
+    def amount_with_currency(self, obj):
+        amount = (obj.amount or Decimal("0.00")).quantize(Decimal("0.01"))
+        curr = obj.currency or ""
+        return f"{curr} {amount}"
+
+    @admin.display(description="Paid")
+    def mode_badge(self, obj):
+        label = obj.get_payment_mode_display() if hasattr(obj, "get_payment_mode_display") else ""
+        return label or "—"
+
+    @admin.display(description="Balance due")
+    def balance_due_display(self, obj):
+        quant = Decimal("0.01")
+        if obj.balance_due and obj.balance_due > 0:
+            return f"{obj.currency} {(obj.balance_due or Decimal('0.00')).quantize(quant)}"
+        if getattr(obj, "order", None) and obj.order.payment_balance_due:
+            return f"{obj.currency} {(obj.order.payment_balance_due or Decimal('0.00')).quantize(quant)}"
+        return "—"
+
+    @admin.display(description="Card")
+    def card_summary(self, obj):
+        if obj.card_brand or obj.card_last4:
+            brand = obj.card_brand or ""
+            last4 = f"•{obj.card_last4}" if obj.card_last4 else ""
+            return f"{brand} {last4}".strip()
+        return "—"
+
+    @admin.display(description="Receipt")
+    def receipt_link(self, obj):
+        if obj.receipt_url:
+            return format_html('<a href="{}" target="_blank" rel="noopener">View</a>', obj.receipt_url)
+        return "—"
 
 
 # -----------------------------
@@ -719,18 +846,36 @@ class ServiceAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface for services.
     """
-    list_display = ('name', 'base_price', 'category', 'duration_min', 'image_preview')  # + preview
+    list_display = ('name', 'pricing_display', 'category', 'duration_min', 'image_preview')
     search_fields = ('name',)
-    list_filter = ('category',)
-    export_fields = ['name', 'description', 'base_price', 'category', 'prepayment_option', 'duration_min', 'extra_time_min']
+    list_filter = ('category', 'contact_for_estimate')
+    export_fields = [
+        'name', 'description', 'base_price', 'contact_for_estimate', 'estimate_from_price',
+        'category', 'prepayment_option', 'duration_min', 'extra_time_min'
+    ]
 
     # NEW: allow uploading image and show preview; keep previous fields
     fields = (
         'name', 'category', 'description',
-        'base_price', 'prepayment_option', 'duration_min', 'extra_time_min',
-        'image', 'image_preview',  # ← added
+        ('base_price', 'contact_for_estimate'), 'estimate_from_price',
+        'prepayment_option', 'duration_min', 'extra_time_min',
+        'image', 'image_preview',
     )
     readonly_fields = ('image_preview',)
+
+    @admin.display(description="Pricing", ordering="base_price")
+    def pricing_display(self, obj):
+        if obj.contact_for_estimate:
+            if obj.estimate_from_price:
+                return format_html(
+                    '<span style="font-weight:600;color:#e53935">Contact for estimate</span>'
+                    '<br><small>From ${}</small>',
+                    obj.estimate_from_price
+                )
+            return format_html('<span style="font-weight:600;color:#e53935">Contact for estimate</span>')
+        if obj.base_price is None:
+            return "—"
+        return format_html("${}", obj.base_price)
 
 # Notification Admin
 # -----------------------------
@@ -761,14 +906,31 @@ class ClientFileAdmin(admin.ModelAdmin):
     """
     Admin interface for managing user-uploaded files.
     """
-    list_display = ('user', "uploaded_by" ,'file_type', 'file')
-    fields = ('user', 'file',"uploaded_by", 'file_type')
-    readonly_fields = ('file_type',)  # 👈 делаем только для чтения
-    exclude = ('file_type',)  # 👈 скрываем из формы создания
+    list_display = ('user', 'filename', 'file_type', 'file_size_display', 'uploaded_by', 'uploaded_at')
+    fieldsets = (
+        (None, {"fields": ('user', 'file', 'description', 'uploaded_by')}),
+        ("Metadata", {"fields": ('file_type', 'file_size_display', 'uploaded_at', 'file_preview')}),
+    )
+    readonly_fields = ('file_type', 'file_size_display', 'uploaded_at', 'file_preview')
     list_filter = (('uploaded_at', DateFieldListFilter), 'file_type')
-    search_fields = ('user__first_name', 'user__last_name')
+    search_fields = ('user__first_name', 'user__last_name', 'description')
     ordering = ['-uploaded_at']
 
+    @admin.display(description="File name")
+    def filename(self, obj):
+        return obj.filename or obj.file.name
+
+    @admin.display(description="Size")
+    def file_size_display(self, obj):
+        if obj.file_size:
+            return filesizeformat(obj.file_size)
+        return "—"
+
+    @admin.display(description="Preview")
+    def file_preview(self, obj):
+        if obj.file:
+            return format_html('<a href="{}" target="_blank" rel="noopener">Open file</a>', obj.file.url)
+        return "—"
 
 
 # -----------------------------
@@ -782,11 +944,42 @@ class ClientReviewAdmin(ExportCsvMixin ,admin.ModelAdmin):
     export_fields = ["appointment", "get_client", "get_master", "rating", "created_at"]
     @admin.display(description="Client")
     def get_client(self, obj):
-        return obj.appointment.client.get_full_name()
+        appt = obj.appointment
+        if appt.client_id:
+            return appt.client.get_full_name() or appt.client.username or appt.client.email
+        return appt.contact_name or "Guest"
 
     @admin.display(description="Staff")
     def get_master(self, obj):
         return obj.appointment.master.get_full_name()
+
+
+# -----------------------------
+# Landing Page Review Admin
+# -----------------------------
+@admin.register(LandingPageReview)
+class LandingPageReviewAdmin(ExportCsvMixin, admin.ModelAdmin):
+    list_display = ("reviewer_name", "page", "rating", "display_order", "is_published", "updated_at")
+    list_filter = ("page", "rating", "is_published")
+    search_fields = ("reviewer_name", "quote", "reviewer_title")
+    ordering = ("page", "display_order", "-updated_at")
+    export_fields = [
+        "page",
+        "reviewer_name",
+        "reviewer_title",
+        "rating",
+        "quote",
+        "display_order",
+        "is_published",
+        "updated_at",
+    ]
+    list_editable = ("display_order", "is_published")
+    fieldsets = (
+        (None, {"fields": ("page", "reviewer_name", "reviewer_title", "rating", "quote")}),
+        ("Display", {"fields": ("display_order", "is_published")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+    readonly_fields = ("created_at", "updated_at")
 
 
 #-----------------------------
@@ -934,15 +1127,91 @@ class MasterProfileAdmin(ExportCsvMixin,admin.ModelAdmin):
 
 
 def get_price_html(service):
+    if service.contact_for_estimate:
+        if service.estimate_from_price:
+            return format_html(
+                '<strong>Contact for estimate</strong><br><small>From ${}</small>',
+                service.estimate_from_price,
+            )
+        return format_html("<strong>Contact for estimate</strong>")
     discount = service.get_active_discount()
+    base = service.base_price_amount()
     if discount:
         discounted = service.get_discounted_price()
         return format_html(
             '<span style="text-decoration: line-through; color: grey;">${}</span><br><strong>${}</strong>',
-            service.base_price,
+            base,
             discounted
         )
-    return format_html("<strong>${}</strong>", service.base_price)
+    return format_html("<strong>${}</strong>", base)
+
+GRID_STEP_MINUTES = 15
+DEFAULT_START_MINUTES = 6 * 60
+DEFAULT_END_MINUTES = 23 * 60
+MAX_CALENDAR_MINUTES = (24 * 60) - GRID_STEP_MINUTES
+
+
+def _time_to_minutes(value):
+    return value.hour * 60 + value.minute
+
+
+def _floor_to_slot(minutes: int) -> int:
+    minutes = max(minutes, 0)
+    return (minutes // GRID_STEP_MINUTES) * GRID_STEP_MINUTES
+
+
+def _ceil_to_slot(minutes: int) -> int:
+    minutes = max(minutes, 0)
+    minutes = min(minutes, MAX_CALENDAR_MINUTES)
+    remainder = minutes % GRID_STEP_MINUTES
+    if remainder:
+        minutes += GRID_STEP_MINUTES - remainder
+        minutes = min(minutes, MAX_CALENDAR_MINUTES)
+    return minutes
+
+
+def determine_calendar_window(masters, appointments):
+    """
+    Expands the calendar grid to cover the earliest start / latest end time for masters or appointments.
+    """
+    start_candidates = []
+    end_candidates = []
+
+    for master in masters:
+        profile = getattr(master, "master_profile", None)
+        if not profile:
+            continue
+        if profile.work_start:
+            start_candidates.append(_time_to_minutes(profile.work_start))
+        if profile.work_end:
+            end_minutes = _time_to_minutes(profile.work_end)
+            if profile.work_end <= profile.work_start:
+                end_minutes = MAX_CALENDAR_MINUTES
+            end_candidates.append(end_minutes)
+
+    for appt in appointments:
+        local_start = localtime(appt.start_time)
+        start_candidates.append(_time_to_minutes(local_start.time()))
+        base_duration = appt.service.duration_min or 0
+        extra_duration = appt.service.extra_time_min or 0
+        total_minutes = base_duration + extra_duration
+        if total_minutes <= 0:
+            total_minutes = GRID_STEP_MINUTES
+        local_end = local_start + timedelta(minutes=total_minutes)
+        if local_end.date() != local_start.date():
+            end_minutes = MAX_CALENDAR_MINUTES
+        else:
+            end_minutes = _time_to_minutes(local_end.time())
+        end_candidates.append(end_minutes)
+
+    start_minutes = _floor_to_slot(min(start_candidates) if start_candidates else DEFAULT_START_MINUTES)
+    end_minutes = _ceil_to_slot(max(end_candidates) if end_candidates else DEFAULT_END_MINUTES)
+    if end_minutes <= start_minutes:
+        end_minutes = min(start_minutes + GRID_STEP_MINUTES, MAX_CALENDAR_MINUTES)
+
+    base = datetime(2000, 1, 1)
+    return base + timedelta(minutes=start_minutes), base + timedelta(minutes=end_minutes)
+
 
 def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities):
     COLOR_PALETTE = ["#E4D08A", "#EDC2A2", "#CEAEC6", "#A3C1C9", "#C3CEA3", "#E7B3C3"]
@@ -950,9 +1219,12 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
     MASTER_COLORS = dict(zip(master_ids, cycle(COLOR_PALETTE)))
 
 
-    while time_pointer <= end_time:
-        slot_times.append(time_pointer.strftime('%H:%M'))
-        time_pointer += timedelta(minutes=15)
+    grid_start_dt = time_pointer
+    grid_end_dt = end_time
+    pointer = time_pointer
+    while pointer <= end_time:
+        slot_times.append(pointer.strftime('%H:%M'))
+        pointer += timedelta(minutes=15)
 
     slot_map = {}
     skip_map = {}
@@ -966,8 +1238,8 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
         master_id = appt.master_id
         time_key = local_start.strftime('%H:%M')
         service = appt.service
-        base_duration = getattr(service, "duration_min", 0) or 0
-        extra_duration = getattr(service, "extra_time_min", 0) or 0
+        base_duration = int(getattr(service, "duration_min", 0) or 0)
+        extra_duration = int(getattr(service, "extra_time_min", 0) or 0)
         duration = base_duration + extra_duration
         rowspan = max(1, duration // 15)
 
@@ -977,6 +1249,8 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
         slot_map[master_id][time_key] = {
             "appointment": appt,
             "rowspan": rowspan,
+            "base_duration": base_duration,
+            "extra_duration": extra_duration,
         }
 
         for i in range(1, rowspan):
@@ -987,14 +1261,20 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
     availability_map = {}
 
+    grid_start_minutes = grid_start_dt.hour * 60 + grid_start_dt.minute
+    grid_end_minutes = grid_end_dt.hour * 60 + grid_end_dt.minute
+    buffered_end_minutes = min(grid_end_minutes + GRID_STEP_MINUTES, MAX_CALENDAR_MINUTES)
+
     for period in availabilities:
         master_id = int(getattr(period.master, "id", period.master))
         start = localtime(period.start_time)
         end = localtime(period.end_time)
 
         if start.date() <= selected_date <= end.date():
-            day_start = datetime.combine(selected_date, time(8, 0)).replace(tzinfo=start.tzinfo)
-            day_end = datetime.combine(selected_date, time(21, 15)).replace(tzinfo=end.tzinfo)
+            day_start_naive = datetime.combine(selected_date, time(0, 0)) + timedelta(minutes=grid_start_minutes)
+            day_end_naive = datetime.combine(selected_date, time(0, 0)) + timedelta(minutes=buffered_end_minutes)
+            day_start = day_start_naive.replace(tzinfo=start.tzinfo)
+            day_end = day_end_naive.replace(tzinfo=end.tzinfo)
 
             block_start = max(start, day_start)
             block_end = min(end, day_end)
@@ -1047,18 +1327,41 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
             if master_id in slot_map and time_str in slot_map[master_id]:
                 data = slot_map[master_id][time_str]
                 appt = data["appointment"]
-                appt_promocode = getattr(appt, 'appointmentpromocode', None)
+                try:
+                    appt_promocode = appt.appointmentpromocode
+                except AppointmentPromoCode.DoesNotExist:
+                    appt_promocode = None
 
                 local_start = localtime(appt.start_time)
-                local_end = local_start + timedelta(minutes=appt.service.duration_min) + timedelta(minutes=appt.service.extra_time_min)
+                base_duration = data.get("base_duration", 0) or 0
+                extra_duration = data.get("extra_duration", 0) or 0
+                local_end = local_start + timedelta(minutes=base_duration + extra_duration)
                 last_status = appt.appointmentstatushistory_set.order_by('-set_at').first()
                 status_name = last_status.status.name if last_status else "Unknown"
+                service_obj = appt.service
+                if service_obj.contact_for_estimate:
+                    price_value = "Contact for estimate"
+                    price_discounted = price_value
+                else:
+                    price_discounted = f"${service_obj.get_discounted_price():.2f}"
+                    price_value = f"${service_obj.base_price_amount():.2f}"
+
+                client_name = appt.contact_name or ""
+                if not client_name and appt.client_id:
+                    client_name = appt.client.get_full_name() or appt.client.username or appt.client.email
+                client_name = client_name or "Guest"
+
+                phone_value = appt.contact_phone or ""
+                if not phone_value and appt.client_id:
+                    profile = getattr(appt.client, "userprofile", None)
+                    phone_value = getattr(profile, "phone", "") if profile else ""
+
                 row["cells"].append({
                     "html": f"""
                                         <div>
                                             <div style="font-size:1.8vh;">
                                                 {local_start.strftime('%I:%M').lstrip('0')} – {local_end.strftime('%I:%M').lstrip('0')}
-                                                <strong>{escape(appt.client.get_full_name())}</strong>
+                                                <strong>{escape(client_name)}</strong>
                                             </div>
                                             <div style="font-size:1.8vh;">
                                                 {escape(appt.service.name)}
@@ -1068,16 +1371,16 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                     "rowspan": data["rowspan"],
                     "appt_id": appt.id,
                     "appointment": appt,
-                    "client": escape(appt.client.get_full_name()),
-                    "phone": escape("+1 " + getattr(appt.client.userprofile, "phone", "")),
+                    "client": escape(client_name),
+                    "phone": escape(phone_value or ""),
                     "service": escape(appt.service.name),
                     "status": status_name,
                     "master": escape(master.get_full_name()),
                     "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
-                    "duration": f"{appt.service.duration_min}min",
+                    "duration": f"{base_duration}min",
                     "discount": f"-{appt_promocode.promocode.discount_percent}" if appt_promocode else "",
-                    "price_discounted": f"${appt.service.get_discounted_price()}",
-                    "price": f"${appt.service.base_price}",
+                    "price_discounted": price_discounted,
+                    "price": price_value,
                     "background": MASTER_COLORS.get(master_id),
                 })
 
@@ -1109,7 +1412,19 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
 from django.contrib import admin
 from django.utils import timezone
-from core.models import DealerApplication, UserProfile
+from core.models import DealerApplication, DealerTierLevel, UserProfile
+
+
+@admin.register(DealerTierLevel)
+class DealerTierLevelAdmin(admin.ModelAdmin):
+    list_display = ("label", "code", "discount_percent", "minimum_spend", "is_active")
+    list_editable = ("discount_percent", "minimum_spend", "is_active")
+    search_fields = ("label", "code")
+    ordering = ("minimum_spend", "sort_order")
+    fieldsets = (
+        (None, {"fields": ("label", "code", "description")}),
+        ("Eligibility", {"fields": ("minimum_spend", "discount_percent", "sort_order", "is_active")}),
+    )
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Dealer Applications
@@ -1119,13 +1434,36 @@ from core.models import DealerApplication, UserProfile
 class DealerApplicationAdmin(admin.ModelAdmin):
     list_display = (
         "user", "business_name", "status",
+        "preferred_tier_display", "assigned_tier_display",
         "created_at", "reviewed_by", "reviewed_at",
     )
-    list_filter = ("status", "created_at")
+    list_filter = ("status", "preferred_tier", "assigned_tier", "created_at")
     search_fields = ("user__email", "user__username", "business_name", "phone", "website")
     readonly_fields = ("created_at", "reviewed_at", "reviewed_by")
+    fieldsets = (
+        ("Application", {
+            "fields": (
+                "user", "business_name", "website", "phone",
+                "preferred_tier", "notes",
+            )
+        }),
+        ("Review", {
+            "fields": (
+                "status", "assigned_tier", "internal_note",
+                "reviewed_by", "reviewed_at", "created_at",
+            )
+        }),
+    )
 
     actions = ["approve_selected", "reject_selected"]
+
+    @admin.display(description="Requested tier")
+    def preferred_tier_display(self, obj):
+        return obj.get_preferred_tier_display() or "—"
+
+    @admin.display(description="Assigned tier")
+    def assigned_tier_display(self, obj):
+        return obj.get_assigned_tier_display() or "—"
 
     @admin.action(description="Approve selected applications")
     def approve_selected(self, request, queryset):
@@ -1169,9 +1507,9 @@ class UserProfileAdmin(admin.ModelAdmin):
     @admin.display(description="Total spent")
     def total_spent_display(self, obj):
         try:
-            return f"${obj.total_spent_usd():,.2f}"
+            return format_currency(obj.total_spent_cad())
         except Exception:
-            return "$0.00"
+            return format_currency(0)
 
     @admin.display(description="Dealer discount")
     def dealer_discount_display(self, obj):
@@ -1190,3 +1528,297 @@ class UserProfileAdmin(admin.ModelAdmin):
                 up.dealer_since = timezone.now()
             up.save(update_fields=["dealer_tier", "dealer_since"])
         self.message_user(request, f"Recomputed tiers for {queryset.count()} profile(s).")
+
+
+@admin.register(FontPreset)
+class FontPresetAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "slug",
+        "font_family",
+        "source_kind",
+        "mime_type",
+        "preload",
+        "is_active",
+        "updated_at",
+    )
+    list_filter = ("is_active", "preload", "font_style")
+    search_fields = ("name", "slug", "font_family", "static_path", "notes")
+    readonly_fields = ("created_at", "updated_at", "preview")
+    fieldsets = (
+        ("Identity", {"fields": ("name", "slug", "font_family", "fallback_stack", "notes")}),
+        ("Loading", {
+            "fields": (
+                "static_path",
+                "font_file",
+                "mime_type",
+                "font_weight",
+                "font_style",
+                "font_display",
+                "preload",
+                "is_active",
+                "preview",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="Source", ordering="static_path")
+    def source_kind(self, obj):
+        if obj.font_file:
+            return "Upload"
+        if obj.static_path:
+            return "Static"
+        return "—"
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        if not obj or not obj.url:
+            return "Provide a file or static path to preview."
+        face = (
+            f"@font-face{{font-family:'{obj.font_family}';"
+            f"src:url('{obj.url}') format('{obj.format_hint}');"
+            f"font-weight:{obj.font_weight};font-style:{obj.font_style};"
+            f"font-display:{obj.font_display};}}"
+        )
+        sample = (
+            f"<div style=\"font-family:{obj.font_stack};font-size:18px;"
+            f"padding:4px 0;\">The quick brown fox jumps over the lazy dog.</div>"
+        )
+        return format_html("<style>{}</style>{}", mark_safe(face), mark_safe(sample))
+
+
+@admin.register(PageFontSetting)
+class PageFontSettingAdmin(admin.ModelAdmin):
+    form = PageFontSettingAdminForm
+    list_display = (
+        "page",
+        "body_font",
+        "heading_font",
+        "ui_font_display",
+        "updated_at",
+    )
+    list_filter = ("page",)
+    search_fields = ("notes",)
+    readonly_fields = ("created_at", "updated_at", "preview")
+    fieldsets = (
+        ("Page", {"fields": ("page",)}),
+        ("Fonts", {"fields": ("body_font", "heading_font", "ui_font")}),
+        ("Notes", {"fields": ("notes",)}),
+        ("Preview", {"fields": ("preview",)}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="UI font")
+    def ui_font_display(self, obj):
+        if not obj:
+            return "—"
+        return obj.resolved_ui_font
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        if not obj:
+            return "Save to preview."
+        fonts = [obj.body_font, obj.heading_font, obj.resolved_ui_font]
+        faces = []
+        for font in fonts:
+            if not font or not font.url:
+                continue
+            faces.append(
+                f"@font-face{{font-family:'{font.font_family}';"
+                f"src:url('{font.url}') format('{font.format_hint}');"
+                f"font-weight:{font.font_weight};"
+                f"font-style:{font.font_style};"
+                f"font-display:{font.font_display};}}"
+            )
+        face_block = "".join(faces)
+        heading = (
+            f"<div style=\"font-family:{obj.heading_font.font_stack};"
+            f"font-size:20px;font-weight:800;padding:6px 0 2px;\">"
+            f"Heading sample — Wheel &amp; Tire Service</div>"
+        )
+        body = (
+            f"<div style=\"font-family:{obj.body_font.font_stack};"
+            f"font-size:16px;padding:4px 0;\">"
+            f"Body sample — The quick brown fox jumps over the lazy dog.</div>"
+        )
+        ui = (
+            f"<div style=\"font-family:{obj.resolved_ui_font.font_stack};"
+            f"font-size:14px;text-transform:uppercase;padding:4px 0;\">"
+            f"UI sample — Buttons &amp; navigation</div>"
+        )
+        preview_block = "".join([heading, body, ui])
+        return format_html("<style>{}</style>{}", mark_safe(face_block), mark_safe(preview_block))
+
+
+@admin.register(LegalPage)
+class LegalPageAdmin(admin.ModelAdmin):
+    list_display = ("title", "slug", "is_active", "updated_at")
+    list_filter = ("is_active",)
+    search_fields = ("title", "slug", "body")
+    prepopulated_fields = {"slug": ("title",)}
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("title", "slug", "body", "is_active")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+
+@admin.register(ProjectJournalEntry)
+class ProjectJournalEntryAdmin(admin.ModelAdmin):
+    list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
+    list_filter = ("status", "featured", "published_at")
+    search_fields = ("title", "excerpt", "body", "tags", "client_name", "location", "services")
+    ordering = ("-published_at", "-updated_at")
+    readonly_fields = ("created_at", "updated_at", "published_at", "preview_link")
+    prepopulated_fields = {"slug": ("title",)}
+    fieldsets = (
+        ("Story", {
+            "fields": (
+                "title",
+                "slug",
+                "headline",
+                "excerpt",
+                "body",
+                "cover_image",
+                "result_highlight",
+            )
+        }),
+        ("Project meta", {
+            "fields": (
+                "client_name",
+                "location",
+                "services",
+                "reading_time",
+                "tags",
+            )
+        }),
+        ("Publication", {
+            "fields": (
+                "status",
+                "featured",
+                "published_at",
+                "preview_link",
+                "created_at",
+                "updated_at",
+            )
+        }),
+    )
+    actions = ("mark_as_published", "mark_as_draft")
+
+    @admin.display(description="Status")
+    def status_badge(self, obj):
+        color = "#16a34a" if obj.status == obj.Status.PUBLISHED else "#f97316"
+        return format_html(
+            '<span style="padding:0.2rem 0.6rem;border-radius:999px;background:{}1a;color:{};font-size:0.85rem;">{}</span>',
+            color,
+            color,
+            obj.get_status_display(),
+        )
+
+    @admin.display(description="Preview")
+    def preview_link(self, obj):
+        if not obj.pk:
+            return "—"
+        try:
+            url = obj.get_absolute_url()
+        except Exception:
+            return "—"
+        return format_html('<a href="{}" target="_blank" rel="noopener">Open page</a>', url)
+
+    @admin.action(description="Publish selected posts")
+    def mark_as_published(self, request, queryset):
+        updated = 0
+        for entry in queryset:
+            if entry.status != entry.Status.PUBLISHED:
+                entry.status = entry.Status.PUBLISHED
+                entry.save()
+                updated += 1
+        self.message_user(request, f"Published {updated} post(s).")
+
+    @admin.action(description="Move selected posts to draft")
+    def mark_as_draft(self, request, queryset):
+        updated = 0
+        for entry in queryset:
+            if entry.status != entry.Status.DRAFT:
+                entry.status = entry.Status.DRAFT
+                entry.save()
+                updated += 1
+        self.message_user(request, f"Moved {updated} post(s) to draft.")
+
+
+@admin.register(HeroImage)
+class HeroImageAdmin(admin.ModelAdmin):
+    list_display = ("location", "title", "is_active", "updated_at", "image_preview")
+    list_editable = ("is_active",)
+    search_fields = ("title", "alt_text", "caption")
+    list_filter = ("is_active", "location")
+    readonly_fields = ("image_preview", "created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("location", "title", "is_active")}),
+        ("Media", {"fields": ("image", "image_preview", "alt_text", "caption")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+
+@admin.register(ServiceLead)
+class ServiceLeadAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "full_name", "service_needed", "phone", "email", "source_page", "status")
+    list_filter = ("status", "source_page", "created_at")
+    search_fields = (
+        "full_name",
+        "phone",
+        "email",
+        "vehicle",
+        "service_needed",
+        "notes",
+        "source_url",
+    )
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-created_at",)
+    fieldsets = (
+        (None, {"fields": ("status", "source_page", "source_url")}),
+        ("Contact", {"fields": ("full_name", "phone", "email")}),
+        ("Vehicle & request", {"fields": ("vehicle", "service_needed", "notes")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+
+@admin.register(VisitorSession)
+class VisitorSessionAdmin(admin.ModelAdmin):
+    list_display = (
+        "session_key",
+        "user_display",
+        "ip_address",
+        "landing_path",
+        "created_at",
+        "last_seen_at",
+    )
+    search_fields = (
+        "session_key",
+        "user__username",
+        "user_email_snapshot",
+        "user_name_snapshot",
+        "ip_address",
+    )
+    list_filter = ("created_at", "last_seen_at")
+    readonly_fields = ("created_at", "last_seen_at")
+    ordering = ("-last_seen_at",)
+
+    def user_display(self, obj):
+        if obj.user_name_snapshot:
+            return obj.user_name_snapshot
+        if obj.user:
+            return obj.user.get_full_name() or obj.user.username
+        return "—"
+
+    user_display.short_description = "User"
+
+
+@admin.register(PageView)
+class PageViewAdmin(admin.ModelAdmin):
+    list_display = ("path", "session", "user", "duration_ms", "started_at")
+    search_fields = ("path", "page_instance_id", "session__session_key", "user__username")
+    list_filter = ("started_at",)
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-started_at",)

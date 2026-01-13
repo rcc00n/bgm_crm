@@ -1,4 +1,6 @@
 from django.contrib.admin import SimpleListFilter
+
+from .utils import get_staff_queryset
 from .models import *
 
 class RoleFilter(SimpleListFilter):
@@ -19,11 +21,7 @@ class MasterOnlyFilter(SimpleListFilter):
     parameter_name = 'staff'
 
     def lookups(self, request, model_admin):
-        master_role = Role.objects.filter(name="Master").first()
-        if not master_role:
-            return []
-        master_ids = UserRole.objects.filter(role=master_role).values_list('user_id', flat=True)
-        masters = CustomUserDisplay.objects.filter(id__in=master_ids)
+        masters = get_staff_queryset(active_only=False).order_by("first_name", "last_name", "username")
         return [(m.id, m.get_full_name() or m.username) for m in masters]
 
     def queryset(self, request, queryset):
@@ -40,8 +38,6 @@ class MasterRoleFilter(SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() == "yes":
-            master_role = Role.objects.filter(name="Master").first()
-            if master_role:
-                master_ids = UserRole.objects.filter(role=master_role).values_list("user_id", flat=True)
-                return queryset.filter(id__in=master_ids)
+            staff_ids = get_staff_queryset(active_only=False).values_list("id", flat=True)
+            return queryset.filter(id__in=staff_ids)
         return queryset
