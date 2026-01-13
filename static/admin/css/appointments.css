@@ -209,10 +209,9 @@ html,body{
 
 .scrollable{
     width:100%;
-    overflow-y:auto;
-    overflow-x:hidden;
-    max-height:min(86vh, 920px);
-    overscroll-behavior:contain;
+    overflow:hidden;
+    max-height:none;
+    overscroll-behavior:none;
     background:var(--calendar-surface);
     border-top:1px solid var(--calendar-line);
     --calendar-cell-width:calc((100% - var(--time-col-width)) / var(--master-count, 1));
