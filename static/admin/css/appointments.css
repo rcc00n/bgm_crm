@@ -209,18 +209,21 @@ html,body{
 
 .scrollable{
     width:100%;
-    overflow:auto;
+    overflow-y:auto;
+    overflow-x:hidden;
     max-height:min(86vh, 920px);
     overscroll-behavior:contain;
     background:var(--calendar-surface);
     border-top:1px solid var(--calendar-line);
+    --calendar-cell-width:calc((100% - var(--time-col-width)) / var(--master-count, 1));
 }
 
 .calendar-table{
     width:100%;
     border-collapse:collapse;
     font-size:.95rem;
-    min-width:calc(var(--time-col-width) + var(--calendar-cell-width) * var(--master-count, 1));
+    min-width:100%;
+    table-layout:fixed;
 }
 
 .calendar-table th,
@@ -231,6 +234,7 @@ html,body{
     height:3.2rem;
     vertical-align:top;
     background:transparent;
+    min-width:0;
 }
 
 .calendar-table thead th{
@@ -258,7 +262,8 @@ html,body{
 }
 
 .master-col{
-    min-width:var(--calendar-cell-width);
+    width:var(--calendar-cell-width);
+    min-width:0;
 }
 
 .master-header{

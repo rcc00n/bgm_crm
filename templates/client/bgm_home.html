@@ -97,8 +97,10 @@
     .card__img{position:relative;aspect-ratio:16/9;border-radius:.8rem;overflow:hidden;background:#0b0b0b;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-size:.95rem}
     .card__img img{width:100%;height:100%;object-fit:cover;display:block}
     .card__badge{position:absolute;left:.6rem;bottom:.6rem;font-size:.72rem;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
-    .card__head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
-    .price{display:flex;gap:.5rem;align-items:baseline;white-space:nowrap}
+    .card__head{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap}
+    .card__head h3{flex:1 1 auto;min-width:0}
+    .price{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;white-space:normal;max-width:100%}
+    .card__head .price{margin-left:auto;text-align:right}
     .old{color:var(--muted-2);text-decoration:line-through}
     .dur{color:var(--muted-2);font-size:.92rem}
     .empty{color:var(--muted-2);font-style:italic;padding:1rem}
