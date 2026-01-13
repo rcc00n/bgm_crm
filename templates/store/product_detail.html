@@ -92,7 +92,12 @@
                       >
                       <span class="option-pill__inner">
                         <span class="option-pill__top">
-                          <span class="option-pill__name">{{ opt.name }}</span>
+                          <span class="option-pill__meta">
+                            <span class="option-pill__name">{{ opt.name }}</span>
+                            {% if opt.sku %}
+                              <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
+                            {% endif %}
+                          </span>
                           {% if not product.contact_for_estimate %}
                             <span class="option-pill__price">
                               {{ opt.unit_price|money }}
@@ -473,7 +478,9 @@
   .option-pill__top{display:flex;align-items:center;justify-content:space-between;gap:.6rem;}
   .option-pill__price{font-weight:700;color:var(--ink);display:flex;flex-direction:column;align-items:flex-end;gap:.1rem;}
   .option-pill__dealer{font-size:.78rem;color:var(--muted);font-weight:600;}
+  .option-pill__meta{display:flex;flex-direction:column;gap:.1rem;}
   .option-pill__name{font-weight:700; color:var(--ink);}
+  .option-pill__sku{font-size:.78rem;color:var(--muted);letter-spacing:.02em;}
   .option-pill__desc{color:var(--muted); font-size:.88rem;}
   .option-pill input:checked + .option-pill__inner{
     border-color:rgba(213,0,0,.6);

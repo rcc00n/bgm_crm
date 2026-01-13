@@ -51,7 +51,7 @@
                   <div class="section__desc">Category: {{ row.product.category.name }}</div>
                 {% endif %}
                 {% if row.option %}
-                  <div class="section__desc">Option: {{ row.option.name }}</div>
+                  <div class="section__desc">Option: {{ row.option.name }}{% if row.option.sku %} · SKU: {{ row.option.sku }}{% endif %}</div>
                 {% endif %}
                 <div class="section__desc">
                   Retail: {{ row.retail_unit_price|money }}

@@ -1,0 +1,51 @@
+/* Unified topbar sizing + font to match the products page. */
+:root{
+  --topbar-font: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
+}
+
+body .site-header .brand,
+body .site-header .brand__logo,
+body .site-header .brand__logo .brand__word,
+body .site-header .brand__word,
+body .site-header nav a,
+body .site-header .badge{
+  font-family: var(--topbar-font) !important;
+  font-style: normal !important;
+}
+
+body .site-header .brand__word{
+  font-weight: 900 !important;
+  font-size: clamp(1.1rem, 1.55vw, 1.4rem) !important;
+  letter-spacing: .06em !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+}
+
+body .site-header .brand__tagline,
+body .site-header .belt{
+  font-family: var(--topbar-font) !important;
+  font-weight: 900 !important;
+  font-size: .88rem !important;
+  letter-spacing: .12em !important;
+  line-height: 1 !important;
+  text-transform: none !important;
+  color: rgba(255,255,255,.78) !important;
+  white-space: nowrap;
+}
+
+body .site-header nav a,
+body .site-header nav .btn,
+body .site-header nav .btn--ghost{
+  font-family: var(--topbar-font) !important;
+  font-weight: 700 !important;
+  font-size: .9rem !important;
+  letter-spacing: .02em !important;
+  line-height: 1.1 !important;
+  text-transform: none !important;
+  color: rgba(255,255,255,.92) !important;
+}
+
+body .site-header nav a:hover,
+body .site-header nav a[aria-current="page"]{
+  color: #fff !important;
+}

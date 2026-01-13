@@ -37,8 +37,9 @@ def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
     start_date = day_list[0]
     start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
 
-    recent_sessions = VisitorSession.objects.filter(created_at__gte=start_dt)
     recent_views = PageView.objects.filter(started_at__gte=start_dt)
+    session_ids = recent_views.values_list("session_id", flat=True).distinct()
+    recent_sessions = VisitorSession.objects.filter(id__in=session_ids)
 
     visits = recent_sessions.count()
     signed_in = recent_sessions.filter(user__isnull=False).count()
@@ -66,10 +67,10 @@ def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
     )
 
     visitor_counts = (
-        recent_sessions
-        .annotate(day=TruncDate("created_at"))
+        recent_views
+        .annotate(day=TruncDate("started_at"))
         .values("day")
-        .annotate(count=Count("id"))
+        .annotate(count=Count("session", distinct=True))
     )
     visitor_map = {entry["day"]: entry["count"] for entry in visitor_counts}
     visitor_timeseries: List[Dict[str, object]] = [
@@ -133,9 +134,9 @@ def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
         entry["avg_seconds"] = round((entry.get("avg_duration") or 0) / 1000, 1)
 
     top_referrers = list(
-        recent_sessions.exclude(referrer="")
+        recent_views.exclude(referrer="")
         .values("referrer")
-        .annotate(visits=Count("id"))
+        .annotate(visits=Count("session", distinct=True))
         .order_by("-visits")[:5]
     )
 

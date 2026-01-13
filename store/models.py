@@ -213,6 +213,7 @@ class ProductOption(models.Model):
         verbose_name="Product",
     )
     name = models.CharField("Name", max_length=120)
+    sku = models.CharField("SKU", max_length=64, unique=True, null=True, blank=True)
     description = models.CharField("Description", max_length=240, blank=True)
     price = models.DecimalField(
         "Price override",
@@ -237,7 +238,8 @@ class ProductOption(models.Model):
         unique_together = ("product", "name")
 
     def __str__(self):
-        return f"{self.product}: {self.name}"
+        label = f"{self.product}: {self.name}"
+        return f"{label} ({self.sku})" if self.sku else label
 
     def get_effective_price(self) -> Decimal:
         return self.product.get_unit_price(self)
