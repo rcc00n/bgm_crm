@@ -1,6 +1,15 @@
-/* Unified topbar sizing + font to match the products page. */
+/* Unified topbar styling to match the reference header. */
 :root{
   --topbar-font: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
+}
+
+body .site-header{
+  background:#000 !important;
+  border-bottom:1px solid rgba(255,255,255,.12) !important;
+}
+
+body .site-header__inner{
+  position:relative !important;
 }
 
 body .site-header .brand,
@@ -15,8 +24,8 @@ body .site-header .badge{
 
 body .site-header .brand__word{
   font-weight: 900 !important;
-  font-size: clamp(1.1rem, 1.55vw, 1.4rem) !important;
-  letter-spacing: .06em !important;
+  font-size: clamp(1.15rem, 1.7vw, 1.5rem) !important;
+  letter-spacing: .08em !important;
   line-height: 1 !important;
   text-transform: uppercase !important;
 }
@@ -25,27 +34,50 @@ body .site-header .brand__tagline,
 body .site-header .belt{
   font-family: var(--topbar-font) !important;
   font-weight: 900 !important;
-  font-size: .88rem !important;
+  font-size: .85rem !important;
   letter-spacing: .12em !important;
   line-height: 1 !important;
-  text-transform: none !important;
-  color: rgba(255,255,255,.78) !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,.8) !important;
   white-space: nowrap;
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+  pointer-events:none;
 }
 
 body .site-header nav a,
 body .site-header nav .btn,
 body .site-header nav .btn--ghost{
   font-family: var(--topbar-font) !important;
-  font-weight: 700 !important;
-  font-size: .9rem !important;
-  letter-spacing: .02em !important;
+  font-weight: 800 !important;
+  font-size: .88rem !important;
+  letter-spacing: .04em !important;
   line-height: 1.1 !important;
   text-transform: none !important;
   color: rgba(255,255,255,.92) !important;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
 }
 
 body .site-header nav a:hover,
 body .site-header nav a[aria-current="page"]{
   color: #fff !important;
+}
+
+body .site-header .badge{
+  background:#d50000 !important;
+  color:#fff !important;
+  padding:.08rem .42rem !important;
+  font-size:.68rem !important;
+  border-radius:999px !important;
+}
+
+@media (max-width: 1150px){
+  body .site-header .brand__tagline,
+  body .site-header .belt{
+    display:none !important;
+  }
 }
