@@ -43,6 +43,25 @@ class CarModelAdmin(admin.ModelAdmin):
 
 # ───────────────────────────── Categories / Products ─────────────────────────────
 
+class CleanupStatusFilter(admin.SimpleListFilter):
+    title = "Cleanup"
+    parameter_name = "cleanup"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("cleaned", "Cleaned junk"),
+            ("all", "All (including cleaned)"),
+        )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == "all":
+            return queryset
+        if value == "cleaned":
+            return queryset.filter(cleanup_batch__isnull=False)
+        return queryset.filter(cleanup_batch__isnull=True)
+
+
 class ProductOptionInline(admin.TabularInline):
     model = ProductOption
     extra = 1
@@ -89,7 +108,7 @@ class ProductAdmin(admin.ModelAdmin):
     change_list_template = "admin/store/product/change_list.html"
     list_display = ("name", "sku", "category_short", "price", "currency", "inventory", "is_active", "contact_for_estimate")
     list_editable = ("is_active",)
-    list_filter = ("is_active", "category", "currency", "contact_for_estimate")
+    list_filter = ("is_active", "category", "currency", "contact_for_estimate", CleanupStatusFilter)
     search_fields = ("name", "sku", "description")
     prepopulated_fields = {"slug": ("name",)}
     list_select_related = ("category",)
