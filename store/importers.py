@@ -19,6 +19,9 @@ try:
 except Exception:  # pragma: no cover - handled at runtime for xlsx imports
     load_workbook = None
 
+SKU_MAX_LEN = 64
+PRICE_QUANT = Decimal("0.01")
+
 
 def _normalize_header(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
@@ -77,7 +80,28 @@ def _clean_sku(value: object) -> str:
     sku = str(value).strip()
     if not sku:
         return ""
-    return sku[:64]
+    return sku[:SKU_MAX_LEN]
+
+
+def _sku_seed(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    seed = slugify(raw)
+    return seed[:SKU_MAX_LEN]
+
+
+def _generate_unique_sku(seed: object, taken: set[str]) -> str:
+    base = _sku_seed(seed) or "product"
+    base = base[:SKU_MAX_LEN]
+    candidate = base
+    counter = 2
+    while candidate in taken:
+        suffix = f"-{counter}"
+        candidate = f"{base[:SKU_MAX_LEN - len(suffix)]}{suffix}"
+        counter += 1
+    taken.add(candidate)
+    return candidate
 
 
 def _parse_int(value: object) -> Optional[int]:
@@ -391,6 +415,9 @@ def import_products(
     if not headers or not rows:
         return ImportResult(errors=["The import file has no data rows."])
 
+    file_name = (uploaded_file.name or "").lower()
+    price_multiplier = Decimal("1.4") if "dieselr" in file_name else Decimal("1.0")
+
     auto_mode = mode == "auto"
     if auto_mode:
         mode = "shopify" if detect_shopify(headers) else "simple"
@@ -400,6 +427,7 @@ def import_products(
             rows,
             default_category=default_category,
             default_currency=default_currency,
+            price_multiplier=price_multiplier,
             update_existing=update_existing,
             create_missing_categories=create_missing_categories,
             dry_run=dry_run,
@@ -409,6 +437,7 @@ def import_products(
             rows,
             default_category=default_category,
             default_currency=default_currency,
+            price_multiplier=price_multiplier,
             update_existing=update_existing,
             create_missing_categories=create_missing_categories,
             dry_run=dry_run,
@@ -416,28 +445,49 @@ def import_products(
     return ImportResult(errors=[f"Unknown import mode: {mode}."])
 
 
+def _build_sku_registry() -> set[str]:
+    product_skus = set(Product.objects.values_list("sku", flat=True))
+    option_skus = set(
+        ProductOption.objects.exclude(sku__isnull=True)
+        .exclude(sku="")
+        .values_list("sku", flat=True)
+    )
+    return product_skus | option_skus
+
+
+def _apply_price_multiplier(price: Optional[Decimal], multiplier: Decimal) -> Optional[Decimal]:
+    if price is None:
+        return None
+    return (price * multiplier).quantize(PRICE_QUANT)
+
+
 def _import_simple(
     rows: Iterable[Dict[str, object]],
     *,
     default_category: Optional[Category],
     default_currency: Optional[str],
+    price_multiplier: Decimal,
     update_existing: bool,
     create_missing_categories: bool,
     dry_run: bool,
 ) -> ImportResult:
     result = ImportResult()
     currency_default = (default_currency or settings.DEFAULT_CURRENCY_CODE or "CAD").upper()
+    taken_skus = _build_sku_registry()
 
     for idx, row in enumerate(rows, start=2):
         row_norm = _normalize_row(row)
-        sku_raw = _get_value(row_norm, *FIELD_ALIASES["sku"])
-        sku = _clean_sku(sku_raw)
-        if not sku:
-            result.errors.append(f"Row {idx}: missing SKU.")
-            result.skipped_products += 1
-            continue
-
         name_raw = _get_value(row_norm, *FIELD_ALIASES["name"])
+        sku_raw = _get_value(row_norm, *FIELD_ALIASES["sku"])
+        if sku_raw:
+            sku = _clean_sku(sku_raw)
+            if not sku:
+                sku = _generate_unique_sku(name_raw or f"product-{idx}", taken_skus)
+            else:
+                taken_skus.add(sku)
+        else:
+            sku = _generate_unique_sku(name_raw or f"product-{idx}", taken_skus)
+
         name = _trim_text(name_raw, 180) if name_raw else _trim_text(sku, 180)
         if not name:
             result.errors.append(f"Row {idx}: missing product name.")
@@ -461,6 +511,7 @@ def _import_simple(
 
         price_raw = _pick_price(row_norm, currency_default)
         price = _parse_decimal(price_raw) if price_raw is not None else None
+        price = _apply_price_multiplier(price, price_multiplier)
         currency_raw = _get_value(row_norm, *FIELD_ALIASES["currency"])
         currency = (str(currency_raw).strip().upper() if currency_raw else currency_default)
         inventory_raw = _get_value(row_norm, *FIELD_ALIASES["inventory"])
@@ -576,6 +627,7 @@ def _import_shopify(
     *,
     default_category: Optional[Category],
     default_currency: Optional[str],
+    price_multiplier: Decimal,
     update_existing: bool,
     create_missing_categories: bool,
     dry_run: bool,
@@ -583,6 +635,7 @@ def _import_shopify(
     result = ImportResult()
     currency_default = (default_currency or settings.DEFAULT_CURRENCY_CODE or "CAD").upper()
     grouped: Dict[str, List[Dict[str, object]]] = {}
+    taken_skus = _build_sku_registry()
 
     for row in rows:
         row_norm = _normalize_row(row)
@@ -635,6 +688,7 @@ def _import_shopify(
             price_value = _pick_price(row_norm, currency_default)
             price = _parse_decimal(price_value)
             if price is not None:
+                price = _apply_price_multiplier(price, price_multiplier)
                 variant_prices.append(price)
         base_price = min(variant_prices) if variant_prices else Decimal("0.00")
 
@@ -647,7 +701,9 @@ def _import_shopify(
                     base_sku = _clean_sku(sku_candidate)
                     break
         if not base_sku:
-            base_sku = _clean_sku(handle)
+            base_sku = _generate_unique_sku(name or handle, taken_skus)
+        else:
+            taken_skus.add(base_sku)
 
         inventory_raw = _get_value(first, "variant inventory qty", "inventory", "qty", "quantity")
         inventory = _parse_int(inventory_raw) or 0
@@ -713,6 +769,7 @@ def _import_shopify(
             opt_sku = _clean_sku(opt_sku_raw) if opt_sku_raw else ""
             opt_price_raw = _pick_price(row_norm, currency_default)
             opt_price = _parse_decimal(opt_price_raw)
+            opt_price = _apply_price_multiplier(opt_price, price_multiplier)
             opt_active = _parse_bool(_get_value(row_norm, "published", "status"), default=True)
 
             existing_opt = None
