@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django import forms
+from django.conf import settings
 from typing import Any
 import json
 import re
@@ -276,3 +277,51 @@ class CustomFitmentRequestForm(forms.ModelForm):
         # keep digits, plus, and separators minimal to avoid user errors
         cleaned = "".join(ch for ch in phone if ch.isdigit() or ch in "+-() ")
         return cleaned.strip()
+
+
+# =========================
+# Admin: Product import
+# =========================
+
+class ProductImportForm(forms.Form):
+    mode = forms.ChoiceField(
+        label="Import format",
+        choices=(
+            ("auto", "Auto (Shopify or simple CSV/XLSX)"),
+            ("shopify", "Shopify export"),
+            ("simple", "Simple columns"),
+        ),
+        initial="auto",
+        required=True,
+    )
+    file = forms.FileField(
+        label="Price file",
+        help_text="Upload a .csv or .xlsx file.",
+    )
+    default_category = forms.ModelChoiceField(
+        label="Default category",
+        queryset=Category.objects.all(),
+        required=False,
+        help_text="Used when a row has no category.",
+    )
+    default_currency = forms.CharField(
+        label="Default currency",
+        initial=getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD"),
+        required=False,
+        help_text="Used when the file has no currency column.",
+    )
+    update_existing = forms.BooleanField(
+        label="Update existing products (by SKU)",
+        required=False,
+        initial=False,
+    )
+    create_missing_categories = forms.BooleanField(
+        label="Create missing categories",
+        required=False,
+        initial=True,
+    )
+    dry_run = forms.BooleanField(
+        label="Dry run (no database changes)",
+        required=False,
+        initial=False,
+    )

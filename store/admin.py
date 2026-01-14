@@ -1,5 +1,10 @@
 # store/admin.py
-from django.contrib import admin
+from django.conf import settings
+from django.contrib import admin, messages
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import redirect
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
 from django.utils.html import format_html
 
 from .models import (
@@ -13,7 +18,8 @@ from .models import (
     OrderItem,
     CustomFitmentRequest,
 )
-from .forms_store import ProductAdminForm
+from .forms_store import ProductAdminForm, ProductImportForm
+from .importers import import_products
 
 
 # ─────────────────────────── Auto directories ───────────────────────────
@@ -76,6 +82,7 @@ class ProductAdmin(admin.ModelAdmin):
     - галерея через inline
     """
     form = ProductAdminForm
+    change_list_template = "admin/store/product/change_list.html"
     list_display = ("name", "sku", "category", "price", "currency", "inventory", "is_active", "contact_for_estimate")
     list_filter = ("is_active", "category", "currency", "contact_for_estimate")
     search_fields = ("name", "sku", "description")
@@ -96,6 +103,90 @@ class ProductAdmin(admin.ModelAdmin):
         "specs_text", "specs_preview",
         "created_at", "updated_at",
     )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        opts = self.model._meta
+        custom_urls = [
+            path(
+                "import/",
+                self.admin_site.admin_view(self.import_view),
+                name=f"{opts.app_label}_{opts.model_name}_import",
+            ),
+        ]
+        return custom_urls + urls
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        opts = self.model._meta
+        try:
+            extra_context["import_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_import"
+            )
+        except Exception:
+            extra_context["import_url"] = None
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def import_view(self, request):
+        if not self.has_add_permission(request):
+            raise PermissionDenied
+
+        if request.method == "POST":
+            form = ProductImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    result = import_products(
+                        uploaded_file=form.cleaned_data["file"],
+                        mode=form.cleaned_data["mode"],
+                        default_category=form.cleaned_data["default_category"],
+                        default_currency=form.cleaned_data["default_currency"],
+                        update_existing=form.cleaned_data["update_existing"],
+                        create_missing_categories=form.cleaned_data["create_missing_categories"],
+                        dry_run=form.cleaned_data["dry_run"],
+                    )
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+                else:
+                    summary = (
+                        f"Products: {result.created_products} created, "
+                        f"{result.updated_products} updated, "
+                        f"{result.skipped_products} skipped. "
+                        f"Options: {result.created_options} created, "
+                        f"{result.updated_options} updated, "
+                        f"{result.skipped_options} skipped. "
+                        f"Categories: {result.created_categories} created."
+                    )
+                    level = messages.SUCCESS if not result.errors else messages.WARNING
+                    messages.add_message(request, level, summary)
+                    if result.errors:
+                        errors = result.errors[:10]
+                        if len(result.errors) > 10:
+                            errors.append(f"...and {len(result.errors) - 10} more.")
+                        messages.warning(request, "Errors: " + " | ".join(errors))
+                    if not form.cleaned_data["dry_run"]:
+                        opts = self.model._meta
+                        return redirect(
+                            reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
+                        )
+        else:
+            form = ProductImportForm(
+                initial={
+                    "default_currency": getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD"),
+                }
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Import products",
+            "form": form,
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+            "has_view_permission": self.has_view_permission(request),
+            "product_changelist_url": reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            ),
+        }
+        return TemplateResponse(request, "admin/store/product/import.html", context)
 
     def specs_preview(self, obj):
         """Pretty HTML preview for JSON specs."""

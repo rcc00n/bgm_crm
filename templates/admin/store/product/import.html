@@ -1,0 +1,34 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans "Home" %}</a>
+  › <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst }}</a>
+  › <a href="{{ product_changelist_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
+  › {% trans "Import" %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <div class="module aligned">
+    <h1>Import products</h1>
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <fieldset class="module aligned">
+        {{ form.as_p }}
+      </fieldset>
+      <div class="submit-row">
+        <input type="submit" value="Import" class="default" />
+        <a href="{{ product_changelist_url }}" class="button cancel-link">Back to list</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="module" style="margin-top:1.2rem;">
+    <h2>Supported formats</h2>
+    <p><strong>Shopify export:</strong> Handle, Title, Variant SKU, Variant Price, Body (HTML), Tags.</p>
+    <p><strong>Simple CSV/XLSX:</strong> sku, name/title, price, category, description, inventory, tags.</p>
+    <p>Tags can be separated by commas or semicolons. Specs can be provided as "key: value" lines or JSON.</p>
+  </div>
+{% endblock %}
