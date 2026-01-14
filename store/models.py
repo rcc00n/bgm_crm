@@ -70,6 +70,36 @@ class Category(models.Model):
     image_tag.short_description = "Preview"
 
 
+class ImportBatch(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="import_batches",
+    )
+    source_filename = models.CharField(max_length=255, blank=True)
+    mode = models.CharField(max_length=32, blank=True)
+    is_dry_run = models.BooleanField(default=False)
+    created_products = models.PositiveIntegerField(default=0)
+    updated_products = models.PositiveIntegerField(default=0)
+    skipped_products = models.PositiveIntegerField(default=0)
+    created_options = models.PositiveIntegerField(default=0)
+    updated_options = models.PositiveIntegerField(default=0)
+    skipped_options = models.PositiveIntegerField(default=0)
+    created_categories = models.PositiveIntegerField(default=0)
+    error_count = models.PositiveIntegerField(default=0)
+    rolled_back_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        label = self.created_at.strftime("%Y-%m-%d %H:%M")
+        return f"Import #{self.pk} — {label}"
+
+
 class Product(models.Model):
     name = models.CharField(max_length=180)
     slug = models.SlugField(max_length=200, unique=True, blank=True)
@@ -79,6 +109,13 @@ class Product(models.Model):
     currency = models.CharField(max_length=3, default=settings.DEFAULT_CURRENCY_CODE)
     inventory = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
+    import_batch = models.ForeignKey(
+        ImportBatch,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="products",
+    )
 
     # media
     main_image = models.ImageField(upload_to="store/products/", blank=True, null=True)
@@ -228,6 +265,13 @@ class ProductOption(models.Model):
         "Active",
         default=False,
         help_text="Inactive options are hidden on the product page.",
+    )
+    import_batch = models.ForeignKey(
+        ImportBatch,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="options",
     )
     sort_order = models.PositiveIntegerField("Sort order", default=0)
 

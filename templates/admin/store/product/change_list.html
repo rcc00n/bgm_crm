@@ -9,4 +9,10 @@
       <span>Import Products</span>
     </a>
   {% endif %}
+  {% if rollback_url and last_import %}
+    <a href="{{ rollback_url }}" class="btn btn-outline-danger page-action-btn" title="Rollback last import">
+      <i class="fas fa-undo"></i>
+      <span>Rollback Last Import</span>
+    </a>
+  {% endif %}
 {% endblock %}

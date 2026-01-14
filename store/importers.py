@@ -20,6 +20,7 @@ except Exception:  # pragma: no cover - handled at runtime for xlsx imports
     load_workbook = None
 
 SKU_MAX_LEN = 64
+SLUG_MAX_LEN = 200
 PRICE_QUANT = Decimal("0.01")
 
 
@@ -99,6 +100,27 @@ def _generate_unique_sku(seed: object, taken: set[str]) -> str:
     while candidate in taken:
         suffix = f"-{counter}"
         candidate = f"{base[:SKU_MAX_LEN - len(suffix)]}{suffix}"
+        counter += 1
+    taken.add(candidate)
+    return candidate
+
+
+def _slug_seed(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    seed = slugify(raw)
+    return seed[:SLUG_MAX_LEN]
+
+
+def _generate_unique_slug(seed: object, taken: set[str]) -> str:
+    base = _slug_seed(seed) or "product"
+    base = base[:SLUG_MAX_LEN]
+    candidate = base
+    counter = 2
+    while candidate in taken:
+        suffix = f"-{counter}"
+        candidate = f"{base[:SLUG_MAX_LEN - len(suffix)]}{suffix}"
         counter += 1
     taken.add(candidate)
     return candidate
@@ -410,6 +432,7 @@ def import_products(
     update_existing: bool = False,
     create_missing_categories: bool = True,
     dry_run: bool = False,
+    import_batch=None,
 ) -> ImportResult:
     headers, rows = read_spreadsheet(uploaded_file)
     if not headers or not rows:
@@ -431,6 +454,7 @@ def import_products(
             update_existing=update_existing,
             create_missing_categories=create_missing_categories,
             dry_run=dry_run,
+            import_batch=import_batch,
         )
     if mode == "simple":
         return _import_simple(
@@ -441,6 +465,7 @@ def import_products(
             update_existing=update_existing,
             create_missing_categories=create_missing_categories,
             dry_run=dry_run,
+            import_batch=import_batch,
         )
     return ImportResult(errors=[f"Unknown import mode: {mode}."])
 
@@ -453,6 +478,10 @@ def _build_sku_registry() -> set[str]:
         .values_list("sku", flat=True)
     )
     return product_skus | option_skus
+
+
+def _build_slug_registry() -> set[str]:
+    return set(Product.objects.values_list("slug", flat=True))
 
 
 def _apply_price_multiplier(price: Optional[Decimal], multiplier: Decimal) -> Optional[Decimal]:
@@ -470,10 +499,12 @@ def _import_simple(
     update_existing: bool,
     create_missing_categories: bool,
     dry_run: bool,
+    import_batch=None,
 ) -> ImportResult:
     result = ImportResult()
     currency_default = (default_currency or settings.DEFAULT_CURRENCY_CODE or "CAD").upper()
     taken_skus = _build_sku_registry()
+    taken_slugs = _build_slug_registry()
 
     for idx, row in enumerate(rows, start=2):
         row_norm = _normalize_row(row)
@@ -577,11 +608,14 @@ def _import_simple(
 
         price_create = price if price is not None else Decimal("0.00")
         inventory_create = inventory if inventory is not None else 0
+        slug_seed = name or sku
+        slug_value = _generate_unique_slug(slug_seed, taken_slugs)
 
         try:
             Product.objects.create(
                 name=name,
                 sku=sku,
+                slug=slug_value,
                 category=category,
                 price=price_create,
                 currency=currency,
@@ -591,6 +625,7 @@ def _import_simple(
                 description=description,
                 tags=tags,
                 specs=specs,
+                import_batch=import_batch,
             )
         except Exception as exc:
             result.errors.append(f"Row {idx}: {exc}")
@@ -631,11 +666,13 @@ def _import_shopify(
     update_existing: bool,
     create_missing_categories: bool,
     dry_run: bool,
+    import_batch=None,
 ) -> ImportResult:
     result = ImportResult()
     currency_default = (default_currency or settings.DEFAULT_CURRENCY_CODE or "CAD").upper()
     grouped: Dict[str, List[Dict[str, object]]] = {}
     taken_skus = _build_sku_registry()
+    taken_slugs = _build_slug_registry()
 
     for row in rows:
         row_norm = _normalize_row(row)
@@ -741,10 +778,13 @@ def _import_shopify(
                 result.created_products += 1
                 product = None
             else:
+                slug_seed = handle or name or base_sku
+                slug_value = _generate_unique_slug(slug_seed, taken_slugs)
                 try:
                     product = Product.objects.create(
                         name=name,
                         sku=base_sku,
+                        slug=slug_value,
                         category=category,
                         price=base_price,
                         currency=currency_default,
@@ -753,6 +793,7 @@ def _import_shopify(
                         short_description=short_description,
                         description=description,
                         tags=tags,
+                        import_batch=import_batch,
                     )
                 except Exception as exc:
                     result.errors.append(f"{handle}: {exc}")
@@ -812,6 +853,7 @@ def _import_shopify(
                     sku=opt_sku or None,
                     price=opt_price,
                     is_active=opt_active,
+                    import_batch=import_batch,
                 )
             except Exception as exc:
                 result.errors.append(f"{handle}: option {opt_label} -> {exc}")
