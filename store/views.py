@@ -384,7 +384,7 @@ def _send_order_confirmation(
 
 
 def store_home(request):
-    categories = Category.objects.all()  # Meta.ordering = ["name"]
+    categories = Category.objects.filter(products__is_active=True).distinct()
     form = ProductFilterForm(request.GET or None)
 
     base_qs = (

@@ -159,6 +159,9 @@ class ProductFilterForm(forms.Form):
         Otherwise show all models (sorted by make then name).
         """
         super().__init__(*args, **kwargs)
+        active_categories = Category.objects.filter(products__is_active=True).distinct()
+        self.fields["category"].queryset = active_categories
+        self.fields["category"].label_from_instance = lambda obj: obj.display_name
         data = self.data if self.is_bound else self.initial
         make_id = data.get("make")
 

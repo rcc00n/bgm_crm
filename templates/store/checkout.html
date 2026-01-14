@@ -289,7 +289,7 @@
               <li class="summary__row">
                 <div>
                   <div class="summary__title">{{ it.product.name }}</div>
-                  <div class="section__desc">x{{ it.qty }} • {{ it.product.category.name }}</div>
+                  <div class="section__desc">x{{ it.qty }} • {{ it.product.category.display_name }}</div>
                   {% if it.option %}
                     <div class="section__desc">Option: {{ it.option.name }}{% if it.option.sku %} · SKU: {{ it.option.sku }}{% endif %}</div>
                   {% endif %}

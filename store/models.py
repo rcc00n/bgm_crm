@@ -63,6 +63,14 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def display_name(self) -> str:
+        name = self.name or ""
+        if ">" in name:
+            short = name.split(">")[-1].strip()
+            return short or name
+        return name
+
     def image_tag(self):
         if self.image:
             return format_html('<img src="{}" style="height:60px;border-radius:8px">', self.image.url)
