@@ -9,10 +9,22 @@
       <span>Import Products</span>
     </a>
   {% endif %}
+  {% if cleanup_url %}
+    <a href="{{ cleanup_url }}" class="btn btn-outline-warning page-action-btn" title="Cleanup junk products">
+      <i class="fas fa-broom"></i>
+      <span>Cleanup Junk</span>
+    </a>
+  {% endif %}
   {% if rollback_url and last_import %}
     <a href="{{ rollback_url }}" class="btn btn-outline-danger page-action-btn" title="Rollback last import">
       <i class="fas fa-undo"></i>
       <span>Rollback Last Import</span>
+    </a>
+  {% endif %}
+  {% if cleanup_rollback_url and last_cleanup %}
+    <a href="{{ cleanup_rollback_url }}" class="btn btn-outline-danger page-action-btn" title="Rollback last cleanup">
+      <i class="fas fa-undo"></i>
+      <span>Rollback Cleanup</span>
     </a>
   {% endif %}
 {% endblock %}

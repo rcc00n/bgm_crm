@@ -13,6 +13,7 @@ from .models import (
     CarMake,
     CarModel,
     Category,
+    CleanupBatch,
     ImportBatch,
     Product,
     ProductImage,
@@ -86,7 +87,7 @@ class ProductAdmin(admin.ModelAdmin):
     """
     form = ProductAdminForm
     change_list_template = "admin/store/product/change_list.html"
-    list_display = ("name", "sku", "category", "price", "currency", "inventory", "is_active", "contact_for_estimate")
+    list_display = ("name", "sku", "category_short", "price", "currency", "inventory", "is_active", "contact_for_estimate")
     list_editable = ("is_active",)
     list_filter = ("is_active", "category", "currency", "contact_for_estimate")
     search_fields = ("name", "sku", "description")
@@ -122,6 +123,16 @@ class ProductAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.rollback_last_import_view),
                 name=f"{opts.app_label}_{opts.model_name}_rollback_last_import",
             ),
+            path(
+                "cleanup-junk/",
+                self.admin_site.admin_view(self.cleanup_junk_view),
+                name=f"{opts.app_label}_{opts.model_name}_cleanup_junk",
+            ),
+            path(
+                "rollback-last-cleanup/",
+                self.admin_site.admin_view(self.rollback_last_cleanup_view),
+                name=f"{opts.app_label}_{opts.model_name}_rollback_last_cleanup",
+            ),
         ]
         return custom_urls + urls
 
@@ -130,6 +141,9 @@ class ProductAdmin(admin.ModelAdmin):
         opts = self.model._meta
         last_import = ImportBatch.objects.filter(
             is_dry_run=False,
+            rolled_back_at__isnull=True,
+        ).order_by("-created_at").first()
+        last_cleanup = CleanupBatch.objects.filter(
             rolled_back_at__isnull=True,
         ).order_by("-created_at").first()
         try:
@@ -144,7 +158,20 @@ class ProductAdmin(admin.ModelAdmin):
             )
         except Exception:
             extra_context["rollback_url"] = None
+        try:
+            extra_context["cleanup_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_cleanup_junk"
+            )
+        except Exception:
+            extra_context["cleanup_url"] = None
+        try:
+            extra_context["cleanup_rollback_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_rollback_last_cleanup"
+            )
+        except Exception:
+            extra_context["cleanup_rollback_url"] = None
         extra_context["last_import"] = last_import
+        extra_context["last_cleanup"] = last_cleanup
         return super().changelist_view(request, extra_context=extra_context)
 
     def import_view(self, request):
@@ -239,6 +266,114 @@ class ProductAdmin(admin.ModelAdmin):
             ),
         }
         return TemplateResponse(request, "admin/store/product/import.html", context)
+
+    @admin.display(description="Category", ordering="category__name")
+    def category_short(self, obj):
+        if not getattr(obj, "category", None):
+            return "—"
+        name = obj.category.name or ""
+        if ">" in name:
+            short = name.split(">")[-1].strip()
+            return format_html('<span title="{}">{}</span>', name, short)
+        return name
+
+    def _junk_queryset(self):
+        return Product.objects.filter(
+            sku__startswith="product-",
+            name__startswith="product-",
+            price=0,
+            inventory=0,
+            category__name__iexact="Uncategorized",
+            is_active=True,
+            cleanup_batch__isnull=True,
+        )
+
+    def cleanup_junk_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+
+        criteria = "sku/name start with 'product-', price=0, inventory=0, category=Uncategorized"
+        junk_qs = self._junk_queryset()
+        junk_count = junk_qs.count()
+
+        if request.method == "POST":
+            if junk_count == 0:
+                messages.info(request, "No junk products found.")
+                return redirect(
+                    reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+                )
+
+            with transaction.atomic():
+                batch = CleanupBatch.objects.create(
+                    created_by=request.user,
+                    criteria=criteria,
+                    matched_products=junk_count,
+                )
+                deactivated = junk_qs.update(is_active=False, cleanup_batch=batch)
+                batch.deactivated_products = deactivated
+                batch.save(update_fields=["deactivated_products"])
+
+            messages.success(request, f"Deactivated {deactivated} junk products.")
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Cleanup junk products",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+            "has_view_permission": self.has_view_permission(request),
+            "product_changelist_url": reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            ),
+            "criteria": criteria,
+            "junk_count": junk_count,
+        }
+        return TemplateResponse(request, "admin/store/product/cleanup_junk.html", context)
+
+    def rollback_last_cleanup_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+
+        batch = CleanupBatch.objects.filter(
+            rolled_back_at__isnull=True,
+        ).order_by("-created_at").first()
+        if not batch:
+            messages.warning(request, "No cleanup batches available to rollback.")
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        if request.method == "POST":
+            with transaction.atomic():
+                products_qs = Product.objects.filter(cleanup_batch=batch)
+                products_count = products_qs.count()
+                products_qs.update(is_active=True, cleanup_batch=None)
+                batch.rolled_back_at = timezone.now()
+                batch.save(update_fields=["rolled_back_at"])
+
+            messages.success(request, f"Rolled back cleanup #{batch.pk}: reactivated {products_count} products.")
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Rollback last cleanup",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+            "has_view_permission": self.has_view_permission(request),
+            "product_changelist_url": reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            ),
+            "batch": batch,
+        }
+        return TemplateResponse(
+            request,
+            "admin/store/product/rollback_last_cleanup.html",
+            context,
+        )
 
     def rollback_last_import_view(self, request):
         if not self.has_delete_permission(request):
@@ -357,6 +492,32 @@ class ImportBatchAdmin(admin.ModelAdmin):
         "skipped_options",
         "created_categories",
         "error_count",
+        "rolled_back_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+
+@admin.register(CleanupBatch)
+class CleanupBatchAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "created_at",
+        "created_by",
+        "criteria",
+        "matched_products",
+        "deactivated_products",
+        "rolled_back_at",
+    )
+    list_filter = ("rolled_back_at",)
+    search_fields = ("criteria", "created_by__username")
+    readonly_fields = (
+        "created_at",
+        "created_by",
+        "criteria",
+        "matched_products",
+        "deactivated_products",
         "rolled_back_at",
     )
 

@@ -100,6 +100,28 @@ class ImportBatch(models.Model):
         return f"Import #{self.pk} — {label}"
 
 
+class CleanupBatch(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="cleanup_batches",
+    )
+    criteria = models.CharField(max_length=255, blank=True)
+    matched_products = models.PositiveIntegerField(default=0)
+    deactivated_products = models.PositiveIntegerField(default=0)
+    rolled_back_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        label = self.created_at.strftime("%Y-%m-%d %H:%M")
+        return f"Cleanup #{self.pk} — {label}"
+
+
 class Product(models.Model):
     name = models.CharField(max_length=180)
     slug = models.SlugField(max_length=200, unique=True, blank=True)
@@ -111,6 +133,13 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     import_batch = models.ForeignKey(
         ImportBatch,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="products",
+    )
+    cleanup_batch = models.ForeignKey(
+        CleanupBatch,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
