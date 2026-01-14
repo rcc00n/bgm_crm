@@ -428,6 +428,7 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "label": "Catalog",
                 "icon": "fas fa-box-open",
                 "items": [
+                    {"model": "store.StorePricingSettings", "label": "Pricing Settings"},
                     {"model": "store.Category", "label": "Product Categories"},
                     {"model": "store.Product"},
                     {"model": "store.ProductImage", "label": "Product Gallery"},
@@ -583,6 +584,7 @@ JAZZMIN_SETTINGS = {
         "store.CustomFitmentRequest": "fas fa-ruler-combined",
         "store.Order": "fas fa-cart-shopping",
         "store.OrderItem": "fas fa-receipt",
+        "store.StorePricingSettings": "fas fa-percent",
         "store.Product": "fas fa-box-open",
         "store.ProductImage": "fas fa-images",
         "store.ProductOption": "fas fa-sliders-h",

@@ -15,6 +15,7 @@ from .models import (
     Category,
     CleanupBatch,
     ImportBatch,
+    StorePricingSettings,
     Product,
     ProductImage,
     ProductOption,
@@ -72,6 +73,30 @@ class ProductOptionInline(admin.TabularInline):
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 1
+
+
+@admin.register(StorePricingSettings)
+class StorePricingSettingsAdmin(admin.ModelAdmin):
+    list_display = ("price_multiplier_percent", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (
+            "Global price multiplier",
+            {
+                "description": (
+                    "Sets one multiplier for all store product and option prices. "
+                    "100 = no change, 110 = +10%. Use whole percents."
+                ),
+                "fields": ("price_multiplier_percent",),
+            },
+        ),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if StorePricingSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
 
 
 @admin.register(Category)
