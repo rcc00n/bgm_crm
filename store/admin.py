@@ -2,15 +2,18 @@
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.html import format_html
+from django.utils import timezone
 
 from .models import (
     CarMake,
     CarModel,
     Category,
+    ImportBatch,
     Product,
     ProductImage,
     ProductOption,
@@ -84,6 +87,7 @@ class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
     change_list_template = "admin/store/product/change_list.html"
     list_display = ("name", "sku", "category", "price", "currency", "inventory", "is_active", "contact_for_estimate")
+    list_editable = ("is_active",)
     list_filter = ("is_active", "category", "currency", "contact_for_estimate")
     search_fields = ("name", "sku", "description")
     prepopulated_fields = {"slug": ("name",)}
@@ -113,18 +117,34 @@ class ProductAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.import_view),
                 name=f"{opts.app_label}_{opts.model_name}_import",
             ),
+            path(
+                "rollback-last-import/",
+                self.admin_site.admin_view(self.rollback_last_import_view),
+                name=f"{opts.app_label}_{opts.model_name}_rollback_last_import",
+            ),
         ]
         return custom_urls + urls
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         opts = self.model._meta
+        last_import = ImportBatch.objects.filter(
+            is_dry_run=False,
+            rolled_back_at__isnull=True,
+        ).order_by("-created_at").first()
         try:
             extra_context["import_url"] = reverse(
                 f"admin:{opts.app_label}_{opts.model_name}_import"
             )
         except Exception:
             extra_context["import_url"] = None
+        try:
+            extra_context["rollback_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_rollback_last_import"
+            )
+        except Exception:
+            extra_context["rollback_url"] = None
+        extra_context["last_import"] = last_import
         return super().changelist_view(request, extra_context=extra_context)
 
     def import_view(self, request):
@@ -134,6 +154,14 @@ class ProductAdmin(admin.ModelAdmin):
         if request.method == "POST":
             form = ProductImportForm(request.POST, request.FILES)
             if form.is_valid():
+                import_batch = None
+                if not form.cleaned_data["dry_run"]:
+                    import_batch = ImportBatch.objects.create(
+                        created_by=request.user,
+                        source_filename=getattr(form.cleaned_data["file"], "name", ""),
+                        mode=form.cleaned_data["mode"],
+                        is_dry_run=form.cleaned_data["dry_run"],
+                    )
                 try:
                     result = import_products(
                         uploaded_file=form.cleaned_data["file"],
@@ -143,10 +171,34 @@ class ProductAdmin(admin.ModelAdmin):
                         update_existing=form.cleaned_data["update_existing"],
                         create_missing_categories=form.cleaned_data["create_missing_categories"],
                         dry_run=form.cleaned_data["dry_run"],
+                        import_batch=import_batch,
                     )
                 except ValueError as exc:
+                    if import_batch:
+                        import_batch.delete()
                     messages.error(request, str(exc))
                 else:
+                    if import_batch:
+                        import_batch.created_products = result.created_products
+                        import_batch.updated_products = result.updated_products
+                        import_batch.skipped_products = result.skipped_products
+                        import_batch.created_options = result.created_options
+                        import_batch.updated_options = result.updated_options
+                        import_batch.skipped_options = result.skipped_options
+                        import_batch.created_categories = result.created_categories
+                        import_batch.error_count = len(result.errors)
+                        import_batch.save(
+                            update_fields=[
+                                "created_products",
+                                "updated_products",
+                                "skipped_products",
+                                "created_options",
+                                "updated_options",
+                                "skipped_options",
+                                "created_categories",
+                                "error_count",
+                            ]
+                        )
                     summary = (
                         f"Products: {result.created_products} created, "
                         f"{result.updated_products} updated, "
@@ -188,6 +240,56 @@ class ProductAdmin(admin.ModelAdmin):
         }
         return TemplateResponse(request, "admin/store/product/import.html", context)
 
+    def rollback_last_import_view(self, request):
+        if not self.has_delete_permission(request):
+            raise PermissionDenied
+
+        batch = ImportBatch.objects.filter(
+            is_dry_run=False,
+            rolled_back_at__isnull=True,
+        ).order_by("-created_at").first()
+        if not batch:
+            messages.warning(request, "No import batches available to rollback.")
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        if request.method == "POST":
+            with transaction.atomic():
+                options_qs = ProductOption.objects.filter(import_batch=batch)
+                products_qs = Product.objects.filter(import_batch=batch)
+                options_count = options_qs.count()
+                products_count = products_qs.count()
+                options_qs.delete()
+                products_qs.delete()
+                batch.rolled_back_at = timezone.now()
+                batch.save(update_fields=["rolled_back_at"])
+
+            messages.success(
+                request,
+                f"Rolled back import #{batch.pk}: deleted {products_count} products and {options_count} options.",
+            )
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Rollback last import",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+            "has_view_permission": self.has_view_permission(request),
+            "product_changelist_url": reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            ),
+            "batch": batch,
+        }
+        return TemplateResponse(
+            request,
+            "admin/store/product/rollback_last_import.html",
+            context,
+        )
+
     def specs_preview(self, obj):
         """Pretty HTML preview for JSON specs."""
         if not getattr(obj, "specs", None):
@@ -224,6 +326,42 @@ class ProductOptionAdmin(admin.ModelAdmin):
     search_fields = ("name", "sku", "product__name", "product__sku")
     autocomplete_fields = ("product",)
     ordering = ("product__name", "sort_order", "id")
+
+
+@admin.register(ImportBatch)
+class ImportBatchAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "created_at",
+        "created_by",
+        "source_filename",
+        "mode",
+        "created_products",
+        "created_options",
+        "error_count",
+        "rolled_back_at",
+    )
+    list_filter = ("mode", "is_dry_run", "rolled_back_at")
+    search_fields = ("source_filename", "created_by__username")
+    readonly_fields = (
+        "created_at",
+        "created_by",
+        "source_filename",
+        "mode",
+        "is_dry_run",
+        "created_products",
+        "updated_products",
+        "skipped_products",
+        "created_options",
+        "updated_options",
+        "skipped_options",
+        "created_categories",
+        "error_count",
+        "rolled_back_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
 
 
 # ──────────────────────────────── Orders ────────────────────────────────

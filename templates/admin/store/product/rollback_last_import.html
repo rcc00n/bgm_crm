@@ -1,0 +1,42 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans "Home" %}</a>
+  › <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst }}</a>
+  › <a href="{{ product_changelist_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
+  › {% trans "Rollback last import" %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <div class="module aligned">
+    <h1>Rollback last import</h1>
+    <p>
+      This will delete products and options created in the last import batch.
+      Updates to existing products are <strong>not</strong> reverted.
+    </p>
+    <dl>
+      <dt>Import ID</dt>
+      <dd>{{ batch.id }}</dd>
+      <dt>Imported at</dt>
+      <dd>{{ batch.created_at }}</dd>
+      <dt>Source file</dt>
+      <dd>{{ batch.source_filename|default:"—" }}</dd>
+      <dt>Mode</dt>
+      <dd>{{ batch.mode|default:"—" }}</dd>
+      <dt>Created products</dt>
+      <dd>{{ batch.created_products }}</dd>
+      <dt>Created options</dt>
+      <dd>{{ batch.created_options }}</dd>
+    </dl>
+    <form method="post">
+      {% csrf_token %}
+      <div class="submit-row">
+        <input type="submit" value="Rollback" class="deletelink" />
+        <a href="{{ product_changelist_url }}" class="button cancel-link">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}
