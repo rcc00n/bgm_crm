@@ -5,6 +5,7 @@ import dj_database_url
 from decouple import config, Csv  # оставил, если используешь .env локально
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Settings update: no functional changes.
 
 
 def _dec_env(name: str, default: str) -> Decimal:
