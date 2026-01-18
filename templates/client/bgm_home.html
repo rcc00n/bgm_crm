@@ -607,7 +607,7 @@
                     {% if p.main_image %}<img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
                     {% elif p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
                     {% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
-                    {% if p.category %}<span class="card__badge">{{ p.category.name }}</span>{% endif %}
+                    {% if p.category %}<span class="card__badge">{{ p.category.display_name }}</span>{% endif %}
                   </div>
                   <div class="card__head" style="margin-top:.35rem">
                     <h3 style="font-weight:900">{{ p.name }}</h3>

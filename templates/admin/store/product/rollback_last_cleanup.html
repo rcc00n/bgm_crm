@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans "Home" %}</a>
+  › <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst }}</a>
+  › <a href="{{ product_changelist_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
+  › {% trans "Rollback last cleanup" %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <div class="module aligned">
+    <h1>Rollback last cleanup</h1>
+    <p>This will reactivate products from the last cleanup batch.</p>
+    <dl>
+      <dt>Cleanup ID</dt>
+      <dd>{{ batch.id }}</dd>
+      <dt>Ran at</dt>
+      <dd>{{ batch.created_at }}</dd>
+      <dt>Criteria</dt>
+      <dd>{{ batch.criteria|default:"—" }}</dd>
+      <dt>Deactivated</dt>
+      <dd>{{ batch.deactivated_products }}</dd>
+    </dl>
+    <form method="post">
+      {% csrf_token %}
+      <div class="submit-row">
+        <input type="submit" value="Rollback" class="deletelink" />
+        <a href="{{ product_changelist_url }}" class="button cancel-link">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

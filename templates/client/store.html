@@ -14,7 +14,7 @@
     <p class="section__desc">Catalog of parts and upgrades.</p>
 
     {% for category in categories %}
-      <h2 style="margin-top:1.5rem">{{ category.name }}</h2>
+      <h2 style="margin-top:1.5rem">{{ category.display_name|default:category.name }}</h2>
       <div class="grid grid--cards">
         {% for product in category.product_set.all %}
           <article class="card">

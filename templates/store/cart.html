@@ -48,7 +48,7 @@
                   <div class="section__desc">SKU: {{ row.product.sku }}</div>
                 {% endif %}
                 {% if row.product.category %}
-                  <div class="section__desc">Category: {{ row.product.category.name }}</div>
+                  <div class="section__desc">Category: {{ row.product.category.display_name }}</div>
                 {% endif %}
                 {% if row.option %}
                   <div class="section__desc">Option: {{ row.option.name }}{% if row.option.sku %} · SKU: {{ row.option.sku }}{% endif %}</div>

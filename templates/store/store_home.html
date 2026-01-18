@@ -94,12 +94,12 @@
         <a class="card cat" href="{% url 'store-category' slug=c.slug %}" title="{{ c.name }}">
           <div class="card__img cat__img">
             {% if c.image %}
-              <img src="{{ c.image.url }}" alt="{{ c.name }}" loading="lazy">
+              <img src="{{ c.image.url }}" alt="{{ c.display_name }}" loading="lazy">
             {% else %}
               <div class="ph" aria-hidden="true"></div>
             {% endif %}
             <div class="cat__overlay">
-              <span class="cat__title">{{ c.name }}</span>
+              <span class="cat__title">{{ c.display_name }}</span>
               <span class="cat__arrow" aria-hidden="true">→</span>
             </div>
           </div>
@@ -136,7 +136,7 @@
               </div>
               <div class="product__meta">
                 <h3 class="product__title">{{ p.name }}</h3>
-                <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
+                <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
                 <div class="price price--stacked">
                   {% if p.contact_for_estimate %}
                     <strong>Contact for estimate</strong>
@@ -187,7 +187,7 @@
               </div>
               <div class="product__meta">
                 <h3 class="product__title">{{ p.name }}</h3>
-                <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
+                <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
                 <div class="price price--stacked">
                   {% if p.contact_for_estimate %}
                     <strong>Contact for estimate</strong>
@@ -242,7 +242,7 @@
               </div>
               <div class="product__meta">
                 <h3 class="product__title">{{ p.name }}</h3>
-                <p class="section__desc product__desc">{{ p.short_description|default:p.category.name }}</p>
+                <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
                 <div class="price price--stacked">
                   {% if p.contact_for_estimate %}
                     <strong>Contact for estimate</strong>

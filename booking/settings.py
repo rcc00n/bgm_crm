@@ -20,11 +20,21 @@ def _dec_env(name: str, default: str) -> Decimal:
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "*").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.getenv("ALLOWED_HOSTS", "*").split(",")
+    if h.strip()
+]
 
 # ── Бренд и маркетинг ───────────────────────────────────────────────────
-SITE_BRAND_NAME = os.getenv("SITE_BRAND_NAME", "BGM Customs")
-SITE_BRAND_TAGLINE = os.getenv("SITE_BRAND_TAGLINE", "Performance builds and outlaw styling out of Calgary.")
+SITE_BRAND_NAME = os.getenv(
+    "SITE_BRAND_NAME",
+    "BGM Customs",
+)
+SITE_BRAND_TAGLINE = os.getenv(
+    "SITE_BRAND_TAGLINE",
+    "Performance builds and outlaw styling out of Calgary.",
+)
 SITE_DEFAULT_DESCRIPTION = os.getenv(
     "SITE_DEFAULT_DESCRIPTION",
     "BGM Customs delivers bespoke performance builds, detailing and premium parts sourcing for enthusiasts across North America.",
@@ -428,6 +438,7 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "label": "Catalog",
                 "icon": "fas fa-box-open",
                 "items": [
+                    {"model": "store.StorePricingSettings", "label": "Pricing Settings"},
                     {"model": "store.Category", "label": "Product Categories"},
                     {"model": "store.Product"},
                     {"model": "store.ProductImage", "label": "Product Gallery"},
@@ -583,6 +594,7 @@ JAZZMIN_SETTINGS = {
         "store.CustomFitmentRequest": "fas fa-ruler-combined",
         "store.Order": "fas fa-cart-shopping",
         "store.OrderItem": "fas fa-receipt",
+        "store.StorePricingSettings": "fas fa-percent",
         "store.Product": "fas fa-box-open",
         "store.ProductImage": "fas fa-images",
         "store.ProductOption": "fas fa-sliders-h",

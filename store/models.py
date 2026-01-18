@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
@@ -42,6 +43,63 @@ class CarModel(models.Model):
         return f"{self.make} {self.name}{(' ' + yr) if yr else ''}"
 
 
+# ─────────────────────────── Store: pricing settings ───────────────────────────
+
+class StorePricingSettings(models.Model):
+    price_multiplier_percent = models.PositiveSmallIntegerField(
+        "Price multiplier (%)",
+        default=100,
+        help_text=(
+            "Applies to all store product and option prices. "
+            "100 = no change, 110 = +10%. Use whole percents."
+        ),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Store pricing settings"
+        verbose_name_plural = "Store pricing settings"
+
+    def __str__(self) -> str:
+        return f"Store pricing ({self.price_multiplier_percent}%)"
+
+    def clean(self):
+        if StorePricingSettings.objects.exclude(pk=self.pk).exists():
+            raise ValidationError("Only one store pricing settings record is allowed.")
+
+    @classmethod
+    def load(cls) -> "StorePricingSettings | None":
+        return cls.objects.first()
+
+    @classmethod
+    def get_multiplier_percent(cls) -> int:
+        obj = cls.load()
+        if obj and obj.price_multiplier_percent is not None:
+            return int(obj.price_multiplier_percent)
+        return 100
+
+    @classmethod
+    def get_multiplier(cls) -> Decimal:
+        percent = cls.get_multiplier_percent()
+        try:
+            return Decimal(str(percent)) / Decimal("100")
+        except (InvalidOperation, TypeError):
+            return Decimal("1.00")
+
+
+def apply_store_price_multiplier(amount: Decimal) -> Decimal:
+    try:
+        amount_value = Decimal(amount)
+    except (InvalidOperation, TypeError):
+        return Decimal("0.00")
+    multiplier = StorePricingSettings.get_multiplier()
+    try:
+        return (amount_value * multiplier).quantize(PRICE_QUANT)
+    except (InvalidOperation, TypeError):
+        return Decimal("0.00")
+
+
 # ─────────────────────────── Store: categories / products ───────────────────────────
 
 class Category(models.Model):
@@ -62,6 +120,14 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def display_name(self) -> str:
+        name = self.name or ""
+        if ">" in name:
+            short = name.split(">")[-1].strip()
+            return short or name
+        return name
 
     def image_tag(self):
         if self.image:
@@ -100,17 +166,51 @@ class ImportBatch(models.Model):
         return f"Import #{self.pk} — {label}"
 
 
+class CleanupBatch(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="cleanup_batches",
+    )
+    criteria = models.CharField(max_length=255, blank=True)
+    matched_products = models.PositiveIntegerField(default=0)
+    deactivated_products = models.PositiveIntegerField(default=0)
+    rolled_back_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        label = self.created_at.strftime("%Y-%m-%d %H:%M")
+        return f"Cleanup #{self.pk} — {label}"
+
+
 class Product(models.Model):
     name = models.CharField(max_length=180)
     slug = models.SlugField(max_length=200, unique=True, blank=True)
     sku = models.CharField(max_length=64, unique=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
-    price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        help_text="Base price before the global multiplier.",
+    )
     currency = models.CharField(max_length=3, default=settings.DEFAULT_CURRENCY_CODE)
     inventory = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     import_batch = models.ForeignKey(
         ImportBatch,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="products",
+    )
+    cleanup_batch = models.ForeignKey(
+        CleanupBatch,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -213,15 +313,20 @@ class Product(models.Model):
         else:
             raw_value = self.price
         try:
-            return Decimal(raw_value).quantize(PRICE_QUANT)
+            amount = Decimal(raw_value)
         except (InvalidOperation, TypeError):
             return Decimal("0.00")
+        return apply_store_price_multiplier(amount)
 
     def _option_price_values(self):
         for opt in self.get_active_options():
             value = getattr(opt, "price", None)
             if value is not None:
-                yield value
+                try:
+                    amount = Decimal(value)
+                except (InvalidOperation, TypeError):
+                    continue
+                yield apply_store_price_multiplier(amount)
 
     @property
     def display_price(self) -> Decimal:
@@ -259,7 +364,7 @@ class ProductOption(models.Model):
         validators=[MinValueValidator(0)],
         null=True,
         blank=True,
-        help_text="Leave empty to inherit the product price.",
+        help_text="Leave empty to inherit the product price. Global multiplier still applies.",
     )
     is_active = models.BooleanField(
         "Active",
