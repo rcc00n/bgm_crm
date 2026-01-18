@@ -27,7 +27,10 @@ ALLOWED_HOSTS = [
 ]
 
 # ── Бренд и маркетинг ───────────────────────────────────────────────────
-SITE_BRAND_NAME = os.getenv("SITE_BRAND_NAME", "BGM Customs")
+SITE_BRAND_NAME = os.getenv(
+    "SITE_BRAND_NAME",
+    "BGM Customs",
+)
 SITE_BRAND_TAGLINE = os.getenv(
     "SITE_BRAND_TAGLINE",
     "Performance builds and outlaw styling out of Calgary.",
