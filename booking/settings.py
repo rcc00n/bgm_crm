@@ -219,12 +219,25 @@ SQUARE_FEE_PERCENT = _dec_env("SQUARE_FEE_PERCENT", "0.029")  # 2.9% default
 SQUARE_FEE_FIXED = _dec_env("SQUARE_FEE_FIXED", "0.30")      # $0.30 default
 STORE_GST_RATE = _dec_env("STORE_GST_RATE", "0.05")          # 5% GST
 STORE_PROCESSING_FEE_RATE = _dec_env("STORE_PROCESSING_FEE_RATE", "0.035")  # 3.5% processing fee
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "")
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "openaicamrose@gmail.com")
 ETRANSFER_EMAIL = os.getenv("ETRANSFER_EMAIL", SUPPORT_EMAIL or "Payments@badguymotors.ca")
 ETRANSFER_MEMO_HINT = os.getenv(
     "ETRANSFER_MEMO_HINT",
     "Include your order number and phone in the transfer message.",
 )
+
+# ── Email (SendGrid SMTP) ────────────────────────────────────────────────
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.sendgrid.net")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "apikey")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", os.getenv("SENDGRID_API_KEY", ""))
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False") == "True"
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+if EMAIL_USE_SSL:
+    EMAIL_USE_TLS = False
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", SUPPORT_EMAIL or "")
 
 # ── Приложения ───────────────────────────────────────────────────────────
 INSTALLED_APPS = [

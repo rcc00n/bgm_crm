@@ -6,6 +6,7 @@ from core.models import Appointment
 from store.models import Order
 
 from . import services
+from . import emails
 
 
 @receiver(post_save, sender=Appointment)
@@ -14,6 +15,7 @@ def appointment_created(sender, instance, created, **kwargs):
         return
 
     transaction.on_commit(lambda: services.notify_about_appointment(instance.pk))
+    transaction.on_commit(lambda: emails.send_appointment_confirmation(instance.pk))
 
 
 @receiver(post_save, sender=Order)
