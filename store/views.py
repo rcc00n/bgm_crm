@@ -9,7 +9,7 @@ import json
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
+from core.emails import build_email_html, send_html_email
 from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Count, Q
@@ -266,12 +266,35 @@ def _notify_fitment_request(request_obj):
 
     sender = getattr(settings, "DEFAULT_FROM_EMAIL", None) or recipients[0]
     try:
-        send_mail(
+        detail_rows = [
+            ("Product", request_obj.product_name or "—"),
+            ("Customer", request_obj.customer_name),
+            ("Email", request_obj.email),
+            ("Phone", request_obj.phone or "—"),
+            ("Vehicle", request_obj.vehicle or "—"),
+            ("Submodel", request_obj.submodel or "—"),
+            ("Performance goals", request_obj.performance_goals or "—"),
+            ("Budget", request_obj.budget or "—"),
+            ("Timeline", request_obj.timeline or "—"),
+        ]
+        if request_obj.source_url:
+            detail_rows.append(("Source", request_obj.source_url))
+        html_body = build_email_html(
+            title="New custom fitment request",
+            preheader=f"New request from {request_obj.customer_name}",
+            greeting="Team,",
+            intro_lines=["A new custom fitment request just landed. Details below."],
+            detail_rows=detail_rows,
+            notice_title="Notes",
+            notice_lines=[request_obj.message or "—"],
+            footer_lines=["Reply to the customer within 1-2 business days."],
+        )
+        send_html_email(
             subject=subject,
-            message="\n".join(lines),
+            text_body="\n".join(lines),
+            html_body=html_body,
             from_email=sender,
             recipient_list=recipients,
-            fail_silently=False,
         )
     except Exception:
         logger.exception("Failed to notify about custom fitment request (id=%s)", request_obj.pk)
@@ -327,6 +350,7 @@ def _send_order_confirmation(
         f"Order total (incl. GST/fees): {currency_symbol}{total_with_fees} {currency_code}",
     ]
 
+    payment_method_label = "Interac e-Transfer" if payment_method == "etransfer" else "Card (Square)"
     if payment_method == "etransfer":
         send_to = _normalize_etransfer_email(etransfer_email or getattr(settings, "ETRANSFER_EMAIL", ""))
         lines.append("Payment method: Interac e-Transfer.")
@@ -372,12 +396,62 @@ def _send_order_confirmation(
         or _normalize_etransfer_email(getattr(settings, "ETRANSFER_EMAIL", None))
     )
     try:
-        send_mail(
+        detail_rows = [
+            ("Order #", order.id),
+            ("Payment option", pay_mode_label),
+            ("Payment method", payment_method_label),
+            ("Order total (incl. GST/fees)", f"{currency_symbol}{total_with_fees} {currency_code}"),
+        ]
+        summary_rows = []
+        notice_title = None
+        notice_lines = []
+        if payment_method == "etransfer":
+            summary_rows.append(("Amount to send now", f"{currency_symbol}{amount_now} {currency_code}"))
+            if balance_left > 0:
+                summary_rows.append(("Balance after payment", f"{currency_symbol}{balance_left} {currency_code}"))
+            notice_title = "Payment instructions"
+            if send_to:
+                notice_lines.append(f"Send to: {send_to}.")
+            if etransfer_memo_hint:
+                notice_lines.append(f"Include: Order #{order.id} - {etransfer_memo_hint}")
+            else:
+                notice_lines.append(f"Include: Order #{order.id}")
+        else:
+            summary_rows.append(("Charged now", f"{currency_symbol}{amount_now} {currency_code}"))
+            if balance_left > 0:
+                summary_rows.append(("Balance remaining", f"{currency_symbol}{balance_left} {currency_code}"))
+            if receipt:
+                notice_title = "Receipt"
+                notice_lines.append(f"Square receipt: {receipt}")
+
+        item_rows = []
+        if items:
+            for it in items:
+                name = getattr(it.product, "name", "Item")
+                if getattr(it, "option", None):
+                    name = f"{name} ({it.option.name})"
+                item_rows.append((name, f"x {it.qty}"))
+
+        html_body = build_email_html(
+            title="Order confirmed",
+            preheader=f"Order #{order.id} confirmed",
+            greeting=f"Hi {order.customer_name},",
+            intro_lines=[f"Thanks for your order with {brand}. We've got it and will follow up shortly."],
+            detail_rows=detail_rows,
+            item_rows=item_rows,
+            summary_rows=summary_rows,
+            notice_title=notice_title,
+            notice_lines=notice_lines,
+            footer_lines=["Questions? Reply to this email and we'll help."],
+            cta_label=f"Visit {brand}",
+            cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
+        )
+        send_html_email(
             subject=subject,
-            message="\n".join(lines),
+            text_body="\n".join(lines),
+            html_body=html_body,
             from_email=sender,
             recipient_list=[recipient],
-            fail_silently=False,
         )
     except Exception:
         logger.exception("Failed to send order confirmation email for order %s", getattr(order, "pk", None))

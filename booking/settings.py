@@ -206,6 +206,17 @@ MARKETING = {
     "google_ads_send_page_view": os.getenv("GOOGLE_ADS_SEND_PAGE_VIEW", "True") == "True",
 }
 
+# ── Company contact (email footer defaults) ──────────────────────────────
+COMPANY_ADDRESS = os.getenv(
+    "COMPANY_ADDRESS",
+    "620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2",
+)
+COMPANY_PHONE = os.getenv("COMPANY_PHONE", "(403) 525-0432")
+COMPANY_WEBSITE = os.getenv("COMPANY_WEBSITE", "badguymotors.com")
+EMAIL_ACCENT_COLOR = os.getenv("EMAIL_ACCENT_COLOR", "#d50000")
+EMAIL_DARK_COLOR = os.getenv("EMAIL_DARK_COLOR", "#0b0b0c")
+EMAIL_BG_COLOR = os.getenv("EMAIL_BG_COLOR", "#0b0b0c")
+
 # ── Currency ──────────────────────────────────────────────────────────────
 DEFAULT_CURRENCY_CODE = os.getenv("DEFAULT_CURRENCY_CODE", "CAD")
 DEFAULT_CURRENCY_SYMBOL = os.getenv("DEFAULT_CURRENCY_SYMBOL", "$")

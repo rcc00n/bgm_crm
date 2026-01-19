@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 
 from django.conf import settings
-from django.core.mail import send_mail
 from django.utils.timezone import localtime
+
+from core.emails import build_email_html, send_html_email
 
 logger = logging.getLogger(__name__)
 
@@ -62,12 +63,32 @@ def send_appointment_confirmation(appointment_id) -> bool:
     ]
 
     try:
-        send_mail(
+        detail_rows = [
+            ("Appointment ID", appointment.id),
+            ("Service", service_name),
+            ("Master", master_name),
+            ("When", start),
+        ]
+        if appointment.contact_phone:
+            detail_rows.append(("Phone", appointment.contact_phone))
+        if appointment.contact_email:
+            detail_rows.append(("Email", appointment.contact_email))
+        html_body = build_email_html(
+            title="Booking confirmed",
+            preheader=f"Appointment {appointment.id} confirmed",
+            greeting=f"Hi {client_name},",
+            intro_lines=[f"Thanks for booking with {brand}. Your appointment is confirmed."],
+            detail_rows=detail_rows,
+            footer_lines=["If you need to reschedule, reply to this email and we'll help."],
+            cta_label=f"Visit {brand}",
+            cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
+        )
+        send_html_email(
             subject=subject,
-            message="\n".join(lines),
+            text_body="\n".join(lines),
+            html_body=html_body,
             from_email=sender,
             recipient_list=[recipient],
-            fail_silently=False,
         )
     except Exception:
         logger.exception(
