@@ -56,7 +56,7 @@ def send_appointment_confirmation(appointment_id) -> bool:
         "",
         f"Appointment ID: {appointment.id}",
         f"Service: {service_name}",
-        f"Master: {master_name}",
+        f"Tech: {master_name}",
         f"When: {start}",
         "",
         "If you need to reschedule, reply to this email and we'll help.",
@@ -66,7 +66,7 @@ def send_appointment_confirmation(appointment_id) -> bool:
         detail_rows = [
             ("Appointment ID", appointment.id),
             ("Service", service_name),
-            ("Master", master_name),
+            ("Tech", master_name),
             ("When", start),
         ]
         if appointment.contact_phone:

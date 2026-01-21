@@ -18,7 +18,16 @@ from django.views.decorators.http import require_POST
 from PIL import Image, UnidentifiedImageError
 from square.client import Square, SquareEnvironment
 
-from .models import Category, Order, OrderItem, Product, ProductOption, CarMake, CarModel
+from .models import (
+    AbandonedCart,
+    Category,
+    Order,
+    OrderItem,
+    Product,
+    ProductOption,
+    CarMake,
+    CarModel,
+)
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm
 from core.models import Payment, PaymentMethod
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
@@ -701,6 +710,89 @@ def _cart_positions(session, *, dealer_discount: int = 0):
     retail_quantized = retail_total.quantize(quant) if positions else Decimal("0.00")
     return positions, total_quantized, retail_quantized
 
+
+def _ensure_session_key(request) -> str:
+    if not request.session.session_key:
+        request.session.save()
+    return request.session.session_key or ""
+
+
+def _build_abandoned_cart_items(positions: list[dict]) -> list[dict]:
+    items = []
+    for entry in positions:
+        product = entry.get("product")
+        if not product:
+            continue
+        option = entry.get("option")
+        name = product.name
+        if option:
+            name = f"{name} ({option.name})"
+        items.append(
+            {
+                "name": name,
+                "qty": int(entry.get("qty") or 1),
+                "line_total": str(entry.get("line_total") or "0.00"),
+            }
+        )
+    return items
+
+
+def _record_abandoned_cart(request, *, email: str, positions: list[dict], total: Decimal):
+    if not email or not positions:
+        return
+    now = timezone.now()
+    session_key = _ensure_session_key(request)
+    items = _build_abandoned_cart_items(positions)
+    if not items:
+        return
+    defaults = {
+        "user": request.user if request.user.is_authenticated else None,
+        "cart_items": items,
+        "cart_total": total or Decimal("0.00"),
+        "currency_code": getattr(settings, "DEFAULT_CURRENCY_CODE", ""),
+        "currency_symbol": getattr(settings, "DEFAULT_CURRENCY_SYMBOL", ""),
+        "last_activity_at": now,
+    }
+    existing = AbandonedCart.objects.filter(
+        recovered_at__isnull=True,
+        email__iexact=email,
+        session_key=session_key,
+    ).order_by("-updated_at").first()
+    if existing:
+        if defaults["user"] and existing.user_id is None:
+            existing.user = defaults["user"]
+        existing.cart_items = defaults["cart_items"]
+        existing.cart_total = defaults["cart_total"]
+        existing.currency_code = defaults["currency_code"]
+        existing.currency_symbol = defaults["currency_symbol"]
+        existing.last_activity_at = defaults["last_activity_at"]
+        existing.save(
+            update_fields=[
+                "user",
+                "cart_items",
+                "cart_total",
+                "currency_code",
+                "currency_symbol",
+                "last_activity_at",
+                "updated_at",
+            ]
+        )
+    else:
+        AbandonedCart.objects.create(
+            email=email,
+            session_key=session_key,
+            **defaults,
+        )
+
+
+def _mark_abandoned_cart_recovered(email: str):
+    if not email:
+        return
+    AbandonedCart.objects.filter(
+        recovered_at__isnull=True,
+        email__iexact=email,
+    ).update(recovered_at=timezone.now())
+
 @require_POST
 def cart_add(request, slug: str):
     product = get_object_or_404(Product, slug=slug, is_active=True)
@@ -1152,6 +1244,7 @@ def checkout(request):
                     etransfer_memo_hint=etransfer_memo_hint,
                     receipt_url=payment_resp.get("receipt_url", ""),
                 ))
+                transaction.on_commit(lambda: _mark_abandoned_cart_recovered(form.get("email", "")))
 
             if is_etransfer:
                 et_email = etransfer_email
@@ -1185,6 +1278,19 @@ def checkout(request):
             "order_total_with_fees": float(data["order_total_with_fees"]),
         } for key, data in payment_options.items()
     }
+
+    if (
+        request.method == "POST"
+        and positions
+        and form.get("email")
+        and "email" not in errors
+    ):
+        _record_abandoned_cart(
+            request,
+            email=form.get("email", ""),
+            positions=positions,
+            total=total,
+        )
 
     return render(
         request,

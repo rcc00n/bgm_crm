@@ -103,6 +103,8 @@
     .card__head .price{margin-left:auto;text-align:right}
     .old{color:var(--muted-2);text-decoration:line-through}
     .dur{color:var(--muted-2);font-size:.92rem}
+    .grid--services .card{height:100%}
+    .grid--services .card__cta{margin-top:auto}
     .empty{color:var(--muted-2);font-style:italic;padding:1rem}
 
     .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
@@ -518,7 +520,7 @@
                   </div>
                   {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
                   <div class="dur">Duration: {{ s.duration_min }} min</div>
-                  <div style="margin-top:.4rem">
+                  <div class="card__cta">
                     <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">Book now</a>
                   </div>
                 </article>
@@ -561,7 +563,7 @@
                   </div>
                   {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
                   <div class="dur">Duration: {{ s.duration_min }} min</div>
-                  <div style="margin-top:.4rem">
+                  <div class="card__cta">
                     <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">Book now</a>
                   </div>
                 </article>
@@ -815,7 +817,7 @@
           </div>
           ${desc}
           <div class="dur">Duration: ${esc(String(s.duration_min))} min</div>
-          <div style="margin-top:.4rem"><a class="btn btn--primary" href="${bookingHref}">Book now</a></div>
+          <div class="card__cta"><a class="btn btn--primary" href="${bookingHref}">Book now</a></div>
         </article>`;
     }
 

@@ -84,7 +84,8 @@ class StorePricingSettingsAdmin(admin.ModelAdmin):
             "Global price multiplier",
             {
                 "description": (
-                    "Sets one multiplier for all store product and option prices. "
+                    "Sets one multiplier for all store product and option prices "
+                    "(except in-house products). "
                     "100 = no change, 110 = +10%. Use whole percents."
                 ),
                 "fields": ("price_multiplier_percent",),
@@ -131,9 +132,26 @@ class ProductAdmin(admin.ModelAdmin):
     """
     form = ProductAdminForm
     change_list_template = "admin/store/product/change_list.html"
-    list_display = ("name", "sku", "category_short", "price", "currency", "inventory", "is_active", "contact_for_estimate")
+    list_display = (
+        "name",
+        "sku",
+        "category_short",
+        "price",
+        "currency",
+        "inventory",
+        "is_in_house",
+        "is_active",
+        "contact_for_estimate",
+    )
     list_editable = ("is_active",)
-    list_filter = ("is_active", "category", "currency", "contact_for_estimate", CleanupStatusFilter)
+    list_filter = (
+        "is_active",
+        "is_in_house",
+        "category",
+        "currency",
+        "contact_for_estimate",
+        CleanupStatusFilter,
+    )
     search_fields = ("name", "sku", "description")
     prepopulated_fields = {"slug": ("name",)}
     list_select_related = ("category",)
@@ -144,6 +162,7 @@ class ProductAdmin(admin.ModelAdmin):
     fields = (
         "name", "slug", "sku", "category",
         ("price", "contact_for_estimate"),
+        "is_in_house",
         "estimate_from_price",
         "currency", "inventory", "is_active",
         "main_image",

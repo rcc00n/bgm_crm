@@ -193,14 +193,14 @@ def api_book(request):
     start_iso  = payload.get("start_time")
 
     if not service_id or not master_id or not start_iso:
-        return HttpResponseBadRequest("service, master, start_time required")
+        return HttpResponseBadRequest("service, tech, start_time required")
 
     service = get_object_or_404(Service, pk=service_id)
     master  = get_object_or_404(CustomUserDisplay, pk=master_id)
 
     if not get_service_masters(service).filter(pk=master.pk).exists():
         from django.http import HttpResponseBadRequest
-        return HttpResponseBadRequest("master can't perform this service")
+        return HttpResponseBadRequest("tech can't perform this service")
 
     try:
         start_dt = parse_datetime(start_iso) or _tz_aware(datetime.fromisoformat(start_iso))
@@ -355,7 +355,7 @@ def api_appointment_reschedule(request, appt_id):
         new_master = get_object_or_404(CustomUserDisplay, pk=master_id)
         # мастер должен уметь услугу
         if not ServiceMaster.objects.filter(service=appt.service, master=new_master).exists():
-            return HttpResponseBadRequest("master can't perform this service")
+            return HttpResponseBadRequest("tech can't perform this service")
         appt.master = new_master
 
     appt.start_time = new_start

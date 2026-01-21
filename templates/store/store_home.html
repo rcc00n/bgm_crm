@@ -454,11 +454,13 @@
   .cat__desc{margin:.5rem .25rem 0}
 
   /* Product */
-  .product__link{display:block;color:inherit;text-decoration:none}
-  .product__meta{padding:.7rem .8rem}
+  .card.product{display:flex;flex-direction:column;height:100%}
+  .product__link{display:flex;flex-direction:column;flex:1;min-height:100%;color:inherit;text-decoration:none}
+  .product__meta{padding:.7rem .8rem;display:flex;flex-direction:column;flex:1}
   .product__title{margin:.6rem 0 0}
   .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
   .price--stacked{flex-direction:column;align-items:flex-start;gap:.3rem}
+  .product__meta .price{margin-top:auto;padding-top:.35rem}
   .price__retail-row{display:flex;gap:.45rem;align-items:baseline}
   .price__dealer-row{
     display:inline-flex;

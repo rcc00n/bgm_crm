@@ -1009,7 +1009,7 @@ class Appointment(models.Model):
             other_end = appt.start_time + timedelta(minutes=appt.service.duration_min)
             if self.start_time < other_end and this_end > appt.start_time:
                 raise ValidationError({
-                    "start_time": "This appointment overlaps with another appointment for the same master."
+                    "start_time": "This appointment overlaps with another appointment for the same tech."
                 })
 
             # --- 🔒 Проверка пересечения по комнате ---
@@ -1032,7 +1032,7 @@ class Appointment(models.Model):
 
         for period in unavailable_periods:
             if self.start_time < period.end_time and this_end > period.start_time:
-                raise ValidationError({"start_time": "This appointment falls within the master's time off or vacation."})
+                raise ValidationError({"start_time": "This appointment falls within the tech's time off or vacation."})
 
         master_profile = getattr(self.master, "master_profile", None)
         if master_profile and self.start_time:
@@ -1062,14 +1062,14 @@ class Appointment(models.Model):
             # 1) старт раньше начала смены
             if local_start_dt < work_start_dt:
                 raise ValidationError({
-                    "start_time": f"Start time ({local_start_dt.strftime('%H:%M')}) earlier than masters shift starts git st "
+                    "start_time": f"Start time ({local_start_dt.strftime('%H:%M')}) earlier than tech's shift starts "
                                   f"({work_start_dt.strftime('%H:%M')})."
                 })
 
             # 2) конец позже конца смены
             if local_end_dt > work_end_dt:
                 raise ValidationError({
-                    "start_time": f"The appointment ends at ({local_end_dt.strftime('%H:%M')}) which is later then master's end of shift "
+                    "start_time": f"The appointment ends at ({local_end_dt.strftime('%H:%M')}) which is later than tech's end of shift "
                                   f"({work_end_dt.strftime('%H:%M')})."
                 })
 
