@@ -506,6 +506,49 @@ class ProductAdmin(admin.ModelAdmin):
             return ""
         return getattr(image, "name", "") or str(image)
 
+    def _category_image_name(self, category: Category) -> str:
+        image = getattr(category, "image", None)
+        if not image:
+            return ""
+        return getattr(image, "name", "") or str(image)
+
+    def _placeholder_config(self):
+        settings_images = self._placeholder_images_setting()
+        placeholder_dir = str(getattr(settings, "PRODUCT_PLACEHOLDER_IMAGE_DIR", "store/placeholders"))
+        placeholder_dir = placeholder_dir.strip().strip("/") or "store/placeholders"
+        return settings_images, placeholder_dir
+
+    def _matches_placeholder_image(self, url: str, *, settings_images, placeholder_dir: str) -> bool:
+        if not url:
+            return False
+        if settings_images and url in settings_images:
+            return True
+        if placeholder_dir and url.startswith(f"{placeholder_dir}/"):
+            return True
+        return False
+
+    def _placeholder_product_candidate_queryset(self, *, settings_images, placeholder_dir: str):
+        qs = Product.objects.exclude(main_image__isnull=True).exclude(main_image="")
+        query = Q()
+        if settings_images:
+            query |= Q(main_image__in=settings_images)
+        if placeholder_dir:
+            query |= Q(main_image__startswith=f"{placeholder_dir}/")
+        if not query:
+            return qs.none()
+        return qs.filter(query)
+
+    def _placeholder_category_candidate_queryset(self, *, settings_images, placeholder_dir: str):
+        qs = Category.objects.exclude(image__isnull=True).exclude(image="")
+        query = Q()
+        if settings_images:
+            query |= Q(image__in=settings_images)
+        if placeholder_dir:
+            query |= Q(image__startswith=f"{placeholder_dir}/")
+        if not query:
+            return qs.none()
+        return qs.filter(query)
+
     def autofill_missing_photos_view(self, request):
         if not self.has_change_permission(request):
             raise PermissionDenied
@@ -593,9 +636,7 @@ class ProductAdmin(admin.ModelAdmin):
         )
         include_inactive = bool(request.POST.get("include_inactive"))
 
-        settings_images = self._placeholder_images_setting()
-        placeholder_dir = str(getattr(settings, "PRODUCT_PLACEHOLDER_IMAGE_DIR", "store/placeholders"))
-        placeholder_dir = placeholder_dir.strip().strip("/") or "store/placeholders"
+        settings_images, placeholder_dir = self._placeholder_config()
         images = settings_images or self._placeholder_images_from_storage(placeholder_dir)
         source_label = (
             "settings.PRODUCT_PLACEHOLDER_IMAGES"
@@ -605,6 +646,7 @@ class ProductAdmin(admin.ModelAdmin):
         from_settings = bool(settings_images)
         usable_images = images[:4] if len(images) >= 4 else []
         can_run = len(usable_images) == 4
+        missing_categories = Category.objects.filter(Q(image__isnull=True) | Q(image="")).count()
 
         if request.method == "POST":
             if request.POST.get("upload_placeholders"):
@@ -666,8 +708,8 @@ class ProductAdmin(admin.ModelAdmin):
 
             missing_qs = self._missing_image_queryset(include_inactive=include_inactive)
             missing_count = missing_qs.count()
-            if missing_count == 0:
-                messages.info(request, "No products are missing a main image.")
+            if missing_count == 0 and missing_categories == 0:
+                messages.info(request, "No products or categories are missing an image.")
                 return redirect(
                     reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
                 )
@@ -675,6 +717,9 @@ class ProductAdmin(admin.ModelAdmin):
             updated = 0
             skipped = 0
             errors = []
+            category_updated = 0
+            category_skipped = 0
+            category_errors = []
 
             for product in missing_qs.iterator():
                 if product.main_image:
@@ -694,6 +739,22 @@ class ProductAdmin(admin.ModelAdmin):
                     continue
                 updated += 1
 
+            category_qs = Category.objects.filter(Q(image__isnull=True) | Q(image=""))
+            for category in category_qs.iterator():
+                if category.image:
+                    category_skipped += 1
+                    continue
+                image_value = self._pick_placeholder_image(usable_images, category)
+                if not image_value:
+                    category_errors.append(f"{category.pk}: no placeholder image resolved")
+                    continue
+                try:
+                    Category.objects.filter(pk=category.pk).update(image=image_value)
+                except Exception as exc:
+                    category_errors.append(f"{category.pk}: {exc}")
+                    continue
+                category_updated += 1
+
             if updated:
                 messages.success(request, f"Added placeholder photos to {updated} products.")
             else:
@@ -705,6 +766,15 @@ class ProductAdmin(admin.ModelAdmin):
                 if len(errors) > 5:
                     sample += f"; and {len(errors) - 5} more."
                 messages.warning(request, f"Errors: {sample}")
+            if category_updated:
+                messages.success(request, f"Added placeholder photos to {category_updated} categories.")
+            if category_skipped:
+                messages.info(request, f"Skipped {category_skipped} categories already updated.")
+            if category_errors:
+                sample = "; ".join(category_errors[:5])
+                if len(category_errors) > 5:
+                    sample += f"; and {len(category_errors) - 5} more."
+                messages.warning(request, f"Category errors: {sample}")
             return redirect(
                 reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
             )
@@ -720,6 +790,7 @@ class ProductAdmin(admin.ModelAdmin):
             ),
             "missing_active": missing_active,
             "missing_inactive": missing_inactive,
+            "missing_categories": missing_categories,
             "include_inactive": include_inactive,
             "placeholder_images": usable_images,
             "placeholder_previews": self._placeholder_previews(images),
@@ -740,11 +811,22 @@ class ProductAdmin(admin.ModelAdmin):
             raise PermissionDenied
 
         source_template = self._autofill_source_template()
-        candidate_qs = self._autofill_candidate_queryset(source_template)
+        autofill_qs = self._autofill_candidate_queryset(source_template)
+        settings_images, placeholder_dir = self._placeholder_config()
+        placeholder_qs = self._placeholder_product_candidate_queryset(
+            settings_images=settings_images,
+            placeholder_dir=placeholder_dir,
+        )
+        candidate_qs = (autofill_qs | placeholder_qs).distinct()
         candidate_count = candidate_qs.count()
+        category_qs = self._placeholder_category_candidate_queryset(
+            settings_images=settings_images,
+            placeholder_dir=placeholder_dir,
+        )
+        category_count = category_qs.count()
 
         if request.method == "POST":
-            if candidate_count == 0:
+            if candidate_count == 0 and category_count == 0:
                 messages.info(request, "No autofilled photos found.")
                 return redirect(
                     reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
@@ -752,9 +834,18 @@ class ProductAdmin(admin.ModelAdmin):
 
             cleared = 0
             skipped = 0
+            category_cleared = 0
+            category_skipped = 0
             for product in candidate_qs.iterator():
                 image_name = self._main_image_name(product)
-                if not self._matches_autofill_url(image_name, source_template):
+                if not (
+                    self._matches_autofill_url(image_name, source_template)
+                    or self._matches_placeholder_image(
+                        image_name,
+                        settings_images=settings_images,
+                        placeholder_dir=placeholder_dir,
+                    )
+                ):
                     skipped += 1
                     continue
                 Product.objects.filter(pk=product.pk).update(
@@ -762,6 +853,17 @@ class ProductAdmin(admin.ModelAdmin):
                     updated_at=timezone.now(),
                 )
                 cleared += 1
+            for category in category_qs.iterator():
+                image_name = self._category_image_name(category)
+                if not self._matches_placeholder_image(
+                    image_name,
+                    settings_images=settings_images,
+                    placeholder_dir=placeholder_dir,
+                ):
+                    category_skipped += 1
+                    continue
+                Category.objects.filter(pk=category.pk).update(image=None)
+                category_cleared += 1
 
             if cleared:
                 messages.success(request, f"Cleared autofilled photos for {cleared} products.")
@@ -769,6 +871,10 @@ class ProductAdmin(admin.ModelAdmin):
                 messages.warning(request, "No autofilled photos were cleared.")
             if skipped:
                 messages.info(request, f"Skipped {skipped} products that did not match the autofill pattern.")
+            if category_cleared:
+                messages.success(request, f"Cleared autofilled photos for {category_cleared} categories.")
+            if category_skipped:
+                messages.info(request, f"Skipped {category_skipped} categories that did not match the autofill pattern.")
             return redirect(
                 reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
             )
@@ -783,6 +889,7 @@ class ProductAdmin(admin.ModelAdmin):
                 f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
             ),
             "autofill_count": candidate_count,
+            "category_count": category_count,
         }
         return TemplateResponse(
             request,

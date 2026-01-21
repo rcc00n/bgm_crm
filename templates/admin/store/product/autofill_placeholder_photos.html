@@ -13,10 +13,13 @@
 {% block content %}
   <div class="module aligned">
     <h1>Autofill placeholder photos</h1>
-    <p>This will assign one of four pre-uploaded placeholder images as the main image.</p>
+    <p>This will assign one of four pre-uploaded placeholder images as the main image for products and categories.</p>
     <p><strong>{{ missing_active }}</strong> active products are missing a main image.</p>
     {% if missing_inactive %}
       <p><strong>{{ missing_inactive }}</strong> inactive products are missing a main image.</p>
+    {% endif %}
+    {% if missing_categories %}
+      <p><strong>{{ missing_categories }}</strong> categories are missing an image.</p>
     {% endif %}
     <p><strong>{{ placeholder_total }}</strong> placeholder images found (source: {{ placeholder_source }}).</p>
     {% if placeholder_from_settings %}

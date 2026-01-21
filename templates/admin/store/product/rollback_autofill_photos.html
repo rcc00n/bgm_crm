@@ -13,8 +13,11 @@
 {% block content %}
   <div class="module aligned">
     <h1>Rollback autofill photos</h1>
-    <p>This will clear main images that match the autofill URL pattern.</p>
+    <p>This will clear main images that match the autofill URL pattern or placeholder images.</p>
     <p><strong>{{ autofill_count }}</strong> products match.</p>
+    {% if category_count %}
+      <p><strong>{{ category_count }}</strong> categories match.</p>
+    {% endif %}
     <form method="post">
       {% csrf_token %}
       <div class="submit-row">
