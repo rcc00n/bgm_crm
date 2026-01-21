@@ -1,7 +1,10 @@
 # store/admin.py
+import os
+
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
+from django.core.files.storage import default_storage
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import redirect
@@ -203,6 +206,11 @@ class ProductAdmin(admin.ModelAdmin):
                 name=f"{opts.app_label}_{opts.model_name}_autofill_missing_photos",
             ),
             path(
+                "autofill-placeholder-photos/",
+                self.admin_site.admin_view(self.autofill_placeholder_photos_view),
+                name=f"{opts.app_label}_{opts.model_name}_autofill_placeholder_photos",
+            ),
+            path(
                 "rollback-autofill-photos/",
                 self.admin_site.admin_view(self.rollback_autofill_photos_view),
                 name=f"{opts.app_label}_{opts.model_name}_rollback_autofill_photos",
@@ -250,6 +258,12 @@ class ProductAdmin(admin.ModelAdmin):
             )
         except Exception:
             extra_context["autofill_photos_url"] = None
+        try:
+            extra_context["placeholder_photos_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_autofill_placeholder_photos"
+            )
+        except Exception:
+            extra_context["placeholder_photos_url"] = None
         try:
             extra_context["autofill_rollback_url"] = reverse(
                 f"admin:{opts.app_label}_{opts.model_name}_rollback_autofill_photos"
@@ -387,6 +401,57 @@ class ProductAdmin(admin.ModelAdmin):
             "https://picsum.photos/seed/{seed}/1200/1200",
         )
 
+    def _placeholder_images_setting(self):
+        raw = getattr(settings, "PRODUCT_PLACEHOLDER_IMAGES", None)
+        if not raw:
+            return []
+        if isinstance(raw, (list, tuple)):
+            values = list(raw)
+        elif isinstance(raw, str):
+            values = [item.strip() for item in raw.replace("\n", ",").split(",")]
+        else:
+            try:
+                values = list(raw)
+            except TypeError:
+                return []
+        cleaned = []
+        for value in values:
+            if not value:
+                continue
+            item = str(value).strip()
+            if not item:
+                continue
+            if item.startswith(("http://", "https://")):
+                cleaned.append(item)
+            else:
+                cleaned.append(item.lstrip("/"))
+        return cleaned
+
+    def _placeholder_images_from_storage(self, directory: str):
+        if not directory:
+            return []
+        directory = directory.strip().strip("/")
+        if not directory:
+            return []
+        try:
+            _, files = default_storage.listdir(directory)
+        except Exception:
+            return []
+        allowed_ext = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"}
+        images = []
+        for name in files:
+            ext = os.path.splitext(name)[1].lower()
+            if ext in allowed_ext:
+                images.append(name)
+        images.sort()
+        return [f"{directory}/{name}" for name in images]
+
+    def _pick_placeholder_image(self, images, product: Product) -> str:
+        if not images:
+            return ""
+        idx = int(product.pk) % len(images)
+        return images[idx]
+
     def _format_autofill_url(self, template: str, product: Product) -> str:
         seed = f"product-{product.pk}"
         return template.replace("{seed}", seed)
@@ -498,6 +563,104 @@ class ProductAdmin(admin.ModelAdmin):
         return TemplateResponse(
             request,
             "admin/store/product/autofill_missing_photos.html",
+            context,
+        )
+
+    def autofill_placeholder_photos_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+
+        missing_active = self._missing_image_queryset(include_inactive=False).count()
+        missing_inactive = (
+            self._missing_image_queryset(include_inactive=True)
+            .filter(is_active=False)
+            .count()
+        )
+        include_inactive = bool(request.POST.get("include_inactive"))
+
+        settings_images = self._placeholder_images_setting()
+        placeholder_dir = str(getattr(settings, "PRODUCT_PLACEHOLDER_IMAGE_DIR", "store/placeholders"))
+        images = settings_images or self._placeholder_images_from_storage(placeholder_dir)
+        source_label = "settings.PRODUCT_PLACEHOLDER_IMAGES" if settings_images else f"media:{placeholder_dir.strip().strip('/')}"
+        usable_images = images[:4] if len(images) >= 4 else []
+        can_run = len(usable_images) == 4
+
+        if request.method == "POST":
+            if not can_run:
+                messages.error(
+                    request,
+                    f"Need 4 placeholder images. Found {len(images)}.",
+                )
+                return redirect(
+                    reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_autofill_placeholder_photos")
+                )
+
+            missing_qs = self._missing_image_queryset(include_inactive=include_inactive)
+            missing_count = missing_qs.count()
+            if missing_count == 0:
+                messages.info(request, "No products are missing a main image.")
+                return redirect(
+                    reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+                )
+
+            updated = 0
+            skipped = 0
+            errors = []
+
+            for product in missing_qs.iterator():
+                if product.main_image:
+                    skipped += 1
+                    continue
+                image_value = self._pick_placeholder_image(usable_images, product)
+                if not image_value:
+                    errors.append(f"{product.pk}: no placeholder image resolved")
+                    continue
+                try:
+                    Product.objects.filter(pk=product.pk).update(
+                        main_image=image_value,
+                        updated_at=timezone.now(),
+                    )
+                except Exception as exc:
+                    errors.append(f"{product.pk}: {exc}")
+                    continue
+                updated += 1
+
+            if updated:
+                messages.success(request, f"Added placeholder photos to {updated} products.")
+            else:
+                messages.warning(request, "No placeholder photos were added.")
+            if skipped:
+                messages.info(request, f"Skipped {skipped} products already updated.")
+            if errors:
+                sample = "; ".join(errors[:5])
+                if len(errors) > 5:
+                    sample += f"; and {len(errors) - 5} more."
+                messages.warning(request, f"Errors: {sample}")
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Autofill placeholder photos",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+            "has_view_permission": self.has_view_permission(request),
+            "product_changelist_url": reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            ),
+            "missing_active": missing_active,
+            "missing_inactive": missing_inactive,
+            "include_inactive": include_inactive,
+            "placeholder_images": usable_images,
+            "placeholder_total": len(images),
+            "placeholder_source": source_label,
+            "placeholder_dir": placeholder_dir,
+            "can_run": can_run,
+        }
+        return TemplateResponse(
+            request,
+            "admin/store/product/autofill_placeholder_photos.html",
             context,
         )
 

@@ -1,0 +1,48 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans "Home" %}</a>
+  › <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst }}</a>
+  › <a href="{{ product_changelist_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
+  › {% trans "Autofill placeholder photos" %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <div class="module aligned">
+    <h1>Autofill placeholder photos</h1>
+    <p>This will assign one of four pre-uploaded placeholder images as the main image.</p>
+    <p><strong>{{ missing_active }}</strong> active products are missing a main image.</p>
+    {% if missing_inactive %}
+      <p><strong>{{ missing_inactive }}</strong> inactive products are missing a main image.</p>
+    {% endif %}
+    <p><strong>{{ placeholder_total }}</strong> placeholder images found (source: {{ placeholder_source }}).</p>
+    {% if not can_run %}
+      <p class="errornote">Need at least 4 placeholder images to run.</p>
+      <p>Upload 4 images to <code>{{ placeholder_dir }}</code> in media storage or set <code>PRODUCT_PLACEHOLDER_IMAGES</code> in settings.</p>
+    {% endif %}
+    {% if placeholder_images %}
+      <p>Using:</p>
+      <ul>
+        {% for img in placeholder_images %}
+          <li><code>{{ img }}</code></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-row">
+        <label>
+          <input type="checkbox" name="include_inactive" {% if include_inactive %}checked{% endif %}>
+          Include inactive products
+        </label>
+      </div>
+      <div class="submit-row">
+        <input type="submit" value="Autofill 4 Placeholders" class="default" {% if not can_run %}disabled{% endif %} />
+        <a href="{{ product_changelist_url }}" class="button cancel-link">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}
