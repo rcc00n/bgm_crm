@@ -41,6 +41,19 @@ def _clean_items(items: Sequence[tuple[object, object]] | None) -> list[tuple[st
     return cleaned
 
 
+def _clean_link_rows(rows: Sequence[tuple[object, object]] | None) -> list[tuple[str, str]]:
+    cleaned: list[tuple[str, str]] = []
+    if not rows:
+        return cleaned
+    for label, url in rows:
+        label_text = str(label).strip() if label is not None else ""
+        url_text = str(url).strip() if url is not None else ""
+        if not label_text or not url_text:
+            continue
+        cleaned.append((label_text, url_text))
+    return cleaned
+
+
 def _format_url(raw: str) -> str:
     if not raw:
         return ""
@@ -63,6 +76,7 @@ def build_email_html(
     footer_lines: Sequence[str] | None = None,
     cta_label: str | None = None,
     cta_url: str | None = None,
+    link_rows: Sequence[tuple[object, object]] | None = None,
 ) -> str:
     brand_name = _safe(getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors"))
     tagline = _safe(getattr(settings, "SITE_BRAND_TAGLINE", ""))
@@ -77,6 +91,7 @@ def build_email_html(
     detail_rows = _clean_rows(detail_rows)
     summary_rows = _clean_rows(summary_rows)
     item_rows = _clean_items(item_rows)
+    link_rows = _clean_link_rows(link_rows)
 
     preheader_html = _safe(preheader)
     title_html = _safe(title)
@@ -138,6 +153,28 @@ def build_email_html(
             f"<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" "
             f"style=\"margin-top:16px; background:{dark}; border-radius:10px; padding:12px 16px;\">"
             f"{rows_html}</table>"
+        )
+
+    links_html = ""
+    if link_rows:
+        link_items = "".join(
+            "<tr>"
+            "<td style=\"padding:6px 0;\">"
+            f"<a href=\"{_safe(_format_url(url))}\" "
+            "style=\"display:inline-block; padding:10px 14px; border-radius:999px; "
+            f"border:1px solid {accent}; color:{accent}; text-decoration:none; "
+            "font-size:11px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase;\">"
+            f"{_safe(label)}</a>"
+            "</td>"
+            "</tr>"
+            for label, url in link_rows
+        )
+        links_html = (
+            "<div style=\"margin-top:18px;\">"
+            "<div style=\"color:#6b7280; font-size:11px; font-weight:800; letter-spacing:0.2em; "
+            "text-transform:uppercase; margin-bottom:6px;\">Quick links</div>"
+            "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\">"
+            f"{link_items}</table></div>"
         )
 
     notice_html = ""
@@ -245,6 +282,7 @@ def build_email_html(
                 {notice_html}
                 {items_html}
                 {summary_html}
+                {links_html}
                 {cta_html}
                 {footer_note_html}
               </td>

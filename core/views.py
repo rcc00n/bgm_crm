@@ -33,6 +33,7 @@ from core.models import (
     PageFontSetting,
     LandingPageReview,
     PromoCode,
+    SiteNoticeSignup,
 )
 from core.forms import ServiceLeadForm
 from core.services.booking import (
@@ -649,6 +650,15 @@ def site_notice_signup(request):
     except Exception:
         logger.exception("Failed to send site notice code email to %s", email)
         return _error("Unable to send the code right now.", status=500)
+
+    try:
+        SiteNoticeSignup.objects.create(
+            email=email,
+            welcome_code=code,
+            welcome_sent_at=timezone.now(),
+        )
+    except Exception:
+        logger.exception("Failed to record site notice signup for %s", email)
 
     try:
         user = CustomUserDisplay.objects.filter(email__iexact=email).first()

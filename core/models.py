@@ -1407,6 +1407,33 @@ class AppointmentPromoCode(models.Model):
             })
 
 
+class SiteNoticeSignup(models.Model):
+    """
+    Captures popup email signups so follow-up emails can be scheduled.
+    """
+
+    email = models.EmailField()
+    welcome_code = models.CharField(max_length=40)
+    welcome_sent_at = models.DateTimeField(default=timezone.now)
+    followup_2_sent_at = models.DateTimeField(null=True, blank=True)
+    followup_3_sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Site notice signup"
+        verbose_name_plural = "Site notice signups"
+        indexes = [
+            models.Index(fields=["welcome_sent_at"]),
+            models.Index(fields=["followup_2_sent_at"]),
+            models.Index(fields=["followup_3_sent_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.email} ({self.welcome_code})"
+
+
 class ServiceLead(models.Model):
     """
     Inbound lead captured from public service landing pages.

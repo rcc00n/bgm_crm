@@ -2,6 +2,8 @@ from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from core.models import SiteNoticeSignup
+
 
 @override_settings(
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -24,6 +26,10 @@ class SiteNoticeSignupTests(TestCase):
         message = mail.outbox[0]
         self.assertIn("welcome code", message.subject.lower())
         self.assertIn("WELCOME5", message.body)
+        self.assertEqual(SiteNoticeSignup.objects.count(), 1)
+        signup = SiteNoticeSignup.objects.get()
+        self.assertEqual(signup.email, "test@example.com")
+        self.assertEqual(signup.welcome_code, "WELCOME5")
 
     def test_invalid_email_returns_error(self):
         url = reverse("site-notice-signup")
@@ -34,3 +40,4 @@ class SiteNoticeSignupTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(SiteNoticeSignup.objects.count(), 0)

@@ -217,6 +217,9 @@ EMAIL_ACCENT_COLOR = os.getenv("EMAIL_ACCENT_COLOR", "#d50000")
 EMAIL_DARK_COLOR = os.getenv("EMAIL_DARK_COLOR", "#0b0b0c")
 EMAIL_BG_COLOR = os.getenv("EMAIL_BG_COLOR", "#0b0b0c")
 SITE_NOTICE_PROMO_CODE = os.getenv("SITE_NOTICE_PROMO_CODE", "")
+SITE_NOTICE_BEST_SELLERS_URL = os.getenv("SITE_NOTICE_BEST_SELLERS_URL", "")
+SITE_NOTICE_SERVICES_URL = os.getenv("SITE_NOTICE_SERVICES_URL", "")
+SITE_NOTICE_BOOKING_URL = os.getenv("SITE_NOTICE_BOOKING_URL", "")
 
 # ── Currency ──────────────────────────────────────────────────────────────
 DEFAULT_CURRENCY_CODE = os.getenv("DEFAULT_CURRENCY_CODE", "CAD")
