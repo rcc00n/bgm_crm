@@ -2,7 +2,7 @@ from pathlib import Path
 from decimal import Decimal, InvalidOperation
 import os
 import dj_database_url
-from decouple import config, Csv  # оставил, если используешь .env локально
+from decouple import config, Csv  
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
