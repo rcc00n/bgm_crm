@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans "Home" %}</a>
+  › <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst }}</a>
+  › <a href="{{ product_changelist_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
+  › {% trans "Autofill missing photos" %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <div class="module aligned">
+    <h1>Autofill missing photos</h1>
+    <p>This will assign free placeholder image URLs as the main image.</p>
+    <p><strong>{{ missing_active }}</strong> active products are missing a main image.</p>
+    {% if missing_inactive %}
+      <p><strong>{{ missing_inactive }}</strong> inactive products are missing a main image.</p>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-row">
+        <label>
+          <input type="checkbox" name="include_inactive" {% if include_inactive %}checked{% endif %}>
+          Include inactive products
+        </label>
+      </div>
+      <div class="submit-row">
+        <input type="submit" value="Autofill Photos" class="default" />
+        <a href="{{ product_changelist_url }}" class="button cancel-link">Cancel</a>
+      </div>
+    </form>
+    <p style="margin-top:1rem;">Each product receives a unique URL, so reuse stays below the 3-use limit.</p>
+  </div>
+{% endblock %}

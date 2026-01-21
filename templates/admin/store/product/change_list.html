@@ -27,4 +27,16 @@
       <span>Rollback Cleanup</span>
     </a>
   {% endif %}
+  {% if autofill_photos_url %}
+    <a href="{{ autofill_photos_url }}" class="btn btn-outline-primary page-action-btn" title="Autofill missing photos">
+      <i class="fas fa-image"></i>
+      <span>Autofill Photos</span>
+    </a>
+  {% endif %}
+  {% if autofill_rollback_url %}
+    <a href="{{ autofill_rollback_url }}" class="btn btn-outline-danger page-action-btn" title="Rollback autofill photos">
+      <i class="fas fa-undo"></i>
+      <span>Rollback Autofill</span>
+    </a>
+  {% endif %}
 {% endblock %}

@@ -1,0 +1,26 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans "Home" %}</a>
+  › <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst }}</a>
+  › <a href="{{ product_changelist_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
+  › {% trans "Rollback autofill photos" %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <div class="module aligned">
+    <h1>Rollback autofill photos</h1>
+    <p>This will clear main images that match the autofill URL pattern.</p>
+    <p><strong>{{ autofill_count }}</strong> products match.</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="submit-row">
+        <input type="submit" value="Rollback" class="deletelink" />
+        <a href="{{ product_changelist_url }}" class="button cancel-link">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

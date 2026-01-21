@@ -278,6 +278,19 @@ class Product(models.Model):
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    @property
+    def main_image_url(self) -> str:
+        image = getattr(self, "main_image", None)
+        if not image:
+            return ""
+        name = getattr(image, "name", "") or str(image)
+        if name.startswith("http://") or name.startswith("https://"):
+            return name
+        try:
+            return image.url
+        except Exception:
+            return ""
+
     def get_absolute_url(self):
         # под шаблоны, где используется {% url 'store-product' slug=p.slug %}
         return reverse("store-product", kwargs={"slug": self.slug})

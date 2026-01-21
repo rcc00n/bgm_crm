@@ -37,7 +37,7 @@
             <div class="cart__col cart__col--product" role="cell">
               <a class="cart__thumb" href="{% url 'store-product' slug=row.product.slug %}">
                 {% if row.product.main_image %}
-                  <img src="{{ row.product.main_image.url }}" alt="{{ row.product.name }}">
+                  <img src="{{ row.product.main_image_url }}" alt="{{ row.product.name }}">
                 {% else %}
                   <div class="thumb-ph" aria-hidden="true"></div>
                 {% endif %}

@@ -127,7 +127,7 @@
             <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
               <div class="card__img">
                 {% if p.main_image %}
-                  <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
                 {% elif p.image %}
                   <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
                 {% else %}
@@ -178,7 +178,7 @@
             <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
               <div class="card__img">
                 {% if p.main_image %}
-                  <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
                 {% elif p.image %}
                   <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
                 {% else %}
@@ -233,7 +233,7 @@
             <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
               <div class="card__img">
                 {% if p.main_image %}
-                  <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
                 {% elif p.image %}
                   <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
                 {% else %}
