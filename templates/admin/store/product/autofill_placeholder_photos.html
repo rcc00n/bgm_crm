@@ -19,6 +19,9 @@
       <p><strong>{{ missing_inactive }}</strong> inactive products are missing a main image.</p>
     {% endif %}
     <p><strong>{{ placeholder_total }}</strong> placeholder images found (source: {{ placeholder_source }}).</p>
+    {% if placeholder_from_settings %}
+      <p class="help">Uploads below are ignored while <code>PRODUCT_PLACEHOLDER_IMAGES</code> is set.</p>
+    {% endif %}
     {% if not can_run %}
       <p class="errornote">Need at least 4 placeholder images to run.</p>
       <p>Upload 4 images to <code>{{ placeholder_dir }}</code> in media storage or set <code>PRODUCT_PLACEHOLDER_IMAGES</code> in settings.</p>
@@ -30,6 +33,31 @@
           <li><code>{{ img }}</code></li>
         {% endfor %}
       </ul>
+    {% endif %}
+    <h2 style="margin-top:1.2rem;">Upload placeholder images</h2>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-row">
+        <input type="file" name="placeholder_images" multiple accept="image/*">
+      </div>
+      <div class="submit-row">
+        <input type="submit" name="upload_placeholders" value="Upload Images" class="default" />
+      </div>
+    </form>
+    {% if placeholder_previews %}
+      <h2 style="margin-top:1.2rem;">Current placeholder images</h2>
+      <div style="display:flex;flex-wrap:wrap;gap:.6rem;">
+        {% for item in placeholder_previews %}
+          <div style="width:110px;">
+            {% if item.url %}
+              <img src="{{ item.url }}" alt="{{ item.path }}" style="width:110px;height:110px;object-fit:cover;border-radius:6px;border:1px solid #e5e5e5;">
+            {% else %}
+              <div style="width:110px;height:110px;border-radius:6px;border:1px solid #e5e5e5;"></div>
+            {% endif %}
+            <div style="margin-top:.3rem;font-size:11px;word-break:break-all;">{{ item.path }}</div>
+          </div>
+        {% endfor %}
+      </div>
     {% endif %}
     <form method="post">
       {% csrf_token %}

@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
 from django.core.files.storage import default_storage
+from django.utils.text import get_valid_filename
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import redirect
@@ -452,6 +453,20 @@ class ProductAdmin(admin.ModelAdmin):
         idx = int(product.pk) % len(images)
         return images[idx]
 
+    def _placeholder_previews(self, images):
+        previews = []
+        for item in images:
+            url = ""
+            if str(item).startswith(("http://", "https://")):
+                url = str(item)
+            else:
+                try:
+                    url = default_storage.url(item)
+                except Exception:
+                    url = ""
+            previews.append({"path": str(item), "url": url})
+        return previews
+
     def _format_autofill_url(self, template: str, product: Product) -> str:
         seed = f"product-{product.pk}"
         return template.replace("{seed}", seed)
@@ -580,12 +595,66 @@ class ProductAdmin(admin.ModelAdmin):
 
         settings_images = self._placeholder_images_setting()
         placeholder_dir = str(getattr(settings, "PRODUCT_PLACEHOLDER_IMAGE_DIR", "store/placeholders"))
+        placeholder_dir = placeholder_dir.strip().strip("/") or "store/placeholders"
         images = settings_images or self._placeholder_images_from_storage(placeholder_dir)
-        source_label = "settings.PRODUCT_PLACEHOLDER_IMAGES" if settings_images else f"media:{placeholder_dir.strip().strip('/')}"
+        source_label = (
+            "settings.PRODUCT_PLACEHOLDER_IMAGES"
+            if settings_images
+            else f"media:{placeholder_dir.strip().strip('/')}"
+        )
+        from_settings = bool(settings_images)
         usable_images = images[:4] if len(images) >= 4 else []
         can_run = len(usable_images) == 4
 
         if request.method == "POST":
+            if request.POST.get("upload_placeholders"):
+                uploaded_files = request.FILES.getlist("placeholder_images")
+                if not uploaded_files:
+                    messages.warning(request, "Select at least one image to upload.")
+                    return redirect(
+                        reverse(
+                            f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_autofill_placeholder_photos"
+                        )
+                    )
+
+                saved = 0
+                skipped = 0
+                errors = []
+                allowed_ext = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"}
+
+                for uploaded in uploaded_files:
+                    name = get_valid_filename(getattr(uploaded, "name", ""))
+                    if not name:
+                        skipped += 1
+                        continue
+                    ext = os.path.splitext(name)[1].lower()
+                    if ext not in allowed_ext:
+                        skipped += 1
+                        continue
+                    try:
+                        target_path = f"{placeholder_dir}/{name}"
+                        target_path = default_storage.get_available_name(target_path)
+                        default_storage.save(target_path, uploaded)
+                    except Exception as exc:
+                        errors.append(f"{name}: {exc}")
+                        continue
+                    saved += 1
+
+                if saved:
+                    messages.success(request, f"Uploaded {saved} placeholder image(s).")
+                if skipped:
+                    messages.info(request, f"Skipped {skipped} file(s).")
+                if errors:
+                    sample = "; ".join(errors[:5])
+                    if len(errors) > 5:
+                        sample += f"; and {len(errors) - 5} more."
+                    messages.warning(request, f"Upload errors: {sample}")
+                return redirect(
+                    reverse(
+                        f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_autofill_placeholder_photos"
+                    )
+                )
+
             if not can_run:
                 messages.error(
                     request,
@@ -653,8 +722,10 @@ class ProductAdmin(admin.ModelAdmin):
             "missing_inactive": missing_inactive,
             "include_inactive": include_inactive,
             "placeholder_images": usable_images,
+            "placeholder_previews": self._placeholder_previews(images),
             "placeholder_total": len(images),
             "placeholder_source": source_label,
+            "placeholder_from_settings": from_settings,
             "placeholder_dir": placeholder_dir,
             "can_run": can_run,
         }
