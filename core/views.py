@@ -1,4 +1,7 @@
 # core/views.py
+import logging
+
+from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Prefetch, Q
 from django.contrib import messages
@@ -16,6 +19,7 @@ from datetime import datetime
 import json
 from django.utils.functional import cached_property
 
+from core.emails import build_email_html, send_html_email
 from core.models import (
     Appointment,
     ServiceCategory,
@@ -28,6 +32,7 @@ from core.models import (
     VisitorSession,
     PageFontSetting,
     LandingPageReview,
+    PromoCode,
 )
 from core.forms import ServiceLeadForm
 from core.services.booking import (
@@ -42,6 +47,8 @@ from core.services.media import (
     build_performance_tuning_media,
 )
 from notifications.services import notify_about_service_lead
+
+logger = logging.getLogger(__name__)
 
 def _build_catalog_context(request):
     """Общий конструктор контекста каталога."""
@@ -548,6 +555,115 @@ def _lead_redirect_target(request, *, fallback: str = "/") -> str:
         if target and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
             return target
     return fallback
+
+
+def _resolve_site_notice_code() -> str:
+    code = (getattr(settings, "SITE_NOTICE_PROMO_CODE", "") or "").strip()
+    if code:
+        return code.upper()
+    try:
+        today = timezone.now().date()
+        promo = PromoCode.objects.filter(
+            active=True,
+            start_date__lte=today,
+            end_date__gte=today,
+            discount_percent=5,
+        ).order_by("code").first()
+        if promo and promo.code:
+            return promo.code.upper()
+    except Exception:
+        logger.exception("Failed to resolve site notice promo code.")
+    return "WELCOME5"
+
+
+@require_POST
+@csrf_protect
+def site_notice_signup(request):
+    """
+    Capture popup email signups and send a welcome code.
+    """
+    is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+    def _error(message: str, status: int = 400):
+        if is_ajax:
+            return JsonResponse({"error": message}, status=status)
+        messages.error(request, message)
+        return HttpResponseRedirect(_lead_redirect_target(request))
+
+    email = (request.POST.get("email") or "").strip()
+    if not email and request.content_type and "application/json" in request.content_type:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+            email = (payload.get("email") or "").strip()
+        except (UnicodeDecodeError, json.JSONDecodeError, AttributeError):
+            email = ""
+
+    if not email:
+        return _error("Email is required.")
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return _error("Enter a valid email.")
+
+    sender = (
+        getattr(settings, "DEFAULT_FROM_EMAIL", None)
+        or getattr(settings, "SUPPORT_EMAIL", None)
+    )
+    if not sender:
+        logger.warning("Missing DEFAULT_FROM_EMAIL/SUPPORT_EMAIL for site notice signup.")
+        return _error("Email service is unavailable.", status=500)
+
+    code = _resolve_site_notice_code()
+    brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    subject = f"{brand} welcome code"
+    text_lines = [
+        f"Thanks for joining the {brand} email list.",
+        f"Your welcome code: {code}",
+        "Use it on any product or service invoice.",
+        "",
+        "Questions? Reply to this email and we will help.",
+    ]
+
+    try:
+        html_body = build_email_html(
+            title="Your 5% welcome code",
+            preheader=f"Welcome code inside: {code}",
+            greeting=f"Thanks for joining the {brand} email list.",
+            intro_lines=[
+                "Here is your welcome code for 5% off your first order.",
+                "Use it on any product or service invoice.",
+            ],
+            summary_rows=[("Welcome code", code), ("Discount", "5% off")],
+            footer_lines=["Questions? Reply to this email and we will help."],
+            cta_label=f"Visit {brand}",
+            cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
+        )
+        send_html_email(
+            subject=subject,
+            text_body="\n".join(text_lines),
+            html_body=html_body,
+            from_email=sender,
+            recipient_list=[email],
+        )
+    except Exception:
+        logger.exception("Failed to send site notice code email to %s", email)
+        return _error("Unable to send the code right now.", status=500)
+
+    try:
+        user = CustomUserDisplay.objects.filter(email__iexact=email).first()
+        profile = getattr(user, "userprofile", None) if user else None
+        if profile:
+            profile.set_marketing_consent(True)
+            profile.save(update_fields=["email_marketing_consent", "email_marketing_consented_at"])
+    except Exception:
+        logger.exception("Failed to update marketing consent for %s", email)
+
+    if is_ajax:
+        return JsonResponse({"ok": True, "message": "Check your inbox for your code."})
+
+    messages.success(request, "Thanks! Check your inbox for your code.")
+    return HttpResponseRedirect(_lead_redirect_target(request))
 
 
 @require_POST

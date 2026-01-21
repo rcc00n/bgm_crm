@@ -189,6 +189,14 @@
     font-size:.9rem;
     color:var(--text-3);
   }
+  .site-notice__status{
+    margin:0;
+    font-size:.95rem;
+    color:var(--text-2);
+  }
+  .site-notice__status[data-state="pending"]{ color:var(--text-3); }
+  .site-notice__status[data-state="success"]{ color:#9ef6ce; }
+  .site-notice__status[data-state="error"]{ color:#ffb4b4; }
 
   /* ─── Perks ─────────────────────────────────────────── */
   .site-notice__perks{

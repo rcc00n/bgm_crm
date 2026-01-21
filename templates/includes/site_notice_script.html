@@ -142,19 +142,77 @@
 
   dismissBtns.forEach(btn => btn.addEventListener('click', () => closeNotice(true)));
 
+  const getCookie = (name) => {
+    const cookies = document.cookie ? document.cookie.split(';') : [];
+    for (const cookie of cookies) {
+      const trimmed = cookie.trim();
+      if (trimmed.startsWith(name + '=')) {
+        return decodeURIComponent(trimmed.slice(name.length + 1));
+      }
+    }
+    return '';
+  };
+
   const signupForm = notice.querySelector('#siteNoticeForm');
   if (signupForm) {
-    signupForm.addEventListener('submit', (event) => {
+    const statusEl = notice.querySelector('[data-notice-status]');
+    const submitBtn = signupForm.querySelector('button[type="submit"]');
+    const submitLabel = submitBtn ? submitBtn.textContent : '';
+
+    const setStatus = (state, message) => {
+      if (!statusEl) return;
+      if (!message) {
+        statusEl.textContent = '';
+        statusEl.removeAttribute('data-state');
+        statusEl.setAttribute('hidden', '');
+        return;
+      }
+      statusEl.textContent = message;
+      statusEl.dataset.state = state;
+      statusEl.removeAttribute('hidden');
+    };
+
+    const setSubmitting = (busy) => {
+      if (submitBtn) {
+        submitBtn.disabled = busy;
+        submitBtn.textContent = busy ? 'Sending...' : submitLabel;
+      }
+      signupForm.setAttribute('aria-busy', busy ? 'true' : 'false');
+    };
+
+    signupForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       const emailField = signupForm.querySelector('input[type="email"]');
-      const email = emailField ? (emailField.value || '').trim() : '';
-      const subject = encodeURIComponent('Send my 5% welcome code');
-      const baseBody = `I'd like to join the Bad Guy Motors email list and get the 5% welcome code.`;
-      const bodyLines = [baseBody, email ? `Email: ${email}` : '', 'Name: ', 'Vehicle: ']
-        .filter(Boolean)
-        .join('\\n');
-      window.location.href = `mailto:support@badguymotors.com?subject=${subject}&body=${encodeURIComponent(bodyLines)}`;
-      closeNotice(true);
+      if (emailField && !emailField.checkValidity()) {
+        emailField.reportValidity();
+        return;
+      }
+
+      const formData = new FormData(signupForm);
+      setSubmitting(true);
+      setStatus('pending', 'Sending your code...');
+
+      try {
+        const response = await fetch(signupForm.action, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: formData,
+          credentials: 'same-origin',
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error || 'Unable to send the code. Please try again.');
+        }
+        setStatus('success', data.message || 'Check your inbox for your code.');
+        setTimeout(() => closeNotice(true), 650);
+      } catch (err) {
+        setStatus('error', err.message || 'Unable to send the code. Please try again.');
+      } finally {
+        setSubmitting(false);
+      }
     });
   }
 
