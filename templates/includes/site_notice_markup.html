@@ -37,7 +37,8 @@
       We'll email a one-time 5% off code as soon as you subscribe.
     </p>
 
-    <form class="site-notice__form" id="siteNoticeForm" aria-label="Email signup form">
+    <form class="site-notice__form" id="siteNoticeForm" aria-label="Email signup form" method="post" action="{% url 'site-notice-signup' %}">
+      {% csrf_token %}
       <label class="site-notice__label" for="siteNoticeEmail">Email address</label>
       <div class="site-notice__input-row">
         <input type="email"
@@ -51,6 +52,7 @@
         </button>
       </div>
       <p class="site-notice__fineprint">No spam—just drops, events, and the occasional perk.</p>
+      <p class="site-notice__status" data-notice-status aria-live="polite" hidden></p>
     </form>
 
     <section class="site-notice__perks" aria-label="Perks for subscribers">

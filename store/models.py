@@ -1,17 +1,19 @@
 from decimal import Decimal, InvalidOperation
+import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.text import slugify
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 PRICE_QUANT = Decimal("0.01")
 
@@ -50,7 +52,7 @@ class StorePricingSettings(models.Model):
         "Price multiplier (%)",
         default=100,
         help_text=(
-            "Applies to all store product and option prices. "
+            "Applies to all store product and option prices except in-house products. "
             "100 = no change, 110 = +10%. Use whole percents."
         ),
     )
@@ -88,11 +90,16 @@ class StorePricingSettings(models.Model):
             return Decimal("1.00")
 
 
-def apply_store_price_multiplier(amount: Decimal) -> Decimal:
+def apply_store_price_multiplier(amount: Decimal, *, apply_multiplier: bool = True) -> Decimal:
     try:
         amount_value = Decimal(amount)
     except (InvalidOperation, TypeError):
         return Decimal("0.00")
+    if not apply_multiplier:
+        try:
+            return amount_value.quantize(PRICE_QUANT)
+        except (InvalidOperation, TypeError):
+            return Decimal("0.00")
     multiplier = StorePricingSettings.get_multiplier()
     try:
         return (amount_value * multiplier).quantize(PRICE_QUANT)
@@ -199,6 +206,11 @@ class Product(models.Model):
         validators=[MinValueValidator(0)],
         help_text="Base price before the global multiplier.",
     )
+    is_in_house = models.BooleanField(
+        "In-house product",
+        default=False,
+        help_text="Exclude this product from the global price multiplier.",
+    )
     currency = models.CharField(max_length=3, default=settings.DEFAULT_CURRENCY_CODE)
     inventory = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -266,6 +278,19 @@ class Product(models.Model):
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    @property
+    def main_image_url(self) -> str:
+        image = getattr(self, "main_image", None)
+        if not image:
+            return ""
+        name = getattr(image, "name", "") or str(image)
+        if name.startswith("http://") or name.startswith("https://"):
+            return name
+        try:
+            return image.url
+        except Exception:
+            return ""
+
     def get_absolute_url(self):
         # под шаблоны, где используется {% url 'store-product' slug=p.slug %}
         return reverse("store-product", kwargs={"slug": self.slug})
@@ -316,9 +341,10 @@ class Product(models.Model):
             amount = Decimal(raw_value)
         except (InvalidOperation, TypeError):
             return Decimal("0.00")
-        return apply_store_price_multiplier(amount)
+        return apply_store_price_multiplier(amount, apply_multiplier=not self.is_in_house)
 
     def _option_price_values(self):
+        apply_multiplier = not self.is_in_house
         for opt in self.get_active_options():
             value = getattr(opt, "price", None)
             if value is not None:
@@ -326,7 +352,7 @@ class Product(models.Model):
                     amount = Decimal(value)
                 except (InvalidOperation, TypeError):
                     continue
-                yield apply_store_price_multiplier(amount)
+                yield apply_store_price_multiplier(amount, apply_multiplier=apply_multiplier)
 
     @property
     def display_price(self) -> Decimal:
@@ -364,7 +390,10 @@ class ProductOption(models.Model):
         validators=[MinValueValidator(0)],
         null=True,
         blank=True,
-        help_text="Leave empty to inherit the product price. Global multiplier still applies.",
+        help_text=(
+            "Leave empty to inherit the product price. "
+            "Global multiplier still applies unless the product is in-house."
+        ),
     )
     is_active = models.BooleanField(
         "Active",
@@ -451,6 +480,7 @@ class Order(models.Model):
     shipped_at   = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
+    review_request_sent_at = models.DateTimeField(null=True, blank=True)
 
     # contact
     customer_name = models.CharField(max_length=120)
@@ -522,6 +552,147 @@ class Order(models.Model):
             self.cancelled_at = now
         if save:
             self.save(update_fields=["status", "shipped_at", "completed_at", "cancelled_at"])
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        old_status = None
+        if not is_new and self.pk:
+            try:
+                old_status = (
+                    Order.objects.filter(pk=self.pk)
+                    .values_list("status", flat=True)
+                    .first()
+                )
+            except Exception:
+                old_status = None
+
+        status_changed = old_status is not None and self.status != old_status
+        if status_changed:
+            now = timezone.now()
+            if self.status == self.STATUS_SHIPPED and not self.shipped_at:
+                self.shipped_at = now
+            elif self.status == self.STATUS_COMPLETED and not self.completed_at:
+                self.completed_at = now
+            elif self.status == self.STATUS_CANCELLED and not self.cancelled_at:
+                self.cancelled_at = now
+
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                update_fields = set(update_fields)
+                update_fields.update({"status"})
+                if self.shipped_at:
+                    update_fields.add("shipped_at")
+                if self.completed_at:
+                    update_fields.add("completed_at")
+                if self.cancelled_at:
+                    update_fields.add("cancelled_at")
+                kwargs["update_fields"] = list(update_fields)
+
+        super().save(*args, **kwargs)
+
+        if status_changed:
+            transaction.on_commit(lambda: self._send_status_update(old_status))
+
+    def _send_status_update(self, old_status: str | None):
+        recipient = (self.email or "").strip()
+        if not recipient:
+            return
+
+        status_copy = {
+            self.STATUS_PROCESSING: {
+                "title": "Order update: processing",
+                "preheader": "We are preparing your order now.",
+                "intro": "Your order is now in processing. We'll keep you posted as it moves along.",
+            },
+            self.STATUS_SHIPPED: {
+                "title": "Order update: shipped",
+                "preheader": "Your order is on the way.",
+                "intro": "Your order has shipped and is on the way to you.",
+            },
+            self.STATUS_COMPLETED: {
+                "title": "Order update: completed",
+                "preheader": "Your order is marked complete.",
+                "intro": "Your order is marked complete. Thanks again for choosing us.",
+            },
+            self.STATUS_CANCELLED: {
+                "title": "Order update: cancelled",
+                "preheader": "Your order was cancelled.",
+                "intro": "Your order was cancelled. If this is unexpected, reply to this email and we'll help.",
+            },
+        }
+        payload = status_copy.get(self.status)
+        if not payload:
+            return
+
+        brand = getattr(settings, "SITE_BRAND_NAME", "BGM Customs")
+        currency_symbol = getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$") or "$"
+        currency_code = getattr(settings, "DEFAULT_CURRENCY_CODE", "").upper()
+        order_total = self.total
+        total_text = f"{currency_symbol}{order_total} {currency_code}".strip()
+
+        subject = f"{brand} order #{self.pk} {self.get_status_display()}"
+        lines = [
+            f"Hi {self.customer_name},",
+            payload["intro"],
+            "",
+            f"Order #: {self.pk}",
+            f"Status: {self.get_status_display()}",
+            f"Order total: {total_text}",
+            "",
+            "Questions? Reply to this email and we'll help.",
+        ]
+
+        sender = (
+            getattr(settings, "DEFAULT_FROM_EMAIL", None)
+            or getattr(settings, "SUPPORT_EMAIL", None)
+        )
+        if not sender:
+            return
+
+        try:
+            items = list(self.items.select_related("product", "option").all())
+        except Exception:
+            items = []
+
+        item_rows = []
+        for it in items:
+            name = getattr(it.product, "name", "Item")
+            if getattr(it, "option", None):
+                name = f"{name} ({it.option.name})"
+            item_rows.append((name, f"x {it.qty}"))
+
+        try:
+            from core.emails import build_email_html, send_html_email
+
+            html_body = build_email_html(
+                title=payload["title"],
+                preheader=payload["preheader"],
+                greeting=f"Hi {self.customer_name},",
+                intro_lines=[payload["intro"]],
+                detail_rows=[
+                    ("Order #", self.pk),
+                    ("Status", self.get_status_display()),
+                    ("Order total", total_text),
+                ],
+                item_rows=item_rows,
+                footer_lines=["Questions? Reply to this email and we'll help."],
+                cta_label=f"Visit {brand}",
+                cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
+            )
+            send_html_email(
+                subject=subject,
+                text_body="\n".join(lines),
+                html_body=html_body,
+                from_email=sender,
+                recipient_list=[recipient],
+            )
+        except Exception:
+            logger.exception(
+                "Failed to send order status update for order %s (from %s to %s)",
+                self.pk,
+                old_status,
+                self.status,
+            )
 
     STATUS_UI = {
         STATUS_PROCESSING: ("processing", "#f5a623"),
@@ -595,6 +766,41 @@ class OrderItem(models.Model):
             return (qty * price).quantize(Decimal("0.01"))
         except (InvalidOperation, TypeError):
             return Decimal("0.00")
+
+
+class AbandonedCart(models.Model):
+    """
+    Stores abandoned cart snapshots for follow-up emails.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="abandoned_carts",
+    )
+    session_key = models.CharField(max_length=64, blank=True, db_index=True)
+    email = models.EmailField(db_index=True)
+    cart_items = models.JSONField(default=list)
+    cart_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    currency_code = models.CharField(max_length=8, blank=True)
+    currency_symbol = models.CharField(max_length=8, blank=True)
+    last_activity_at = models.DateTimeField(default=timezone.now, db_index=True)
+    recovered_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    email_1_sent_at = models.DateTimeField(null=True, blank=True)
+    email_2_sent_at = models.DateTimeField(null=True, blank=True)
+    email_3_sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Abandoned cart"
+        verbose_name_plural = "Abandoned carts"
+
+    def __str__(self) -> str:
+        return f"{self.email} — {self.cart_total}"
 
 
 # ─────────────────────────── Custom fitment / quote requests ───────────────────────────

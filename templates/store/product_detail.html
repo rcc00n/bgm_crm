@@ -18,7 +18,7 @@
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:1.25rem">
       <div>
         {% if product.main_image %}
-          <img class="card__img" style="aspect-ratio:auto;border-radius:1rem" src="{{ product.main_image.url }}" alt="{{ product.name }}">
+          <img class="card__img" style="aspect-ratio:auto;border-radius:1rem" src="{{ product.main_image_url }}" alt="{{ product.name }}">
         {% else %}
           <div class="card__img" style="aspect-ratio:16/9;border-radius:1rem"></div>
         {% endif %}
@@ -303,7 +303,7 @@
           <article class="card">
             <a href="{% url 'store-product' slug=p.slug %}">
               {% if p.main_image %}
-                <img class="card__img" src="{{ p.main_image.url }}" alt="{{ p.name }}">
+                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}">
               {% else %}
                 <div class="card__img" style="aspect-ratio:16/9"></div>
               {% endif %}
@@ -344,7 +344,7 @@
           <article class="card">
             <a href="{% url 'store-product' slug=p.slug %}">
               {% if p.main_image %}
-                <img class="card__img" src="{{ p.main_image.url }}" alt="{{ p.name }}">
+                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}">
               {% else %}
                 <div class="card__img" style="aspect-ratio:16/9"></div>
               {% endif %}

@@ -2,7 +2,7 @@ from pathlib import Path
 from decimal import Decimal, InvalidOperation
 import os
 import dj_database_url
-from decouple import config, Csv  # оставил, если используешь .env локально
+from decouple import config, Csv  
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -206,6 +206,29 @@ MARKETING = {
     "google_ads_send_page_view": os.getenv("GOOGLE_ADS_SEND_PAGE_VIEW", "True") == "True",
 }
 
+# ── Company contact (email footer defaults) ──────────────────────────────
+COMPANY_ADDRESS = os.getenv(
+    "COMPANY_ADDRESS",
+    "620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2",
+)
+COMPANY_PHONE = os.getenv("COMPANY_PHONE", "(403) 525-0432")
+COMPANY_WEBSITE = os.getenv("COMPANY_WEBSITE", "badguymotors.com")
+EMAIL_ACCENT_COLOR = os.getenv("EMAIL_ACCENT_COLOR", "#d50000")
+EMAIL_DARK_COLOR = os.getenv("EMAIL_DARK_COLOR", "#0b0b0c")
+EMAIL_BG_COLOR = os.getenv("EMAIL_BG_COLOR", "#0b0b0c")
+SITE_NOTICE_PROMO_CODE = os.getenv("SITE_NOTICE_PROMO_CODE", "")
+SITE_NOTICE_BEST_SELLERS_URL = os.getenv("SITE_NOTICE_BEST_SELLERS_URL", "")
+SITE_NOTICE_SERVICES_URL = os.getenv("SITE_NOTICE_SERVICES_URL", "")
+SITE_NOTICE_BOOKING_URL = os.getenv("SITE_NOTICE_BOOKING_URL", "")
+ABANDONED_CART_EMAIL_1_DELAY_HOURS = int(os.getenv("ABANDONED_CART_EMAIL_1_DELAY_HOURS", "2"))
+ABANDONED_CART_EMAIL_2_DELAY_HOURS = int(os.getenv("ABANDONED_CART_EMAIL_2_DELAY_HOURS", "24"))
+ABANDONED_CART_EMAIL_3_DELAY_HOURS = int(os.getenv("ABANDONED_CART_EMAIL_3_DELAY_HOURS", "72"))
+ABANDONED_CART_CART_URL = os.getenv("ABANDONED_CART_CART_URL", "")
+ABANDONED_CART_CHECKOUT_URL = os.getenv("ABANDONED_CART_CHECKOUT_URL", "")
+ABANDONED_CART_STORE_URL = os.getenv("ABANDONED_CART_STORE_URL", "")
+ORDER_REVIEW_REQUEST_DELAY_DAYS = int(os.getenv("ORDER_REVIEW_REQUEST_DELAY_DAYS", "5"))
+ORDER_REVIEW_URL = os.getenv("ORDER_REVIEW_URL", "")
+
 # ── Currency ──────────────────────────────────────────────────────────────
 DEFAULT_CURRENCY_CODE = os.getenv("DEFAULT_CURRENCY_CODE", "CAD")
 DEFAULT_CURRENCY_SYMBOL = os.getenv("DEFAULT_CURRENCY_SYMBOL", "$")
@@ -219,12 +242,25 @@ SQUARE_FEE_PERCENT = _dec_env("SQUARE_FEE_PERCENT", "0.029")  # 2.9% default
 SQUARE_FEE_FIXED = _dec_env("SQUARE_FEE_FIXED", "0.30")      # $0.30 default
 STORE_GST_RATE = _dec_env("STORE_GST_RATE", "0.05")          # 5% GST
 STORE_PROCESSING_FEE_RATE = _dec_env("STORE_PROCESSING_FEE_RATE", "0.035")  # 3.5% processing fee
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "")
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "openaicamrose@gmail.com")
 ETRANSFER_EMAIL = os.getenv("ETRANSFER_EMAIL", SUPPORT_EMAIL or "Payments@badguymotors.ca")
 ETRANSFER_MEMO_HINT = os.getenv(
     "ETRANSFER_MEMO_HINT",
     "Include your order number and phone in the transfer message.",
 )
+
+# ── Email (SendGrid SMTP) ────────────────────────────────────────────────
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.sendgrid.net")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "apikey")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", os.getenv("SENDGRID_API_KEY", ""))
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False") == "True"
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+if EMAIL_USE_SSL:
+    EMAIL_USE_TLS = False
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", SUPPORT_EMAIL or "")
 
 # ── Приложения ───────────────────────────────────────────────────────────
 INSTALLED_APPS = [

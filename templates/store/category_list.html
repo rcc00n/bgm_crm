@@ -35,7 +35,7 @@
           <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
             <div class="card__img">
               {% if p.main_image %}
-                <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
               {% elif p.image %}
                 <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
               {% else %}
@@ -108,10 +108,12 @@
   .card__img{position:relative;overflow:hidden;border-radius:.9rem}
   .img-fit{width:100%;height:100%;object-fit:cover;aspect-ratio:16/9;display:block}
 
-  .product__meta{padding:.8rem}
+  .card.product{display:flex;flex-direction:column;height:100%}
+  .product__meta{padding:.8rem;display:flex;flex-direction:column;flex:1}
   .product__title{margin:.6rem 0 0}
   .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
   .price--stacked{flex-direction:column;align-items:flex-start;gap:.3rem}
+  .product__meta .price{margin-top:auto;padding-top:.35rem}
   .price__retail-row{display:flex;gap:.45rem;align-items:baseline}
   .price__dealer-row{
     display:inline-flex;

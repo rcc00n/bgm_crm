@@ -106,7 +106,7 @@ def notify_about_appointment(appointment_id) -> int:
         f"<b>New appointment booked</b>\n"
         f"Client: {client_name}\n"
         f"Service: {service_name}\n"
-        f"Master: {master_name}\n"
+        f"Tech: {master_name}\n"
         f"When: {start}\n"
     )
     if appointment.contact_phone:

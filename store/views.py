@@ -9,7 +9,7 @@ import json
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
+from core.emails import build_email_html, send_html_email
 from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Count, Q
@@ -18,7 +18,16 @@ from django.views.decorators.http import require_POST
 from PIL import Image, UnidentifiedImageError
 from square.client import Square, SquareEnvironment
 
-from .models import Category, Order, OrderItem, Product, ProductOption, CarMake, CarModel
+from .models import (
+    AbandonedCart,
+    Category,
+    Order,
+    OrderItem,
+    Product,
+    ProductOption,
+    CarMake,
+    CarModel,
+)
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm
 from core.models import Payment, PaymentMethod
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
@@ -266,12 +275,35 @@ def _notify_fitment_request(request_obj):
 
     sender = getattr(settings, "DEFAULT_FROM_EMAIL", None) or recipients[0]
     try:
-        send_mail(
+        detail_rows = [
+            ("Product", request_obj.product_name or "—"),
+            ("Customer", request_obj.customer_name),
+            ("Email", request_obj.email),
+            ("Phone", request_obj.phone or "—"),
+            ("Vehicle", request_obj.vehicle or "—"),
+            ("Submodel", request_obj.submodel or "—"),
+            ("Performance goals", request_obj.performance_goals or "—"),
+            ("Budget", request_obj.budget or "—"),
+            ("Timeline", request_obj.timeline or "—"),
+        ]
+        if request_obj.source_url:
+            detail_rows.append(("Source", request_obj.source_url))
+        html_body = build_email_html(
+            title="New custom fitment request",
+            preheader=f"New request from {request_obj.customer_name}",
+            greeting="Team,",
+            intro_lines=["A new custom fitment request just landed. Details below."],
+            detail_rows=detail_rows,
+            notice_title="Notes",
+            notice_lines=[request_obj.message or "—"],
+            footer_lines=["Reply to the customer within 1-2 business days."],
+        )
+        send_html_email(
             subject=subject,
-            message="\n".join(lines),
+            text_body="\n".join(lines),
+            html_body=html_body,
             from_email=sender,
             recipient_list=recipients,
-            fail_silently=False,
         )
     except Exception:
         logger.exception("Failed to notify about custom fitment request (id=%s)", request_obj.pk)
@@ -327,6 +359,7 @@ def _send_order_confirmation(
         f"Order total (incl. GST/fees): {currency_symbol}{total_with_fees} {currency_code}",
     ]
 
+    payment_method_label = "Interac e-Transfer" if payment_method == "etransfer" else "Card (Square)"
     if payment_method == "etransfer":
         send_to = _normalize_etransfer_email(etransfer_email or getattr(settings, "ETRANSFER_EMAIL", ""))
         lines.append("Payment method: Interac e-Transfer.")
@@ -372,12 +405,62 @@ def _send_order_confirmation(
         or _normalize_etransfer_email(getattr(settings, "ETRANSFER_EMAIL", None))
     )
     try:
-        send_mail(
+        detail_rows = [
+            ("Order #", order.id),
+            ("Payment option", pay_mode_label),
+            ("Payment method", payment_method_label),
+            ("Order total (incl. GST/fees)", f"{currency_symbol}{total_with_fees} {currency_code}"),
+        ]
+        summary_rows = []
+        notice_title = None
+        notice_lines = []
+        if payment_method == "etransfer":
+            summary_rows.append(("Amount to send now", f"{currency_symbol}{amount_now} {currency_code}"))
+            if balance_left > 0:
+                summary_rows.append(("Balance after payment", f"{currency_symbol}{balance_left} {currency_code}"))
+            notice_title = "Payment instructions"
+            if send_to:
+                notice_lines.append(f"Send to: {send_to}.")
+            if etransfer_memo_hint:
+                notice_lines.append(f"Include: Order #{order.id} - {etransfer_memo_hint}")
+            else:
+                notice_lines.append(f"Include: Order #{order.id}")
+        else:
+            summary_rows.append(("Charged now", f"{currency_symbol}{amount_now} {currency_code}"))
+            if balance_left > 0:
+                summary_rows.append(("Balance remaining", f"{currency_symbol}{balance_left} {currency_code}"))
+            if receipt:
+                notice_title = "Receipt"
+                notice_lines.append(f"Square receipt: {receipt}")
+
+        item_rows = []
+        if items:
+            for it in items:
+                name = getattr(it.product, "name", "Item")
+                if getattr(it, "option", None):
+                    name = f"{name} ({it.option.name})"
+                item_rows.append((name, f"x {it.qty}"))
+
+        html_body = build_email_html(
+            title="Order confirmed",
+            preheader=f"Order #{order.id} confirmed",
+            greeting=f"Hi {order.customer_name},",
+            intro_lines=[f"Thanks for your order with {brand}. We've got it and will follow up shortly."],
+            detail_rows=detail_rows,
+            item_rows=item_rows,
+            summary_rows=summary_rows,
+            notice_title=notice_title,
+            notice_lines=notice_lines,
+            footer_lines=["Questions? Reply to this email and we'll help."],
+            cta_label=f"Visit {brand}",
+            cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
+        )
+        send_html_email(
             subject=subject,
-            message="\n".join(lines),
+            text_body="\n".join(lines),
+            html_body=html_body,
             from_email=sender,
             recipient_list=[recipient],
-            fail_silently=False,
         )
     except Exception:
         logger.exception("Failed to send order confirmation email for order %s", getattr(order, "pk", None))
@@ -626,6 +709,89 @@ def _cart_positions(session, *, dealer_discount: int = 0):
     total_quantized = total.quantize(quant) if positions else Decimal("0.00")
     retail_quantized = retail_total.quantize(quant) if positions else Decimal("0.00")
     return positions, total_quantized, retail_quantized
+
+
+def _ensure_session_key(request) -> str:
+    if not request.session.session_key:
+        request.session.save()
+    return request.session.session_key or ""
+
+
+def _build_abandoned_cart_items(positions: list[dict]) -> list[dict]:
+    items = []
+    for entry in positions:
+        product = entry.get("product")
+        if not product:
+            continue
+        option = entry.get("option")
+        name = product.name
+        if option:
+            name = f"{name} ({option.name})"
+        items.append(
+            {
+                "name": name,
+                "qty": int(entry.get("qty") or 1),
+                "line_total": str(entry.get("line_total") or "0.00"),
+            }
+        )
+    return items
+
+
+def _record_abandoned_cart(request, *, email: str, positions: list[dict], total: Decimal):
+    if not email or not positions:
+        return
+    now = timezone.now()
+    session_key = _ensure_session_key(request)
+    items = _build_abandoned_cart_items(positions)
+    if not items:
+        return
+    defaults = {
+        "user": request.user if request.user.is_authenticated else None,
+        "cart_items": items,
+        "cart_total": total or Decimal("0.00"),
+        "currency_code": getattr(settings, "DEFAULT_CURRENCY_CODE", ""),
+        "currency_symbol": getattr(settings, "DEFAULT_CURRENCY_SYMBOL", ""),
+        "last_activity_at": now,
+    }
+    existing = AbandonedCart.objects.filter(
+        recovered_at__isnull=True,
+        email__iexact=email,
+        session_key=session_key,
+    ).order_by("-updated_at").first()
+    if existing:
+        if defaults["user"] and existing.user_id is None:
+            existing.user = defaults["user"]
+        existing.cart_items = defaults["cart_items"]
+        existing.cart_total = defaults["cart_total"]
+        existing.currency_code = defaults["currency_code"]
+        existing.currency_symbol = defaults["currency_symbol"]
+        existing.last_activity_at = defaults["last_activity_at"]
+        existing.save(
+            update_fields=[
+                "user",
+                "cart_items",
+                "cart_total",
+                "currency_code",
+                "currency_symbol",
+                "last_activity_at",
+                "updated_at",
+            ]
+        )
+    else:
+        AbandonedCart.objects.create(
+            email=email,
+            session_key=session_key,
+            **defaults,
+        )
+
+
+def _mark_abandoned_cart_recovered(email: str):
+    if not email:
+        return
+    AbandonedCart.objects.filter(
+        recovered_at__isnull=True,
+        email__iexact=email,
+    ).update(recovered_at=timezone.now())
 
 @require_POST
 def cart_add(request, slug: str):
@@ -1078,6 +1244,7 @@ def checkout(request):
                     etransfer_memo_hint=etransfer_memo_hint,
                     receipt_url=payment_resp.get("receipt_url", ""),
                 ))
+                transaction.on_commit(lambda: _mark_abandoned_cart_recovered(form.get("email", "")))
 
             if is_etransfer:
                 et_email = etransfer_email
@@ -1111,6 +1278,19 @@ def checkout(request):
             "order_total_with_fees": float(data["order_total_with_fees"]),
         } for key, data in payment_options.items()
     }
+
+    if (
+        request.method == "POST"
+        and positions
+        and form.get("email")
+        and "email" not in errors
+    ):
+        _record_abandoned_cart(
+            request,
+            email=form.get("email", ""),
+            positions=positions,
+            total=total,
+        )
 
     return render(
         request,

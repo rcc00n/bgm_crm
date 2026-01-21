@@ -34,6 +34,7 @@
       --font-body: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
       --font-display: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; /* brand mark */
       --font-head: "Ford", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;       /* accent headers */
+      --font-ui: var(--font-display);
     }
 
     @font-face{
@@ -85,22 +86,37 @@
     }
 
     /* Brand (text mark uses Diesel) */
-    .brand{ display:flex; align-items:baseline; gap:.9rem; min-width:max-content; font-weight:900; letter-spacing:.06em; }
+    .brand{ display:flex; align-items:baseline; gap:.9rem; min-width:max-content; font-weight:900; letter-spacing:.5px; }
     .brand__logo{ all:unset; display:inline-flex; gap:.5rem; line-height:1; font-weight:900; letter-spacing:.06em; font-size:clamp(1.2rem,1.8vw,1.55rem); font-family:var(--font-display); text-transform:uppercase; }
     .brand__word--white{ color:#fff; }
     .brand__word--red{ color:var(--accent); }
     .brand__tagline{
-      margin-left:1.1rem; white-space:nowrap; font-size:.88rem;
-      font-weight:900; letter-spacing:.12em; color:rgba(255,255,255,.78); font-family:var(--font-body); text-transform:uppercase;
+      margin-left:1.1rem; white-space:nowrap; font-size:clamp(.78rem,.95vw,.95rem);
+      font-weight:900; letter-spacing:.12em; line-height:1; color:rgba(255,255,255,.78); text-transform:uppercase;
     }
 
     /* Nav (desktop) */
     nav{ margin-left:auto; }
-    nav ul{ display:flex; align-items:center; gap:1.6rem; list-style:none; }
-    nav a{ line-height:1; font-weight:700; letter-spacing:.02em; font-size:.9rem; text-transform:none; color:rgba(255,255,255,.92); }
+    nav ul{ display:flex; align-items:center; gap:1.4rem; list-style:none; }
+    nav a{
+      display:inline-flex; align-items:center; gap:.45rem;
+      line-height:1; font-weight:800; letter-spacing:.08em; font-size:.82rem;
+      text-transform:uppercase; color:rgba(255,255,255,.78);
+    }
     nav a:hover, nav a[aria-current="page"]{ color:#fff; }
     nav .btn, nav .btn--ghost{ padding:0; border:0; background:none; border-radius:0; }
-    nav .badge{ padding:.12rem .5rem; font-size:.72rem; transform:translateY(-.04rem); }
+    nav .badge{ padding:.15rem .55rem; font-size:.78rem; transform:none; }
+
+    .site-header .brand,
+    .site-header .brand__logo,
+    .site-header .brand__logo .brand__word,
+    .site-header .brand__tagline,
+    .site-header nav a,
+    .site-header nav .btn,
+    .site-header nav .btn--ghost{
+      font-family:var(--font-ui, var(--font-body));
+      font-style:normal;
+    }
 
     /* Mobile toggle (hamburger) */
     .site-header__toggle{

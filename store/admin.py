@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -84,7 +85,8 @@ class StorePricingSettingsAdmin(admin.ModelAdmin):
             "Global price multiplier",
             {
                 "description": (
-                    "Sets one multiplier for all store product and option prices. "
+                    "Sets one multiplier for all store product and option prices "
+                    "(except in-house products). "
                     "100 = no change, 110 = +10%. Use whole percents."
                 ),
                 "fields": ("price_multiplier_percent",),
@@ -131,9 +133,26 @@ class ProductAdmin(admin.ModelAdmin):
     """
     form = ProductAdminForm
     change_list_template = "admin/store/product/change_list.html"
-    list_display = ("name", "sku", "category_short", "price", "currency", "inventory", "is_active", "contact_for_estimate")
+    list_display = (
+        "name",
+        "sku",
+        "category_short",
+        "price",
+        "currency",
+        "inventory",
+        "is_in_house",
+        "is_active",
+        "contact_for_estimate",
+    )
     list_editable = ("is_active",)
-    list_filter = ("is_active", "category", "currency", "contact_for_estimate", CleanupStatusFilter)
+    list_filter = (
+        "is_active",
+        "is_in_house",
+        "category",
+        "currency",
+        "contact_for_estimate",
+        CleanupStatusFilter,
+    )
     search_fields = ("name", "sku", "description")
     prepopulated_fields = {"slug": ("name",)}
     list_select_related = ("category",)
@@ -144,6 +163,7 @@ class ProductAdmin(admin.ModelAdmin):
     fields = (
         "name", "slug", "sku", "category",
         ("price", "contact_for_estimate"),
+        "is_in_house",
         "estimate_from_price",
         "currency", "inventory", "is_active",
         "main_image",
@@ -176,6 +196,16 @@ class ProductAdmin(admin.ModelAdmin):
                 "rollback-last-cleanup/",
                 self.admin_site.admin_view(self.rollback_last_cleanup_view),
                 name=f"{opts.app_label}_{opts.model_name}_rollback_last_cleanup",
+            ),
+            path(
+                "autofill-missing-photos/",
+                self.admin_site.admin_view(self.autofill_missing_photos_view),
+                name=f"{opts.app_label}_{opts.model_name}_autofill_missing_photos",
+            ),
+            path(
+                "rollback-autofill-photos/",
+                self.admin_site.admin_view(self.rollback_autofill_photos_view),
+                name=f"{opts.app_label}_{opts.model_name}_rollback_autofill_photos",
             ),
         ]
         return custom_urls + urls
@@ -214,6 +244,18 @@ class ProductAdmin(admin.ModelAdmin):
             )
         except Exception:
             extra_context["cleanup_rollback_url"] = None
+        try:
+            extra_context["autofill_photos_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_autofill_missing_photos"
+            )
+        except Exception:
+            extra_context["autofill_photos_url"] = None
+        try:
+            extra_context["autofill_rollback_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_rollback_autofill_photos"
+            )
+        except Exception:
+            extra_context["autofill_rollback_url"] = None
         extra_context["last_import"] = last_import
         extra_context["last_cleanup"] = last_cleanup
         return super().changelist_view(request, extra_context=extra_context)
@@ -330,6 +372,188 @@ class ProductAdmin(admin.ModelAdmin):
             category__name__iexact="Uncategorized",
             is_active=True,
             cleanup_batch__isnull=True,
+        )
+
+    def _missing_image_queryset(self, *, include_inactive: bool):
+        qs = Product.objects.filter(Q(main_image__isnull=True) | Q(main_image=""))
+        if not include_inactive:
+            qs = qs.filter(is_active=True)
+        return qs
+
+    def _autofill_source_template(self) -> str:
+        return getattr(
+            settings,
+            "PRODUCT_AUTOFILL_IMAGE_URL",
+            "https://picsum.photos/seed/{seed}/1200/1200",
+        )
+
+    def _format_autofill_url(self, template: str, product: Product) -> str:
+        seed = f"product-{product.pk}"
+        return template.replace("{seed}", seed)
+
+    def _matches_autofill_url(self, url: str, template: str) -> bool:
+        if not url:
+            return False
+        if "{seed}" not in template:
+            return url == template
+        parts = template.split("{seed}")
+        if not url.startswith(parts[0]) or not url.endswith(parts[-1]):
+            return False
+        pos = len(parts[0])
+        for mid in parts[1:-1]:
+            idx = url.find(mid, pos)
+            if idx == -1:
+                return False
+            pos = idx + len(mid)
+        return True
+
+    def _autofill_candidate_queryset(self, template: str):
+        qs = Product.objects.exclude(main_image__isnull=True).exclude(main_image="")
+        if "{seed}" not in template:
+            return qs.filter(main_image=template)
+        parts = template.split("{seed}")
+        prefix = parts[0]
+        suffix = parts[-1]
+        if prefix:
+            qs = qs.filter(main_image__startswith=prefix)
+        if suffix:
+            qs = qs.filter(main_image__endswith=suffix)
+        return qs
+
+    def _main_image_name(self, product: Product) -> str:
+        image = getattr(product, "main_image", None)
+        if not image:
+            return ""
+        return getattr(image, "name", "") or str(image)
+
+    def autofill_missing_photos_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+
+        missing_active = self._missing_image_queryset(include_inactive=False).count()
+        missing_inactive = (
+            self._missing_image_queryset(include_inactive=True)
+            .filter(is_active=False)
+            .count()
+        )
+        include_inactive = bool(request.POST.get("include_inactive"))
+
+        if request.method == "POST":
+            missing_qs = self._missing_image_queryset(include_inactive=include_inactive)
+            missing_count = missing_qs.count()
+            if missing_count == 0:
+                messages.info(request, "No products are missing a main image.")
+                return redirect(
+                    reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+                )
+
+            source_template = self._autofill_source_template()
+            updated = 0
+            skipped = 0
+            errors = []
+
+            for product in missing_qs.iterator():
+                if product.main_image:
+                    skipped += 1
+                    continue
+                url = self._format_autofill_url(source_template, product)
+                try:
+                    Product.objects.filter(pk=product.pk).update(
+                        main_image=url,
+                        updated_at=timezone.now(),
+                    )
+                except Exception as exc:
+                    errors.append(f"{product.pk}: {exc}")
+                    continue
+                updated += 1
+
+            if updated:
+                messages.success(request, f"Added photo URLs to {updated} products.")
+            else:
+                messages.warning(request, "No photo URLs were added.")
+            if skipped:
+                messages.info(request, f"Skipped {skipped} products already updated.")
+            if errors:
+                sample = "; ".join(errors[:5])
+                if len(errors) > 5:
+                    sample += f"; and {len(errors) - 5} more."
+                messages.warning(request, f"Errors: {sample}")
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Autofill missing photos",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+            "has_view_permission": self.has_view_permission(request),
+            "product_changelist_url": reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            ),
+            "missing_active": missing_active,
+            "missing_inactive": missing_inactive,
+            "include_inactive": include_inactive,
+        }
+        return TemplateResponse(
+            request,
+            "admin/store/product/autofill_missing_photos.html",
+            context,
+        )
+
+    def rollback_autofill_photos_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+
+        source_template = self._autofill_source_template()
+        candidate_qs = self._autofill_candidate_queryset(source_template)
+        candidate_count = candidate_qs.count()
+
+        if request.method == "POST":
+            if candidate_count == 0:
+                messages.info(request, "No autofilled photos found.")
+                return redirect(
+                    reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+                )
+
+            cleared = 0
+            skipped = 0
+            for product in candidate_qs.iterator():
+                image_name = self._main_image_name(product)
+                if not self._matches_autofill_url(image_name, source_template):
+                    skipped += 1
+                    continue
+                Product.objects.filter(pk=product.pk).update(
+                    main_image=None,
+                    updated_at=timezone.now(),
+                )
+                cleared += 1
+
+            if cleared:
+                messages.success(request, f"Cleared autofilled photos for {cleared} products.")
+            else:
+                messages.warning(request, "No autofilled photos were cleared.")
+            if skipped:
+                messages.info(request, f"Skipped {skipped} products that did not match the autofill pattern.")
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Rollback autofill photos",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+            "has_view_permission": self.has_view_permission(request),
+            "product_changelist_url": reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            ),
+            "autofill_count": candidate_count,
+        }
+        return TemplateResponse(
+            request,
+            "admin/store/product/rollback_autofill_photos.html",
+            context,
         )
 
     def cleanup_junk_view(self, request):
