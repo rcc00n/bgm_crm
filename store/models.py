@@ -304,12 +304,24 @@ class Product(models.Model):
             return [opt for opt in cache["options"] if getattr(opt, "is_active", False)]
         return list(self.options.filter(is_active=True).order_by("sort_order", "id"))
 
+    def get_selectable_options(self):
+        """
+        Active options that are selectable (non-separator).
+        """
+        cache = getattr(self, "_prefetched_objects_cache", {})
+        if cache and "options" in cache:
+            return [
+                opt for opt in cache["options"]
+                if getattr(opt, "is_active", False) and not getattr(opt, "is_separator", False)
+            ]
+        return list(self.options.filter(is_active=True, is_separator=False).order_by("sort_order", "id"))
+
     @property
     def has_active_options(self) -> bool:
         cache = getattr(self, "_prefetched_objects_cache", {})
         if cache and "options" in cache:
-            return any(opt.is_active for opt in cache["options"])
-        return self.options.filter(is_active=True).exists()
+            return any(opt.is_active and not getattr(opt, "is_separator", False) for opt in cache["options"])
+        return self.options.filter(is_active=True, is_separator=False).exists()
 
     def get_companion_items(self, limit: int = 3):
         """
@@ -345,7 +357,7 @@ class Product(models.Model):
 
     def _option_price_values(self):
         apply_multiplier = not self.is_in_house
-        for opt in self.get_active_options():
+        for opt in self.get_selectable_options():
             value = getattr(opt, "price", None)
             if value is not None:
                 try:
@@ -383,6 +395,11 @@ class ProductOption(models.Model):
     name = models.CharField("Name", max_length=120)
     sku = models.CharField("SKU", max_length=64, unique=True, null=True, blank=True)
     description = models.CharField("Description", max_length=240, blank=True)
+    is_separator = models.BooleanField(
+        "Separator",
+        default=False,
+        help_text="Show this option as a non-selectable separator in the option list.",
+    )
     price = models.DecimalField(
         "Price override",
         max_digits=10,

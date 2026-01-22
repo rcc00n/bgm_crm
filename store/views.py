@@ -534,6 +534,7 @@ def product_detail(request, slug: str):
         is_active=True
     )
     options = product.get_active_options()
+    default_option = next((opt for opt in options if not getattr(opt, "is_separator", False)), None)
     related = (
         Product.objects.filter(is_active=True, category=product.category)
         .exclude(pk=product.pk)
@@ -568,6 +569,7 @@ def product_detail(request, slug: str):
             "product": product,
             "related": related,
             "product_options": options,
+            "default_option_id": default_option.id if default_option else None,
             "go_along": go_along,
             "quote_form": quote_form,
         },
@@ -818,6 +820,9 @@ def cart_add(request, slug: str):
             option = get_object_or_404(ProductOption, id=option_id, product=product)
             if not option.is_active:
                 messages.error(request, "This option is currently unavailable.")
+                return redirect("store:store-product", slug=product.slug)
+            if getattr(option, "is_separator", False):
+                messages.error(request, "Please select a valid option.")
                 return redirect("store:store-product", slug=product.slug)
     elif product.has_active_options:
         messages.error(request, "Please select an option before adding the product to the cart.")

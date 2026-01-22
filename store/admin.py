@@ -1,5 +1,6 @@
 # store/admin.py
 import os
+import re
 
 from django.conf import settings
 from django.contrib import admin, messages
@@ -71,7 +72,7 @@ class CleanupStatusFilter(admin.SimpleListFilter):
 class ProductOptionInline(admin.TabularInline):
     model = ProductOption
     extra = 1
-    fields = ("name", "sku", "description", "price", "is_active", "sort_order")
+    fields = ("name", "sku", "description", "is_separator", "price", "is_active", "sort_order")
     ordering = ("sort_order", "id")
 
 
@@ -135,6 +136,8 @@ class ProductAdmin(admin.ModelAdmin):
     - HTML preview для specs
     - галерея через inline
     """
+    NAME_CLEANUP_WORDS = ("DIESELR", "EFI", "EZ", "Lynk")
+    NAME_CLEANUP_PATTERN = re.compile(r"\b(?:DIESELR|EFI|EZ|Lynk)\b", re.IGNORECASE)
     form = ProductAdminForm
     change_list_template = "admin/store/product/change_list.html"
     list_display = (
@@ -197,6 +200,11 @@ class ProductAdmin(admin.ModelAdmin):
                 name=f"{opts.app_label}_{opts.model_name}_cleanup_junk",
             ),
             path(
+                "name-cleanup/",
+                self.admin_site.admin_view(self.name_cleanup_view),
+                name=f"{opts.app_label}_{opts.model_name}_name_cleanup",
+            ),
+            path(
                 "rollback-last-cleanup/",
                 self.admin_site.admin_view(self.rollback_last_cleanup_view),
                 name=f"{opts.app_label}_{opts.model_name}_rollback_last_cleanup",
@@ -247,6 +255,12 @@ class ProductAdmin(admin.ModelAdmin):
             )
         except Exception:
             extra_context["cleanup_url"] = None
+        try:
+            extra_context["name_cleanup_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_name_cleanup"
+            )
+        except Exception:
+            extra_context["name_cleanup_url"] = None
         try:
             extra_context["cleanup_rollback_url"] = reverse(
                 f"admin:{opts.app_label}_{opts.model_name}_rollback_last_cleanup"
@@ -388,6 +402,24 @@ class ProductAdmin(admin.ModelAdmin):
             is_active=True,
             cleanup_batch__isnull=True,
         )
+
+    def _name_cleanup_candidates(self):
+        query = Q()
+        for term in self.NAME_CLEANUP_WORDS:
+            query |= Q(name__icontains=term)
+        if not query:
+            return Product.objects.none()
+        return Product.objects.filter(query)
+
+    def _clean_product_name(self, name: str) -> str:
+        if not name:
+            return ""
+        cleaned = self.NAME_CLEANUP_PATTERN.sub(" ", name)
+        cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+        cleaned = re.sub(r"^[\s\-_/.,]+", "", cleaned)
+        cleaned = re.sub(r"[\s\-_/.,]+$", "", cleaned)
+        cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+        return cleaned
 
     def _missing_image_queryset(self, *, include_inactive: bool):
         qs = Product.objects.filter(Q(main_image__isnull=True) | Q(main_image=""))
@@ -941,6 +973,98 @@ class ProductAdmin(admin.ModelAdmin):
         }
         return TemplateResponse(request, "admin/store/product/cleanup_junk.html", context)
 
+    def name_cleanup_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+
+        terms = list(self.NAME_CLEANUP_WORDS)
+        candidates_qs = self._name_cleanup_candidates()
+        candidate_count = candidates_qs.count()
+        update_count = 0
+        blank_count = 0
+
+        if request.method == "POST":
+            if candidate_count == 0:
+                messages.info(request, "No products match the cleanup terms.")
+                return redirect(
+                    reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+                )
+
+            updated = 0
+            skipped_blank = 0
+            skipped_unchanged = 0
+            errors = []
+
+            for product in candidates_qs.iterator():
+                cleaned = self._clean_product_name(product.name)
+                if cleaned == product.name:
+                    skipped_unchanged += 1
+                    continue
+                if not cleaned:
+                    skipped_blank += 1
+                    continue
+                try:
+                    Product.objects.filter(pk=product.pk).update(
+                        name=cleaned,
+                        updated_at=timezone.now(),
+                    )
+                except Exception as exc:
+                    errors.append(f"{product.pk}: {exc}")
+                    continue
+                updated += 1
+
+            if updated:
+                messages.success(request, f"Updated {updated} product names.")
+            else:
+                messages.warning(request, "No product names were updated.")
+            if skipped_blank:
+                messages.warning(
+                    request,
+                    f"Skipped {skipped_blank} product(s) that would become blank.",
+                )
+            if skipped_unchanged:
+                messages.info(
+                    request,
+                    f"Skipped {skipped_unchanged} product(s) with no matching terms.",
+                )
+            if errors:
+                sample = "; ".join(errors[:5])
+                if len(errors) > 5:
+                    sample += f"; and {len(errors) - 5} more."
+                messages.warning(request, f"Errors: {sample}")
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        for product in candidates_qs.iterator():
+            cleaned = self._clean_product_name(product.name)
+            if cleaned == product.name:
+                continue
+            if cleaned:
+                update_count += 1
+            else:
+                blank_count += 1
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Name cleanup",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+            "has_view_permission": self.has_view_permission(request),
+            "product_changelist_url": reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            ),
+            "terms": terms,
+            "candidate_count": candidate_count,
+            "update_count": update_count,
+            "blank_count": blank_count,
+        }
+        return TemplateResponse(
+            request,
+            "admin/store/product/name_cleanup.html",
+            context,
+        )
+
     def rollback_last_cleanup_view(self, request):
         if not self.has_change_permission(request):
             raise PermissionDenied
@@ -1065,8 +1189,8 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductOption)
 class ProductOptionAdmin(admin.ModelAdmin):
-    list_display = ("name", "sku", "product", "price", "is_active", "sort_order")
-    list_filter = ("is_active",)
+    list_display = ("name", "sku", "product", "price", "is_separator", "is_active", "sort_order")
+    list_filter = ("is_active", "is_separator")
     search_fields = ("name", "sku", "product__name", "product__sku")
     autocomplete_fields = ("product",)
     ordering = ("product__name", "sort_order", "id")
