@@ -218,6 +218,7 @@ class PageFontSetting(models.Model):
 
     class Page(models.TextChoices):
         HOME = "home", "Home page"
+        FINANCING = "financing", "Financing page"
         BRAKE_SUSPENSION = "brake_suspension", "Brake & Suspension page"
         WHEEL_TIRE_SERVICE = "wheel_tire_service", "Wheel & Tire Service page"
         PERFORMANCE_TUNING = "performance_tuning", "Performance Tuning page"

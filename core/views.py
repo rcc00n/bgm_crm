@@ -491,7 +491,8 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
 from django.shortcuts import render
 
 def financing_view(request):
-    return render(request, "financing.html")
+    font_settings = build_page_font_context(PageFontSetting.Page.FINANCING)
+    return render(request, "financing.html", {"font_settings": font_settings})
 
 def our_story_view(request):
     return render(request, "client/our_story.html")
