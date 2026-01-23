@@ -368,23 +368,7 @@
 
   {% block body %}{% endblock %}
 
-  <footer class="site-footer" id="contact">
-    <div class="container site-footer__inner">
-      <div style="display:flex;align-items:center;gap:.75rem">
-        <span class="brand__logo" aria-hidden="true" style="width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent));box-shadow:0 0 40px -6px var(--accent-2)"></span>
-        <b>Bad Guy Motors</b>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-        <strong>Contact us:</strong>
-        <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
-        <span aria-hidden="true">•</span>
-        <a href="tel:+14035250432">(403) 525-0432</a>
-      </div>
-
-      <div class="section__desc">© 2025 Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
-    </div>
-  </footer>
+  {% include "includes/site_footer.html" %}
 
   <!-- Contact FAB + Modal -->
   <button type="button" id="contactFab" class="contact-fab"

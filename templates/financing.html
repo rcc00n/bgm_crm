@@ -699,22 +699,7 @@ html{ font-size: 17px; }                      /* было 16px */
     </section>
   </main>
 
-  <footer class="site-footer" id="contact">
-  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:.75rem">
-      <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-      <strong>Contact us:</strong>
-      <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
-      <span aria-hidden="true">•</span>
-      <a href="tel:+14035250432">(403) 525-0432</a>
-    </div>
-
-    <div class="section__desc">© {{ now|date:"Y" }} Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
-  </div>
-</footer>
+  {% include "includes/site_footer.html" %}
 
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>

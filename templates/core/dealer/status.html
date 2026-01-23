@@ -400,9 +400,7 @@
     </section>
   </main>
 
-  <footer class="container">
-    © {{ now|date:"Y" }} BGM Customs. Dealer portal.
-  </footer>
+  {% include "includes/site_footer.html" %}
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
