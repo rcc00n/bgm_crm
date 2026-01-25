@@ -318,7 +318,7 @@ def _select_home_products(
     products_qs,
     *,
     limit: int = 8,
-    in_house_target: int = 2,
+    in_house_target: int = 4,
     candidate_limit: int = 200,
 ):
     # Pick newer items across distinct categories and prefer some in-house if available.
@@ -399,7 +399,7 @@ class HomeView(TemplateView):
             .prefetch_related("options")
             .order_by("-created_at")
         )
-        ctx["home_products"] = _select_home_products(products_qs, limit=8, in_house_target=2)
+        ctx["home_products"] = _select_home_products(products_qs, limit=8, in_house_target=4)
         return ctx
 
     
