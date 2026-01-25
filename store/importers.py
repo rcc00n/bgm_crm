@@ -431,6 +431,7 @@ def import_products(
     default_currency: Optional[str] = None,
     update_existing: bool = False,
     create_missing_categories: bool = True,
+    dieselr_foreign: bool = False,
     dry_run: bool = False,
     import_batch=None,
 ) -> ImportResult:
@@ -439,7 +440,8 @@ def import_products(
         return ImportResult(errors=["The import file has no data rows."])
 
     file_name = (uploaded_file.name or "").lower()
-    price_multiplier = Decimal("1.4") if "dieselr" in file_name else Decimal("1.0")
+    dieselr_from_name = "dieselr" in file_name
+    price_multiplier = Decimal("1.4") if (dieselr_foreign or dieselr_from_name) else Decimal("1.0")
 
     auto_mode = mode == "auto"
     if auto_mode:

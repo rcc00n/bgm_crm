@@ -312,6 +312,7 @@ class ProductAdmin(admin.ModelAdmin):
                         default_currency=form.cleaned_data["default_currency"],
                         update_existing=form.cleaned_data["update_existing"],
                         create_missing_categories=form.cleaned_data["create_missing_categories"],
+                        dieselr_foreign=form.cleaned_data["dieselr_foreign"],
                         dry_run=form.cleaned_data["dry_run"],
                         import_batch=import_batch,
                     )
