@@ -137,6 +137,8 @@
 
     /* Services list */
     .section-title{margin:1.2rem 0 .6rem;font-size:.85rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+    .services-grid{display:grid;gap:1rem}
+    .services-grid .service-card{margin:0}
     .service-card{
       border:1px solid var(--line);background:var(--panel-2);
       padding:1rem;border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem;
@@ -153,6 +155,8 @@
     .service-card h3{font-size:1.05rem;font-weight:900;letter-spacing:.2px}
     .service-card p{color:var(--muted);font-size:.92rem}
     .service-meta{display:flex;flex-wrap:wrap;gap:.35rem .6rem;align-items:baseline;font-size:.9rem;color:var(--muted)}
+    .service-meta strong{color:#fff;font-weight:900}
+    .muted{color:var(--muted)}
     .price{color:#fff;font-weight:900}
     .badge{font-size:.72rem;background:var(--red);color:#fff;border-radius:999px;padding:.18rem .55rem;margin-left:.35rem;border:1px solid rgba(255,255,255,.14)}
     .empty{padding:.85rem;border:1px dashed var(--line);border-radius:.5rem;background:rgba(255,255,255,.02);color:var(--muted);font-style:italic}
@@ -256,111 +260,126 @@
       {% endif %}
     </form>
 
-    {% if search_results %}
-      <div class="section-title">{{ services_copy.search_results_label }}</div>
-      {% for s in search_results %}
-        <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-          <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
-            {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
-            {% if s.category %}<span class="service-card__badge">{{ s.category.name }}</span>{% endif %}
+    <div class="section-title" id="liveTitle" style="display:none;">{{ services_copy.search_results_label }}</div>
+    <div id="liveGrid" class="services-grid" style="display:none;"></div>
+
+    <div id="serverContent">
+      {% if filters_active %}
+        {% if search_results %}
+          <div class="section-title">{{ services_copy.search_results_label }}</div>
+          <div class="services-grid">
+            {% for s in search_results %}
+              <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
+                  {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
+                  {% if s.category %}<span class="service-card__badge">{{ s.category.name }}</span>{% endif %}
+                </div>
+                <h3>{{ s.name }}</h3>
+                {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
+                <div class="service-meta">
+                  {% if s.contact_for_estimate %}
+                    <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
+                    {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                  {% else %}
+                    {% with disc=s.get_active_discount %}
+                      {% if disc %}
+                        <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
+                        <span class="badge">-{{ disc.discount_percent }}%</span>
+                      {% else %}
+                        <span class="price">${{ s.base_price|floatformat:2 }}</span>
+                      {% endif %}
+                    {% endwith %}
+                  {% endif %}
+                  <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
+                </div>
+                <button class="btn btn--primary" style="width:100%" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                  {{ services_copy.pick_time_label }}
+                </button>
+              </article>
+            {% endfor %}
           </div>
-          <h3>{{ s.name }}</h3>
-          {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
-          <div class="service-meta">
-            {% if s.contact_for_estimate %}
-              <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
-              {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
-            {% else %}
-              {% with disc=s.get_active_discount %}
-                {% if disc %}
-                  <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
-                  <span class="badge">-{{ disc.discount_percent }}%</span>
-                {% else %}
-                  <span class="price">${{ s.base_price|floatformat:2 }}</span>
-                {% endif %}
-              {% endwith %}
+        {% elif not has_any_services %}
+          <div class="empty">{{ services_copy.catalog_empty_label }}</div>
+        {% endif %}
+      {% else %}
+        {% for c in categories %}
+          {% with services=c.service_set.all %}
+            {% if services %}
+              <div class="section-title">{{ c.name }}</div>
+              <div class="services-grid">
+                {% for s in services %}
+                  <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                    <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
+                      {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
+                      <span class="service-card__badge">{{ c.name }}</span>
+                    </div>
+                    <h3>{{ s.name }}</h3>
+                    {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
+                    <div class="service-meta">
+                      {% if s.contact_for_estimate %}
+                        <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
+                        {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                      {% else %}
+                        {% with disc=s.get_active_discount %}
+                          {% if disc %}
+                            <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
+                            <span class="badge">-{{ disc.discount_percent }}%</span>
+                          {% else %}
+                            <span class="price">${{ s.base_price|floatformat:2 }}</span>
+                          {% endif %}
+                        {% endwith %}
+                      {% endif %}
+                      <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
+                    </div>
+                    <button class="btn btn--primary" style="width:100%" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                      {{ services_copy.pick_time_label }}
+                    </button>
+                  </article>
+                {% endfor %}
+              </div>
             {% endif %}
-            <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
+          {% endwith %}
+        {% endfor %}
+
+        {% if uncategorized %}
+          <div class="section-title">{{ services_copy.uncategorized_title }}</div>
+          <div class="services-grid">
+            {% for s in uncategorized %}
+              <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
+                  {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
+                </div>
+                <h3>{{ s.name }}</h3>
+                {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
+                <div class="service-meta">
+                  {% if s.contact_for_estimate %}
+                    <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
+                    {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                  {% else %}
+                    {% with disc=s.get_active_discount %}
+                      {% if disc %}
+                        <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
+                        <span class="badge">-{{ disc.discount_percent }}%</span>
+                      {% else %}
+                        <span class="price">${{ s.base_price|floatformat:2 }}</span>
+                      {% endif %}
+                    {% endwith %}
+                  {% endif %}
+                  <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
+                </div>
+                <button class="btn btn--primary" style="width:100%" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                  {{ services_copy.pick_time_label }}
+                </button>
+              </article>
+            {% endfor %}
           </div>
-          <button class="btn btn--primary" style="width:100%" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-            {{ services_copy.pick_time_label }}
-          </button>
-        </article>
-      {% empty %}
-        <div class="empty">{{ services_copy.search_no_results_prefix }} "{{ q }}"{{ services_copy.search_no_results_suffix }}</div>
-      {% endfor %}
-    {% else %}
-      {% for c in categories %}
-        <div class="section-title">{{ c.name }}</div>
-        {% for s in c.service_set.all %}
-          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-            <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
-              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
-              <span class="service-card__badge">{{ c.name }}</span>
-            </div>
-            <h3>{{ s.name }}</h3>
-            {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
-            <div class="service-meta">
-              {% if s.contact_for_estimate %}
-                <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
-                {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
-              {% else %}
-                {% with disc=s.get_active_discount %}
-                  {% if disc %}
-                    <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
-                    <span class="badge">-{{ disc.discount_percent }}%</span>
-                  {% else %}
-                    <span class="price">${{ s.base_price|floatformat:2 }}</span>
-                  {% endif %}
-                {% endwith %}
-              {% endif %}
-              <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
-            </div>
-            <button class="btn btn--primary" style="width:100%" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-              {{ services_copy.pick_time_label }}
-            </button>
-          </article>
-        {% empty %}
-          <div class="empty">{{ services_copy.category_empty_label }}</div>
-        {% endfor %}
-      {% endfor %}
+        {% endif %}
 
-      {% if uncategorized %}
-        <div class="section-title">{{ services_copy.uncategorized_title }}</div>
-        {% for s in uncategorized %}
-          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-            <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
-              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
-            </div>
-            <h3>{{ s.name }}</h3>
-            {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
-            <div class="service-meta">
-              {% if s.contact_for_estimate %}
-                <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
-                {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
-              {% else %}
-                {% with disc=s.get_active_discount %}
-                  {% if disc %}
-                    <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
-                    <span class="badge">-{{ disc.discount_percent }}%</span>
-                  {% else %}
-                    <span class="price">${{ s.base_price|floatformat:2 }}</span>
-                  {% endif %}
-                {% endwith %}
-              {% endif %}
-              <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
-            </div>
-            <button class="btn btn--primary" style="width:100%" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
-              {{ services_copy.pick_time_label }}
-            </button>
-          </article>
-        {% endfor %}
+        {% if not has_any_services %}
+          <div class="empty">{{ services_copy.catalog_empty_label }}</div>
+        {% endif %}
       {% endif %}
-    {% endif %}
-
-    {% if not has_any_services %}
-      <div class="empty">{{ services_copy.catalog_empty_label }}</div>
-    {% endif %}
+    </div>
   </main>
 
   {% include "includes/site_footer.html" %}
@@ -802,6 +821,141 @@
       btnCancel.addEventListener('click', hideModal);
       modal.addEventListener('click', (e)=>{ if (e.target === modal) hideModal(); });
       btnSubmit.addEventListener('click', submitBooking);
+    })();
+  </script>
+
+  <script>
+    (function(){
+      /* ===== Live search (shared behavior) ===== */
+      const qInput = document.querySelector('input[name="q"]');
+      const catSel = document.querySelector('select[name="cat"]');
+      const liveTitle = document.getElementById('liveTitle');
+      const liveGrid  = document.getElementById('liveGrid');
+      const serverContent = document.getElementById('serverContent');
+      const resetLink = document.querySelector('a.btn.btn--ghost[href*="client-dashboard"]');
+      if (!qInput || !catSel || !liveTitle || !liveGrid || !serverContent) return;
+
+      const searchCopy = {
+        contactForEstimate: "{{ services_copy.contact_for_estimate_label|escapejs }}",
+        fromLabel: "{{ services_copy.from_label|escapejs }}",
+        pickTimeLabel: "{{ services_copy.pick_time_label|escapejs }}",
+        durationSeparator: "{{ services_copy.duration_separator|escapejs }}",
+        durationUnit: "{{ services_copy.duration_unit|escapejs }}",
+        serviceImageAriaLabel: "{{ services_copy.service_image_aria_label|escapejs }}",
+        serviceImageFallback: "{{ services_copy.service_image_fallback_label|escapejs }}",
+        bookAriaPrefix: "{{ services_copy.book_aria_prefix|escapejs }}",
+        catalogEmpty: "{{ services_copy.catalog_empty_label|escapejs }}",
+      };
+
+      function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+      function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+      function formatMoney(val){
+        const num = Number(val);
+        if (Number.isFinite(num)) return num.toFixed(2);
+        return val || '';
+      }
+      function showLive(){ liveTitle.style.display='block'; liveGrid.style.display='grid'; serverContent.style.display='none'; }
+      function hideLive(){ liveTitle.style.display='none'; liveGrid.style.display='none'; serverContent.style.display='block'; }
+      function skeleton(n=6){
+        return Array.from({length:n}).map(()=>`
+          <article class="service-card" aria-hidden="true">
+            <div class="service-card__img ph" style="height:auto; aspect-ratio:4/3;"></div>
+            <div class="ph" style="height:16px;margin-top:10px;border-radius:6px;"></div>
+            <div class="ph" style="height:12px;margin-top:6px;border-radius:6px;"></div>
+            <div class="ph" style="height:34px;margin-top:12px;border-radius:10px;"></div>
+          </article>`).join('');
+      }
+      function cardHTML(s){
+        let priceBlock;
+        if (s.contact_for_estimate){
+          const fromVal = s.estimate_from_price ? formatMoney(s.estimate_from_price) : '';
+          const hint = fromVal ? `<span class="price__hint">${escapeHtml(searchCopy.fromLabel)} $${escapeHtml(fromVal)}</span>` : '';
+          priceBlock = `<strong>${escapeHtml(searchCopy.contactForEstimate)}</strong>${hint ? ' ' + hint : ''}`;
+        } else {
+          const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
+          if (hasDisc){
+            priceBlock = `<span class="old">$${escapeHtml(formatMoney(s.base_price))}</span>
+               <strong>$${escapeHtml(formatMoney(s.price))}</strong>
+               <span class="badge">-${escapeHtml(String(s.discount_percent))}%</span>`;
+          } else {
+            const current = s.price || s.base_price;
+            priceBlock = `<strong>$${escapeHtml(formatMoney(current))}</strong>`;
+          }
+        }
+        const desc = s.description ? `<p>${escapeHtml(s.description)}</p>` : '';
+        const hasImage = typeof s.image === 'string' && s.image.trim().length > 0;
+        const media = hasImage
+          ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.name)}" loading="lazy" decoding="async">`
+          : `<div class="ph" aria-hidden="true">${escapeHtml(searchCopy.serviceImageFallback)}</div>`;
+        const badge = s.category ? `<span class="service-card__badge">${escapeHtml(s.category)}</span>` : '';
+        const durationBits = [searchCopy.durationSeparator, String(s.duration_min), searchCopy.durationUnit]
+          .filter(Boolean)
+          .map(escapeHtml)
+          .join(" ");
+        return `
+          <article class="service-card"
+                   data-service-id="${escapeHtml(s.id)}"
+                   data-service-name="${escapeHtml(s.name)}">
+            <div class="service-card__img" aria-label="${escapeHtml(searchCopy.serviceImageAriaLabel)}">
+              ${media}
+              ${badge}
+            </div>
+            <h3>${escapeHtml(s.name)}</h3>
+            ${desc}
+            <div class="service-meta">${priceBlock} ${durationBits}</div>
+            <button class="btn btn--primary"
+                    type="button"
+                    data-service-id="${escapeHtml(s.id)}"
+                    data-service-name="${escapeHtml(s.name)}">${escapeHtml(searchCopy.pickTimeLabel)}</button>
+          </article>`;
+      }
+
+      let aborter=null;
+      async function fetchServices(q, cat){
+        if (aborter) aborter.abort();
+        aborter = new AbortController();
+        const params = new URLSearchParams();
+        if (q) params.set('q', q);
+        if (cat) params.set('cat', cat);
+        const url = `/accounts/api/services/search/?${params.toString()}`;
+        const r = await fetch(url, { signal: aborter.signal, credentials: 'same-origin' });
+        if (!r.ok) throw new Error('Failed to load');
+        return r.json();
+      }
+
+      const runSearch = debounce(async ()=>{
+        const q = qInput.value.trim();
+        const cat = catSel.value || '';
+        if (!q && !cat) { hideLive(); return; }
+        showLive();
+        liveGrid.innerHTML = skeleton();
+        try{
+          const data = await fetchServices(q, cat);
+          const items = (data && data.results) || [];
+          if (!items.length){
+            liveGrid.innerHTML = `<div class="empty">${escapeHtml(searchCopy.catalogEmpty)}</div>`;
+            return;
+          }
+          liveGrid.innerHTML = items.map(cardHTML).join('');
+        }catch(_){
+          hideLive();
+        }
+      }, 250);
+
+      qInput.addEventListener('input', runSearch);
+      catSel.addEventListener('change', runSearch);
+      if (resetLink){
+        resetLink.addEventListener('click', (e)=>{
+          e.preventDefault();
+          qInput.value = '';
+          catSel.value = '';
+          hideLive();
+          document.getElementById('services')?.scrollIntoView({behavior:'smooth', block:'start'});
+        });
+      }
+      if (qInput.value.trim() || catSel.value){
+        runSearch();
+      }
     })();
   </script>
 

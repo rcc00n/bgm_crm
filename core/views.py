@@ -1,5 +1,6 @@
 # core/views.py
 import logging
+import re
 
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
@@ -57,6 +58,64 @@ from notifications.services import notify_about_service_lead
 
 logger = logging.getLogger(__name__)
 
+def _normalize_search_text(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").lower()).strip()
+
+def _score_service_match(service, query: str, tokens):
+    """
+    Cheap relevance scoring: name matches outrank description matches.
+    Returns 0 if there is no match at all.
+    """
+    if not query:
+        return 0
+    name = _normalize_search_text(service.name)
+    desc = _normalize_search_text(service.description or "")
+    if not name and not desc:
+        return 0
+
+    query = _normalize_search_text(query)
+    if not query:
+        return 0
+
+    name_has_query = query in name
+    desc_has_query = query in desc
+    token_name_hits = sum(1 for t in tokens if t in name)
+    token_desc_hits = sum(1 for t in tokens if t in desc)
+    has_match = name_has_query or desc_has_query or token_name_hits or token_desc_hits
+    if not has_match:
+        return 0
+
+    score = 0
+    if name == query:
+        score += 120
+    if name.startswith(query):
+        score += 90
+    if name_has_query:
+        score += 60
+    if desc_has_query:
+        score += 18
+    if tokens:
+        if token_name_hits == len(tokens):
+            score += 40
+        if token_desc_hits == len(tokens):
+            score += 12
+        score += token_name_hits * 12
+        score += token_desc_hits * 4
+    return score
+
+def _rank_services(qs, query: str, limit: int = 60):
+    services = list(qs)
+    if not query:
+        services.sort(key=lambda s: (s.name or "").lower())
+        return services[:limit]
+
+    tokens = [t for t in re.split(r"[^a-z0-9]+", _normalize_search_text(query)) if t]
+    scored = [(s, _score_service_match(s, query, tokens)) for s in services]
+    positive = [pair for pair in scored if pair[1] > 0]
+    ranked = positive if positive else scored
+    ranked.sort(key=lambda pair: (-pair[1], (pair[0].name or "").lower()))
+    return [s for s, _ in ranked[:limit]]
+
 def _is_mobile_request(request):
     if request.GET.get("desktop") == "1":
         return False
@@ -75,26 +134,33 @@ def _build_catalog_context(request):
     """Общий конструктор контекста каталога."""
     q = (request.GET.get("q") or "").strip()
     cat = request.GET.get("cat") or ""
+    filters_active = bool(q or cat)
 
-    services_qs = Service.objects.select_related("category").order_by("name")
-    if q:
-        services_qs = services_qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    all_services_qs = Service.objects.select_related("category").order_by("name")
+    filtered_qs = all_services_qs
     if cat:
-        services_qs = services_qs.filter(category__id=cat)
+        filtered_qs = filtered_qs.filter(category__id=cat)
 
     categories_qs = (
         ServiceCategory.objects.order_by("name")
-        .prefetch_related(Prefetch("service_set", queryset=services_qs))
+        .prefetch_related(Prefetch("service_set", queryset=all_services_qs))
     )
+
+    search_results = None
+    if filters_active:
+        search_results = _rank_services(filtered_qs, q, limit=60)
+        if not search_results and all_services_qs.exists():
+            search_results = _rank_services(all_services_qs, q, limit=60)
 
     return {
         "categories": categories_qs,
-        "filter_categories": ServiceCategory.objects.order_by("name"),
+        "filter_categories": ServiceCategory.objects.filter(service__isnull=False).distinct().order_by("name"),
         "q": q,
         "active_category": str(cat),
-        "search_results": services_qs if q else None,
-        "has_any_services": services_qs.exists(),
-        "uncategorized": services_qs.filter(category__isnull=True),
+        "filters_active": filters_active,
+        "search_results": search_results,
+        "has_any_services": all_services_qs.exists(),
+        "uncategorized": all_services_qs.filter(category__isnull=True),
     }
 
 
@@ -409,17 +475,17 @@ def api_appointment_reschedule(request, appt_id):
 def service_search(request):
     q = (request.GET.get('q') or '').strip()
     cat = request.GET.get('cat') or ''
-    qs = Service.objects.select_related('category')
-
-    if q:
-        qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    all_qs = Service.objects.select_related('category')
+    qs = all_qs
     if cat:
         qs = qs.filter(category_id=cat)
 
-    qs = qs.order_by('name')[:60]  # limit
+    ranked = _rank_services(qs, q, limit=60)
+    if not ranked and all_qs.exists():
+        ranked = _rank_services(all_qs, q, limit=60)
 
     results = []
-    for s in qs:
+    for s in ranked:
         disc = s.get_active_discount() if not s.contact_for_estimate else None
         base_price = str(s.base_price_amount())
         price = None
