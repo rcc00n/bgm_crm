@@ -203,21 +203,6 @@
       .outlook{display:none}
       .hint{display:none}
       .mobile-picker{display:flex}
-      .mobile-day-scroll{display:flex}
-      .mobile-picker__slots{display:grid}
-      .mobile-picker__select{
-        position:absolute;
-        width:1px;
-        height:1px;
-        margin:-1px;
-        padding:0;
-        border:0;
-        overflow:hidden;
-        clip:rect(0 0 0 0);
-        white-space:nowrap;
-        opacity:0;
-        pointer-events:none;
-      }
     }
 
     /* Master picker (аватарки) */
@@ -842,13 +827,11 @@ main h3{
             </div>
             <div class="mobile-picker__row mobile-picker__row--date">
               <label class="mobile-picker__label" for="mobileDaySelect">{{ services_copy.booking_mobile_pick_day_label }}</label>
-              <select id="mobileDaySelect" class="mobile-picker__select" aria-label="{{ services_copy.booking_mobile_pick_day_label }}"></select>
+              <input id="mobileDaySelect" class="mobile-picker__select" type="date" aria-label="{{ services_copy.booking_mobile_pick_day_label }}">
             </div>
-            <div class="mobile-day-scroll" id="mobileDayList" role="tablist" aria-label="{{ services_copy.booking_mobile_pick_day_label }}"></div>
             <div class="mobile-picker__row">
               <label class="mobile-picker__label" for="mobileTimeSelect">{{ services_copy.booking_available_times_label }}</label>
-              <select id="mobileTimeSelect" class="mobile-picker__select" aria-label="{{ services_copy.booking_available_times_label }}"></select>
-              <div class="mobile-picker__slots" id="mobileSlots" role="listbox" aria-label="{{ services_copy.booking_available_times_label }}"></div>
+              <input id="mobileTimeSelect" class="mobile-picker__select" type="time" aria-label="{{ services_copy.booking_available_times_label }}">
               <div class="mobile-picker__empty" id="mobileSlotsEmpty">{{ services_copy.booking_no_open_times_label }}</div>
             </div>
           </div>
@@ -932,6 +915,7 @@ main h3{
     function ymd(d){ const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; }
     function parseISO(iso){ try{return new Date(iso);}catch(_){return null;} }
     function fmtHM(d){ return d.toLocaleTimeString(LOCALE, {hour:'numeric', minute:'2-digit'}); }
+    function hmValue(d){ return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 
     const modal=document.getElementById('bookModal');
     const btnClose=document.getElementById('bookClose');
@@ -957,10 +941,8 @@ main h3{
     const olToday=document.getElementById('olToday');
     const mobilePickerEl=document.getElementById('mobileTimePicker');
     const mobileDaySelect=document.getElementById('mobileDaySelect');
-    const mobileDayList=document.getElementById('mobileDayList');
     const mobileDaySummary=document.getElementById('mobileSelectedDay');
     const mobileTodayBtn=document.getElementById('mobileTodayBtn');
-    const mobileSlotsEl=document.getElementById('mobileSlots');
     const mobileSlotsEmpty=document.getElementById('mobileSlotsEmpty');
     const mobileTimeSelect=document.getElementById('mobileTimeSelect');
     const mobileQuery = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
@@ -984,13 +966,35 @@ main h3{
     }
     if (mobileDaySelect){
       mobileDaySelect.addEventListener('change', ()=>{
-        applyMobileSelection(mobileDaySelect.value, { focusBehavior:'auto' });
+        applyMobileSelection(mobileDaySelect.value);
       });
     }
     if (mobileTimeSelect){
       mobileTimeSelect.addEventListener('change', ()=>{
-        const next = mobileTimeSelect.value;
-        if (next) selectSlot(next);
+        const timeValue = mobileTimeSelect.value;
+        if (!timeValue){
+          current.slot = null;
+          setSummaryDefault();
+          updateSubmitState();
+          syncSelectedSlotUI();
+          return;
+        }
+        const idx = mobileState.keys.indexOf(mobileState.selectedKey);
+        const entry = idx>=0 ? mobileState.data[idx] : null;
+        const iso = entry?.iso?.get(timeValue);
+        if (iso){
+          if (mobileSlotsEmpty) mobileSlotsEmpty.style.display='none';
+          selectSlot(iso);
+        }else{
+          current.slot = null;
+          setSummaryDefault();
+          updateSubmitState();
+          syncSelectedSlotUI();
+          if (mobileSlotsEmpty){
+            mobileSlotsEmpty.textContent = copy.noOpenTimesLabel;
+            mobileSlotsEmpty.style.display='block';
+          }
+        }
       });
     }
     if (mobileTodayBtn){
@@ -999,7 +1003,7 @@ main h3{
         const todayKey = ymd(new Date());
         const firstWithSlots = mobileState.keys.find((key, idx)=>Boolean(mobileState.data[idx]?.set?.size));
         const target = mobileState.keys.includes(todayKey) ? todayKey : (firstWithSlots || mobileState.keys[0]);
-        if (target) applyMobileSelection(target, { focusBehavior:'smooth' });
+        if (target) applyMobileSelection(target);
       });
     }
 
@@ -1058,33 +1062,33 @@ main h3{
           btn.classList.toggle('slot-selected', Boolean(slot && btn.dataset.slot === slot));
         });
       }
-      if (mobileSlotsEl){
-        mobileSlotsEl.querySelectorAll('.mobile-slot-btn').forEach(btn=>{
-          const isSelected = Boolean(slot && btn.dataset.slot === slot);
-          btn.classList.toggle('mobile-slot-btn--selected', isSelected);
-          btn.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-        });
-      }
       if (mobileTimeSelect){
-        const next = slot || '';
+        const slotDate = slot ? parseISO(slot) : null;
+        const next = slotDate ? hmValue(slotDate) : '';
         if (mobileTimeSelect.value !== next) mobileTimeSelect.value = next;
       }
     }
 
     function renderMobileDayOptions(){
       if (!mobileDaySelect) return;
-      const frag=document.createDocumentFragment();
-      mobileState.keys.forEach((key, idx)=>{
-        const opt=document.createElement('option');
-        opt.value=key;
-        const dayObj = mobileState.days[idx];
-        opt.textContent = dayObj ? dayObj.toLocaleDateString(LOCALE, {weekday:'short', month:'short', day:'numeric'}) : key;
-        frag.appendChild(opt);
-      });
-      mobileDaySelect.innerHTML='';
-      mobileDaySelect.appendChild(frag);
-      mobileDaySelect.value = mobileState.selectedKey;
+      if (!mobileState.keys.length){
+        mobileDaySelect.value = '';
+        mobileDaySelect.disabled = true;
+        mobileDaySelect.min = '';
+        mobileDaySelect.max = '';
+        return;
+      }
+      const minKey = mobileState.keys[0];
+      const maxKey = mobileState.keys[mobileState.keys.length - 1];
+      mobileDaySelect.min = minKey;
+      mobileDaySelect.max = maxKey;
+      mobileDaySelect.step = 1;
       mobileDaySelect.disabled = false;
+      if (!mobileState.selectedKey){
+        const firstWithSlots = mobileState.keys.find((key, idx)=>Boolean(mobileState.data[idx]?.set?.size));
+        mobileState.selectedKey = firstWithSlots || mobileState.keys[0];
+      }
+      if (mobileDaySelect.value !== mobileState.selectedKey) mobileDaySelect.value = mobileState.selectedKey;
     }
 
     function updateMobileDaySummary(){
@@ -1100,63 +1104,26 @@ main h3{
       }
     }
 
-    function focusMobileDayChip(behavior='auto'){
-      if (!mobileDayList) return;
-      const active = mobileDayList.querySelector('.mobile-day-pill--selected');
-      if (!active) return;
-      const offset = Math.max(active.offsetLeft - (mobileDayList.clientWidth / 2 - active.offsetWidth / 2), 0);
-      if (behavior === 'auto' || typeof mobileDayList.scrollTo !== 'function'){
-        mobileDayList.scrollLeft = offset;
-      }else{
-        mobileDayList.scrollTo({left: offset, behavior});
-      }
-    }
-
-    function renderMobileDayChips(focusBehavior='auto'){
-      if (!mobileDayList) return;
-      mobileDayList.innerHTML='';
-      const frag=document.createDocumentFragment();
-      mobileState.keys.forEach((key, idx)=>{
-        const dayObj = mobileState.days[idx];
-        const btn=document.createElement('button');
-        btn.type='button';
-        btn.className='mobile-day-pill';
-        if (key===mobileState.selectedKey) btn.classList.add('mobile-day-pill--selected');
-        btn.dataset.key=key;
-        btn.setAttribute('role','tab');
-        btn.setAttribute('aria-selected', key===mobileState.selectedKey ? 'true':'false');
-        const weekday = dayObj ? dayObj.toLocaleDateString(LOCALE, {weekday:'short'}) : key;
-        const monthDay = dayObj ? dayObj.toLocaleDateString(LOCALE, {month:'short', day:'numeric'}) : '';
-        btn.innerHTML = `<span>${weekday}</span><strong>${monthDay}</strong>`;
-        btn.addEventListener('click', ()=>applyMobileSelection(key, { focusBehavior:'smooth' }));
-        frag.appendChild(btn);
-      });
-      mobileDayList.appendChild(frag);
-      updateMobileDaySummary();
-      focusMobileDayChip(focusBehavior);
-    }
-
-    function applyMobileSelection(nextKey, { focusBehavior='auto' } = {}){
+    function applyMobileSelection(nextKey){
       if (!mobilePickerEl) return;
       if (!mobileState.keys.length){
         mobileState.selectedKey='';
         if (mobileDaySelect){
-          mobileDaySelect.innerHTML='';
+          mobileDaySelect.value = '';
           mobileDaySelect.disabled = true;
-        }
-        if (mobileDayList) mobileDayList.innerHTML='';
-        if (mobileSlotsEl){
-          mobileSlotsEl.innerHTML='';
-          mobileSlotsEl.style.display='none';
+          mobileDaySelect.min = '';
+          mobileDaySelect.max = '';
         }
         if (mobileSlotsEmpty){
           mobileSlotsEmpty.textContent = copy.noAvailabilityLabel;
           mobileSlotsEmpty.style.display='block';
         }
         if (mobileTimeSelect){
-          mobileTimeSelect.innerHTML = '';
+          mobileTimeSelect.value = '';
           mobileTimeSelect.disabled = true;
-          mobileTimeSelect.hidden = true;
+          mobileTimeSelect.min = '';
+          mobileTimeSelect.max = '';
+          mobileTimeSelect.step = '';
         }
         updateMobileDaySummary();
         return;
@@ -1171,25 +1138,26 @@ main h3{
       }
       if (prevKey && mobileState.selectedKey && prevKey !== mobileState.selectedKey){
         current.slot = null;
+        setSummaryDefault();
         updateSubmitState();
       }
       renderMobileDayOptions();
-      renderMobileDayChips(focusBehavior);
+      updateMobileDaySummary();
       renderMobileSlots();
     }
 
     function renderMobileSlots(){
-      if (!mobileSlotsEl && !mobileTimeSelect) return;
-      if (mobileSlotsEl) mobileSlotsEl.innerHTML='';
+      if (!mobileTimeSelect) return;
       const idx = mobileState.keys.indexOf(mobileState.selectedKey);
       const entry = idx>=0 ? mobileState.data[idx] : null;
       const timeKeys = entry?.set ? Array.from(entry.set) : [];
       if (!timeKeys.length){
-        if (mobileSlotsEl) mobileSlotsEl.style.display='none';
         if (mobileTimeSelect){
-          mobileTimeSelect.innerHTML = '';
+          mobileTimeSelect.value = '';
           mobileTimeSelect.disabled = true;
-          mobileTimeSelect.hidden = true;
+          mobileTimeSelect.min = '';
+          mobileTimeSelect.max = '';
+          mobileTimeSelect.step = '';
         }
         if (mobileSlotsEmpty){
           const dayObj = idx>=0 ? mobileState.days[idx] : null;
@@ -1204,42 +1172,20 @@ main h3{
         syncSelectedSlotUI();
         return;
       }
-      if (mobileSlotsEl) mobileSlotsEl.style.display='';
       if (mobileSlotsEmpty) mobileSlotsEmpty.style.display='none';
       timeKeys.sort();
-      const frag=document.createDocumentFragment();
       if (mobileTimeSelect){
-        const placeholder = copy.timeLabel || copy.noOpenTimesLabel || 'Time';
-        mobileTimeSelect.innerHTML = '';
-        const initial = document.createElement('option');
-        initial.value = '';
-        initial.textContent = placeholder;
-        mobileTimeSelect.appendChild(initial);
         mobileTimeSelect.disabled = false;
-        mobileTimeSelect.hidden = false;
-      }
-      timeKeys.forEach(hm=>{
-        const iso = entry?.iso?.get(hm);
-        if (!iso) return;
-        const slotDate = parseISO(iso);
-        if (mobileTimeSelect){
-          const opt = document.createElement('option');
-          opt.value = iso;
-          opt.textContent = slotDate ? fmtHM(slotDate) : hm;
-          if (current.slot === iso) opt.selected = true;
-          mobileTimeSelect.appendChild(opt);
+        mobileTimeSelect.min = timeKeys[0];
+        mobileTimeSelect.max = timeKeys[timeKeys.length - 1];
+        mobileTimeSelect.step = String(STEP_MIN * 60);
+        const slotDate = current.slot ? parseISO(current.slot) : null;
+        if (slotDate && ymd(slotDate) === mobileState.selectedKey){
+          mobileTimeSelect.value = hmValue(slotDate);
+        }else{
+          mobileTimeSelect.value = '';
         }
-        const btn=document.createElement('button');
-        btn.type='button';
-        btn.className='mobile-slot-btn';
-        btn.setAttribute('role','option');
-        btn.textContent = slotDate ? fmtHM(slotDate) : hm;
-        btn.dataset.slot = iso;
-        btn.setAttribute('aria-selected', current.slot === iso ? 'true' : 'false');
-        btn.addEventListener('click', ()=>selectSlot(iso));
-        frag.appendChild(btn);
-      });
-      if (mobileSlotsEl) mobileSlotsEl.appendChild(frag);
+      }
       syncSelectedSlotUI();
     }
 
@@ -1251,7 +1197,7 @@ main h3{
       if (!mobileState.keys.includes(mobileState.selectedKey)){
         mobileState.selectedKey = '';
       }
-      applyMobileSelection(mobileState.selectedKey, { focusBehavior:'auto' });
+      applyMobileSelection(mobileState.selectedKey);
     }
 
     function updateSubmitState(){
@@ -1276,18 +1222,20 @@ main h3{
     function openModal(serviceId, serviceName){
       current={ serviceId, serviceName, masterId:null, slot:null, mastersData:[] };
       mobileState.keys=[]; mobileState.days=[]; mobileState.data=[]; mobileState.selectedKey='';
-      if (mobileDaySelect) mobileDaySelect.innerHTML='';
-      if (mobileDayList) mobileDayList.innerHTML='';
-      if (mobileDaySummary) mobileDaySummary.textContent = copy.mobilePickDayLabel;
-      if (mobileSlotsEl){
-        mobileSlotsEl.innerHTML='';
-        mobileSlotsEl.style.display='none';
+      if (mobileDaySelect){
+        mobileDaySelect.value = '';
+        mobileDaySelect.disabled = true;
+        mobileDaySelect.min = '';
+        mobileDaySelect.max = '';
       }
+      if (mobileDaySummary) mobileDaySummary.textContent = copy.mobilePickDayLabel;
       if (mobileSlotsEmpty) mobileSlotsEmpty.style.display='none';
       if (mobileTimeSelect){
-        mobileTimeSelect.innerHTML = '';
+        mobileTimeSelect.value = '';
         mobileTimeSelect.disabled = true;
-        mobileTimeSelect.hidden = true;
+        mobileTimeSelect.min = '';
+        mobileTimeSelect.max = '';
+        mobileTimeSelect.step = '';
       }
       elServiceName.textContent=serviceName;
       elError.style.display='none'; elSuccess.style.display='none';
