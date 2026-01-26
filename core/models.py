@@ -72,6 +72,33 @@ class UserRole(models.Model):
     def __str__(self):
         return f"{self.user} → {self.role.name}"
 
+
+# --- ADMIN SIDEBAR ---
+
+
+class AdminSidebarSeen(models.Model):
+    """
+    Tracks when a staff user last opened an admin model page.
+    Used to render per-user sidebar notification dots.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_sidebar_seen",
+    )
+    app_label = models.CharField(max_length=100)
+    model_name = models.CharField(max_length=100)
+    last_seen_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ("user", "app_label", "model_name")
+        indexes = [
+            models.Index(fields=["user", "app_label", "model_name"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} → {self.app_label}.{self.model_name}"
+
 class ClientSource(models.Model):
     source = models.CharField()
 

@@ -1,8 +1,10 @@
 import logging
 
 from django.conf import settings
+from django.utils import timezone
+from django.utils.deprecation import MiddlewareMixin
 
-from core.models import VisitorSession
+from core.models import AdminSidebarSeen, VisitorSession
 
 logger = logging.getLogger(__name__)
 
@@ -124,3 +126,41 @@ class VisitorAnalyticsMiddleware:
             "user_email_snapshot": user.email or "",
             "user_name_snapshot": full_name or fallback,
         }
+
+
+class AdminSidebarSeenMiddleware(MiddlewareMixin):
+    """
+    Marks admin sidebar items as seen once a staff user opens the model page.
+    """
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        if request.method not in ("GET", "HEAD"):
+            return None
+
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated or not user.is_staff:
+            return None
+
+        path = getattr(request, "path", "") or ""
+        if not path.startswith("/admin/"):
+            return None
+
+        app_label = view_kwargs.get("app_label")
+        model_name = view_kwargs.get("model_name")
+        if not app_label or not model_name:
+            return None
+
+        has_access = any(
+            user.has_perm(f"{app_label}.{perm}_{model_name}")
+            for perm in ("view", "change", "add", "delete")
+        )
+        if not has_access:
+            return None
+
+        AdminSidebarSeen.objects.update_or_create(
+            user=user,
+            app_label=app_label,
+            model_name=model_name,
+            defaults={"last_seen_at": timezone.now()},
+        )
+        return None

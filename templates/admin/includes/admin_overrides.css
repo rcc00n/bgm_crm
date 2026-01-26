@@ -287,6 +287,18 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   text-transform: uppercase;
 }
 
+.sidebar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ef4444;
+  display: inline-block;
+  margin-left: 8px;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+  vertical-align: middle;
+  flex: 0 0 auto;
+}
+
 .sidebar-mini.sidebar-collapse .main-sidebar {
   width: 84px;
 }
