@@ -171,6 +171,70 @@
 
     .field{ background:var(--field-bg); border:1px solid var(--card-border); border-radius:.6rem; padding:.6rem .8rem; color:var(--fg); font:inherit; }
 
+    /* Search */
+    .search-bar{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:.75rem;
+      padding:.75rem .9rem;
+      border-radius:1rem;
+      border:1px solid var(--card-border);
+      background:rgba(18,18,18,.75);
+      margin-bottom:.9rem;
+    }
+    .search-bar__field{
+      position:relative;
+      flex:1 1 260px;
+      min-width:220px;
+    }
+    .search-bar__input{
+      width:100%;
+      min-height:44px;
+      padding:.7rem 2.6rem .7rem 2.4rem;
+      border-radius:.7rem;
+      border:1px solid var(--card-border);
+      background:var(--field-bg);
+      color:var(--fg);
+      font:inherit;
+    }
+    .search-bar__input::placeholder{ color:var(--muted); }
+    .search-bar__icon{
+      position:absolute;
+      left:.75rem;
+      top:50%;
+      transform:translateY(-50%);
+      opacity:.7;
+      pointer-events:none;
+      font-size:1rem;
+    }
+    .search-bar__icon svg{ width:18px; height:18px; fill:currentColor; display:block; }
+    .search-bar__clear{
+      position:absolute;
+      right:.45rem;
+      top:50%;
+      transform:translateY(-50%);
+      border:0;
+      background:transparent;
+      color:var(--muted);
+      padding:.35rem .6rem;
+      border-radius:.6rem;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .search-bar__clear:hover{ color:#fff; }
+    .search-bar__meta{
+      font-size:.9rem;
+      color:var(--muted);
+      margin-left:auto;
+      white-space:nowrap;
+    }
+    .search-empty{
+      margin:.2rem 0 1rem;
+      color:var(--muted);
+      font-style:italic;
+    }
+
     /* =============================== FOOTER =============================== */
     .site-footer{ border-top:1px solid var(--line); padding:1.6rem 0; color:var(--muted); font-size:.95rem; margin-top:2rem; }
     .site-footer__inner{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
@@ -227,7 +291,11 @@
 
     /* =========================== MOBILE ADAPTATION ========================= */
     @media (max-width:1200px){ .brand__tagline{ display:none; } }
-    @media (max-width:900px){ .hero__inner{ grid-template-columns:1fr; } }
+    @media (max-width:900px){
+      .hero__inner{ grid-template-columns:1fr; }
+      .search-bar{ flex-direction:column; align-items:stretch; }
+      .search-bar__meta{ margin-left:0; }
+    }
 
     /* Mobile sheet */
     @media (max-width:960px){
@@ -527,6 +595,61 @@
             setTimeout(()=>btn.textContent = copyLabel,1200);
           }
         });
+      });
+    })();
+  </script>
+
+  <script>
+    /* Dynamic product search (filters visible cards only) */
+    (function(){
+      const bars = document.querySelectorAll('[data-product-search]');
+      if (!bars.length) return;
+
+      bars.forEach((bar) => {
+        const input = bar.querySelector('input[type="search"]');
+        if (!input) return;
+        const clearBtn = bar.querySelector('[data-search-clear]');
+        const countEl = bar.querySelector('[data-search-count]');
+        const root = bar.closest('[data-search-root]') || document;
+        const emptyEl = root.querySelector('[data-search-empty]');
+        const items = Array.from(root.querySelectorAll('[data-search-item]'));
+
+        const keyFor = (item) => {
+          if (item.dataset.searchKey) return item.dataset.searchKey;
+          const raw = item.dataset.searchText || item.textContent || '';
+          const key = raw.toLowerCase();
+          item.dataset.searchKey = key;
+          return key;
+        };
+
+        const update = () => {
+          const query = input.value.trim().toLowerCase();
+          let matches = 0;
+          items.forEach((item) => {
+            const match = !query || keyFor(item).includes(query);
+            item.hidden = !match;
+            if (match) matches += 1;
+          });
+          if (countEl) {
+            countEl.textContent = query ? `${matches} result${matches === 1 ? '' : 's'}` : '';
+          }
+          if (clearBtn) {
+            clearBtn.hidden = !query;
+          }
+          if (emptyEl) {
+            emptyEl.hidden = !(query && matches === 0);
+          }
+        };
+
+        input.addEventListener('input', update);
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => {
+            input.value = '';
+            input.focus();
+            update();
+          });
+        }
+        update();
       });
     })();
   </script>

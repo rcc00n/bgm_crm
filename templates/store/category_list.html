@@ -27,11 +27,31 @@
 </section>
 {% endif %}
 
-<section class="section">
+<section class="section" data-search-root>
   <div class="container">
+    <div class="search-bar" data-product-search>
+      <label class="visually-hidden" for="categoryProductSearch">Search products</label>
+      <div class="search-bar__field">
+        <span class="search-bar__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+            <path d="M15.5 14h-.79l-.28-.27A6 6 0 1 0 14 15.5l.27.28v.79L20 21.5 21.5 20l-6-6zm-5.5 0A4.5 4.5 0 1 1 10 5a4.5 4.5 0 0 1 0 9z"/>
+          </svg>
+        </span>
+        <input id="categoryProductSearch"
+               class="search-bar__input"
+               type="search"
+               inputmode="search"
+               autocomplete="off"
+               placeholder="Search products">
+        <button type="button" class="search-bar__clear" data-search-clear hidden>Clear</button>
+      </div>
+      <div class="search-bar__meta" data-search-count aria-live="polite"></div>
+    </div>
+    <p class="search-empty" data-search-empty hidden>No products match your search.</p>
+
     <div class="grid grid--cards">
       {% for p in products %}
-        <article class="card product">
+        <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
           <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
             <div class="card__img">
               {% if p.main_image %}
