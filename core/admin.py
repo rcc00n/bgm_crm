@@ -29,6 +29,7 @@ from django.http import HttpResponse
 from .filters import *
 from .models import *
 from .forms import *
+from core.email_templates import template_tokens
 from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
 from core.utils import get_staff_queryset, format_currency
 from datetime import timedelta, time
@@ -2771,6 +2772,36 @@ class DealerStatusPageCopyAdmin(admin.ModelAdmin):
     @admin.display(description="Page")
     def label(self, obj):
         return "Dealer portal"
+
+
+@admin.register(EmailTemplate)
+class EmailTemplateAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "updated_at")
+    search_fields = ("name", "subject", "title")
+    readonly_fields = ("name", "slug", "description", "token_help", "created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Template", {"fields": ("name", "description", "slug", "token_help")}),
+        ("Message", {"fields": ("subject", "preheader", "title", "greeting", "intro")}),
+        ("Callout", {"fields": ("notice_title", "notice")}),
+        ("Footer & button", {"fields": ("footer", "cta_label")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Available placeholders")
+    def token_help(self, obj):
+        tokens = template_tokens(obj.slug)
+        if not tokens:
+            return "No placeholders."
+        return ", ".join(f"{{{token}}}" for token in tokens)
 
 
 @admin.register(ProjectJournalEntry)

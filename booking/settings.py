@@ -565,6 +565,7 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "icon": "fas fa-bell",
                 "items": [
                     {"model": "core.Notification", "label": "Notifications"},
+                    {"model": "core.EmailTemplate", "label": "Email Templates"},
                 ],
             },
             {
@@ -630,6 +631,7 @@ JAZZMIN_SETTINGS = {
         "core.StorePageCopy": "fas fa-store",
         "core.FontPreset": "fas fa-font",
         "core.PageFontSetting": "fas fa-heading",
+        "core.EmailTemplate": "fas fa-envelope-open-text",
         "core.LandingPageReview": "fas fa-star",
         "core.LegalPage": "fas fa-scale-balanced",
         "core.MasterAvailability": "fas fa-business-time",

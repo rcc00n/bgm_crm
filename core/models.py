@@ -1309,6 +1309,58 @@ class DealerStatusPageCopy(models.Model):
         return obj
 
 
+class EmailTemplate(models.Model):
+    class TemplateSlug(models.TextChoices):
+        APPOINTMENT_CONFIRMATION = "appointment_confirmation", "Appointment confirmation"
+        ORDER_CONFIRMATION = "order_confirmation", "Order confirmation"
+        ORDER_STATUS_PROCESSING = "order_status_processing", "Order status: processing"
+        ORDER_STATUS_SHIPPED = "order_status_shipped", "Order status: shipped"
+        ORDER_STATUS_COMPLETED = "order_status_completed", "Order status: completed"
+        ORDER_STATUS_CANCELLED = "order_status_cancelled", "Order status: cancelled"
+        ABANDONED_CART_1 = "abandoned_cart_1", "Abandoned cart (1st)"
+        ABANDONED_CART_2 = "abandoned_cart_2", "Abandoned cart (2nd)"
+        ABANDONED_CART_3 = "abandoned_cart_3", "Abandoned cart (3rd)"
+        SITE_NOTICE_WELCOME = "site_notice_welcome", "Email signup: welcome code"
+        SITE_NOTICE_FOLLOWUP_2 = "site_notice_followup_2", "Email signup: 24h follow-up"
+        SITE_NOTICE_FOLLOWUP_3 = "site_notice_followup_3", "Email signup: 3-day follow-up"
+        ORDER_REVIEW_REQUEST = "order_review_request", "Order review request"
+        FITMENT_REQUEST_INTERNAL = "fitment_request_internal", "Custom fitment request (internal)"
+
+    slug = models.SlugField(max_length=80, unique=True, choices=TemplateSlug.choices)
+    name = models.CharField(max_length=120)
+    description = models.CharField(max_length=255, blank=True)
+
+    subject = models.CharField(max_length=180)
+    preheader = models.CharField(max_length=180, blank=True)
+    title = models.CharField(max_length=140)
+    greeting = models.CharField(max_length=160, blank=True)
+    intro = models.TextField(
+        blank=True,
+        help_text="One sentence per line. These lines appear near the top of the email.",
+    )
+    notice_title = models.CharField(max_length=120, blank=True)
+    notice = models.TextField(
+        blank=True,
+        help_text="Optional callout. One sentence per line.",
+    )
+    footer = models.TextField(
+        blank=True,
+        help_text="One sentence per line. Appears at the bottom of the email.",
+    )
+    cta_label = models.CharField(max_length=80, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email template"
+        verbose_name_plural = "Email templates"
+        ordering = ("name",)
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class FontPreset(models.Model):
     """
     Reusable font definition that can be applied to public-facing pages.
