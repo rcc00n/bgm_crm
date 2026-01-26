@@ -24,6 +24,8 @@ from core.models import (
     Appointment,
     AppointmentStatusHistory,
     ClientFile,
+    ClientPortalPageCopy,
+    MerchPageCopy,
     PageFontSetting,
 )
 from core.services.fonts import build_page_font_context
@@ -107,6 +109,7 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         user = self.request.user
         now = timezone.now()
 
+        ctx["portal_copy"] = ClientPortalPageCopy.get_solo()
         # профиль может отсутствовать → None
         ctx["profile"] = getattr(user, "userprofile", None)
 
@@ -310,8 +313,69 @@ from core.models import ServiceCategory, Service
 
 # accounts/views.py (или где у вас HomeView)
 from django.views.generic import TemplateView
-from core.models import Service, ServiceCategory   # ваши модели услуг
+from core.models import Service, ServiceCategory, HomePageCopy   # ваши модели услуг
 from store.models import Product                    # товары
+
+
+def _select_home_products(
+    products_qs,
+    *,
+    limit: int = 8,
+    in_house_target: int = 4,
+    candidate_limit: int = 200,
+):
+    # Pick newer items across distinct categories and prefer some in-house if available.
+    candidates = list(products_qs[:candidate_limit])
+    selected = []
+    selected_ids = set()
+    selected_categories = set()
+    in_house_target = max(0, min(in_house_target, limit))
+
+    def add_product(product):
+        selected.append(product)
+        selected_ids.add(product.id)
+        if product.category_id:
+            selected_categories.add(product.category_id)
+
+    # Prefer a couple of in-house items from different categories.
+    for product in candidates:
+        if len(selected) >= in_house_target:
+            break
+        if not getattr(product, "is_in_house", False):
+            continue
+        if product.category_id in selected_categories:
+            continue
+        add_product(product)
+
+    # Fill with distinct categories first.
+    for product in candidates:
+        if len(selected) >= limit:
+            break
+        if product.id in selected_ids:
+            continue
+        if product.category_id in selected_categories:
+            continue
+        add_product(product)
+
+    # Fill remaining slots if there are not enough categories.
+    for product in candidates:
+        if len(selected) >= limit:
+            break
+        if product.id in selected_ids:
+            continue
+        add_product(product)
+
+    # Ensure at least one in-house item is visible when available.
+    if selected and not any(getattr(p, "is_in_house", False) for p in selected):
+        fallback = products_qs.filter(is_in_house=True).first()
+        if fallback and fallback.id not in selected_ids:
+            replace_index = next(
+                (idx for idx, item in enumerate(selected) if item.category_id == fallback.category_id),
+                len(selected) - 1,
+            )
+            selected[replace_index] = fallback
+
+    return selected
 
 class HomeView(TemplateView):
     template_name = "client/bgm_home.html"
@@ -319,6 +383,7 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
+        ctx["home_copy"] = HomePageCopy.get_solo()
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]
@@ -332,12 +397,13 @@ class HomeView(TemplateView):
         )
 
         # НОВОЕ: 8 товаров для главной (витрина)
-        ctx["home_products"] = (
+        products_qs = (
             Product.objects.filter(is_active=True)
             .select_related("category")
             .prefetch_related("options")
-            .order_by("-created_at")[:8]
+            .order_by("-created_at")
         )
+        ctx["home_products"] = _select_home_products(products_qs, limit=8, in_house_target=4)
         return ctx
 
     
@@ -358,6 +424,12 @@ class StoreView(TemplateView):
 
 class MerchPlaceholderView(TemplateView):
     template_name = "client/merch.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["merch_copy"] = MerchPageCopy.get_solo()
+        ctx["header_copy"] = ctx["merch_copy"]
+        return ctx
 
 # accounts/views.py
 from django.contrib.auth.mixins import LoginRequiredMixin

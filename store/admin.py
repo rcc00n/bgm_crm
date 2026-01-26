@@ -1,7 +1,12 @@
 # store/admin.py
+import os
+import re
+
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
+from django.core.files.storage import default_storage
+from django.utils.text import get_valid_filename
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import redirect
@@ -67,7 +72,7 @@ class CleanupStatusFilter(admin.SimpleListFilter):
 class ProductOptionInline(admin.TabularInline):
     model = ProductOption
     extra = 1
-    fields = ("name", "sku", "description", "price", "is_active", "sort_order")
+    fields = ("name", "sku", "description", "is_separator", "price", "is_active", "sort_order")
     ordering = ("sort_order", "id")
 
 
@@ -131,6 +136,8 @@ class ProductAdmin(admin.ModelAdmin):
     - HTML preview для specs
     - галерея через inline
     """
+    NAME_CLEANUP_WORDS = ("DIESELR", "EFI", "EZ", "Lynk")
+    NAME_CLEANUP_PATTERN = re.compile(r"\b(?:DIESELR|EFI|EZ|Lynk)\b", re.IGNORECASE)
     form = ProductAdminForm
     change_list_template = "admin/store/product/change_list.html"
     list_display = (
@@ -193,6 +200,11 @@ class ProductAdmin(admin.ModelAdmin):
                 name=f"{opts.app_label}_{opts.model_name}_cleanup_junk",
             ),
             path(
+                "name-cleanup/",
+                self.admin_site.admin_view(self.name_cleanup_view),
+                name=f"{opts.app_label}_{opts.model_name}_name_cleanup",
+            ),
+            path(
                 "rollback-last-cleanup/",
                 self.admin_site.admin_view(self.rollback_last_cleanup_view),
                 name=f"{opts.app_label}_{opts.model_name}_rollback_last_cleanup",
@@ -201,6 +213,11 @@ class ProductAdmin(admin.ModelAdmin):
                 "autofill-missing-photos/",
                 self.admin_site.admin_view(self.autofill_missing_photos_view),
                 name=f"{opts.app_label}_{opts.model_name}_autofill_missing_photos",
+            ),
+            path(
+                "autofill-placeholder-photos/",
+                self.admin_site.admin_view(self.autofill_placeholder_photos_view),
+                name=f"{opts.app_label}_{opts.model_name}_autofill_placeholder_photos",
             ),
             path(
                 "rollback-autofill-photos/",
@@ -239,6 +256,12 @@ class ProductAdmin(admin.ModelAdmin):
         except Exception:
             extra_context["cleanup_url"] = None
         try:
+            extra_context["name_cleanup_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_name_cleanup"
+            )
+        except Exception:
+            extra_context["name_cleanup_url"] = None
+        try:
             extra_context["cleanup_rollback_url"] = reverse(
                 f"admin:{opts.app_label}_{opts.model_name}_rollback_last_cleanup"
             )
@@ -250,6 +273,12 @@ class ProductAdmin(admin.ModelAdmin):
             )
         except Exception:
             extra_context["autofill_photos_url"] = None
+        try:
+            extra_context["placeholder_photos_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_autofill_placeholder_photos"
+            )
+        except Exception:
+            extra_context["placeholder_photos_url"] = None
         try:
             extra_context["autofill_rollback_url"] = reverse(
                 f"admin:{opts.app_label}_{opts.model_name}_rollback_autofill_photos"
@@ -283,6 +312,7 @@ class ProductAdmin(admin.ModelAdmin):
                         default_currency=form.cleaned_data["default_currency"],
                         update_existing=form.cleaned_data["update_existing"],
                         create_missing_categories=form.cleaned_data["create_missing_categories"],
+                        dieselr_foreign=form.cleaned_data["dieselr_foreign"],
                         dry_run=form.cleaned_data["dry_run"],
                         import_batch=import_batch,
                     )
@@ -374,6 +404,24 @@ class ProductAdmin(admin.ModelAdmin):
             cleanup_batch__isnull=True,
         )
 
+    def _name_cleanup_candidates(self):
+        query = Q()
+        for term in self.NAME_CLEANUP_WORDS:
+            query |= Q(name__icontains=term)
+        if not query:
+            return Product.objects.none()
+        return Product.objects.filter(query)
+
+    def _clean_product_name(self, name: str) -> str:
+        if not name:
+            return ""
+        cleaned = self.NAME_CLEANUP_PATTERN.sub(" ", name)
+        cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+        cleaned = re.sub(r"^[\s\-_/.,]+", "", cleaned)
+        cleaned = re.sub(r"[\s\-_/.,]+$", "", cleaned)
+        cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+        return cleaned
+
     def _missing_image_queryset(self, *, include_inactive: bool):
         qs = Product.objects.filter(Q(main_image__isnull=True) | Q(main_image=""))
         if not include_inactive:
@@ -386,6 +434,71 @@ class ProductAdmin(admin.ModelAdmin):
             "PRODUCT_AUTOFILL_IMAGE_URL",
             "https://picsum.photos/seed/{seed}/1200/1200",
         )
+
+    def _placeholder_images_setting(self):
+        raw = getattr(settings, "PRODUCT_PLACEHOLDER_IMAGES", None)
+        if not raw:
+            return []
+        if isinstance(raw, (list, tuple)):
+            values = list(raw)
+        elif isinstance(raw, str):
+            values = [item.strip() for item in raw.replace("\n", ",").split(",")]
+        else:
+            try:
+                values = list(raw)
+            except TypeError:
+                return []
+        cleaned = []
+        for value in values:
+            if not value:
+                continue
+            item = str(value).strip()
+            if not item:
+                continue
+            if item.startswith(("http://", "https://")):
+                cleaned.append(item)
+            else:
+                cleaned.append(item.lstrip("/"))
+        return cleaned
+
+    def _placeholder_images_from_storage(self, directory: str):
+        if not directory:
+            return []
+        directory = directory.strip().strip("/")
+        if not directory:
+            return []
+        try:
+            _, files = default_storage.listdir(directory)
+        except Exception:
+            return []
+        allowed_ext = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"}
+        images = []
+        for name in files:
+            ext = os.path.splitext(name)[1].lower()
+            if ext in allowed_ext:
+                images.append(name)
+        images.sort()
+        return [f"{directory}/{name}" for name in images]
+
+    def _pick_placeholder_image(self, images, product: Product) -> str:
+        if not images:
+            return ""
+        idx = int(product.pk) % len(images)
+        return images[idx]
+
+    def _placeholder_previews(self, images):
+        previews = []
+        for item in images:
+            url = ""
+            if str(item).startswith(("http://", "https://")):
+                url = str(item)
+            else:
+                try:
+                    url = default_storage.url(item)
+                except Exception:
+                    url = ""
+            previews.append({"path": str(item), "url": url})
+        return previews
 
     def _format_autofill_url(self, template: str, product: Product) -> str:
         seed = f"product-{product.pk}"
@@ -425,6 +538,49 @@ class ProductAdmin(admin.ModelAdmin):
         if not image:
             return ""
         return getattr(image, "name", "") or str(image)
+
+    def _category_image_name(self, category: Category) -> str:
+        image = getattr(category, "image", None)
+        if not image:
+            return ""
+        return getattr(image, "name", "") or str(image)
+
+    def _placeholder_config(self):
+        settings_images = self._placeholder_images_setting()
+        placeholder_dir = str(getattr(settings, "PRODUCT_PLACEHOLDER_IMAGE_DIR", "store/placeholders"))
+        placeholder_dir = placeholder_dir.strip().strip("/") or "store/placeholders"
+        return settings_images, placeholder_dir
+
+    def _matches_placeholder_image(self, url: str, *, settings_images, placeholder_dir: str) -> bool:
+        if not url:
+            return False
+        if settings_images and url in settings_images:
+            return True
+        if placeholder_dir and url.startswith(f"{placeholder_dir}/"):
+            return True
+        return False
+
+    def _placeholder_product_candidate_queryset(self, *, settings_images, placeholder_dir: str):
+        qs = Product.objects.exclude(main_image__isnull=True).exclude(main_image="")
+        query = Q()
+        if settings_images:
+            query |= Q(main_image__in=settings_images)
+        if placeholder_dir:
+            query |= Q(main_image__startswith=f"{placeholder_dir}/")
+        if not query:
+            return qs.none()
+        return qs.filter(query)
+
+    def _placeholder_category_candidate_queryset(self, *, settings_images, placeholder_dir: str):
+        qs = Category.objects.exclude(image__isnull=True).exclude(image="")
+        query = Q()
+        if settings_images:
+            query |= Q(image__in=settings_images)
+        if placeholder_dir:
+            query |= Q(image__startswith=f"{placeholder_dir}/")
+        if not query:
+            return qs.none()
+        return qs.filter(query)
 
     def autofill_missing_photos_view(self, request):
         if not self.has_change_permission(request):
@@ -501,16 +657,209 @@ class ProductAdmin(admin.ModelAdmin):
             context,
         )
 
+    def autofill_placeholder_photos_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+
+        missing_active = self._missing_image_queryset(include_inactive=False).count()
+        missing_inactive = (
+            self._missing_image_queryset(include_inactive=True)
+            .filter(is_active=False)
+            .count()
+        )
+        include_inactive = bool(request.POST.get("include_inactive"))
+
+        settings_images, placeholder_dir = self._placeholder_config()
+        images = settings_images or self._placeholder_images_from_storage(placeholder_dir)
+        source_label = (
+            "settings.PRODUCT_PLACEHOLDER_IMAGES"
+            if settings_images
+            else f"media:{placeholder_dir.strip().strip('/')}"
+        )
+        from_settings = bool(settings_images)
+        usable_images = images[:4] if len(images) >= 4 else []
+        can_run = len(usable_images) == 4
+        missing_categories = Category.objects.filter(Q(image__isnull=True) | Q(image="")).count()
+
+        if request.method == "POST":
+            if request.POST.get("upload_placeholders"):
+                uploaded_files = request.FILES.getlist("placeholder_images")
+                if not uploaded_files:
+                    messages.warning(request, "Select at least one image to upload.")
+                    return redirect(
+                        reverse(
+                            f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_autofill_placeholder_photos"
+                        )
+                    )
+
+                saved = 0
+                skipped = 0
+                errors = []
+                allowed_ext = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"}
+
+                for uploaded in uploaded_files:
+                    name = get_valid_filename(getattr(uploaded, "name", ""))
+                    if not name:
+                        skipped += 1
+                        continue
+                    ext = os.path.splitext(name)[1].lower()
+                    if ext not in allowed_ext:
+                        skipped += 1
+                        continue
+                    try:
+                        target_path = f"{placeholder_dir}/{name}"
+                        target_path = default_storage.get_available_name(target_path)
+                        default_storage.save(target_path, uploaded)
+                    except Exception as exc:
+                        errors.append(f"{name}: {exc}")
+                        continue
+                    saved += 1
+
+                if saved:
+                    messages.success(request, f"Uploaded {saved} placeholder image(s).")
+                if skipped:
+                    messages.info(request, f"Skipped {skipped} file(s).")
+                if errors:
+                    sample = "; ".join(errors[:5])
+                    if len(errors) > 5:
+                        sample += f"; and {len(errors) - 5} more."
+                    messages.warning(request, f"Upload errors: {sample}")
+                return redirect(
+                    reverse(
+                        f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_autofill_placeholder_photos"
+                    )
+                )
+
+            if not can_run:
+                messages.error(
+                    request,
+                    f"Need 4 placeholder images. Found {len(images)}.",
+                )
+                return redirect(
+                    reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_autofill_placeholder_photos")
+                )
+
+            missing_qs = self._missing_image_queryset(include_inactive=include_inactive)
+            missing_count = missing_qs.count()
+            if missing_count == 0 and missing_categories == 0:
+                messages.info(request, "No products or categories are missing an image.")
+                return redirect(
+                    reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+                )
+
+            updated = 0
+            skipped = 0
+            errors = []
+            category_updated = 0
+            category_skipped = 0
+            category_errors = []
+
+            for product in missing_qs.iterator():
+                if product.main_image:
+                    skipped += 1
+                    continue
+                image_value = self._pick_placeholder_image(usable_images, product)
+                if not image_value:
+                    errors.append(f"{product.pk}: no placeholder image resolved")
+                    continue
+                try:
+                    Product.objects.filter(pk=product.pk).update(
+                        main_image=image_value,
+                        updated_at=timezone.now(),
+                    )
+                except Exception as exc:
+                    errors.append(f"{product.pk}: {exc}")
+                    continue
+                updated += 1
+
+            category_qs = Category.objects.filter(Q(image__isnull=True) | Q(image=""))
+            for category in category_qs.iterator():
+                if category.image:
+                    category_skipped += 1
+                    continue
+                image_value = self._pick_placeholder_image(usable_images, category)
+                if not image_value:
+                    category_errors.append(f"{category.pk}: no placeholder image resolved")
+                    continue
+                try:
+                    Category.objects.filter(pk=category.pk).update(image=image_value)
+                except Exception as exc:
+                    category_errors.append(f"{category.pk}: {exc}")
+                    continue
+                category_updated += 1
+
+            if updated:
+                messages.success(request, f"Added placeholder photos to {updated} products.")
+            else:
+                messages.warning(request, "No placeholder photos were added.")
+            if skipped:
+                messages.info(request, f"Skipped {skipped} products already updated.")
+            if errors:
+                sample = "; ".join(errors[:5])
+                if len(errors) > 5:
+                    sample += f"; and {len(errors) - 5} more."
+                messages.warning(request, f"Errors: {sample}")
+            if category_updated:
+                messages.success(request, f"Added placeholder photos to {category_updated} categories.")
+            if category_skipped:
+                messages.info(request, f"Skipped {category_skipped} categories already updated.")
+            if category_errors:
+                sample = "; ".join(category_errors[:5])
+                if len(category_errors) > 5:
+                    sample += f"; and {len(category_errors) - 5} more."
+                messages.warning(request, f"Category errors: {sample}")
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Autofill placeholder photos",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+            "has_view_permission": self.has_view_permission(request),
+            "product_changelist_url": reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            ),
+            "missing_active": missing_active,
+            "missing_inactive": missing_inactive,
+            "missing_categories": missing_categories,
+            "include_inactive": include_inactive,
+            "placeholder_images": usable_images,
+            "placeholder_previews": self._placeholder_previews(images),
+            "placeholder_total": len(images),
+            "placeholder_source": source_label,
+            "placeholder_from_settings": from_settings,
+            "placeholder_dir": placeholder_dir,
+            "can_run": can_run,
+        }
+        return TemplateResponse(
+            request,
+            "admin/store/product/autofill_placeholder_photos.html",
+            context,
+        )
+
     def rollback_autofill_photos_view(self, request):
         if not self.has_change_permission(request):
             raise PermissionDenied
 
         source_template = self._autofill_source_template()
-        candidate_qs = self._autofill_candidate_queryset(source_template)
+        autofill_qs = self._autofill_candidate_queryset(source_template)
+        settings_images, placeholder_dir = self._placeholder_config()
+        placeholder_qs = self._placeholder_product_candidate_queryset(
+            settings_images=settings_images,
+            placeholder_dir=placeholder_dir,
+        )
+        candidate_qs = (autofill_qs | placeholder_qs).distinct()
         candidate_count = candidate_qs.count()
+        category_qs = self._placeholder_category_candidate_queryset(
+            settings_images=settings_images,
+            placeholder_dir=placeholder_dir,
+        )
+        category_count = category_qs.count()
 
         if request.method == "POST":
-            if candidate_count == 0:
+            if candidate_count == 0 and category_count == 0:
                 messages.info(request, "No autofilled photos found.")
                 return redirect(
                     reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
@@ -518,9 +867,18 @@ class ProductAdmin(admin.ModelAdmin):
 
             cleared = 0
             skipped = 0
+            category_cleared = 0
+            category_skipped = 0
             for product in candidate_qs.iterator():
                 image_name = self._main_image_name(product)
-                if not self._matches_autofill_url(image_name, source_template):
+                if not (
+                    self._matches_autofill_url(image_name, source_template)
+                    or self._matches_placeholder_image(
+                        image_name,
+                        settings_images=settings_images,
+                        placeholder_dir=placeholder_dir,
+                    )
+                ):
                     skipped += 1
                     continue
                 Product.objects.filter(pk=product.pk).update(
@@ -528,6 +886,17 @@ class ProductAdmin(admin.ModelAdmin):
                     updated_at=timezone.now(),
                 )
                 cleared += 1
+            for category in category_qs.iterator():
+                image_name = self._category_image_name(category)
+                if not self._matches_placeholder_image(
+                    image_name,
+                    settings_images=settings_images,
+                    placeholder_dir=placeholder_dir,
+                ):
+                    category_skipped += 1
+                    continue
+                Category.objects.filter(pk=category.pk).update(image=None)
+                category_cleared += 1
 
             if cleared:
                 messages.success(request, f"Cleared autofilled photos for {cleared} products.")
@@ -535,6 +904,10 @@ class ProductAdmin(admin.ModelAdmin):
                 messages.warning(request, "No autofilled photos were cleared.")
             if skipped:
                 messages.info(request, f"Skipped {skipped} products that did not match the autofill pattern.")
+            if category_cleared:
+                messages.success(request, f"Cleared autofilled photos for {category_cleared} categories.")
+            if category_skipped:
+                messages.info(request, f"Skipped {category_skipped} categories that did not match the autofill pattern.")
             return redirect(
                 reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
             )
@@ -549,6 +922,7 @@ class ProductAdmin(admin.ModelAdmin):
                 f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
             ),
             "autofill_count": candidate_count,
+            "category_count": category_count,
         }
         return TemplateResponse(
             request,
@@ -599,6 +973,98 @@ class ProductAdmin(admin.ModelAdmin):
             "junk_count": junk_count,
         }
         return TemplateResponse(request, "admin/store/product/cleanup_junk.html", context)
+
+    def name_cleanup_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+
+        terms = list(self.NAME_CLEANUP_WORDS)
+        candidates_qs = self._name_cleanup_candidates()
+        candidate_count = candidates_qs.count()
+        update_count = 0
+        blank_count = 0
+
+        if request.method == "POST":
+            if candidate_count == 0:
+                messages.info(request, "No products match the cleanup terms.")
+                return redirect(
+                    reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+                )
+
+            updated = 0
+            skipped_blank = 0
+            skipped_unchanged = 0
+            errors = []
+
+            for product in candidates_qs.iterator():
+                cleaned = self._clean_product_name(product.name)
+                if cleaned == product.name:
+                    skipped_unchanged += 1
+                    continue
+                if not cleaned:
+                    skipped_blank += 1
+                    continue
+                try:
+                    Product.objects.filter(pk=product.pk).update(
+                        name=cleaned,
+                        updated_at=timezone.now(),
+                    )
+                except Exception as exc:
+                    errors.append(f"{product.pk}: {exc}")
+                    continue
+                updated += 1
+
+            if updated:
+                messages.success(request, f"Updated {updated} product names.")
+            else:
+                messages.warning(request, "No product names were updated.")
+            if skipped_blank:
+                messages.warning(
+                    request,
+                    f"Skipped {skipped_blank} product(s) that would become blank.",
+                )
+            if skipped_unchanged:
+                messages.info(
+                    request,
+                    f"Skipped {skipped_unchanged} product(s) with no matching terms.",
+                )
+            if errors:
+                sample = "; ".join(errors[:5])
+                if len(errors) > 5:
+                    sample += f"; and {len(errors) - 5} more."
+                messages.warning(request, f"Errors: {sample}")
+            return redirect(
+                reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist")
+            )
+
+        for product in candidates_qs.iterator():
+            cleaned = self._clean_product_name(product.name)
+            if cleaned == product.name:
+                continue
+            if cleaned:
+                update_count += 1
+            else:
+                blank_count += 1
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Name cleanup",
+            "opts": self.model._meta,
+            "app_label": self.model._meta.app_label,
+            "has_view_permission": self.has_view_permission(request),
+            "product_changelist_url": reverse(
+                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            ),
+            "terms": terms,
+            "candidate_count": candidate_count,
+            "update_count": update_count,
+            "blank_count": blank_count,
+        }
+        return TemplateResponse(
+            request,
+            "admin/store/product/name_cleanup.html",
+            context,
+        )
 
     def rollback_last_cleanup_view(self, request):
         if not self.has_change_permission(request):
@@ -724,8 +1190,8 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductOption)
 class ProductOptionAdmin(admin.ModelAdmin):
-    list_display = ("name", "sku", "product", "price", "is_active", "sort_order")
-    list_filter = ("is_active",)
+    list_display = ("name", "sku", "product", "price", "is_separator", "is_active", "sort_order")
+    list_filter = ("is_active", "is_separator")
     search_fields = ("name", "sku", "product__name", "product__sku")
     autocomplete_fields = ("product",)
     ordering = ("product__name", "sort_order", "id")

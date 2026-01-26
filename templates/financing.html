@@ -4,12 +4,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BGM Customs — Financing Options</title>
-  {% with meta_title="BGM Customs — Financing Options" meta_description="Flexible financing partners for builds, parts, and installs including Medicard, Canadian Financial, and Afterpay." meta_section="financing" %}
+  <title>{{ financing_copy.meta_title|default:"BGM Customs — Financing Options" }}</title>
+  {% with meta_title=financing_copy.meta_title|default:"BGM Customs — Financing Options" meta_description=financing_copy.meta_description|default:"Flexible financing partners for builds, parts, and installs including Canadian Financial and Afterpay." meta_section="financing" %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
-<link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
-<link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
+  {% if font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% endif %}
 
   <style>
     :root{
@@ -139,40 +142,59 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 }
   </style>
   <style id="bgm-fonts-override">
-  /* REG */
+  /* Fonts */
+  {% with fs=font_settings %}
+  {% for font in fs.fonts %}
+    {% if font.has_source %}
   @font-face{
-    font-family:"Diesel";
-    src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
-    font-weight:100 900; font-style:normal; font-display:swap;
+    font-family:"{{ font.family }}";
+    src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+    font-weight:{{ font.weight|default:"400" }};
+    font-style:{{ font.style|default:"normal" }};
+    font-display:{{ font.display|default:"swap" }};
   }
-  @font-face{
-    font-family:"Ford";
-    src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
-    font-weight:100 900; font-style:normal; font-display:swap;
-  }
-
+    {% endif %}
+  {% endfor %}
+  {% with body_stack=fs.body.stack|default:'"Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' %}
+  {% with heading_stack=fs.heading.stack|default:'"Ford", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' %}
+  {% with ui_stack=fs.ui.stack|default:heading_stack %}
   :root{
-    --font-body:"Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    --font-head:"Ford",  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-body: {{ body_stack|safe }};
+    --font-head: {{ heading_stack|safe }};
+    --font-ui: {{ ui_stack|safe }};
   }
+  {% endwith %}
+  {% endwith %}
+  {% endwith %}
+  {% endwith %}
 
-  /* ГЛАВНОЕ: переопределяем то, что ставит Tailwind */
   html, body { font-family: var(--font-body) !important; }
 
-  /* Заголовки/бренд/кнопки — Ford */
+  /* Headings */
   h1,h2,h3,h4,h5,h6,
-  .brand, .brand .name, .brand .mark,
-  .modal__title,
-  .sidebar .sidebar-link,
-  .btn, .badge,
-  .table th,
+  .title,
+  .section__title,
+  .card__title,
   .font-bold, .font-black, .font-semibold {
     font-family: var(--font-head) !important;
   }
 
-  /* Форма/обычный текст — Diesel */
+  /* UI / brand / buttons */
+  .site-header .brand,
+  .site-header .brand__logo,
+  .site-header .brand__logo .brand__word,
+  .site-header .brand__tagline,
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost,
+  .btn, .badge, .kicker {
+    font-family: var(--font-ui) !important;
+    font-style: normal !important;
+  }
+
+  /* Form + regular copy */
   input, select, textarea, button,
-  .muted, .muted-2, .kicker, .panel, .chip {
+  .muted, .muted-2, .panel, .chip {
     font-family: var(--font-body) !important;
   }
 
@@ -515,7 +537,7 @@ html{ font-size: 17px; }                      /* было 16px */
       }
     }
   </style>
-  <style id="financing-diesel-overrides">
+<style id="financing-diesel-overrides">
 .btn--diesel{
   font-family: var(--font-body) !important;
   font-style: normal !important;
@@ -525,6 +547,37 @@ html{ font-size: 17px; }                      /* было 16px */
 .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted-2);font-size:.95rem}
 
 </style>
+  <style id="financing-mobile-density">
+    @media (max-width: 900px){
+      .container{ padding-inline:1.1rem; }
+      .hero__inner{ gap:1.4rem; padding:2.6rem 0 2.1rem; }
+      .title{ font-size:clamp(2rem,7vw,2.7rem) !important; line-height:1.1; }
+      .lead{ font-size:1rem !important; }
+      .card__actions{ flex-direction:column; align-items:stretch; }
+      .card__actions .btn{ width:100%; justify-content:center; }
+
+      .section{ padding:2.2rem 0; }
+      .section__head{ flex-direction:column; align-items:flex-start; gap:.6rem; }
+      .section__head .badge{ align-self:flex-start; }
+
+      .grid--cards{ grid-template-columns:1fr; }
+      .card{ padding:1rem; gap:.6rem; }
+      .card__head{ flex-direction:column; align-items:flex-start; }
+      .card__meta{ margin-left:0; white-space:normal; font-size:.9rem; }
+
+      #steps .grid{ grid-template-columns:1fr !important; gap:1rem !important; }
+      #faq .grid{ grid-template-columns:1fr; }
+    }
+    @media (max-width: 640px){
+      .hero__media{ max-width:100%; }
+      .card p.section__desc{
+        display:-webkit-box;
+        -webkit-line-clamp:3;
+        -webkit-box-orient:vertical;
+        overflow:hidden;
+      }
+    }
+  </style>
 
 
 </head>
@@ -533,7 +586,7 @@ html{ font-size: 17px; }                      /* было 16px */
   {% include "includes/site_notice_markup.html" with site_notice_version="offer-v1" %}
   <div id="bg"></div>
 
-<a href="#main" class="visually-hidden">Skip to main content</a>
+<a href="#main" class="visually-hidden">{{ financing_copy.skip_to_main_label|default:"Skip to main content" }}</a>
 
 {% with current='financing' %}
   {% include "includes/site_header.html" %}
@@ -542,18 +595,18 @@ html{ font-size: 17px; }                      /* было 16px */
   <section class="hero">
   <div class="container hero__inner">
     <div class="hero__copy">
-      <p class="kicker">Flexible Financing</p>
-      <h1 class="title">Build now. Pay over time.</h1>
-      <p class="lead">We offer simple financing options for parts, installs, and full custom builds. Apply in minutes with no impact to your credit score for pre-qualification where available.</p>
+      <p class="kicker">{{ financing_copy.hero_kicker }}</p>
+      <h1 class="title">{{ financing_copy.hero_title }}</h1>
+      <p class="lead">{{ financing_copy.hero_lead }}</p>
       <div class="card__actions">
-        <a class="btn btn--primary btn--diesel" href="#providers">See options</a>
-        <a class="btn btn--ghost btn--diesel" href="{% url 'client-dashboard' %}">Explore Services</a>
+        <a class="btn btn--primary btn--diesel" href="#providers">{{ financing_copy.hero_primary_cta_label }}</a>
+        <a class="btn btn--ghost btn--diesel" href="{% url 'client-dashboard' %}">{{ financing_copy.hero_secondary_cta_label }}</a>
       </div>
     </div>
 
     <div class="hero__media frame frame--media">
-      <img src="{% static 'img/hero-services.jpg' %}" alt="Financing hero" loading="lazy" decoding="async">
-      <p class="hero__disclaimer">Product may not appear exactly as shown.</p>
+      <img src="{% static 'img/hero-services.jpg' %}" alt="{{ financing_copy.hero_image_alt }}" loading="lazy" decoding="async">
+      <p class="hero__disclaimer">{{ financing_copy.hero_disclaimer }}</p>
     </div>
   </div>
 </section>
@@ -563,56 +616,43 @@ html{ font-size: 17px; }                      /* было 16px */
       <div class="container">
         <div class="section__head">
           <div>
-            <h2 class="section__title">Financing providers</h2>
-            <p class="section__desc">Pick the option that fits your project size and timeline.</p>
+            <h2 class="section__title">{{ financing_copy.providers_title }}</h2>
+            <p class="section__desc">{{ financing_copy.providers_desc }}</p>
           </div>
-          <span class="badge">Trusted</span>
+          <span class="badge">{{ financing_copy.providers_badge_label }}</span>
         </div>
 
         <div class="grid grid--cards">
-          <!-- Medicard -->
-          <article class="card">
-            <div class="card__head">
-              <h3 class="card__title">Medicard</h3>
-              <span class="card__meta">Online application</span>
-            </div>
-            <p class="section__desc">Fast approvals, flexible terms, and competitive rates. Ideal for medium to large builds.</p>
-            <div class="card__actions">
-              <a class="btn btn--primary btn--diesel" href="https://apply.medicard.com/22880/" target="_blank" rel="noopener">Apply with Medicard</a>
-              <a class="btn btn--ghost btn--diesel" href="#faq">Read FAQ</a>
-            </div>
-          </article>
-
           <!-- Canadian Financial -->
           <article class="card">
             <div class="card__head">
-              <h3 class="card__title">Canadian Financial</h3>
-              <span class="card__meta">Advisor: Megan Gilbertson</span>
+              <h3 class="card__title">{{ financing_copy.provider_1_title }}</h3>
+              <span class="card__meta">{{ financing_copy.provider_1_meta }}</span>
             </div>
-            <p class="section__desc">Personalized financing support through Canadian Financial. Great for custom quotes and structured plans.</p>
+            <p class="section__desc">{{ financing_copy.provider_1_desc }}</p>
             <div class="card__actions">
-              <a class="btn btn--primary btn--diesel" href="https://canadian-financial.ca/megan-gilbertson/badguymotorsinc" target="_blank" rel="noopener">Apply with Canadian Financial</a>
-              <a class="btn btn--ghost btn--diesel" href="#steps">How it works</a>
+              <a class="btn btn--primary btn--diesel" href="https://canadian-financial.ca/" target="_blank" rel="noopener">{{ financing_copy.provider_1_primary_cta_label }}</a>
+              <a class="btn btn--ghost btn--diesel" href="#steps">{{ financing_copy.provider_1_secondary_cta_label }}</a>
             </div>
           </article>
 
           <!-- Afterpay (Square) -->
           <article class="card">
             <div class="card__head">
-              <h3 class="card__title">Afterpay (via Square)</h3>
-              <span class="card__meta">Good up to ≈ {{ currency.code }} {{ currency.symbol }}2,000</span>
+              <h3 class="card__title">{{ financing_copy.provider_2_title }}</h3>
+              <span class="card__meta">{{ financing_copy.provider_2_meta_prefix }} {{ currency.code }} {{ currency.symbol }}{{ financing_copy.provider_2_meta_amount }}</span>
             </div>
-            <p class="section__desc">Split smaller purchases into interest-free payments at checkout. Perfect for parts and minor installs.</p>
+            <p class="section__desc">{{ financing_copy.provider_2_desc }}</p>
             <div class="card__actions">
-              <a class="btn btn--primary btn--diesel" href="{% url 'store' %}">Shop parts</a>
-              <a class="btn btn--ghost btn--diesel" href="{% url 'client-dashboard' %}">Book an install</a>
+              <a class="btn btn--primary btn--diesel" href="{% url 'store' %}">{{ financing_copy.provider_2_primary_cta_label }}</a>
+              <a class="btn btn--ghost btn--diesel" href="{% url 'client-dashboard' %}">{{ financing_copy.provider_2_secondary_cta_label }}</a>
             </div>
           </article>
         </div>
 
         <div class="card__actions" style="margin-top:1.3rem">
-          <a class="btn btn--primary btn--diesel" href="{% url 'home' %}">← Home</a>
-          <a class="btn btn--ghost btn--diesel" href="{% url 'client-dashboard' %}#services">See all services</a>
+          <a class="btn btn--primary btn--diesel" href="{% url 'home' %}">{{ financing_copy.providers_bottom_primary_cta_label }}</a>
+          <a class="btn btn--ghost btn--diesel" href="{% url 'client-dashboard' %}#services">{{ financing_copy.providers_bottom_secondary_cta_label }}</a>
         </div>
       </div>
     </section>
@@ -621,26 +661,26 @@ html{ font-size: 17px; }                      /* было 16px */
       <div class="container">
         <div class="section__head">
           <div>
-            <h2 class="section__title">How financing works</h2>
-            <p class="section__desc">A simple path from quote to approved build.</p>
+            <h2 class="section__title">{{ financing_copy.steps_title }}</h2>
+            <p class="section__desc">{{ financing_copy.steps_desc }}</p>
           </div>
         </div>
         <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem">
           <div class="card">
-            <h3 class="card__title">Get your project quote</h3>
-            <p class="section__desc">Talk to our team about your build or parts install. We’ll outline scope, cost, and timeline.</p>
+            <h3 class="card__title">{{ financing_copy.step_1_title }}</h3>
+            <p class="section__desc">{{ financing_copy.step_1_desc }}</p>
           </div>
           <div class="card">
-            <h3 class="card__title">Apply with a provider</h3>
-            <p class="section__desc">Use Medicard or Canadian Financial for larger projects, or Afterpay for smaller purchases.</p>
+            <h3 class="card__title">{{ financing_copy.step_2_title }}</h3>
+            <p class="section__desc">{{ financing_copy.step_2_desc }}</p>
           </div>
           <div class="card">
-            <h3 class="card__title">Choose terms & finalize</h3>
-            <p class="section__desc">Pick the plan that fits your budget. We coordinate approvals and scheduling.</p>
+            <h3 class="card__title">{{ financing_copy.step_3_title }}</h3>
+            <p class="section__desc">{{ financing_copy.step_3_desc }}</p>
           </div>
           <div class="card">
-            <h3 class="card__title">Build & updates</h3>
-            <p class="section__desc">We get to work. You’ll receive progress updates in your Client Portal.</p>
+            <h3 class="card__title">{{ financing_copy.step_4_title }}</h3>
+            <p class="section__desc">{{ financing_copy.step_4_desc }}</p>
           </div>
         </div>
       </div>
@@ -650,49 +690,36 @@ html{ font-size: 17px; }                      /* было 16px */
       <div class="container">
         <div class="section__head">
           <div>
-            <h2 class="section__title">Good to know</h2>
-            <p class="section__desc">Quick answers to common questions.</p>
+            <h2 class="section__title">{{ financing_copy.faq_title }}</h2>
+            <p class="section__desc">{{ financing_copy.faq_desc }}</p>
           </div>
         </div>
         <div class="grid grid--cards">
           <article class="card">
-            <h3 class="card__title">Credit checks & approvals</h3>
-            <p class="section__desc">Some providers offer soft credit checks for pre-qualification. Final approval may require a hard check. Terms and limits depend on your credit profile.</p>
+            <h3 class="card__title">{{ financing_copy.faq_1_title }}</h3>
+            <p class="section__desc">{{ financing_copy.faq_1_desc }}</p>
           </article>
           <article class="card">
-            <h3 class="card__title">Project eligibility</h3>
-            <p class="section__desc">Financing can cover parts, labor, coatings, and custom fabrication. We’ll help you structure the quote to fit provider requirements.</p>
+            <h3 class="card__title">{{ financing_copy.faq_2_title }}</h3>
+            <p class="section__desc">{{ financing_copy.faq_2_desc }}</p>
           </article>
           <article class="card">
-            <h3 class="card__title">Afterpay limits</h3>
-            <p class="section__desc">Afterpay via Square is typically suitable for purchases up to about {{ currency.code }} {{ currency.symbol }}2,000 and is best used for smaller jobs and parts orders.</p>
+            <h3 class="card__title">{{ financing_copy.faq_3_title }}</h3>
+            <p class="section__desc">
+              {{ financing_copy.faq_3_desc_prefix }} {{ currency.code }} {{ currency.symbol }}{{ financing_copy.faq_3_desc_amount }} {{ financing_copy.faq_3_desc_suffix }}
+            </p>
           </article>
           <article class="card">
-            <h3 class="card__title">Questions?</h3>
-            <p class="section__desc">Reach out to our team and we’ll walk you through options and next steps.</p>
-            <div class="card__actions"><a class="btn btn--ghost" href="{% url 'client-dashboard' %}#contact">Contact us</a></div>
+            <h3 class="card__title">{{ financing_copy.faq_4_title }}</h3>
+            <p class="section__desc">{{ financing_copy.faq_4_desc }}</p>
+            <div class="card__actions"><a class="btn btn--ghost" href="{% url 'client-dashboard' %}#contact">{{ financing_copy.faq_4_cta_label }}</a></div>
           </article>
         </div>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer" id="contact">
-  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:.75rem">
-      <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-      <strong>Contact us:</strong>
-      <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
-      <span aria-hidden="true">•</span>
-      <a href="tel:+14035250432">(403) 525-0432</a>
-    </div>
-
-    <div class="section__desc">© {{ now|date:"Y" }} Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
-  </div>
-</footer>
+  {% include "includes/site_footer.html" %}
 
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
@@ -776,37 +803,37 @@ html{ font-size: 17px; }                      /* было 16px */
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
   </svg>
-  Contact us
+  {{ financing_copy.contact_fab_label }}
 </button>
 
 <div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
   <div class="contact-dialog">
-    <button class="contact-close" type="button" aria-label="Close">×</button>
-    <h2 id="contactTitle" class="contact-title">Contact us</h2>
+    <button class="contact-close" type="button" aria-label="{{ financing_copy.contact_close_label }}">×</button>
+    <h2 id="contactTitle" class="contact-title">{{ financing_copy.contact_modal_title }}</h2>
 
     <div class="contact-body">
       <div class="contact-row">
         <div>
           <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
-          <div class="contact-sub">E-mail</div>
+          <div class="contact-sub">{{ financing_copy.contact_email_label }}</div>
         </div>
-        <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+        <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ financing_copy.contact_copy_label }}</button>
       </div>
 
       <div class="contact-row">
         <div>
           <div><a href="tel:+14035250432">(403) 525-0432</a></div>
-          <div class="contact-sub">Phone</div>
+          <div class="contact-sub">{{ financing_copy.contact_phone_label }}</div>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-          <a class="contact-btn" href="tel:+14035250432">Call</a>
-          <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
+          <a class="contact-btn" href="tel:+14035250432">{{ financing_copy.contact_call_label }}</a>
+          <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ financing_copy.contact_copy_label }}</button>
         </div>
       </div>
 
       <div class="contact-actions">
-        <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write e-mail</a>
-        <a class="contact-btn" href="sms:+14035250432">Text us</a>
+        <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ financing_copy.contact_write_email_label }}</a>
+        <a class="contact-btn" href="sms:+14035250432">{{ financing_copy.contact_text_label }}</a>
 </div>
 </div>
 </div>
@@ -818,6 +845,9 @@ html{ font-size: 17px; }                      /* было 16px */
   const modal = document.getElementById('contactModal');
   const closeBtn = modal.querySelector('.contact-close');
   let lastFocus = null;
+  const copyLabel = "{{ financing_copy.contact_copy_label|escapejs }}";
+  const copySuccess = "{{ financing_copy.contact_copy_success_label|escapejs }}";
+  const copyFailed = "{{ financing_copy.contact_copy_failed_label|escapejs }}";
 
   function openModal(){
     lastFocus = document.activeElement;
@@ -851,8 +881,8 @@ html{ font-size: 17px; }                      /* было 16px */
   // copy helpers
   modal.querySelectorAll('[data-copy]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy',1200); }
-      catch{ btn.textContent='Copy failed'; setTimeout(()=>btn.textContent='Copy',1200); }
+      try{ await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent=copySuccess; setTimeout(()=>btn.textContent=copyLabel,1200); }
+      catch{ btn.textContent=copyFailed; setTimeout(()=>btn.textContent=copyLabel,1200); }
     });
   });
 })();

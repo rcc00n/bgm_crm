@@ -323,6 +323,12 @@ class ProductImportForm(forms.Form):
         required=False,
         initial=True,
     )
+    dieselr_foreign = forms.BooleanField(
+        label="Diesel R / Foreing",
+        required=False,
+        initial=False,
+        help_text="Multiply imported prices by 1.4.",
+    )
     dry_run = forms.BooleanField(
         label="Dry run (no database changes)",
         required=False,

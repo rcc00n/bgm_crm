@@ -400,14 +400,7 @@
   </section>
 </main>
 
-<footer class="site-footer">
-  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:.75rem">
-      <span class="brand__logo" aria-hidden="true"></span><b>BGM Customs</b>
-    </div>
-    <div class="section__desc">© {{ now|date:"Y" }} BGM. All rights reserved.</div>
-  </div>
-</footer>
+{% include "includes/site_footer.html" %}
 <script src="{% static 'js/topbar.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>

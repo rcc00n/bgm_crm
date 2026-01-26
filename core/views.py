@@ -34,6 +34,10 @@ from core.models import (
     LandingPageReview,
     PromoCode,
     SiteNoticeSignup,
+    ServicesPageCopy,
+    FinancingPageCopy,
+    AboutPageCopy,
+    DealerStatusPageCopy,
 )
 from core.forms import ServiceLeadForm
 from core.services.booking import (
@@ -94,6 +98,8 @@ def public_mainmenu(request):
     Если пользователь авторизован — дополнительно подставим профиль и его записи.
     """
     ctx = _build_catalog_context(request)
+    ctx["services_copy"] = ServicesPageCopy.get_solo()
+    ctx["header_copy"] = ctx["services_copy"]
     ctx["contact_prefill"] = {"name": "", "email": "", "phone": ""}
 
     if request.user.is_authenticated:
@@ -473,6 +479,7 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         up = getattr(self.request.user, "userprofile", None)
         dealer_app = getattr(self.request.user, "dealer_application", None)
+        ctx["dealer_copy"] = DealerStatusPageCopy.get_solo()
         ctx["userprofile"] = up
         ctx["dealer_application"] = dealer_app
         # флаг доступа и snapshot для портала
@@ -491,10 +498,28 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
 from django.shortcuts import render
 
 def financing_view(request):
-    return render(request, "financing.html")
+    font_settings = build_page_font_context(PageFontSetting.Page.FINANCING)
+    financing_copy = FinancingPageCopy.get_solo()
+    return render(
+        request,
+        "financing.html",
+        {
+            "font_settings": font_settings,
+            "financing_copy": financing_copy,
+            "header_copy": financing_copy,
+        },
+    )
 
 def our_story_view(request):
-    return render(request, "client/our_story.html")
+    about_copy = AboutPageCopy.get_solo()
+    return render(
+        request,
+        "client/our_story.html",
+        {
+            "about_copy": about_copy,
+            "header_copy": about_copy,
+        },
+    )
 
 
 def brake_suspension_view(request):

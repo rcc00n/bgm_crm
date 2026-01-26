@@ -344,6 +344,60 @@
       .hero__inner{ grid-template-columns: 1fr !important; }
     }
   </style>
+  <style id="home-mobile-density">
+    @media (max-width: 860px){
+      .container{ padding-inline:1.1rem; }
+      .hero__inner{ gap:1.4rem; padding:2.6rem 0 2.1rem; }
+      .hero__title{ font-size:clamp(2rem,7vw,2.7rem); line-height:1.1; }
+      .hero__lead{ font-size:1rem; margin-top:.85rem; }
+      .hero__cta{ flex-direction:column; align-items:stretch; }
+      .hero__cta .btn{ width:100%; justify-content:center; }
+      .hero__stats{ display:grid; grid-template-columns:1fr; gap:.7rem; }
+      .stat{ padding:1rem 1.05rem; }
+
+      .section{ padding:2.2rem 0; }
+      .section__head{ flex-direction:column; align-items:flex-start; gap:.6rem; }
+      .section__head .btn{ width:100%; justify-content:center; }
+
+      .filters{ flex-direction:column; align-items:stretch; }
+      .input,.select{ width:100%; min-width:0; }
+      .filters .btn{ width:100%; justify-content:center; }
+
+      .grid--services,
+      .grid--products,
+      .tiles{ grid-template-columns:1fr; }
+
+      .card{ padding:1rem; gap:.6rem; }
+      .card__img{ aspect-ratio:4/3; }
+      .card__head{ flex-direction:column; align-items:flex-start; }
+      .card__head .price{ margin-left:0; text-align:left; }
+      .card p.muted,
+      .tile p.muted{
+        display:-webkit-box;
+        -webkit-line-clamp:2;
+        -webkit-box-orient:vertical;
+        overflow:hidden;
+      }
+      .card__cta .btn{ width:100%; justify-content:center; }
+      .home-card-actions{ flex-direction:column; align-items:stretch; }
+      .home-card-actions .btn,
+      .home-card-actions form{ width:100%; }
+      .home-card-actions form .btn{ width:100%; justify-content:center; }
+
+      details{ padding:1rem; }
+      summary{ font-size:1rem; }
+
+      .cta-row{ flex-direction:column; align-items:flex-start; }
+      .cta-row > div:last-child{ width:100%; display:flex; flex-direction:column; gap:.6rem; }
+      .cta-row .btn{ width:100%; justify-content:center; }
+
+      .footer__grid{ grid-template-columns:1fr; gap:.8rem; }
+    }
+    @media (max-width: 640px){
+      .mobi-actions{ grid-template-columns:1fr; }
+      .mobi-action{ padding:1rem; }
+    }
+  </style>
 </head>
 
 <body>
@@ -352,38 +406,43 @@
 
   <div id="bg"></div>
 
-  <a href="#main" class="visually-hidden">Skip to main content</a>
+  <a href="#main" class="visually-hidden">{{ home_copy.skip_to_main_label }}</a>
 
   <header class="site-header" role="banner">
     <div class="container site-header__inner">
       <a class="brand" href="/">
         <span class="brand__logo">
-          <span class="brand__word brand__word--white">BAD GUY</span>
-          <span class="brand__word brand__word--red">MOTORS</span>
-        </span>
-        <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
-      </a>
+        <span class="brand__word brand__word--white">{{ home_copy.brand_word_white }}</span>
+        <span class="brand__word brand__word--red">{{ home_copy.brand_word_red }}</span>
+      </span>
+      <span class="brand__tagline">{{ home_copy.brand_tagline }}</span>
+    </a>
 
       <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
         <span class="site-header__toggle-box" aria-hidden="true">
           <span class="site-header__toggle-lines"></span>
         </span>
-        <span class="sr-only">Toggle navigation</span>
+        <span class="sr-only">{{ home_copy.nav_toggle_label }}</span>
       </button>
 
       <nav id="siteNav" aria-label="Main navigation">
         <ul>
-          <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
+          <li><a href="{% url 'client-dashboard' %}" title="Services catalog">{{ home_copy.nav_services_label }}</a></li>
           {% if user.is_authenticated %}
-            <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+            <li><a href="{% url 'dashboard' %}">{{ home_copy.nav_client_portal_label }}</a></li>
           {% else %}
-            <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
+            <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">{{ home_copy.nav_login_label }}</a></li>
           {% endif %}
-          <li><a href="{% url 'store' %}">Products</a></li>
-          <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
-          <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-          <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>Financing</a></li>
-          <li><a href="{% url 'our-story' %}">About</a></li>
+          <li><a href="{% url 'store' %}">{{ home_copy.nav_products_label }}</a></li>
+          <li>
+            <a href="{% url 'merch' %}">
+              {{ home_copy.nav_merch_label }}
+              {% if home_copy.nav_merch_badge %}<span class="badge">{{ home_copy.nav_merch_badge }}</span>{% endif %}
+            </a>
+          </li>
+          <li><a href="{% url 'dealer-status' %}">{{ home_copy.nav_dealers_label }}</a></li>
+          <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>{{ home_copy.nav_financing_label }}</a></li>
+          <li><a href="{% url 'our-story' %}">{{ home_copy.nav_about_label }}</a></li>
         </ul>
       </nav>
     </div>
@@ -392,18 +451,18 @@
   <section class="hero" id="top">
     <div class="container hero__inner">
       <div>
-        <p class="kicker">Custom fabrication • Diesel performance</p>
-        <h1 class="hero__title">Built to be bad. Engineered to last.</h1>
-        <p class="hero__lead">Bad Guy Motors is Medicine Hat’s premier custom fab and diesel shop. We design and build bumpers, body swaps, lift kits & four-links, and performance upgrades—then finish them with Armadillo or Smooth Criminal Liner. Book a consult and we’ll map your build from concept to keys.</p>
+        <p class="kicker">{{ home_copy.hero_kicker }}</p>
+        <h1 class="hero__title">{{ home_copy.hero_title }}</h1>
+        <p class="hero__lead">{{ home_copy.hero_lead }}</p>
         <div class="hero__cta">
-          <a class="btn btn--primary" href="#services">Explore services</a>
-          <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Booking</a>
+          <a class="btn btn--primary" href="#services">{{ home_copy.hero_primary_cta_label }}</a>
+          <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">{{ home_copy.hero_secondary_cta_label }}</a>
         </div>
 
-        <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
-          <div class="stat"><b>Alberta-made</b><br><span class="muted">built in Medicine Hat</span></div>
-          <div class="stat"><b>Custom only</b><br><span class="muted">no cookie‑cutter kits</span></div>
-          <div class="stat"><b>24/7</b><br><span class="muted">Book online fast quotes</span></div>
+        <div class="hero__stats" style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
+          <div class="stat"><b>{{ home_copy.hero_stat_1_title }}</b><br><span class="muted">{{ home_copy.hero_stat_1_subtitle }}</span></div>
+          <div class="stat"><b>{{ home_copy.hero_stat_2_title }}</b><br><span class="muted">{{ home_copy.hero_stat_2_subtitle }}</span></div>
+          <div class="stat"><b>{{ home_copy.hero_stat_3_title }}</b><br><span class="muted">{{ home_copy.hero_stat_3_subtitle }}</span></div>
         </div>
       </div>
 
@@ -411,16 +470,16 @@
       <div class="mobi-quick only-mobile" aria-label="Quick actions">
         <div class="mobi-actions">
           <a class="mobi-action" href="{% url 'client-dashboard' %}#services">
-            <b>Book a Service</b><span class="mobi-sub">Pick date &amp; time</span>
+            <b>{{ home_copy.hero_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_1_subtitle }}</span>
           </a>
           <a class="mobi-action" href="{% url 'store' %}">
-            <b>Shop Parts</b><span class="mobi-sub">In stock &amp; ready</span>
+            <b>{{ home_copy.hero_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_2_subtitle }}</span>
           </a>
           <a class="mobi-action" href="#contact">
-            <b>Contact Us</b><span class="mobi-sub">Call or e‑mail</span>
+            <b>{{ home_copy.hero_mobile_action_3_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_3_subtitle }}</span>
           </a>
           <a class="mobi-action" href="{% url 'our-story' %}">
-            <b>About</b><span class="mobi-sub">Who we are</span>
+            <b>{{ home_copy.hero_mobile_action_4_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_4_subtitle }}</span>
           </a>
         </div>
       </div>
@@ -438,58 +497,58 @@
       <div class="container">
         <div class="section__head">
           <div>
-            <h2 class="section__title">What we build</h2>
-            <p class="section__desc">From bolt‑on to one‑off: bumpers, chase racks, headache racks, mudflaps, running boards, lift kits & 4‑links, diesel tuning & hard parts, coatings & liners, body swaps, and more. Browse packages or request a custom quote.</p>
+            <h2 class="section__title">{{ home_copy.services_title }}</h2>
+            <p class="section__desc">{{ home_copy.services_desc }}</p>
           </div>
-          <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Open services </a></div>
+          <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
         </div>
 
         <!-- Mobile services lite -->
         <div id="mobileServices" class="only-mobile" aria-labelledby="servicesMobileTitle">
-          <h3 id="servicesMobileTitle" class="kicker">Quick picks</h3>
+          <h3 id="servicesMobileTitle" class="kicker">{{ home_copy.services_mobile_kicker }}</h3>
           <div class="mobi-actions" style="margin-bottom:.6rem">
             <a class="mobi-action" href="{% url 'client-dashboard' %}?q=fabrication#services">
-              <b>Fabrication</b><span class="mobi-sub">Bumpers, racks, swaps</span>
+              <b>{{ home_copy.services_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_1_subtitle }}</span>
             </a>
             <a class="mobi-action" href="{% url 'client-dashboard' %}?q=suspension#services">
-              <b>Suspension</b><span class="mobi-sub">Lift kits &amp; 4‑links</span>
+              <b>{{ home_copy.services_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_2_subtitle }}</span>
             </a>
             <a class="mobi-action" href="{% url 'client-dashboard' %}?q=tuning#services">
-              <b>Diesel Tuning</b><span class="mobi-sub">Turbo, injectors, ECU</span>
+              <b>{{ home_copy.services_mobile_action_3_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_3_subtitle }}</span>
             </a>
             <a class="mobi-action" href="{% url 'client-dashboard' %}?q=coating#services">
-              <b>Coatings</b><span class="mobi-sub">Armadillo &amp; liner</span>
+              <b>{{ home_copy.services_mobile_action_4_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_4_subtitle }}</span>
             </a>
           </div>
           <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
-            <input class="input" type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
-            <button class="btn btn--ghost" type="submit">Search</button>
+            <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
+            <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
           </form>
         </div>
 
         <!-- Filters -->
         <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
-          <input class="input" type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
+          <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
           <select class="select" name="cat" aria-label="Category">
-            <option value="">All categories</option>
+            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
             {% for c in filter_categories %}
               <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
             {% endfor %}
           </select>
-          <button class="btn btn--ghost" type="submit">Search</button>
+          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
           {% if q or active_category %}
-            <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">Reset filters</a>
+            <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_reset_filters_label }}</a>
           {% endif %}
         </form>
 
         <!-- Live search -->
-        <h3 id="liveTitle" class="kicker" style="display:none">Search results</h3>
+        <h3 id="liveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
         <div id="liveGrid" class="grid grid--services" style="display:none"></div>
 
         <!-- Server-rendered -->
         <div id="serverContent">
           {% if search_results %}
-            <h3 class="kicker" style="margin:.5rem 0 1rem">Results</h3>
+            <h3 class="kicker" style="margin:.5rem 0 1rem">{{ home_copy.services_results_label }}</h3>
             <div class="grid grid--services">
               {% for s in search_results|slice:":8" %}
                 <article class="card">
@@ -501,9 +560,9 @@
                     <h3 style="font-weight:900">{{ s.name }}</h3>
                     <div class="price">
                       {% if s.contact_for_estimate %}
-                        <strong>Contact for estimate</strong>
+                        <strong>{{ home_copy.contact_for_estimate_label }}</strong>
                         {% if s.estimate_from_price %}
-                          <span class="price__hint">From {{ s.estimate_from_price|money }}</span>
+                          <span class="price__hint">{{ home_copy.from_label }} {{ s.estimate_from_price|money }}</span>
                         {% endif %}
                       {% else %}
                         {% with disc=s.get_active_discount %}
@@ -519,20 +578,20 @@
                     </div>
                   </div>
                   {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
-                  <div class="dur">Duration: {{ s.duration_min }} min</div>
+                  <div class="dur">{{ home_copy.services_duration_prefix }} {{ s.duration_min }} {{ home_copy.services_duration_suffix }}</div>
                   <div class="card__cta">
-                    <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">Book now</a>
+                    <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">{{ home_copy.services_book_now_label }}</a>
                   </div>
                 </article>
               {% empty %}
-                <div class="empty">No results for your query.</div>
+                <div class="empty">{{ home_copy.services_no_results_label }}</div>
               {% endfor %}
             </div>
             <hr style="margin:1.5rem 0;border:0;border-top:1px solid var(--line)">
           {% endif %}
 
           {% if home_services %}
-            <h3 class="kicker" style="margin:.5rem 0 1rem">Featured services</h3>
+            <h3 class="kicker" style="margin:.5rem 0 1rem">{{ home_copy.services_featured_label }}</h3>
             <div class="grid grid--services">
               {% for s in home_services|slice:":8" %}
                 <article class="card">
@@ -544,9 +603,9 @@
                     <h3 style="font-weight:900">{{ s.name }}</h3>
                     <div class="price">
                       {% if s.contact_for_estimate %}
-                        <strong>Contact for estimate</strong>
+                        <strong>{{ home_copy.contact_for_estimate_label }}</strong>
                         {% if s.estimate_from_price %}
-                          <span class="price__hint">From {{ s.estimate_from_price|money }}</span>
+                          <span class="price__hint">{{ home_copy.from_label }} {{ s.estimate_from_price|money }}</span>
                         {% endif %}
                       {% else %}
                         {% with disc=s.get_active_discount %}
@@ -562,15 +621,15 @@
                     </div>
                   </div>
                   {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
-                  <div class="dur">Duration: {{ s.duration_min }} min</div>
+                  <div class="dur">{{ home_copy.services_duration_prefix }} {{ s.duration_min }} {{ home_copy.services_duration_suffix }}</div>
                   <div class="card__cta">
-                    <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">Book now</a>
+                    <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">{{ home_copy.services_book_now_label }}</a>
                   </div>
                 </article>
               {% endfor %}
             </div>
           {% elif not search_results and not has_any_services %}
-            <div class="empty">The catalog will be available soon 👍</div>
+            <div class="empty">{{ home_copy.services_empty_label }}</div>
           {% endif %}
         </div>
       </div>
@@ -581,21 +640,21 @@
       <div class="container">
         <div class="section__head">
           <div>
-            <h2 class="section__title">Products</h2>
-            <p class="section__desc">Performance parts curated by BGM. Fresh stock, ready to ship.</p>
+            <h2 class="section__title">{{ home_copy.products_title }}</h2>
+            <p class="section__desc">{{ home_copy.products_desc }}</p>
           </div>
-          <div><a class="btn btn--primary" href="{% url 'store' %}">Open products</a></div>
+          <div><a class="btn btn--primary" href="{% url 'store' %}">{{ home_copy.products_cta_label }}</a></div>
         </div>
 
         <!-- Mobile products lite -->
         <div id="mobileProducts" class="only-mobile" aria-labelledby="productsMobileTitle">
-          <h3 id="productsMobileTitle" class="kicker">Quick shop</h3>
+          <h3 id="productsMobileTitle" class="kicker">{{ home_copy.products_mobile_kicker }}</h3>
           <div class="mobi-actions">
             <a class="mobi-action" href="{% url 'store' %}">
-              <b>Shop Parts</b><span class="mobi-sub">Fresh stock</span>
+              <b>{{ home_copy.products_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_1_subtitle }}</span>
             </a>
             <a class="mobi-action" href="{% url 'merch' %}">
-              <b>Merch</b><span class="mobi-sub">Coming soon</span>
+              <b>{{ home_copy.products_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_2_subtitle }}</span>
             </a>
           </div>
         </div>
@@ -615,19 +674,19 @@
                     <h3 style="font-weight:900">{{ p.name }}</h3>
                     <div class="price price--stacked">
                       {% if p.contact_for_estimate %}
-                        <strong>Contact for estimate</strong>
-                        {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
+                        <strong>{{ home_copy.contact_for_estimate_label }}</strong>
+                        {% if p.estimate_from_price %}<span class="price__hint">{{ home_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
                       {% else %}
                         <div class="price__retail-row">
-                          {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                          {% if p.has_option_price_overrides %}<span class="price__hint">{{ home_copy.from_label }}</span>{% endif %}
                           <strong>{{ p.display_price|money }}</strong>
                           {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
                         </div>
                         {% if dealer_portal.show_discount %}
                           <div class="price__dealer-row">
-                            <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                            <span class="price__hint">{{ home_copy.products_dealer_label }} {{ dealer_portal.discount_percent }}%</span>
                             <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                            <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                            <span class="price__save">{{ home_copy.products_save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
                           </div>
                         {% endif %}
                       {% endif %}
@@ -635,18 +694,18 @@
                   </div>
                   {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
                 </a>
-                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
+                <div class="home-card-actions" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
                   {% if p.contact_for_estimate %}
-                    <a class="btn btn--primary" href="{% url 'home' %}#contact">Contact us</a>
-                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                    <a class="btn btn--primary" href="{% url 'home' %}#contact">{{ home_copy.products_contact_us_label }}</a>
+                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
                   {% elif p.has_active_options %}
-                    <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">Select options</a>
-                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                    <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">{{ home_copy.products_select_options_label }}</a>
+                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
                   {% else %}
                     <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
-                      <button class="btn btn--primary" type="submit">Add to cart</button>
+                      <button class="btn btn--primary" type="submit">{{ home_copy.products_add_to_cart_label }}</button>
                     </form>
-                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">View</a>
+                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
                   {% endif %}
                 </div>
               </article>
@@ -654,7 +713,7 @@
           </div>
         {% else %}
           <div class="empty">
-            No products yet. <a class="btn btn--link" href="{% url 'store' %}">Explore products</a>
+            {{ home_copy.products_empty_label }} <a class="btn btn--link" href="{% url 'store' %}">{{ home_copy.products_empty_cta_label }}</a>
           </div>
         {% endif %}
       </div>
@@ -664,14 +723,14 @@
     <section class="section">
       <div class="container">
         <div class="section__head">
-          <h2 class="section__title">How we work</h2>
-          <p class="section__desc">A transparent cycle—from booking to delivery.</p>
+          <h2 class="section__title">{{ home_copy.how_title }}</h2>
+          <p class="section__desc">{{ home_copy.how_desc }}</p>
         </div>
         <div class="tiles">
-          <div class="tile"><div class="tile__icon">①</div><b>Consult & scope</b><p class="muted">Tell us your goals, budget, and timeline.</p></div>
-          <div class="tile"><div class="tile__icon">②</div><b>Design & quote</b><p class="muted">CAD as needed, milestones, and a written estimate.</p></div>
-          <div class="tile"><div class="tile__icon">③</div><b>Fabricate & update</b><p class="muted">Progress pics, approvals, and clear communication.</p></div>
-          <div class="tile"><div class="tile__icon">④</div><b>Delivery & aftercare</b><p class="muted">Test drive, torque check, and a care guide.</p></div>
+          <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
+          <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
+          <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
+          <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
         </div>
       </div>
     </section>
@@ -680,18 +739,18 @@
     <section class="section">
       <div class="container">
         <div class="section__head">
-          <h2 class="section__title">Why choose BGM</h2>
-          <p class="section__desc">We combine aesthetics with engineering discipline.</p>
+          <h2 class="section__title">{{ home_copy.why_title }}</h2>
+          <p class="section__desc">{{ home_copy.why_desc }}</p>
         </div>
         <div class="tiles">
-          <div class="tile"><div class="tile__icon">★</div><b>No‑compromise materials</b><p class="muted">DOM tubing, proper hardware, and proven parts.</p></div>
-          <div class="tile"><div class="tile__icon">⏱</div><b>On‑time, transparent</b><p class="muted">Clear updates, zero guesswork.</p></div>
-          <div class="tile"><div class="tile__icon">🔒</div><b>Built for abuse</b><p class="muted">Designed to work hard, not just look pretty.</p></div>
-          <a class="tile tile--link" href="{% url 'legal-terms' %}" aria-label="Read Terms &amp; Conditions" title="Warranty &amp; support details">
+          <div class="tile"><div class="tile__icon">★</div><b>{{ home_copy.why_tile_1_title }}</b><p class="muted">{{ home_copy.why_tile_1_desc }}</p></div>
+          <div class="tile"><div class="tile__icon">⏱</div><b>{{ home_copy.why_tile_2_title }}</b><p class="muted">{{ home_copy.why_tile_2_desc }}</p></div>
+          <div class="tile"><div class="tile__icon">🔒</div><b>{{ home_copy.why_tile_3_title }}</b><p class="muted">{{ home_copy.why_tile_3_desc }}</p></div>
+          <a class="tile tile--link" href="{% url 'legal-terms' %}" aria-label="{{ home_copy.why_warranty_aria_label }}" title="{{ home_copy.why_warranty_title_attr }}">
             <div class="tile__icon">💬</div>
-            <b>Warranty &amp; support</b>
-            <p class="muted">We stand behind our work and make things right.</p>
-            <span class="tile__cta">Read terms →</span>
+            <b>{{ home_copy.why_warranty_title }}</b>
+            <p class="muted">{{ home_copy.why_warranty_desc }}</p>
+            <span class="tile__cta">{{ home_copy.why_warranty_cta }}</span>
           </a>
         </div>
       </div>
@@ -701,52 +760,37 @@
     <section class="section">
       <div class="container">
         <div class="section__head">
-          <h2 class="section__title">FAQ</h2>
-          <p class="section__desc">Short and sweet</p>
+          <h2 class="section__title">{{ home_copy.faq_title }}</h2>
+          <p class="section__desc">{{ home_copy.faq_desc }}</p>
         </div>
         <div class="grid">
-          <details><summary>Do I need a prepayment?</summary><p>For some services — yes (the “prepayment” option in the service card). Others — pay upon completion.</p></details>
-          <details><summary>Can I reschedule?</summary><p>Yes. In the client portal you can cancel or reschedule, and we’ll auto-suggest free slots.</p></details>
-          <details><summary>Do you work with companies and dealers?</summary><p>Yes. The “Dealers” section is coming soon. Leave a request via the contact form.</p></details>
+          <details><summary>{{ home_copy.faq_1_question }}</summary><p>{{ home_copy.faq_1_answer }}</p></details>
+          <details><summary>{{ home_copy.faq_2_question }}</summary><p>{{ home_copy.faq_2_answer }}</p></details>
+          <details><summary>{{ home_copy.faq_3_question }}</summary><p>{{ home_copy.faq_3_answer }}</p></details>
         </div>
       </div>
     </section>
 
     <!-- ========================= FINAL CTA ========================= -->
     <section class="section" aria-labelledby="cta">
-      <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div class="container cta-row" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
         <div>
-          <h2 id="cta" class="section__title">Ready to upgrade?</h2>
-          <p class="section__desc">We’ll secure your slot and lock the terms today.</p>
+          <h2 id="cta" class="section__title">{{ home_copy.final_cta_title }}</h2>
+          <p class="section__desc">{{ home_copy.final_cta_desc }}</p>
         </div>
         <div style="display:flex;gap:.6rem">
-          <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Explore services</a>
+          <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.final_cta_primary_label }}</a>
           {% if user.is_authenticated %}
-            <a class="btn btn--ghost" href="{% url 'dashboard' %}">Client Portal</a>
+            <a class="btn btn--ghost" href="{% url 'dashboard' %}">{{ home_copy.final_cta_secondary_auth_label }}</a>
           {% else %}
-            <a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dashboard' %}">Login</a>
+            <a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dashboard' %}">{{ home_copy.final_cta_secondary_guest_label }}</a>
           {% endif %}
         </div>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer" id="contact">
-    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-      <div style="display:flex;align-items:center;gap:.75rem">
-        <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-        <strong>Contact us:</strong>
-        <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
-        <span aria-hidden="true">•</span>
-        <a href="tel:+14035250432">(403) 525-0432</a>
-      </div>
-
-      <div class="section__desc">© 2025 Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
-    </div>
-  </footer>
+  {% include "includes/site_footer.html" %}
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
@@ -763,6 +807,15 @@
 
     const currencyCode = "{{ currency.code }}";
     const currencySymbol = "{{ currency.symbol }}";
+    const copy = {
+      contactForEstimate: "{{ home_copy.contact_for_estimate_label|escapejs }}",
+      fromLabel: "{{ home_copy.from_label|escapejs }}",
+      durationPrefix: "{{ home_copy.services_duration_prefix|escapejs }}",
+      durationSuffix: "{{ home_copy.services_duration_suffix|escapejs }}",
+      bookNowLabel: "{{ home_copy.services_book_now_label|escapejs }}",
+      nothingFoundLabel: "{{ home_copy.services_nothing_found_label|escapejs }}",
+      failedLoadLabel: "{{ home_copy.services_failed_load_label|escapejs }}",
+    };
     const bookingBaseUrl = "{% url 'client-dashboard' %}";
     const toBookingUrl = (serviceId) => {
       if (serviceId) {
@@ -792,8 +845,8 @@
       let price;
       if (s.contact_for_estimate){
         const fromVal = s.estimate_from_price ? formatMoney(s.estimate_from_price) : "";
-        const hint = fromVal ? `<span class="price__hint">From ${esc(fromVal)}</span>` : "";
-        price = `<strong>Contact for estimate</strong>${hint ? " " + hint : ""}`;
+        const hint = fromVal ? `<span class="price__hint">${esc(copy.fromLabel)} ${esc(fromVal)}</span>` : "";
+        price = `<strong>${esc(copy.contactForEstimate)}</strong>${hint ? " " + hint : ""}`;
       } else {
         const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent>0;
         const base = formatMoney(s.base_price);
@@ -808,6 +861,10 @@
       const cat   = s.category ? `<span class="card__badge">${esc(s.category)}</span>` : '';
       const desc  = s.description ? `<p class="muted">${esc(s.description)}</p>` : '';
       const bookingHref = toBookingUrl(s.id);
+      const durationBits = [copy.durationPrefix, String(s.duration_min), copy.durationSuffix]
+        .filter(Boolean)
+        .map(esc)
+        .join(" ");
       return `
         <article class="card">
           <div class="card__img">${media}${cat}</div>
@@ -816,8 +873,8 @@
             <div class="price">${price}</div>
           </div>
           ${desc}
-          <div class="dur">Duration: ${esc(String(s.duration_min))} min</div>
-          <div class="card__cta"><a class="btn btn--primary" href="${bookingHref}">Book now</a></div>
+          <div class="dur">${durationBits}</div>
+          <div class="card__cta"><a class="btn btn--primary" href="${bookingHref}">${esc(copy.bookNowLabel)}</a></div>
         </article>`;
     }
 
@@ -838,8 +895,8 @@
       try{
         const data=await fetchServices(q,cat);
         const items=(data&&data.results)||[];
-        liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="empty">Nothing found.</div>`;
-      }catch{ liveGrid.innerHTML = `<div class="empty">Failed to load. Please try again.</div>`; }
+        liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="empty">${esc(copy.nothingFoundLabel)}</div>`;
+      }catch{ liveGrid.innerHTML = `<div class="empty">${esc(copy.failedLoadLabel)}</div>`; }
     },300);
 
     qInput.addEventListener('input', run);
@@ -919,37 +976,37 @@
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
     </svg>
-    Contact us
+    {{ home_copy.contact_fab_label }}
   </button>
 
   <div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
     <div class="contact-dialog">
       <button class="contact-close" type="button" aria-label="Close">×</button>
-      <h2 id="contactTitle" class="contact-title">Contact us</h2>
+      <h2 id="contactTitle" class="contact-title">{{ home_copy.contact_modal_title }}</h2>
 
       <div class="contact-body">
         <div class="contact-row">
           <div>
             <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
-            <div class="contact-sub">E-mail</div>
+            <div class="contact-sub">{{ home_copy.contact_email_label }}</div>
           </div>
-          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ home_copy.contact_copy_label }}</button>
         </div>
 
         <div class="contact-row">
           <div>
             <div><a href="tel:+14035250432">(403) 525-0432</a></div>
-            <div class="contact-sub">Phone</div>
+            <div class="contact-sub">{{ home_copy.contact_phone_label }}</div>
           </div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-            <a class="contact-btn" href="tel:+14035250432">Call</a>
-            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
+            <a class="contact-btn" href="tel:+14035250432">{{ home_copy.contact_call_label }}</a>
+            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ home_copy.contact_copy_label }}</button>
           </div>
         </div>
 
         <div class="contact-actions">
-          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write e-mail</a>
-          <a class="contact-btn" href="sms:+14035250432">Text us</a>
+          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ home_copy.contact_write_email_label }}</a>
+          <a class="contact-btn" href="sms:+14035250432">{{ home_copy.contact_text_label }}</a>
         </div>
       </div>
     </div>
@@ -966,6 +1023,9 @@
     const fab   = document.getElementById('contactFab');
     const modal = document.getElementById('contactModal');
     const closeBtn = modal.querySelector('.contact-close');
+    const copyLabel = "{{ home_copy.contact_copy_label|escapejs }}";
+    const copySuccess = "{{ home_copy.contact_copy_success_label|escapejs }}";
+    const copyFailed = "{{ home_copy.contact_copy_failed_label|escapejs }}";
     let lastFocus = null;
 
     function openModal(){
@@ -999,8 +1059,8 @@
 
     modal.querySelectorAll('[data-copy]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
-        try{ await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy',1200); }
-        catch{ btn.textContent='Copy failed'; setTimeout(()=>btn.textContent='Copy',1200); }
+        try{ await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent=copySuccess; setTimeout(()=>btn.textContent=copyLabel,1200); }
+        catch{ btn.textContent=copyFailed; setTimeout(()=>btn.textContent=copyLabel,1200); }
       });
     });
   })();

@@ -7,6 +7,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
 from django.contrib import admin
+from django import forms
+from django.db import models
 from django.db.models import Sum, Count
 from itertools import cycle
 from django.utils.timezone import localtime, datetime, make_aware, localdate
@@ -1662,6 +1664,1113 @@ class LegalPageAdmin(admin.ModelAdmin):
         (None, {"fields": ("title", "slug", "body", "is_active")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
+
+
+@admin.register(HomePageCopy)
+class HomePageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Header & navigation", {
+            "fields": (
+                "skip_to_main_label",
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_kicker",
+                "hero_title",
+                "hero_lead",
+                "hero_primary_cta_label",
+                "hero_secondary_cta_label",
+            )
+        }),
+        ("Hero stats", {
+            "fields": (
+                "hero_stat_1_title",
+                "hero_stat_1_subtitle",
+                "hero_stat_2_title",
+                "hero_stat_2_subtitle",
+                "hero_stat_3_title",
+                "hero_stat_3_subtitle",
+            )
+        }),
+        ("Hero quick actions (mobile)", {
+            "fields": (
+                "hero_mobile_action_1_title",
+                "hero_mobile_action_1_subtitle",
+                "hero_mobile_action_2_title",
+                "hero_mobile_action_2_subtitle",
+                "hero_mobile_action_3_title",
+                "hero_mobile_action_3_subtitle",
+                "hero_mobile_action_4_title",
+                "hero_mobile_action_4_subtitle",
+            )
+        }),
+        ("Services", {
+            "fields": (
+                "services_title",
+                "services_desc",
+                "services_cta_label",
+                "services_mobile_kicker",
+                "services_mobile_action_1_title",
+                "services_mobile_action_1_subtitle",
+                "services_mobile_action_2_title",
+                "services_mobile_action_2_subtitle",
+                "services_mobile_action_3_title",
+                "services_mobile_action_3_subtitle",
+                "services_mobile_action_4_title",
+                "services_mobile_action_4_subtitle",
+            )
+        }),
+        ("Services search & labels", {
+            "fields": (
+                "services_search_placeholder",
+                "services_filter_all_categories_label",
+                "services_search_button_label",
+                "services_reset_filters_label",
+                "services_live_results_label",
+                "services_results_label",
+                "services_featured_label",
+                "services_no_results_label",
+                "services_empty_label",
+                "services_duration_prefix",
+                "services_duration_suffix",
+                "services_book_now_label",
+                "services_nothing_found_label",
+                "services_failed_load_label",
+            )
+        }),
+        ("Shared pricing labels", {
+            "fields": (
+                "contact_for_estimate_label",
+                "from_label",
+            )
+        }),
+        ("Products", {
+            "fields": (
+                "products_title",
+                "products_desc",
+                "products_cta_label",
+                "products_mobile_kicker",
+                "products_mobile_action_1_title",
+                "products_mobile_action_1_subtitle",
+                "products_mobile_action_2_title",
+                "products_mobile_action_2_subtitle",
+            )
+        }),
+        ("Products labels", {
+            "fields": (
+                "products_dealer_label",
+                "products_save_label",
+                "products_contact_us_label",
+                "products_view_label",
+                "products_select_options_label",
+                "products_add_to_cart_label",
+                "products_empty_label",
+                "products_empty_cta_label",
+            )
+        }),
+        ("How we work", {
+            "fields": (
+                "how_title",
+                "how_desc",
+                "how_step_1_title",
+                "how_step_1_desc",
+                "how_step_2_title",
+                "how_step_2_desc",
+                "how_step_3_title",
+                "how_step_3_desc",
+                "how_step_4_title",
+                "how_step_4_desc",
+            )
+        }),
+        ("Why BGM", {
+            "fields": (
+                "why_title",
+                "why_desc",
+                "why_tile_1_title",
+                "why_tile_1_desc",
+                "why_tile_2_title",
+                "why_tile_2_desc",
+                "why_tile_3_title",
+                "why_tile_3_desc",
+                "why_warranty_title",
+                "why_warranty_desc",
+                "why_warranty_cta",
+                "why_warranty_aria_label",
+                "why_warranty_title_attr",
+            )
+        }),
+        ("FAQ", {
+            "fields": (
+                "faq_title",
+                "faq_desc",
+                "faq_1_question",
+                "faq_1_answer",
+                "faq_2_question",
+                "faq_2_answer",
+                "faq_3_question",
+                "faq_3_answer",
+            )
+        }),
+        ("Final CTA", {
+            "fields": (
+                "final_cta_title",
+                "final_cta_desc",
+                "final_cta_primary_label",
+                "final_cta_secondary_auth_label",
+                "final_cta_secondary_guest_label",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if HomePageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Home page"
+
+
+@admin.register(ServicesPageCopy)
+class ServicesPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Header & navigation", {
+            "fields": (
+                "skip_to_main_label",
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {"fields": ("hero_title", "hero_lead", "hero_cta_label")}),
+        ("Catalog & filters", {
+            "fields": (
+                "section_title",
+                "search_placeholder",
+                "filter_all_categories_label",
+                "search_button_label",
+                "reset_button_label",
+                "search_results_label",
+                "live_no_results_label",
+                "live_error_label",
+                "search_no_results_prefix",
+                "search_no_results_suffix",
+                "category_empty_label",
+                "uncategorized_title",
+                "catalog_empty_label",
+            )
+        }),
+        ("Service cards", {
+            "fields": (
+                "service_image_aria_label",
+                "service_image_fallback_label",
+                "book_aria_prefix",
+                "pick_time_label",
+                "contact_for_estimate_label",
+                "from_label",
+                "duration_separator",
+                "duration_unit",
+            )
+        }),
+        ("Booking modal — labels", {
+            "fields": (
+                "booking_modal_title_prefix",
+                "booking_close_label",
+                "booking_staff_label",
+                "booking_staff_picker_label",
+                "booking_choose_time_label",
+                "booking_prev_label",
+                "booking_today_label",
+                "booking_next_label",
+                "booking_mobile_day_label",
+                "booking_mobile_pick_day_label",
+                "booking_jump_today_label",
+                "booking_available_times_label",
+                "booking_no_open_times_label",
+                "booking_no_open_times_on_prefix",
+                "booking_no_open_times_on_suffix",
+                "booking_no_availability_label",
+                "booking_scroll_hint_desktop",
+                "booking_scroll_hint_mobile",
+                "booking_summary_label",
+                "booking_summary_default",
+                "booking_summary_staff_prefix",
+                "booking_summary_time_prefix",
+                "booking_summary_time_selected_label",
+                "booking_full_name_label",
+                "booking_full_name_placeholder",
+                "booking_email_label",
+                "booking_email_placeholder",
+                "booking_phone_label",
+                "booking_phone_placeholder",
+                "booking_phone_title",
+                "booking_confirmation_hint",
+                "booking_cancel_label",
+                "booking_confirm_label",
+            )
+        }),
+        ("Booking modal — messages", {
+            "fields": (
+                "booking_no_staff_label",
+                "booking_availability_error_label",
+                "booking_failed_slots_label",
+                "booking_missing_contact_error",
+                "booking_create_error_label",
+                "booking_created_label",
+                "booking_time_label",
+                "booking_error_label",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if ServicesPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Services page"
+
+
+@admin.register(StorePageCopy)
+class StorePageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("page_title", "meta_title", "meta_description")}),
+        ("Header & navigation", {
+            "fields": (
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_title",
+                "hero_lead",
+                "hero_primary_cta_label",
+                "hero_secondary_cta_label",
+                "hero_disclaimer_fallback",
+            )
+        }),
+        ("Filters", {
+            "fields": (
+                "filters_toggle_label",
+                "filters_active_badge",
+                "filters_reset_label",
+                "filters_heading",
+                "filters_close_label",
+                "filters_category_label",
+                "filters_make_label",
+                "filters_model_label",
+                "filters_year_label",
+                "filters_apply_label",
+                "filters_clear_label",
+            )
+        }),
+        ("Categories", {
+            "fields": (
+                "categories_title",
+                "categories_desc",
+                "categories_empty_label",
+            )
+        }),
+        ("Results", {
+            "fields": (
+                "results_title",
+                "results_desc",
+                "results_empty_label",
+            )
+        }),
+        ("New arrivals", {
+            "fields": (
+                "new_arrivals_title",
+                "new_arrivals_cart_label",
+            )
+        }),
+        ("Browse by category", {
+            "fields": (
+                "browse_title",
+                "browse_desc",
+                "browse_view_all_label",
+            )
+        }),
+        ("Pricing labels", {
+            "fields": (
+                "contact_for_estimate_label",
+                "from_label",
+                "dealer_label",
+                "save_label",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if StorePageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Store page"
+
+
+@admin.register(ClientPortalPageCopy)
+class ClientPortalPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("page_title", "meta_title", "meta_description")}),
+        ("Brand & navigation", {
+            "fields": (
+                "brand_mark",
+                "brand_name",
+                "mobile_menu_label",
+                "mobile_controls_aria_label",
+                "sidebar_close_label",
+                "nav_overview_label",
+                "nav_appointments_label",
+                "nav_orders_label",
+                "nav_files_label",
+                "nav_notifications_label",
+                "nav_profile_label",
+                "nav_back_home_label",
+                "nav_sign_out_label",
+            )
+        }),
+        ("Dashboard overview", {
+            "fields": (
+                "welcome_back_prefix",
+                "welcome_back_suffix",
+                "dashboard_kicker",
+                "upcoming_title",
+                "upcoming_empty_label",
+                "action_cancel_label",
+                "action_reschedule_label",
+                "stats_title",
+                "stats_chart_label",
+                "recent_title",
+                "recent_empty_label",
+                "table_date_label",
+                "table_service_label",
+                "table_staff_label",
+                "table_status_label",
+                "table_amount_label",
+            )
+        }),
+        ("Rates & facts", {
+            "fields": (
+                "rates_title",
+                "rates_shop_label",
+                "rates_shop_value",
+                "rates_cad_label",
+                "rates_cad_value",
+                "quick_facts_title",
+                "quick_fact_1",
+                "quick_fact_2",
+                "quick_fact_3",
+            )
+        }),
+        ("Policies & care", {
+            "fields": (
+                "policies_title",
+                "policy_item_1",
+                "policy_item_2",
+                "policy_item_3",
+                "policy_item_4",
+                "care_title",
+                "care_item_1",
+                "care_item_2",
+                "care_item_3",
+            )
+        }),
+        ("Appointments & orders tabs", {
+            "fields": (
+                "appointments_title",
+                "appointments_book_label",
+                "appointments_completed_label",
+                "appointments_empty_label",
+                "orders_title",
+                "orders_go_to_products_label",
+                "orders_empty_label",
+            )
+        }),
+        ("Files tab", {
+            "fields": (
+                "files_title",
+                "files_lead",
+                "files_max_size_label",
+                "files_description_label",
+                "files_description_placeholder",
+                "files_dropzone_title",
+                "files_accepted_prefix",
+                "files_accepted_suffix",
+                "files_choose_label",
+                "files_your_files_title",
+                "files_total_suffix",
+                "files_empty_label",
+                "files_remove_label",
+                "files_file_fallback_label",
+            )
+        }),
+        ("Notifications & profile", {
+            "fields": (
+                "notifications_title",
+                "notifications_empty_label",
+                "profile_title",
+                "profile_first_name_label",
+                "profile_last_name_label",
+                "profile_phone_label",
+                "profile_email_label",
+                "profile_birth_date_label",
+                "profile_save_label",
+            )
+        }),
+        ("Reschedule modal", {
+            "fields": (
+                "reschedule_modal_title",
+                "reschedule_close_label",
+                "reschedule_staff_label",
+                "reschedule_choose_time_label",
+                "reschedule_prev_label",
+                "reschedule_today_label",
+                "reschedule_next_label",
+                "reschedule_shift_scroll_hint",
+                "reschedule_cancel_label",
+                "reschedule_save_label",
+                "reschedule_no_techs_label",
+                "reschedule_no_availability_label",
+            )
+        }),
+        ("Alerts & status messages", {
+            "fields": (
+                "cancel_confirm_message",
+                "cancel_error_prefix",
+                "reschedule_fetch_error_label",
+                "reschedule_failed_slots_label",
+                "reschedule_success_prefix",
+                "reschedule_failed_label",
+                "files_removing_label",
+                "files_removed_label",
+                "files_delete_error_label",
+                "files_delete_failed_label",
+                "files_uploading_label",
+                "files_upload_success_label",
+                "files_upload_failed_label",
+                "files_too_large_prefix",
+                "files_too_large_suffix",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if ClientPortalPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Client portal"
+
+
+@admin.register(MerchPageCopy)
+class MerchPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("page_title", "meta_title", "meta_description")}),
+        ("Header & navigation", {
+            "fields": (
+                "skip_to_main_label",
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_kicker",
+                "hero_title",
+                "hero_lead",
+                "hero_primary_cta_label",
+                "hero_secondary_cta_label",
+                "hero_disclaimer_fallback",
+            )
+        }),
+        ("First drop section", {
+            "fields": (
+                "section_title",
+                "section_desc",
+                "section_badge_label",
+            )
+        }),
+        ("Drop idea cards", {
+            "fields": (
+                "card_1_title",
+                "card_1_desc",
+                "card_2_title",
+                "card_2_desc",
+                "card_3_title",
+                "card_3_desc",
+                "card_4_title",
+                "card_4_desc",
+            )
+        }),
+        ("Bottom CTA", {"fields": ("bottom_cta_label",)}),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if MerchPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Merch page"
+
+
+@admin.register(FinancingPageCopy)
+class FinancingPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Header & navigation", {
+            "fields": (
+                "skip_to_main_label",
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_kicker",
+                "hero_title",
+                "hero_lead",
+                "hero_primary_cta_label",
+                "hero_secondary_cta_label",
+                "hero_image_alt",
+                "hero_disclaimer",
+            )
+        }),
+        ("Providers section", {
+            "fields": (
+                "providers_title",
+                "providers_desc",
+                "providers_badge_label",
+            )
+        }),
+        ("Provider — Canadian Financial", {
+            "fields": (
+                "provider_1_title",
+                "provider_1_meta",
+                "provider_1_desc",
+                "provider_1_primary_cta_label",
+                "provider_1_secondary_cta_label",
+            )
+        }),
+        ("Provider — Afterpay", {
+            "fields": (
+                "provider_2_title",
+                "provider_2_meta_prefix",
+                "provider_2_meta_amount",
+                "provider_2_desc",
+                "provider_2_primary_cta_label",
+                "provider_2_secondary_cta_label",
+            )
+        }),
+        ("Providers CTA row", {
+            "fields": (
+                "providers_bottom_primary_cta_label",
+                "providers_bottom_secondary_cta_label",
+            )
+        }),
+        ("Steps", {
+            "fields": (
+                "steps_title",
+                "steps_desc",
+                "step_1_title",
+                "step_1_desc",
+                "step_2_title",
+                "step_2_desc",
+                "step_3_title",
+                "step_3_desc",
+                "step_4_title",
+                "step_4_desc",
+            )
+        }),
+        ("FAQ", {
+            "fields": (
+                "faq_title",
+                "faq_desc",
+                "faq_1_title",
+                "faq_1_desc",
+                "faq_2_title",
+                "faq_2_desc",
+                "faq_3_title",
+                "faq_3_desc_prefix",
+                "faq_3_desc_amount",
+                "faq_3_desc_suffix",
+                "faq_4_title",
+                "faq_4_desc",
+                "faq_4_cta_label",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if FinancingPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Financing page"
+
+
+@admin.register(AboutPageCopy)
+class AboutPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Header & navigation", {
+            "fields": (
+                "skip_to_main_label",
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_title",
+                "hero_lead",
+                "hero_chip_1",
+                "hero_chip_2",
+                "hero_chip_3",
+                "hero_image_alt",
+                "hero_disclaimer",
+            )
+        }),
+        ("Our story", {
+            "fields": (
+                "story_title",
+                "story_paragraph_1",
+                "story_paragraph_2",
+            )
+        }),
+        ("What we build", {
+            "fields": (
+                "build_title",
+                "build_item_1",
+                "build_item_2",
+                "build_item_3",
+                "build_item_4",
+                "build_item_5",
+                "build_item_6",
+                "build_item_7",
+                "build_item_8",
+            )
+        }),
+        ("How we work", {
+            "fields": (
+                "how_title",
+                "how_step_1_title",
+                "how_step_1_desc",
+                "how_step_2_title",
+                "how_step_2_desc",
+                "how_step_3_title",
+                "how_step_3_desc",
+                "how_step_4_title",
+                "how_step_4_desc",
+            )
+        }),
+        ("Rates & policies", {
+            "fields": (
+                "rates_title",
+                "rates_shop_label",
+                "rates_shop_value",
+                "rates_cad_label",
+                "rates_cad_value",
+                "rates_policy_1",
+                "rates_policy_2",
+                "rates_policy_3",
+            )
+        }),
+        ("Location", {
+            "fields": (
+                "location_title",
+                "location_address",
+                "location_note",
+                "location_primary_cta_label",
+                "location_secondary_cta_label",
+            )
+        }),
+        ("AMVIC", {
+            "fields": (
+                "amvic_title",
+                "amvic_description",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if AboutPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "About page"
+
+
+@admin.register(DealerStatusPageCopy)
+class DealerStatusPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Header", {
+            "fields": (
+                "brand_word_white",
+                "brand_word_red",
+                "header_badge_label",
+                "nav_store_label",
+                "nav_cart_label",
+                "nav_dealers_label",
+                "nav_services_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_eyebrow",
+                "hero_title",
+                "hero_lead",
+                "hero_tier_label_prefix",
+                "tier_default_label",
+                "hero_discount_suffix",
+                "hero_primary_cta_label",
+                "hero_secondary_cta_label",
+                "hero_stat_dealer_since_label",
+                "hero_stat_pending_label",
+                "hero_stat_lifetime_spend_label",
+                "hero_stat_next_tier_label",
+                "hero_stat_next_tier_suffix",
+                "hero_stat_top_tier_label",
+                "hero_stat_top_tier_value",
+                "hero_disclaimer",
+            )
+        }),
+        ("Dealer overview", {
+            "fields": (
+                "account_overview_title",
+                "account_overview_badge_label",
+                "account_metric_tier_label",
+                "account_metric_discount_label",
+                "account_metric_lifetime_spend_label",
+                "account_metric_last_review_label",
+                "progress_title",
+                "progress_max_tier_badge",
+                "progress_top_tier_label",
+                "orders_title",
+                "orders_badge_suffix",
+                "orders_open_label",
+                "orders_completed_label",
+                "orders_most_recent_label",
+                "orders_cta_label",
+            )
+        }),
+        ("Resources", {
+            "fields": (
+                "resources_title",
+                "resource_1_title",
+                "resource_1_desc",
+                "resource_1_cta_label",
+                "resource_2_title",
+                "resource_2_desc",
+                "resource_2_cta_label",
+                "resource_3_title",
+                "resource_3_desc",
+                "resource_3_cta_label",
+            )
+        }),
+        ("Application status", {
+            "fields": (
+                "application_status_title",
+                "application_status_not_submitted_badge",
+                "application_pending_callout",
+                "application_rejected_callout",
+                "application_approved_callout",
+                "application_none_callout",
+                "application_metric_business_label",
+                "application_metric_tier_label",
+                "application_metric_submitted_label",
+                "application_contact_cta_label",
+                "application_apply_cta_label",
+                "application_reapply_cta_label",
+            )
+        }),
+        ("Tier ladder", {
+            "fields": (
+                "tier_ladder_title",
+                "tier_ladder_badge_label",
+                "tier_table_tier_label",
+                "tier_table_min_spend_label",
+                "tier_table_discount_label",
+                "tier_table_notes_label",
+                "tier_empty_label",
+            )
+        }),
+        ("Timeline", {
+            "fields": (
+                "timeline_title",
+                "timeline_in_progress_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if DealerStatusPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Dealer portal"
 
 
 @admin.register(ProjectJournalEntry)

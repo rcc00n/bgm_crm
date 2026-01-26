@@ -6,22 +6,30 @@
   <a href="{% url 'admin:index' %}">{% trans "Home" %}</a>
   › <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst }}</a>
   › <a href="{{ product_changelist_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
-  › {% trans "Rollback autofill photos" %}
+  › {% trans "Name cleanup" %}
 </div>
 {% endblock %}
 
 {% block content %}
   <div class="module aligned">
-    <h1>Rollback autofill photos</h1>
-    <p>This will clear main images that match the autofill URL pattern or placeholder images.</p>
-    <p><strong>{{ autofill_count }}</strong> products match.</p>
-    {% if category_count %}
-      <p><strong>{{ category_count }}</strong> categories match.</p>
+    <h1>Name cleanup</h1>
+    <p>This will remove the following words from product names:</p>
+    <ul>
+      {% for term in terms %}
+        <li>{{ term }}</li>
+      {% endfor %}
+    </ul>
+    <p><strong>{{ candidate_count }}</strong> products contain these terms.</p>
+    {% if update_count %}
+      <p><strong>{{ update_count }}</strong> product names will be updated.</p>
+    {% endif %}
+    {% if blank_count %}
+      <p class="help">Warning: {{ blank_count }} product(s) would become blank and will be skipped.</p>
     {% endif %}
     <form method="post">
       {% csrf_token %}
       <div class="submit-row">
-        <input type="submit" value="Rollback" class="deletelink" />
+        <input type="submit" value="Cleanup names" class="deletelink" />
         <a href="{{ product_changelist_url }}" class="button cancel-link">Cancel</a>
       </div>
     </form>

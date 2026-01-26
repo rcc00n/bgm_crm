@@ -335,32 +335,37 @@
     <div class="container site-header__inner">
       <a class="brand" href="{% url 'home' %}">
         <span class="brand__logo">
-          <span class="brand__word brand__word--white">BAD GUY</span>
-          <span class="brand__word brand__word--red">MOTORS</span>
+          <span class="brand__word brand__word--white">{{ store_copy.brand_word_white|default:"BAD GUY" }}</span>
+          <span class="brand__word brand__word--red">{{ store_copy.brand_word_red|default:"MOTORS" }}</span>
         </span>
-        <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
+        <span class="brand__tagline">{{ store_copy.brand_tagline|default:"CUSTOM BUILDS • INSTALLS • UPGRADES" }}</span>
       </a>
 
       <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
         <span class="site-header__toggle-box" aria-hidden="true">
           <span class="site-header__toggle-lines"></span>
         </span>
-        <span class="visually-hidden">Toggle navigation</span>
+        <span class="visually-hidden">{{ store_copy.nav_toggle_label|default:"Toggle navigation" }}</span>
       </button>
 
       <nav id="siteNav" aria-label="Main navigation">
         <ul>
-          <li><a href="{% url 'client-dashboard' %}" title="Services catalog">Services</a></li>
+          <li><a href="{% url 'client-dashboard' %}" title="Services catalog">{{ store_copy.nav_services_label|default:"Services" }}</a></li>
           {% if user.is_authenticated %}
-            <li><a href="{% url 'dashboard' %}">Client Portal</a></li>
+            <li><a href="{% url 'dashboard' %}">{{ store_copy.nav_client_portal_label|default:"Client Portal" }}</a></li>
           {% else %}
-            <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">Login</a></li>
+            <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">{{ store_copy.nav_login_label|default:"Login" }}</a></li>
           {% endif %}
-          <li><a href="{% url 'store' %}" aria-current="page">Products</a></li>
-          <li><a href="{% url 'merch' %}">Merch <span class="badge">Soon</span></a></li>
-          <li><a href="{% url 'dealer-status' %}">Dealers</a></li>
-          <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>Financing</a></li>
-          <li><a href="{% url 'our-story' %}">About</a></li>
+          <li><a href="{% url 'store' %}" aria-current="page">{{ store_copy.nav_products_label|default:"Products" }}</a></li>
+          <li>
+            <a href="{% url 'merch' %}">
+              {{ store_copy.nav_merch_label|default:"Merch" }}
+              {% if store_copy.nav_merch_badge|default:"Soon" %}<span class="badge">{{ store_copy.nav_merch_badge|default:"Soon" }}</span>{% endif %}
+            </a>
+          </li>
+          <li><a href="{% url 'dealer-status' %}">{{ store_copy.nav_dealers_label|default:"Dealers" }}</a></li>
+          <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>{{ store_copy.nav_financing_label|default:"Financing" }}</a></li>
+          <li><a href="{% url 'our-story' %}">{{ store_copy.nav_about_label|default:"About" }}</a></li>
         </ul>
       </nav>
     </div>
@@ -368,23 +373,7 @@
 
   {% block body %}{% endblock %}
 
-  <footer class="site-footer" id="contact">
-    <div class="container site-footer__inner">
-      <div style="display:flex;align-items:center;gap:.75rem">
-        <span class="brand__logo" aria-hidden="true" style="width:34px;height:34px;border-radius:10px;background:radial-gradient(90% 90% at 30% 30%, var(--accent-2), var(--accent));box-shadow:0 0 40px -6px var(--accent-2)"></span>
-        <b>Bad Guy Motors</b>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-        <strong>Contact us:</strong>
-        <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
-        <span aria-hidden="true">•</span>
-        <a href="tel:+14035250432">(403) 525-0432</a>
-      </div>
-
-      <div class="section__desc">© 2025 Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
-    </div>
-  </footer>
+  {% include "includes/site_footer.html" %}
 
   <!-- Contact FAB + Modal -->
   <button type="button" id="contactFab" class="contact-fab"
@@ -392,37 +381,37 @@
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
     </svg>
-    Contact us
+    {{ store_copy.contact_fab_label|default:"Contact us" }}
   </button>
 
   <div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
     <div class="contact-dialog">
-      <button class="contact-close" type="button" aria-label="Close">×</button>
-      <h2 id="contactTitle" class="contact-title">Contact us</h2>
+      <button class="contact-close" type="button" aria-label="{{ store_copy.contact_close_label|default:"Close" }}">×</button>
+      <h2 id="contactTitle" class="contact-title">{{ store_copy.contact_modal_title|default:"Contact us" }}</h2>
 
       <div class="contact-body">
         <div class="contact-row">
           <div>
             <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
-            <div class="contact-sub">E-mail</div>
+            <div class="contact-sub">{{ store_copy.contact_email_label|default:"E-mail" }}</div>
           </div>
-          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ store_copy.contact_copy_label|default:"Copy" }}</button>
         </div>
 
         <div class="contact-row">
           <div>
             <div><a href="tel:+14035250432">(403) 525-0432</a></div>
-            <div class="contact-sub">Phone</div>
+            <div class="contact-sub">{{ store_copy.contact_phone_label|default:"Phone" }}</div>
           </div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-            <a class="contact-btn" href="tel:+14035250432">Call</a>
-            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
+            <a class="contact-btn" href="tel:+14035250432">{{ store_copy.contact_call_label|default:"Call" }}</a>
+            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ store_copy.contact_copy_label|default:"Copy" }}</button>
           </div>
         </div>
 
         <div class="contact-actions">
-          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write e-mail</a>
-          <a class="contact-btn" href="sms:+14035250432">Text us</a>
+          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ store_copy.contact_write_email_label|default:"Write e-mail" }}</a>
+          <a class="contact-btn" href="sms:+14035250432">{{ store_copy.contact_text_label|default:"Text us" }}</a>
         </div>
       </div>
     </div>
@@ -438,6 +427,9 @@
       const fab   = document.getElementById('contactFab');
       const modal = document.getElementById('contactModal');
       const closeBtn = modal.querySelector('.contact-close');
+      const copyLabel = "{{ store_copy.contact_copy_label|default:'Copy'|escapejs }}";
+      const copySuccess = "{{ store_copy.contact_copy_success_label|default:'Copied'|escapejs }}";
+      const copyFailed = "{{ store_copy.contact_copy_failed_label|default:'Copy failed'|escapejs }}";
       let lastFocus = null;
 
       function openModal(){
@@ -473,11 +465,11 @@
         btn.addEventListener('click', async ()=>{
           try{
             await navigator.clipboard.writeText(btn.dataset.copy);
-            btn.textContent='Copied';
-            setTimeout(()=>btn.textContent='Copy',1200);
+            btn.textContent = copySuccess;
+            setTimeout(()=>btn.textContent = copyLabel,1200);
           }catch{
-            btn.textContent='Copy failed';
-            setTimeout(()=>btn.textContent='Copy',1200);
+            btn.textContent = copyFailed;
+            setTimeout(()=>btn.textContent = copyLabel,1200);
           }
         });
       });

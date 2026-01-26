@@ -15,6 +15,12 @@
       <span>Cleanup Junk</span>
     </a>
   {% endif %}
+  {% if name_cleanup_url %}
+    <a href="{{ name_cleanup_url }}" class="btn btn-outline-warning page-action-btn" title="Cleanup product names">
+      <i class="fas fa-eraser"></i>
+      <span>Name Cleanup</span>
+    </a>
+  {% endif %}
   {% if rollback_url and last_import %}
     <a href="{{ rollback_url }}" class="btn btn-outline-danger page-action-btn" title="Rollback last import">
       <i class="fas fa-undo"></i>
@@ -31,6 +37,12 @@
     <a href="{{ autofill_photos_url }}" class="btn btn-outline-primary page-action-btn" title="Autofill missing photos">
       <i class="fas fa-image"></i>
       <span>Autofill Photos</span>
+    </a>
+  {% endif %}
+  {% if placeholder_photos_url %}
+    <a href="{{ placeholder_photos_url }}" class="btn btn-outline-info page-action-btn" title="Autofill placeholder photos">
+      <i class="fas fa-images"></i>
+      <span>Autofill 4 Placeholders</span>
     </a>
   {% endif %}
   {% if autofill_rollback_url %}

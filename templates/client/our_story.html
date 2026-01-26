@@ -4,8 +4,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bad Guy Motors — Our Story</title>
-  {% with meta_title="Bad Guy Motors — Our Story" meta_description="Family-run fabrication and diesel performance shop crafting racks, bumpers, coatings, and full builds out of Medicine Hat, AB." meta_section="story" %}
+  <title>{{ about_copy.meta_title|default:"Bad Guy Motors — Our Story" }}</title>
+  {% with meta_title=about_copy.meta_title|default:"Bad Guy Motors — Our Story" meta_description=about_copy.meta_description|default:"Family-run fabrication and diesel performance shop crafting racks, bumpers, coatings, and full builds out of Medicine Hat, AB." meta_section="story" %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
 
@@ -250,7 +250,7 @@
   <!-- Smoke layer -->
   <div id="bg"></div>
 
-  <a href="#main" class="visually-hidden">Skip to main content</a>
+  <a href="#main" class="visually-hidden">{{ about_copy.skip_to_main_label|default:"Skip to main content" }}</a>
 
   <!-- Topbar -->
   {% with current='about' %}
@@ -261,18 +261,18 @@
   <section class="hero">
     <div class="container hero__inner">
       <div class="hero__copy">
-        <h1 class="title">From Bad Guys to Builders.</h1>
-        <p class="lead">We took the long road — and turned it into horsepower. Bad Guy Motors is a family-run custom fabrication and diesel performance shop in Medicine Hat, AB. We build tough parts, tougher rigs, and a legacy for our kids — from bumpers and racks to fender flares and full builds.</p>
+        <h1 class="title">{{ about_copy.hero_title }}</h1>
+        <p class="lead">{{ about_copy.hero_lead }}</p>
         <div class="kickers">
-          <span class="chip">Family owned</span>
-          <span class="chip">Alberta-made</span>
-          <span class="chip">Custom only</span>
+          <span class="chip">{{ about_copy.hero_chip_1 }}</span>
+          <span class="chip">{{ about_copy.hero_chip_2 }}</span>
+          <span class="chip">{{ about_copy.hero_chip_3 }}</span>
         </div>
       </div>
 
       <div class="hero__media frame frame--media">
-        <img src="{% static 'img/hero-about.jpg' %}" alt="About hero" loading="lazy" decoding="async">
-        <p class="hero__disclaimer">Product may not appear exactly as shown.</p>
+        <img src="{% static 'img/hero-about.jpg' %}" alt="{{ about_copy.hero_image_alt }}" loading="lazy" decoding="async">
+        <p class="hero__disclaimer">{{ about_copy.hero_disclaimer }}</p>
       </div>
     </div>
   </section>
@@ -282,22 +282,22 @@
     <section class="section">
       <div class="container grid grid--2">
         <article class="card">
-          <h2 class="section__title">Our story</h2>
-          <p>Co-owners Denim and KC Savoie built Bad Guy Motors after a full 360 — from hard pasts to a focused future. With two kids and two stepkids, we’re a power couple who put family first and quality second to none. We set out to create the shop we wished existed: transparent, disciplined, and obsessed with doing things right.</p>
-          <p class="muted">Every build is personal: the parts we design, the welds we lay, the timelines we keep. We want our daughters to see what it means to run a business with grit, integrity, and pride.</p>
+          <h2 class="section__title">{{ about_copy.story_title }}</h2>
+          <p>{{ about_copy.story_paragraph_1 }}</p>
+          <p class="muted">{{ about_copy.story_paragraph_2 }}</p>
         </article>
 
         <article class="card">
-          <h2 class="section__title">What we build</h2>
+          <h2 class="section__title">{{ about_copy.build_title }}</h2>
           <ul class="list">
-            <li>Bumpers & winch mounts</li>
-            <li>Headache & chase racks</li>
-            <li>Mudflaps & running boards</li>
-            <li>Fender flares</li>
-            <li>Lift kits & 4-link suspensions</li>
-            <li>Diesel performance, tuning & hard parts</li>
-            <li>Body swaps & custom fab</li>
-            <li>Coatings & liners (Armadillo, Smooth Criminal)</li>
+            <li>{{ about_copy.build_item_1 }}</li>
+            <li>{{ about_copy.build_item_2 }}</li>
+            <li>{{ about_copy.build_item_3 }}</li>
+            <li>{{ about_copy.build_item_4 }}</li>
+            <li>{{ about_copy.build_item_5 }}</li>
+            <li>{{ about_copy.build_item_6 }}</li>
+            <li>{{ about_copy.build_item_7 }}</li>
+            <li>{{ about_copy.build_item_8 }}</li>
           </ul>
         </article>
       </div>
@@ -307,23 +307,23 @@
     <section class="section">
       <div class="container grid grid--2">
         <article class="card">
-          <h2 class="section__title">How we work</h2>
+          <h2 class="section__title">{{ about_copy.how_title }}</h2>
           <ul class="list">
-            <li><strong>Consult & scope:</strong> goals, budget, timeline.</li>
-            <li><strong>Design & quote:</strong> CAD as needed, milestones, written estimate.</li>
-            <li><strong>Fabricate & update:</strong> progress pics, approvals, clear comms.</li>
-            <li><strong>Delivery & aftercare:</strong> test drive, torque check, care guide.</li>
+            <li><strong>{{ about_copy.how_step_1_title }}:</strong> {{ about_copy.how_step_1_desc }}</li>
+            <li><strong>{{ about_copy.how_step_2_title }}:</strong> {{ about_copy.how_step_2_desc }}</li>
+            <li><strong>{{ about_copy.how_step_3_title }}:</strong> {{ about_copy.how_step_3_desc }}</li>
+            <li><strong>{{ about_copy.how_step_4_title }}:</strong> {{ about_copy.how_step_4_desc }}</li>
           </ul>
         </article>
 
         <article class="card">
-          <h2 class="section__title">Rates & policies</h2>
+          <h2 class="section__title">{{ about_copy.rates_title }}</h2>
           <ul class="list">
-            <li>Shop rate: <strong>{{ currency.code }} {{ currency.symbol }}130/hr</strong></li>
-            <li>Design/CAD rate: <strong>{{ currency.code }} {{ currency.symbol }}150/hr</strong></li>
-            <li>Deposits secure your slot; balance due on delivery.</li>
-            <li>Storage fees may apply for completed items not picked up promptly.</li>
-            <li>Warranty & support — if it isn’t right, we make it right.</li>
+            <li>{{ about_copy.rates_shop_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_shop_value }}</strong></li>
+            <li>{{ about_copy.rates_cad_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_cad_value }}</strong></li>
+            <li>{{ about_copy.rates_policy_1 }}</li>
+            <li>{{ about_copy.rates_policy_2 }}</li>
+            <li>{{ about_copy.rates_policy_3 }}</li>
           </ul>
         </article>
       </div>
@@ -333,15 +333,15 @@
     <section class="section">
       <div class="container">
         <article class="card">
-          <h2 class="section__title">Where to find us</h2>
-          <p>Bad Guy Motors Inc.<br>620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2</p>
-          <p class="muted">Open by appointment. Book online to lock your time.</p>
+          <h2 class="section__title">{{ about_copy.location_title }}</h2>
+          <p>{{ about_copy.location_address|linebreaksbr }}</p>
+          <p class="muted">{{ about_copy.location_note }}</p>
           <div class="btn-row">
-            <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">Book a service</a>
+            <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ about_copy.location_primary_cta_label }}</a>
             {% if user.is_authenticated %}
-              <a class="btn btn--ghost" href="{% url 'dashboard' %}">Client portal</a>
+              <a class="btn btn--ghost" href="{% url 'dashboard' %}">{{ about_copy.location_secondary_cta_label }}</a>
             {% else %}
-              <a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dashboard' %}">Client portal</a>
+              <a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dashboard' %}">{{ about_copy.location_secondary_cta_label }}</a>
             {% endif %}
           </div>
         </article>
@@ -353,31 +353,16 @@
   <section class="section" id="amvic">
     <div class="container">
       <article class="card text-center">
-        <h2 class="section__title">Licensed by AMVIC</h2>
+        <h2 class="section__title">{{ about_copy.amvic_title }}</h2>
         <a class="amvic-link" href="https://www.amvic.org/business/advertising/" target="_blank" rel="noopener">
           <img class="amvic-logo" src="{% static 'img/amvic-logo.png' %}" alt="AMVIC Licensed Business">
         </a>
-        <p class="muted" style="margin-top:.6rem">Bad Guy Motors is a licensed automotive business under the Alberta Motor Vehicle Industry Council.</p>
+        <p class="muted" style="margin-top:.6rem">{{ about_copy.amvic_description }}</p>
       </article>
     </div>
   </section>
 
-  <footer class="site-footer" id="contact">
-    <div class="container footer__inner">
-      <div style="display:flex;align-items:center;gap:.75rem">
-        <span class="brand__logo" aria-hidden="true"></span><b>Bad Guy Motors</b>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-        <strong>Contact us:</strong>
-        <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
-        <span aria-hidden="true">•</span>
-        <a href="tel:+14035250432">(403) 525-0432</a>
-      </div>
-
-      <div class="section__desc">© 2025 Bad Guy Motors • Putting Dreams in Driveways. Engineered to last.</div>
-    </div>
-  </footer>
+  {% include "includes/site_footer.html" %}
 
   <!-- Smoke scripts (kept consistent with other pages) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
@@ -389,37 +374,37 @@
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
     </svg>
-    Contact us
+    {{ about_copy.contact_fab_label }}
   </button>
 
   <div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
     <div class="contact-dialog">
-      <button class="contact-close" type="button" aria-label="Close">×</button>
-      <h2 id="contactTitle" class="contact-title">Contact us</h2>
+      <button class="contact-close" type="button" aria-label="{{ about_copy.contact_close_label }}">×</button>
+      <h2 id="contactTitle" class="contact-title">{{ about_copy.contact_modal_title }}</h2>
 
       <div class="contact-body">
         <div class="contact-row">
           <div>
             <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
-            <div class="contact-sub">E-mail</div>
+            <div class="contact-sub">{{ about_copy.contact_email_label }}</div>
           </div>
-          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ about_copy.contact_copy_label }}</button>
         </div>
 
         <div class="contact-row">
           <div>
             <div><a href="tel:+14035250432">(403) 525-0432</a></div>
-            <div class="contact-sub">Phone</div>
+            <div class="contact-sub">{{ about_copy.contact_phone_label }}</div>
           </div>
           <div class="contact-row__actions">
-            <a class="contact-btn" href="tel:+14035250432">Call</a>
-            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
+            <a class="contact-btn" href="tel:+14035250432">{{ about_copy.contact_call_label }}</a>
+            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ about_copy.contact_copy_label }}</button>
           </div>
         </div>
 
         <div class="contact-actions">
-          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write e-mail</a>
-          <a class="contact-btn" href="sms:+14035250432">Text us</a>
+          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ about_copy.contact_write_email_label }}</a>
+          <a class="contact-btn" href="sms:+14035250432">{{ about_copy.contact_text_label }}</a>
         </div>
       </div>
     </div>
@@ -468,6 +453,9 @@
     if (fab && modal){
       const closeBtn = modal.querySelector('.contact-close');
       let lastFocus = null;
+      const copyLabel = "{{ about_copy.contact_copy_label|escapejs }}";
+      const copySuccess = "{{ about_copy.contact_copy_success_label|escapejs }}";
+      const copyFailed = "{{ about_copy.contact_copy_failed_label|escapejs }}";
 
       const onKey = (e) => {
         if (e.key === 'Escape') closeModal();
@@ -503,11 +491,11 @@
         btn.addEventListener('click', async ()=>{
           try{
             await navigator.clipboard.writeText(btn.dataset.copy);
-            btn.textContent='Copied';
-            setTimeout(()=>btn.textContent='Copy',1200);
+            btn.textContent=copySuccess;
+            setTimeout(()=>btn.textContent=copyLabel,1200);
           }catch{
-            btn.textContent='Copy failed';
-            setTimeout(()=>btn.textContent='Copy',1200);
+            btn.textContent=copyFailed;
+            setTimeout(()=>btn.textContent=copyLabel,1200);
           }
         });
       });
