@@ -615,30 +615,14 @@ class Order(models.Model):
         if not recipient:
             return
 
-        status_copy = {
-            self.STATUS_PROCESSING: {
-                "title": "Order update: processing",
-                "preheader": "We are preparing your order now.",
-                "intro": "Your order is now in processing. We'll keep you posted as it moves along.",
-            },
-            self.STATUS_SHIPPED: {
-                "title": "Order update: shipped",
-                "preheader": "Your order is on the way.",
-                "intro": "Your order has shipped and is on the way to you.",
-            },
-            self.STATUS_COMPLETED: {
-                "title": "Order update: completed",
-                "preheader": "Your order is marked complete.",
-                "intro": "Your order is marked complete. Thanks again for choosing us.",
-            },
-            self.STATUS_CANCELLED: {
-                "title": "Order update: cancelled",
-                "preheader": "Your order was cancelled.",
-                "intro": "Your order was cancelled. If this is unexpected, reply to this email and we'll help.",
-            },
+        status_templates = {
+            self.STATUS_PROCESSING: "order_status_processing",
+            self.STATUS_SHIPPED: "order_status_shipped",
+            self.STATUS_COMPLETED: "order_status_completed",
+            self.STATUS_CANCELLED: "order_status_cancelled",
         }
-        payload = status_copy.get(self.status)
-        if not payload:
+        template_slug = status_templates.get(self.status)
+        if not template_slug:
             return
 
         brand = getattr(settings, "SITE_BRAND_NAME", "BGM Customs")
@@ -646,18 +630,28 @@ class Order(models.Model):
         currency_code = getattr(settings, "DEFAULT_CURRENCY_CODE", "").upper()
         order_total = self.total
         total_text = f"{currency_symbol}{order_total} {currency_code}".strip()
-
-        subject = f"{brand} order #{self.pk} {self.get_status_display()}"
-        lines = [
-            f"Hi {self.customer_name},",
-            payload["intro"],
-            "",
+        from core.email_templates import base_email_context, join_text_sections, render_email_template
+        context = base_email_context(
+            {
+                "brand": brand,
+                "customer_name": self.customer_name,
+                "order_id": self.pk,
+                "order_status": self.get_status_display(),
+                "order_total": total_text,
+            }
+        )
+        template = render_email_template(template_slug, context)
+        detail_lines = [
             f"Order #: {self.pk}",
             f"Status: {self.get_status_display()}",
             f"Order total: {total_text}",
-            "",
-            "Questions? Reply to this email and we'll help.",
         ]
+        text_body = join_text_sections(
+            [template.greeting],
+            template.intro_lines,
+            detail_lines,
+            template.footer_lines,
+        )
 
         sender = (
             getattr(settings, "DEFAULT_FROM_EMAIL", None)
@@ -682,23 +676,25 @@ class Order(models.Model):
             from core.emails import build_email_html, send_html_email
 
             html_body = build_email_html(
-                title=payload["title"],
-                preheader=payload["preheader"],
-                greeting=f"Hi {self.customer_name},",
-                intro_lines=[payload["intro"]],
+                title=template.title,
+                preheader=template.preheader,
+                greeting=template.greeting,
+                intro_lines=template.intro_lines,
                 detail_rows=[
                     ("Order #", self.pk),
                     ("Status", self.get_status_display()),
                     ("Order total", total_text),
                 ],
                 item_rows=item_rows,
-                footer_lines=["Questions? Reply to this email and we'll help."],
-                cta_label=f"Visit {brand}",
+                notice_title=template.notice_title or None,
+                notice_lines=template.notice_lines,
+                footer_lines=template.footer_lines,
+                cta_label=template.cta_label,
                 cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
             )
             send_html_email(
-                subject=subject,
-                text_body="\n".join(lines),
+                subject=template.subject,
+                text_body=text_body,
                 html_body=html_body,
                 from_email=sender,
                 recipient_list=[recipient],
