@@ -174,19 +174,19 @@
     /* Search */
     .search-bar{
       display:flex;
-      flex-wrap:wrap;
+      flex-wrap:nowrap;
       align-items:center;
       gap:.75rem;
       padding:.75rem .9rem;
       border-radius:1rem;
       border:1px solid var(--card-border);
       background:rgba(18,18,18,.75);
-      margin-bottom:.9rem;
+      margin-bottom:.6rem;
     }
     .search-bar__field{
       position:relative;
-      flex:1 1 260px;
-      min-width:220px;
+      flex:1 1 auto;
+      min-width:0;
     }
     .search-bar__input{
       width:100%;
@@ -233,6 +233,16 @@
       margin:.2rem 0 1rem;
       color:var(--muted);
       font-style:italic;
+    }
+    .search-results{
+      margin:.2rem 0 1.2rem;
+    }
+    .search-results[hidden]{ display:none; }
+    .search-results__title{
+      margin:.4rem 0 .9rem;
+      font-size:1.1rem;
+      font-weight:900;
+      color:#fff;
     }
 
     /* =============================== FOOTER =============================== */
@@ -293,8 +303,21 @@
     @media (max-width:1200px){ .brand__tagline{ display:none; } }
     @media (max-width:900px){
       .hero__inner{ grid-template-columns:1fr; }
-      .search-bar{ flex-direction:column; align-items:stretch; }
-      .search-bar__meta{ margin-left:0; }
+      .search-bar{
+        flex-direction:row;
+        flex-wrap:nowrap;
+        align-items:center;
+        gap:.5rem;
+        padding:.55rem .7rem;
+      }
+      .search-bar__input{
+        min-height:40px;
+        padding:.55rem 2.4rem .55rem 2.15rem;
+      }
+      .search-bar__meta{ margin-left:auto; font-size:.8rem; }
+    }
+    @media (max-width:520px){
+      .search-bar__meta{ display:none; }
     }
 
     /* Mobile sheet */
@@ -612,7 +635,20 @@
         const countEl = bar.querySelector('[data-search-count]');
         const root = bar.closest('[data-search-root]') || document;
         const emptyEl = root.querySelector('[data-search-empty]');
-        const items = Array.from(root.querySelectorAll('[data-search-item]'));
+        const mode = bar.dataset.searchMode || 'filter';
+        let resultsHost = root.querySelector('[data-search-results]');
+        let resultsGrid = resultsHost ? resultsHost.querySelector('[data-search-results-grid]') : null;
+        if (mode === 'swap' && !resultsHost) {
+          resultsHost = document.createElement('div');
+          resultsHost.className = 'search-results';
+          resultsHost.setAttribute('data-search-results', '');
+          resultsHost.hidden = true;
+          resultsHost.innerHTML = '<h3 class="search-results__title">Search results</h3><div class="grid grid--cards" data-search-results-grid></div>';
+          bar.insertAdjacentElement('afterend', resultsHost);
+          resultsGrid = resultsHost.querySelector('[data-search-results-grid]');
+        }
+        const items = Array.from(root.querySelectorAll('[data-search-item]'))
+          .filter(item => !item.closest('[data-search-results]'));
 
         const keyFor = (item) => {
           if (item.dataset.searchKey) return item.dataset.searchKey;
@@ -622,13 +658,39 @@
           return key;
         };
 
+        const renderResults = (matches) => {
+          if (!resultsHost || !resultsGrid) return;
+          resultsGrid.innerHTML = '';
+          if (!matches.length) {
+            resultsHost.hidden = true;
+            return;
+          }
+          const fragment = document.createDocumentFragment();
+          matches.forEach((item) => {
+            const clone = item.cloneNode(true);
+            clone.removeAttribute('hidden');
+            clone.removeAttribute('data-search-item');
+            clone.removeAttribute('data-search-key');
+            clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+            fragment.appendChild(clone);
+          });
+          resultsGrid.appendChild(fragment);
+          resultsHost.hidden = false;
+        };
+
         const update = () => {
           const query = input.value.trim().toLowerCase();
           let matches = 0;
+          const matchedItems = [];
           items.forEach((item) => {
             const match = !query || keyFor(item).includes(query);
-            item.hidden = !match;
-            if (match) matches += 1;
+            if (match) {
+              matches += 1;
+              matchedItems.push(item);
+            }
+            if (mode !== 'swap') {
+              item.hidden = !match;
+            }
           });
           if (countEl) {
             countEl.textContent = query ? `${matches} result${matches === 1 ? '' : 's'}` : '';
@@ -638,6 +700,18 @@
           }
           if (emptyEl) {
             emptyEl.hidden = !(query && matches === 0);
+          }
+          if (mode === 'swap') {
+            if (query) {
+              items.forEach((item) => { item.hidden = true; });
+              renderResults(matchedItems);
+            } else {
+              items.forEach((item) => { item.hidden = false; });
+              if (resultsHost) {
+                resultsHost.hidden = true;
+                if (resultsGrid) resultsGrid.innerHTML = '';
+              }
+            }
           }
         };
 

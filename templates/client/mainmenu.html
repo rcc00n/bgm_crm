@@ -166,21 +166,11 @@
     .slot-free:hover{border-color:rgba(213,0,0,.55);box-shadow:0 0 16px rgba(213,0,0,.25)}
     .slot-busy{color:#fff;background:var(--red);opacity:.9}
     .slot-selected{background:var(--red)!important;color:#fff;border-color:var(--red)!important;box-shadow:0 0 0 2px rgba(213,0,0,.35)}
-    .mobile-picker{display:none;flex-direction:column;gap:1rem;margin-top:.75rem;border:1px solid var(--line);border-radius:var(--radius-md);padding:1rem;background:linear-gradient(180deg,#080808,#0d0d0d)}
-    .mobile-picker__headline{display:flex;align-items:center;justify-content:space-between;gap:.75rem}
-    .mobile-picker__eyebrow{font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
-    .mobile-picker__selected{font-weight:900;font-size:1.05rem;line-height:1.2}
-    .mobile-picker__today{border:1px solid var(--line);background:#111;border-radius:999px;padding:.4rem .95rem;font-size:.85rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink);cursor:pointer}
-    .mobile-picker__today:active{transform:scale(.98)}
-    .mobile-day-scroll{display:flex;gap:.45rem;overflow-x:auto;padding-bottom:.1rem;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-    .mobile-day-scroll::-webkit-scrollbar{display:none}
-    .mobile-day-pill{display:flex;flex-direction:column;gap:.05rem;min-width:96px;border-radius:.9rem;border:1px solid rgba(255,255,255,.14);background:#131313;padding:.55rem .7rem;color:#fff;cursor:pointer;text-align:left;font-weight:600;transition:.2s}
-    .mobile-day-pill span{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-    .mobile-day-pill strong{font-size:.98rem;font-weight:900}
-    .mobile-day-pill--selected{border-color:var(--red);background:var(--red);box-shadow:0 0 0 2px rgba(213,0,0,.35)}
-    .mobile-picker__row{display:flex;flex-direction:column;gap:.5rem}
-    .mobile-picker__row label,.mobile-picker__label{font-size:.8rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
-    .mobile-picker__select{
+    .mobile-booking{display:none;flex-direction:column;gap:.85rem;margin-top:.75rem;border:1px solid var(--line);border-radius:var(--radius-md);padding:1rem;background:#0b0b0b}
+    .mobile-booking__row{display:flex;flex-direction:column;gap:.45rem}
+    .mobile-booking__label{font-size:.8rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+    .mobile-booking__control{display:flex;gap:.5rem;align-items:center}
+    .mobile-booking__input{
       width:100%;
       padding:.75rem .9rem;
       border-radius:.75rem;
@@ -190,19 +180,18 @@
       font-weight:800;
       font-size:1rem;
     }
-    .mobile-picker__slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem}
-    .mobile-slot-btn{padding:.75rem 1rem;border-radius:.8rem;border:1px solid rgba(255,255,255,.18);background:#131313;color:#fff;font-weight:800;font-size:1rem;letter-spacing:.02em;cursor:pointer;text-align:center;transition:.2s}
-    .mobile-slot-btn:hover,.mobile-slot-btn:focus-visible{border-color:rgba(213,0,0,.55);box-shadow:0 0 16px rgba(213,0,0,.18)}
-    .mobile-slot-btn--selected{background:var(--red);border-color:var(--red);box-shadow:0 0 0 2px rgba(213,0,0,.35)}
-    .mobile-slot-btn[disabled]{opacity:.45;cursor:not-allowed}
-    .mobile-picker__empty{display:none;font-size:.95rem;color:var(--muted);font-weight:600;text-align:center}
+    .mobile-booking__btn{border:1px solid var(--line);background:#111;border-radius:.7rem;padding:.6rem .8rem;font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink);cursor:pointer;white-space:nowrap}
+    .mobile-booking__btn:active{transform:scale(.98)}
+    .mobile-booking__meta{display:flex;flex-direction:column;gap:.35rem;margin-top:.25rem}
+    .mobile-booking__status{font-size:.9rem;color:var(--muted);font-weight:600}
+    .mobile-booking__status[data-state="error"]{color:#ff5c72}
     .modal__dialog{width:min(940px,calc(100dvw - 2rem));max-height:calc(100dvh - 2rem)}
     @supports not (height:100dvh){.modal__dialog{width:min(940px,calc(100vw - 2rem));max-height:calc(100vh - 2rem)}}
     @media (max-width:900px){.modal__dialog{width:min(96vw,720px)}.grid-2{grid-template-columns:1fr}.outlook__wrap{max-height:50vh}}
     @media (max-width:768px){
       .outlook{display:none}
       .hint{display:none}
-      .mobile-picker{display:flex}
+      .mobile-booking{display:flex}
     }
 
     /* Master picker (аватарки) */
@@ -817,22 +806,21 @@ main h3{
             </div>
           </div>
 
-          <div class="mobile-picker" id="mobileTimePicker" aria-live="polite" aria-hidden="true">
-            <div class="mobile-picker__headline">
-              <div>
-                <span class="mobile-picker__eyebrow">{{ services_copy.booking_mobile_day_label }}</span>
-                <div class="mobile-picker__selected" id="mobileSelectedDay">{{ services_copy.booking_mobile_pick_day_label }}</div>
+          <div class="mobile-booking" id="mobileBooking" aria-live="polite" aria-hidden="true">
+            <div class="mobile-booking__row">
+              <label class="mobile-booking__label" for="mobileDate">{{ services_copy.booking_mobile_pick_day_label }}</label>
+              <div class="mobile-booking__control">
+                <input id="mobileDate" class="mobile-booking__input" type="date" aria-label="{{ services_copy.booking_mobile_pick_day_label }}">
+                <button class="mobile-booking__btn" id="mobileTodayBtn" type="button">{{ services_copy.booking_jump_today_label }}</button>
               </div>
-              <button class="mobile-picker__today" id="mobileTodayBtn" type="button">{{ services_copy.booking_jump_today_label }}</button>
             </div>
-            <div class="mobile-picker__row mobile-picker__row--date">
-              <label class="mobile-picker__label" for="mobileDaySelect">{{ services_copy.booking_mobile_pick_day_label }}</label>
-              <input id="mobileDaySelect" class="mobile-picker__select" type="date" aria-label="{{ services_copy.booking_mobile_pick_day_label }}">
-            </div>
-            <div class="mobile-picker__row">
-              <label class="mobile-picker__label" for="mobileTimeSelect">{{ services_copy.booking_available_times_label }}</label>
-              <input id="mobileTimeSelect" class="mobile-picker__select" type="time" aria-label="{{ services_copy.booking_available_times_label }}">
-              <div class="mobile-picker__empty" id="mobileSlotsEmpty">{{ services_copy.booking_no_open_times_label }}</div>
+            <div class="mobile-booking__row">
+              <label class="mobile-booking__label" for="mobileTime">{{ services_copy.booking_available_times_label }}</label>
+              <input id="mobileTime" class="mobile-booking__input" type="time" aria-label="{{ services_copy.booking_available_times_label }}" list="mobileTimeList">
+              <datalist id="mobileTimeList"></datalist>
+              <div class="mobile-booking__meta">
+                <span class="mobile-booking__status" id="mobileStatus">{{ services_copy.booking_mobile_pick_day_label }}</span>
+              </div>
             </div>
           </div>
 
@@ -939,71 +927,72 @@ main h3{
     const olPrev=document.getElementById('olPrev');
     const olNext=document.getElementById('olNext');
     const olToday=document.getElementById('olToday');
-    const mobilePickerEl=document.getElementById('mobileTimePicker');
-    const mobileDaySelect=document.getElementById('mobileDaySelect');
-    const mobileDaySummary=document.getElementById('mobileSelectedDay');
+    const mobileBooking=document.getElementById('mobileBooking');
+    const mobileDateInput=document.getElementById('mobileDate');
+    const mobileTimeInput=document.getElementById('mobileTime');
+    const mobileTimeList=document.getElementById('mobileTimeList');
     const mobileTodayBtn=document.getElementById('mobileTodayBtn');
-    const mobileSlotsEmpty=document.getElementById('mobileSlotsEmpty');
-    const mobileTimeSelect=document.getElementById('mobileTimeSelect');
+    const mobileStatus=document.getElementById('mobileStatus');
     const mobileQuery = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
-    const mobileState = { keys:[], days:[], data:[], selectedKey:'' };
+    const mobileState = { active:false, dateKey:'', times:[], isoMap:new Map() };
     const SUMMARY_DEFAULT = copy.summaryDefault;
 
     const WINDOW_DAYS = 14, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
     let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
     let baseStart = new Date(); baseStart.setHours(0,0,0,0);
     let availabilityCache = new Map();
-    if (mobilePickerEl){
-      const syncMobileVisibility = ()=> {
-        const active = mobileQuery ? mobileQuery.matches : false;
-        mobilePickerEl.setAttribute('aria-hidden', active ? 'false' : 'true');
-      };
-      syncMobileVisibility();
-      if (mobileQuery){
-        try{ mobileQuery.addEventListener('change', syncMobileVisibility); }
-        catch(_){ mobileQuery.addListener(syncMobileVisibility); }
-      }
+    function syncMobileVisibility(){
+      if (!mobileBooking) return;
+      const active = mobileQuery ? mobileQuery.matches : false;
+      mobileState.active = active;
+      mobileBooking.setAttribute('aria-hidden', active ? 'false' : 'true');
     }
-    if (mobileDaySelect){
-      mobileDaySelect.addEventListener('change', ()=>{
-        applyMobileSelection(mobileDaySelect.value);
+    syncMobileVisibility();
+    if (mobileQuery){
+      try{ mobileQuery.addEventListener('change', syncMobileVisibility); }
+      catch(_){ mobileQuery.addListener(syncMobileVisibility); }
+    }
+    if (mobileDateInput){
+      mobileDateInput.addEventListener('change', ()=>{
+        loadMobileTimesForDay(mobileDateInput.value);
       });
     }
-    if (mobileTimeSelect){
-      mobileTimeSelect.addEventListener('change', ()=>{
-        const timeValue = mobileTimeSelect.value;
+    if (mobileTimeInput){
+      mobileTimeInput.addEventListener('change', ()=>{
+        const timeValue = mobileTimeInput.value;
         if (!timeValue){
           current.slot = null;
           setSummaryDefault();
           updateSubmitState();
-          syncSelectedSlotUI();
+          if (mobileTimeInput) mobileTimeInput.setCustomValidity('');
           return;
         }
-        const idx = mobileState.keys.indexOf(mobileState.selectedKey);
-        const entry = idx>=0 ? mobileState.data[idx] : null;
-        const iso = entry?.iso?.get(timeValue);
+        const iso = mobileState.isoMap.get(timeValue);
         if (iso){
-          if (mobileSlotsEmpty) mobileSlotsEmpty.style.display='none';
+          if (mobileTimeInput) mobileTimeInput.setCustomValidity('');
+          const preview = mobileState.times.slice(0, 5).map(formatTimeLabel).join(', ');
+          setMobileStatus(preview || copy.noAvailabilityLabel, false);
           selectSlot(iso);
         }else{
           current.slot = null;
           setSummaryDefault();
           updateSubmitState();
-          syncSelectedSlotUI();
-          if (mobileSlotsEmpty){
-            mobileSlotsEmpty.textContent = copy.noOpenTimesLabel;
-            mobileSlotsEmpty.style.display='block';
-          }
+          if (mobileTimeInput) mobileTimeInput.setCustomValidity(copy.noOpenTimesLabel);
+          setMobileStatus(copy.noOpenTimesLabel, true);
         }
       });
     }
     if (mobileTodayBtn){
       mobileTodayBtn.addEventListener('click', ()=>{
-        if (!mobileState.keys.length) return;
+        if (!mobileDateInput) return;
         const todayKey = ymd(new Date());
-        const firstWithSlots = mobileState.keys.find((key, idx)=>Boolean(mobileState.data[idx]?.set?.size));
-        const target = mobileState.keys.includes(todayKey) ? todayKey : (firstWithSlots || mobileState.keys[0]);
-        if (target) applyMobileSelection(target);
+        const minKey = mobileDateInput.min || todayKey;
+        const maxKey = mobileDateInput.max || todayKey;
+        let nextKey = todayKey;
+        if (nextKey < minKey) nextKey = minKey;
+        if (nextKey > maxKey) nextKey = maxKey;
+        mobileDateInput.value = nextKey;
+        loadMobileTimesForDay(nextKey);
       });
     }
 
@@ -1062,142 +1051,152 @@ main h3{
           btn.classList.toggle('slot-selected', Boolean(slot && btn.dataset.slot === slot));
         });
       }
-      if (mobileTimeSelect){
+      if (mobileTimeInput){
         const slotDate = slot ? parseISO(slot) : null;
         const next = slotDate ? hmValue(slotDate) : '';
-        if (mobileTimeSelect.value !== next) mobileTimeSelect.value = next;
+        if (mobileTimeInput.value !== next) mobileTimeInput.value = next;
+        if (slot) mobileTimeInput.setCustomValidity('');
       }
     }
 
-    function renderMobileDayOptions(){
-      if (!mobileDaySelect) return;
-      if (!mobileState.keys.length){
-        mobileDaySelect.value = '';
-        mobileDaySelect.disabled = true;
-        mobileDaySelect.min = '';
-        mobileDaySelect.max = '';
-        return;
-      }
-      const minKey = mobileState.keys[0];
-      const maxKey = mobileState.keys[mobileState.keys.length - 1];
-      mobileDaySelect.min = minKey;
-      mobileDaySelect.max = maxKey;
-      mobileDaySelect.step = 1;
-      mobileDaySelect.disabled = false;
-      if (!mobileState.selectedKey){
-        const firstWithSlots = mobileState.keys.find((key, idx)=>Boolean(mobileState.data[idx]?.set?.size));
-        mobileState.selectedKey = firstWithSlots || mobileState.keys[0];
-      }
-      if (mobileDaySelect.value !== mobileState.selectedKey) mobileDaySelect.value = mobileState.selectedKey;
+    function fromYmd(key){
+      const parts = (key || '').split('-').map(n=>parseInt(n,10));
+      if (parts.length !== 3 || parts.some(n=>Number.isNaN(n))) return null;
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      d.setFullYear(parts[0], parts[1] - 1, parts[2]);
+      return d;
     }
 
-    function updateMobileDaySummary(){
-      if (!mobileDaySummary) return;
-      const idx = mobileState.keys.indexOf(mobileState.selectedKey);
-      const dayObj = idx>=0 ? mobileState.days[idx] : null;
-      if (dayObj){
-        mobileDaySummary.textContent = dayObj.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'});
-      }else if (mobileState.keys.length){
-        mobileDaySummary.textContent = copy.mobilePickDayLabel;
+    function formatTimeLabel(value){
+      const bits = (value || '').split(':').map(n=>parseInt(n,10));
+      if (bits.length !== 2 || bits.some(n=>Number.isNaN(n))) return value || '';
+      const d = new Date();
+      d.setHours(bits[0], bits[1], 0, 0);
+      return fmtHM(d);
+    }
+
+    function setMobileStatus(text, isError){
+      if (!mobileStatus) return;
+      mobileStatus.textContent = text || '';
+      if (isError){
+        mobileStatus.dataset.state = 'error';
       }else{
-        mobileDaySummary.textContent = copy.noAvailabilityLabel;
+        mobileStatus.dataset.state = 'info';
       }
     }
 
-    function applyMobileSelection(nextKey){
-      if (!mobilePickerEl) return;
-      if (!mobileState.keys.length){
-        mobileState.selectedKey='';
-        if (mobileDaySelect){
-          mobileDaySelect.value = '';
-          mobileDaySelect.disabled = true;
-          mobileDaySelect.min = '';
-          mobileDaySelect.max = '';
-        }
-        if (mobileSlotsEmpty){
-          mobileSlotsEmpty.textContent = copy.noAvailabilityLabel;
-          mobileSlotsEmpty.style.display='block';
-        }
-        if (mobileTimeSelect){
-          mobileTimeSelect.value = '';
-          mobileTimeSelect.disabled = true;
-          mobileTimeSelect.min = '';
-          mobileTimeSelect.max = '';
-          mobileTimeSelect.step = '';
-        }
-        updateMobileDaySummary();
+    function clearMobileTimeInput(){
+      if (!mobileTimeInput) return;
+      mobileTimeInput.value = '';
+      mobileTimeInput.disabled = true;
+      mobileTimeInput.min = '';
+      mobileTimeInput.max = '';
+      mobileTimeInput.step = '';
+      mobileTimeInput.setCustomValidity('');
+      if (mobileTimeList) mobileTimeList.innerHTML = '';
+    }
+
+    function updateMobileTimeOptions(times){
+      if (!mobileTimeInput) return;
+      if (!times.length){
+        clearMobileTimeInput();
         return;
       }
-      const prevKey = mobileState.selectedKey;
-      const isValid = Boolean(nextKey && mobileState.keys.includes(nextKey));
-      if (isValid){
-        mobileState.selectedKey = nextKey;
-      }else if (!mobileState.selectedKey){
-        const firstWithSlots = mobileState.keys.find((key, idx)=>Boolean(mobileState.data[idx]?.set?.size));
-        mobileState.selectedKey = firstWithSlots || mobileState.keys[0];
+      mobileTimeInput.disabled = false;
+      mobileTimeInput.min = times[0];
+      mobileTimeInput.max = times[times.length - 1];
+      mobileTimeInput.step = String(STEP_MIN * 60);
+      if (mobileTimeList){
+        mobileTimeList.innerHTML = times.map(t=>`<option value="${t}"></option>`).join('');
       }
-      if (prevKey && mobileState.selectedKey && prevKey !== mobileState.selectedKey){
+    }
+
+    function syncMobileDateRange(startDate){
+      if (!mobileDateInput) return;
+      const startKey = ymd(startDate);
+      const end = new Date(startDate); end.setDate(end.getDate() + WINDOW_DAYS - 1);
+      const endKey = ymd(end);
+      mobileDateInput.min = startKey;
+      mobileDateInput.max = endKey;
+      if (!mobileDateInput.value){
+        mobileDateInput.value = startKey;
+      }else{
+        if (mobileDateInput.value < startKey) mobileDateInput.value = startKey;
+        if (mobileDateInput.value > endKey) mobileDateInput.value = endKey;
+      }
+    }
+
+    async function loadMobileTimesForDay(dayKey){
+      if (!mobileState.active) return;
+      if (!mobileDateInput) return;
+      if (!dayKey){
+        setMobileStatus(copy.mobilePickDayLabel, false);
+        clearMobileTimeInput();
+        return;
+      }
+      mobileState.dateKey = dayKey;
+      const existingSlotDate = current.slot ? parseISO(current.slot) : null;
+      const existingKey = existingSlotDate ? ymd(existingSlotDate) : '';
+      const sameDay = existingKey === dayKey;
+      if (!sameDay){
         current.slot = null;
         setSummaryDefault();
         updateSubmitState();
       }
-      renderMobileDayOptions();
-      updateMobileDaySummary();
-      renderMobileSlots();
-    }
+      clearMobileTimeInput();
+      setMobileStatus(copy.noAvailabilityLabel, false);
 
-    function renderMobileSlots(){
-      if (!mobileTimeSelect) return;
-      const idx = mobileState.keys.indexOf(mobileState.selectedKey);
-      const entry = idx>=0 ? mobileState.data[idx] : null;
-      const timeKeys = entry?.set ? Array.from(entry.set) : [];
-      if (!timeKeys.length){
-        if (mobileTimeSelect){
-          mobileTimeSelect.value = '';
-          mobileTimeSelect.disabled = true;
-          mobileTimeSelect.min = '';
-          mobileTimeSelect.max = '';
-          mobileTimeSelect.step = '';
+      try{
+        let cached = availabilityCache.get(dayKey);
+        if (!cached || cached.loading){
+          availabilityCache.set(dayKey, {loading:true});
+          const res = await fetchAvailability(dayKey, Number(elMaster.value || current.masterId));
+          availabilityCache.set(dayKey, {set: res.set, iso: res.map});
+          cached = availabilityCache.get(dayKey);
         }
-        if (mobileSlotsEmpty){
-          const dayObj = idx>=0 ? mobileState.days[idx] : null;
-          const dayLabel = dayObj
-            ? dayObj.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'})
-            : '';
-          mobileSlotsEmpty.textContent = dayLabel
-            ? `${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`
-            : copy.noOpenTimesLabel;
-          mobileSlotsEmpty.style.display='block';
-        }
-        syncSelectedSlotUI();
-        return;
-      }
-      if (mobileSlotsEmpty) mobileSlotsEmpty.style.display='none';
-      timeKeys.sort();
-      if (mobileTimeSelect){
-        mobileTimeSelect.disabled = false;
-        mobileTimeSelect.min = timeKeys[0];
-        mobileTimeSelect.max = timeKeys[timeKeys.length - 1];
-        mobileTimeSelect.step = String(STEP_MIN * 60);
-        const slotDate = current.slot ? parseISO(current.slot) : null;
-        if (slotDate && ymd(slotDate) === mobileState.selectedKey){
-          mobileTimeSelect.value = hmValue(slotDate);
-        }else{
-          mobileTimeSelect.value = '';
-        }
-      }
-      syncSelectedSlotUI();
-    }
 
-    function updateMobilePicker(days, dayData){
-      if (!mobilePickerEl) return;
-      mobileState.keys = days.map(ymd);
-      mobileState.days = days.map(d=>new Date(d));
-      mobileState.data = dayData;
-      if (!mobileState.keys.includes(mobileState.selectedKey)){
-        mobileState.selectedKey = '';
+        const times = cached?.set ? Array.from(cached.set).sort() : [];
+        mobileState.times = times;
+        mobileState.isoMap = cached?.iso || new Map();
+        updateMobileTimeOptions(times);
+
+        if (!times.length){
+          const dayObj = fromYmd(dayKey);
+          const dayLabel = dayObj ? dayObj.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'}) : '';
+          const message = dayLabel ? `${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}` : copy.noOpenTimesLabel;
+          setMobileStatus(message, true);
+          if (mobileTimeInput) mobileTimeInput.setCustomValidity(copy.noOpenTimesLabel);
+          return;
+        }
+
+        if (mobileTimeInput) mobileTimeInput.setCustomValidity('');
+        const preview = times.slice(0, 5).map(formatTimeLabel).join(', ');
+        setMobileStatus(preview || copy.noAvailabilityLabel, false);
+
+        if (sameDay && existingSlotDate){
+          const existingValue = hmValue(existingSlotDate);
+          if (times.includes(existingValue)){
+            if (mobileTimeInput) mobileTimeInput.value = existingValue;
+            const iso = mobileState.isoMap.get(existingValue);
+            if (iso) selectSlot(iso);
+            return;
+          }
+          current.slot = null;
+          setSummaryDefault();
+          updateSubmitState();
+        }
+        if (times.length === 1){
+          if (mobileTimeInput) mobileTimeInput.value = times[0];
+          const iso = mobileState.isoMap.get(times[0]);
+          if (iso) selectSlot(iso);
+        }else if (mobileTimeInput){
+          mobileTimeInput.value = '';
+        }
+      }catch(err){
+        setMobileStatus(err.message || copy.failedSlotsLabel, true);
+        if (mobileTimeInput) mobileTimeInput.setCustomValidity(err.message || copy.failedSlotsLabel);
       }
-      applyMobileSelection(mobileState.selectedKey);
     }
 
     function updateSubmitState(){
@@ -1221,28 +1220,18 @@ main h3{
 
     function openModal(serviceId, serviceName){
       current={ serviceId, serviceName, masterId:null, slot:null, mastersData:[] };
-      mobileState.keys=[]; mobileState.days=[]; mobileState.data=[]; mobileState.selectedKey='';
-      if (mobileDaySelect){
-        mobileDaySelect.value = '';
-        mobileDaySelect.disabled = true;
-        mobileDaySelect.min = '';
-        mobileDaySelect.max = '';
-      }
-      if (mobileDaySummary) mobileDaySummary.textContent = copy.mobilePickDayLabel;
-      if (mobileSlotsEmpty) mobileSlotsEmpty.style.display='none';
-      if (mobileTimeSelect){
-        mobileTimeSelect.value = '';
-        mobileTimeSelect.disabled = true;
-        mobileTimeSelect.min = '';
-        mobileTimeSelect.max = '';
-        mobileTimeSelect.step = '';
-      }
+      mobileState.dateKey = '';
+      mobileState.times = [];
+      mobileState.isoMap = new Map();
       elServiceName.textContent=serviceName;
       elError.style.display='none'; elSuccess.style.display='none';
       setSummaryDefault();
       availabilityCache.clear();
       syncSelectedSlotUI();
       baseStart = new Date(); baseStart.setHours(0,0,0,0);
+      syncMobileDateRange(baseStart);
+      clearMobileTimeInput();
+      setMobileStatus(copy.mobilePickDayLabel, false);
       hydrateContactForm();
       updateSubmitState();
       modal.classList.add('modal--open');
@@ -1368,6 +1357,8 @@ main h3{
           stub.textContent = copy.noStaffLabel;
           elMasterPicker.appendChild(stub);
           olGrid.innerHTML='<div class="skeleton" style="height:240px;margin:.5rem;"></div>';
+          setMobileStatus(copy.noStaffLabel, true);
+          clearMobileTimeInput();
           return;
         }
 
@@ -1436,7 +1427,12 @@ main h3{
 
       const todayIdx = days.findIndex(x=>x.toDateString()===new Date().toDateString());
       if (todayIdx>0){ const colWidth = 160; olWrap.scrollLeft = todayIdx * colWidth - colWidth; }
-      updateMobilePicker(days, dayData);
+      syncMobileDateRange(baseStart);
+      if (mobileState.active && mobileDateInput){
+        const targetKey = mobileDateInput.value || ymd(baseStart);
+        if (mobileDateInput.value !== targetKey) mobileDateInput.value = targetKey;
+        await loadMobileTimesForDay(targetKey);
+      }
       syncSelectedSlotUI();
     }
 
@@ -1925,16 +1921,13 @@ body.modal-open .contact-fab{ display:none !important; }
   .service-meta{ font-size:.85rem; }
 }
 
-/* 7b) Mobile booking picker — simplify dates/time */
+/* 7b) Mobile booking layout */
 @media (max-width:768px){
-  .mobile-picker{ padding:.85rem; gap:.8rem; }
-  .mobile-picker__headline{ flex-direction:column; align-items:flex-start; gap:.4rem; }
-  .mobile-picker__eyebrow{ display:none; }
-  .mobile-day-scroll{ gap:.35rem; }
-  .mobile-day-pill{ min-width:88px; padding:.5rem .6rem; }
-  .mobile-picker__slots{ grid-template-columns:1fr; }
-  .mobile-slot-btn{ width:100%; }
-  .mobile-picker__label{ font-size:.75rem; }
+  .mobile-booking{ padding:.85rem; gap:.8rem; }
+  .mobile-booking__control{ flex-direction:column; align-items:stretch; }
+  .mobile-booking__btn{ width:100%; }
+  .mobile-booking__label{ font-size:.75rem; }
+  .mobile-booking__meta{ gap:.25rem; }
 }
 
 /* 8) Меньше анимаций при reduce motion */

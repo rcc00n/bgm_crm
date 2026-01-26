@@ -51,7 +51,7 @@
         {% endif %}
       </div>
 
-      <div class="search-bar" data-product-search>
+      <div class="search-bar" data-product-search data-search-mode="swap">
         <label class="visually-hidden" for="productSearch">Search products</label>
         <div class="search-bar__field">
           <span class="search-bar__icon" aria-hidden="true">
@@ -70,6 +70,10 @@
         <div class="search-bar__meta" data-search-count aria-live="polite"></div>
       </div>
       <p class="search-empty" data-search-empty hidden>No products match your search.</p>
+      <div class="search-results" data-search-results hidden>
+        <h3 class="search-results__title">Search results</h3>
+        <div class="grid grid--cards" data-search-results-grid></div>
+      </div>
 
       <form id="catalogFilters"
             method="get"
