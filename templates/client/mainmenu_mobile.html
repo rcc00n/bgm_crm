@@ -148,10 +148,20 @@
     .empty{padding:.85rem;border:1px dashed var(--line);border-radius:.5rem;background:rgba(255,255,255,.02);color:var(--muted);font-style:italic}
 
     /* Booking modal */
-    .modal{position:fixed;inset:0;display:none;align-items:flex-end;background:rgba(0,0,0,.55);z-index:2200}
+    .modal{position:fixed;inset:0;display:none;align-items:stretch;background:rgba(0,0,0,.55);z-index:2200}
     .modal.is-open{display:flex}
-    .sheet{width:100%;background:var(--panel);border-radius:18px 18px 0 0;border-top:1px solid var(--line);
-      padding:16px 16px 24px;max-height:92dvh;overflow:auto}
+    .sheet{
+      width:100%;
+      background:var(--panel);
+      border-radius:0;
+      border-top:1px solid var(--line);
+      padding:16px 16px calc(24px + env(safe-area-inset-bottom));
+      height:100dvh;
+      max-height:100dvh;
+      overflow-y:auto;
+      overflow-x:hidden;
+      overscroll-behavior:contain;
+    }
     .sheet__header{display:flex;align-items:center;justify-content:space-between;gap:12px}
     .sheet__title{font-size:1.1rem;font-weight:900}
     .sheet__close{border:1px solid var(--line);background:#0f0f0f;color:var(--ink);width:36px;height:36px;border-radius:10px}
