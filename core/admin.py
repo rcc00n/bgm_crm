@@ -1664,6 +1664,209 @@ class LegalPageAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(HomePageCopy)
+class HomePageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Header & navigation", {
+            "fields": (
+                "skip_to_main_label",
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_kicker",
+                "hero_title",
+                "hero_lead",
+                "hero_primary_cta_label",
+                "hero_secondary_cta_label",
+            )
+        }),
+        ("Hero stats", {
+            "fields": (
+                "hero_stat_1_title",
+                "hero_stat_1_subtitle",
+                "hero_stat_2_title",
+                "hero_stat_2_subtitle",
+                "hero_stat_3_title",
+                "hero_stat_3_subtitle",
+            )
+        }),
+        ("Hero quick actions (mobile)", {
+            "fields": (
+                "hero_mobile_action_1_title",
+                "hero_mobile_action_1_subtitle",
+                "hero_mobile_action_2_title",
+                "hero_mobile_action_2_subtitle",
+                "hero_mobile_action_3_title",
+                "hero_mobile_action_3_subtitle",
+                "hero_mobile_action_4_title",
+                "hero_mobile_action_4_subtitle",
+            )
+        }),
+        ("Services", {
+            "fields": (
+                "services_title",
+                "services_desc",
+                "services_cta_label",
+                "services_mobile_kicker",
+                "services_mobile_action_1_title",
+                "services_mobile_action_1_subtitle",
+                "services_mobile_action_2_title",
+                "services_mobile_action_2_subtitle",
+                "services_mobile_action_3_title",
+                "services_mobile_action_3_subtitle",
+                "services_mobile_action_4_title",
+                "services_mobile_action_4_subtitle",
+            )
+        }),
+        ("Services search & labels", {
+            "fields": (
+                "services_search_placeholder",
+                "services_filter_all_categories_label",
+                "services_search_button_label",
+                "services_reset_filters_label",
+                "services_live_results_label",
+                "services_results_label",
+                "services_featured_label",
+                "services_no_results_label",
+                "services_empty_label",
+                "services_duration_prefix",
+                "services_duration_suffix",
+                "services_book_now_label",
+                "services_nothing_found_label",
+                "services_failed_load_label",
+            )
+        }),
+        ("Shared pricing labels", {
+            "fields": (
+                "contact_for_estimate_label",
+                "from_label",
+            )
+        }),
+        ("Products", {
+            "fields": (
+                "products_title",
+                "products_desc",
+                "products_cta_label",
+                "products_mobile_kicker",
+                "products_mobile_action_1_title",
+                "products_mobile_action_1_subtitle",
+                "products_mobile_action_2_title",
+                "products_mobile_action_2_subtitle",
+            )
+        }),
+        ("Products labels", {
+            "fields": (
+                "products_dealer_label",
+                "products_save_label",
+                "products_contact_us_label",
+                "products_view_label",
+                "products_select_options_label",
+                "products_add_to_cart_label",
+                "products_empty_label",
+                "products_empty_cta_label",
+            )
+        }),
+        ("How we work", {
+            "fields": (
+                "how_title",
+                "how_desc",
+                "how_step_1_title",
+                "how_step_1_desc",
+                "how_step_2_title",
+                "how_step_2_desc",
+                "how_step_3_title",
+                "how_step_3_desc",
+                "how_step_4_title",
+                "how_step_4_desc",
+            )
+        }),
+        ("Why BGM", {
+            "fields": (
+                "why_title",
+                "why_desc",
+                "why_tile_1_title",
+                "why_tile_1_desc",
+                "why_tile_2_title",
+                "why_tile_2_desc",
+                "why_tile_3_title",
+                "why_tile_3_desc",
+                "why_warranty_title",
+                "why_warranty_desc",
+                "why_warranty_cta",
+                "why_warranty_aria_label",
+                "why_warranty_title_attr",
+            )
+        }),
+        ("FAQ", {
+            "fields": (
+                "faq_title",
+                "faq_desc",
+                "faq_1_question",
+                "faq_1_answer",
+                "faq_2_question",
+                "faq_2_answer",
+                "faq_3_question",
+                "faq_3_answer",
+            )
+        }),
+        ("Final CTA", {
+            "fields": (
+                "final_cta_title",
+                "final_cta_desc",
+                "final_cta_primary_label",
+                "final_cta_secondary_auth_label",
+                "final_cta_secondary_guest_label",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if HomePageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Home page"
+
+
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")

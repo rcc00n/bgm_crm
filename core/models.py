@@ -114,6 +114,226 @@ class LegalPage(models.Model):
         return reverse("legal-page", kwargs={"slug": self.slug})
 
 
+class HomePageCopy(models.Model):
+    """
+    Editable static text for the public home page.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    # Header & navigation
+    skip_to_main_label = models.CharField(max_length=120, default="Skip to main content")
+    brand_word_white = models.CharField(max_length=40, default="BAD GUY")
+    brand_word_red = models.CharField(max_length=40, default="MOTORS")
+    brand_tagline = models.CharField(max_length=120, default="CUSTOM BUILDS • INSTALLS • UPGRADES")
+    nav_toggle_label = models.CharField(max_length=80, default="Toggle navigation")
+    nav_services_label = models.CharField(max_length=40, default="Services")
+    nav_client_portal_label = models.CharField(max_length=60, default="Client Portal")
+    nav_login_label = models.CharField(max_length=40, default="Login")
+    nav_products_label = models.CharField(max_length=40, default="Products")
+    nav_merch_label = models.CharField(max_length=40, default="Merch")
+    nav_merch_badge = models.CharField(max_length=20, default="Soon")
+    nav_dealers_label = models.CharField(max_length=40, default="Dealers")
+    nav_financing_label = models.CharField(max_length=40, default="Financing")
+    nav_about_label = models.CharField(max_length=40, default="About")
+
+    # Hero
+    hero_kicker = models.CharField(max_length=120, default="Custom fabrication • Diesel performance")
+    hero_title = models.CharField(max_length=140, default="Built to be bad. Engineered to last.")
+    hero_lead = models.TextField(
+        default=(
+            "Bad Guy Motors is Medicine Hat’s premier custom fab and diesel shop. "
+            "We design and build bumpers, body swaps, lift kits & four-links, and performance upgrades—"
+            "then finish them with Armadillo or Smooth Criminal Liner. Book a consult and we’ll map your "
+            "build from concept to keys."
+        )
+    )
+    hero_primary_cta_label = models.CharField(max_length=60, default="Explore services")
+    hero_secondary_cta_label = models.CharField(max_length=60, default="Booking")
+    hero_stat_1_title = models.CharField(max_length=60, default="Alberta-made")
+    hero_stat_1_subtitle = models.CharField(max_length=80, default="built in Medicine Hat")
+    hero_stat_2_title = models.CharField(max_length=60, default="Custom only")
+    hero_stat_2_subtitle = models.CharField(max_length=80, default="no cookie‑cutter kits")
+    hero_stat_3_title = models.CharField(max_length=60, default="24/7")
+    hero_stat_3_subtitle = models.CharField(max_length=80, default="Book online fast quotes")
+
+    hero_mobile_action_1_title = models.CharField(max_length=60, default="Book a Service")
+    hero_mobile_action_1_subtitle = models.CharField(max_length=80, default="Pick date & time")
+    hero_mobile_action_2_title = models.CharField(max_length=60, default="Shop Parts")
+    hero_mobile_action_2_subtitle = models.CharField(max_length=80, default="In stock & ready")
+    hero_mobile_action_3_title = models.CharField(max_length=60, default="Contact Us")
+    hero_mobile_action_3_subtitle = models.CharField(max_length=80, default="Call or e‑mail")
+    hero_mobile_action_4_title = models.CharField(max_length=60, default="About")
+    hero_mobile_action_4_subtitle = models.CharField(max_length=80, default="Who we are")
+
+    # Services section
+    services_title = models.CharField(max_length=80, default="What we build")
+    services_desc = models.TextField(
+        default=(
+            "From bolt‑on to one‑off: bumpers, chase racks, headache racks, mudflaps, running boards, "
+            "lift kits & 4‑links, diesel tuning & hard parts, coatings & liners, body swaps, and more. "
+            "Browse packages or request a custom quote."
+        )
+    )
+    services_cta_label = models.CharField(max_length=60, default="Open services")
+    services_mobile_kicker = models.CharField(max_length=60, default="Quick picks")
+    services_mobile_action_1_title = models.CharField(max_length=60, default="Fabrication")
+    services_mobile_action_1_subtitle = models.CharField(max_length=80, default="Bumpers, racks, swaps")
+    services_mobile_action_2_title = models.CharField(max_length=60, default="Suspension")
+    services_mobile_action_2_subtitle = models.CharField(max_length=80, default="Lift kits & 4‑links")
+    services_mobile_action_3_title = models.CharField(max_length=60, default="Diesel Tuning")
+    services_mobile_action_3_subtitle = models.CharField(max_length=80, default="Turbo, injectors, ECU")
+    services_mobile_action_4_title = models.CharField(max_length=60, default="Coatings")
+    services_mobile_action_4_subtitle = models.CharField(max_length=80, default="Armadillo & liner")
+
+    services_search_placeholder = models.CharField(max_length=120, default="Search a service…")
+    services_filter_all_categories_label = models.CharField(max_length=60, default="All categories")
+    services_search_button_label = models.CharField(max_length=40, default="Search")
+    services_reset_filters_label = models.CharField(max_length=60, default="Reset filters")
+    services_live_results_label = models.CharField(max_length=60, default="Search results")
+    services_results_label = models.CharField(max_length=60, default="Results")
+    services_featured_label = models.CharField(max_length=80, default="Featured services")
+    services_no_results_label = models.CharField(max_length=120, default="No results for your query.")
+    services_empty_label = models.CharField(max_length=140, default="The catalog will be available soon 👍")
+    services_duration_prefix = models.CharField(max_length=40, default="Duration:")
+    services_duration_suffix = models.CharField(max_length=40, default="min")
+    services_book_now_label = models.CharField(max_length=40, default="Book now")
+    services_nothing_found_label = models.CharField(max_length=80, default="Nothing found.")
+    services_failed_load_label = models.CharField(
+        max_length=120,
+        default="Failed to load. Please try again.",
+    )
+
+    contact_for_estimate_label = models.CharField(max_length=80, default="Contact for estimate")
+    from_label = models.CharField(max_length=40, default="From")
+
+    # Products section
+    products_title = models.CharField(max_length=80, default="Products")
+    products_desc = models.CharField(
+        max_length=160,
+        default="Performance parts curated by BGM. Fresh stock, ready to ship.",
+    )
+    products_cta_label = models.CharField(max_length=60, default="Open products")
+    products_mobile_kicker = models.CharField(max_length=60, default="Quick shop")
+    products_mobile_action_1_title = models.CharField(max_length=60, default="Shop Parts")
+    products_mobile_action_1_subtitle = models.CharField(max_length=80, default="Fresh stock")
+    products_mobile_action_2_title = models.CharField(max_length=60, default="Merch")
+    products_mobile_action_2_subtitle = models.CharField(max_length=80, default="Coming soon")
+    products_dealer_label = models.CharField(max_length=40, default="Dealer")
+    products_save_label = models.CharField(max_length=40, default="Save")
+    products_contact_us_label = models.CharField(max_length=40, default="Contact us")
+    products_view_label = models.CharField(max_length=40, default="View")
+    products_select_options_label = models.CharField(max_length=60, default="Select options")
+    products_add_to_cart_label = models.CharField(max_length=40, default="Add to cart")
+    products_empty_label = models.CharField(max_length=80, default="No products yet.")
+    products_empty_cta_label = models.CharField(max_length=80, default="Explore products")
+
+    # How it works
+    how_title = models.CharField(max_length=80, default="How we work")
+    how_desc = models.CharField(max_length=120, default="A transparent cycle—from booking to delivery.")
+    how_step_1_title = models.CharField(max_length=80, default="Consult & scope")
+    how_step_1_desc = models.CharField(max_length=120, default="Tell us your goals, budget, and timeline.")
+    how_step_2_title = models.CharField(max_length=80, default="Design & quote")
+    how_step_2_desc = models.CharField(
+        max_length=140,
+        default="CAD as needed, milestones, and a written estimate.",
+    )
+    how_step_3_title = models.CharField(max_length=80, default="Fabricate & update")
+    how_step_3_desc = models.CharField(
+        max_length=140,
+        default="Progress pics, approvals, and clear communication.",
+    )
+    how_step_4_title = models.CharField(max_length=80, default="Delivery & aftercare")
+    how_step_4_desc = models.CharField(
+        max_length=140,
+        default="Test drive, torque check, and a care guide.",
+    )
+
+    # Why BGM
+    why_title = models.CharField(max_length=80, default="Why choose BGM")
+    why_desc = models.CharField(
+        max_length=140,
+        default="We combine aesthetics with engineering discipline.",
+    )
+    why_tile_1_title = models.CharField(max_length=80, default="No‑compromise materials")
+    why_tile_1_desc = models.CharField(max_length=120, default="DOM tubing, proper hardware, and proven parts.")
+    why_tile_2_title = models.CharField(max_length=80, default="On‑time, transparent")
+    why_tile_2_desc = models.CharField(max_length=120, default="Clear updates, zero guesswork.")
+    why_tile_3_title = models.CharField(max_length=80, default="Built for abuse")
+    why_tile_3_desc = models.CharField(
+        max_length=120,
+        default="Designed to work hard, not just look pretty.",
+    )
+    why_warranty_title = models.CharField(max_length=80, default="Warranty & support")
+    why_warranty_desc = models.CharField(
+        max_length=120,
+        default="We stand behind our work and make things right.",
+    )
+    why_warranty_cta = models.CharField(max_length=80, default="Read terms →")
+    why_warranty_aria_label = models.CharField(max_length=120, default="Read Terms & Conditions")
+    why_warranty_title_attr = models.CharField(max_length=120, default="Warranty & support details")
+
+    # FAQ
+    faq_title = models.CharField(max_length=40, default="FAQ")
+    faq_desc = models.CharField(max_length=80, default="Short and sweet")
+    faq_1_question = models.CharField(max_length=160, default="Do I need a prepayment?")
+    faq_1_answer = models.CharField(
+        max_length=220,
+        default="For some services — yes (the “prepayment” option in the service card). Others — pay upon completion.",
+    )
+    faq_2_question = models.CharField(max_length=160, default="Can I reschedule?")
+    faq_2_answer = models.CharField(
+        max_length=220,
+        default="Yes. In the client portal you can cancel or reschedule, and we’ll auto-suggest free slots.",
+    )
+    faq_3_question = models.CharField(max_length=160, default="Do you work with companies and dealers?")
+    faq_3_answer = models.CharField(
+        max_length=220,
+        default="Yes. The “Dealers” section is coming soon. Leave a request via the contact form.",
+    )
+
+    # Final CTA
+    final_cta_title = models.CharField(max_length=80, default="Ready to upgrade?")
+    final_cta_desc = models.CharField(
+        max_length=120,
+        default="We’ll secure your slot and lock the terms today.",
+    )
+    final_cta_primary_label = models.CharField(max_length=60, default="Explore services")
+    final_cta_secondary_auth_label = models.CharField(max_length=60, default="Client Portal")
+    final_cta_secondary_guest_label = models.CharField(max_length=60, default="Login")
+
+    # Contact modal
+    contact_fab_label = models.CharField(max_length=60, default="Contact us")
+    contact_modal_title = models.CharField(max_length=60, default="Contact us")
+    contact_email_label = models.CharField(max_length=40, default="E-mail")
+    contact_phone_label = models.CharField(max_length=40, default="Phone")
+    contact_copy_label = models.CharField(max_length=40, default="Copy")
+    contact_copy_success_label = models.CharField(max_length=40, default="Copied")
+    contact_copy_failed_label = models.CharField(max_length=40, default="Copy failed")
+    contact_call_label = models.CharField(max_length=40, default="Call")
+    contact_write_email_label = models.CharField(max_length=60, default="Write e-mail")
+    contact_text_label = models.CharField(max_length=40, default="Text us")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Home page copy"
+        verbose_name_plural = "Home page copy"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Home page copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
 class FontPreset(models.Model):
     """
     Reusable font definition that can be applied to public-facing pages.

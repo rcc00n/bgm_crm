@@ -310,7 +310,7 @@ from core.models import ServiceCategory, Service
 
 # accounts/views.py (или где у вас HomeView)
 from django.views.generic import TemplateView
-from core.models import Service, ServiceCategory   # ваши модели услуг
+from core.models import Service, ServiceCategory, HomePageCopy   # ваши модели услуг
 from store.models import Product                    # товары
 
 
@@ -380,6 +380,7 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
+        ctx["home_copy"] = HomePageCopy.get_solo()
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]
