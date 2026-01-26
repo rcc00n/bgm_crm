@@ -2390,6 +2390,389 @@ class MerchPageCopyAdmin(admin.ModelAdmin):
         return "Merch page"
 
 
+@admin.register(FinancingPageCopy)
+class FinancingPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Header & navigation", {
+            "fields": (
+                "skip_to_main_label",
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_kicker",
+                "hero_title",
+                "hero_lead",
+                "hero_primary_cta_label",
+                "hero_secondary_cta_label",
+                "hero_image_alt",
+                "hero_disclaimer",
+            )
+        }),
+        ("Providers section", {
+            "fields": (
+                "providers_title",
+                "providers_desc",
+                "providers_badge_label",
+            )
+        }),
+        ("Provider — Canadian Financial", {
+            "fields": (
+                "provider_1_title",
+                "provider_1_meta",
+                "provider_1_desc",
+                "provider_1_primary_cta_label",
+                "provider_1_secondary_cta_label",
+            )
+        }),
+        ("Provider — Afterpay", {
+            "fields": (
+                "provider_2_title",
+                "provider_2_meta_prefix",
+                "provider_2_meta_amount",
+                "provider_2_desc",
+                "provider_2_primary_cta_label",
+                "provider_2_secondary_cta_label",
+            )
+        }),
+        ("Providers CTA row", {
+            "fields": (
+                "providers_bottom_primary_cta_label",
+                "providers_bottom_secondary_cta_label",
+            )
+        }),
+        ("Steps", {
+            "fields": (
+                "steps_title",
+                "steps_desc",
+                "step_1_title",
+                "step_1_desc",
+                "step_2_title",
+                "step_2_desc",
+                "step_3_title",
+                "step_3_desc",
+                "step_4_title",
+                "step_4_desc",
+            )
+        }),
+        ("FAQ", {
+            "fields": (
+                "faq_title",
+                "faq_desc",
+                "faq_1_title",
+                "faq_1_desc",
+                "faq_2_title",
+                "faq_2_desc",
+                "faq_3_title",
+                "faq_3_desc_prefix",
+                "faq_3_desc_amount",
+                "faq_3_desc_suffix",
+                "faq_4_title",
+                "faq_4_desc",
+                "faq_4_cta_label",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if FinancingPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Financing page"
+
+
+@admin.register(AboutPageCopy)
+class AboutPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Header & navigation", {
+            "fields": (
+                "skip_to_main_label",
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_title",
+                "hero_lead",
+                "hero_chip_1",
+                "hero_chip_2",
+                "hero_chip_3",
+                "hero_image_alt",
+                "hero_disclaimer",
+            )
+        }),
+        ("Our story", {
+            "fields": (
+                "story_title",
+                "story_paragraph_1",
+                "story_paragraph_2",
+            )
+        }),
+        ("What we build", {
+            "fields": (
+                "build_title",
+                "build_item_1",
+                "build_item_2",
+                "build_item_3",
+                "build_item_4",
+                "build_item_5",
+                "build_item_6",
+                "build_item_7",
+                "build_item_8",
+            )
+        }),
+        ("How we work", {
+            "fields": (
+                "how_title",
+                "how_step_1_title",
+                "how_step_1_desc",
+                "how_step_2_title",
+                "how_step_2_desc",
+                "how_step_3_title",
+                "how_step_3_desc",
+                "how_step_4_title",
+                "how_step_4_desc",
+            )
+        }),
+        ("Rates & policies", {
+            "fields": (
+                "rates_title",
+                "rates_shop_label",
+                "rates_shop_value",
+                "rates_cad_label",
+                "rates_cad_value",
+                "rates_policy_1",
+                "rates_policy_2",
+                "rates_policy_3",
+            )
+        }),
+        ("Location", {
+            "fields": (
+                "location_title",
+                "location_address",
+                "location_note",
+                "location_primary_cta_label",
+                "location_secondary_cta_label",
+            )
+        }),
+        ("AMVIC", {
+            "fields": (
+                "amvic_title",
+                "amvic_description",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if AboutPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "About page"
+
+
+@admin.register(DealerStatusPageCopy)
+class DealerStatusPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Header", {
+            "fields": (
+                "brand_word_white",
+                "brand_word_red",
+                "header_badge_label",
+                "nav_store_label",
+                "nav_cart_label",
+                "nav_dealers_label",
+                "nav_services_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_eyebrow",
+                "hero_title",
+                "hero_lead",
+                "hero_tier_label_prefix",
+                "tier_default_label",
+                "hero_discount_suffix",
+                "hero_primary_cta_label",
+                "hero_secondary_cta_label",
+                "hero_stat_dealer_since_label",
+                "hero_stat_pending_label",
+                "hero_stat_lifetime_spend_label",
+                "hero_stat_next_tier_label",
+                "hero_stat_next_tier_suffix",
+                "hero_stat_top_tier_label",
+                "hero_stat_top_tier_value",
+                "hero_disclaimer",
+            )
+        }),
+        ("Dealer overview", {
+            "fields": (
+                "account_overview_title",
+                "account_overview_badge_label",
+                "account_metric_tier_label",
+                "account_metric_discount_label",
+                "account_metric_lifetime_spend_label",
+                "account_metric_last_review_label",
+                "progress_title",
+                "progress_max_tier_badge",
+                "progress_top_tier_label",
+                "orders_title",
+                "orders_badge_suffix",
+                "orders_open_label",
+                "orders_completed_label",
+                "orders_most_recent_label",
+                "orders_cta_label",
+            )
+        }),
+        ("Resources", {
+            "fields": (
+                "resources_title",
+                "resource_1_title",
+                "resource_1_desc",
+                "resource_1_cta_label",
+                "resource_2_title",
+                "resource_2_desc",
+                "resource_2_cta_label",
+                "resource_3_title",
+                "resource_3_desc",
+                "resource_3_cta_label",
+            )
+        }),
+        ("Application status", {
+            "fields": (
+                "application_status_title",
+                "application_status_not_submitted_badge",
+                "application_pending_callout",
+                "application_rejected_callout",
+                "application_approved_callout",
+                "application_none_callout",
+                "application_metric_business_label",
+                "application_metric_tier_label",
+                "application_metric_submitted_label",
+                "application_contact_cta_label",
+                "application_apply_cta_label",
+                "application_reapply_cta_label",
+            )
+        }),
+        ("Tier ladder", {
+            "fields": (
+                "tier_ladder_title",
+                "tier_ladder_badge_label",
+                "tier_table_tier_label",
+                "tier_table_min_spend_label",
+                "tier_table_discount_label",
+                "tier_table_notes_label",
+                "tier_empty_label",
+            )
+        }),
+        ("Timeline", {
+            "fields": (
+                "timeline_title",
+                "timeline_in_progress_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if DealerStatusPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Dealer portal"
+
+
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")

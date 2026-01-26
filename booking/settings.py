@@ -544,6 +544,15 @@ ADMIN_SIDEBAR_SECTIONS = [
                 ],
             },
             {
+                "label": "Public Pages",
+                "icon": "fas fa-file-alt",
+                "items": [
+                    {"model": "core.FinancingPageCopy", "label": "Financing Page Copy"},
+                    {"model": "core.AboutPageCopy", "label": "About Page Copy"},
+                    {"model": "core.DealerStatusPageCopy", "label": "Dealer Portal Copy"},
+                ],
+            },
+            {
                 "label": "Client Portal & Merch",
                 "icon": "fas fa-layer-group",
                 "items": [
@@ -612,6 +621,9 @@ JAZZMIN_SETTINGS = {
         "core.DealerTierLevel": "fas fa-medal",
         "core.HeroImage": "fas fa-panorama",
         "core.HomePageCopy": "fas fa-pen-nib",
+        "core.FinancingPageCopy": "fas fa-credit-card",
+        "core.AboutPageCopy": "fas fa-info-circle",
+        "core.DealerStatusPageCopy": "fas fa-handshake",
         "core.ClientPortalPageCopy": "fas fa-id-card",
         "core.MerchPageCopy": "fas fa-tshirt",
         "core.ServicesPageCopy": "fas fa-clipboard-list",

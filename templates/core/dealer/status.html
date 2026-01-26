@@ -3,9 +3,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Dealer Portal — BGM Customs</title>
+  <title>{{ dealer_copy.meta_title|default:"Dealer Portal — BGM Customs" }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% with meta_title="Dealer Portal — BGM Customs" meta_description="Track dealer tier, benefits, and requirements for the BGM Customs wholesale program." meta_section="dealer" meta_type="article" %}
+  {% with meta_title=dealer_copy.meta_title|default:"Dealer Portal — BGM Customs" meta_description=dealer_copy.meta_description|default:"Track dealer tier, benefits, and requirements for the BGM Customs wholesale program." meta_section="dealer" meta_type="article" %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
   <style>
@@ -146,16 +146,16 @@
   <header class="site-header">
     <div class="container site-header__inner">
       <a class="brand" href="{% url 'home' %}">
-        <span class="brand__word">BAD GUY</span>
-        <span class="brand__word brand__word--red">MOTORS</span>
+        <span class="brand__word">{{ dealer_copy.brand_word_white }}</span>
+        <span class="brand__word brand__word--red">{{ dealer_copy.brand_word_red }}</span>
       </a>
-      <div class="badge">Dealer Portal</div>
+      <div class="badge">{{ dealer_copy.header_badge_label }}</div>
       <nav aria-label="Main navigation">
         <ul>
-          <li><a href="{% url 'store' %}">Store</a></li>
-          <li><a href="{% url 'store-cart' %}">Cart</a></li>
-          <li><a href="{% url 'dealer-status' %}" aria-current="page">Dealers</a></li>
-          <li><a href="{% url 'client-dashboard' %}">Services</a></li>
+          <li><a href="{% url 'store' %}">{{ dealer_copy.nav_store_label }}</a></li>
+          <li><a href="{% url 'store-cart' %}">{{ dealer_copy.nav_cart_label }}</a></li>
+          <li><a href="{% url 'dealer-status' %}" aria-current="page">{{ dealer_copy.nav_dealers_label }}</a></li>
+          <li><a href="{% url 'client-dashboard' %}">{{ dealer_copy.nav_services_label }}</a></li>
         </ul>
       </nav>
     </div>
@@ -164,57 +164,57 @@
   <main class="container">
     <section class="hero">
       <div>
-        <p class="hero__eyebrow">BGM Customs</p>
-        <h1 class="hero__title">Dealer workspace</h1>
+        <p class="hero__eyebrow">{{ dealer_copy.hero_eyebrow }}</p>
+        <h1 class="hero__title">{{ dealer_copy.hero_title }}</h1>
         <p class="hero__lead">
-          Track your approval status, understand the tier ladder, and jump straight into the catalog with your negotiated pricing.
+          {{ dealer_copy.hero_lead }}
         </p>
         <div class="hero__meta">
-          <span class="badge">Tier: {{ portal.tier_label|default:"Standard" }}</span>
+          <span class="badge">{{ dealer_copy.hero_tier_label_prefix }} {{ portal.tier_label|default:dealer_copy.tier_default_label }}</span>
           {% if portal.discount_percent %}
-            <span class="badge badge--accent">{{ portal.discount_percent }}% off catalog</span>
+            <span class="badge badge--accent">{{ portal.discount_percent }}% {{ dealer_copy.hero_discount_suffix }}</span>
           {% endif %}
         </div>
         <div class="hero__actions" style="display:flex;gap:.6rem;flex-wrap:wrap">
-          <a class="btn btn--primary" href="{% url 'store' %}">Browse catalog</a>
-          <a class="btn btn--ghost" href="{% url 'store-cart' %}">Open cart</a>
+          <a class="btn btn--primary" href="{% url 'store' %}">{{ dealer_copy.hero_primary_cta_label }}</a>
+          <a class="btn btn--ghost" href="{% url 'store-cart' %}">{{ dealer_copy.hero_secondary_cta_label }}</a>
         </div>
       </div>
       <div class="hero__card">
         <div class="hero__stat">
-          <span class="hero__stat-label">Dealer since</span>
+          <span class="hero__stat-label">{{ dealer_copy.hero_stat_dealer_since_label }}</span>
           <span class="hero__stat-value">
             {% if userprofile and userprofile.dealer_since %}
               {{ userprofile.dealer_since|date:"M d, Y" }}
             {% else %}
-              Pending activation
+              {{ dealer_copy.hero_stat_pending_label }}
             {% endif %}
           </span>
         </div>
         <div class="hero__stat">
-          <span class="hero__stat-label">Lifetime spend</span>
+          <span class="hero__stat-label">{{ dealer_copy.hero_stat_lifetime_spend_label }}</span>
           <span class="hero__stat-value">{{ lifetime_spent|money }}</span>
         </div>
         {% if next_tier %}
           <div class="hero__stat">
-            <span class="hero__stat-label">Next tier target</span>
+            <span class="hero__stat-label">{{ dealer_copy.hero_stat_next_tier_label }}</span>
             <span class="hero__stat-value">{{ next_tier.minimum_spend|money }}</span>
             {% if remaining_to_next %}
               <span class="hero__lead" style="font-size:.9rem;margin-top:.2rem;color:var(--muted);">
-                {{ remaining_to_next|money }} to unlock {{ next_tier.label }}
+                {{ remaining_to_next|money }} {{ dealer_copy.hero_stat_next_tier_suffix }} {{ next_tier.label }}
               </span>
             {% endif %}
           </div>
         {% else %}
           <div class="hero__stat">
-            <span class="hero__stat-label">Top tier unlocked</span>
-            <span class="hero__stat-value">Enjoy the max discount</span>
+            <span class="hero__stat-label">{{ dealer_copy.hero_stat_top_tier_label }}</span>
+            <span class="hero__stat-value">{{ dealer_copy.hero_stat_top_tier_value }}</span>
           </div>
         {% endif %}
       </div>
       <div class="hero__media">
         <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Dealer hero' }}" loading="lazy" decoding="async">
-        <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
+        <p class="hero__disclaimer">{{ hero_media.caption|default:dealer_copy.hero_disclaimer }}</p>
       </div>
     </section>
 
@@ -222,14 +222,14 @@
       <section class="grid grid--3">
         <article class="card">
           <div class="card__header">
-            <h2 class="card__title">Account overview</h2>
-            <span class="badge">Active</span>
+            <h2 class="card__title">{{ dealer_copy.account_overview_title }}</h2>
+            <span class="badge">{{ dealer_copy.account_overview_badge_label }}</span>
           </div>
           <div class="metrics">
-            <div class="metric"><span class="metric__label">Tier</span><span class="metric__value">{{ portal.tier_label|default:"Standard" }}</span></div>
-            <div class="metric"><span class="metric__label">Discount</span><span class="metric__value">{% if portal.discount_percent %}{{ portal.discount_percent }}%{% else %}—{% endif %}</span></div>
-            <div class="metric"><span class="metric__label">Lifetime spend</span><span class="metric__value">{{ lifetime_spent|money }}</span></div>
-            <div class="metric"><span class="metric__label">Last review</span><span class="metric__value">
+            <div class="metric"><span class="metric__label">{{ dealer_copy.account_metric_tier_label }}</span><span class="metric__value">{{ portal.tier_label|default:dealer_copy.tier_default_label }}</span></div>
+            <div class="metric"><span class="metric__label">{{ dealer_copy.account_metric_discount_label }}</span><span class="metric__value">{% if portal.discount_percent %}{{ portal.discount_percent }}%{% else %}—{% endif %}</span></div>
+            <div class="metric"><span class="metric__label">{{ dealer_copy.account_metric_lifetime_spend_label }}</span><span class="metric__value">{{ lifetime_spent|money }}</span></div>
+            <div class="metric"><span class="metric__label">{{ dealer_copy.account_metric_last_review_label }}</span><span class="metric__value">
               {% if dealer_application and dealer_application.reviewed_at %}
                 {{ dealer_application.reviewed_at|date:"M d, Y" }}
               {% else %}
@@ -241,11 +241,11 @@
 
         <article class="card">
           <div class="card__header">
-            <h2 class="card__title">Progress to next tier</h2>
+            <h2 class="card__title">{{ dealer_copy.progress_title }}</h2>
             {% if next_tier %}
               <span class="badge">{{ next_tier.label }}</span>
             {% else %}
-              <span class="badge">Max tier unlocked</span>
+              <span class="badge">{{ dealer_copy.progress_max_tier_badge }}</span>
             {% endif %}
           </div>
           <div class="progress">
@@ -255,20 +255,20 @@
             <div class="progress__meta">
               <span>{{ current_threshold|money }}</span>
               <span>{{ portal.progress|default:0 }}%</span>
-              <span>{% if next_tier %}{{ next_tier.minimum_spend|money }}{% else %}Top tier{% endif %}</span>
+              <span>{% if next_tier %}{{ next_tier.minimum_spend|money }}{% else %}{{ dealer_copy.progress_top_tier_label }}{% endif %}</span>
             </div>
           </div>
         </article>
 
         <article class="card">
           <div class="card__header">
-            <h2 class="card__title">Orders</h2>
-            <span class="badge">{{ orders_snapshot.total }} total</span>
+            <h2 class="card__title">{{ dealer_copy.orders_title }}</h2>
+            <span class="badge">{{ orders_snapshot.total }} {{ dealer_copy.orders_badge_suffix }}</span>
           </div>
           <div class="metrics">
-            <div class="metric"><span class="metric__label">Open</span><span class="metric__value">{{ orders_snapshot.open }}</span></div>
-            <div class="metric"><span class="metric__label">Completed</span><span class="metric__value">{{ orders_snapshot.completed }}</span></div>
-            <div class="metric"><span class="metric__label">Most recent</span>
+            <div class="metric"><span class="metric__label">{{ dealer_copy.orders_open_label }}</span><span class="metric__value">{{ orders_snapshot.open }}</span></div>
+            <div class="metric"><span class="metric__label">{{ dealer_copy.orders_completed_label }}</span><span class="metric__value">{{ orders_snapshot.completed }}</span></div>
+            <div class="metric"><span class="metric__label">{{ dealer_copy.orders_most_recent_label }}</span>
               <span class="metric__value">
                 {% if orders_snapshot.latest %}
                   #{{ orders_snapshot.latest.id }} · {{ orders_snapshot.latest.get_status_display }}
@@ -279,64 +279,70 @@
             </div>
           </div>
           <div class="hero__actions" style="margin-top:.8rem">
-            <a class="btn btn--ghost" href="{% url 'store' %}">Place order</a>
+            <a class="btn btn--ghost" href="{% url 'store' %}">{{ dealer_copy.orders_cta_label }}</a>
           </div>
         </article>
       </section>
 
       <section class="card" style="margin-top:1.5rem">
         <div class="card__header">
-          <h2 class="card__title">Resources</h2>
+          <h2 class="card__title">{{ dealer_copy.resources_title }}</h2>
         </div>
         <div class="resources">
           <div class="resource">
-            <h3 style="font-weight:800;margin-bottom:.3rem">Dealer price sheet</h3>
-            <p class="hero__lead" style="font-size:.9rem;">Download the latest catalog with your discount baked in.</p>
-            <a class="btn btn--ghost" href="{% url 'store' %}">Open catalog</a>
+            <h3 style="font-weight:800;margin-bottom:.3rem">{{ dealer_copy.resource_1_title }}</h3>
+            <p class="hero__lead" style="font-size:.9rem;">{{ dealer_copy.resource_1_desc }}</p>
+            <a class="btn btn--ghost" href="{% url 'store' %}">{{ dealer_copy.resource_1_cta_label }}</a>
           </div>
           <div class="resource">
-            <h3 style="font-weight:800;margin-bottom:.3rem">Support desk</h3>
-            <p class="hero__lead" style="font-size:.9rem;">Need to escalate an order or request marketing assets? Reach out.</p>
-            <a class="btn btn--ghost" href="{% url 'home' %}#contact">Contact support</a>
+            <h3 style="font-weight:800;margin-bottom:.3rem">{{ dealer_copy.resource_2_title }}</h3>
+            <p class="hero__lead" style="font-size:.9rem;">{{ dealer_copy.resource_2_desc }}</p>
+            <a class="btn btn--ghost" href="{% url 'home' %}#contact">{{ dealer_copy.resource_2_cta_label }}</a>
           </div>
           <div class="resource">
-            <h3 style="font-weight:800;margin-bottom:.3rem">Dealer policy</h3>
-            <p class="hero__lead" style="font-size:.9rem;">Review the playbook covering terms, logistics, and reporting cadence.</p>
-            <a class="btn btn--ghost" href="{% url 'legal-terms' %}">View policy</a>
+            <h3 style="font-weight:800;margin-bottom:.3rem">{{ dealer_copy.resource_3_title }}</h3>
+            <p class="hero__lead" style="font-size:.9rem;">{{ dealer_copy.resource_3_desc }}</p>
+            <a class="btn btn--ghost" href="{% url 'legal-terms' %}">{{ dealer_copy.resource_3_cta_label }}</a>
           </div>
         </div>
       </section>
     {% else %}
       <section class="card">
         <div class="card__header">
-          <h2 class="card__title">Application status</h2>
+          <h2 class="card__title">{{ dealer_copy.application_status_title }}</h2>
           {% if dealer_application %}
             <span class="badge">{{ dealer_application.get_status_display }}</span>
           {% else %}
-            <span class="badge badge--accent">Not submitted</span>
+            <span class="badge badge--accent">{{ dealer_copy.application_status_not_submitted_badge }}</span>
           {% endif %}
         </div>
         {% if dealer_application %}
           {% if dealer_application.status == "pending" %}
-            <div class="callout">Thanks for applying. Your submission is in the review queue. We typically respond within 2 business days.</div>
+            <div class="callout">{{ dealer_copy.application_pending_callout }}</div>
           {% elif dealer_application.status == "rejected" %}
-            <div class="callout">The previous request was declined. Feel free to update your details and submit a new application.</div>
+            <div class="callout">{{ dealer_copy.application_rejected_callout }}</div>
           {% elif dealer_application.status == "approved" and not is_dealer %}
-            <div class="callout callout--ok">Approved — we are finalizing onboarding. Expect an activation email shortly.</div>
+            <div class="callout callout--ok">{{ dealer_copy.application_approved_callout }}</div>
           {% endif %}
           <div class="metrics" style="margin-top:.6rem">
-            <div class="metric"><span class="metric__label">Business</span><span class="metric__value">{{ dealer_application.business_name }}</span></div>
-            <div class="metric"><span class="metric__label">Requested tier</span><span class="metric__value">{{ dealer_application.get_preferred_tier_display }}</span></div>
-            <div class="metric"><span class="metric__label">Submitted</span><span class="metric__value">{{ dealer_application.created_at|date:"M d, Y" }}</span></div>
+            <div class="metric"><span class="metric__label">{{ dealer_copy.application_metric_business_label }}</span><span class="metric__value">{{ dealer_application.business_name }}</span></div>
+            <div class="metric"><span class="metric__label">{{ dealer_copy.application_metric_tier_label }}</span><span class="metric__value">{{ dealer_application.get_preferred_tier_display }}</span></div>
+            <div class="metric"><span class="metric__label">{{ dealer_copy.application_metric_submitted_label }}</span><span class="metric__value">{{ dealer_application.created_at|date:"M d, Y" }}</span></div>
           </div>
         {% else %}
-          <div class="callout">You have not submitted a dealer request yet. Tell us about your business and projected volume to unlock wholesale pricing.</div>
+          <div class="callout">{{ dealer_copy.application_none_callout }}</div>
         {% endif %}
         <div class="hero__actions" style="margin-top:1rem">
           {% if dealer_application and dealer_application.status == "pending" %}
-            <a class="btn btn--ghost" href="{% url 'home' %}#contact">Need to update your data? Contact us</a>
+            <a class="btn btn--ghost" href="{% url 'home' %}#contact">{{ dealer_copy.application_contact_cta_label }}</a>
           {% else %}
-            <a class="btn btn--primary" href="{% url 'dealer-apply' %}">{% if dealer_application and dealer_application.status == "rejected" %}Reapply{% else %}Apply now{% endif %}</a>
+            <a class="btn btn--primary" href="{% url 'dealer-apply' %}">
+              {% if dealer_application and dealer_application.status == "rejected" %}
+                {{ dealer_copy.application_reapply_cta_label }}
+              {% else %}
+                {{ dealer_copy.application_apply_cta_label }}
+              {% endif %}
+            </a>
           {% endif %}
         </div>
       </section>
@@ -344,17 +350,17 @@
 
     <section class="card" style="margin-top:1.6rem">
       <div class="card__header">
-        <h2 class="card__title">Tier ladder</h2>
-        <span class="badge">Transparent thresholds</span>
+        <h2 class="card__title">{{ dealer_copy.tier_ladder_title }}</h2>
+        <span class="badge">{{ dealer_copy.tier_ladder_badge_label }}</span>
       </div>
       {% if tier_levels %}
         <table class="table" aria-label="Dealer tiers">
           <thead>
             <tr>
-              <th scope="col">Tier</th>
-              <th scope="col">Minimum spend</th>
-              <th scope="col">Discount</th>
-              <th scope="col">Notes</th>
+              <th scope="col">{{ dealer_copy.tier_table_tier_label }}</th>
+              <th scope="col">{{ dealer_copy.tier_table_min_spend_label }}</th>
+              <th scope="col">{{ dealer_copy.tier_table_discount_label }}</th>
+              <th scope="col">{{ dealer_copy.tier_table_notes_label }}</th>
             </tr>
           </thead>
           <tbody>
@@ -369,13 +375,13 @@
           </tbody>
         </table>
       {% else %}
-        <p class="hero__lead">Tier configuration is coming soon.</p>
+        <p class="hero__lead">{{ dealer_copy.tier_empty_label }}</p>
       {% endif %}
     </section>
 
     <section class="card" style="margin-top:1.6rem">
       <div class="card__header">
-        <h2 class="card__title">Lifecycle timeline</h2>
+        <h2 class="card__title">{{ dealer_copy.timeline_title }}</h2>
       </div>
       <div class="timeline">
         {% for step in application_steps %}
@@ -388,7 +394,7 @@
               {% if step.timestamp %}
                 <div class="timeline__note">{{ step.timestamp|date:"M d, Y" }}</div>
               {% else %}
-                <div class="timeline__note">In progress</div>
+                <div class="timeline__note">{{ dealer_copy.timeline_in_progress_label }}</div>
               {% endif %}
               {% if step.details %}
                 <div class="timeline__note">{{ step.details }}</div>

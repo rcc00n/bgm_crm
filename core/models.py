@@ -863,6 +863,452 @@ class MerchPageCopy(models.Model):
         return obj
 
 
+class FinancingPageCopy(models.Model):
+    """
+    Editable static text for the financing page.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    meta_title = models.CharField(max_length=160, default="BGM Customs — Financing Options")
+    meta_description = models.TextField(
+        default="Flexible financing partners for builds, parts, and installs including Canadian Financial and Afterpay."
+    )
+
+    skip_to_main_label = models.CharField(max_length=120, default="Skip to main content")
+
+    brand_word_white = models.CharField(max_length=40, default="BAD GUY")
+    brand_word_red = models.CharField(max_length=40, default="MOTORS")
+    brand_tagline = models.CharField(max_length=120, default="CUSTOM BUILDS • INSTALLS • UPGRADES")
+    nav_toggle_label = models.CharField(max_length=80, default="Toggle navigation")
+    nav_services_label = models.CharField(max_length=40, default="Services")
+    nav_client_portal_label = models.CharField(max_length=60, default="Client Portal")
+    nav_login_label = models.CharField(max_length=40, default="Login")
+    nav_products_label = models.CharField(max_length=40, default="Products")
+    nav_merch_label = models.CharField(max_length=40, default="Merch")
+    nav_merch_badge = models.CharField(max_length=20, default="Soon")
+    nav_dealers_label = models.CharField(max_length=40, default="Dealers")
+    nav_financing_label = models.CharField(max_length=40, default="Financing")
+    nav_about_label = models.CharField(max_length=40, default="About")
+
+    hero_kicker = models.CharField(max_length=80, default="Flexible Financing")
+    hero_title = models.CharField(max_length=120, default="Build now. Pay over time.")
+    hero_lead = models.TextField(
+        default=(
+            "We offer simple financing options for parts, installs, and full custom builds. "
+            "Apply in minutes with no impact to your credit score for pre-qualification where available."
+        )
+    )
+    hero_primary_cta_label = models.CharField(max_length=60, default="See options")
+    hero_secondary_cta_label = models.CharField(max_length=80, default="Explore Services")
+    hero_image_alt = models.CharField(max_length=80, default="Financing hero")
+    hero_disclaimer = models.CharField(
+        max_length=140,
+        default="Product may not appear exactly as shown.",
+    )
+
+    providers_title = models.CharField(max_length=80, default="Financing providers")
+    providers_desc = models.CharField(
+        max_length=160,
+        default="Pick the option that fits your project size and timeline.",
+    )
+    providers_badge_label = models.CharField(max_length=40, default="Trusted")
+
+    provider_1_title = models.CharField(max_length=80, default="Canadian Financial")
+    provider_1_meta = models.CharField(max_length=120, default="Advisor: Canadian Financial team")
+    provider_1_desc = models.TextField(
+        default="Personalized financing support through Canadian Financial. Great for custom quotes and structured plans."
+    )
+    provider_1_primary_cta_label = models.CharField(max_length=80, default="Apply with Canadian Financial")
+    provider_1_secondary_cta_label = models.CharField(max_length=60, default="How it works")
+
+    provider_2_title = models.CharField(max_length=80, default="Afterpay (via Square)")
+    provider_2_meta_prefix = models.CharField(max_length=80, default="Good up to ≈")
+    provider_2_meta_amount = models.CharField(max_length=20, default="2,000")
+    provider_2_desc = models.TextField(
+        default="Split smaller purchases into interest-free payments at checkout. Perfect for parts and minor installs."
+    )
+    provider_2_primary_cta_label = models.CharField(max_length=60, default="Shop parts")
+    provider_2_secondary_cta_label = models.CharField(max_length=60, default="Book an install")
+
+    providers_bottom_primary_cta_label = models.CharField(max_length=40, default="← Home")
+    providers_bottom_secondary_cta_label = models.CharField(max_length=80, default="See all services")
+
+    steps_title = models.CharField(max_length=80, default="How financing works")
+    steps_desc = models.CharField(max_length=120, default="A simple path from quote to approved build.")
+    step_1_title = models.CharField(max_length=80, default="Get your project quote")
+    step_1_desc = models.TextField(
+        default="Talk to our team about your build or parts install. We’ll outline scope, cost, and timeline."
+    )
+    step_2_title = models.CharField(max_length=80, default="Apply with a provider")
+    step_2_desc = models.TextField(
+        default="Use Canadian Financial for larger projects, or Afterpay for smaller purchases."
+    )
+    step_3_title = models.CharField(max_length=80, default="Choose terms & finalize")
+    step_3_desc = models.TextField(
+        default="Pick the plan that fits your budget. We coordinate approvals and scheduling."
+    )
+    step_4_title = models.CharField(max_length=80, default="Build & updates")
+    step_4_desc = models.TextField(
+        default="We get to work. You’ll receive progress updates in your Client Portal."
+    )
+
+    faq_title = models.CharField(max_length=80, default="Good to know")
+    faq_desc = models.CharField(max_length=120, default="Quick answers to common questions.")
+    faq_1_title = models.CharField(max_length=80, default="Credit checks & approvals")
+    faq_1_desc = models.TextField(
+        default=(
+            "Some providers offer soft credit checks for pre-qualification. Final approval may require a "
+            "hard check. Terms and limits depend on your credit profile."
+        )
+    )
+    faq_2_title = models.CharField(max_length=80, default="Project eligibility")
+    faq_2_desc = models.TextField(
+        default=(
+            "Financing can cover parts, labor, coatings, and custom fabrication. We’ll help you structure "
+            "the quote to fit provider requirements."
+        )
+    )
+    faq_3_title = models.CharField(max_length=80, default="Afterpay limits")
+    faq_3_desc_prefix = models.CharField(
+        max_length=140,
+        default="Afterpay via Square is typically suitable for purchases up to about",
+    )
+    faq_3_desc_amount = models.CharField(max_length=20, default="2,000")
+    faq_3_desc_suffix = models.CharField(
+        max_length=160,
+        default="and is best used for smaller jobs and parts orders.",
+    )
+    faq_4_title = models.CharField(max_length=80, default="Questions?")
+    faq_4_desc = models.TextField(
+        default="Reach out to our team and we’ll walk you through options and next steps."
+    )
+    faq_4_cta_label = models.CharField(max_length=60, default="Contact us")
+
+    contact_fab_label = models.CharField(max_length=60, default="Contact us")
+    contact_modal_title = models.CharField(max_length=60, default="Contact us")
+    contact_close_label = models.CharField(max_length=40, default="Close")
+    contact_email_label = models.CharField(max_length=40, default="E-mail")
+    contact_phone_label = models.CharField(max_length=40, default="Phone")
+    contact_copy_label = models.CharField(max_length=40, default="Copy")
+    contact_copy_success_label = models.CharField(max_length=40, default="Copied")
+    contact_copy_failed_label = models.CharField(max_length=40, default="Copy failed")
+    contact_call_label = models.CharField(max_length=40, default="Call")
+    contact_write_email_label = models.CharField(max_length=60, default="Write e-mail")
+    contact_text_label = models.CharField(max_length=40, default="Text us")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Financing page copy"
+        verbose_name_plural = "Financing page copy"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Financing page copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
+class AboutPageCopy(models.Model):
+    """
+    Editable static text for the About / Our Story page.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    meta_title = models.CharField(max_length=160, default="Bad Guy Motors — Our Story")
+    meta_description = models.TextField(
+        default=(
+            "Family-run fabrication and diesel performance shop crafting racks, bumpers, coatings, "
+            "and full builds out of Medicine Hat, AB."
+        )
+    )
+
+    skip_to_main_label = models.CharField(max_length=120, default="Skip to main content")
+
+    brand_word_white = models.CharField(max_length=40, default="BAD GUY")
+    brand_word_red = models.CharField(max_length=40, default="MOTORS")
+    brand_tagline = models.CharField(max_length=120, default="CUSTOM BUILDS • INSTALLS • UPGRADES")
+    nav_toggle_label = models.CharField(max_length=80, default="Toggle navigation")
+    nav_services_label = models.CharField(max_length=40, default="Services")
+    nav_client_portal_label = models.CharField(max_length=60, default="Client Portal")
+    nav_login_label = models.CharField(max_length=40, default="Login")
+    nav_products_label = models.CharField(max_length=40, default="Products")
+    nav_merch_label = models.CharField(max_length=40, default="Merch")
+    nav_merch_badge = models.CharField(max_length=20, default="Soon")
+    nav_dealers_label = models.CharField(max_length=40, default="Dealers")
+    nav_financing_label = models.CharField(max_length=40, default="Financing")
+    nav_about_label = models.CharField(max_length=40, default="About")
+
+    hero_title = models.CharField(max_length=120, default="From Bad Guys to Builders.")
+    hero_lead = models.TextField(
+        default=(
+            "We took the long road — and turned it into horsepower. Bad Guy Motors is a family-run custom "
+            "fabrication and diesel performance shop in Medicine Hat, AB. We build tough parts, tougher rigs, "
+            "and a legacy for our kids — from bumpers and racks to fender flares and full builds."
+        )
+    )
+    hero_chip_1 = models.CharField(max_length=60, default="Family owned")
+    hero_chip_2 = models.CharField(max_length=60, default="Alberta-made")
+    hero_chip_3 = models.CharField(max_length=60, default="Custom only")
+    hero_image_alt = models.CharField(max_length=80, default="About hero")
+    hero_disclaimer = models.CharField(max_length=140, default="Product may not appear exactly as shown.")
+
+    story_title = models.CharField(max_length=80, default="Our story")
+    story_paragraph_1 = models.TextField(
+        default=(
+            "Co-owners Denim and KC Savoie built Bad Guy Motors after a full 360 — from hard pasts to a focused "
+            "future. With two kids and two stepkids, we’re a power couple who put family first and quality second "
+            "to none. We set out to create the shop we wished existed: transparent, disciplined, and obsessed "
+            "with doing things right."
+        )
+    )
+    story_paragraph_2 = models.TextField(
+        default=(
+            "Every build is personal: the parts we design, the welds we lay, the timelines we keep. We want "
+            "our daughters to see what it means to run a business with grit, integrity, and pride."
+        )
+    )
+
+    build_title = models.CharField(max_length=80, default="What we build")
+    build_item_1 = models.CharField(max_length=120, default="Bumpers & winch mounts")
+    build_item_2 = models.CharField(max_length=120, default="Headache & chase racks")
+    build_item_3 = models.CharField(max_length=120, default="Mudflaps & running boards")
+    build_item_4 = models.CharField(max_length=120, default="Fender flares")
+    build_item_5 = models.CharField(max_length=120, default="Lift kits & 4-link suspensions")
+    build_item_6 = models.CharField(max_length=140, default="Diesel performance, tuning & hard parts")
+    build_item_7 = models.CharField(max_length=120, default="Body swaps & custom fab")
+    build_item_8 = models.CharField(max_length=140, default="Coatings & liners (Armadillo, Smooth Criminal)")
+
+    how_title = models.CharField(max_length=80, default="How we work")
+    how_step_1_title = models.CharField(max_length=80, default="Consult & scope")
+    how_step_1_desc = models.CharField(max_length=120, default="goals, budget, timeline.")
+    how_step_2_title = models.CharField(max_length=80, default="Design & quote")
+    how_step_2_desc = models.CharField(max_length=140, default="CAD as needed, milestones, written estimate.")
+    how_step_3_title = models.CharField(max_length=80, default="Fabricate & update")
+    how_step_3_desc = models.CharField(max_length=140, default="progress pics, approvals, clear comms.")
+    how_step_4_title = models.CharField(max_length=80, default="Delivery & aftercare")
+    how_step_4_desc = models.CharField(max_length=140, default="test drive, torque check, care guide.")
+
+    rates_title = models.CharField(max_length=80, default="Rates & policies")
+    rates_shop_label = models.CharField(max_length=60, default="Shop rate")
+    rates_shop_value = models.CharField(max_length=40, default="130/hr")
+    rates_cad_label = models.CharField(max_length=60, default="Design/CAD rate")
+    rates_cad_value = models.CharField(max_length=40, default="150/hr")
+    rates_policy_1 = models.CharField(
+        max_length=160,
+        default="Deposits secure your slot; balance due on delivery.",
+    )
+    rates_policy_2 = models.CharField(
+        max_length=180,
+        default="Storage fees may apply for completed items not picked up promptly.",
+    )
+    rates_policy_3 = models.CharField(
+        max_length=160,
+        default="Warranty & support — if it isn’t right, we make it right.",
+    )
+
+    location_title = models.CharField(max_length=80, default="Where to find us")
+    location_address = models.TextField(
+        default="Bad Guy Motors Inc.\n620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2"
+    )
+    location_note = models.CharField(
+        max_length=160,
+        default="Open by appointment. Book online to lock your time.",
+    )
+    location_primary_cta_label = models.CharField(max_length=60, default="Book a service")
+    location_secondary_cta_label = models.CharField(max_length=60, default="Client portal")
+
+    amvic_title = models.CharField(max_length=80, default="Licensed by AMVIC")
+    amvic_description = models.CharField(
+        max_length=200,
+        default="Bad Guy Motors is a licensed automotive business under the Alberta Motor Vehicle Industry Council.",
+    )
+
+    contact_fab_label = models.CharField(max_length=60, default="Contact us")
+    contact_modal_title = models.CharField(max_length=60, default="Contact us")
+    contact_close_label = models.CharField(max_length=40, default="Close")
+    contact_email_label = models.CharField(max_length=40, default="E-mail")
+    contact_phone_label = models.CharField(max_length=40, default="Phone")
+    contact_copy_label = models.CharField(max_length=40, default="Copy")
+    contact_copy_success_label = models.CharField(max_length=40, default="Copied")
+    contact_copy_failed_label = models.CharField(max_length=40, default="Copy failed")
+    contact_call_label = models.CharField(max_length=40, default="Call")
+    contact_write_email_label = models.CharField(max_length=60, default="Write e-mail")
+    contact_text_label = models.CharField(max_length=40, default="Text us")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "About page copy"
+        verbose_name_plural = "About page copy"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "About page copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
+class DealerStatusPageCopy(models.Model):
+    """
+    Editable static text for the dealer portal/status page.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    meta_title = models.CharField(max_length=160, default="Dealer Portal — BGM Customs")
+    meta_description = models.TextField(
+        default="Track dealer tier, benefits, and requirements for the BGM Customs wholesale program."
+    )
+
+    brand_word_white = models.CharField(max_length=40, default="BAD GUY")
+    brand_word_red = models.CharField(max_length=40, default="MOTORS")
+    header_badge_label = models.CharField(max_length=60, default="Dealer Portal")
+    nav_store_label = models.CharField(max_length=40, default="Store")
+    nav_cart_label = models.CharField(max_length=40, default="Cart")
+    nav_dealers_label = models.CharField(max_length=40, default="Dealers")
+    nav_services_label = models.CharField(max_length=60, default="Services")
+
+    hero_eyebrow = models.CharField(max_length=60, default="BGM Customs")
+    hero_title = models.CharField(max_length=120, default="Dealer workspace")
+    hero_lead = models.TextField(
+        default=(
+            "Track your approval status, understand the tier ladder, and jump straight into the catalog with "
+            "your negotiated pricing."
+        )
+    )
+    hero_tier_label_prefix = models.CharField(max_length=40, default="Tier:")
+    tier_default_label = models.CharField(max_length=60, default="Standard")
+    hero_discount_suffix = models.CharField(max_length=40, default="off catalog")
+    hero_primary_cta_label = models.CharField(max_length=60, default="Browse catalog")
+    hero_secondary_cta_label = models.CharField(max_length=40, default="Open cart")
+
+    hero_stat_dealer_since_label = models.CharField(max_length=60, default="Dealer since")
+    hero_stat_pending_label = models.CharField(max_length=80, default="Pending activation")
+    hero_stat_lifetime_spend_label = models.CharField(max_length=80, default="Lifetime spend")
+    hero_stat_next_tier_label = models.CharField(max_length=80, default="Next tier target")
+    hero_stat_next_tier_suffix = models.CharField(max_length=60, default="to unlock")
+    hero_stat_top_tier_label = models.CharField(max_length=80, default="Top tier unlocked")
+    hero_stat_top_tier_value = models.CharField(max_length=120, default="Enjoy the max discount")
+    hero_disclaimer = models.CharField(
+        max_length=140,
+        default="Product may not appear exactly as shown.",
+    )
+
+    account_overview_title = models.CharField(max_length=80, default="Account overview")
+    account_overview_badge_label = models.CharField(max_length=40, default="Active")
+    account_metric_tier_label = models.CharField(max_length=40, default="Tier")
+    account_metric_discount_label = models.CharField(max_length=40, default="Discount")
+    account_metric_lifetime_spend_label = models.CharField(max_length=60, default="Lifetime spend")
+    account_metric_last_review_label = models.CharField(max_length=60, default="Last review")
+
+    progress_title = models.CharField(max_length=80, default="Progress to next tier")
+    progress_max_tier_badge = models.CharField(max_length=80, default="Max tier unlocked")
+    progress_top_tier_label = models.CharField(max_length=40, default="Top tier")
+
+    orders_title = models.CharField(max_length=60, default="Orders")
+    orders_badge_suffix = models.CharField(max_length=20, default="total")
+    orders_open_label = models.CharField(max_length=40, default="Open")
+    orders_completed_label = models.CharField(max_length=40, default="Completed")
+    orders_most_recent_label = models.CharField(max_length=60, default="Most recent")
+    orders_cta_label = models.CharField(max_length=40, default="Place order")
+
+    resources_title = models.CharField(max_length=60, default="Resources")
+    resource_1_title = models.CharField(max_length=80, default="Dealer price sheet")
+    resource_1_desc = models.CharField(
+        max_length=160,
+        default="Download the latest catalog with your discount baked in.",
+    )
+    resource_1_cta_label = models.CharField(max_length=60, default="Open catalog")
+    resource_2_title = models.CharField(max_length=80, default="Support desk")
+    resource_2_desc = models.CharField(
+        max_length=180,
+        default="Need to escalate an order or request marketing assets? Reach out.",
+    )
+    resource_2_cta_label = models.CharField(max_length=60, default="Contact support")
+    resource_3_title = models.CharField(max_length=80, default="Dealer policy")
+    resource_3_desc = models.CharField(
+        max_length=180,
+        default="Review the playbook covering terms, logistics, and reporting cadence.",
+    )
+    resource_3_cta_label = models.CharField(max_length=60, default="View policy")
+
+    application_status_title = models.CharField(max_length=80, default="Application status")
+    application_status_not_submitted_badge = models.CharField(max_length=60, default="Not submitted")
+    application_pending_callout = models.TextField(
+        default=(
+            "Thanks for applying. Your submission is in the review queue. We typically respond within 2 business days."
+        )
+    )
+    application_rejected_callout = models.TextField(
+        default="The previous request was declined. Feel free to update your details and submit a new application."
+    )
+    application_approved_callout = models.TextField(
+        default="Approved — we are finalizing onboarding. Expect an activation email shortly."
+    )
+    application_none_callout = models.TextField(
+        default=(
+            "You have not submitted a dealer request yet. Tell us about your business and projected volume to "
+            "unlock wholesale pricing."
+        )
+    )
+    application_metric_business_label = models.CharField(max_length=60, default="Business")
+    application_metric_tier_label = models.CharField(max_length=60, default="Requested tier")
+    application_metric_submitted_label = models.CharField(max_length=60, default="Submitted")
+    application_contact_cta_label = models.CharField(
+        max_length=120,
+        default="Need to update your data? Contact us",
+    )
+    application_apply_cta_label = models.CharField(max_length=40, default="Apply now")
+    application_reapply_cta_label = models.CharField(max_length=40, default="Reapply")
+
+    tier_ladder_title = models.CharField(max_length=60, default="Tier ladder")
+    tier_ladder_badge_label = models.CharField(max_length=80, default="Transparent thresholds")
+    tier_table_tier_label = models.CharField(max_length=40, default="Tier")
+    tier_table_min_spend_label = models.CharField(max_length=80, default="Minimum spend")
+    tier_table_discount_label = models.CharField(max_length=60, default="Discount")
+    tier_table_notes_label = models.CharField(max_length=60, default="Notes")
+    tier_empty_label = models.CharField(max_length=120, default="Tier configuration is coming soon.")
+
+    timeline_title = models.CharField(max_length=80, default="Lifecycle timeline")
+    timeline_in_progress_label = models.CharField(max_length=60, default="In progress")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Dealer portal copy"
+        verbose_name_plural = "Dealer portal copy"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Dealer portal copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
 class FontPreset(models.Model):
     """
     Reusable font definition that can be applied to public-facing pages.

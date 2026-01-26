@@ -35,6 +35,9 @@ from core.models import (
     PromoCode,
     SiteNoticeSignup,
     ServicesPageCopy,
+    FinancingPageCopy,
+    AboutPageCopy,
+    DealerStatusPageCopy,
 )
 from core.forms import ServiceLeadForm
 from core.services.booking import (
@@ -476,6 +479,7 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         up = getattr(self.request.user, "userprofile", None)
         dealer_app = getattr(self.request.user, "dealer_application", None)
+        ctx["dealer_copy"] = DealerStatusPageCopy.get_solo()
         ctx["userprofile"] = up
         ctx["dealer_application"] = dealer_app
         # флаг доступа и snapshot для портала
@@ -495,10 +499,27 @@ from django.shortcuts import render
 
 def financing_view(request):
     font_settings = build_page_font_context(PageFontSetting.Page.FINANCING)
-    return render(request, "financing.html", {"font_settings": font_settings})
+    financing_copy = FinancingPageCopy.get_solo()
+    return render(
+        request,
+        "financing.html",
+        {
+            "font_settings": font_settings,
+            "financing_copy": financing_copy,
+            "header_copy": financing_copy,
+        },
+    )
 
 def our_story_view(request):
-    return render(request, "client/our_story.html")
+    about_copy = AboutPageCopy.get_solo()
+    return render(
+        request,
+        "client/our_story.html",
+        {
+            "about_copy": about_copy,
+            "header_copy": about_copy,
+        },
+    )
 
 
 def brake_suspension_view(request):
