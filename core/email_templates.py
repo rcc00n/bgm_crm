@@ -5,7 +5,7 @@ from typing import Iterable, Sequence
 
 from django.conf import settings
 
-from core.models import EmailTemplate
+from core.models import EmailTemplate, EmailTemplateSettings
 
 
 @dataclass(frozen=True)
@@ -270,9 +270,20 @@ class _SafeDict(dict):
         return ""
 
 
+def email_brand_name() -> str:
+    default_brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    try:
+        settings_obj = EmailTemplateSettings.objects.first()
+    except Exception:
+        return default_brand
+    if settings_obj and settings_obj.brand_name and settings_obj.brand_name.strip():
+        return settings_obj.brand_name.strip()
+    return default_brand
+
+
 def base_email_context(extra: dict[str, object] | None = None) -> dict[str, str]:
     context = {
-        "brand": getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors"),
+        "brand": email_brand_name(),
         "support_email": getattr(settings, "SUPPORT_EMAIL", ""),
         "company_website": getattr(settings, "COMPANY_WEBSITE", ""),
         "company_phone": getattr(settings, "COMPANY_PHONE", ""),

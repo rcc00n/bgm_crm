@@ -9,7 +9,7 @@ import json
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from core.email_templates import base_email_context, join_text_sections, render_email_template
+from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from django.core.validators import validate_email
 from django.db import transaction
@@ -381,7 +381,7 @@ def _send_order_confirmation(
     if not recipient:
         return
 
-    brand = getattr(settings, "SITE_BRAND_NAME", "BGM Customs")
+    brand = email_brand_name()
     pay_mode_label = "Pay in full" if pay_mode != Order.PaymentMode.DEPOSIT else "50% deposit"
     amount_now = (charge_amount or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
     balance_left = (balance_due or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)

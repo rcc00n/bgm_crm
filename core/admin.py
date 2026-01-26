@@ -6,7 +6,7 @@ from django.contrib.admin import DateFieldListFilter
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
-from django.contrib import admin
+from django.contrib import admin, messages
 from django import forms
 from django.db import models
 from django.db.models import Sum, Count
@@ -1697,6 +1697,7 @@ class HomePageCopyAdmin(admin.ModelAdmin):
             "fields": (
                 "hero_logo",
                 "hero_logo_backdrop",
+                "hero_logo_layout",
                 "hero_logo_alt",
                 "hero_kicker",
                 "hero_title",
@@ -2790,6 +2791,7 @@ class EmailTemplateAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "updated_at")
     search_fields = ("name", "subject", "title")
     readonly_fields = ("name", "slug", "description", "token_help", "created_at", "updated_at")
+    change_list_template = "admin/core/emailtemplate/change_list.html"
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
@@ -2813,6 +2815,29 @@ class EmailTemplateAdmin(admin.ModelAdmin):
         if not tokens:
             return "No placeholders."
         return ", ".join(f"{{{token}}}" for token in tokens)
+
+    def changelist_view(self, request, extra_context=None):
+        class EmailTemplateSettingsForm(forms.ModelForm):
+            class Meta:
+                model = EmailTemplateSettings
+                fields = ("brand_name",)
+
+        settings_obj = EmailTemplateSettings.get_solo()
+        if request.method == "POST" and request.POST.get("email_settings_submit") == "1":
+            form = EmailTemplateSettingsForm(request.POST, instance=settings_obj)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Email brand updated.")
+                settings_obj = EmailTemplateSettings.get_solo()
+            else:
+                messages.error(request, "Please correct the brand name field.")
+        else:
+            form = EmailTemplateSettingsForm(instance=settings_obj)
+
+        extra_context = extra_context or {}
+        extra_context["email_settings_form"] = form
+        extra_context["email_settings_updated_at"] = settings_obj.updated_at
+        return super().changelist_view(request, extra_context=extra_context)
 
 
 @admin.register(ProjectJournalEntry)

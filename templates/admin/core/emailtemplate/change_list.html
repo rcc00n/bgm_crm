@@ -1,0 +1,27 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+  <div class="module" style="margin-bottom: 18px;">
+    <h2 style="margin-top: 0;">Email brand (global)</h2>
+    <div class="form-container">
+      <p class="help">This name replaces {brand} in all email templates.</p>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="email_settings_submit" value="1">
+        {{ email_settings_form.non_field_errors }}
+        <div class="form-row">
+          {{ email_settings_form.brand_name.errors }}
+          <label for="{{ email_settings_form.brand_name.id_for_label }}">Brand name</label>
+          {{ email_settings_form.brand_name }}
+        </div>
+        <div class="submit-row" style="margin-top: 12px;">
+          <input type="submit" value="Save brand" class="default">
+        </div>
+      </form>
+      {% if email_settings_updated_at %}
+        <p class="help">Last updated: {{ email_settings_updated_at }}</p>
+      {% endif %}
+    </div>
+  </div>
+  {{ block.super }}
+{% endblock %}

@@ -148,6 +148,18 @@ class AdminSidebarSeenMiddleware(MiddlewareMixin):
         app_label = view_kwargs.get("app_label")
         model_name = view_kwargs.get("model_name")
         if not app_label or not model_name:
+            resolver = getattr(request, "resolver_match", None)
+            view_name = getattr(resolver, "view_name", "") or ""
+            if view_name.startswith("admin:"):
+                slug = view_name.split(":", 1)[1]
+                if "_" in slug:
+                    app_label, rest = slug.split("_", 1)
+                    for suffix in ("changelist", "add", "change", "delete", "history"):
+                        suffix_token = f"_{suffix}"
+                        if rest.endswith(suffix_token):
+                            model_name = rest[: -len(suffix_token)]
+                            break
+        if not app_label or not model_name:
             return None
 
         has_access = any(

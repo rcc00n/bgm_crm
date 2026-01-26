@@ -625,7 +625,8 @@ class Order(models.Model):
         if not template_slug:
             return
 
-        brand = getattr(settings, "SITE_BRAND_NAME", "BGM Customs")
+        from core.email_templates import email_brand_name
+        brand = email_brand_name()
         currency_symbol = getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$") or "$"
         currency_code = getattr(settings, "DEFAULT_CURRENCY_CODE", "").upper()
         order_total = self.total

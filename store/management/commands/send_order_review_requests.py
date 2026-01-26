@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from core.email_templates import base_email_context, join_text_sections, render_email_template
+from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from store.models import Order
 
@@ -71,7 +71,7 @@ class Command(BaseCommand):
             recipient = (order.email or "").strip()
             if not recipient:
                 continue
-            brand = getattr(settings, "SITE_BRAND_NAME", "BGM Customs")
+            brand = email_brand_name()
             context = base_email_context(
                 {
                     "brand": brand,

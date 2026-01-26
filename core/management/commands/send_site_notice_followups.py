@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from core.email_templates import base_email_context, join_text_sections, render_email_template
+from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from core.models import SiteNoticeSignup
 
@@ -75,7 +75,7 @@ def _send_email(recipient: str, *, subject: str, text_body: str, html_body: str)
 
 
 def _build_followup_2(signup: SiteNoticeSignup) -> tuple[str, str, str]:
-    brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    brand = email_brand_name()
     code = (signup.welcome_code or "").strip()
     links = _link_bundle()
 
@@ -134,7 +134,7 @@ def _build_followup_2(signup: SiteNoticeSignup) -> tuple[str, str, str]:
 
 
 def _build_followup_3(signup: SiteNoticeSignup) -> tuple[str, str, str]:
-    brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    brand = email_brand_name()
     links = _link_bundle()
 
     context = base_email_context(

@@ -145,6 +145,10 @@ class HomePageCopy(models.Model):
     """
     Editable static text for the public home page.
     """
+    class HeroLogoLayout(models.TextChoices):
+        OVERLAY = "overlay", "Logo over photo"
+        STACKED = "stacked", "Logo then photo"
+
     singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
 
     # Header & navigation
@@ -175,6 +179,12 @@ class HomePageCopy(models.Model):
         blank=True,
         null=True,
         help_text="Optional backdrop photo displayed behind the circular logo.",
+    )
+    hero_logo_layout = models.CharField(
+        max_length=12,
+        choices=HeroLogoLayout.choices,
+        default=HeroLogoLayout.OVERLAY,
+        help_text="Controls whether the logo overlays the photo or the photo appears below it.",
     )
     hero_logo_alt = models.CharField(
         max_length=160,
@@ -1351,6 +1361,37 @@ class DealerStatusPageCopy(models.Model):
 
     def __str__(self) -> str:
         return "Dealer portal copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
+class EmailTemplateSettings(models.Model):
+    """
+    Global defaults used across all email templates.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    brand_name = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Optional override for SITE_BRAND_NAME when sending emails.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email template settings"
+        verbose_name_plural = "Email template settings"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Email template settings"
 
     def save(self, *args, **kwargs):
         self.singleton_id = 1

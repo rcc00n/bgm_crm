@@ -5,7 +5,7 @@ import logging
 from django.conf import settings
 from django.utils.timezone import localtime
 
-from core.email_templates import base_email_context, join_text_sections, render_email_template
+from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def send_appointment_confirmation(appointment_id) -> bool:
         )
         return False
 
-    brand = getattr(settings, "SITE_BRAND_NAME", "BGM Customs")
+    brand = email_brand_name()
     client_name = _appointment_client_name(appointment)
     master_name = appointment.master.get_full_name() or appointment.master.username
     service_name = appointment.service.name

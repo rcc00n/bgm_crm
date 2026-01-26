@@ -21,7 +21,7 @@ from datetime import datetime
 import json
 from django.utils.functional import cached_property
 
-from core.email_templates import base_email_context, join_text_sections, render_email_template
+from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from core.models import (
     Appointment,
@@ -728,7 +728,7 @@ def site_notice_signup(request):
         return _error("Email service is unavailable.", status=500)
 
     code = _resolve_site_notice_code()
-    brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    brand = email_brand_name()
     context = base_email_context({"brand": brand, "welcome_code": code})
     template = render_email_template("site_notice_welcome", context)
     summary_lines = [f"Welcome code: {code}", "Discount: 5% off"]
