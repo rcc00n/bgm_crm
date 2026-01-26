@@ -1527,7 +1527,7 @@ main h3{
     const liveGrid  = document.getElementById('liveGrid');
     const serverContent = document.getElementById('serverContent');
     const resetLink = document.querySelector('a.btn.btn--ghost[href*="client-dashboard"]');
-    const copy = {
+    const searchCopy = {
       contactForEstimate: "{{ services_copy.contact_for_estimate_label|escapejs }}",
       fromLabel: "{{ services_copy.from_label|escapejs }}",
       pickTimeLabel: "{{ services_copy.pick_time_label|escapejs }}",
@@ -1562,8 +1562,8 @@ main h3{
       let priceBlock;
       if (s.contact_for_estimate){
         const fromVal = s.estimate_from_price ? formatMoney(s.estimate_from_price) : '';
-        const hint = fromVal ? `<span class="price__hint">${escapeHtml(copy.fromLabel)} $${escapeHtml(fromVal)}</span>` : '';
-        priceBlock = `<strong>${escapeHtml(copy.contactForEstimate)}</strong>${hint ? ' ' + hint : ''}`;
+        const hint = fromVal ? `<span class="price__hint">${escapeHtml(searchCopy.fromLabel)} $${escapeHtml(fromVal)}</span>` : '';
+        priceBlock = `<strong>${escapeHtml(searchCopy.contactForEstimate)}</strong>${hint ? ' ' + hint : ''}`;
       } else {
         const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
         if (hasDisc){
@@ -1580,9 +1580,9 @@ main h3{
       const hasImage = typeof s.image === 'string' && s.image.trim().length > 0;
       const media = hasImage
         ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.name)}" loading="lazy" decoding="async">`
-        : `<div class="ph" aria-hidden="true">${escapeHtml(copy.serviceImageFallback)}</div>`;
+        : `<div class="ph" aria-hidden="true">${escapeHtml(searchCopy.serviceImageFallback)}</div>`;
       const badge = s.category ? `<span class="service-card__badge">${escapeHtml(s.category)}</span>` : '';
-      const durationBits = [copy.durationSeparator, String(s.duration_min), copy.durationUnit]
+      const durationBits = [searchCopy.durationSeparator, String(s.duration_min), searchCopy.durationUnit]
         .filter(Boolean)
         .map(escapeHtml)
         .join(" ");
@@ -1590,8 +1590,8 @@ main h3{
         <article class="service-card"
                  data-service-id="${escapeHtml(s.id)}"
                  data-service-name="${escapeHtml(s.name)}"
-                 tabindex="0" role="button" aria-label="${escapeHtml(copy.bookAriaPrefix)} ${escapeHtml(s.name)}">
-          <div class="service-card__img" aria-label="${escapeHtml(copy.serviceImageAriaLabel)}">
+                 tabindex="0" role="button" aria-label="${escapeHtml(searchCopy.bookAriaPrefix)} ${escapeHtml(s.name)}">
+          <div class="service-card__img" aria-label="${escapeHtml(searchCopy.serviceImageAriaLabel)}">
             ${media}
             ${badge}
           </div>
@@ -1602,7 +1602,7 @@ main h3{
           <button class="btn btn--primary book-btn"
                   type="button"
                   data-service-id="${escapeHtml(s.id)}"
-                  data-service-name="${escapeHtml(s.name)}">${escapeHtml(copy.pickTimeLabel)}</button>
+                  data-service-name="${escapeHtml(s.name)}">${escapeHtml(searchCopy.pickTimeLabel)}</button>
         </article>`;
     }
 
@@ -1628,9 +1628,9 @@ main h3{
       try{
         const data = await fetchServices(q, cat);
         const items = (data && data.results) || [];
-        liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="stub">${escapeHtml(copy.liveNoResults)}</div>`;
+        liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="stub">${escapeHtml(searchCopy.liveNoResults)}</div>`;
       }catch(e){
-        liveGrid.innerHTML = `<div class="stub">${escapeHtml(copy.liveError)}</div>`;
+        liveGrid.innerHTML = `<div class="stub">${escapeHtml(searchCopy.liveError)}</div>`;
       }
     }, 300);
 

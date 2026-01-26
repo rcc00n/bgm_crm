@@ -344,6 +344,60 @@
       .hero__inner{ grid-template-columns: 1fr !important; }
     }
   </style>
+  <style id="home-mobile-density">
+    @media (max-width: 860px){
+      .container{ padding-inline:1.1rem; }
+      .hero__inner{ gap:1.4rem; padding:2.6rem 0 2.1rem; }
+      .hero__title{ font-size:clamp(2rem,7vw,2.7rem); line-height:1.1; }
+      .hero__lead{ font-size:1rem; margin-top:.85rem; }
+      .hero__cta{ flex-direction:column; align-items:stretch; }
+      .hero__cta .btn{ width:100%; justify-content:center; }
+      .hero__stats{ display:grid; grid-template-columns:1fr; gap:.7rem; }
+      .stat{ padding:1rem 1.05rem; }
+
+      .section{ padding:2.2rem 0; }
+      .section__head{ flex-direction:column; align-items:flex-start; gap:.6rem; }
+      .section__head .btn{ width:100%; justify-content:center; }
+
+      .filters{ flex-direction:column; align-items:stretch; }
+      .input,.select{ width:100%; min-width:0; }
+      .filters .btn{ width:100%; justify-content:center; }
+
+      .grid--services,
+      .grid--products,
+      .tiles{ grid-template-columns:1fr; }
+
+      .card{ padding:1rem; gap:.6rem; }
+      .card__img{ aspect-ratio:4/3; }
+      .card__head{ flex-direction:column; align-items:flex-start; }
+      .card__head .price{ margin-left:0; text-align:left; }
+      .card p.muted,
+      .tile p.muted{
+        display:-webkit-box;
+        -webkit-line-clamp:2;
+        -webkit-box-orient:vertical;
+        overflow:hidden;
+      }
+      .card__cta .btn{ width:100%; justify-content:center; }
+      .home-card-actions{ flex-direction:column; align-items:stretch; }
+      .home-card-actions .btn,
+      .home-card-actions form{ width:100%; }
+      .home-card-actions form .btn{ width:100%; justify-content:center; }
+
+      details{ padding:1rem; }
+      summary{ font-size:1rem; }
+
+      .cta-row{ flex-direction:column; align-items:flex-start; }
+      .cta-row > div:last-child{ width:100%; display:flex; flex-direction:column; gap:.6rem; }
+      .cta-row .btn{ width:100%; justify-content:center; }
+
+      .footer__grid{ grid-template-columns:1fr; gap:.8rem; }
+    }
+    @media (max-width: 640px){
+      .mobi-actions{ grid-template-columns:1fr; }
+      .mobi-action{ padding:1rem; }
+    }
+  </style>
 </head>
 
 <body>
@@ -405,7 +459,7 @@
           <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">{{ home_copy.hero_secondary_cta_label }}</a>
         </div>
 
-        <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
+        <div class="hero__stats" style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
           <div class="stat"><b>{{ home_copy.hero_stat_1_title }}</b><br><span class="muted">{{ home_copy.hero_stat_1_subtitle }}</span></div>
           <div class="stat"><b>{{ home_copy.hero_stat_2_title }}</b><br><span class="muted">{{ home_copy.hero_stat_2_subtitle }}</span></div>
           <div class="stat"><b>{{ home_copy.hero_stat_3_title }}</b><br><span class="muted">{{ home_copy.hero_stat_3_subtitle }}</span></div>
@@ -640,7 +694,7 @@
                   </div>
                   {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
                 </a>
-                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
+                <div class="home-card-actions" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
                   {% if p.contact_for_estimate %}
                     <a class="btn btn--primary" href="{% url 'home' %}#contact">{{ home_copy.products_contact_us_label }}</a>
                     <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
@@ -719,7 +773,7 @@
 
     <!-- ========================= FINAL CTA ========================= -->
     <section class="section" aria-labelledby="cta">
-      <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div class="container cta-row" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
         <div>
           <h2 id="cta" class="section__title">{{ home_copy.final_cta_title }}</h2>
           <p class="section__desc">{{ home_copy.final_cta_desc }}</p>

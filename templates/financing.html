@@ -537,7 +537,7 @@ html{ font-size: 17px; }                      /* было 16px */
       }
     }
   </style>
-  <style id="financing-diesel-overrides">
+<style id="financing-diesel-overrides">
 .btn--diesel{
   font-family: var(--font-body) !important;
   font-style: normal !important;
@@ -547,6 +547,37 @@ html{ font-size: 17px; }                      /* было 16px */
 .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted-2);font-size:.95rem}
 
 </style>
+  <style id="financing-mobile-density">
+    @media (max-width: 900px){
+      .container{ padding-inline:1.1rem; }
+      .hero__inner{ gap:1.4rem; padding:2.6rem 0 2.1rem; }
+      .title{ font-size:clamp(2rem,7vw,2.7rem) !important; line-height:1.1; }
+      .lead{ font-size:1rem !important; }
+      .card__actions{ flex-direction:column; align-items:stretch; }
+      .card__actions .btn{ width:100%; justify-content:center; }
+
+      .section{ padding:2.2rem 0; }
+      .section__head{ flex-direction:column; align-items:flex-start; gap:.6rem; }
+      .section__head .badge{ align-self:flex-start; }
+
+      .grid--cards{ grid-template-columns:1fr; }
+      .card{ padding:1rem; gap:.6rem; }
+      .card__head{ flex-direction:column; align-items:flex-start; }
+      .card__meta{ margin-left:0; white-space:normal; font-size:.9rem; }
+
+      #steps .grid{ grid-template-columns:1fr !important; gap:1rem !important; }
+      #faq .grid{ grid-template-columns:1fr; }
+    }
+    @media (max-width: 640px){
+      .hero__media{ max-width:100%; }
+      .card p.section__desc{
+        display:-webkit-box;
+        -webkit-line-clamp:3;
+        -webkit-box-orient:vertical;
+        overflow:hidden;
+      }
+    }
+  </style>
 
 
 </head>
