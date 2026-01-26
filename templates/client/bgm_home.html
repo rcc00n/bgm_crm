@@ -71,7 +71,7 @@
       flex-direction:column;
       align-items:center;
       gap:.85rem;
-      margin:0 auto 1.4rem;
+      margin:0 auto 1.6rem;
       width:100%;
     }
     .hero__logo{
@@ -656,26 +656,28 @@
   </header>
 
   <section class="hero" id="top">
-    <div class="container hero__inner">
-      <div>
-        {% if home_copy.hero_logo or home_copy.hero_logo_backdrop %}
-          {% with logo_layout=home_copy.hero_logo_layout|default:"overlay" %}
-            <div class="hero__logo-block hero__logo-block--{{ logo_layout }}">
-              <div class="hero__logo{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} hero__logo--backdrop{% endif %}"{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} style="--hero-logo-backdrop:url('{{ home_copy.hero_logo_backdrop.url }}')"{% endif %}>
-                {% if home_copy.hero_logo %}
-                  <img src="{{ home_copy.hero_logo.url }}" alt="{{ home_copy.hero_logo_alt }}"{% if not home_copy.hero_logo_alt %} aria-hidden="true"{% endif %} loading="lazy" decoding="async">
-                {% else %}
-                  <span class="hero__logo-text">BGM</span>
-                {% endif %}
-              </div>
-              {% if home_copy.hero_logo_backdrop and logo_layout == 'stacked' %}
-                <div class="hero__logo-photo">
-                  <img src="{{ home_copy.hero_logo_backdrop.url }}" alt="" loading="lazy" decoding="async">
-                </div>
+    {% if home_copy.hero_logo or home_copy.hero_logo_backdrop %}
+      {% with logo_layout=home_copy.hero_logo_layout|default:"overlay" %}
+        <div class="container">
+          <div class="hero__logo-block hero__logo-block--{{ logo_layout }}">
+            <div class="hero__logo{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} hero__logo--backdrop{% endif %}"{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} style="--hero-logo-backdrop:url('{{ home_copy.hero_logo_backdrop.url }}')"{% endif %}>
+              {% if home_copy.hero_logo %}
+                <img src="{{ home_copy.hero_logo.url }}" alt="{{ home_copy.hero_logo_alt }}"{% if not home_copy.hero_logo_alt %} aria-hidden="true"{% endif %} loading="lazy" decoding="async">
+              {% else %}
+                <span class="hero__logo-text">BGM</span>
               {% endif %}
             </div>
-          {% endwith %}
-        {% endif %}
+            {% if home_copy.hero_logo_backdrop and logo_layout == 'stacked' %}
+              <div class="hero__logo-photo">
+                <img src="{{ home_copy.hero_logo_backdrop.url }}" alt="" loading="lazy" decoding="async">
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endwith %}
+    {% endif %}
+    <div class="container hero__inner">
+      <div>
         <p class="kicker">{{ home_copy.hero_kicker }}</p>
         <h1 class="hero__title">{{ home_copy.hero_title }}</h1>
         <p class="hero__lead">{{ home_copy.hero_lead }}</p>
