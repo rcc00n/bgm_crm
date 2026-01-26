@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_cookie
+from django.views.decorators.cache import never_cache
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -91,6 +92,7 @@ def _get_landing_reviews(page_slug: str):
         .order_by("display_order", "-created_at")
     )
 
+@never_cache
 @ensure_csrf_cookie
 def public_mainmenu(request):
     """
@@ -122,7 +124,9 @@ def public_mainmenu(request):
         ctx.setdefault("profile", None)
         ctx.setdefault("appointments", [])
 
-    return render(request, "client/mainmenu.html", ctx)
+    response = render(request, "client/mainmenu.html", ctx)
+    response["X-Template-Version"] = "mainmenu-mobile-v2-2026-01-26"
+    return response
 
 
 @staff_member_required
