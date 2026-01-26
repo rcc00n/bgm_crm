@@ -20,6 +20,7 @@ from datetime import datetime
 import json
 from django.utils.functional import cached_property
 
+from core.email_templates import base_email_context, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from core.models import (
     Appointment,
@@ -662,32 +663,32 @@ def site_notice_signup(request):
 
     code = _resolve_site_notice_code()
     brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
-    subject = f"{brand} welcome code"
-    text_lines = [
-        f"Thanks for joining the {brand} email list.",
-        f"Your welcome code: {code}",
-        "Use it on any product or service invoice.",
-        "",
-        "Questions? Reply to this email and we will help.",
-    ]
+    context = base_email_context({"brand": brand, "welcome_code": code})
+    template = render_email_template("site_notice_welcome", context)
+    summary_lines = [f"Welcome code: {code}", "Discount: 5% off"]
+    text_body = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        summary_lines,
+        template.footer_lines,
+    )
 
     try:
         html_body = build_email_html(
-            title="Your 5% welcome code",
-            preheader=f"Welcome code inside: {code}",
-            greeting=f"Thanks for joining the {brand} email list.",
-            intro_lines=[
-                "Here is your welcome code for 5% off your first order.",
-                "Use it on any product or service invoice.",
-            ],
+            title=template.title,
+            preheader=template.preheader,
+            greeting=template.greeting,
+            intro_lines=template.intro_lines,
             summary_rows=[("Welcome code", code), ("Discount", "5% off")],
-            footer_lines=["Questions? Reply to this email and we will help."],
-            cta_label=f"Visit {brand}",
+            notice_title=template.notice_title or None,
+            notice_lines=template.notice_lines,
+            footer_lines=template.footer_lines,
+            cta_label=template.cta_label,
             cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
         )
         send_html_email(
-            subject=subject,
-            text_body="\n".join(text_lines),
+            subject=template.subject,
+            text_body=text_body,
             html_body=html_body,
             from_email=sender,
             recipient_list=[email],
