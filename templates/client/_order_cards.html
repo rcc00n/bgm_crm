@@ -6,12 +6,6 @@
         <div class="flex flex-wrap items-center gap-3">
           <div class="text-sm muted">Order</div>
           <div class="font-bold">#{{ o.id }}</div>
-          <div class="text-sm muted">
-            · {{
-              o.created_at|default:o.shipped_at|default:o.completed_at|default:o.cancelled_at
-              |localtime|date:"d M Y, H:i"
-            }}
-          </div>
           <div class="ml-auto flex items-center gap-3">
             <span class="badge st-{{ o.status|default:'processing' }}">
               {{ o.status_label|default:o.get_status_display|default:o.status }}

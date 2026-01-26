@@ -203,9 +203,21 @@
       .outlook{display:none}
       .hint{display:none}
       .mobile-picker{display:flex}
-      .mobile-day-scroll{display:none}
-      .mobile-picker__slots{display:none}
-      .mobile-picker__select{display:block}
+      .mobile-day-scroll{display:flex}
+      .mobile-picker__slots{display:grid}
+      .mobile-picker__select{
+        position:absolute;
+        width:1px;
+        height:1px;
+        margin:-1px;
+        padding:0;
+        border:0;
+        overflow:hidden;
+        clip:rect(0 0 0 0);
+        white-space:nowrap;
+        opacity:0;
+        pointer-events:none;
+      }
     }
 
     /* Master picker (аватарки) */
