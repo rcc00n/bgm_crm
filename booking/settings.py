@@ -715,7 +715,7 @@ AUTHENTICATION_BACKENDS = [
     "core.auth_backends.EmailPhoneBackend",
 ]
 LOGIN_REDIRECT_URL = "/home/"
-LOGOUT_REDIRECT_URL = "/home/"
+LOGOUT_REDIRECT_URL = "home"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ── Логи в stdout (dokku logs) ───────────────────────────────────────────
