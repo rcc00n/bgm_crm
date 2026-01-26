@@ -5,6 +5,7 @@ import logging
 from django.conf import settings
 from django.utils.timezone import localtime
 
+from core.email_templates import base_email_context, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 
 logger = logging.getLogger(__name__)
@@ -49,18 +50,30 @@ def send_appointment_confirmation(appointment_id) -> bool:
     service_name = appointment.service.name
     start = localtime(appointment.start_time).strftime("%Y-%m-%d %H:%M %Z")
 
-    subject = f"{brand} booking confirmed"
-    lines = [
-        f"Hi {client_name},",
-        f"Thanks for booking with {brand}. Your appointment is confirmed.",
-        "",
+    context = base_email_context(
+        {
+            "brand": brand,
+            "client_name": client_name,
+            "appointment_id": appointment.id,
+            "service_name": service_name,
+            "tech_name": master_name,
+            "appointment_time": start,
+        }
+    )
+    template = render_email_template("appointment_confirmation", context)
+
+    detail_lines = [
         f"Appointment ID: {appointment.id}",
         f"Service: {service_name}",
         f"Tech: {master_name}",
         f"When: {start}",
-        "",
-        "If you need to reschedule, reply to this email and we'll help.",
     ]
+    lines = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        detail_lines,
+        template.footer_lines,
+    )
 
     try:
         detail_rows = [
@@ -74,18 +87,20 @@ def send_appointment_confirmation(appointment_id) -> bool:
         if appointment.contact_email:
             detail_rows.append(("Email", appointment.contact_email))
         html_body = build_email_html(
-            title="Booking confirmed",
-            preheader=f"Appointment {appointment.id} confirmed",
-            greeting=f"Hi {client_name},",
-            intro_lines=[f"Thanks for booking with {brand}. Your appointment is confirmed."],
+            title=template.title,
+            preheader=template.preheader,
+            greeting=template.greeting,
+            intro_lines=template.intro_lines,
             detail_rows=detail_rows,
-            footer_lines=["If you need to reschedule, reply to this email and we'll help."],
-            cta_label=f"Visit {brand}",
+            notice_title=template.notice_title or None,
+            notice_lines=template.notice_lines,
+            footer_lines=template.footer_lines,
+            cta_label=template.cta_label,
             cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
         )
         send_html_email(
-            subject=subject,
-            text_body="\n".join(lines),
+            subject=template.subject,
+            text_body=lines,
             html_body=html_body,
             from_email=sender,
             recipient_list=[recipient],
