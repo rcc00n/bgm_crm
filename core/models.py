@@ -164,6 +164,24 @@ class HomePageCopy(models.Model):
     nav_about_label = models.CharField(max_length=40, default="About")
 
     # Hero
+    hero_logo = models.ImageField(
+        upload_to="home/branding/",
+        blank=True,
+        null=True,
+        help_text="Optional circular logo shown above the hero copy.",
+    )
+    hero_logo_backdrop = models.ImageField(
+        upload_to="home/branding/",
+        blank=True,
+        null=True,
+        help_text="Optional backdrop photo displayed behind the circular logo.",
+    )
+    hero_logo_alt = models.CharField(
+        max_length=160,
+        default="BGM logo",
+        blank=True,
+        help_text="Accessible alt text for the hero logo image.",
+    )
     hero_kicker = models.CharField(max_length=120, default="Custom fabrication • Diesel performance")
     hero_title = models.CharField(max_length=140, default="Built to be bad. Engineered to last.")
     hero_lead = models.TextField(
@@ -229,6 +247,14 @@ class HomePageCopy(models.Model):
         max_length=120,
         default="Failed to load. Please try again.",
     )
+
+    # Gallery section
+    gallery_title = models.CharField(max_length=80, default="Project gallery")
+    gallery_desc = models.TextField(
+        default="Recent builds, wraps, and installs from the BGM shop floor.",
+    )
+    gallery_cta_label = models.CharField(max_length=60, default="View photo gallery")
+    gallery_cta_url = models.CharField(max_length=200, default="/project-journal/", blank=True)
 
     contact_for_estimate_label = models.CharField(max_length=80, default="Contact for estimate")
     from_label = models.CharField(max_length=40, default="From")
@@ -1661,6 +1687,10 @@ class HeroImage(models.Model):
     """
     class Location(models.TextChoices):
         HOME = "home", "Home hero"
+        HOME_GALLERY_A = "home-gallery-a", "Home gallery — slot 1"
+        HOME_GALLERY_B = "home-gallery-b", "Home gallery — slot 2"
+        HOME_GALLERY_C = "home-gallery-c", "Home gallery — slot 3"
+        HOME_GALLERY_D = "home-gallery-d", "Home gallery — slot 4"
         DEALER_STATUS = "dealer-status", "Dealer banner"
         STORE = "store", "Store hero"
         MERCH = "merch", "Merch hero"

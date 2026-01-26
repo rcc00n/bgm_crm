@@ -1695,6 +1695,9 @@ class HomePageCopyAdmin(admin.ModelAdmin):
         }),
         ("Hero", {
             "fields": (
+                "hero_logo",
+                "hero_logo_backdrop",
+                "hero_logo_alt",
                 "hero_kicker",
                 "hero_title",
                 "hero_lead",
@@ -1756,6 +1759,14 @@ class HomePageCopyAdmin(admin.ModelAdmin):
                 "services_book_now_label",
                 "services_nothing_found_label",
                 "services_failed_load_label",
+            )
+        }),
+        ("Photo gallery", {
+            "fields": (
+                "gallery_title",
+                "gallery_desc",
+                "gallery_cta_label",
+                "gallery_cta_url",
             )
         }),
         ("Shared pricing labels", {

@@ -63,6 +63,56 @@ def resolve_media_asset(
     return payload
 
 
+def build_home_gallery_media():
+    """
+    Assets for the home page gallery slots.
+    Returns gallery slots with fallbacks to current static imagery.
+    """
+    locations = [
+        HeroImage.Location.HOME_GALLERY_A,
+        HeroImage.Location.HOME_GALLERY_B,
+        HeroImage.Location.HOME_GALLERY_C,
+        HeroImage.Location.HOME_GALLERY_D,
+    ]
+    asset_map = _prefetch_hero_assets(locations)
+
+    gallery = [
+        resolve_media_asset(
+            HeroImage.Location.HOME_GALLERY_A,
+            "img/hero-home.jpg",
+            "Custom fabrication build at Bad Guy Motors",
+            "Custom fabrication highlights from recent builds.",
+            asset=asset_map.get(HeroImage.Location.HOME_GALLERY_A),
+        ),
+        resolve_media_asset(
+            HeroImage.Location.HOME_GALLERY_B,
+            "img/hero-services.jpg",
+            "Detailing and coating work in the BGM shop",
+            "Detailing, coatings, and finishing touches.",
+            asset=asset_map.get(HeroImage.Location.HOME_GALLERY_B),
+        ),
+        resolve_media_asset(
+            HeroImage.Location.HOME_GALLERY_C,
+            "img/hero-products.jpg",
+            "Performance upgrade install at Bad Guy Motors",
+            "Performance installs and hard-part upgrades.",
+            asset=asset_map.get(HeroImage.Location.HOME_GALLERY_C),
+        ),
+        resolve_media_asset(
+            HeroImage.Location.HOME_GALLERY_D,
+            "img/hero-about.jpg",
+            "Custom build progress in the BGM bay",
+            "In-progress builds and finished customer rigs.",
+            asset=asset_map.get(HeroImage.Location.HOME_GALLERY_D),
+        ),
+    ]
+
+    for idx, asset in enumerate(gallery, start=1):
+        asset["slot"] = f"gallery-{idx}"
+
+    return gallery
+
+
 def build_brake_suspension_media():
     """
     Assets for the Brake & Suspension landing page.
