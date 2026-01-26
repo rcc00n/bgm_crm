@@ -173,6 +173,13 @@
     .grid{display:grid;gap:1rem}
     .grid--services{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
     .grid--products{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+    .grid--products .card{height:100%}
+    .grid--products .card > a{
+      display:flex;
+      flex-direction:column;
+      gap:.5rem;
+      flex:1;
+    }
     .grid--gallery{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 
     .home-gallery{margin:1rem 0 1.6rem}
@@ -227,6 +234,14 @@
     .grid--services .card{height:100%}
     .grid--services .card__cta{margin-top:auto}
     .empty{color:var(--muted-2);font-style:italic;padding:1rem}
+
+    .home-card-actions{
+      display:flex;
+      gap:.5rem;
+      flex-wrap:wrap;
+      margin-top:auto;
+      padding-top:.4rem;
+    }
 
     .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
     .tile{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:1rem;padding:1rem}
@@ -962,7 +977,7 @@
                   </div>
                   {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
                 </a>
-                <div class="home-card-actions" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
+                <div class="home-card-actions">
                   {% if p.contact_for_estimate %}
                     <a class="btn btn--primary" href="{% url 'home' %}#contact">{{ home_copy.products_contact_us_label }}</a>
                     <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
