@@ -1724,6 +1724,59 @@ main h3{
 </style>
 <style>
 /* === MOBILE ADAPTATION PATCH (safe, additive) ========================== */
+/* 0) Unified mobile sidebar (same on all pages) */
+@media (max-width:960px){
+  body.nav-open{ overflow:hidden; }
+  .site-header{ z-index:10000 !important; }
+  .site-header__toggle{ position:relative; z-index:10002 !important; }
+  .site-header nav{
+    position:fixed !important;
+    inset:0 !important;
+    height:100dvh !important;
+    padding-top:calc(var(--site-header-height) + 1rem) !important;
+    padding-inline:clamp(20px,6vw,36px) !important;
+    padding-bottom:calc(28px + env(safe-area-inset-bottom)) !important;
+    background:rgba(7,7,7,.92) !important;
+    -webkit-backdrop-filter:none !important;
+    backdrop-filter:none !important;
+    display:flex !important;
+    align-items:flex-start !important;
+    opacity:0;
+    pointer-events:none;
+    transform:translateY(-12px);
+    transition:opacity .22s ease, transform .22s ease;
+    overflow-y:auto !important;
+    overscroll-behavior:contain;
+    z-index:10001 !important;
+  }
+  .site-header--open nav,
+  body.nav-open nav,
+  .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+    opacity:1 !important;
+    pointer-events:auto !important;
+    transform:translateY(0) !important;
+  }
+  .site-header nav ul{
+    flex-direction:column !important;
+    align-items:stretch !important;
+    gap:1rem !important;
+    width:100% !important;
+  }
+  .site-header nav li{ width:100% !important; }
+  .site-header nav a,
+  .site-header nav .btn,
+  .site-header nav .btn--ghost{
+    width:100% !important;
+    min-height:56px;
+    padding:1.1rem 1.2rem !important;
+    border-radius:1rem !important;
+    background:rgba(255,255,255,.05) !important;
+    border:1px solid rgba(255,255,255,.12) !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+  }
+}
 /* 1) Header/menu layers & mobile nav behavior (поверх FAB и контента) */
 .site-header{ z-index:3200; } /* выше контента и FAB */
 @media (max-width:960px){
@@ -1841,6 +1894,18 @@ body.modal-open .contact-fab{ display:none !important; }
 @media (max-width:480px){
   .service-card__badge{ font-size:.64rem; padding:.14rem .45rem; }
   .service-meta{ font-size:.85rem; }
+}
+
+/* 7b) Mobile booking picker — simplify dates/time */
+@media (max-width:768px){
+  .mobile-picker{ padding:.85rem; gap:.8rem; }
+  .mobile-picker__headline{ flex-direction:column; align-items:flex-start; gap:.4rem; }
+  .mobile-picker__eyebrow{ display:none; }
+  .mobile-day-scroll{ gap:.35rem; }
+  .mobile-day-pill{ min-width:88px; padding:.5rem .6rem; }
+  .mobile-picker__slots{ grid-template-columns:1fr; }
+  .mobile-slot-btn{ width:100%; }
+  .mobile-picker__label{ font-size:.75rem; }
 }
 
 /* 8) Меньше анимаций при reduce motion */
