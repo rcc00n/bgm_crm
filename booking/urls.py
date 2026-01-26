@@ -12,6 +12,7 @@ from core import views as core_views
 urlpatterns = [
     path("analytics/collect/", core_views.analytics_collect, name="analytics-collect"),
     path("site-notice/signup/", core_views.site_notice_signup, name="site-notice-signup"),
+    path("admin/logout/", core_views.admin_logout, name="admin-logout"),
     path(
         "admin/api/clients/<int:user_id>/contact/",
         core_views.admin_client_contact,

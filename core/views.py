@@ -3,12 +3,13 @@ import logging
 import re
 
 from django.conf import settings
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Prefetch, Q
 from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
 from django.utils.dateparse import parse_date, parse_datetime
@@ -57,6 +58,13 @@ from core.services.media import (
 from notifications.services import notify_about_service_lead
 
 logger = logging.getLogger(__name__)
+
+
+@require_http_methods(["GET", "POST"])
+@csrf_protect
+def admin_logout(request):
+    logout(request)
+    return redirect(getattr(settings, "LOGOUT_REDIRECT_URL", "/"))
 
 def _normalize_search_text(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "").lower()).strip()
