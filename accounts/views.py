@@ -24,6 +24,8 @@ from core.models import (
     Appointment,
     AppointmentStatusHistory,
     ClientFile,
+    ClientPortalPageCopy,
+    MerchPageCopy,
     PageFontSetting,
 )
 from core.services.fonts import build_page_font_context
@@ -107,6 +109,7 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         user = self.request.user
         now = timezone.now()
 
+        ctx["portal_copy"] = ClientPortalPageCopy.get_solo()
         # профиль может отсутствовать → None
         ctx["profile"] = getattr(user, "userprofile", None)
 
@@ -421,6 +424,12 @@ class StoreView(TemplateView):
 
 class MerchPlaceholderView(TemplateView):
     template_name = "client/merch.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["merch_copy"] = MerchPageCopy.get_solo()
+        ctx["header_copy"] = ctx["merch_copy"]
+        return ctx
 
 # accounts/views.py
 from django.contrib.auth.mixins import LoginRequiredMixin

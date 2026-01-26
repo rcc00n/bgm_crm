@@ -544,6 +544,14 @@ ADMIN_SIDEBAR_SECTIONS = [
                 ],
             },
             {
+                "label": "Client Portal & Merch",
+                "icon": "fas fa-layer-group",
+                "items": [
+                    {"model": "core.ClientPortalPageCopy", "label": "Client Portal Copy"},
+                    {"model": "core.MerchPageCopy", "label": "Merch Page Copy"},
+                ],
+            },
+            {
                 "label": "Messaging",
                 "icon": "fas fa-bell",
                 "items": [
@@ -604,6 +612,8 @@ JAZZMIN_SETTINGS = {
         "core.DealerTierLevel": "fas fa-medal",
         "core.HeroImage": "fas fa-panorama",
         "core.HomePageCopy": "fas fa-pen-nib",
+        "core.ClientPortalPageCopy": "fas fa-id-card",
+        "core.MerchPageCopy": "fas fa-tshirt",
         "core.ServicesPageCopy": "fas fa-clipboard-list",
         "core.StorePageCopy": "fas fa-store",
         "core.FontPreset": "fas fa-font",

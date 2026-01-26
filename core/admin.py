@@ -2122,6 +2122,274 @@ class StorePageCopyAdmin(admin.ModelAdmin):
         return "Store page"
 
 
+@admin.register(ClientPortalPageCopy)
+class ClientPortalPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("page_title", "meta_title", "meta_description")}),
+        ("Brand & navigation", {
+            "fields": (
+                "brand_mark",
+                "brand_name",
+                "mobile_menu_label",
+                "mobile_controls_aria_label",
+                "sidebar_close_label",
+                "nav_overview_label",
+                "nav_appointments_label",
+                "nav_orders_label",
+                "nav_files_label",
+                "nav_notifications_label",
+                "nav_profile_label",
+                "nav_back_home_label",
+                "nav_sign_out_label",
+            )
+        }),
+        ("Dashboard overview", {
+            "fields": (
+                "welcome_back_prefix",
+                "welcome_back_suffix",
+                "dashboard_kicker",
+                "upcoming_title",
+                "upcoming_empty_label",
+                "action_cancel_label",
+                "action_reschedule_label",
+                "stats_title",
+                "stats_chart_label",
+                "recent_title",
+                "recent_empty_label",
+                "table_date_label",
+                "table_service_label",
+                "table_staff_label",
+                "table_status_label",
+                "table_amount_label",
+            )
+        }),
+        ("Rates & facts", {
+            "fields": (
+                "rates_title",
+                "rates_shop_label",
+                "rates_shop_value",
+                "rates_cad_label",
+                "rates_cad_value",
+                "quick_facts_title",
+                "quick_fact_1",
+                "quick_fact_2",
+                "quick_fact_3",
+            )
+        }),
+        ("Policies & care", {
+            "fields": (
+                "policies_title",
+                "policy_item_1",
+                "policy_item_2",
+                "policy_item_3",
+                "policy_item_4",
+                "care_title",
+                "care_item_1",
+                "care_item_2",
+                "care_item_3",
+            )
+        }),
+        ("Appointments & orders tabs", {
+            "fields": (
+                "appointments_title",
+                "appointments_book_label",
+                "appointments_completed_label",
+                "appointments_empty_label",
+                "orders_title",
+                "orders_go_to_products_label",
+                "orders_empty_label",
+            )
+        }),
+        ("Files tab", {
+            "fields": (
+                "files_title",
+                "files_lead",
+                "files_max_size_label",
+                "files_description_label",
+                "files_description_placeholder",
+                "files_dropzone_title",
+                "files_accepted_prefix",
+                "files_accepted_suffix",
+                "files_choose_label",
+                "files_your_files_title",
+                "files_total_suffix",
+                "files_empty_label",
+                "files_remove_label",
+                "files_file_fallback_label",
+            )
+        }),
+        ("Notifications & profile", {
+            "fields": (
+                "notifications_title",
+                "notifications_empty_label",
+                "profile_title",
+                "profile_first_name_label",
+                "profile_last_name_label",
+                "profile_phone_label",
+                "profile_email_label",
+                "profile_birth_date_label",
+                "profile_save_label",
+            )
+        }),
+        ("Reschedule modal", {
+            "fields": (
+                "reschedule_modal_title",
+                "reschedule_close_label",
+                "reschedule_staff_label",
+                "reschedule_choose_time_label",
+                "reschedule_prev_label",
+                "reschedule_today_label",
+                "reschedule_next_label",
+                "reschedule_shift_scroll_hint",
+                "reschedule_cancel_label",
+                "reschedule_save_label",
+                "reschedule_no_techs_label",
+                "reschedule_no_availability_label",
+            )
+        }),
+        ("Alerts & status messages", {
+            "fields": (
+                "cancel_confirm_message",
+                "cancel_error_prefix",
+                "reschedule_fetch_error_label",
+                "reschedule_failed_slots_label",
+                "reschedule_success_prefix",
+                "reschedule_failed_label",
+                "files_removing_label",
+                "files_removed_label",
+                "files_delete_error_label",
+                "files_delete_failed_label",
+                "files_uploading_label",
+                "files_upload_success_label",
+                "files_upload_failed_label",
+                "files_too_large_prefix",
+                "files_too_large_suffix",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if ClientPortalPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Client portal"
+
+
+@admin.register(MerchPageCopy)
+class MerchPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("page_title", "meta_title", "meta_description")}),
+        ("Header & navigation", {
+            "fields": (
+                "skip_to_main_label",
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_kicker",
+                "hero_title",
+                "hero_lead",
+                "hero_primary_cta_label",
+                "hero_secondary_cta_label",
+                "hero_disclaimer_fallback",
+            )
+        }),
+        ("First drop section", {
+            "fields": (
+                "section_title",
+                "section_desc",
+                "section_badge_label",
+            )
+        }),
+        ("Drop idea cards", {
+            "fields": (
+                "card_1_title",
+                "card_1_desc",
+                "card_2_title",
+                "card_2_desc",
+                "card_3_title",
+                "card_3_desc",
+                "card_4_title",
+                "card_4_desc",
+            )
+        }),
+        ("Bottom CTA", {"fields": ("bottom_cta_label",)}),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if MerchPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Merch page"
+
+
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
