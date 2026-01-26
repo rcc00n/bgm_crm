@@ -333,8 +333,8 @@
     }
 
     .mobi-quick, #mobileServices, #mobileProducts{ margin-top:.9rem; }
-    .mobi-gallery{ margin-top:.9rem; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.65rem; }
-    .mobi-gallery .frame{ aspect-ratio:4/3; }
+    .mobi-photo-break{ margin:1.1rem 0; }
+    .mobi-photo-break.frame{ aspect-ratio:16/9; }
     .mobi-actions{ display:grid; grid-template-columns:1fr 1fr; gap:.65rem; }
     .mobi-action{
       display:flex; flex-direction:column; gap:.25rem; padding:.9rem;
@@ -352,8 +352,7 @@
       #products .grid.grid--products{ display:none !important; }
     }
     @media (max-width: 640px){
-      .mobi-gallery{ grid-template-columns:1fr; }
-      .mobi-gallery .frame{ aspect-ratio:16/10; }
+      .mobi-photo-break.frame{ aspect-ratio:4/3; }
     }
   </style>
 
@@ -588,18 +587,15 @@
         <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
       </div>
 
-      <div class="mobi-gallery only-mobile" aria-label="Featured builds">
-        <div class="frame frame--media">
-          <img src="{% static 'img/hero-services.jpg' %}" alt="Service bay detail" loading="lazy" decoding="async">
-        </div>
-        <div class="frame frame--media">
-          <img src="{% static 'img/hero-products.jpg' %}" alt="Performance parts display" loading="lazy" decoding="async">
-        </div>
-      </div>
     </div>
   </section>
 
   <main id="main">
+    <div class="container only-mobile" aria-label="Featured build">
+      <div class="frame frame--media mobi-photo-break">
+        <img src="{% static 'img/hero-services.jpg' %}" alt="Service bay detail" loading="lazy" decoding="async">
+      </div>
+    </div>
     <!-- ========================= SERVICES on Home (limit 8) ========================= -->
     <section id="services" class="section">
       <div class="container">
@@ -742,6 +738,12 @@
         </div>
       </div>
     </section>
+
+    <div class="container only-mobile" aria-label="Featured parts">
+      <div class="frame frame--media mobi-photo-break">
+        <img src="{% static 'img/hero-products.jpg' %}" alt="Performance parts display" loading="lazy" decoding="async">
+      </div>
+    </div>
 
     <!-- ========================= PRODUCTS ========================= -->
     <section id="products" class="section">
