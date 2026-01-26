@@ -228,7 +228,20 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   @media (max-width:900px){
     .hero__inner{grid-template-columns:1fr}
     .hero__media{max-width:100%}
-    .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
+    .hero__disclaimer{
+      position:static;
+      margin-top:.85rem;
+      padding:.4rem .85rem;
+      backdrop-filter:none;
+      width:100%;
+      max-width:100%;
+      line-height:1.35;
+      font-size:.72rem;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
   }
 /* === BGM Financing: readable sizes ================================== */
 
