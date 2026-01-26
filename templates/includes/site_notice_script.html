@@ -217,8 +217,8 @@
   }
 
   const ready = () => {
-    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setTimeout(openNotice, prefersReduced ? 0 : 280);
+    const delayMs = 1000 * 60 * 3;
+    setTimeout(openNotice, delayMs);
   };
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
