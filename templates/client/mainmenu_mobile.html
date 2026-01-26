@@ -1,0 +1,643 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ services_copy.meta_title|default:"Bad Guy Motors - Services" }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with meta_title=services_copy.meta_title|default:"Bad Guy Motors - Services" meta_description=services_copy.meta_description|default:"Book services with a quick, mobile-first flow." meta_section="services" meta_keywords=marketing.default_keywords %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+  <style>
+    :root{
+      --bg:#0b0b0b;
+      --panel:#111;
+      --panel-2:#151515;
+      --line:rgba(255,255,255,.12);
+      --text:#f1f1f1;
+      --muted:#b5b5b5;
+      --accent:#d50000;
+      --accent-2:#b60000;
+      --success:#22c55e;
+      --error:#ff5c72;
+      --radius:16px;
+      --radius-sm:12px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height:1.5;
+      min-height:100dvh;
+    }
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%;display:block}
+    .wrap{max-width:760px;margin:0 auto;padding:16px 16px 40px}
+    .topbar{
+      position:sticky;top:0;z-index:10;
+      background:rgba(10,10,10,.92);
+      backdrop-filter:saturate(1.1) blur(6px);
+      border-bottom:1px solid var(--line);
+    }
+    .topbar__inner{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 16px;
+    }
+    .brand{font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .topbar__cta{
+      border:1px solid var(--line);
+      background:#0f0f0f;
+      color:var(--text);
+      padding:8px 12px;border-radius:999px;
+      font-weight:700;font-size:.85rem;
+    }
+    .hero{padding:18px 0 10px}
+    .hero h1{font-size:1.35rem;font-weight:900;letter-spacing:.04em}
+    .hero p{color:var(--muted);font-size:.95rem;margin-top:6px}
+    .search{
+      margin-top:14px;display:flex;gap:8px;
+      background:var(--panel);border:1px solid var(--line);
+      padding:8px;border-radius:14px;
+    }
+    .search input{
+      flex:1;border:none;background:transparent;color:var(--text);
+      font-size:1rem;padding:8px 10px;outline:none;
+    }
+    .search button{
+      border:1px solid var(--line);background:#0f0f0f;color:var(--text);
+      padding:8px 12px;border-radius:10px;font-weight:700;
+    }
+    .section-title{margin:18px 0 10px;font-size:1rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+    .service-card{
+      border:1px solid var(--line);
+      background:var(--panel-2);
+      padding:14px;border-radius:var(--radius);
+      display:flex;flex-direction:column;gap:10px;margin-bottom:12px;
+    }
+    .service-card h3{font-size:1.05rem;font-weight:800}
+    .service-card p{color:var(--muted);font-size:.92rem}
+    .service-meta{display:flex;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:.88rem}
+    .price{color:#fff;font-weight:800}
+    .badge{background:var(--accent);color:#fff;border-radius:999px;padding:2px 8px;font-size:.72rem}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      border-radius:12px;padding:12px 14px;font-weight:800;
+      border:1px solid transparent;cursor:pointer;
+    }
+    .btn-primary{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:#fff}
+    .btn-ghost{background:transparent;border-color:var(--line);color:var(--text)}
+    .btn-block{width:100%}
+    .empty{
+      padding:16px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);
+      background:rgba(255,255,255,.02);font-style:italic;
+    }
+    /* Modal */
+    .modal{
+      position:fixed;inset:0;display:none;align-items:flex-end;
+      background:rgba(0,0,0,.55);z-index:50;
+    }
+    .modal.is-open{display:flex}
+    .sheet{
+      width:100%;
+      background:var(--panel);
+      border-radius:18px 18px 0 0;
+      border-top:1px solid var(--line);
+      padding:16px 16px 24px;
+      max-height:92dvh;overflow:auto;
+    }
+    .sheet__header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .sheet__title{font-size:1.1rem;font-weight:900}
+    .sheet__close{border:1px solid var(--line);background:#0f0f0f;color:var(--text);width:36px;height:36px;border-radius:10px}
+    .field{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+    .field label{color:var(--muted);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+    .field input,.field select{
+      width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
+      background:#0f0f0f;color:#fff;font-size:1rem;
+    }
+    .field-row{display:flex;gap:8px}
+    .field-row .field{flex:1}
+    .status{font-size:.9rem;color:var(--muted);margin-top:6px}
+    .status.error{color:var(--error)}
+    .status.success{color:var(--success)}
+    .summary{
+      background:#0f0f0f;border:1px solid var(--line);
+      border-radius:12px;padding:10px;color:var(--muted);font-size:.9rem;
+    }
+    .actions{display:flex;gap:8px;margin-top:14px}
+    .actions .btn{flex:1}
+    .note{font-size:.85rem;color:var(--muted);margin-top:8px}
+    .footer{padding:24px 0 6px;color:var(--muted);font-size:.85rem;text-align:center}
+  </style>
+</head>
+<body data-template-version="mainmenu-mobile-v3-2026-01-26">
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">Bad Guy Motors</div>
+      <a class="topbar__cta" href="tel:+14035250432">{{ services_copy.contact_call_label|default:"Call" }}</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>{{ services_copy.services_title|default:"Services" }}</h1>
+      <p>{{ services_copy.services_desc|default:"Pick a service and choose a time." }}</p>
+      <form class="search" role="search" method="get" action="{% url 'client-dashboard' %}">
+        <input type="search" name="q" placeholder="{{ services_copy.services_search_placeholder|default:'Search services' }}" value="{{ q|default:'' }}">
+        <button type="submit">{{ services_copy.services_search_button_label|default:"Search" }}</button>
+      </form>
+    </section>
+
+    {% if search_results %}
+      <div class="section-title">{{ services_copy.services_results_label|default:"Results" }}</div>
+      {% for s in search_results %}
+        <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+          <h3>{{ s.name }}</h3>
+          {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
+          <div class="service-meta">
+            {% if s.contact_for_estimate %}
+              <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
+              {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+            {% else %}
+              {% with disc=s.get_active_discount %}
+                {% if disc %}
+                  <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
+                  <span class="badge">-{{ disc.discount_percent }}%</span>
+                {% else %}
+                  <span class="price">${{ s.base_price|floatformat:2 }}</span>
+                {% endif %}
+              {% endwith %}
+            {% endif %}
+            <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
+          </div>
+          <button class="btn btn-primary btn-block book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+            {{ services_copy.pick_time_label|default:"Pick a time" }}
+          </button>
+        </article>
+      {% empty %}
+        <div class="empty">{{ services_copy.search_no_results_prefix|default:"No results for" }} "{{ q }}"</div>
+      {% endfor %}
+    {% else %}
+      {% for c in categories %}
+        <div class="section-title">{{ c.name }}</div>
+        {% for s in c.service_set.all %}
+          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+            <h3>{{ s.name }}</h3>
+            {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
+            <div class="service-meta">
+              {% if s.contact_for_estimate %}
+                <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
+                {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+              {% else %}
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <span class="price">${{ s.base_price|floatformat:2 }}</span>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
+              <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
+            </div>
+            <button class="btn btn-primary btn-block book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+              {{ services_copy.pick_time_label|default:"Pick a time" }}
+            </button>
+          </article>
+        {% empty %}
+          <div class="empty">{{ services_copy.category_empty_label|default:"No services yet." }}</div>
+        {% endfor %}
+      {% endfor %}
+
+      {% if uncategorized %}
+        <div class="section-title">{{ services_copy.uncategorized_title|default:"Other" }}</div>
+        {% for s in uncategorized %}
+          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+            <h3>{{ s.name }}</h3>
+            {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
+            <div class="service-meta">
+              {% if s.contact_for_estimate %}
+                <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
+                {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+              {% else %}
+                {% with disc=s.get_active_discount %}
+                  {% if disc %}
+                    <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
+                    <span class="badge">-{{ disc.discount_percent }}%</span>
+                  {% else %}
+                    <span class="price">${{ s.base_price|floatformat:2 }}</span>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
+              <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
+            </div>
+            <button class="btn btn-primary btn-block book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+              {{ services_copy.pick_time_label|default:"Pick a time" }}
+            </button>
+          </article>
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+
+    {% if not has_any_services %}
+      <div class="empty">{{ services_copy.catalog_empty_label|default:"No services available yet." }}</div>
+    {% endif %}
+
+    <div class="footer">Bad Guy Motors</div>
+  </main>
+
+  <!-- Mobile booking modal -->
+  <div class="modal" id="bookModal" aria-hidden="true">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
+      <div class="sheet__header">
+        <div class="sheet__title" id="bookTitle">{{ services_copy.booking_modal_title_prefix }} <span id="bookServiceName"></span></div>
+        <button class="sheet__close" type="button" id="bookClose" aria-label="{{ services_copy.booking_close_label }}">x</button>
+      </div>
+
+      <div class="field">
+        <label for="bookMaster">{{ services_copy.booking_staff_label }}</label>
+        <select id="bookMaster"></select>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="bookDate">{{ services_copy.booking_mobile_pick_day_label }}</label>
+          <input id="bookDate" type="date">
+        </div>
+        <div class="field">
+          <label for="bookTime">{{ services_copy.booking_available_times_label }}</label>
+          <input id="bookTime" type="time" list="bookTimeList">
+          <datalist id="bookTimeList"></datalist>
+        </div>
+      </div>
+      <div class="status" id="bookingStatus">{{ services_copy.booking_mobile_pick_day_label }}</div>
+
+      <div class="field">
+        <label>{{ services_copy.booking_summary_label }}</label>
+        <div class="summary" id="bookSummary">{{ services_copy.booking_summary_default }}</div>
+      </div>
+
+      <div class="field">
+        <label for="contactName">{{ services_copy.booking_full_name_label }}</label>
+        <input id="contactName" type="text" maxlength="120" autocomplete="name" required placeholder="{{ services_copy.booking_full_name_placeholder }}">
+      </div>
+      <div class="field">
+        <label for="contactEmail">{{ services_copy.booking_email_label }}</label>
+        <input id="contactEmail" type="email" autocomplete="email" required placeholder="{{ services_copy.booking_email_placeholder }}">
+      </div>
+      <div class="field">
+        <label for="contactPhone">{{ services_copy.booking_phone_label }}</label>
+        <input id="contactPhone" type="tel" inputmode="tel" autocomplete="tel" pattern="\\+?\\d{10,15}" title="{{ services_copy.booking_phone_title }}" required placeholder="{{ services_copy.booking_phone_placeholder }}">
+      </div>
+      <div class="note">{{ services_copy.booking_confirmation_hint }}</div>
+      <div class="status error" id="bookError" style="display:none;"></div>
+      <div class="status success" id="bookSuccess" style="display:none;"></div>
+
+      <div class="actions">
+        <button class="btn btn-ghost" type="button" id="bookCancel">{{ services_copy.booking_cancel_label }}</button>
+        <button class="btn btn-primary" type="button" id="bookSubmit" disabled>{{ services_copy.booking_confirm_label }}</button>
+      </div>
+    </div>
+  </div>
+
+  {{ contact_prefill|json_script:"contactPrefillData" }}
+
+  <script>
+    (function(){
+      const apiAvail = "/accounts/api/availability/";
+      const apiBook = "/accounts/api/book/";
+      const copy = {
+        summaryDefault: "{{ services_copy.booking_summary_default|escapejs }}",
+        summaryStaffPrefix: "{{ services_copy.booking_summary_staff_prefix|escapejs }}",
+        summaryTimePrefix: "{{ services_copy.booking_summary_time_prefix|escapejs }}",
+        summaryTimeSelected: "{{ services_copy.booking_summary_time_selected_label|escapejs }}",
+        noStaffLabel: "{{ services_copy.booking_no_staff_label|escapejs }}",
+        noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
+        noOpenTimesOnPrefix: "{{ services_copy.booking_no_open_times_on_prefix|escapejs }}",
+        noOpenTimesOnSuffix: "{{ services_copy.booking_no_open_times_on_suffix|escapejs }}",
+        failedSlotsLabel: "{{ services_copy.booking_failed_slots_label|escapejs }}",
+        availabilityErrorLabel: "{{ services_copy.booking_availability_error_label|escapejs }}",
+        missingContactError: "{{ services_copy.booking_missing_contact_error|escapejs }}",
+        createErrorLabel: "{{ services_copy.booking_create_error_label|escapejs }}",
+        createdLabel: "{{ services_copy.booking_created_label|escapejs }}",
+        timeLabel: "{{ services_copy.booking_time_label|escapejs }}",
+        bookingErrorLabel: "{{ services_copy.booking_error_label|escapejs }}",
+        pickDayLabel: "{{ services_copy.booking_mobile_pick_day_label|escapejs }}"
+      };
+
+      const modal = document.getElementById('bookModal');
+      const elServiceName = document.getElementById('bookServiceName');
+      const elMaster = document.getElementById('bookMaster');
+      const elDate = document.getElementById('bookDate');
+      const elTime = document.getElementById('bookTime');
+      const elTimeList = document.getElementById('bookTimeList');
+      const elSummary = document.getElementById('bookSummary');
+      const elStatus = document.getElementById('bookingStatus');
+      const elError = document.getElementById('bookError');
+      const elSuccess = document.getElementById('bookSuccess');
+      const btnSubmit = document.getElementById('bookSubmit');
+      const btnClose = document.getElementById('bookClose');
+      const btnCancel = document.getElementById('bookCancel');
+
+      const contactPrefillEl = document.getElementById('contactPrefillData');
+      const contactPrefill = contactPrefillEl ? JSON.parse(contactPrefillEl.textContent) : {name:'', email:'', phone:''};
+      const contactInputs = {
+        name: document.getElementById('contactName'),
+        email: document.getElementById('contactEmail'),
+        phone: document.getElementById('contactPhone'),
+      };
+
+      const state = {
+        serviceId:null,
+        serviceName:'',
+        masterId:null,
+        slotIso:null,
+        masters:[],
+        timeMap:new Map(),
+      };
+
+      function setStatus(text, isError){
+        elStatus.textContent = text || '';
+        elStatus.classList.toggle('error', Boolean(isError));
+      }
+
+      function showModal(){
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden','false');
+        document.body.style.overflow = 'hidden';
+      }
+      function hideModal(){
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden','true');
+        document.body.style.overflow = '';
+      }
+
+      function getCookie(name){
+        const m = document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)');
+        return m ? m.pop() : '';
+      }
+      function ymd(d){
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        return `${d.getFullYear()}-${m}-${day}`;
+      }
+      function hmValue(d){
+        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      }
+      function fmtHM(d){
+        return d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+      }
+
+      function contactIsComplete(){
+        return Boolean(contactInputs.name.value.trim() && contactInputs.email.value.trim() && contactInputs.phone.value.trim());
+      }
+      function updateSubmitState(){
+        btnSubmit.disabled = !(state.serviceId && state.masterId && state.slotIso && contactIsComplete());
+      }
+
+      Object.values(contactInputs).forEach(input=>{
+        input.addEventListener('input', ()=>{
+          elError.style.display='none';
+          updateSubmitState();
+        });
+      });
+
+      function hydrateContact(){
+        contactInputs.name.value = contactPrefill.name || '';
+        contactInputs.email.value = contactPrefill.email || '';
+        contactInputs.phone.value = contactPrefill.phone || '';
+      }
+
+      function setSummaryDefault(){
+        elSummary.textContent = copy.summaryDefault;
+      }
+
+      function renderMasterOptions(){
+        elMaster.innerHTML = '';
+        if (!state.masters.length){
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = copy.noStaffLabel;
+          elMaster.appendChild(opt);
+          elMaster.disabled = true;
+          return;
+        }
+        elMaster.disabled = false;
+        state.masters.forEach(m=>{
+          const opt = document.createElement('option');
+          opt.value = String(m.id);
+          opt.textContent = m.name;
+          elMaster.appendChild(opt);
+        });
+        if (!state.masterId || !state.masters.find(m=>String(m.id) === String(state.masterId))){
+          state.masterId = state.masters[0].id;
+        }
+        elMaster.value = String(state.masterId);
+      }
+
+      function buildTimeMap(slots){
+        const map = new Map();
+        const times = [];
+        slots.forEach(iso=>{
+          const d = new Date(iso);
+          if (Number.isNaN(d.getTime())) return;
+          const key = hmValue(d);
+          if (!map.has(key)){
+            map.set(key, iso);
+            times.push(key);
+          }
+        });
+        times.sort();
+        return {map, times};
+      }
+
+      function renderTimeOptions(times){
+        elTimeList.innerHTML = '';
+        times.forEach(t=>{
+          const opt = document.createElement('option');
+          opt.value = t;
+          elTimeList.appendChild(opt);
+        });
+        if (!times.length){
+          elTime.value = '';
+          elTime.disabled = true;
+          elTime.min = '';
+          elTime.max = '';
+          elTime.step = '';
+          return;
+        }
+        elTime.disabled = false;
+        elTime.min = times[0];
+        elTime.max = times[times.length - 1];
+        elTime.step = '60';
+      }
+
+      function syncSummary(){
+        if (!state.slotIso){
+          setSummaryDefault();
+          return;
+        }
+        const slotDate = new Date(state.slotIso);
+        const dayLabel = slotDate.toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
+        const staffName = elMaster.selectedOptions[0]?.textContent?.trim() || '-';
+        elSummary.textContent = `${copy.summaryStaffPrefix} ${staffName}. ${copy.summaryTimePrefix} ${fmtHM(slotDate)}, ${dayLabel}.`;
+      }
+
+      function applyTimeValue(timeValue){
+        const iso = state.timeMap.get(timeValue);
+        if (!iso){
+          state.slotIso = null;
+          setSummaryDefault();
+          setStatus(copy.noOpenTimesLabel, true);
+          updateSubmitState();
+          return;
+        }
+        state.slotIso = iso;
+        syncSummary();
+        setStatus('', false);
+        updateSubmitState();
+      }
+
+      async function loadAvailability(dateKey){
+        if (!state.serviceId || !dateKey) return;
+        setStatus(copy.pickDayLabel, false);
+        elError.style.display = 'none';
+        elSuccess.style.display = 'none';
+        state.slotIso = null;
+        setSummaryDefault();
+        updateSubmitState();
+
+        try{
+          const params = new URLSearchParams({service: state.serviceId, date: dateKey});
+          const r = await fetch(`${apiAvail}?${params.toString()}`, {credentials:'same-origin'});
+          if (!r.ok) throw new Error(copy.failedSlotsLabel);
+          const data = await r.json();
+          state.masters = data.masters || [];
+          renderMasterOptions();
+          if (!state.masters.length){
+            renderTimeOptions([]);
+            setStatus(copy.noStaffLabel, true);
+            return;
+          }
+          const activeMaster = state.masters.find(m=>String(m.id)===String(state.masterId)) || state.masters[0];
+          state.masterId = activeMaster.id;
+          const {map, times} = buildTimeMap(activeMaster.slots || []);
+          state.timeMap = map;
+          renderTimeOptions(times);
+          if (!times.length){
+            const dayLabel = new Date(dateKey).toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
+            setStatus(`${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`, true);
+            return;
+          }
+          setStatus(times.slice(0, 6).map(t=>fmtHM(new Date(`1970-01-01T${t}:00`))).join(', '), false);
+        }catch(err){
+          setStatus(err.message || copy.availabilityErrorLabel, true);
+        }
+      }
+
+      elMaster.addEventListener('change', ()=>{
+        const masterId = elMaster.value;
+        state.masterId = masterId ? Number(masterId) : null;
+        state.slotIso = null;
+        setSummaryDefault();
+        updateSubmitState();
+        const activeMaster = state.masters.find(m=>String(m.id) === String(state.masterId));
+        const {map, times} = buildTimeMap(activeMaster?.slots || []);
+        state.timeMap = map;
+        renderTimeOptions(times);
+        if (!times.length){
+          setStatus(copy.noOpenTimesLabel, true);
+          return;
+        }
+        setStatus(times.slice(0, 6).map(t=>fmtHM(new Date(`1970-01-01T${t}:00`))).join(', '), false);
+      });
+
+      elDate.addEventListener('change', ()=>{
+        loadAvailability(elDate.value);
+      });
+
+      elTime.addEventListener('change', ()=>{
+        applyTimeValue(elTime.value);
+      });
+
+      function openModal(serviceId, serviceName){
+        state.serviceId = serviceId;
+        state.serviceName = serviceName || '';
+        state.masterId = null;
+        state.slotIso = null;
+        state.masters = [];
+        state.timeMap = new Map();
+        elServiceName.textContent = state.serviceName;
+        elError.style.display = 'none';
+        elSuccess.style.display = 'none';
+        hydrateContact();
+        setSummaryDefault();
+        updateSubmitState();
+        const today = ymd(new Date());
+        elDate.value = today;
+        showModal();
+        loadAvailability(today);
+      }
+
+      async function submitBooking(){
+        if (!state.serviceId || !state.masterId || !state.slotIso) return;
+        if (!contactIsComplete()){
+          elError.textContent = copy.missingContactError;
+          elError.style.display = 'block';
+          return;
+        }
+        btnSubmit.disabled = true;
+        elError.style.display = 'none';
+        elSuccess.style.display = 'none';
+        try{
+          const resp = await fetch(apiBook, {
+            method:'POST',
+            headers:{
+              'Content-Type':'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials:'same-origin',
+            body: JSON.stringify({
+              service: state.serviceId,
+              master: state.masterId,
+              start_time: state.slotIso,
+              contact: {
+                name: contactInputs.name.value.trim(),
+                email: contactInputs.email.value.trim(),
+                phone: contactInputs.phone.value.trim()
+              }
+            })
+          });
+          const data = await resp.json().catch(()=>({}));
+          if (!resp.ok){
+            const contactErrors = data?.errors?.contact;
+            let message = (contactErrors && Object.values(contactErrors).find(Boolean)) || data?.error || data?.detail || copy.createErrorLabel;
+            if (Array.isArray(message)) message = message[0];
+            throw new Error(message);
+          }
+          const timeText = data.appointment?.start_time ? new Date(data.appointment.start_time).toLocaleString() : '';
+          elSuccess.textContent = copy.createdLabel + (timeText ? ` ${copy.timeLabel} ${timeText}` : '');
+          elSuccess.style.display = 'block';
+          setTimeout(()=>{ window.location.reload(); }, 800);
+        }catch(err){
+          elError.textContent = err.message || copy.bookingErrorLabel;
+          elError.style.display = 'block';
+          updateSubmitState();
+        }
+      }
+
+      document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.book-btn');
+        if (btn){
+          openModal(btn.dataset.serviceId, btn.dataset.serviceName || 'service');
+        }
+      });
+
+      btnClose.addEventListener('click', hideModal);
+      btnCancel.addEventListener('click', hideModal);
+      modal.addEventListener('click', (e)=>{ if (e.target === modal) hideModal(); });
+      btnSubmit.addEventListener('click', submitBooking);
+    })();
+  </script>
+</body>
+</html>

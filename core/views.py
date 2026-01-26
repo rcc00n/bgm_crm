@@ -56,6 +56,20 @@ from notifications.services import notify_about_service_lead
 
 logger = logging.getLogger(__name__)
 
+def _is_mobile_request(request):
+    if request.GET.get("desktop") == "1":
+        return False
+    if request.GET.get("mobile") == "1":
+        return True
+    ua = (request.META.get("HTTP_USER_AGENT") or "").lower()
+    if not ua:
+        return False
+    mobile_markers = (
+        "mobi", "android", "iphone", "ipod", "ipad", "windows phone",
+        "blackberry", "opera mini", "opera mobi", "mobile"
+    )
+    return any(marker in ua for marker in mobile_markers)
+
 def _build_catalog_context(request):
     """Общий конструктор контекста каталога."""
     q = (request.GET.get("q") or "").strip()
@@ -124,8 +138,10 @@ def public_mainmenu(request):
         ctx.setdefault("profile", None)
         ctx.setdefault("appointments", [])
 
-    response = render(request, "client/mainmenu.html", ctx)
-    response["X-Template-Version"] = "mainmenu-mobile-v2-2026-01-26"
+    is_mobile = _is_mobile_request(request)
+    template_name = "client/mainmenu_mobile.html" if is_mobile else "client/mainmenu.html"
+    response = render(request, template_name, ctx)
+    response["X-Template-Version"] = "mainmenu-mobile-v3-2026-01-26" if is_mobile else "mainmenu-desktop-v1-2026-01-26"
     return response
 
 
