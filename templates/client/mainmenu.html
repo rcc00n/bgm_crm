@@ -1803,7 +1803,47 @@ body.nav-open .contact-fab,
 .contact-fab{ bottom:calc(22px + env(safe-area-inset-bottom)); }
 body.modal-open .contact-fab{ display:none !important; }
 
-/* 7) Меньше анимаций при reduce motion */
+/* 7) Mobile density reset for services catalog */
+@media (max-width:760px){
+  main.container{ padding-block:2.2rem !important; }
+  .hero{ padding:3.4rem 1rem 2.4rem; gap:.9rem; }
+  .hero h1{ font-size:clamp(1.9rem, 7vw, 2.6rem); letter-spacing:.4px; }
+  .hero p{ font-size:1rem; }
+  h2{ font-size:1.35rem; margin-bottom:.9rem; }
+  #liveTitle,
+  #serverContent > h3{
+    font-size:1.05rem;
+    margin:1.1rem 0 .6rem !important;
+    letter-spacing:.4px;
+  }
+  .filters{ gap:.55rem; padding:.75rem; border-radius:1rem; }
+  .filters input, .filters select, .filters .btn{
+    min-height:48px;
+    font-size:1rem;
+  }
+  .services-grid{ grid-template-columns:1fr !important; gap:1rem; }
+  .service-card{ padding:1rem; gap:.6rem; }
+  .service-card__img{ aspect-ratio:4/3; border-radius:.85rem; }
+  .service-card h3{ font-size:1.05rem; }
+  .service-card > div.muted{ display:none; }
+  .service-card p.muted{
+    font-size:.92rem;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .service-meta{ font-size:.88rem; gap:.25rem .6rem; row-gap:.35rem; }
+  .service-meta .price__hint{ font-size:.75rem; }
+  .service-card .btn{ width:100%; }
+  .stub{ padding:.85rem; }
+}
+@media (max-width:480px){
+  .service-card__badge{ font-size:.64rem; padding:.14rem .45rem; }
+  .service-meta{ font-size:.85rem; }
+}
+
+/* 8) Меньше анимаций при reduce motion */
 @media (prefers-reduced-motion:reduce){
   .skeleton, .ph{ animation:none !important; }
   .btn, .service-card{ transition:none !important; }

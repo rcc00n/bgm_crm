@@ -15,7 +15,7 @@
       <a class="btn btn--ghost" href="{% url 'store-cart' %}">Cart</a>
     </div>
 
-    <div class="grid" style="grid-template-columns:1fr 1fr;gap:1.25rem">
+    <div class="grid product-detail__grid" style="grid-template-columns:1fr 1fr;gap:1.25rem">
       <div>
         {% if product.main_image %}
           <img class="card__img" style="aspect-ratio:auto;border-radius:1rem" src="{{ product.main_image_url }}" alt="{{ product.name }}">
@@ -539,6 +539,22 @@
     margin:0 0 .4rem;
   }
   .cta__copy{max-width:28rem;color:rgba(255,255,255,.9) !important;}
+  @media (max-width:900px){
+    .section__head{flex-direction:column;align-items:flex-start;gap:.6rem;}
+    .product-detail__grid{grid-template-columns:1fr !important;}
+    .product-detail__grid > div{width:100%;}
+    .qty-row{flex-direction:column;align-items:stretch;}
+    .qty-row .field{width:100% !important;}
+    .btn-pair{flex-direction:column;align-items:stretch;}
+    .btn-pair .btn{width:100%;justify-content:center;}
+    .option-pill__inner{min-width:0;}
+    .option-pill__top{flex-direction:column;align-items:flex-start;}
+    .option-pill__price{align-items:flex-start;}
+    .option-pill__desc{font-size:.85rem;}
+    .price__dealer-row{width:100%;}
+    .specs__row{grid-template-columns:1fr;gap:.2rem;}
+    .specs__k{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+  }
   @media (max-width:640px){
     .cta{flex-direction:column;align-items:flex-start}
     .cta .btn{width:100%;justify-content:center}

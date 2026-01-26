@@ -156,5 +156,23 @@
   line-height: 1.25 !important; 
 }
 
+@media (max-width: 900px){
+  .section__head{flex-direction:column;align-items:flex-start;gap:.6rem;}
+  .grid--cards{grid-template-columns:1fr;}
+  .product__meta{padding:.9rem;}
+  .product__meta .section__desc{
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .btn-row{flex-direction:column;align-items:flex-start;}
+  .btn-row .btn{width:100%;justify-content:center;}
+  .quick.row{flex-direction:column;align-items:stretch;}
+  .quick.row .btn{width:100%;justify-content:center;}
+  .quick.row form{width:100%;}
+  .quick.row form .btn{width:100%;justify-content:center;}
+}
+
 </style>
 {% endblock %}

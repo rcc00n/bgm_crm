@@ -595,6 +595,33 @@
   .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
 }
 
+@media (max-width: 900px){
+  .section__head{flex-direction:column;align-items:flex-start;gap:.6rem;}
+  .grid--cards{grid-template-columns:1fr;}
+  .hero__copy .btn-row{flex-direction:column;}
+  .hero__copy .btn-row .btn{width:100%;justify-content:center;}
+  .filters__grid{grid-template-columns:1fr;}
+  .filters__actions{flex-direction:column;}
+  .filters__actions .btn{width:100%;justify-content:center;}
+  .product__meta{padding:.9rem;}
+  .product__desc{
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .cat__desc{
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+}
+@media (max-width: 600px){
+  .product__title{font-size:1.05rem;}
+  .price__dealer-row{width:100%;}
+}
+
 /* дым оставляем позади */
 .hero--store{ background:transparent !important; }
 
