@@ -9,6 +9,7 @@ import json
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from core.email_templates import base_email_context, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from django.core.validators import validate_email
 from django.db import transaction
@@ -257,8 +258,23 @@ def _notify_fitment_request(request_obj):
     if not recipients:
         return
 
-    subject = f"Custom fitment request — {request_obj.product_name or 'Custom build'}"
-    lines = [
+    product_name = request_obj.product_name or "Custom build"
+    context = base_email_context(
+        {
+            "product_name": product_name,
+            "customer_name": request_obj.customer_name,
+            "customer_email": request_obj.email,
+            "customer_phone": request_obj.phone or "",
+            "vehicle": request_obj.vehicle or "",
+            "submodel": request_obj.submodel or "",
+            "performance_goals": request_obj.performance_goals or "",
+            "budget": request_obj.budget or "",
+            "timeline": request_obj.timeline or "",
+            "source_url": request_obj.source_url or "",
+        }
+    )
+    template = render_email_template("fitment_request_internal", context)
+    detail_lines = [
         f"Product: {request_obj.product_name or '—'}",
         f"Customer: {request_obj.customer_name}",
         f"Email: {request_obj.email}",
@@ -268,10 +284,27 @@ def _notify_fitment_request(request_obj):
         f"Performance goals: {request_obj.performance_goals or '—'}",
         f"Budget: {request_obj.budget or '—'}",
         f"Timeline: {request_obj.timeline or '—'}",
-        f"Notes:\n{request_obj.message or '—'}",
     ]
     if request_obj.source_url:
-        lines.append(f"Source: {request_obj.source_url}")
+        detail_lines.append(f"Source: {request_obj.source_url}")
+    notice_lines = list(template.notice_lines)
+    if request_obj.message:
+        notice_lines.append(request_obj.message)
+    elif not notice_lines:
+        notice_lines.append("—")
+    notice_text_lines = []
+    if notice_lines:
+        if template.notice_title:
+            notice_text_lines = [f"{template.notice_title}: {line}" for line in notice_lines]
+        else:
+            notice_text_lines = notice_lines
+    text_body = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        detail_lines,
+        notice_text_lines,
+        template.footer_lines,
+    )
 
     sender = getattr(settings, "DEFAULT_FROM_EMAIL", None) or recipients[0]
     try:
@@ -288,19 +321,24 @@ def _notify_fitment_request(request_obj):
         ]
         if request_obj.source_url:
             detail_rows.append(("Source", request_obj.source_url))
+        notice_lines_html = list(template.notice_lines)
+        if request_obj.message:
+            notice_lines_html.append(request_obj.message)
+        elif not notice_lines_html:
+            notice_lines_html.append("—")
         html_body = build_email_html(
-            title="New custom fitment request",
-            preheader=f"New request from {request_obj.customer_name}",
-            greeting="Team,",
-            intro_lines=["A new custom fitment request just landed. Details below."],
+            title=template.title,
+            preheader=template.preheader,
+            greeting=template.greeting,
+            intro_lines=template.intro_lines,
             detail_rows=detail_rows,
-            notice_title="Notes",
-            notice_lines=[request_obj.message or "—"],
-            footer_lines=["Reply to the customer within 1-2 business days."],
+            notice_title=template.notice_title or None,
+            notice_lines=notice_lines_html,
+            footer_lines=template.footer_lines,
         )
         send_html_email(
-            subject=subject,
-            text_body="\n".join(lines),
+            subject=template.subject,
+            text_body=text_body,
             html_body=html_body,
             from_email=sender,
             recipient_list=recipients,
@@ -349,55 +387,68 @@ def _send_order_confirmation(
     balance_left = (balance_due or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
     total_with_fees = (order_total_with_fees or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
 
-    subject = f"{brand} order #{order.id} confirmed"
-    lines = [
-        f"Hi {order.customer_name},",
-        f"Thanks for your order with {brand}. We've got it and will follow up shortly.",
-        "",
+    payment_method_label = "Interac e-Transfer" if payment_method == "etransfer" else "Card (Square)"
+    context = base_email_context(
+        {
+            "brand": brand,
+            "customer_name": order.customer_name,
+            "order_id": order.id,
+            "order_total": f"{currency_symbol}{total_with_fees} {currency_code}",
+            "payment_option": pay_mode_label,
+            "payment_method": payment_method_label,
+        }
+    )
+    template = render_email_template("order_confirmation", context)
+    detail_lines = [
         f"Order #: {order.id}",
         f"Payment option: {pay_mode_label}",
         f"Order total (incl. GST/fees): {currency_symbol}{total_with_fees} {currency_code}",
     ]
-
-    payment_method_label = "Interac e-Transfer" if payment_method == "etransfer" else "Card (Square)"
+    payment_lines = [f"Payment method: {payment_method_label}."]
     if payment_method == "etransfer":
         send_to = _normalize_etransfer_email(etransfer_email or getattr(settings, "ETRANSFER_EMAIL", ""))
-        lines.append("Payment method: Interac e-Transfer.")
-        lines.append(f"Amount to send now: {currency_symbol}{amount_now} {currency_code}.")
+        payment_lines.append(f"Amount to send now: {currency_symbol}{amount_now} {currency_code}.")
         if send_to:
-            lines.append(f"Send to: {send_to}.")
+            payment_lines.append(f"Send to: {send_to}.")
         if etransfer_memo_hint:
-            lines.append(f"Include this message: Order #{order.id} — {etransfer_memo_hint}")
+            payment_lines.append(f"Include this message: Order #{order.id} — {etransfer_memo_hint}")
         else:
-            lines.append(f"Include your Order #{order.id} in the transfer message.")
+            payment_lines.append(f"Include your Order #{order.id} in the transfer message.")
         if balance_left > 0:
-            lines.append(f"Balance after this payment: {currency_symbol}{balance_left} {currency_code}.")
+            payment_lines.append(f"Balance after this payment: {currency_symbol}{balance_left} {currency_code}.")
     else:
         receipt = receipt_url or getattr(order, "payment_receipt_url", "")
-        lines.append("Payment method: Card (Square).")
-        lines.append(f"Charged now: {currency_symbol}{amount_now} {currency_code}.")
+        payment_lines.append(f"Charged now: {currency_symbol}{amount_now} {currency_code}.")
         if balance_left > 0:
-            lines.append(f"Balance remaining: {currency_symbol}{balance_left} {currency_code}. We'll invoice this before delivery.")
+            payment_lines.append(
+                f"Balance remaining: {currency_symbol}{balance_left} {currency_code}. "
+                "We'll invoice this before delivery."
+            )
         if receipt:
-            lines.append(f"Square receipt: {receipt}")
+            payment_lines.append(f"Square receipt: {receipt}")
 
     try:
         items = list(order.items.select_related("product", "option").all())
     except Exception:
         items = []
     if items:
-        lines.append("")
-        lines.append("Items:")
+        item_lines = ["Items:"]
         for it in items:
             name = getattr(it.product, "name", "Item")
             if getattr(it, "option", None):
                 name = f"{name} ({it.option.name})"
-            lines.append(f"- {name} × {it.qty}")
+            item_lines.append(f"- {name} × {it.qty}")
+    else:
+        item_lines = []
 
-    lines.extend([
-        "",
-        "Questions? Reply to this email and we'll help.",
-    ])
+    text_body = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        detail_lines,
+        payment_lines,
+        item_lines,
+        template.footer_lines,
+    )
 
     sender = (
         getattr(settings, "DEFAULT_FROM_EMAIL", None)
@@ -442,22 +493,22 @@ def _send_order_confirmation(
                 item_rows.append((name, f"x {it.qty}"))
 
         html_body = build_email_html(
-            title="Order confirmed",
-            preheader=f"Order #{order.id} confirmed",
-            greeting=f"Hi {order.customer_name},",
-            intro_lines=[f"Thanks for your order with {brand}. We've got it and will follow up shortly."],
+            title=template.title,
+            preheader=template.preheader,
+            greeting=template.greeting,
+            intro_lines=template.intro_lines,
             detail_rows=detail_rows,
             item_rows=item_rows,
             summary_rows=summary_rows,
-            notice_title=notice_title,
-            notice_lines=notice_lines,
-            footer_lines=["Questions? Reply to this email and we'll help."],
-            cta_label=f"Visit {brand}",
+            notice_title=template.notice_title or notice_title,
+            notice_lines=[*template.notice_lines, *notice_lines],
+            footer_lines=template.footer_lines,
+            cta_label=template.cta_label,
             cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
         )
         send_html_email(
-            subject=subject,
-            text_body="\n".join(lines),
+            subject=template.subject,
+            text_body=text_body,
             html_body=html_body,
             from_email=sender,
             recipient_list=[recipient],
