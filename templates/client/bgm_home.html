@@ -836,7 +836,9 @@
                     </div>
                   </div>
                   {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
-                  <div class="dur">{{ home_copy.services_duration_prefix }} {{ s.duration_min }} {{ home_copy.services_duration_suffix }}</div>
+                  {% if s.duration_min %}
+                    <div class="dur">{{ home_copy.services_duration_prefix }} {{ s.duration_min }} {{ home_copy.services_duration_suffix }}</div>
+                  {% endif %}
                   <div class="card__cta">
                     <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">{{ home_copy.services_book_now_label }}</a>
                   </div>
@@ -879,7 +881,9 @@
                     </div>
                   </div>
                   {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
-                  <div class="dur">{{ home_copy.services_duration_prefix }} {{ s.duration_min }} {{ home_copy.services_duration_suffix }}</div>
+                  {% if s.duration_min %}
+                    <div class="dur">{{ home_copy.services_duration_prefix }} {{ s.duration_min }} {{ home_copy.services_duration_suffix }}</div>
+                  {% endif %}
                   <div class="card__cta">
                     <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">{{ home_copy.services_book_now_label }}</a>
                   </div>
@@ -1125,10 +1129,16 @@
       const cat   = s.category ? `<span class="card__badge">${esc(s.category)}</span>` : '';
       const desc  = s.description ? `<p class="muted">${esc(s.description)}</p>` : '';
       const bookingHref = toBookingUrl(s.id);
-      const durationBits = [copy.durationPrefix, String(s.duration_min), copy.durationSuffix]
-        .filter(Boolean)
-        .map(esc)
-        .join(" ");
+      const rawDuration = s.duration_min;
+      const durationValue = Number(rawDuration);
+      const hasDuration = Number.isFinite(durationValue) && durationValue > 0;
+      const durationBits = hasDuration
+        ? [copy.durationPrefix, String(rawDuration), copy.durationSuffix]
+            .filter(Boolean)
+            .map(esc)
+            .join(" ")
+        : "";
+      const durationHtml = durationBits ? `<div class="dur">${durationBits}</div>` : "";
       return `
         <article class="card">
           <div class="card__img">${media}${cat}</div>
@@ -1137,7 +1147,7 @@
             <div class="price">${price}</div>
           </div>
           ${desc}
-          <div class="dur">${durationBits}</div>
+          ${durationHtml}
           <div class="card__cta"><a class="btn btn--primary" href="${bookingHref}">${esc(copy.bookNowLabel)}</a></div>
         </article>`;
     }
