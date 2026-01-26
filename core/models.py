@@ -334,6 +334,252 @@ class HomePageCopy(models.Model):
         return obj
 
 
+class ServicesPageCopy(models.Model):
+    """
+    Editable static text for the services catalog page.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    meta_title = models.CharField(max_length=160, default="Bad Guy Motors — Upgrades & Booking")
+    meta_description = models.TextField(
+        default="Browse detailing, protection, and performance services with live pricing from Bad Guy Motors."
+    )
+
+    skip_to_main_label = models.CharField(max_length=120, default="Skip to main content")
+    brand_word_white = models.CharField(max_length=40, default="BAD GUY")
+    brand_word_red = models.CharField(max_length=40, default="MOTORS")
+    brand_tagline = models.CharField(max_length=120, default="CUSTOM BUILDS • INSTALLS • UPGRADES")
+    nav_toggle_label = models.CharField(max_length=80, default="Toggle navigation")
+    nav_services_label = models.CharField(max_length=40, default="Services")
+    nav_client_portal_label = models.CharField(max_length=60, default="Client Portal")
+    nav_login_label = models.CharField(max_length=40, default="Login")
+    nav_products_label = models.CharField(max_length=40, default="Products")
+    nav_merch_label = models.CharField(max_length=40, default="Merch")
+    nav_merch_badge = models.CharField(max_length=20, default="Soon")
+    nav_dealers_label = models.CharField(max_length=40, default="Dealers")
+    nav_financing_label = models.CharField(max_length=40, default="Financing")
+    nav_about_label = models.CharField(max_length=40, default="About")
+
+    hero_title = models.CharField(max_length=140, default="Built to be bad. Engineered to last.")
+    hero_lead = models.TextField(
+        default=(
+            "Book custom fabrication, diesel performance, coatings, body swaps and more — "
+            "bumpers, headache & chase racks, mudflaps, running boards, fender flares, "
+            "lift kits & 4‑links, tuning, and installs."
+        )
+    )
+    hero_cta_label = models.CharField(max_length=80, default="Browse services ↓")
+
+    section_title = models.CharField(max_length=80, default="Upgrades & Services")
+    search_placeholder = models.CharField(max_length=120, default="Search a service…")
+    filter_all_categories_label = models.CharField(max_length=60, default="All categories")
+    search_button_label = models.CharField(max_length=40, default="Search")
+    reset_button_label = models.CharField(max_length=40, default="Reset")
+    search_results_label = models.CharField(max_length=60, default="Search results")
+    live_no_results_label = models.CharField(max_length=80, default="No services found.")
+    live_error_label = models.CharField(max_length=120, default="Could not load results. Please try again.")
+    search_no_results_prefix = models.CharField(max_length=80, default="No results for")
+    search_no_results_suffix = models.CharField(max_length=40, default=".")
+    category_empty_label = models.CharField(max_length=120, default="No services in this category yet.")
+    uncategorized_title = models.CharField(max_length=80, default="Uncategorized")
+    catalog_empty_label = models.CharField(max_length=140, default="The catalog will be available soon 👍")
+
+    service_image_aria_label = models.CharField(max_length=80, default="Service image")
+    service_image_fallback_label = models.CharField(max_length=40, default="BGM • SERVICE")
+    book_aria_prefix = models.CharField(max_length=40, default="Book")
+    pick_time_label = models.CharField(max_length=60, default="Pick a time")
+    contact_for_estimate_label = models.CharField(max_length=80, default="Contact for estimate")
+    from_label = models.CharField(max_length=40, default="From")
+    duration_separator = models.CharField(max_length=8, default="·")
+    duration_unit = models.CharField(max_length=20, default="min")
+
+    booking_modal_title_prefix = models.CharField(max_length=80, default="Booking for")
+    booking_close_label = models.CharField(max_length=40, default="Close")
+    booking_staff_label = models.CharField(max_length=40, default="Staff")
+    booking_staff_picker_label = models.CharField(max_length=80, default="Pick a staff member")
+    booking_choose_time_label = models.CharField(max_length=60, default="Choose time")
+    booking_prev_label = models.CharField(max_length=20, default="← Prev")
+    booking_today_label = models.CharField(max_length=20, default="Today")
+    booking_next_label = models.CharField(max_length=20, default="Next →")
+    booking_mobile_day_label = models.CharField(max_length=20, default="Day")
+    booking_mobile_pick_day_label = models.CharField(max_length=60, default="Pick a day")
+    booking_jump_today_label = models.CharField(max_length=60, default="Jump to today")
+    booking_available_times_label = models.CharField(max_length=60, default="Available times")
+    booking_no_open_times_label = models.CharField(max_length=120, default="No open times for this day.")
+    booking_no_open_times_on_prefix = models.CharField(max_length=80, default="No open times on")
+    booking_no_open_times_on_suffix = models.CharField(max_length=20, default=".")
+    booking_no_availability_label = models.CharField(max_length=80, default="No availability yet")
+    booking_scroll_hint_desktop = models.CharField(
+        max_length=200,
+        default="Shift + scroll for horizontal scroll. Red = busy (unclickable).",
+    )
+    booking_scroll_hint_mobile = models.CharField(
+        max_length=200,
+        default="Swipe left/right to see more days. Red = busy (unclickable).",
+    )
+    booking_summary_label = models.CharField(max_length=40, default="Summary")
+    booking_summary_default = models.CharField(max_length=120, default="Pick a staff member and time.")
+    booking_summary_staff_prefix = models.CharField(max_length=40, default="Staff:")
+    booking_summary_time_prefix = models.CharField(max_length=40, default="Time:")
+    booking_summary_time_selected_label = models.CharField(max_length=80, default="Time selected.")
+    booking_full_name_label = models.CharField(max_length=60, default="Full name*")
+    booking_full_name_placeholder = models.CharField(max_length=120, default="John Doe")
+    booking_email_label = models.CharField(max_length=40, default="Email*")
+    booking_email_placeholder = models.CharField(max_length=120, default="you@example.com")
+    booking_phone_label = models.CharField(max_length=40, default="Phone*")
+    booking_phone_placeholder = models.CharField(max_length=120, default="+1 5551234567")
+    booking_phone_title = models.CharField(max_length=120, default="Use digits only, optionally starting with +")
+    booking_confirmation_hint = models.CharField(
+        max_length=160,
+        default="No account needed — we confirm bookings by email and phone.",
+    )
+    booking_cancel_label = models.CharField(max_length=40, default="Cancel")
+    booking_confirm_label = models.CharField(max_length=60, default="Confirm booking")
+    booking_no_staff_label = models.CharField(max_length=80, default="No staff available")
+    booking_availability_error_label = models.CharField(max_length=120, default="Unable to fetch availability")
+    booking_failed_slots_label = models.CharField(max_length=120, default="Failed to load available slots")
+    booking_missing_contact_error = models.CharField(
+        max_length=120,
+        default="Please add your name, email and phone.",
+    )
+    booking_create_error_label = models.CharField(max_length=120, default="Could not create an appointment")
+    booking_created_label = models.CharField(max_length=80, default="Appointment created!")
+    booking_time_label = models.CharField(max_length=40, default="Time:")
+    booking_error_label = models.CharField(max_length=80, default="Booking error")
+
+    contact_fab_label = models.CharField(max_length=60, default="Contact us")
+    contact_modal_title = models.CharField(max_length=60, default="Contact us")
+    contact_close_label = models.CharField(max_length=40, default="Close")
+    contact_email_label = models.CharField(max_length=40, default="E-mail")
+    contact_phone_label = models.CharField(max_length=40, default="Phone")
+    contact_copy_label = models.CharField(max_length=40, default="Copy")
+    contact_copy_success_label = models.CharField(max_length=40, default="Copied")
+    contact_copy_failed_label = models.CharField(max_length=40, default="Copy failed")
+    contact_call_label = models.CharField(max_length=40, default="Call")
+    contact_write_email_label = models.CharField(max_length=60, default="Write e-mail")
+    contact_text_label = models.CharField(max_length=40, default="Text us")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Services page copy"
+        verbose_name_plural = "Services page copy"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Services page copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
+class StorePageCopy(models.Model):
+    """
+    Editable static text for the store (products) page.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    page_title = models.CharField(max_length=160, default="BGM — Products")
+    meta_title = models.CharField(max_length=160, default="BGM Customs — Storefront")
+    meta_description = models.TextField(
+        default="Shop curated parts, aero, lighting, and performance upgrades from BGM Customs."
+    )
+
+    brand_word_white = models.CharField(max_length=40, default="BAD GUY")
+    brand_word_red = models.CharField(max_length=40, default="MOTORS")
+    brand_tagline = models.CharField(max_length=120, default="CUSTOM BUILDS • INSTALLS • UPGRADES")
+    nav_toggle_label = models.CharField(max_length=80, default="Toggle navigation")
+    nav_services_label = models.CharField(max_length=40, default="Services")
+    nav_client_portal_label = models.CharField(max_length=60, default="Client Portal")
+    nav_login_label = models.CharField(max_length=40, default="Login")
+    nav_products_label = models.CharField(max_length=40, default="Products")
+    nav_merch_label = models.CharField(max_length=40, default="Merch")
+    nav_merch_badge = models.CharField(max_length=20, default="Soon")
+    nav_dealers_label = models.CharField(max_length=40, default="Dealers")
+    nav_financing_label = models.CharField(max_length=40, default="Financing")
+    nav_about_label = models.CharField(max_length=40, default="About")
+
+    hero_title = models.CharField(max_length=80, default="Parts & Upgrades")
+    hero_lead = models.CharField(max_length=160, default="Performance parts curated by BGM.")
+    hero_primary_cta_label = models.CharField(max_length=60, default="Book install")
+    hero_secondary_cta_label = models.CharField(max_length=60, default="Open cart")
+    hero_disclaimer_fallback = models.CharField(
+        max_length=140,
+        default="Product may not appear exactly as shown.",
+    )
+
+    filters_toggle_label = models.CharField(max_length=40, default="Filters")
+    filters_active_badge = models.CharField(max_length=20, default="Active")
+    filters_reset_label = models.CharField(max_length=40, default="Reset")
+    filters_heading = models.CharField(max_length=40, default="Filters")
+    filters_close_label = models.CharField(max_length=40, default="Close")
+    filters_category_label = models.CharField(max_length=40, default="Category")
+    filters_make_label = models.CharField(max_length=40, default="Make")
+    filters_model_label = models.CharField(max_length=40, default="Model")
+    filters_year_label = models.CharField(max_length=40, default="Year")
+    filters_apply_label = models.CharField(max_length=60, default="Apply filters")
+    filters_clear_label = models.CharField(max_length=40, default="Clear")
+
+    categories_title = models.CharField(max_length=60, default="Categories")
+    categories_desc = models.CharField(max_length=80, default="Pick a category to explore")
+    categories_empty_label = models.CharField(max_length=80, default="No categories yet.")
+
+    results_title = models.CharField(max_length=60, default="Results")
+    results_desc = models.CharField(max_length=80, default="Filtered products")
+    results_empty_label = models.CharField(max_length=80, default="No products found.")
+
+    new_arrivals_title = models.CharField(max_length=60, default="New arrivals")
+    new_arrivals_cart_label = models.CharField(max_length=40, default="Cart")
+
+    browse_title = models.CharField(max_length=80, default="Browse by category")
+    browse_desc = models.CharField(max_length=80, default="Explore all categories")
+    browse_view_all_label = models.CharField(max_length=40, default="View all")
+
+    contact_for_estimate_label = models.CharField(max_length=80, default="Contact for estimate")
+    from_label = models.CharField(max_length=40, default="From")
+    dealer_label = models.CharField(max_length=40, default="Dealer")
+    save_label = models.CharField(max_length=40, default="Save")
+
+    contact_fab_label = models.CharField(max_length=60, default="Contact us")
+    contact_modal_title = models.CharField(max_length=60, default="Contact us")
+    contact_close_label = models.CharField(max_length=40, default="Close")
+    contact_email_label = models.CharField(max_length=40, default="E-mail")
+    contact_phone_label = models.CharField(max_length=40, default="Phone")
+    contact_copy_label = models.CharField(max_length=40, default="Copy")
+    contact_copy_success_label = models.CharField(max_length=40, default="Copied")
+    contact_copy_failed_label = models.CharField(max_length=40, default="Copy failed")
+    contact_call_label = models.CharField(max_length=40, default="Call")
+    contact_write_email_label = models.CharField(max_length=60, default="Write e-mail")
+    contact_text_label = models.CharField(max_length=40, default="Text us")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Store page copy"
+        verbose_name_plural = "Store page copy"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Store page copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
 class FontPreset(models.Model):
     """
     Reusable font definition that can be applied to public-facing pages.

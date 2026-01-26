@@ -34,6 +34,7 @@ from core.models import (
     LandingPageReview,
     PromoCode,
     SiteNoticeSignup,
+    ServicesPageCopy,
 )
 from core.forms import ServiceLeadForm
 from core.services.booking import (
@@ -94,6 +95,8 @@ def public_mainmenu(request):
     Если пользователь авторизован — дополнительно подставим профиль и его записи.
     """
     ctx = _build_catalog_context(request)
+    ctx["services_copy"] = ServicesPageCopy.get_solo()
+    ctx["header_copy"] = ctx["services_copy"]
     ctx["contact_prefill"] = {"name": "", "email": "", "phone": ""}
 
     if request.user.is_authenticated:

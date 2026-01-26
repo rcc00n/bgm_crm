@@ -1,6 +1,12 @@
 {% extends "store/_base_store.html" %}
 {% load dealer_extras %}
-{% block title %}BGM — Products{% endblock %}
+{% block title %}{{ store_copy.page_title|default:"BGM — Products" }}{% endblock %}
+
+{% block marketing_meta %}
+  {% with meta_title=store_copy.meta_title|default:"BGM Customs — Storefront" meta_description=store_copy.meta_description|default:"Shop curated parts, aero, lighting, and performance upgrades from BGM Customs." meta_section="store" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+{% endblock %}
 
 {% block body %}
 <div id="bg"></div>
@@ -8,17 +14,17 @@
 <section class="hero hero--store">
   <div class="container hero__inner">
     <div class="hero__copy">
-      <h1 class="title">Parts &amp; Upgrades</h1>
-      <p class="lead">Performance parts curated by BGM.</p>
+      <h1 class="title">{{ store_copy.hero_title }}</h1>
+      <p class="lead">{{ store_copy.hero_lead }}</p>
       <div class="btn-row">
-        <a class="btn btn--primary" href="{% url 'client-dashboard' %}">Book install</a>
-        <a class="btn btn--ghost" href="{% url 'store-cart' %}">Open cart</a>
+        <a class="btn btn--primary" href="{% url 'client-dashboard' %}">{{ store_copy.hero_primary_cta_label }}</a>
+        <a class="btn btn--ghost" href="{% url 'store-cart' %}">{{ store_copy.hero_secondary_cta_label }}</a>
       </div>
     </div>
 
     <div class="hero__media frame frame--media">
       <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Products hero' }}" loading="lazy" decoding="async">
-      <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
+      <p class="hero__disclaimer">{{ hero_media.caption|default:store_copy.hero_disclaimer_fallback|default:"Product may not appear exactly as shown." }}</p>
     </div>
   </div>
 </section>
@@ -35,13 +41,13 @@
                 data-filters-toggle
                 aria-expanded="false"
                 aria-controls="catalogFilters">
-          <span>Filters</span>
+          <span>{{ store_copy.filters_toggle_label }}</span>
           {% if filters_active %}
-            <span class="filters-toggle__badge">Active</span>
+            <span class="filters-toggle__badge">{{ store_copy.filters_active_badge }}</span>
           {% endif %}
         </button>
         {% if filters_active %}
-          <a class="filters-toolbar__clear" href="{% url 'store' %}">Reset</a>
+          <a class="filters-toolbar__clear" href="{% url 'store' %}">{{ store_copy.filters_reset_label }}</a>
         {% endif %}
       </div>
 
@@ -51,30 +57,30 @@
             tabindex="-1"
             aria-labelledby="filtersHeading">
         <div class="filters__drawer-head">
-          <h3 class="filters__drawer-title" id="filtersHeading">Filters</h3>
-          <button type="button" class="filters__close" data-filters-close>Close</button>
+          <h3 class="filters__drawer-title" id="filtersHeading">{{ store_copy.filters_heading }}</h3>
+          <button type="button" class="filters__close" data-filters-close>{{ store_copy.filters_close_label }}</button>
         </div>
         <div class="filters__grid">
           <div class="filters__item">
-            <label>Category</label>
+            <label>{{ store_copy.filters_category_label }}</label>
             {{ filter_form.category }}
           </div>
           <div class="filters__item">
-            <label>Make</label>
+            <label>{{ store_copy.filters_make_label }}</label>
             {{ filter_form.make }}
           </div>
           <div class="filters__item">
-            <label>Model</label>
+            <label>{{ store_copy.filters_model_label }}</label>
             {{ filter_form.model }}
           </div>
           <div class="filters__item">
-            <label>Year</label>
+            <label>{{ store_copy.filters_year_label }}</label>
             {{ filter_form.year }}
           </div>
         </div>
         <div class="filters__actions">
-          <button class="btn btn--primary" type="submit">Apply filters</button>
-          <a class="btn btn--ghost" href="{% url 'store' %}">Clear</a>
+          <button class="btn btn--primary" type="submit">{{ store_copy.filters_apply_label }}</button>
+          <a class="btn btn--ghost" href="{% url 'store' %}">{{ store_copy.filters_clear_label }}</a>
         </div>
       </form>
 
@@ -84,8 +90,8 @@
     {# ================== CATEGORIES ================== #}
     <div class="section__head">
       <div>
-        <h2 class="section__title">Categories</h2>
-        <p class="section__desc">Pick a category to explore</p>
+        <h2 class="section__title">{{ store_copy.categories_title }}</h2>
+        <p class="section__desc">{{ store_copy.categories_desc }}</p>
       </div>
     </div>
 
@@ -108,7 +114,7 @@
           {% endif %}
         </a>
       {% empty %}
-        <p class="section__desc">No categories yet.</p>
+        <p class="section__desc">{{ store_copy.categories_empty_label }}</p>
       {% endfor %}
     </div>
 
@@ -116,8 +122,8 @@
     {% if filters_active %}
       <div class="section__head" style="margin-top:1.6rem">
         <div>
-          <h2 class="section__title">Results</h2>
-          <p class="section__desc">Filtered products</p>
+          <h2 class="section__title">{{ store_copy.results_title }}</h2>
+          <p class="section__desc">{{ store_copy.results_desc }}</p>
         </div>
       </div>
 
@@ -139,19 +145,19 @@
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
                 <div class="price price--stacked">
                   {% if p.contact_for_estimate %}
-                    <strong>Contact for estimate</strong>
-                    {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
+                    <strong>{{ store_copy.contact_for_estimate_label }}</strong>
+                    {% if p.estimate_from_price %}<span class="price__hint">{{ store_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
                   {% else %}
                     <div class="price__retail-row">
-                      {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                      {% if p.has_option_price_overrides %}<span class="price__hint">{{ store_copy.from_label }}</span>{% endif %}
                       <strong>{{ p.display_price|money }}</strong>
                       {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
                     </div>
                     {% if dealer_portal.show_discount %}
                       <div class="price__dealer-row">
-                        <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                        <span class="price__hint">{{ store_copy.dealer_label }} {{ dealer_portal.discount_percent }}%</span>
                         <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                        <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                        <span class="price__save">{{ store_copy.save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
                       </div>
                     {% endif %}
                   {% endif %}
@@ -160,7 +166,7 @@
             </a>
           </article>
         {% empty %}
-          <p class="section__desc">No products found.</p>
+          <p class="section__desc">{{ store_copy.results_empty_label }}</p>
         {% endfor %}
       </div>
     {% endif %}
@@ -168,8 +174,8 @@
     {# ================== NEW ARRIVALS ================== #}
     {% if new_arrivals %}
       <div class="section__head" style="margin-top:2rem">
-        <div><h2 class="section__title">New arrivals</h2></div>
-        <a class="btn btn--ghost" href="{% url 'store-cart' %}">Cart</a>
+        <div><h2 class="section__title">{{ store_copy.new_arrivals_title }}</h2></div>
+        <a class="btn btn--ghost" href="{% url 'store-cart' %}">{{ store_copy.new_arrivals_cart_label }}</a>
       </div>
 
       <div class="grid grid--cards">
@@ -190,19 +196,19 @@
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
                 <div class="price price--stacked">
                   {% if p.contact_for_estimate %}
-                    <strong>Contact for estimate</strong>
-                    {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
+                    <strong>{{ store_copy.contact_for_estimate_label }}</strong>
+                    {% if p.estimate_from_price %}<span class="price__hint">{{ store_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
                   {% else %}
                     <div class="price__retail-row">
-                      {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                      {% if p.has_option_price_overrides %}<span class="price__hint">{{ store_copy.from_label }}</span>{% endif %}
                       <strong>{{ p.display_price|money }}</strong>
                       {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
                     </div>
                     {% if dealer_portal.show_discount %}
                       <div class="price__dealer-row">
-                        <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                        <span class="price__hint">{{ store_copy.dealer_label }} {{ dealer_portal.discount_percent }}%</span>
                         <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                        <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                        <span class="price__save">{{ store_copy.save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
                       </div>
                     {% endif %}
                   {% endif %}
@@ -217,15 +223,15 @@
     {# ================== BROWSE BY CATEGORY (sections) ================== #}
     <div class="section__head" style="margin-top:1.8rem">
       <div>
-        <h2 class="section__title">Browse by category</h2>
-        <p class="section__desc">Explore all categories</p>
+        <h2 class="section__title">{{ store_copy.browse_title }}</h2>
+        <p class="section__desc">{{ store_copy.browse_desc }}</p>
       </div>
     </div>
 
     {% for cat, items in sections %}
       <div class="section__head" style="margin-top:1rem">
         <div><h3 class="section__title" style="font-size:1.1rem">{{ cat.name }}</h3></div>
-        <div><a class="btn btn--ghost" href="{% url 'store-category' slug=cat.slug %}">View all</a></div>
+        <div><a class="btn btn--ghost" href="{% url 'store-category' slug=cat.slug %}">{{ store_copy.browse_view_all_label }}</a></div>
       </div>
       <div class="grid grid--cards">
         {% for p in items %}
@@ -245,19 +251,19 @@
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
                 <div class="price price--stacked">
                   {% if p.contact_for_estimate %}
-                    <strong>Contact for estimate</strong>
-                    {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
+                    <strong>{{ store_copy.contact_for_estimate_label }}</strong>
+                    {% if p.estimate_from_price %}<span class="price__hint">{{ store_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
                   {% else %}
                     <div class="price__retail-row">
-                      {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                      {% if p.has_option_price_overrides %}<span class="price__hint">{{ store_copy.from_label }}</span>{% endif %}
                       <strong>{{ p.display_price|money }}</strong>
                       {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
                     </div>
                     {% if dealer_portal.show_discount %}
                       <div class="price__dealer-row">
-                        <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                        <span class="price__hint">{{ store_copy.dealer_label }} {{ dealer_portal.discount_percent }}%</span>
                         <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                        <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                        <span class="price__save">{{ store_copy.save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
                       </div>
                     {% endif %}
                   {% endif %}

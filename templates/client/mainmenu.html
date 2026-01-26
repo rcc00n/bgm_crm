@@ -3,9 +3,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Bad Guy Motors — Upgrades & Booking</title>
+  <title>{{ services_copy.meta_title|default:"Bad Guy Motors — Upgrades & Booking" }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% with meta_title="Bad Guy Motors — Upgrades & Booking" meta_description="Browse detailing, protection, and performance services with live pricing from Bad Guy Motors." meta_section="services" meta_keywords=marketing.default_keywords %}
+  {% with meta_title=services_copy.meta_title|default:"Bad Guy Motors — Upgrades & Booking" meta_description=services_copy.meta_description|default:"Browse detailing, protection, and performance services with live pricing from Bad Guy Motors." meta_section="services" meta_keywords=marketing.default_keywords %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
 
@@ -620,7 +620,7 @@ main h3{
 <body>
   {% include "includes/marketing_body.html" %}
 <div id="bg"></div>
-<a href="#services" class="visually-hidden">Skip to main content</a>
+<a href="#services" class="visually-hidden">{{ services_copy.skip_to_main_label }}</a>
 
 {% with current='services' %}
   {% include "includes/site_header.html" %}
@@ -628,42 +628,42 @@ main h3{
 
 
 <section class="hero">
-  <h1>Built to be bad. Engineered to last.</h1>
-  <p>Book custom fabrication, diesel performance, coatings, body swaps and more — bumpers, headache & chase racks, mudflaps, running boards, fender flares, lift kits & 4‑links, tuning, and installs.</p>
-  <div class="cta"><a href="#services" class="btn btn--primary">Browse services ↓</a></div>
+  <h1>{{ services_copy.hero_title }}</h1>
+  <p>{{ services_copy.hero_lead }}</p>
+  <div class="cta"><a href="#services" class="btn btn--primary">{{ services_copy.hero_cta_label }}</a></div>
 </section>
 
 <main id="services" class="container" style="padding-block:3rem;">
-  <h2>Upgrades & Services</h2>
+  <h2>{{ services_copy.section_title }}</h2>
 
   <!-- Filters -->
   <form method="get" class="filters" role="search">
-    <input type="search" name="q" placeholder="Search a service…" value="{{ q|default:'' }}">
+    <input type="search" name="q" placeholder="{{ services_copy.search_placeholder }}" value="{{ q|default:'' }}">
     <select name="cat">
-      <option value="">All categories</option>
+      <option value="">{{ services_copy.filter_all_categories_label }}</option>
       {% for c in filter_categories %}
         <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
       {% endfor %}
     </select>
-    <button class="btn btn--primary" type="submit">Search</button>
+    <button class="btn btn--primary" type="submit">{{ services_copy.search_button_label }}</button>
     {% if q or active_category %}
-      <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Reset</a>
+      <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">{{ services_copy.reset_button_label }}</a>
     {% endif %}
   </form>
 
   <!-- Live results (JS) -->
-  <h3 id="liveTitle" style="margin:.5rem 0 1rem; display:none;">Search results</h3>
+  <h3 id="liveTitle" style="margin:.5rem 0 1rem; display:none;">{{ services_copy.search_results_label }}</h3>
   <div id="liveGrid" class="services-grid" style="display:none;"></div>
 
   <!-- Server-rendered fallback/results -->
   <div id="serverContent">
     {% if search_results %}
-      <h3 style="margin:.5rem 0 1rem;">Search results</h3>
+      <h3 style="margin:.5rem 0 1rem;">{{ services_copy.search_results_label }}</h3>
       <div class="services-grid">
         {% for s in search_results %}
-          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}" tabindex="0" role="button" aria-label="Book {{ s.name }}">
-            <div class="service-card__img" aria-label="Service image">
-              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">BGM • SERVICE</div>{% endif %}
+          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}" tabindex="0" role="button" aria-label="{{ services_copy.book_aria_prefix }} {{ s.name }}">
+            <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
+              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
               {% if s.category %}<span class="service-card__badge">{{ s.category.name }}</span>{% endif %}
             </div>
             <div class="muted">{{ s.category.name }}</div>
@@ -671,8 +671,8 @@ main h3{
             {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
             <div class="service-meta">
               {% if s.contact_for_estimate %}
-                <strong>Contact for estimate</strong>
-                {% if s.estimate_from_price %}<span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                <strong>{{ services_copy.contact_for_estimate_label }}</strong>
+                {% if s.estimate_from_price %}<span class="price__hint">{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
               {% else %}
                 {% with disc=s.get_active_discount %}
                   {% if disc %}
@@ -684,12 +684,12 @@ main h3{
                   {% endif %}
                 {% endwith %}
               {% endif %}
-              · {{ s.duration_min }} min
+              {{ services_copy.duration_separator }} {{ s.duration_min }} {{ services_copy.duration_unit }}
             </div>
-            <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
+            <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">{{ services_copy.pick_time_label }}</button>
           </article>
         {% empty %}
-          <div class="stub">No results for “{{ q }}”.</div>
+          <div class="stub">{{ services_copy.search_no_results_prefix }} “{{ q }}”{{ services_copy.search_no_results_suffix }}</div>
         {% endfor %}
       </div>
       <hr style="margin:2rem 0;border:none;border-top:1px solid var(--line)">
@@ -699,17 +699,17 @@ main h3{
       <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 Inter; text-transform:uppercase; letter-spacing:.5px">{{ c.name }}</h3>
       <div class="services-grid">
         {% for s in c.service_set.all %}
-          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}" tabindex="0" role="button" aria-label="Book {{ s.name }}">
-            <div class="service-card__img" aria-label="Service image">
-              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">BGM • SERVICE</div>{% endif %}
+          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}" tabindex="0" role="button" aria-label="{{ services_copy.book_aria_prefix }} {{ s.name }}">
+            <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
+              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
               <span class="service-card__badge">{{ c.name }}</span>
             </div>
             <h3>{{ s.name }}</h3>
             {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
             <div class="service-meta">
               {% if s.contact_for_estimate %}
-                <strong>Contact for estimate</strong>
-                {% if s.estimate_from_price %}<span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                <strong>{{ services_copy.contact_for_estimate_label }}</strong>
+                {% if s.estimate_from_price %}<span class="price__hint">{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
               {% else %}
                 {% with disc=s.get_active_discount %}
                   {% if disc %}
@@ -721,30 +721,30 @@ main h3{
                   {% endif %}
                 {% endwith %}
               {% endif %}
-              · {{ s.duration_min }} min
+              {{ services_copy.duration_separator }} {{ s.duration_min }} {{ services_copy.duration_unit }}
             </div>
-            <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
+            <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">{{ services_copy.pick_time_label }}</button>
           </article>
         {% empty %}
-          <div class="stub">No services in this category yet.</div>
+          <div class="stub">{{ services_copy.category_empty_label }}</div>
         {% endfor %}
       </div>
     {% endfor %}
 
     {% if uncategorized %}
-      <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 Inter; text-transform:uppercase; letter-spacing:.5px">Uncategorized</h3>
+      <h3 style="margin:1.5rem 0 .75rem; font:900 1.25rem/1 Inter; text-transform:uppercase; letter-spacing:.5px">{{ services_copy.uncategorized_title }}</h3>
       <div class="services-grid">
         {% for s in uncategorized %}
-          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}" tabindex="0" role="button" aria-label="Book {{ s.name }}">
-            <div class="service-card__img" aria-label="Service image">
-              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">BGM • SERVICE</div>{% endif %}
+          <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}" tabindex="0" role="button" aria-label="{{ services_copy.book_aria_prefix }} {{ s.name }}">
+            <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
+              {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
             </div>
             <h3>{{ s.name }}</h3>
             {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
             <div class="service-meta">
               {% if s.contact_for_estimate %}
-                <strong>Contact for estimate</strong>
-                {% if s.estimate_from_price %}<span class="price__hint">From ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                <strong>{{ services_copy.contact_for_estimate_label }}</strong>
+                {% if s.estimate_from_price %}<span class="price__hint">{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
               {% else %}
                 {% with disc=s.get_active_discount %}
                   {% if disc %}
@@ -756,16 +756,16 @@ main h3{
                   {% endif %}
                 {% endwith %}
               {% endif %}
-              · {{ s.duration_min }} min
+              {{ services_copy.duration_separator }} {{ s.duration_min }} {{ services_copy.duration_unit }}
             </div>
-            <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">Pick a time</button>
+            <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">{{ services_copy.pick_time_label }}</button>
           </article>
         {% endfor %}
       </div>
     {% endif %}
 
     {% if not has_any_services %}
-      <div class="stub">The catalog will be available soon 👍</div>
+      <div class="stub">{{ services_copy.catalog_empty_label }}</div>
     {% endif %}
   </div>
 </main>
@@ -776,29 +776,29 @@ main h3{
 <div class="modal" id="bookModal" aria-hidden="true">
   <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
     <div class="modal__header">
-      <div class="modal__title" id="bookTitle">Booking for <span id="bookServiceName"></span></div>
-      <button class="modal__close" id="bookClose" aria-label="Close">×</button>
+      <div class="modal__title" id="bookTitle">{{ services_copy.booking_modal_title_prefix }} <span id="bookServiceName"></span></div>
+      <button class="modal__close" id="bookClose" aria-label="{{ services_copy.booking_close_label }}">×</button>
     </div>
 
     <div class="grid-2">
       <div>
         <div class="field">
-          <label for="bookMaster">Staff</label>
+          <label for="bookMaster">{{ services_copy.booking_staff_label }}</label>
           <!-- Скрытый/select для доступности -->
           <select id="bookMaster" class="sr-only" aria-hidden="true"></select>
           <!-- Пикер мастеров -->
-          <div id="masterPicker" class="masters" role="listbox" aria-label="Pick a staff member"></div>
+          <div id="masterPicker" class="masters" role="listbox" aria-label="{{ services_copy.booking_staff_picker_label }}"></div>
         </div>
 
         <div class="field" style="margin-top:.5rem">
-          <label>Choose time</label>
+          <label>{{ services_copy.booking_choose_time_label }}</label>
 
           <div class="outlook" id="ol">
             <div class="outlook__toolbar">
               <div class="controls">
-                <button id="olPrev" type="button">← Prev</button>
-                <button id="olToday" type="button">Today</button>
-                <button id="olNext" type="button">Next →</button>
+                <button id="olPrev" type="button">{{ services_copy.booking_prev_label }}</button>
+                <button id="olToday" type="button">{{ services_copy.booking_today_label }}</button>
+                <button id="olNext" type="button">{{ services_copy.booking_next_label }}</button>
               </div>
               <div class="range" id="olRange">—</div>
             </div>
@@ -810,57 +810,57 @@ main h3{
           <div class="mobile-picker" id="mobileTimePicker" aria-live="polite" aria-hidden="true">
             <div class="mobile-picker__headline">
               <div>
-                <span class="mobile-picker__eyebrow">Day</span>
-                <div class="mobile-picker__selected" id="mobileSelectedDay">Pick a day</div>
+                <span class="mobile-picker__eyebrow">{{ services_copy.booking_mobile_day_label }}</span>
+                <div class="mobile-picker__selected" id="mobileSelectedDay">{{ services_copy.booking_mobile_pick_day_label }}</div>
               </div>
-              <button class="mobile-picker__today" id="mobileTodayBtn" type="button">Jump to today</button>
+              <button class="mobile-picker__today" id="mobileTodayBtn" type="button">{{ services_copy.booking_jump_today_label }}</button>
             </div>
-            <div class="mobile-day-scroll" id="mobileDayList" role="tablist" aria-label="Pick a day"></div>
+            <div class="mobile-day-scroll" id="mobileDayList" role="tablist" aria-label="{{ services_copy.booking_mobile_pick_day_label }}"></div>
             <select id="mobileDaySelect" class="sr-only" aria-hidden="true"></select>
             <div class="mobile-picker__row">
-              <span class="mobile-picker__label">Available times</span>
-              <div class="mobile-picker__slots" id="mobileSlots" role="listbox" aria-label="Available times"></div>
-              <div class="mobile-picker__empty" id="mobileSlotsEmpty">No open times for this day.</div>
+              <span class="mobile-picker__label">{{ services_copy.booking_available_times_label }}</span>
+              <div class="mobile-picker__slots" id="mobileSlots" role="listbox" aria-label="{{ services_copy.booking_available_times_label }}"></div>
+              <div class="mobile-picker__empty" id="mobileSlotsEmpty">{{ services_copy.booking_no_open_times_label }}</div>
             </div>
           </div>
 
-          <div class="hint" style="margin-top:.5rem">Shift + scroll for horizontal scroll. Red = busy (unclickable).</div>
+          <div class="hint" style="margin-top:.5rem">{{ services_copy.booking_scroll_hint_desktop }}</div>
         </div>
       </div>
 
       <div>
         <div class="field">
-          <label>Summary</label>
-          <div class="muted" id="bookSummary">Pick a staff member and time.</div>
+          <label>{{ services_copy.booking_summary_label }}</label>
+          <div class="muted" id="bookSummary">{{ services_copy.booking_summary_default }}</div>
         </div>
         <div class="field" style="margin-top:1rem;">
-          <label for="contactName">Full name*</label>
+          <label for="contactName">{{ services_copy.booking_full_name_label }}</label>
           <input id="contactName" name="contact_name" type="text" maxlength="120"
                  class="input" autocomplete="name" required
-                 placeholder="John Doe">
+                 placeholder="{{ services_copy.booking_full_name_placeholder }}">
         </div>
         <div class="field">
-          <label for="contactEmail">Email*</label>
+          <label for="contactEmail">{{ services_copy.booking_email_label }}</label>
           <input id="contactEmail" name="contact_email" type="email"
                  class="input" autocomplete="email" required
-                 placeholder="you@example.com">
+                 placeholder="{{ services_copy.booking_email_placeholder }}">
         </div>
         <div class="field">
-          <label for="contactPhone">Phone*</label>
+          <label for="contactPhone">{{ services_copy.booking_phone_label }}</label>
           <input id="contactPhone" name="contact_phone" type="tel"
                  class="input" autocomplete="tel" inputmode="tel"
-                 pattern="\+?\d{10,15}" title="Use digits only, optionally starting with +"
-                 required placeholder="+1 5551234567">
+                 pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}"
+                 required placeholder="{{ services_copy.booking_phone_placeholder }}">
         </div>
-        <p class="hint">No account needed — we confirm bookings by email and phone.</p>
+        <p class="hint">{{ services_copy.booking_confirmation_hint }}</p>
         <div class="error" id="bookError" style="display:none;"></div>
         <div class="success" id="bookSuccess" style="display:none;"></div>
       </div>
     </div>
 
     <div class="modal__footer">
-      <button class="btn btn--ghost" id="bookCancel">Cancel</button>
-      <button class="btn btn--primary" id="bookSubmit" disabled>Confirm booking</button>
+      <button class="btn btn--ghost" id="bookCancel">{{ services_copy.booking_cancel_label }}</button>
+      <button class="btn btn--primary" id="bookSubmit" disabled>{{ services_copy.booking_confirm_label }}</button>
     </div>
   </div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
@@ -876,6 +876,25 @@ main h3{
     const contactPrefill = contactPrefillEl ? JSON.parse(contactPrefillEl.textContent) : {name:'', email:'', phone:''};
     const contactDraft = {...contactPrefill};
     const LOCALE = 'en-US'; // можно 'en-US'
+    const copy = {
+      summaryDefault: "{{ services_copy.booking_summary_default|escapejs }}",
+      summaryStaffPrefix: "{{ services_copy.booking_summary_staff_prefix|escapejs }}",
+      summaryTimePrefix: "{{ services_copy.booking_summary_time_prefix|escapejs }}",
+      summaryTimeSelected: "{{ services_copy.booking_summary_time_selected_label|escapejs }}",
+      mobilePickDayLabel: "{{ services_copy.booking_mobile_pick_day_label|escapejs }}",
+      noAvailabilityLabel: "{{ services_copy.booking_no_availability_label|escapejs }}",
+      noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
+      noOpenTimesOnPrefix: "{{ services_copy.booking_no_open_times_on_prefix|escapejs }}",
+      noOpenTimesOnSuffix: "{{ services_copy.booking_no_open_times_on_suffix|escapejs }}",
+      failedSlotsLabel: "{{ services_copy.booking_failed_slots_label|escapejs }}",
+      noStaffLabel: "{{ services_copy.booking_no_staff_label|escapejs }}",
+      availabilityErrorLabel: "{{ services_copy.booking_availability_error_label|escapejs }}",
+      missingContactError: "{{ services_copy.booking_missing_contact_error|escapejs }}",
+      createErrorLabel: "{{ services_copy.booking_create_error_label|escapejs }}",
+      createdLabel: "{{ services_copy.booking_created_label|escapejs }}",
+      timeLabel: "{{ services_copy.booking_time_label|escapejs }}",
+      bookingErrorLabel: "{{ services_copy.booking_error_label|escapejs }}",
+    };
 
     const apiAvail= "/accounts/api/availability/";
     const apiBook = "/accounts/api/book/";
@@ -916,7 +935,7 @@ main h3{
     const mobileSlotsEmpty=document.getElementById('mobileSlotsEmpty');
     const mobileQuery = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
     const mobileState = { keys:[], days:[], data:[], selectedKey:'' };
-    const SUMMARY_DEFAULT = 'Pick a staff member and time.';
+    const SUMMARY_DEFAULT = copy.summaryDefault;
 
     const WINDOW_DAYS = 14, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
     let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
@@ -987,9 +1006,9 @@ main h3{
       const slotDate = parseISO(slotIso);
       if (slotDate){
         const dayLabel = slotDate.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'});
-        elSummary.textContent = `Staff: ${getActiveStaffName()}. Time: ${fmtHM(slotDate)}, ${dayLabel}.`;
+        elSummary.textContent = `${copy.summaryStaffPrefix} ${getActiveStaffName()}. ${copy.summaryTimePrefix} ${fmtHM(slotDate)}, ${dayLabel}.`;
       }else{
-        elSummary.textContent = `Staff: ${getActiveStaffName()}. Time selected.`;
+        elSummary.textContent = `${copy.summaryStaffPrefix} ${getActiveStaffName()}. ${copy.summaryTimeSelected}`;
       }
       elError.style.display='none';
       updateSubmitState();
@@ -1034,9 +1053,9 @@ main h3{
       if (dayObj){
         mobileDaySummary.textContent = dayObj.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'});
       }else if (mobileState.keys.length){
-        mobileDaySummary.textContent = 'Pick a day';
+        mobileDaySummary.textContent = copy.mobilePickDayLabel;
       }else{
-        mobileDaySummary.textContent = 'No availability yet';
+        mobileDaySummary.textContent = copy.noAvailabilityLabel;
       }
     }
 
@@ -1087,7 +1106,7 @@ main h3{
           mobileSlotsEl.style.display='none';
         }
         if (mobileSlotsEmpty){
-          mobileSlotsEmpty.textContent='No availability yet.';
+          mobileSlotsEmpty.textContent = copy.noAvailabilityLabel;
           mobileSlotsEmpty.style.display='block';
         }
         updateMobileDaySummary();
@@ -1115,9 +1134,12 @@ main h3{
         mobileSlotsEl.style.display='none';
         if (mobileSlotsEmpty){
           const dayObj = idx>=0 ? mobileState.days[idx] : null;
-          mobileSlotsEmpty.textContent = dayObj
-            ? `No open times on ${dayObj.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'})}.`
-            : 'No open times for this day.';
+          const dayLabel = dayObj
+            ? dayObj.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'})
+            : '';
+          mobileSlotsEmpty.textContent = dayLabel
+            ? `${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`
+            : copy.noOpenTimesLabel;
           mobileSlotsEmpty.style.display='block';
         }
         syncSelectedSlotUI();
@@ -1180,7 +1202,7 @@ main h3{
       mobileState.keys=[]; mobileState.days=[]; mobileState.data=[]; mobileState.selectedKey='';
       if (mobileDaySelect) mobileDaySelect.innerHTML='';
       if (mobileDayList) mobileDayList.innerHTML='';
-      if (mobileDaySummary) mobileDaySummary.textContent='Pick a day';
+      if (mobileDaySummary) mobileDaySummary.textContent = copy.mobilePickDayLabel;
       if (mobileSlotsEl){
         mobileSlotsEl.innerHTML='';
         mobileSlotsEl.style.display='none';
@@ -1202,7 +1224,7 @@ main h3{
       const params = new URLSearchParams({ service: current.serviceId, date: dayISO });
       if (masterId) params.set('master', masterId);
       const r = await fetch(`${apiAvail}?${params.toString()}`, {credentials:'same-origin'});
-      if(!r.ok) throw new Error('Failed to load available slots');
+      if(!r.ok) throw new Error(copy.failedSlotsLabel);
       const data = await r.json();
 
       let slots = [];
@@ -1311,7 +1333,11 @@ main h3{
 
         if(masters.length===0){
           elMaster.innerHTML='';
-          elMasterPicker.innerHTML='<div class="stub">No staff available</div>';
+          elMasterPicker.innerHTML = '';
+          const stub = document.createElement('div');
+          stub.className = 'stub';
+          stub.textContent = copy.noStaffLabel;
+          elMasterPicker.appendChild(stub);
           olGrid.innerHTML='<div class="skeleton" style="height:240px;margin:.5rem;"></div>';
           return;
         }
@@ -1320,7 +1346,7 @@ main h3{
         availabilityCache.clear();
         await renderWindow();
       }catch(err){
-        elError.textContent=err.message||'Unable to fetch availability';
+        elError.textContent = err.message || copy.availabilityErrorLabel;
         elError.style.display='block';
       }
     }
@@ -1393,7 +1419,7 @@ main h3{
     async function submitBooking(){
       if(!current.serviceId||!current.masterId||!current.slot) return;
       if(!contactIsComplete()){
-        elError.textContent='Please add your name, email and phone.';
+        elError.textContent = copy.missingContactError;
         elError.style.display='block';
         return;
       }
@@ -1414,15 +1440,15 @@ main h3{
         const data=await resp.json().catch(()=>({}));
         if(!resp.ok){
           const contactErrors = data?.errors?.contact;
-          let message = (contactErrors && Object.values(contactErrors).find(Boolean)) || data?.error || data?.detail || 'Could not create an appointment';
+          let message = (contactErrors && Object.values(contactErrors).find(Boolean)) || data?.error || data?.detail || copy.createErrorLabel;
           if (Array.isArray(message)) message = message[0];
           throw new Error(message);
         }
-        elSuccess.textContent='Appointment created! ' + (data.appointment?.start_time?('Time: '+new Date(data.appointment.start_time).toLocaleString()):'');
+        elSuccess.textContent = copy.createdLabel + ' ' + (data.appointment?.start_time ? (copy.timeLabel + ' ' + new Date(data.appointment.start_time).toLocaleString()) : '');
         elSuccess.style.display='block';
         setTimeout(()=>{ window.location.reload(); }, 700);
       }catch(err){
-        elError.textContent=err.message||'Booking error';
+        elError.textContent = err.message || copy.bookingErrorLabel;
         elError.style.display='block';
         updateSubmitState();
       }
@@ -1501,6 +1527,18 @@ main h3{
     const liveGrid  = document.getElementById('liveGrid');
     const serverContent = document.getElementById('serverContent');
     const resetLink = document.querySelector('a.btn.btn--ghost[href*="client-dashboard"]');
+    const copy = {
+      contactForEstimate: "{{ services_copy.contact_for_estimate_label|escapejs }}",
+      fromLabel: "{{ services_copy.from_label|escapejs }}",
+      pickTimeLabel: "{{ services_copy.pick_time_label|escapejs }}",
+      durationSeparator: "{{ services_copy.duration_separator|escapejs }}",
+      durationUnit: "{{ services_copy.duration_unit|escapejs }}",
+      serviceImageAriaLabel: "{{ services_copy.service_image_aria_label|escapejs }}",
+      serviceImageFallback: "{{ services_copy.service_image_fallback_label|escapejs }}",
+      bookAriaPrefix: "{{ services_copy.book_aria_prefix|escapejs }}",
+      liveNoResults: "{{ services_copy.live_no_results_label|escapejs }}",
+      liveError: "{{ services_copy.live_error_label|escapejs }}",
+    };
 
     function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
     function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
@@ -1524,8 +1562,8 @@ main h3{
       let priceBlock;
       if (s.contact_for_estimate){
         const fromVal = s.estimate_from_price ? formatMoney(s.estimate_from_price) : '';
-        const hint = fromVal ? `<span class="price__hint">From $${escapeHtml(fromVal)}</span>` : '';
-        priceBlock = `<strong>Contact for estimate</strong>${hint ? ' ' + hint : ''}`;
+        const hint = fromVal ? `<span class="price__hint">${escapeHtml(copy.fromLabel)} $${escapeHtml(fromVal)}</span>` : '';
+        priceBlock = `<strong>${escapeHtml(copy.contactForEstimate)}</strong>${hint ? ' ' + hint : ''}`;
       } else {
         const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
         if (hasDisc){
@@ -1542,25 +1580,29 @@ main h3{
       const hasImage = typeof s.image === 'string' && s.image.trim().length > 0;
       const media = hasImage
         ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.name)}" loading="lazy" decoding="async">`
-        : `<div class="ph" aria-hidden="true">BGM • SERVICE</div>`;
+        : `<div class="ph" aria-hidden="true">${escapeHtml(copy.serviceImageFallback)}</div>`;
       const badge = s.category ? `<span class="service-card__badge">${escapeHtml(s.category)}</span>` : '';
+      const durationBits = [copy.durationSeparator, String(s.duration_min), copy.durationUnit]
+        .filter(Boolean)
+        .map(escapeHtml)
+        .join(" ");
       return `
         <article class="service-card"
                  data-service-id="${escapeHtml(s.id)}"
                  data-service-name="${escapeHtml(s.name)}"
-                 tabindex="0" role="button" aria-label="Book ${escapeHtml(s.name)}">
-          <div class="service-card__img" aria-label="Service image">
+                 tabindex="0" role="button" aria-label="${escapeHtml(copy.bookAriaPrefix)} ${escapeHtml(s.name)}">
+          <div class="service-card__img" aria-label="${escapeHtml(copy.serviceImageAriaLabel)}">
             ${media}
             ${badge}
           </div>
           ${cat}
           <h3>${escapeHtml(s.name)}</h3>
           ${desc}
-          <div class="service-meta">${priceBlock} · ${escapeHtml(String(s.duration_min))} min</div>
+          <div class="service-meta">${priceBlock} ${durationBits}</div>
           <button class="btn btn--primary book-btn"
                   type="button"
                   data-service-id="${escapeHtml(s.id)}"
-                  data-service-name="${escapeHtml(s.name)}">Pick a time</button>
+                  data-service-name="${escapeHtml(s.name)}">${escapeHtml(copy.pickTimeLabel)}</button>
         </article>`;
     }
 
@@ -1586,9 +1628,9 @@ main h3{
       try{
         const data = await fetchServices(q, cat);
         const items = (data && data.results) || [];
-        liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="stub">No services found.</div>`;
+        liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="stub">${escapeHtml(copy.liveNoResults)}</div>`;
       }catch(e){
-        liveGrid.innerHTML = `<div class="stub">Could not load results. Please try again.</div>`;
+        liveGrid.innerHTML = `<div class="stub">${escapeHtml(copy.liveError)}</div>`;
       }
     }, 300);
 
@@ -1773,37 +1815,37 @@ body.modal-open .contact-fab{ display:none !important; }
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
   </svg>
-  Contact us
+  {{ services_copy.contact_fab_label }}
 </button>
 
 <div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
   <div class="contact-dialog">
-    <button class="contact-close" type="button" aria-label="Close">×</button>
-    <h2 id="contactTitle" class="contact-title">Contact us</h2>
+    <button class="contact-close" type="button" aria-label="{{ services_copy.contact_close_label }}">×</button>
+    <h2 id="contactTitle" class="contact-title">{{ services_copy.contact_modal_title }}</h2>
 
     <div class="contact-body">
       <div class="contact-row">
         <div>
           <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
-          <div class="contact-sub">E-mail</div>
+          <div class="contact-sub">{{ services_copy.contact_email_label }}</div>
         </div>
-        <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+        <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ services_copy.contact_copy_label }}</button>
       </div>
 
       <div class="contact-row">
         <div>
           <div><a href="tel:+14035250432">(403) 525-0432</a></div>
-          <div class="contact-sub">Phone</div>
+          <div class="contact-sub">{{ services_copy.contact_phone_label }}</div>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-          <a class="contact-btn" href="tel:+14035250432">Call</a>
-          <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
+          <a class="contact-btn" href="tel:+14035250432">{{ services_copy.contact_call_label }}</a>
+          <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ services_copy.contact_copy_label }}</button>
         </div>
       </div>
 
       <div class="contact-actions">
-        <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write e-mail</a>
-        <a class="contact-btn" href="sms:+14035250432">Text us</a>
+        <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ services_copy.contact_write_email_label }}</a>
+        <a class="contact-btn" href="sms:+14035250432">{{ services_copy.contact_text_label }}</a>
 </div>
 </div>
 </div>
@@ -1816,6 +1858,9 @@ body.modal-open .contact-fab{ display:none !important; }
   const fab   = document.getElementById('contactFab');
   const modal = document.getElementById('contactModal');
   const closeBtn = modal.querySelector('.contact-close');
+  const copyLabel = "{{ services_copy.contact_copy_label|escapejs }}";
+  const copySuccess = "{{ services_copy.contact_copy_success_label|escapejs }}";
+  const copyFailed = "{{ services_copy.contact_copy_failed_label|escapejs }}";
   let lastFocus = null;
 
   function openModal(){
@@ -1850,8 +1895,8 @@ body.modal-open .contact-fab{ display:none !important; }
   // copy helpers
   modal.querySelectorAll('[data-copy]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy',1200); }
-      catch{ btn.textContent='Copy failed'; setTimeout(()=>btn.textContent='Copy',1200); }
+      try{ await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent=copySuccess; setTimeout(()=>btn.textContent=copyLabel,1200); }
+      catch{ btn.textContent=copyFailed; setTimeout(()=>btn.textContent=copyLabel,1200); }
     });
   });
 })();
@@ -1872,12 +1917,12 @@ body.modal-open .contact-fab{ display:none !important; }
 
   /* 2) Подсказка для тач‑устройств: меняем текст про скролл */
   const hintEl = document.querySelector('.hint');
+  const hintMobile = "{{ services_copy.booking_scroll_hint_mobile|escapejs }}";
+  const hintDesktop = "{{ services_copy.booking_scroll_hint_desktop|escapejs }}";
   if (hintEl){
     const mq = window.matchMedia('(pointer: coarse)');
     const setHint = () => {
-      hintEl.textContent = mq.matches
-        ? 'Swipe left/right to see more days. Red = busy (unclickable).'
-        : 'Shift + scroll for horizontal scroll. Red = busy (unclickable).';
+      hintEl.textContent = mq.matches ? hintMobile : hintDesktop;
     };
     setHint();
     try{ mq.addEventListener('change', setHint); }catch(_){ mq.onchange = setHint; }

@@ -7,6 +7,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
 from django.contrib import admin
+from django import forms
+from django.db import models
 from django.db.models import Sum, Count
 from itertools import cycle
 from django.utils.timezone import localtime, datetime, make_aware, localdate
@@ -1865,6 +1867,259 @@ class HomePageCopyAdmin(admin.ModelAdmin):
     @admin.display(description="Page")
     def label(self, obj):
         return "Home page"
+
+
+@admin.register(ServicesPageCopy)
+class ServicesPageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Header & navigation", {
+            "fields": (
+                "skip_to_main_label",
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {"fields": ("hero_title", "hero_lead", "hero_cta_label")}),
+        ("Catalog & filters", {
+            "fields": (
+                "section_title",
+                "search_placeholder",
+                "filter_all_categories_label",
+                "search_button_label",
+                "reset_button_label",
+                "search_results_label",
+                "live_no_results_label",
+                "live_error_label",
+                "search_no_results_prefix",
+                "search_no_results_suffix",
+                "category_empty_label",
+                "uncategorized_title",
+                "catalog_empty_label",
+            )
+        }),
+        ("Service cards", {
+            "fields": (
+                "service_image_aria_label",
+                "service_image_fallback_label",
+                "book_aria_prefix",
+                "pick_time_label",
+                "contact_for_estimate_label",
+                "from_label",
+                "duration_separator",
+                "duration_unit",
+            )
+        }),
+        ("Booking modal — labels", {
+            "fields": (
+                "booking_modal_title_prefix",
+                "booking_close_label",
+                "booking_staff_label",
+                "booking_staff_picker_label",
+                "booking_choose_time_label",
+                "booking_prev_label",
+                "booking_today_label",
+                "booking_next_label",
+                "booking_mobile_day_label",
+                "booking_mobile_pick_day_label",
+                "booking_jump_today_label",
+                "booking_available_times_label",
+                "booking_no_open_times_label",
+                "booking_no_open_times_on_prefix",
+                "booking_no_open_times_on_suffix",
+                "booking_no_availability_label",
+                "booking_scroll_hint_desktop",
+                "booking_scroll_hint_mobile",
+                "booking_summary_label",
+                "booking_summary_default",
+                "booking_summary_staff_prefix",
+                "booking_summary_time_prefix",
+                "booking_summary_time_selected_label",
+                "booking_full_name_label",
+                "booking_full_name_placeholder",
+                "booking_email_label",
+                "booking_email_placeholder",
+                "booking_phone_label",
+                "booking_phone_placeholder",
+                "booking_phone_title",
+                "booking_confirmation_hint",
+                "booking_cancel_label",
+                "booking_confirm_label",
+            )
+        }),
+        ("Booking modal — messages", {
+            "fields": (
+                "booking_no_staff_label",
+                "booking_availability_error_label",
+                "booking_failed_slots_label",
+                "booking_missing_contact_error",
+                "booking_create_error_label",
+                "booking_created_label",
+                "booking_time_label",
+                "booking_error_label",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if ServicesPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Services page"
+
+
+@admin.register(StorePageCopy)
+class StorePageCopyAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("page_title", "meta_title", "meta_description")}),
+        ("Header & navigation", {
+            "fields": (
+                "brand_word_white",
+                "brand_word_red",
+                "brand_tagline",
+                "nav_toggle_label",
+                "nav_services_label",
+                "nav_client_portal_label",
+                "nav_login_label",
+                "nav_products_label",
+                "nav_merch_label",
+                "nav_merch_badge",
+                "nav_dealers_label",
+                "nav_financing_label",
+                "nav_about_label",
+            )
+        }),
+        ("Hero", {
+            "fields": (
+                "hero_title",
+                "hero_lead",
+                "hero_primary_cta_label",
+                "hero_secondary_cta_label",
+                "hero_disclaimer_fallback",
+            )
+        }),
+        ("Filters", {
+            "fields": (
+                "filters_toggle_label",
+                "filters_active_badge",
+                "filters_reset_label",
+                "filters_heading",
+                "filters_close_label",
+                "filters_category_label",
+                "filters_make_label",
+                "filters_model_label",
+                "filters_year_label",
+                "filters_apply_label",
+                "filters_clear_label",
+            )
+        }),
+        ("Categories", {
+            "fields": (
+                "categories_title",
+                "categories_desc",
+                "categories_empty_label",
+            )
+        }),
+        ("Results", {
+            "fields": (
+                "results_title",
+                "results_desc",
+                "results_empty_label",
+            )
+        }),
+        ("New arrivals", {
+            "fields": (
+                "new_arrivals_title",
+                "new_arrivals_cart_label",
+            )
+        }),
+        ("Browse by category", {
+            "fields": (
+                "browse_title",
+                "browse_desc",
+                "browse_view_all_label",
+            )
+        }),
+        ("Pricing labels", {
+            "fields": (
+                "contact_for_estimate_label",
+                "from_label",
+                "dealer_label",
+                "save_label",
+            )
+        }),
+        ("Contact modal", {
+            "fields": (
+                "contact_fab_label",
+                "contact_modal_title",
+                "contact_close_label",
+                "contact_email_label",
+                "contact_phone_label",
+                "contact_copy_label",
+                "contact_copy_success_label",
+                "contact_copy_failed_label",
+                "contact_call_label",
+                "contact_write_email_label",
+                "contact_text_label",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if StorePageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Store page"
 
 
 @admin.register(ProjectJournalEntry)

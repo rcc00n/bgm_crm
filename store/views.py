@@ -29,7 +29,7 @@ from .models import (
     CarModel,
 )
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm
-from core.models import Payment, PaymentMethod
+from core.models import Payment, PaymentMethod, StorePageCopy
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
 
 logger = logging.getLogger(__name__)
@@ -502,6 +502,7 @@ def store_home(request):
         "products": filtered_qs[:24],  # общий грид результатов при активных фильтрах
         "new_arrivals": new_arrivals,
         "sections": sections,
+        "store_copy": StorePageCopy.get_solo(),
     }
     return render(request, "store/store_home.html", context)
 
@@ -523,6 +524,7 @@ def category_list(request, slug):
         "filter_form": form,
         "products": products,
         "filters_active": True,
+        "store_copy": StorePageCopy.get_solo(),
     }
     return render(request, "store/category_list.html", context)
 
@@ -572,6 +574,7 @@ def product_detail(request, slug: str):
             "default_option_id": default_option.id if default_option else None,
             "go_along": go_along,
             "quote_form": quote_form,
+            "store_copy": StorePageCopy.get_solo(),
         },
     )
 
@@ -854,6 +857,7 @@ def cart_view(request):
         "retail_total": retail_total,
         "cart_savings": savings,
         "dealer_discount_percent": dealer_discount,
+        "store_copy": StorePageCopy.get_solo(),
     }
     return render(request, "store/cart.html", context)
 
@@ -1328,5 +1332,6 @@ def checkout(request):
             "selected_payment": selected_payment,
             "etransfer_email": etransfer_email,
             "etransfer_memo_hint": etransfer_memo_hint,
+            "store_copy": StorePageCopy.get_solo(),
         },
     )
