@@ -31,8 +31,39 @@
     font-weight:800;
   }
   .site-footer__nav{display:flex;flex-wrap:wrap;gap:.6rem;font-weight:700;}
-  .site-footer__nav a{color:inherit;text-decoration:none;}
-  .site-footer__nav a:hover{color:#fff;}
+  .site-footer__social-link{
+    width:36px;
+    height:36px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);
+    color:inherit;
+    text-decoration:none;
+    transition:color .2s ease, border-color .2s ease, transform .2s ease;
+  }
+  .site-footer__social-link:hover{
+    color:#fff;
+    border-color:rgba(255,255,255,.55);
+    transform:translateY(-1px);
+  }
+  .site-footer__icon{
+    width:18px;
+    height:18px;
+    display:block;
+  }
+  .sr-only{
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
+  }
   .site-footer__legal{text-align:right;color:var(--muted-2, rgba(255,255,255,.6));}
 
   @media (max-width: 900px){
@@ -58,10 +89,35 @@
       <div>
         <div class="site-footer__label">Follow us</div>
         <div class="site-footer__nav" aria-label="Social media">
-          <a href="https://www.instagram.com/badguymotors?igsh=N2QwZnVybTJrZW8=" target="_blank" rel="noopener">Instagram</a>
-          <a href="https://www.facebook.com/share/1Gsej2u5X4/?mibextid=wwXIfr" target="_blank" rel="noopener">Facebook</a>
-          <a href="https://youtube.com/@badguymotors?si=PObKEe6vNMEr3Z2b" target="_blank" rel="noopener">YouTube</a>
-          <a href="https://www.tiktok.com/@savoies0?_r=1&_t=ZS-93JwAHrfF5k" target="_blank" rel="noopener">TikTok</a>
+          <a class="site-footer__social-link" href="https://www.instagram.com/badguymotors?igsh=N2QwZnVybTJrZW8=" target="_blank" rel="noopener">
+            <svg class="site-footer__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="2"/>
+              <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+              <circle cx="17" cy="7" r="1.2" fill="currentColor"/>
+            </svg>
+            <span class="sr-only">Instagram</span>
+          </a>
+          <a class="site-footer__social-link" href="https://www.facebook.com/share/1Gsej2u5X4/?mibextid=wwXIfr" target="_blank" rel="noopener">
+            <svg class="site-footer__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M14 8h3V5h-3c-2.2 0-4 1.8-4 4v3H7v3h3v7h3v-7h3l1-3h-4V9c0-.6.4-1 1-1z" fill="currentColor"/>
+            </svg>
+            <span class="sr-only">Facebook</span>
+          </a>
+          <a class="site-footer__social-link" href="https://youtube.com/@badguymotors?si=PObKEe6vNMEr3Z2b" target="_blank" rel="noopener">
+            <svg class="site-footer__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <rect x="3" y="6.5" width="18" height="11" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2"/>
+              <polygon points="11,9.5 16,12 11,14.5" fill="currentColor"/>
+            </svg>
+            <span class="sr-only">YouTube</span>
+          </a>
+          <a class="site-footer__social-link" href="https://www.tiktok.com/@savoies0?_r=1&_t=ZS-93JwAHrfF5k" target="_blank" rel="noopener">
+            <svg class="site-footer__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="9" cy="17" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/>
+              <rect x="12" y="4" width="2.2" height="11" fill="currentColor"/>
+              <path d="M14.2 6.4c1.2 1.6 2.8 2.6 4.8 2.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span class="sr-only">TikTok</span>
+          </a>
         </div>
       </div>
     </div>
