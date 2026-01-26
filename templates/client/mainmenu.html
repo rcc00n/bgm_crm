@@ -684,7 +684,9 @@ main h3{
                     {% endif %}
                   {% endwith %}
                 {% endif %}
-                {{ services_copy.duration_separator }} {{ s.duration_min }} {{ services_copy.duration_unit }}
+                {% if s.duration_min %}
+                  {{ services_copy.duration_separator }} {{ s.duration_min }} {{ services_copy.duration_unit }}
+                {% endif %}
               </div>
               <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">{{ services_copy.pick_time_label }}</button>
             </article>
@@ -723,7 +725,9 @@ main h3{
                         {% endif %}
                       {% endwith %}
                     {% endif %}
-                    {{ services_copy.duration_separator }} {{ s.duration_min }} {{ services_copy.duration_unit }}
+                    {% if s.duration_min %}
+                      {{ services_copy.duration_separator }} {{ s.duration_min }} {{ services_copy.duration_unit }}
+                    {% endif %}
                   </div>
                   <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">{{ services_copy.pick_time_label }}</button>
                 </article>
@@ -758,7 +762,9 @@ main h3{
                     {% endif %}
                   {% endwith %}
                 {% endif %}
-                {{ services_copy.duration_separator }} {{ s.duration_min }} {{ services_copy.duration_unit }}
+                {% if s.duration_min %}
+                  {{ services_copy.duration_separator }} {{ s.duration_min }} {{ services_copy.duration_unit }}
+                {% endif %}
               </div>
               <button class="btn btn--primary book-btn" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">{{ services_copy.pick_time_label }}</button>
             </article>
@@ -1610,10 +1616,16 @@ main h3{
         ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.name)}" loading="lazy" decoding="async">`
         : `<div class="ph" aria-hidden="true">${escapeHtml(searchCopy.serviceImageFallback)}</div>`;
       const badge = s.category ? `<span class="service-card__badge">${escapeHtml(s.category)}</span>` : '';
-      const durationBits = [searchCopy.durationSeparator, String(s.duration_min), searchCopy.durationUnit]
-        .filter(Boolean)
-        .map(escapeHtml)
-        .join(" ");
+      const rawDuration = s.duration_min;
+      const durationValue = Number(rawDuration);
+      const hasDuration = Number.isFinite(durationValue) && durationValue > 0;
+      const durationBits = hasDuration
+        ? [searchCopy.durationSeparator, String(rawDuration), searchCopy.durationUnit]
+            .filter(Boolean)
+            .map(escapeHtml)
+            .join(" ")
+        : '';
+      const metaBits = [priceBlock, durationBits].filter(Boolean).join(' ');
       return `
         <article class="service-card"
                  data-service-id="${escapeHtml(s.id)}"
@@ -1625,7 +1637,7 @@ main h3{
           </div>
           <h3>${escapeHtml(s.name)}</h3>
           ${desc}
-          <div class="service-meta">${priceBlock} ${durationBits}</div>
+          <div class="service-meta">${metaBits}</div>
           <button class="btn btn--primary book-btn"
                   type="button"
                   data-service-id="${escapeHtml(s.id)}"
