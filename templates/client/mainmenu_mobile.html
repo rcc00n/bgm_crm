@@ -9,21 +9,7 @@
     {% include "includes/marketing_head.html" %}
   {% endwith %}
 
-  <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
-  <link rel="preload" href="{% static 'fonts/Ford.ttf' %}" as="font" type="font/ttf" crossorigin>
-
   <style>
-    @font-face{
-      font-family:"Diesel";
-      src: url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
-      font-weight:100 900; font-style:normal; font-display:swap;
-    }
-    @font-face{
-      font-family:"Ford";
-      src: url("{% static 'fonts/Ford.ttf' %}") format("truetype");
-      font-weight:100 900; font-style:normal; font-display:swap;
-    }
-
     :root{
       --bg:#0a0a0a; --ink:#eaeaea; --muted:#bdbdbd;
       --red:#d50000; --red-dark:#b60000;
@@ -33,8 +19,8 @@
       --container:min(1200px,92vw);
       --site-header-height:72px;
       --site-header-toggle-size:46px;
-      --font-body:"Diesel", Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
-      --font-head:"Ford",  Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      --font-body:Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      --font-head:Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
     }
     *{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
@@ -51,12 +37,18 @@
     .btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--red)}
 
     /* Header + nav (reused) */
-    .site-header{position:sticky;top:0;z-index:10;background:rgba(0,0,0,.65);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
-    .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
-    .brand{display:flex;align-items:center;gap:.75rem;font-weight:900;letter-spacing:.5px}
-    nav ul{display:flex;list-style:none;gap:.75rem}
-    nav a{padding:.55rem .8rem;border-radius:.55rem}
-    nav a[aria-current="page"]{background:rgba(255,255,255,.04);border:1px solid var(--line)}
+    .site-header{position:sticky;top:0;z-index:1000;background:#000;border-bottom:1px solid var(--line)}
+    .site-header__inner{display:flex;align-items:center;gap:1.25rem;justify-content:space-between;padding:.7rem 0}
+    .brand{display:flex;align-items:baseline;gap:.9rem;font-weight:900;letter-spacing:.5px}
+    .brand__logo{all:unset;display:inline-flex;gap:.5rem;line-height:1;letter-spacing:.06em;font-size:1rem}
+    .brand__word--white{color:#fff}
+    .brand__word--red{color:var(--red)}
+    .brand__tagline{margin-left:1.1rem;white-space:nowrap;font-size:.82rem;font-weight:800;letter-spacing:.14em;color:rgba(255,255,255,.72)}
+    nav ul{display:flex;align-items:center;gap:1.4rem;list-style:none}
+    nav a{display:inline-flex;align-items:center;gap:.45rem;line-height:1;text-transform:uppercase;font-weight:800;letter-spacing:.08em;font-size:.82rem;color:rgba(255,255,255,.78)}
+    nav a:hover,nav a[aria-current="page"]{color:#fff}
+    nav .btn,nav .btn--ghost{padding:0;border:none;background:none}
+    @media (max-width:1200px){.brand__tagline{display:none !important}}
 
     .site-header__toggle{
       display:none;align-items:center;justify-content:center;gap:.5rem;
@@ -65,24 +57,29 @@
       width:var(--site-header-toggle-size);height:var(--site-header-toggle-size);
       cursor:pointer;transition:transform .2s ease, border-color .2s ease, background .2s ease;
     }
-    .site-header__toggle-box{display:inline-flex;align-items:center;justify-content:center;width:100%;height:100%}
+    .site-header__toggle:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
+    .site-header__toggle:focus-visible{outline:2px solid #fff;outline-offset:3px}
+    .site-header__toggle-box{position:relative;width:20px;height:14px;display:block}
     .site-header__toggle-lines,
     .site-header__toggle-lines::before,
     .site-header__toggle-lines::after{
       content:""; display:block; width:20px; height:2px;
-      background:#fff; border-radius:2px; position:relative;
+      background:#fff; border-radius:2px; position:absolute; left:0;
       transition:transform .2s ease, opacity .2s ease;
     }
-    .site-header__toggle-lines::before,
-    .site-header__toggle-lines::after{position:absolute;left:0}
+    .site-header__toggle-lines{top:50%;transform:translateY(-50%)}
     .site-header__toggle-lines::before{top:-6px}
     .site-header__toggle-lines::after{top:6px}
+    .site-header--open .site-header__toggle{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.38)}
     .site-header--open .site-header__toggle-lines{background:transparent}
     .site-header--open .site-header__toggle-lines::before{transform:translateY(6px) rotate(45deg)}
     .site-header--open .site-header__toggle-lines::after{transform:translateY(-6px) rotate(-45deg)}
 
     @media (max-width:960px){
       body.nav-open{ overflow:hidden; }
+      .site-header{ --site-header-height:max(62px, 10vh); }
+      .site-header .container{ padding-inline:clamp(16px,4vw,24px); }
+      .site-header__inner{ display:grid; grid-template-columns:auto max-content; align-items:center; gap:clamp(12px,3vw,24px); }
       .site-header__toggle{ display:inline-flex; }
       .site-header nav{
         position:fixed; inset:0; height:100dvh;
@@ -206,7 +203,7 @@
     }
   </style>
 </head>
-<body data-template-version="mainmenu-mobile-v4-2026-01-26">
+<body data-template-version="mainmenu-mobile-v5-2026-01-26">
   {% include "includes/marketing_body.html" %}
   <div id="bg"></div>
   <a href="#services" class="visually-hidden">{{ services_copy.skip_to_main_label }}</a>

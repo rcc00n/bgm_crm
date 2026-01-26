@@ -141,7 +141,7 @@ def public_mainmenu(request):
     is_mobile = _is_mobile_request(request)
     template_name = "client/mainmenu_mobile.html" if is_mobile else "client/mainmenu.html"
     response = render(request, template_name, ctx)
-    response["X-Template-Version"] = "mainmenu-mobile-v4-2026-01-26" if is_mobile else "mainmenu-desktop-v1-2026-01-26"
+    response["X-Template-Version"] = "mainmenu-mobile-v5-2026-01-26" if is_mobile else "mainmenu-desktop-v1-2026-01-26"
     return response
 
 
