@@ -518,11 +518,40 @@ ADMIN_SIDEBAR_SECTIONS = [
         ],
     },
     {
-        "label": "Content & Insights",
-        "icon": "fas fa-bullhorn",
+        "label": "Website Content",
+        "icon": "fas fa-globe",
         "groups": [
             {
-                "label": "Services & Packages",
+                "label": "Branding & Fonts",
+                "icon": "fas fa-font",
+                "items": [
+                    {"model": "core.FontPreset", "label": "Font Library"},
+                    {"model": "core.PageFontSetting", "label": "Page Fonts"},
+                ],
+            },
+            {
+                "label": "Media & Hero Assets",
+                "icon": "fas fa-images",
+                "items": [
+                    {"model": "core.HeroImage", "label": "Hero Assets"},
+                ],
+            },
+            {
+                "label": "Page Copy",
+                "icon": "fas fa-pen-nib",
+                "items": [
+                    {"model": "core.HomePageCopy", "label": "Home Page Copy"},
+                    {"model": "core.ServicesPageCopy", "label": "Services Page Copy"},
+                    {"model": "core.StorePageCopy", "label": "Products Page Copy"},
+                    {"model": "core.FinancingPageCopy", "label": "Financing Page Copy"},
+                    {"model": "core.AboutPageCopy", "label": "About Page Copy"},
+                    {"model": "core.DealerStatusPageCopy", "label": "Dealer Portal Copy"},
+                    {"model": "core.ClientPortalPageCopy", "label": "Client Portal Copy"},
+                    {"model": "core.MerchPageCopy", "label": "Merch Page Copy"},
+                ],
+            },
+            {
+                "label": "Services Catalog",
                 "icon": "fas fa-screwdriver-wrench",
                 "items": [
                     {"model": "core.ServiceCategory", "label": "Service Categories"},
@@ -530,35 +559,18 @@ ADMIN_SIDEBAR_SECTIONS = [
                 ],
             },
             {
-                "label": "Website",
-                "icon": "fas fa-globe",
+                "label": "Social Proof & Journal",
+                "icon": "fas fa-star",
                 "items": [
-                    {"model": "core.LegalPage", "label": "Legal Pages"},
-                    {"model": "core.FontPreset", "label": "Font Library"},
-                    {"model": "core.PageFontSetting", "label": "Page Fonts"},
-                    {"model": "core.HomePageCopy", "label": "Home Page Copy"},
-                    {"model": "core.ServicesPageCopy", "label": "Services Page Copy"},
-                    {"model": "core.StorePageCopy", "label": "Products Page Copy"},
                     {"model": "core.LandingPageReview", "label": "Landing Reviews"},
                     {"model": "core.ProjectJournalEntry", "label": "Project Journal"},
-                    {"model": "core.HeroImage", "label": "Hero Assets"},
                 ],
             },
             {
-                "label": "Public Pages",
-                "icon": "fas fa-file-alt",
+                "label": "Legal & Policies",
+                "icon": "fas fa-scale-balanced",
                 "items": [
-                    {"model": "core.FinancingPageCopy", "label": "Financing Page Copy"},
-                    {"model": "core.AboutPageCopy", "label": "About Page Copy"},
-                    {"model": "core.DealerStatusPageCopy", "label": "Dealer Portal Copy"},
-                ],
-            },
-            {
-                "label": "Client Portal & Merch",
-                "icon": "fas fa-layer-group",
-                "items": [
-                    {"model": "core.ClientPortalPageCopy", "label": "Client Portal Copy"},
-                    {"model": "core.MerchPageCopy", "label": "Merch Page Copy"},
+                    {"model": "core.LegalPage", "label": "Legal Pages"},
                 ],
             },
             {
