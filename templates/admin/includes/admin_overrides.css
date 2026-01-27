@@ -496,6 +496,11 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   grid-auto-flow: dense;
 }
 
+.analytics-grid {
+  grid-template-columns: repeat(3, minmax(320px, 1fr));
+  grid-auto-flow: dense;
+}
+
 .dashboard-grid .span-2 {
   grid-column: span 2;
 }
@@ -854,6 +859,10 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   }
 
   .dashboard-grid-primary {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+
+  .analytics-grid {
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   }
 }

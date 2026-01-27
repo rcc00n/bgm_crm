@@ -188,11 +188,42 @@
       <canvas id="weekdayChart"></canvas>
     </section>
 
+    {% if not is_master and web_analytics %}
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Slowest pages</div>
+      <div class="panel-subtitle">Highest dwell time</div>
+      {% if web_analytics.slow_pages %}
+        <table class="analytics-table">
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Avg time</th>
+              <th>Views</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for page in web_analytics.slow_pages %}
+              <tr>
+                <td><code>{{ page.path }}</code></td>
+                <td>{{ page.avg_seconds }}s</td>
+                <td>{{ page.views }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <p>No long reads detected.</p>
+        </div>
+      {% endif %}
+    </section>
+    {% else %}
     <section class="data-panel chart-card">
       <div class="panel-title">Payment methods</div>
       <div class="panel-subtitle">Last 30 days</div>
       <canvas id="paymentMethodChart"></canvas>
     </section>
+    {% endif %}
 
     <section class="data-panel chart-card span-2">
       <div class="panel-title">Status trend</div>
@@ -203,7 +234,7 @@
 
   {% if not is_master and web_analytics %}
   <div class="dashboard-grid analytics-grid">
-    <section class="data-panel span-2 analytics-overview">
+    <section class="data-panel span-3 analytics-overview">
       <div class="panel-title">Web traffic overview</div>
       <div class="panel-subtitle">Last {{ web_analytics.window_days }} days · public website</div>
       <div class="analytics-kpi-grid">
@@ -353,35 +384,6 @@
               </div>
             {% endfor %}
           </div>
-        </div>
-      {% endif %}
-    </section>
-
-    <section class="data-panel analytics-table-panel">
-      <div class="panel-title">Slowest pages</div>
-      <div class="panel-subtitle">Highest dwell time</div>
-      {% if web_analytics.slow_pages %}
-        <table class="analytics-table">
-          <thead>
-            <tr>
-              <th>Path</th>
-              <th>Avg time</th>
-              <th>Views</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for page in web_analytics.slow_pages %}
-              <tr>
-                <td><code>{{ page.path }}</code></td>
-                <td>{{ page.avg_seconds }}s</td>
-                <td>{{ page.views }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="empty-state">
-          <p>No long reads detected.</p>
         </div>
       {% endif %}
     </section>
