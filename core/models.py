@@ -203,6 +203,10 @@ class HomePageCopy(models.Model):
         validators=[MinValueValidator(96), MaxValueValidator(260)],
         help_text="Logo diameter in pixels (desktop).",
     )
+    hero_logo_show_ring = models.BooleanField(
+        default=True,
+        help_text="Show circular ring around the hero logo.",
+    )
     hero_media_width = models.PositiveSmallIntegerField(
         null=True,
         blank=True,

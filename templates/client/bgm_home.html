@@ -99,6 +99,10 @@
       border-color:rgba(255,255,255,.28);
       box-shadow:none;
     }
+    .hero__logo--no-ring{
+      border-color:transparent;
+      box-shadow:none;
+    }
     .hero__logo--backdrop::before{
       content:"";
       position:absolute;
@@ -688,7 +692,7 @@
       {% with logo_layout=home_copy.hero_logo_layout|default:"overlay" logo_bg=home_copy.hero_logo_bg_style|default:"dark" %}
         <div class="container">
           <div class="hero__logo-block hero__logo-block--{{ logo_layout }}" style="--hero-logo-size: {{ home_copy.hero_logo_size|default:180 }}px;">
-            <div class="hero__logo hero__logo--bg-{{ logo_bg }}{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} hero__logo--backdrop{% endif %}"{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} style="--hero-logo-backdrop:url('{{ home_copy.hero_logo_backdrop.url }}')"{% endif %}>
+            <div class="hero__logo hero__logo--bg-{{ logo_bg }}{% if not home_copy.hero_logo_show_ring %} hero__logo--no-ring{% endif %}{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} hero__logo--backdrop{% endif %}"{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} style="--hero-logo-backdrop:url('{{ home_copy.hero_logo_backdrop.url }}')"{% endif %}>
               {% if home_copy.hero_logo %}
                 <img src="{{ home_copy.hero_logo.url }}" alt="{{ home_copy.hero_logo_alt }}"{% if not home_copy.hero_logo_alt %} aria-hidden="true"{% endif %} loading="lazy" decoding="async">
               {% else %}

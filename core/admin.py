@@ -1700,6 +1700,7 @@ class HomePageCopyAdmin(admin.ModelAdmin):
                 "hero_logo_layout",
                 "hero_logo_bg_style",
                 "hero_logo_size",
+                "hero_logo_show_ring",
                 "hero_media_width",
                 "hero_media_height",
                 "hero_logo_alt",
