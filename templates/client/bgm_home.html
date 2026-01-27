@@ -62,7 +62,7 @@
     nav .btn,nav .btn--ghost{padding:0;border:none;background:none}
 
     .hero{position:relative;overflow:hidden;background:transparent}
-    .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(2rem,6vw,4.5rem) 0;align-items:center}
+    .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(1.6rem,4.5vw,3.6rem) 0;align-items:center}
     .hero__title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15}
     .hero__lead{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);max-width:54ch;margin-top:1rem}
     .hero__cta{display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap}
@@ -71,21 +71,33 @@
       flex-direction:column;
       align-items:center;
       gap:.85rem;
-      margin:0 auto 1.6rem;
+      margin:0 auto 1.1rem;
       width:100%;
     }
     .hero__logo{
-      width:clamp(120px,20vw,210px);
-      height:clamp(120px,20vw,210px);
+      width:clamp(110px, var(--hero-logo-size, 180px), 240px);
+      height:clamp(110px, var(--hero-logo-size, 180px), 240px);
       border-radius:999px;
       border:1px solid rgba(255,255,255,.18);
-      background:#0b0b0b;
+      background:var(--hero-logo-bg, #0b0b0b);
       box-shadow:var(--shadow);
       display:grid;
       place-items:center;
       position:relative;
       overflow:hidden;
       --hero-logo-backdrop:none;
+    }
+    .hero__logo--bg-dark{--hero-logo-bg:#0b0b0b;}
+    .hero__logo--bg-light{--hero-logo-bg:#f3f3f3;border-color:rgba(0,0,0,.2);}
+    .hero__logo--bg-light .hero__logo-text{color:#111;}
+    .hero__logo--bg-accent{
+      --hero-logo-bg:radial-gradient(circle at 30% 30%, rgba(255,255,255,.25), rgba(213,0,0,.45)), #2a0000;
+      border-color:rgba(255,255,255,.22);
+    }
+    .hero__logo--bg-transparent{
+      --hero-logo-bg:transparent;
+      border-color:rgba(255,255,255,.28);
+      box-shadow:none;
     }
     .hero__logo--backdrop::before{
       content:"";
@@ -138,6 +150,7 @@
     .stat{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow)}
     .stat b{font-size:1.35rem}
     .frame{border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02),0 14px 28px rgba(0,0,0,.45);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted-2)}
+    .hero__media.frame{aspect-ratio:18/9;}
     .frame--media{position:relative;overflow:hidden}
     .frame--media img{width:100%;height:100%;object-fit:cover;display:block;filter:contrast(1.05)}
     .frame__play{position:absolute;inset:0;margin:auto;width:72px;height:72px;border-radius:999px;display:grid;place-items:center;font-size:28px;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.18);color:#fff}
@@ -672,10 +685,10 @@
 
   <section class="hero" id="top">
     {% if home_copy.hero_logo or home_copy.hero_logo_backdrop %}
-      {% with logo_layout=home_copy.hero_logo_layout|default:"overlay" %}
+      {% with logo_layout=home_copy.hero_logo_layout|default:"overlay" logo_bg=home_copy.hero_logo_bg_style|default:"dark" %}
         <div class="container">
-          <div class="hero__logo-block hero__logo-block--{{ logo_layout }}">
-            <div class="hero__logo{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} hero__logo--backdrop{% endif %}"{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} style="--hero-logo-backdrop:url('{{ home_copy.hero_logo_backdrop.url }}')"{% endif %}>
+          <div class="hero__logo-block hero__logo-block--{{ logo_layout }}" style="--hero-logo-size: {{ home_copy.hero_logo_size|default:180 }}px;">
+            <div class="hero__logo hero__logo--bg-{{ logo_bg }}{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} hero__logo--backdrop{% endif %}"{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} style="--hero-logo-backdrop:url('{{ home_copy.hero_logo_backdrop.url }}')"{% endif %}>
               {% if home_copy.hero_logo %}
                 <img src="{{ home_copy.hero_logo.url }}" alt="{{ home_copy.hero_logo_alt }}"{% if not home_copy.hero_logo_alt %} aria-hidden="true"{% endif %} loading="lazy" decoding="async">
               {% else %}

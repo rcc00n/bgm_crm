@@ -149,6 +149,12 @@ class HomePageCopy(models.Model):
         OVERLAY = "overlay", "Logo over photo"
         STACKED = "stacked", "Logo then photo"
 
+    class HeroLogoBackground(models.TextChoices):
+        DARK = "dark", "Dark"
+        LIGHT = "light", "Light"
+        ACCENT = "accent", "Accent"
+        TRANSPARENT = "transparent", "Transparent"
+
     singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
 
     # Header & navigation
@@ -185,6 +191,17 @@ class HomePageCopy(models.Model):
         choices=HeroLogoLayout.choices,
         default=HeroLogoLayout.OVERLAY,
         help_text="Controls whether the logo overlays the photo or the photo appears below it.",
+    )
+    hero_logo_bg_style = models.CharField(
+        max_length=16,
+        choices=HeroLogoBackground.choices,
+        default=HeroLogoBackground.DARK,
+        help_text="Background style for the circular logo container.",
+    )
+    hero_logo_size = models.PositiveSmallIntegerField(
+        default=180,
+        validators=[MinValueValidator(96), MaxValueValidator(260)],
+        help_text="Logo diameter in pixels (desktop).",
     )
     hero_logo_alt = models.CharField(
         max_length=160,

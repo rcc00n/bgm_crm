@@ -1698,6 +1698,8 @@ class HomePageCopyAdmin(admin.ModelAdmin):
                 "hero_logo",
                 "hero_logo_backdrop",
                 "hero_logo_layout",
+                "hero_logo_bg_style",
+                "hero_logo_size",
                 "hero_logo_alt",
                 "hero_kicker",
                 "hero_title",
