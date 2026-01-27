@@ -203,6 +203,16 @@ class HomePageCopy(models.Model):
         validators=[MinValueValidator(96), MaxValueValidator(260)],
         help_text="Logo diameter in pixels (desktop).",
     )
+    hero_media_width = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional hero image width (desktop px). Leave empty for auto.",
+    )
+    hero_media_height = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional hero image height (desktop px). Leave empty for auto.",
+    )
     hero_logo_alt = models.CharField(
         max_length=160,
         default="BGM logo",
