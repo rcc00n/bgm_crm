@@ -63,7 +63,7 @@
     {% endif %}
   </div>
 
-  <div class="dashboard-grid">
+  <div class="dashboard-grid{% if not is_master %} dashboard-grid-primary{% endif %}">
     {% if not is_master %}
       <section class="data-panel chart-card span-2">
         <div class="panel-title">Revenue trend</div>
@@ -114,9 +114,39 @@
         {% endfor %}
       </div>
     </section>
+    {% if web_analytics %}
+    <section class="data-panel analytics-table-panel top-pages-panel">
+      <div class="panel-title">Top pages</div>
+      <div class="panel-subtitle">Most viewed</div>
+      {% if web_analytics.top_pages %}
+        <table class="analytics-table top-pages-table">
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Views</th>
+              <th>Avg time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for page in web_analytics.top_pages %}
+              <tr>
+                <td><code>{{ page.path }}</code></td>
+                <td>{{ page.views }}</td>
+                <td>{{ page.avg_seconds }}s</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <p>No page views collected yet.</p>
+        </div>
+      {% endif %}
+    </section>
+    {% endif %}
     {% endif %}
 
-    <section class="data-panel span-2">
+    <section class="data-panel{% if not is_master %} span-3{% else %} span-2{% endif %}">
       <div class="panel-title">Today's next appointments</div>
       <div class="panel-subtitle">Live view of the remaining schedule</div>
       {% if today_appointments %}
@@ -323,35 +353,6 @@
               </div>
             {% endfor %}
           </div>
-        </div>
-      {% endif %}
-    </section>
-
-    <section class="data-panel analytics-table-panel">
-      <div class="panel-title">Top pages</div>
-      <div class="panel-subtitle">Most viewed</div>
-      {% if web_analytics.top_pages %}
-        <table class="analytics-table">
-          <thead>
-            <tr>
-              <th>Path</th>
-              <th>Views</th>
-              <th>Avg time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for page in web_analytics.top_pages %}
-              <tr>
-                <td><code>{{ page.path }}</code></td>
-                <td>{{ page.views }}</td>
-                <td>{{ page.avg_seconds }}s</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="empty-state">
-          <p>No page views collected yet.</p>
         </div>
       {% endif %}
     </section>
