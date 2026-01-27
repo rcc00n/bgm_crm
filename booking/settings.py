@@ -393,7 +393,7 @@ CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in os.getenv("ALLOWED_HOSTS", "").s
 ADMIN_SIDEBAR_SECTIONS = [
     {
         "label": "Operations",
-        "icon": "fas fa-gauge-high",
+        "icon": "fas fa-tachometer-alt",
         "groups": [
             {
                 "label": "Appointments",
@@ -407,7 +407,7 @@ ADMIN_SIDEBAR_SECTIONS = [
             },
             {
                 "label": "Staffing",
-                "icon": "fas fa-user-gear",
+                "icon": "fas fa-user-cog",
                 "items": [
                     {"model": "core.MasterAvailability", "label": "Availability"},
                     {"model": "core.MasterProfile", "label": "Team Profiles"},
@@ -417,7 +417,7 @@ ADMIN_SIDEBAR_SECTIONS = [
             },
             {
                 "label": "Payments",
-                "icon": "fas fa-sack-dollar",
+                "icon": "fas fa-money-bill-wave",
                 "items": [
                     {"model": "core.Payment"},
                     {"model": "core.PaymentStatus", "label": "Payment Status"},
@@ -502,7 +502,7 @@ ADMIN_SIDEBAR_SECTIONS = [
             },
             {
                 "label": "Services Catalog",
-                "icon": "fas fa-screwdriver-wrench",
+                "icon": "fas fa-tools",
                 "items": [
                     {"model": "core.ServiceCategory", "label": "Service Categories"},
                     {"model": "core.Service"},
@@ -519,7 +519,7 @@ ADMIN_SIDEBAR_SECTIONS = [
             },
             {
                 "label": "Orders",
-                "icon": "fas fa-cart-shopping",
+                "icon": "fas fa-shopping-cart",
                 "items": [
                     {"model": "store.Order", "label": "Orders"},
                     {"model": "store.OrderItem", "label": "Order Items"},
@@ -575,7 +575,7 @@ ADMIN_SIDEBAR_SECTIONS = [
     },
     {
         "label": "System",
-        "icon": "fas fa-shield-halved",
+        "icon": "fas fa-shield-alt",
         "groups": [
             {
                 "label": "Access Control",
@@ -606,16 +606,16 @@ JAZZMIN_SETTINGS = {
         "auth.User": "fas fa-user",
         "auth.Group": "fas fa-users-cog",
         "core.Appointment": "fas fa-calendar-check",
-        "core.AppointmentStatus": "fas fa-circle-dot",
+        "core.AppointmentStatus": "fas fa-dot-circle",
         "core.AppointmentStatusHistory": "fas fa-wave-square",
         "core.AppointmentPrepayment": "fas fa-coins",
-        "core.AppointmentPromoCode": "fas fa-ticket",
+        "core.AppointmentPromoCode": "fas fa-ticket-alt",
         "core.ClientFile": "fas fa-folder-open",
         "core.ClientReview": "fas fa-comments",
         "core.ClientSource": "fas fa-bullseye",
         "core.DealerApplication": "fas fa-user-check",
         "core.DealerTierLevel": "fas fa-medal",
-        "core.HeroImage": "fas fa-panorama",
+        "core.HeroImage": "fas fa-image",
         "core.HomePageCopy": "fas fa-pen-nib",
         "core.FinancingPageCopy": "fas fa-credit-card",
         "core.AboutPageCopy": "fas fa-info-circle",
@@ -628,24 +628,24 @@ JAZZMIN_SETTINGS = {
         "core.PageFontSetting": "fas fa-heading",
         "core.EmailTemplate": "fas fa-envelope-open-text",
         "core.LandingPageReview": "fas fa-star",
-        "core.LegalPage": "fas fa-scale-balanced",
+        "core.LegalPage": "fas fa-balance-scale",
         "core.MasterAvailability": "fas fa-business-time",
         "core.MasterProfile": "fas fa-user-tie",
         "core.MasterRoom": "fas fa-warehouse",
         "core.Notification": "fas fa-bell",
         "core.PageView": "fas fa-chart-area",
-        "core.Payment": "fas fa-sack-dollar",
+        "core.Payment": "fas fa-money-bill-wave",
         "core.PaymentMethod": "fas fa-credit-card",
-        "core.PaymentStatus": "fas fa-list-check",
+        "core.PaymentStatus": "fas fa-clipboard-check",
         "core.PrepaymentOption": "fas fa-piggy-bank",
         "core.PromoCode": "fas fa-ticket-alt",
         "core.ProjectJournalEntry": "fas fa-newspaper",
-        "core.Role": "fas fa-shield-halved",
-        "core.Service": "fas fa-screwdriver-wrench",
-        "core.ServiceCategory": "fas fa-diagram-project",
-        "core.ServiceDiscount": "fas fa-badge-percent",
+        "core.Role": "fas fa-user-shield",
+        "core.Service": "fas fa-tools",
+        "core.ServiceCategory": "fas fa-project-diagram",
+        "core.ServiceDiscount": "fas fa-percent",
         "core.ServiceLead": "fas fa-inbox",
-        "core.ServiceMaster": "fas fa-user-gear",
+        "core.ServiceMaster": "fas fa-user-cog",
         "core.UserProfile": "fas fa-id-badge",
         "core.UserRole": "fas fa-user-tag",
         "core.VisitorSession": "fas fa-user-clock",
@@ -653,7 +653,7 @@ JAZZMIN_SETTINGS = {
         "store.CarModel": "fas fa-car-side",
         "store.Category": "fas fa-tags",
         "store.CustomFitmentRequest": "fas fa-ruler-combined",
-        "store.Order": "fas fa-cart-shopping",
+        "store.Order": "fas fa-shopping-cart",
         "store.OrderItem": "fas fa-receipt",
         "store.StorePricingSettings": "fas fa-percent",
         "store.Product": "fas fa-box-open",
