@@ -434,6 +434,24 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "core.AppointmentPromoCode", "label": "Appointment Promo Codes"},
                 ],
             },
+            {
+                "label": "Automation",
+                "icon": "fas fa-robot",
+                "items": [
+                    {"model": "notifications.TelegramContact", "label": "Contacts"},
+                    {"model": "notifications.TelegramBotSettings", "label": "Bot Settings"},
+                    {"model": "notifications.TelegramReminder", "label": "Reminders"},
+                    {"model": "notifications.TelegramMessageLog", "label": "Delivery Log"},
+                ],
+            },
+            {
+                "label": "Analytics",
+                "icon": "fas fa-chart-line",
+                "items": [
+                    {"model": "core.VisitorSession", "label": "Visitor Sessions"},
+                    {"model": "core.PageView", "label": "Page Views"},
+                ],
+            },
         ],
     },
     {
@@ -483,6 +501,14 @@ ADMIN_SIDEBAR_SECTIONS = [
                 ],
             },
             {
+                "label": "Services Catalog",
+                "icon": "fas fa-screwdriver-wrench",
+                "items": [
+                    {"model": "core.ServiceCategory", "label": "Service Categories"},
+                    {"model": "core.Service"},
+                ],
+            },
+            {
                 "label": "Vehicles & Fitment",
                 "icon": "fas fa-car-side",
                 "items": [
@@ -497,22 +523,6 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "items": [
                     {"model": "store.Order", "label": "Orders"},
                     {"model": "store.OrderItem", "label": "Order Items"},
-                ],
-            },
-        ],
-    },
-    {
-        "label": "Automation",
-        "icon": "fas fa-robot",
-        "groups": [
-            {
-                "label": "Telegram Bot",
-                "icon": "fas fa-paper-plane",
-                "items": [
-                    {"model": "notifications.TelegramContact", "label": "Contacts"},
-                    {"model": "notifications.TelegramBotSettings", "label": "Bot Settings"},
-                    {"model": "notifications.TelegramReminder", "label": "Reminders"},
-                    {"model": "notifications.TelegramMessageLog", "label": "Delivery Log"},
                 ],
             },
         ],
@@ -548,29 +558,9 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "core.DealerStatusPageCopy", "label": "Dealer Portal Copy"},
                     {"model": "core.ClientPortalPageCopy", "label": "Client Portal Copy"},
                     {"model": "core.MerchPageCopy", "label": "Merch Page Copy"},
-                ],
-            },
-            {
-                "label": "Services Catalog",
-                "icon": "fas fa-screwdriver-wrench",
-                "items": [
-                    {"model": "core.ServiceCategory", "label": "Service Categories"},
-                    {"model": "core.Service"},
-                ],
-            },
-            {
-                "label": "Social Proof & Journal",
-                "icon": "fas fa-star",
-                "items": [
+                    {"model": "core.LegalPage", "label": "Legal Pages"},
                     {"model": "core.LandingPageReview", "label": "Landing Reviews"},
                     {"model": "core.ProjectJournalEntry", "label": "Project Journal"},
-                ],
-            },
-            {
-                "label": "Legal & Policies",
-                "icon": "fas fa-scale-balanced",
-                "items": [
-                    {"model": "core.LegalPage", "label": "Legal Pages"},
                 ],
             },
             {
@@ -579,14 +569,6 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "items": [
                     {"model": "core.Notification", "label": "Notifications"},
                     {"model": "core.EmailTemplate", "label": "Email Templates"},
-                ],
-            },
-            {
-                "label": "Analytics",
-                "icon": "fas fa-chart-line",
-                "items": [
-                    {"model": "core.VisitorSession", "label": "Visitor Sessions"},
-                    {"model": "core.PageView", "label": "Page Views"},
                 ],
             },
         ],
