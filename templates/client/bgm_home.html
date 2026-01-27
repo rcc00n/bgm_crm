@@ -138,7 +138,8 @@
       color:#fff;
     }
     .hero__logo-photo{
-      width:min(440px, 100%);
+      width:min(var(--hero-logo-photo-width, 440px), 100%);
+      height:var(--hero-logo-photo-height, auto);
       border-radius:1.2rem;
       overflow:hidden;
       border:1px solid var(--line);
@@ -700,7 +701,7 @@
               {% endif %}
             </div>
             {% if home_copy.hero_logo_backdrop and logo_layout == 'stacked' %}
-              <div class="hero__logo-photo">
+              <div class="hero__logo-photo"{% if home_copy.hero_logo_photo_width or home_copy.hero_logo_photo_height %} style="{% if home_copy.hero_logo_photo_width %}--hero-logo-photo-width: {{ home_copy.hero_logo_photo_width }}px;{% endif %}{% if home_copy.hero_logo_photo_height %}--hero-logo-photo-height: {{ home_copy.hero_logo_photo_height }}px;{% endif %}"{% endif %}>
                 <img src="{{ home_copy.hero_logo_backdrop.url }}" alt="" loading="lazy" decoding="async">
               </div>
             {% endif %}

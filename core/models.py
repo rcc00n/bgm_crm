@@ -207,6 +207,16 @@ class HomePageCopy(models.Model):
         default=True,
         help_text="Show circular ring around the hero logo.",
     )
+    hero_logo_photo_width = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional width (px) for the photo under the logo (stacked layout only).",
+    )
+    hero_logo_photo_height = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional height (px) for the photo under the logo (stacked layout only).",
+    )
     hero_media_width = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
