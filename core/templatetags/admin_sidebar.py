@@ -166,6 +166,7 @@ def _apply_notification_state(sidebar: List[Dict[str, Any]], user) -> None:
         return
 
     baseline = user.last_login or getattr(user, "date_joined", None) or timezone.now()
+    activity_cache: Dict[tuple[str, str], Any] = {}
 
     for section in sidebar:
         section_has_unseen = False
@@ -175,9 +176,33 @@ def _apply_notification_state(sidebar: List[Dict[str, Any]], user) -> None:
                 model_label = item.get("model_label")
                 has_unseen = False
                 if model_label:
-                    last_action = latest_by_label.get(model_label)
+                    last_seen = seen_map.get(model_label, baseline)
+                    activity_field = item.get("activity_field")
+                    if activity_field:
+                        cache_key = (model_label, activity_field)
+                        if cache_key not in activity_cache:
+                            try:
+                                app_label, model_name = model_label.split(".", 1)
+                                model = apps.get_model(app_label, model_name)
+                                last_action = (
+                                    model.objects.order_by(f"-{activity_field}")
+                                    .values_list(activity_field, flat=True)
+                                    .first()
+                                )
+                            except Exception:
+                                last_action = None
+                            activity_cache[cache_key] = last_action
+                        else:
+                            last_action = activity_cache[cache_key]
+                    else:
+                        last_action = latest_by_label.get(model_label)
+
                     if last_action:
-                        last_seen = seen_map.get(model_label, baseline)
+                        if timezone.is_naive(last_action):
+                            last_action = timezone.make_aware(
+                                last_action,
+                                timezone.get_default_timezone(),
+                            )
                         has_unseen = last_action > last_seen
                 item["has_unseen"] = has_unseen
                 if has_unseen:

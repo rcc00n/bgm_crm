@@ -55,7 +55,7 @@ from core.services.media import (
     build_electrical_work_media,
     build_performance_tuning_media,
 )
-from notifications.services import notify_about_service_lead
+from notifications.services import notify_about_service_lead, notify_about_site_notice_signup
 
 logger = logging.getLogger(__name__)
 
@@ -771,14 +771,21 @@ def site_notice_signup(request):
         logger.exception("Failed to send site notice code email to %s", email)
         return _error("Unable to send the code right now.", status=500)
 
+    signup = None
     try:
-        SiteNoticeSignup.objects.create(
+        signup = SiteNoticeSignup.objects.create(
             email=email,
             welcome_code=code,
             welcome_sent_at=timezone.now(),
         )
     except Exception:
         logger.exception("Failed to record site notice signup for %s", email)
+
+    if signup:
+        try:
+            notify_about_site_notice_signup(signup.pk)
+        except Exception:
+            logger.exception("Failed to send Telegram alert for site notice signup %s", signup.pk)
 
     try:
         user = CustomUserDisplay.objects.filter(email__iexact=email).first()

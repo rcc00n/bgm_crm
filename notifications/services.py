@@ -193,6 +193,111 @@ def notify_about_service_lead(lead_id) -> int:
     )
 
 
+def notify_about_fitment_request(request_id) -> int:
+    """
+    Notify ops chat about a new custom fitment request.
+    """
+    settings_obj = TelegramBotSettings.load_active()
+    if not settings_obj:
+        return 0
+
+    from store.models import CustomFitmentRequest  # late import to avoid circular dependency
+
+    req = CustomFitmentRequest.objects.select_related("product").get(pk=request_id)
+
+    def _safe(val: str | None) -> str:
+        return html.escape(val) if val else "—"
+
+    product_name = req.product_name or (req.product.name if req.product else "")
+    message = (
+        "<b>New fitment request</b>\n"
+        f"Product: {_safe(product_name)}\n"
+        f"Customer: {_safe(req.customer_name)}\n"
+        f"Email: {_safe(req.email)}\n"
+        f"Phone: {_safe(req.phone)}\n"
+        f"Vehicle: {_safe(req.vehicle)}\n"
+        f"Submodel: {_safe(req.submodel)}\n"
+        f"Goals: {_safe(req.performance_goals)}\n"
+        f"Budget: {_safe(req.budget)}\n"
+        f"Timeline: {_safe(req.timeline)}\n"
+    )
+    if req.message:
+        message += f"Message: {_safe(req.message)}\n"
+    if req.source_url:
+        message += f"Source: {_safe(req.source_url)}"
+
+    return send_telegram_message(
+        message,
+        event_type=TelegramMessageLog.EVENT_FITMENT_REQUEST,
+    )
+
+
+def notify_about_site_notice_signup(signup_id) -> int:
+    """
+    Notify ops chat about a new site notice signup (welcome code sent).
+    """
+    settings_obj = TelegramBotSettings.load_active()
+    if not settings_obj:
+        return 0
+
+    from core.models import SiteNoticeSignup  # late import to avoid circular dependency
+
+    signup = SiteNoticeSignup.objects.get(pk=signup_id)
+
+    def _safe(val: str | None) -> str:
+        return html.escape(val) if val else "—"
+
+    sent_at = localtime(signup.welcome_sent_at).strftime("%Y-%m-%d %H:%M")
+    message = (
+        "<b>New site notice signup</b>\n"
+        f"Email: {_safe(signup.email)}\n"
+        f"Welcome code: {_safe(signup.welcome_code)}\n"
+        f"Sent at: {sent_at}\n"
+    )
+
+    return send_telegram_message(
+        message,
+        event_type=TelegramMessageLog.EVENT_SITE_NOTICE_WELCOME,
+    )
+
+
+def notify_about_order_review_request(order_id, *, review_url: str = "", store_url: str = "") -> int:
+    """
+    Notify ops chat about a review request email being sent.
+    """
+    settings_obj = TelegramBotSettings.load_active()
+    if not settings_obj:
+        return 0
+
+    from store.models import Order  # late import to avoid circular dependency
+
+    order = Order.objects.select_related("user").get(pk=order_id)
+
+    def _safe(val: str | None) -> str:
+        return html.escape(val) if val else "—"
+
+    completed_at = ""
+    if order.completed_at:
+        completed_at = localtime(order.completed_at).strftime("%Y-%m-%d %H:%M")
+
+    message = (
+        "<b>Order review request sent</b>\n"
+        f"Order #: {order.pk}\n"
+        f"Customer: {_safe(order.customer_name)}\n"
+        f"Email: {_safe(order.email)}\n"
+        f"Completed at: {completed_at or '—'}\n"
+    )
+    if review_url:
+        message += f"Review link: {_safe(review_url)}\n"
+    if store_url:
+        message += f"Store link: {_safe(store_url)}"
+
+    return send_telegram_message(
+        message,
+        event_type=TelegramMessageLog.EVENT_ORDER_REVIEW_REQUEST,
+    )
+
+
 def build_operations_digest() -> str:
     """
     Returns a daily overview of appointments and store activity.

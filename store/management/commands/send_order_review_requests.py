@@ -8,6 +8,7 @@ from django.utils import timezone
 from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from store.models import Order
+from notifications.services import notify_about_order_review_request
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,15 @@ class Command(BaseCommand):
             except Exception:
                 logger.exception("Failed to send review request for order %s", order.pk)
                 continue
+
+            try:
+                notify_about_order_review_request(
+                    order.pk,
+                    review_url=review_url,
+                    store_url=store_url,
+                )
+            except Exception:
+                logger.exception("Failed to send Telegram review request alert for order %s", order.pk)
 
             order.review_request_sent_at = timezone.now()
             order.save(update_fields=["review_request_sent_at"])

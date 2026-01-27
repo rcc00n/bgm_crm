@@ -3,7 +3,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from core.models import Appointment
-from store.models import Order
+from store.models import CustomFitmentRequest, Order
 
 from . import services
 from . import emails
@@ -24,3 +24,11 @@ def order_created(sender, instance, created, **kwargs):
         return
 
     transaction.on_commit(lambda: services.notify_about_order(instance.pk))
+
+
+@receiver(post_save, sender=CustomFitmentRequest)
+def fitment_request_created(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    transaction.on_commit(lambda: services.notify_about_fitment_request(instance.pk))

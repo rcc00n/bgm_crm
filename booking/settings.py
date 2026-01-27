@@ -514,7 +514,11 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "items": [
                     {"model": "store.CarMake", "label": "Car Makes"},
                     {"model": "store.CarModel", "label": "Car Models"},
-                    {"model": "store.CustomFitmentRequest", "label": "Fitment Requests"},
+                    {
+                        "model": "store.CustomFitmentRequest",
+                        "label": "Fitment Requests",
+                        "activity_field": "created_at",
+                    },
                 ],
             },
             {
