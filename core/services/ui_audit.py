@@ -146,9 +146,34 @@ class HtmlAuditParser(HTMLParser):
             self._form_stack.pop()
 
 
+def _sanitize_host(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    value = raw.strip()
+    if not value or value == "*":
+        return None
+    if value.startswith("http://") or value.startswith("https://"):
+        parsed = urlparse(value)
+        value = parsed.netloc or parsed.path
+    value = value.lstrip(".")
+    return value or None
+
+
+def _preferred_host() -> str:
+    allowed = getattr(settings, "ALLOWED_HOSTS", []) or []
+    for host in allowed:
+        cleaned = _sanitize_host(host)
+        if cleaned:
+            return cleaned
+    return "localhost"
+
+
 def _allowed_hosts() -> set[str]:
-    allowed = set(getattr(settings, "ALLOWED_HOSTS", []) or [])
-    allowed.update({"testserver", "localhost", "127.0.0.1"})
+    allowed = {
+        host for host in (_sanitize_host(h) for h in (getattr(settings, "ALLOWED_HOSTS", []) or []))
+        if host
+    }
+    allowed.update({"testserver", "localhost", "127.0.0.1", _preferred_host()})
     return allowed
 
 
@@ -279,23 +304,24 @@ def _pick_role_user(role_name: str):
 
 
 def _build_clients() -> dict[str, Client]:
-    clients = {"anon": Client()}
+    host = _preferred_host()
+    clients = {"anon": Client(HTTP_HOST=host)}
 
     client_user = _pick_role_user("Client")
     if client_user:
-        client = Client()
+        client = Client(HTTP_HOST=host)
         client.force_login(client_user)
         clients["client"] = client
 
     master_user = _pick_role_user("Master")
     if master_user:
-        client = Client()
+        client = Client(HTTP_HOST=host)
         client.force_login(master_user)
         clients["master"] = client
 
     staff_user = get_user_model().objects.filter(is_staff=True, is_active=True).first()
     if staff_user:
-        client = Client()
+        client = Client(HTTP_HOST=host)
         client.force_login(staff_user)
         clients["staff"] = client
 
@@ -551,7 +577,10 @@ def _perform_ui_audit() -> dict[str, Any]:
             continue
 
         if result.redirect_to and depth < MAX_DEPTH:
-            redirect_url = _normalize_url(result.redirect_to, f"http://testserver{current_url}")
+            redirect_url = _normalize_url(
+                result.redirect_to,
+                f"http://{_preferred_host()}{current_url}",
+            )
             if redirect_url and redirect_url not in visited:
                 queue.append((redirect_url, depth + 1))
 
@@ -567,7 +596,7 @@ def _perform_ui_audit() -> dict[str, Any]:
         stats["forms"] += len(parser.forms)
         stats["buttons"] += len(parser.buttons)
 
-        base_url = f"http://testserver{current_url}"
+        base_url = f"http://{_preferred_host()}{current_url}"
 
         for link in parser.links[:MAX_LINKS_PER_PAGE]:
             href = link.get("href", "")
