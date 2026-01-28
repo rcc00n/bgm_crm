@@ -16,9 +16,17 @@ def _dec_env(name: str, default: str) -> Decimal:
     except (InvalidOperation, TypeError):
         return Decimal(default)
 
+
+def _bool_env(name: str, default: str = "False") -> bool:
+    """
+    Safe boolean parser for env vars.
+    Accepts: 1/0, true/false, yes/no, on/off (case-insensitive).
+    """
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "y", "on"}
+
 # ── Основное ─────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = _bool_env("DEBUG", "False")
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -203,7 +211,7 @@ MARKETING = {
     "google_tag_manager_id": os.getenv("GOOGLE_TAG_MANAGER_ID", "GTM-M7FTNXV6"),
     "google_ads_id": os.getenv("GOOGLE_ADS_ID", ""),
     "google_ads_conversion_label": os.getenv("GOOGLE_ADS_CONVERSION_LABEL", ""),
-    "google_ads_send_page_view": os.getenv("GOOGLE_ADS_SEND_PAGE_VIEW", "True") == "True",
+    "google_ads_send_page_view": _bool_env("GOOGLE_ADS_SEND_PAGE_VIEW", "True"),
 }
 
 # ── Company contact (email footer defaults) ──────────────────────────────
@@ -255,8 +263,8 @@ EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.sendgrid.net")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "apikey")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", os.getenv("SENDGRID_API_KEY", ""))
-EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False") == "True"
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+EMAIL_USE_SSL = _bool_env("EMAIL_USE_SSL", "False")
+EMAIL_USE_TLS = _bool_env("EMAIL_USE_TLS", "True")
 if EMAIL_USE_SSL:
     EMAIL_USE_TLS = False
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
@@ -383,7 +391,7 @@ if os.getenv("USE_S3_MEDIA") == "1":
 
 # ── Безопасность продакшна ──────────────────────────────────────────────
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "True") == "True"
+SECURE_SSL_REDIRECT = _bool_env("SECURE_SSL_REDIRECT", "True")
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
