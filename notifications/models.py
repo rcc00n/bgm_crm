@@ -154,6 +154,7 @@ class TelegramMessageLog(models.Model):
     EVENT_REMINDER = "reminder"
     EVENT_DIGEST = "digest"
     EVENT_MANUAL = "manual"
+    EVENT_UI_CHECK = "ui_check"
 
     event_type = models.CharField(max_length=64, db_index=True)
     chat_id = models.BigIntegerField()

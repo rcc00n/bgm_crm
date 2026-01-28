@@ -238,6 +238,32 @@ def admin_client_contact(request, user_id):
         "phone": getattr(profile, "phone", "") if profile else "",
     })
 
+
+@staff_member_required
+@require_POST
+def admin_ui_check_run(request):
+    from core.models import ClientUiCheckRun
+    from core.services.ui_audit import run_client_ui_check
+
+    run = run_client_ui_check(
+        trigger=ClientUiCheckRun.Trigger.MANUAL,
+        triggered_by=request.user,
+        force=True,
+    )
+
+    if not run:
+        messages.info(request, "UI check skipped: not due yet.")
+        return redirect("admin:index")
+
+    if run.status == ClientUiCheckRun.Status.RUNNING:
+        messages.warning(request, "UI check is already running.")
+        return redirect("admin:index")
+
+    status_label = run.get_status_display()
+    details = f"failures {run.failures_count}, warnings {run.warnings_count}"
+    messages.success(request, f"UI check completed: {status_label} ({details}).")
+    return redirect("admin:index")
+
 # ===== API =====
 
 @require_GET

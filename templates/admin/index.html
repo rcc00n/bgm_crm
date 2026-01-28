@@ -54,6 +54,33 @@
       <div class="kpi-trend neutral">Last updated list</div>
     </article>
 
+    <article class="kpi-card">
+      <small>Client UI check</small>
+      {% if latest_ui_check %}
+        <div class="kpi-value">{{ latest_ui_check.get_status_display }}</div>
+        <div class="kpi-trend{% if latest_ui_check.status == 'failed' %} critical{% elif latest_ui_check.status == 'warning' %} neutral{% endif %}">
+          Last run {{ latest_ui_check.finished_at|default:latest_ui_check.started_at|date:"M d H:i" }}
+        </div>
+        <div class="kpi-trend neutral">
+          Failures {{ latest_ui_check.failures_count }} · Warnings {{ latest_ui_check.warnings_count }}
+        </div>
+      {% else %}
+        <div class="kpi-value">Not run</div>
+        <div class="kpi-trend neutral">No checks yet</div>
+      {% endif %}
+      <form method="post" action="{% url 'admin-ui-check-run' %}">
+        {% csrf_token %}
+        <button type="submit" class="button" {% if ui_check_running %}disabled{% endif %}>
+          {% if ui_check_running %}Running…{% else %}Run UI check{% endif %}
+        </button>
+      </form>
+      {% if ui_check_next_due %}
+        <div class="kpi-trend{% if ui_check_due %} critical{% else %} neutral{% endif %}">
+          Next due {{ ui_check_next_due|date:"M d H:i" }}
+        </div>
+      {% endif %}
+    </article>
+
     {% if not is_master %}
     <article class="kpi-card">
       <small>Revenue (7 days)</small>

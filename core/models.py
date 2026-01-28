@@ -99,6 +99,55 @@ class AdminSidebarSeen(models.Model):
     def __str__(self) -> str:
         return f"{self.user} → {self.app_label}.{self.model_name}"
 
+
+class ClientUiCheckRun(models.Model):
+    """
+    Stores results of automated client UI checks.
+    """
+
+    class Status(models.TextChoices):
+        RUNNING = "running", "Running"
+        SUCCESS = "success", "Success"
+        WARNING = "warning", "Warning"
+        FAILED = "failed", "Failed"
+        SKIPPED = "skipped", "Skipped"
+
+    class Trigger(models.TextChoices):
+        AUTO = "auto", "Auto"
+        MANUAL = "manual", "Manual"
+
+    trigger = models.CharField(max_length=12, choices=Trigger.choices, default=Trigger.AUTO)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.RUNNING)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    duration_ms = models.PositiveIntegerField(default=0)
+
+    total_pages = models.PositiveIntegerField(default=0)
+    total_links = models.PositiveIntegerField(default=0)
+    total_forms = models.PositiveIntegerField(default=0)
+    total_buttons = models.PositiveIntegerField(default=0)
+    failures_count = models.PositiveIntegerField(default=0)
+    warnings_count = models.PositiveIntegerField(default=0)
+    skipped_count = models.PositiveIntegerField(default=0)
+
+    summary = models.TextField(blank=True)
+    report = models.JSONField(blank=True, default=dict)
+    triggered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ui_check_runs",
+    )
+
+    class Meta:
+        ordering = ["-started_at"]
+        verbose_name = "Client UI check"
+        verbose_name_plural = "Client UI checks"
+
+    def __str__(self) -> str:
+        return f"{self.started_at:%Y-%m-%d %H:%M} · {self.get_status_display()}"
+
 class ClientSource(models.Model):
     source = models.CharField()
 

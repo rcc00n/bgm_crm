@@ -18,6 +18,7 @@ urlpatterns = [
         core_views.admin_client_contact,
         name="admin-client-contact",
     ),
+    path("admin/ui-check/run/", core_views.admin_ui_check_run, name="admin-ui-check-run"),
     # Admin
     path("admin/", admin.site.urls),
 

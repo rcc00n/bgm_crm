@@ -185,6 +185,18 @@ def custom_index(request):
         else None
     )
 
+    latest_ui_check = ClientUiCheckRun.objects.order_by("-started_at").first()
+    ui_check_next_due = None
+    ui_check_due = False
+    ui_check_running = False
+    if latest_ui_check:
+        ui_check_next_due = latest_ui_check.started_at + timedelta(days=3)
+        ui_check_due = ui_check_next_due <= timezone.now()
+        ui_check_running = (
+            latest_ui_check.status == ClientUiCheckRun.Status.RUNNING
+            and latest_ui_check.started_at >= timezone.now() - timedelta(hours=6)
+        )
+
     context = admin.site.each_context(request)
     context.update({
         "is_master": is_master,
@@ -207,6 +219,10 @@ def custom_index(request):
         "status_trend": status_trend,
         "web_analytics": analytics_summary,
         "web_analytics_periods": analytics_periods,
+        "latest_ui_check": latest_ui_check,
+        "ui_check_next_due": ui_check_next_due,
+        "ui_check_due": ui_check_due,
+        "ui_check_running": ui_check_running,
     })
     return TemplateResponse(request, "admin/index.html", context)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -3004,4 +3020,36 @@ class PageViewAdmin(admin.ModelAdmin):
     search_fields = ("path", "page_instance_id", "session__session_key", "user__username")
     list_filter = ("started_at",)
     readonly_fields = ("created_at", "updated_at")
+    ordering = ("-started_at",)
+
+
+@admin.register(ClientUiCheckRun)
+class ClientUiCheckRunAdmin(admin.ModelAdmin):
+    list_display = (
+        "started_at",
+        "status",
+        "trigger",
+        "total_pages",
+        "failures_count",
+        "warnings_count",
+    )
+    list_filter = ("status", "trigger", "started_at")
+    search_fields = ("summary",)
+    readonly_fields = (
+        "trigger",
+        "status",
+        "started_at",
+        "finished_at",
+        "duration_ms",
+        "total_pages",
+        "total_links",
+        "total_forms",
+        "total_buttons",
+        "failures_count",
+        "warnings_count",
+        "skipped_count",
+        "summary",
+        "report",
+        "triggered_by",
+    )
     ordering = ("-started_at",)
