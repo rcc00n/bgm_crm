@@ -3187,6 +3187,7 @@ class EmailCampaignAdminForm(forms.ModelForm):
 @admin.register(EmailCampaign)
 class EmailCampaignAdmin(admin.ModelAdmin):
     form = EmailCampaignAdminForm
+    change_form_template = "admin/core/emailcampaign/change_form.html"
     list_display = (
         "name",
         "status_badge",
@@ -3209,7 +3210,6 @@ class EmailCampaignAdmin(admin.ModelAdmin):
         "send_completed_at",
         "sent_by",
         "recipients_link",
-        "preview_block",
         "created_at",
         "updated_at",
     )
@@ -3230,7 +3230,6 @@ class EmailCampaignAdmin(admin.ModelAdmin):
                 "recipients_link",
             )
         }),
-        ("Preview", {"fields": ("preview_block",)}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
     actions = ("send_selected_campaigns",)
@@ -3338,6 +3337,29 @@ class EmailCampaignAdmin(admin.ModelAdmin):
             ),
         ]
         return custom_urls + urls
+
+    def _email_preview_defaults(self):
+        return {
+            "brand_name": email_brand_name(),
+            "brand_tagline": email_brand_tagline(),
+            "company_address": email_company_address(),
+            "company_phone": email_company_phone(),
+            "company_website": email_company_website(),
+            "accent_color": email_accent_color(),
+            "dark_color": email_dark_color(),
+            "bg_color": email_bg_color(),
+        }
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["email_preview_defaults"] = self._email_preview_defaults()
+        extra_context["email_settings_url"] = reverse("admin:core_emailtemplate_changelist")
+        return super().changeform_view(
+            request,
+            object_id=object_id,
+            form_url=form_url,
+            extra_context=extra_context,
+        )
 
     def send_view(self, request, campaign_id):
         campaign = self.get_object(request, campaign_id)

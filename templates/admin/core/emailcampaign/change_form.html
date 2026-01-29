@@ -4,20 +4,20 @@
 {% block extrahead %}
   {{ block.super }}
   <style>
-    body.model-emailtemplate.change-form #content {
+    body.model-emailcampaign.change-form #content {
       max-width: none;
     }
 
-    body.model-emailtemplate.change-form #content.colMS {
+    body.model-emailcampaign.change-form #content.colMS {
       margin-right: 0;
     }
 
-    body.model-emailtemplate.change-form #content-main {
+    body.model-emailcampaign.change-form #content-main {
       float: none;
       width: 100%;
     }
 
-    body.model-emailtemplate.change-form #content-related {
+    body.model-emailcampaign.change-form #content-related {
       float: none;
       width: 100%;
       margin: 20px 0 0;
@@ -318,7 +318,7 @@
   <div class="module email-preview-module">
     <h2 style="margin-top: 0;">Email preview</h2>
     <p class="help">Click any text in the preview to edit it. Tokens like <code>{brand}</code> stay visible here.</p>
-    <p class="help">Global branding/colors live in the “Email settings (global)” section (also in <a href="{{ email_settings_url }}">Email settings</a>).</p>
+    <p class="help">Global branding/colors live in <a href="{{ email_settings_url }}">Email settings</a>.</p>
     <div class="email-preview"
          data-email-preview-root
          data-email-brand="{{ email_preview_defaults.brand_name|default_if_none:''|escape }}"
@@ -341,8 +341,8 @@
       </div>
       <div class="email-preview__canvas">
         <div class="email-preview__frame">
-          <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
-          <div class="email-preview__tagline" data-preview-field="brand_tagline" contenteditable="true" data-placeholder="Brand tagline"></div>
+          <div class="email-preview__brand" data-preview-field="brand_name"></div>
+          <div class="email-preview__tagline" data-preview-field="brand_tagline"></div>
           <div class="email-preview__card">
             <div class="email-preview__accent"></div>
             <div class="email-preview__content">
@@ -391,7 +391,7 @@
             </div>
           </div>
           <div class="email-preview__contact">
-            <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
+            <div class="email-preview__brand" data-preview-field="brand_name"></div>
             <div data-preview-field="contact_line"></div>
           </div>
           <div class="email-preview__note">Sample rows (details/items/links) are for layout only.</div>
