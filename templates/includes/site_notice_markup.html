@@ -1,4 +1,5 @@
 {# Shared promo banner markup — v1 #}
+{% load lead_security %}
 {% with site_notice_version=site_notice_version|default:"offer-v1" %}
 <div id="siteNotice"
      class="site-notice"
@@ -39,6 +40,7 @@
 
     <form class="site-notice__form" id="siteNoticeForm" aria-label="Email signup form" method="post" action="{% url 'site-notice-signup' %}">
       {% csrf_token %}
+      {% lead_security_fields "site_notice" %}
       <label class="site-notice__label" for="siteNoticeEmail">Email address</label>
       <div class="site-notice__input-row">
         <input type="email"

@@ -1,4 +1,4 @@
-{% load static dealer_extras %}
+{% load static dealer_extras lead_security %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -686,6 +686,7 @@
       <aside class="hero__panel">
         <form id="service-form" class="form" method="post" action="{% url 'service-lead-submit' %}" autocomplete="on">
           {% csrf_token %}
+          {% lead_security_fields "service_lead" %}
           <input type="hidden" name="source_page" value="performance_tuning">
           <input type="hidden" name="source_url" value="{{ request.build_absolute_uri }}">
           <input type="hidden" name="next" value="{{ request.build_absolute_uri }}#service-form">
@@ -974,6 +975,7 @@
   <!-- Unified topbar behavior -->
   <script src="{% static 'js/topbar.js' %}"></script>
 
+  {% include "includes/lead_security_script.html" %}
   {% include "includes/site_notice_script.html" %}
   {% include "includes/analytics_tracker.html" %}
 </body>

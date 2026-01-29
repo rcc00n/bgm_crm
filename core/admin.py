@@ -3404,6 +3404,40 @@ class ServiceLeadAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(LeadSubmissionEvent)
+class LeadSubmissionEventAdmin(admin.ModelAdmin):
+    list_display = (
+        "created_at",
+        "form_type",
+        "outcome",
+        "success",
+        "suspicion_score",
+        "ip_address",
+        "cf_country",
+        "cf_asn",
+    )
+    list_filter = ("form_type", "outcome", "success", "created_at")
+    search_fields = (
+        "ip_address",
+        "user_agent",
+        "referer",
+        "origin",
+        "path",
+        "session_key_hash",
+        "cf_asn",
+        "cf_asn_org",
+    )
+    readonly_fields = ("created_at",)
+    ordering = ("-created_at",)
+    fieldsets = (
+        (None, {"fields": ("form_type", "outcome", "success", "suspicion_score")}),
+        ("Request", {"fields": ("path", "referer", "origin", "accept_language", "user_agent")}),
+        ("Network", {"fields": ("ip_address", "cf_country", "cf_asn", "cf_asn_org")}),
+        ("Session", {"fields": ("session_key_hash", "session_first_seen_at", "time_on_page_ms")}),
+        ("Diagnostics", {"fields": ("validation_errors", "flags", "created_at")}),
+    )
+
+
 @admin.register(VisitorSession)
 class VisitorSessionAdmin(admin.ModelAdmin):
     list_display = (

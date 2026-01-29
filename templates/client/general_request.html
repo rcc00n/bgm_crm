@@ -1,4 +1,4 @@
-{% load static %}
+{% load static lead_security %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -261,6 +261,7 @@
 
         <form class="form" method="post" action="{% url 'service-lead-submit' %}" autocomplete="on">
           {% csrf_token %}
+          {% lead_security_fields "service_lead" %}
           <input type="hidden" name="source_page" value="general_request">
           <input type="hidden" name="source_url" value="{{ request.build_absolute_uri }}">
           <input type="hidden" name="next" value="{{ request.build_absolute_uri }}#request-form">
@@ -309,6 +310,7 @@
     </div>
   </main>
 
+  {% include "includes/lead_security_script.html" %}
   {% include "includes/site_footer.html" %}
 </body>
 </html>

@@ -3116,6 +3116,54 @@ class ServiceLead(models.Model):
         return f"{self.full_name} — {self.service_needed}"
 
 
+class LeadSubmissionEvent(models.Model):
+    """
+    Non-PII logging for public lead/signup submissions.
+    """
+
+    class FormType(models.TextChoices):
+        SITE_NOTICE = ("site_notice", "Site notice signup")
+        SERVICE_LEAD = ("service_lead", "Service lead")
+
+    class Outcome(models.TextChoices):
+        ACCEPTED = ("accepted", "Accepted")
+        SUSPECTED = ("suspected", "Accepted (suspected)")
+        BLOCKED = ("blocked", "Blocked")
+        RATE_LIMITED = ("rate_limited", "Rate limited")
+        REJECTED = ("rejected", "Rejected")
+
+    form_type = models.CharField(max_length=40, choices=FormType.choices, db_index=True)
+    outcome = models.CharField(max_length=40, choices=Outcome.choices, db_index=True)
+    success = models.BooleanField(default=False)
+    suspicion_score = models.PositiveSmallIntegerField(default=0)
+    validation_errors = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    accept_language = models.CharField(max_length=512, blank=True)
+    referer = models.CharField(max_length=600, blank=True)
+    origin = models.CharField(max_length=300, blank=True)
+    path = models.CharField(max_length=300, blank=True)
+    session_key_hash = models.CharField(max_length=64, blank=True)
+    session_first_seen_at = models.DateTimeField(null=True, blank=True)
+    time_on_page_ms = models.PositiveIntegerField(null=True, blank=True)
+    cf_country = models.CharField(max_length=12, blank=True)
+    cf_asn = models.CharField(max_length=40, blank=True)
+    cf_asn_org = models.CharField(max_length=200, blank=True)
+    flags = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["form_type", "created_at"]),
+            models.Index(fields=["outcome", "created_at"]),
+            models.Index(fields=["ip_address", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_form_type_display()} • {self.get_outcome_display()} @ {self.created_at:%Y-%m-%d %H:%M:%S}"
+
+
 class LandingPageReview(models.Model):
     """
     Marketing review snippets shown on specific landing pages.
