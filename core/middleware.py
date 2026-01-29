@@ -1,6 +1,8 @@
 import logging
+from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.contrib.auth import logout
 from django.utils import timezone
 from django.utils.deprecation import MiddlewareMixin
 
@@ -176,3 +178,45 @@ class AdminSidebarSeenMiddleware(MiddlewareMixin):
             defaults={"last_seen_at": timezone.now()},
         )
         return None
+
+
+class AuthAbsoluteTimeoutMiddleware:
+    """
+    Forces re-login after a fixed time window (default: 30 minutes),
+    regardless of user activity.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.timeout_seconds = int(getattr(settings, "AUTH_ABSOLUTE_TIMEOUT_SECONDS", 1800))
+        default_exempt = (
+            "/accounts/login/",
+            "/accounts/logout/",
+            "/admin/login/",
+            "/admin/logout/",
+        )
+        configured = getattr(settings, "AUTH_TIMEOUT_EXEMPT_PATHS", None)
+        self.exempt_paths = tuple(configured or default_exempt)
+
+    def __call__(self, request):
+        user = getattr(request, "user", None)
+        path = getattr(request, "path", "") or ""
+        if user and user.is_authenticated and self.timeout_seconds > 0:
+            if not any(path.startswith(prefix) for prefix in self.exempt_paths):
+                now = timezone.now()
+                raw = request.session.get("_auth_login_at")
+                login_at = None
+                if raw:
+                    try:
+                        login_at = datetime.fromisoformat(raw)
+                    except Exception:
+                        login_at = None
+                if not login_at:
+                    request.session["_auth_login_at"] = now.isoformat()
+                else:
+                    if timezone.is_naive(login_at):
+                        login_at = timezone.make_aware(login_at, timezone.get_default_timezone())
+                    if now - login_at >= timedelta(seconds=self.timeout_seconds):
+                        logout(request)
+                        request.session.flush()
+        return self.get_response(request)

@@ -300,6 +300,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.AuthAbsoluteTimeoutMiddleware",
     "core.middleware.AdminSidebarSeenMiddleware",
     "core.middleware.VisitorAnalyticsMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -396,6 +397,12 @@ SECURE_SSL_REDIRECT = _bool_env("SECURE_SSL_REDIRECT", "True")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h]
+
+# ── Сессии ──────────────────────────────────────────────────────────────
+# Принудительный логаут через 30 минут (абсолютный таймаут).
+SESSION_COOKIE_AGE = 60 * 30
+SESSION_SAVE_EVERY_REQUEST = False
+AUTH_ABSOLUTE_TIMEOUT_SECONDS = 60 * 30
 
 # ── Jazzmin (как было) ───────────────────────────────────────────────────
 ADMIN_SIDEBAR_SECTIONS = [
