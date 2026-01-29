@@ -587,8 +587,16 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "icon": "fas fa-bell",
                 "items": [
                     {"model": "core.Notification", "label": "Notifications"},
-                    {"model": "core.EmailCampaign", "label": "Email Campaigns"},
-                    {"model": "core.EmailSubscriber", "label": "Email Subscribers"},
+                    {
+                        "model": "core.EmailCampaign",
+                        "label": "Email Campaigns",
+                        "activity_field": "created_at",
+                    },
+                    {
+                        "model": "core.EmailSubscriber",
+                        "label": "Email Subscribers",
+                        "activity_field": "created_at",
+                    },
                     {"model": "core.EmailTemplate", "label": "Email Templates"},
                 ],
             },
