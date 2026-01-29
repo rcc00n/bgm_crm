@@ -1,14 +1,17 @@
 # core/views.py
 import logging
+import re
 
 from django.conf import settings
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Prefetch, Q
 from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_cookie
+from django.views.decorators.cache import never_cache
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -19,6 +22,7 @@ from datetime import datetime
 import json
 from django.utils.functional import cached_property
 
+from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from core.models import (
     Appointment,
@@ -51,34 +55,120 @@ from core.services.media import (
     build_electrical_work_media,
     build_performance_tuning_media,
 )
-from notifications.services import notify_about_service_lead
+from notifications.services import notify_about_service_lead, notify_about_site_notice_signup
 
 logger = logging.getLogger(__name__)
+
+
+@require_http_methods(["GET", "POST"])
+@csrf_protect
+def admin_logout(request):
+    logout(request)
+    return redirect(getattr(settings, "LOGOUT_REDIRECT_URL", "/"))
+
+def _normalize_search_text(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").lower()).strip()
+
+def _score_service_match(service, query: str, tokens):
+    """
+    Cheap relevance scoring: name matches outrank description matches.
+    Returns 0 if there is no match at all.
+    """
+    if not query:
+        return 0
+    name = _normalize_search_text(service.name)
+    desc = _normalize_search_text(service.description or "")
+    if not name and not desc:
+        return 0
+
+    query = _normalize_search_text(query)
+    if not query:
+        return 0
+
+    name_has_query = query in name
+    desc_has_query = query in desc
+    token_name_hits = sum(1 for t in tokens if t in name)
+    token_desc_hits = sum(1 for t in tokens if t in desc)
+    has_match = name_has_query or desc_has_query or token_name_hits or token_desc_hits
+    if not has_match:
+        return 0
+
+    score = 0
+    if name == query:
+        score += 120
+    if name.startswith(query):
+        score += 90
+    if name_has_query:
+        score += 60
+    if desc_has_query:
+        score += 18
+    if tokens:
+        if token_name_hits == len(tokens):
+            score += 40
+        if token_desc_hits == len(tokens):
+            score += 12
+        score += token_name_hits * 12
+        score += token_desc_hits * 4
+    return score
+
+def _rank_services(qs, query: str, limit: int = 60):
+    services = list(qs)
+    if not query:
+        services.sort(key=lambda s: (s.name or "").lower())
+        return services[:limit]
+
+    tokens = [t for t in re.split(r"[^a-z0-9]+", _normalize_search_text(query)) if t]
+    scored = [(s, _score_service_match(s, query, tokens)) for s in services]
+    positive = [pair for pair in scored if pair[1] > 0]
+    ranked = positive if positive else scored
+    ranked.sort(key=lambda pair: (-pair[1], (pair[0].name or "").lower()))
+    return [s for s, _ in ranked[:limit]]
+
+def _is_mobile_request(request):
+    if request.GET.get("desktop") == "1":
+        return False
+    if request.GET.get("mobile") == "1":
+        return True
+    ua = (request.META.get("HTTP_USER_AGENT") or "").lower()
+    if not ua:
+        return False
+    mobile_markers = (
+        "mobi", "android", "iphone", "ipod", "ipad", "windows phone",
+        "blackberry", "opera mini", "opera mobi", "mobile"
+    )
+    return any(marker in ua for marker in mobile_markers)
 
 def _build_catalog_context(request):
     """Общий конструктор контекста каталога."""
     q = (request.GET.get("q") or "").strip()
     cat = request.GET.get("cat") or ""
+    filters_active = bool(q or cat)
 
-    services_qs = Service.objects.select_related("category").order_by("name")
-    if q:
-        services_qs = services_qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    all_services_qs = Service.objects.select_related("category").order_by("name")
+    filtered_qs = all_services_qs
     if cat:
-        services_qs = services_qs.filter(category__id=cat)
+        filtered_qs = filtered_qs.filter(category__id=cat)
 
     categories_qs = (
         ServiceCategory.objects.order_by("name")
-        .prefetch_related(Prefetch("service_set", queryset=services_qs))
+        .prefetch_related(Prefetch("service_set", queryset=all_services_qs))
     )
+
+    search_results = None
+    if filters_active:
+        search_results = _rank_services(filtered_qs, q, limit=60)
+        if not search_results and all_services_qs.exists():
+            search_results = _rank_services(all_services_qs, q, limit=60)
 
     return {
         "categories": categories_qs,
-        "filter_categories": ServiceCategory.objects.order_by("name"),
+        "filter_categories": ServiceCategory.objects.filter(service__isnull=False).distinct().order_by("name"),
         "q": q,
         "active_category": str(cat),
-        "search_results": services_qs if q else None,
-        "has_any_services": services_qs.exists(),
-        "uncategorized": services_qs.filter(category__isnull=True),
+        "filters_active": filters_active,
+        "search_results": search_results,
+        "has_any_services": all_services_qs.exists(),
+        "uncategorized": all_services_qs.filter(category__isnull=True),
     }
 
 
@@ -91,6 +181,7 @@ def _get_landing_reviews(page_slug: str):
         .order_by("display_order", "-created_at")
     )
 
+@never_cache
 @ensure_csrf_cookie
 def public_mainmenu(request):
     """
@@ -122,7 +213,11 @@ def public_mainmenu(request):
         ctx.setdefault("profile", None)
         ctx.setdefault("appointments", [])
 
-    return render(request, "client/mainmenu.html", ctx)
+    is_mobile = _is_mobile_request(request)
+    template_name = "client/mainmenu_mobile.html" if is_mobile else "client/mainmenu.html"
+    response = render(request, template_name, ctx)
+    response["X-Template-Version"] = "mainmenu-mobile-v5-2026-01-26" if is_mobile else "mainmenu-desktop-v1-2026-01-26"
+    return response
 
 
 @staff_member_required
@@ -142,6 +237,32 @@ def admin_client_contact(request, user_id):
         "email": user.email or "",
         "phone": getattr(profile, "phone", "") if profile else "",
     })
+
+
+@staff_member_required
+@require_POST
+def admin_ui_check_run(request):
+    from core.models import ClientUiCheckRun
+    from core.services.ui_audit import run_client_ui_check
+
+    run = run_client_ui_check(
+        trigger=ClientUiCheckRun.Trigger.MANUAL,
+        triggered_by=request.user,
+        force=True,
+    )
+
+    if not run:
+        messages.info(request, "UI check skipped: not due yet.")
+        return redirect("admin:index")
+
+    if run.status == ClientUiCheckRun.Status.RUNNING:
+        messages.warning(request, "UI check is already running.")
+        return redirect("admin:index")
+
+    status_label = run.get_status_display()
+    details = f"failures {run.failures_count}, warnings {run.warnings_count}"
+    messages.success(request, f"UI check completed: {status_label} ({details}).")
+    return redirect("admin:index")
 
 # ===== API =====
 
@@ -388,17 +509,17 @@ def api_appointment_reschedule(request, appt_id):
 def service_search(request):
     q = (request.GET.get('q') or '').strip()
     cat = request.GET.get('cat') or ''
-    qs = Service.objects.select_related('category')
-
-    if q:
-        qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    all_qs = Service.objects.select_related('category')
+    qs = all_qs
     if cat:
         qs = qs.filter(category_id=cat)
 
-    qs = qs.order_by('name')[:60]  # limit
+    ranked = _rank_services(qs, q, limit=60)
+    if not ranked and all_qs.exists():
+        ranked = _rank_services(all_qs, q, limit=60)
 
     results = []
-    for s in qs:
+    for s in ranked:
         disc = s.get_active_discount() if not s.contact_for_estimate else None
         base_price = str(s.base_price_amount())
         price = None
@@ -641,33 +762,33 @@ def site_notice_signup(request):
         return _error("Email service is unavailable.", status=500)
 
     code = _resolve_site_notice_code()
-    brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
-    subject = f"{brand} welcome code"
-    text_lines = [
-        f"Thanks for joining the {brand} email list.",
-        f"Your welcome code: {code}",
-        "Use it on any product or service invoice.",
-        "",
-        "Questions? Reply to this email and we will help.",
-    ]
+    brand = email_brand_name()
+    context = base_email_context({"brand": brand, "welcome_code": code})
+    template = render_email_template("site_notice_welcome", context)
+    summary_lines = [f"Welcome code: {code}", "Discount: 5% off"]
+    text_body = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        summary_lines,
+        template.footer_lines,
+    )
 
     try:
         html_body = build_email_html(
-            title="Your 5% welcome code",
-            preheader=f"Welcome code inside: {code}",
-            greeting=f"Thanks for joining the {brand} email list.",
-            intro_lines=[
-                "Here is your welcome code for 5% off your first order.",
-                "Use it on any product or service invoice.",
-            ],
+            title=template.title,
+            preheader=template.preheader,
+            greeting=template.greeting,
+            intro_lines=template.intro_lines,
             summary_rows=[("Welcome code", code), ("Discount", "5% off")],
-            footer_lines=["Questions? Reply to this email and we will help."],
-            cta_label=f"Visit {brand}",
+            notice_title=template.notice_title or None,
+            notice_lines=template.notice_lines,
+            footer_lines=template.footer_lines,
+            cta_label=template.cta_label,
             cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
         )
         send_html_email(
-            subject=subject,
-            text_body="\n".join(text_lines),
+            subject=template.subject,
+            text_body=text_body,
             html_body=html_body,
             from_email=sender,
             recipient_list=[email],
@@ -676,14 +797,21 @@ def site_notice_signup(request):
         logger.exception("Failed to send site notice code email to %s", email)
         return _error("Unable to send the code right now.", status=500)
 
+    signup = None
     try:
-        SiteNoticeSignup.objects.create(
+        signup = SiteNoticeSignup.objects.create(
             email=email,
             welcome_code=code,
             welcome_sent_at=timezone.now(),
         )
     except Exception:
         logger.exception("Failed to record site notice signup for %s", email)
+
+    if signup:
+        try:
+            notify_about_site_notice_signup(signup.pk)
+        except Exception:
+            logger.exception("Failed to send Telegram alert for site notice signup %s", signup.pk)
 
     try:
         user = CustomUserDisplay.objects.filter(email__iexact=email).first()

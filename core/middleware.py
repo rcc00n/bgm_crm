@@ -1,8 +1,12 @@
 import logging
+from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.contrib.auth import logout
+from django.utils import timezone
+from django.utils.deprecation import MiddlewareMixin
 
-from core.models import VisitorSession
+from core.models import AdminSidebarSeen, VisitorSession
 
 logger = logging.getLogger(__name__)
 
@@ -124,3 +128,93 @@ class VisitorAnalyticsMiddleware:
             "user_email_snapshot": user.email or "",
             "user_name_snapshot": full_name or fallback,
         }
+
+
+class AdminSidebarSeenMiddleware(MiddlewareMixin):
+    """
+    Marks admin sidebar items as seen once a staff user opens the model page.
+    """
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        if request.method not in ("GET", "HEAD"):
+            return None
+
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated or not user.is_staff:
+            return None
+
+        path = getattr(request, "path", "") or ""
+        if not path.startswith("/admin/"):
+            return None
+
+        app_label = view_kwargs.get("app_label")
+        model_name = view_kwargs.get("model_name")
+        if not app_label or not model_name:
+            resolver = getattr(request, "resolver_match", None)
+            view_name = getattr(resolver, "view_name", "") or ""
+            if view_name.startswith("admin:"):
+                slug = view_name.split(":", 1)[1]
+                if "_" in slug:
+                    app_label, rest = slug.split("_", 1)
+                    for suffix in ("changelist", "add", "change", "delete", "history"):
+                        suffix_token = f"_{suffix}"
+                        if rest.endswith(suffix_token):
+                            model_name = rest[: -len(suffix_token)]
+                            break
+        if not app_label or not model_name:
+            return None
+
+        has_access = any(
+            user.has_perm(f"{app_label}.{perm}_{model_name}")
+            for perm in ("view", "change", "add", "delete")
+        )
+        if not has_access:
+            return None
+
+        AdminSidebarSeen.objects.update_or_create(
+            user=user,
+            app_label=app_label,
+            model_name=model_name,
+            defaults={"last_seen_at": timezone.now()},
+        )
+        return None
+
+
+class AuthIdleTimeoutMiddleware:
+    """
+    Forces re-login after a period of inactivity (default: 30 minutes).
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.timeout_seconds = int(getattr(settings, "AUTH_IDLE_TIMEOUT_SECONDS", 1800))
+        default_exempt = (
+            "/accounts/login/",
+            "/accounts/logout/",
+            "/admin/login/",
+            "/admin/logout/",
+        )
+        configured = getattr(settings, "AUTH_TIMEOUT_EXEMPT_PATHS", None)
+        self.exempt_paths = tuple(configured or default_exempt)
+
+    def __call__(self, request):
+        user = getattr(request, "user", None)
+        path = getattr(request, "path", "") or ""
+        if user and user.is_authenticated and self.timeout_seconds > 0:
+            if not any(path.startswith(prefix) for prefix in self.exempt_paths):
+                now = timezone.now()
+                raw = request.session.get("_auth_last_seen_at")
+                last_seen = None
+                if raw:
+                    try:
+                        last_seen = datetime.fromisoformat(raw)
+                    except Exception:
+                        last_seen = None
+                if last_seen and timezone.is_naive(last_seen):
+                    last_seen = timezone.make_aware(last_seen, timezone.get_default_timezone())
+                if last_seen and now - last_seen >= timedelta(seconds=self.timeout_seconds):
+                    logout(request)
+                    request.session.flush()
+                else:
+                    request.session["_auth_last_seen_at"] = now.isoformat()
+        return self.get_response(request)

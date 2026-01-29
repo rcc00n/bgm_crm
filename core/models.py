@@ -72,6 +72,82 @@ class UserRole(models.Model):
     def __str__(self):
         return f"{self.user} → {self.role.name}"
 
+
+# --- ADMIN SIDEBAR ---
+
+
+class AdminSidebarSeen(models.Model):
+    """
+    Tracks when a staff user last opened an admin model page.
+    Used to render per-user sidebar notification dots.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_sidebar_seen",
+    )
+    app_label = models.CharField(max_length=100)
+    model_name = models.CharField(max_length=100)
+    last_seen_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ("user", "app_label", "model_name")
+        indexes = [
+            models.Index(fields=["user", "app_label", "model_name"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} → {self.app_label}.{self.model_name}"
+
+
+class ClientUiCheckRun(models.Model):
+    """
+    Stores results of automated client UI checks.
+    """
+
+    class Status(models.TextChoices):
+        RUNNING = "running", "Running"
+        SUCCESS = "success", "Success"
+        WARNING = "warning", "Warning"
+        FAILED = "failed", "Failed"
+        SKIPPED = "skipped", "Skipped"
+
+    class Trigger(models.TextChoices):
+        AUTO = "auto", "Auto"
+        MANUAL = "manual", "Manual"
+
+    trigger = models.CharField(max_length=12, choices=Trigger.choices, default=Trigger.AUTO)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.RUNNING)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    duration_ms = models.PositiveIntegerField(default=0)
+
+    total_pages = models.PositiveIntegerField(default=0)
+    total_links = models.PositiveIntegerField(default=0)
+    total_forms = models.PositiveIntegerField(default=0)
+    total_buttons = models.PositiveIntegerField(default=0)
+    failures_count = models.PositiveIntegerField(default=0)
+    warnings_count = models.PositiveIntegerField(default=0)
+    skipped_count = models.PositiveIntegerField(default=0)
+
+    summary = models.TextField(blank=True)
+    report = models.JSONField(blank=True, default=dict)
+    triggered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ui_check_runs",
+    )
+
+    class Meta:
+        ordering = ["-started_at"]
+        verbose_name = "Client UI check"
+        verbose_name_plural = "Client UI checks"
+
+    def __str__(self) -> str:
+        return f"{self.started_at:%Y-%m-%d %H:%M} · {self.get_status_display()}"
+
 class ClientSource(models.Model):
     source = models.CharField()
 
@@ -118,6 +194,16 @@ class HomePageCopy(models.Model):
     """
     Editable static text for the public home page.
     """
+    class HeroLogoLayout(models.TextChoices):
+        OVERLAY = "overlay", "Logo over photo"
+        STACKED = "stacked", "Logo then photo"
+
+    class HeroLogoBackground(models.TextChoices):
+        DARK = "dark", "Dark"
+        LIGHT = "light", "Light"
+        ACCENT = "accent", "Accent"
+        TRANSPARENT = "transparent", "Transparent"
+
     singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
 
     # Header & navigation
@@ -137,6 +223,65 @@ class HomePageCopy(models.Model):
     nav_about_label = models.CharField(max_length=40, default="About")
 
     # Hero
+    hero_logo = models.ImageField(
+        upload_to="home/branding/",
+        blank=True,
+        null=True,
+        help_text="Optional circular logo shown above the hero copy.",
+    )
+    hero_logo_backdrop = models.ImageField(
+        upload_to="home/branding/",
+        blank=True,
+        null=True,
+        help_text="Optional backdrop photo displayed behind the circular logo.",
+    )
+    hero_logo_layout = models.CharField(
+        max_length=12,
+        choices=HeroLogoLayout.choices,
+        default=HeroLogoLayout.OVERLAY,
+        help_text="Controls whether the logo overlays the photo or the photo appears below it.",
+    )
+    hero_logo_bg_style = models.CharField(
+        max_length=16,
+        choices=HeroLogoBackground.choices,
+        default=HeroLogoBackground.DARK,
+        help_text="Background style for the circular logo container.",
+    )
+    hero_logo_size = models.PositiveSmallIntegerField(
+        default=180,
+        validators=[MinValueValidator(96), MaxValueValidator(260)],
+        help_text="Logo diameter in pixels (desktop).",
+    )
+    hero_logo_show_ring = models.BooleanField(
+        default=True,
+        help_text="Show circular ring around the hero logo.",
+    )
+    hero_logo_photo_width = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional width (px) for the photo under the logo (stacked layout only).",
+    )
+    hero_logo_photo_height = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional height (px) for the photo under the logo (stacked layout only).",
+    )
+    hero_media_width = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional hero image width (desktop px). Leave empty for auto.",
+    )
+    hero_media_height = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional hero image height (desktop px). Leave empty for auto.",
+    )
+    hero_logo_alt = models.CharField(
+        max_length=160,
+        default="BGM logo",
+        blank=True,
+        help_text="Accessible alt text for the hero logo image.",
+    )
     hero_kicker = models.CharField(max_length=120, default="Custom fabrication • Diesel performance")
     hero_title = models.CharField(max_length=140, default="Built to be bad. Engineered to last.")
     hero_lead = models.TextField(
@@ -202,6 +347,14 @@ class HomePageCopy(models.Model):
         max_length=120,
         default="Failed to load. Please try again.",
     )
+
+    # Gallery section
+    gallery_title = models.CharField(max_length=80, default="Project gallery")
+    gallery_desc = models.TextField(
+        default="Recent builds, wraps, and installs from the BGM shop floor.",
+    )
+    gallery_cta_label = models.CharField(max_length=60, default="View photo gallery")
+    gallery_cta_url = models.CharField(max_length=200, default="/project-journal/", blank=True)
 
     contact_for_estimate_label = models.CharField(max_length=80, default="Contact for estimate")
     from_label = models.CharField(max_length=40, default="From")
@@ -1309,6 +1462,89 @@ class DealerStatusPageCopy(models.Model):
         return obj
 
 
+class EmailTemplateSettings(models.Model):
+    """
+    Global defaults used across all email templates.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    brand_name = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Optional override for SITE_BRAND_NAME when sending emails.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email template settings"
+        verbose_name_plural = "Email template settings"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Email template settings"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
+class EmailTemplate(models.Model):
+    class TemplateSlug(models.TextChoices):
+        APPOINTMENT_CONFIRMATION = "appointment_confirmation", "Appointment confirmation"
+        ORDER_CONFIRMATION = "order_confirmation", "Order confirmation"
+        ORDER_STATUS_PROCESSING = "order_status_processing", "Order status: processing"
+        ORDER_STATUS_SHIPPED = "order_status_shipped", "Order status: shipped"
+        ORDER_STATUS_COMPLETED = "order_status_completed", "Order status: completed"
+        ORDER_STATUS_CANCELLED = "order_status_cancelled", "Order status: cancelled"
+        ABANDONED_CART_1 = "abandoned_cart_1", "Abandoned cart (1st)"
+        ABANDONED_CART_2 = "abandoned_cart_2", "Abandoned cart (2nd)"
+        ABANDONED_CART_3 = "abandoned_cart_3", "Abandoned cart (3rd)"
+        SITE_NOTICE_WELCOME = "site_notice_welcome", "Email signup: welcome code"
+        SITE_NOTICE_FOLLOWUP_2 = "site_notice_followup_2", "Email signup: 24h follow-up"
+        SITE_NOTICE_FOLLOWUP_3 = "site_notice_followup_3", "Email signup: 3-day follow-up"
+        ORDER_REVIEW_REQUEST = "order_review_request", "Order review request"
+        FITMENT_REQUEST_INTERNAL = "fitment_request_internal", "Custom fitment request (internal)"
+
+    slug = models.SlugField(max_length=80, unique=True, choices=TemplateSlug.choices)
+    name = models.CharField(max_length=120)
+    description = models.CharField(max_length=255, blank=True)
+
+    subject = models.CharField(max_length=180)
+    preheader = models.CharField(max_length=180, blank=True)
+    title = models.CharField(max_length=140)
+    greeting = models.CharField(max_length=160, blank=True)
+    intro = models.TextField(
+        blank=True,
+        help_text="One sentence per line. These lines appear near the top of the email.",
+    )
+    notice_title = models.CharField(max_length=120, blank=True)
+    notice = models.TextField(
+        blank=True,
+        help_text="Optional callout. One sentence per line.",
+    )
+    footer = models.TextField(
+        blank=True,
+        help_text="One sentence per line. Appears at the bottom of the email.",
+    )
+    cta_label = models.CharField(max_length=80, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email template"
+        verbose_name_plural = "Email templates"
+        ordering = ("name",)
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class FontPreset(models.Model):
     """
     Reusable font definition that can be applied to public-facing pages.
@@ -1582,6 +1818,10 @@ class HeroImage(models.Model):
     """
     class Location(models.TextChoices):
         HOME = "home", "Home hero"
+        HOME_GALLERY_A = "home-gallery-a", "Home gallery — slot 1"
+        HOME_GALLERY_B = "home-gallery-b", "Home gallery — slot 2"
+        HOME_GALLERY_C = "home-gallery-c", "Home gallery — slot 3"
+        HOME_GALLERY_D = "home-gallery-d", "Home gallery — slot 4"
         DEALER_STATUS = "dealer-status", "Dealer banner"
         STORE = "store", "Store hero"
         MERCH = "merch", "Merch hero"

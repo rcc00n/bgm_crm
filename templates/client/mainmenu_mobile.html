@@ -1,0 +1,1025 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ services_copy.meta_title|default:"Bad Guy Motors - Services" }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with meta_title=services_copy.meta_title|default:"Bad Guy Motors - Services" meta_description=services_copy.meta_description|default:"Book services with a quick, mobile-first flow." meta_section="services" meta_keywords=marketing.default_keywords %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+
+  <style>
+    :root{
+      --bg:#0a0a0a; --ink:#eaeaea; --muted:#bdbdbd;
+      --red:#d50000; --red-dark:#b60000;
+      --panel:#111; --panel-2:#151515; --line:rgba(255,255,255,.12);
+      --radius-lg:1.25rem; --radius-md:.9rem; --radius-sm:.6rem;
+      --shadow:0 10px 30px rgba(0,0,0,.45);
+      --container:min(1200px,92vw);
+      --site-header-height:72px;
+      --site-header-toggle-size:46px;
+      --font-body:Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      --font-head:Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:16px;scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--ink);font-family:var(--font-body);line-height:1.55;min-height:100dvh;overflow-x:hidden}
+    img{max-width:100%;display:block}
+    a{color:inherit;text-decoration:none}
+    .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
+    .visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+    /* Buttons (shared) */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;padding:.78rem 1.15rem;border-radius:var(--radius-sm);
+      font-weight:900;letter-spacing:.25px;cursor:pointer;transition:.2s ease;white-space:nowrap;user-select:none;line-height:1;border:1px solid transparent;text-transform:uppercase}
+    .btn--primary{background:linear-gradient(180deg,var(--red),var(--red-dark));color:#fff;border:1px solid rgba(255,255,255,.08);box-shadow:0 0 24px rgba(213,0,0,.35)}
+    .btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--red)}
+
+    /* Header + nav (reused) */
+    .site-header{position:sticky;top:0;z-index:1000;background:#000;border-bottom:1px solid var(--line)}
+    .site-header__inner{display:flex;align-items:center;gap:1.25rem;justify-content:space-between;padding:.7rem 0}
+    .brand{display:flex;align-items:baseline;gap:.9rem;font-weight:900;letter-spacing:.5px}
+    .brand__logo{all:unset;display:inline-flex;gap:.5rem;line-height:1;letter-spacing:.06em;font-size:1rem}
+    .brand__word--white{color:#fff}
+    .brand__word--red{color:var(--red)}
+    .brand__tagline{margin-left:1.1rem;white-space:nowrap;font-size:.82rem;font-weight:800;letter-spacing:.14em;color:rgba(255,255,255,.72)}
+    nav ul{display:flex;align-items:center;gap:1.4rem;list-style:none}
+    nav a{display:inline-flex;align-items:center;gap:.45rem;line-height:1;text-transform:uppercase;font-weight:800;letter-spacing:.08em;font-size:.82rem;color:rgba(255,255,255,.78)}
+    nav a:hover,nav a[aria-current="page"]{color:#fff}
+    nav .btn,nav .btn--ghost{padding:0;border:none;background:none}
+    @media (max-width:1200px){.brand__tagline{display:none !important}}
+
+    .site-header__toggle{
+      display:none;align-items:center;justify-content:center;
+      width:var(--site-header-toggle-size);height:var(--site-header-toggle-size);
+      border-radius:.85rem;border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);color:#fff;cursor:pointer;
+      transition:transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+    .site-header__toggle:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
+    .site-header__toggle:focus-visible{outline:2px solid #fff;outline-offset:3px}
+    .site-header__toggle-box{position:relative;width:20px;height:14px;display:block}
+    .site-header__toggle-lines,
+    .site-header__toggle-lines::before,
+    .site-header__toggle-lines::after{
+      content:"";position:absolute;left:0;width:100%;height:2px;border-radius:999px;background:currentColor;
+      transition:transform .22s ease, opacity .22s ease, background .22s ease;
+    }
+    .site-header__toggle-lines{top:50%;transform:translateY(-50%)}
+    .site-header__toggle-lines::before{top:-6px}
+    .site-header__toggle-lines::after{top:6px}
+    .site-header--open .site-header__toggle{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.38)}
+    .site-header--open .site-header__toggle-lines{background:transparent}
+    .site-header--open .site-header__toggle-lines::before{transform:translateY(6px) rotate(45deg)}
+    .site-header--open .site-header__toggle-lines::after{transform:translateY(-6px) rotate(-45deg)}
+
+    @media (max-width:960px){
+      body.nav-open{overflow:hidden}
+      .site-header{--site-header-height:max(62px,10vh)}
+      .site-header .container{padding-inline:clamp(16px,4vw,24px)}
+      .site-header__inner{display:grid;grid-template-columns:auto max-content;align-items:center;gap:clamp(12px,3vw,24px)}
+      .site-header__toggle{display:inline-flex}
+
+      .site-header nav{
+        position:fixed;inset:0;padding-top:calc(var(--site-header-height) + 1rem);
+        padding-inline:clamp(20px,6vw,36px);padding-bottom:clamp(28px,12vh,46px);
+        background:rgba(5,5,5,.88);backdrop-filter:blur(18px) saturate(1.2);
+        display:flex;align-items:flex-start;justify-content:flex-start;
+        opacity:0;pointer-events:none;transform:translateY(-12px);
+        transition:opacity .22s ease, transform .22s ease;z-index:3700;
+        overflow-y:auto;-webkit-overflow-scrolling:touch;border-right:none;box-shadow:none;
+      }
+      .site-header nav ul{
+        flex-direction:column;align-items:stretch;gap:.9rem;width:100%;margin:0;padding:0;list-style:none;
+      }
+      .site-header nav li{width:100%}
+      .site-header nav a,.site-header nav .btn,.site-header nav .btn--ghost{
+        width:100%;display:flex;align-items:center;justify-content:space-between;
+        min-height:56px;padding:1.05rem 1.15rem;border-radius:1rem;
+        background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+        font-size:.96rem;font-weight:700;letter-spacing:.02em;box-shadow:0 8px 24px rgba(0,0,0,.35);
+      }
+      .site-header nav a:hover,
+      .site-header nav a[aria-current="page"],
+      .site-header nav .btn:hover{
+        background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#fff;
+      }
+      .brand__tagline{display:none !important}
+      .site-header--open nav, body.nav-open .site-header nav,
+      .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+        opacity:1;pointer-events:auto;transform:translateY(0);
+      }
+    }
+
+    .site-header nav a:focus{outline:none}
+    .site-header nav a:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:3px;border-color:rgba(255,255,255,.22)}
+
+    .site-header{z-index:3600 !important;}
+    @media (max-width:960px){
+      .site-header nav{z-index:3700 !important;}
+    }
+
+    /* Smoke background */
+    #bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+    #bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block; pointer-events:none;}
+    .hero, main, .site-footer, .contact-fab{position:relative; z-index:1;}
+
+    /* Hero */
+    .hero{padding:2.4rem 0 1.2rem;text-align:left}
+    .hero h1{font:900 1.6rem/1.1 var(--font-head);letter-spacing:.6px;text-transform:uppercase}
+    .hero p{color:var(--muted);font-size:1rem;margin-top:.45rem}
+
+    /* Filters */
+    .filters{display:grid;grid-template-columns:1fr;gap:.6rem;margin:1rem 0 1.2rem}
+    .filters input,.filters select{padding:.7rem .95rem;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:1rem;background:#0f0f0f;color:var(--ink)}
+    .filters ::placeholder{color:var(--muted)}
+
+    /* Services list */
+    .section-title{margin:1.2rem 0 .6rem;font-size:.85rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+    .services-grid{display:grid;gap:1rem}
+    .services-grid .service-card{margin:0}
+    .service-card{
+      border:1px solid var(--line);background:var(--panel-2);
+      padding:1rem;border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem;
+      box-shadow:var(--shadow);
+    }
+    .service-card__img{position:relative;aspect-ratio:4/3;border:1px solid var(--line);
+      background:linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border-radius:.9rem;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.6px}
+    .service-card__img img{width:100%;height:100%;object-fit:cover;display:block}
+    .service-card__badge{position:absolute;left:.6rem;bottom:.6rem;z-index:2;font-size:.7rem;background:rgba(0,0,0,.55);
+      color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14)}
+    .ph{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));background-size:200% 100%;animation:sh 1.2s ease-in-out infinite}
+    @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .service-card h3{font-size:1.05rem;font-weight:900;letter-spacing:.2px}
+    .service-card p{color:var(--muted);font-size:.92rem}
+    .service-meta{display:flex;flex-wrap:wrap;gap:.35rem .6rem;align-items:baseline;font-size:.9rem;color:var(--muted)}
+    .service-meta strong{color:#fff;font-weight:900}
+    .muted{color:var(--muted)}
+    .price{color:#fff;font-weight:900}
+    .badge{font-size:.72rem;background:var(--red);color:#fff;border-radius:999px;padding:.18rem .55rem;margin-left:.35rem;border:1px solid rgba(255,255,255,.14)}
+    .empty{padding:.85rem;border:1px dashed var(--line);border-radius:.5rem;background:rgba(255,255,255,.02);color:var(--muted);font-style:italic}
+
+    /* Booking modal */
+    .modal{position:fixed;inset:0;display:none;align-items:stretch;background:rgba(0,0,0,.55);z-index:2200}
+    .modal.is-open{display:flex}
+    .sheet{
+      width:100%;
+      background:var(--panel);
+      border-radius:0;
+      border-top:1px solid var(--line);
+      padding:16px 16px calc(24px + env(safe-area-inset-bottom));
+      height:100dvh;
+      max-height:100dvh;
+      overflow-y:auto;
+      overflow-x:hidden;
+      overscroll-behavior:contain;
+    }
+    .sheet__header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .sheet__title{font-size:1.1rem;font-weight:900}
+    .sheet__close{border:1px solid var(--line);background:#0f0f0f;color:var(--ink);width:36px;height:36px;border-radius:10px}
+    .field{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+    .field label{color:var(--muted);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+    .field input,.field select{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0f0f0f;color:#fff;font-size:1rem}
+    .field-row{display:flex;gap:8px}
+    .field-row .field{flex:1}
+    .status{font-size:.9rem;color:var(--muted);margin-top:6px}
+    .status:empty{display:none}
+    .status.error{color:#ff5c72}
+    .status.success{color:#22c55e}
+    .summary{background:#0f0f0f;border:1px solid var(--line);border-radius:12px;padding:10px;color:var(--muted);font-size:.9rem}
+    .actions{display:flex;gap:8px;margin-top:14px}
+    .actions .btn{flex:1}
+    .note{font-size:.85rem;color:var(--muted);margin-top:8px}
+
+    /* Contact FAB + modal */
+    .contact-fab{
+      position:fixed; right:22px; bottom:22px; z-index:2100;
+      display:inline-flex; align-items:center; gap:.6em;
+      padding:.9rem 1.15rem; border-radius:999px;
+      border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(180deg,var(--red),var(--red-dark));
+      color:#fff; font-weight:900; letter-spacing:.02em; line-height:1;
+      cursor:pointer; box-shadow:0 12px 26px rgba(213,0,0,.28), 0 0 26px rgba(213,0,0,.18);
+      transition:.18s ease; font-family:var(--font-body);
+    }
+    .contact-fab:hover{ transform:translateY(-2px); }
+    .contact-fab svg{ width:20px; height:20px; fill:currentColor; opacity:.95; }
+    .contact-modal{position:fixed; inset:0; z-index:2300; display:none; align-items:center; justify-content:center; padding:1rem;
+      background:rgba(0,0,0,.65); backdrop-filter:blur(2px)}
+    .contact-modal[open]{ display:flex; }
+    .contact-dialog{width:min(560px, 92vw);background:linear-gradient(180deg,#0c0c0c,#121212);border:1px solid var(--line);border-radius:1rem;padding:1.1rem 1.1rem .95rem;color:var(--ink);box-shadow:0 18px 44px rgba(0,0,0,.55), 0 0 32px rgba(213,0,0,.18);position:relative}
+    .contact-title{font-family:var(--font-head);font-weight:900;font-size:1.4rem;margin:.2rem 2.2rem 1rem .2rem;color:#fff}
+    .contact-close{position:absolute; right:12px; top:10px; width:36px; height:36px; border:1px solid var(--line); border-radius:.5rem; background:#0f0f0f; color:#bdbdbd; cursor:pointer; font-size:20px; line-height:1;}
+    .contact-body{display:grid; gap:.75rem;}
+    .contact-row{display:flex; align-items:center; justify-content:space-between; gap:.6rem; background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:.7rem; padding:.7rem .8rem;}
+    .contact-row a{ color:#fff; font-weight:800; text-decoration:none; }
+    .contact-sub{ color:rgba(255,255,255,.72); font-size:.95rem; }
+    .contact-actions{ display:flex; gap:.6rem; margin-top:.9rem; flex-wrap:wrap; }
+    .contact-btn{ display:inline-flex; align-items:center; gap:.5em; padding:.7rem 1rem; border-radius:.55rem; border:1px solid var(--line); background:#0f0f0f; color:#fff; cursor:pointer; font-weight:800; }
+
+    body.modal-open .contact-fab{ display:none !important; }
+    body.nav-open .contact-fab{ display:none !important; }
+
+    @media (max-width:640px){
+      .contact-fab{ right:14px; bottom:14px; }
+      .contact-title{ font-size:1.25rem; }
+    }
+  </style>
+</head>
+<body data-template-version="mainmenu-mobile-v5-2026-01-26">
+  {% include "includes/marketing_body.html" %}
+  <div id="bg"></div>
+  <a href="#services" class="visually-hidden">{{ services_copy.skip_to_main_label }}</a>
+
+  {% with current='services' %}
+    {% include "includes/site_header.html" %}
+  {% endwith %}
+
+  <main id="services" class="container">
+    <section class="hero">
+      <h1>{{ services_copy.hero_title|default:"Services" }}</h1>
+      <p>{{ services_copy.hero_lead|default:"Pick a service and choose a time." }}</p>
+      <div style="margin-top:.8rem">
+        <a href="#services" class="btn btn--primary">{{ services_copy.hero_cta_label|default:"Browse services" }}</a>
+      </div>
+    </section>
+
+    <form method="get" class="filters" role="search">
+      <input type="search" name="q" placeholder="{{ services_copy.search_placeholder }}" value="{{ q|default:'' }}">
+      <select name="cat">
+        <option value="">{{ services_copy.filter_all_categories_label }}</option>
+        {% for c in filter_categories %}
+          <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn--primary" type="submit">{{ services_copy.search_button_label }}</button>
+      {% if q or active_category %}
+        <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">{{ services_copy.reset_button_label }}</a>
+      {% endif %}
+    </form>
+
+    <div class="section-title" id="liveTitle" style="display:none;">{{ services_copy.search_results_label }}</div>
+    <div id="liveGrid" class="services-grid" style="display:none;"></div>
+
+    <div id="serverContent">
+      {% if filters_active %}
+        {% if search_results %}
+          <div class="section-title">{{ services_copy.search_results_label }}</div>
+          <div class="services-grid">
+            {% for s in search_results %}
+              <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
+                  {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
+                  {% if s.category %}<span class="service-card__badge">{{ s.category.name }}</span>{% endif %}
+                </div>
+                <h3>{{ s.name }}</h3>
+                {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
+                <div class="service-meta">
+                  {% if s.contact_for_estimate %}
+                    <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
+                    {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                  {% else %}
+                    {% with disc=s.get_active_discount %}
+                      {% if disc %}
+                        <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
+                        <span class="badge">-{{ disc.discount_percent }}%</span>
+                      {% else %}
+                        <span class="price">${{ s.base_price|floatformat:2 }}</span>
+                      {% endif %}
+                    {% endwith %}
+                  {% endif %}
+                  {% if s.duration_min %}
+                    <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
+                  {% endif %}
+                </div>
+                <button class="btn btn--primary" style="width:100%" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                  {{ services_copy.pick_time_label }}
+                </button>
+              </article>
+            {% endfor %}
+          </div>
+        {% elif not has_any_services %}
+          <div class="empty">{{ services_copy.catalog_empty_label }}</div>
+        {% endif %}
+      {% else %}
+        {% for c in categories %}
+          {% with services=c.service_set.all %}
+            {% if services %}
+              <div class="section-title">{{ c.name }}</div>
+              <div class="services-grid">
+                {% for s in services %}
+                  <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                    <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
+                      {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
+                      <span class="service-card__badge">{{ c.name }}</span>
+                    </div>
+                    <h3>{{ s.name }}</h3>
+                    {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
+                    <div class="service-meta">
+                      {% if s.contact_for_estimate %}
+                        <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
+                        {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                      {% else %}
+                        {% with disc=s.get_active_discount %}
+                          {% if disc %}
+                            <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
+                            <span class="badge">-{{ disc.discount_percent }}%</span>
+                          {% else %}
+                            <span class="price">${{ s.base_price|floatformat:2 }}</span>
+                          {% endif %}
+                        {% endwith %}
+                      {% endif %}
+                      {% if s.duration_min %}
+                        <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
+                      {% endif %}
+                    </div>
+                    <button class="btn btn--primary" style="width:100%" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                      {{ services_copy.pick_time_label }}
+                    </button>
+                  </article>
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endwith %}
+        {% endfor %}
+
+        {% if uncategorized %}
+          <div class="section-title">{{ services_copy.uncategorized_title }}</div>
+          <div class="services-grid">
+            {% for s in uncategorized %}
+              <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
+                  {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
+                </div>
+                <h3>{{ s.name }}</h3>
+                {% if s.description %}<p>{{ s.description|truncatewords:18 }}</p>{% endif %}
+                <div class="service-meta">
+                  {% if s.contact_for_estimate %}
+                    <span class="price">{{ services_copy.contact_for_estimate_label }}</span>
+                    {% if s.estimate_from_price %}<span>{{ services_copy.from_label }} ${{ s.estimate_from_price|floatformat:2 }}</span>{% endif %}
+                  {% else %}
+                    {% with disc=s.get_active_discount %}
+                      {% if disc %}
+                        <span class="price">${{ s.get_discounted_price|floatformat:2 }}</span>
+                        <span class="badge">-{{ disc.discount_percent }}%</span>
+                      {% else %}
+                        <span class="price">${{ s.base_price|floatformat:2 }}</span>
+                      {% endif %}
+                    {% endwith %}
+                  {% endif %}
+                  {% if s.duration_min %}
+                    <span>{{ s.duration_min }} {{ services_copy.duration_unit }}</span>
+                  {% endif %}
+                </div>
+                <button class="btn btn--primary" style="width:100%" type="button" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
+                  {{ services_copy.pick_time_label }}
+                </button>
+              </article>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% if not has_any_services %}
+          <div class="empty">{{ services_copy.catalog_empty_label }}</div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </main>
+
+  {% include "includes/site_footer.html" %}
+
+  <!-- Mobile booking modal -->
+  <div class="modal" id="bookModal" aria-hidden="true">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
+      <div class="sheet__header">
+        <div class="sheet__title" id="bookTitle">{{ services_copy.booking_modal_title_prefix }} <span id="bookServiceName"></span></div>
+        <button class="sheet__close" type="button" id="bookClose" aria-label="{{ services_copy.booking_close_label }}">x</button>
+      </div>
+
+      <div class="field">
+        <label for="bookMaster">{{ services_copy.booking_staff_label }}</label>
+        <select id="bookMaster"></select>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="bookDate">{{ services_copy.booking_mobile_pick_day_label }}</label>
+          <input id="bookDate" type="date">
+        </div>
+        <div class="field">
+          <label for="bookTime">{{ services_copy.booking_available_times_label }}</label>
+          <input id="bookTime" type="time" list="bookTimeList">
+          <datalist id="bookTimeList"></datalist>
+        </div>
+      </div>
+      <div class="status" id="bookingStatus">{{ services_copy.booking_mobile_pick_day_label }}</div>
+
+      <div class="field">
+        <label>{{ services_copy.booking_summary_label }}</label>
+        <div class="summary" id="bookSummary">{{ services_copy.booking_summary_default }}</div>
+      </div>
+
+      <div class="field">
+        <label for="contactName">{{ services_copy.booking_full_name_label }}</label>
+        <input id="contactName" type="text" maxlength="120" autocomplete="name" required placeholder="{{ services_copy.booking_full_name_placeholder }}">
+      </div>
+      <div class="field">
+        <label for="contactEmail">{{ services_copy.booking_email_label }}</label>
+        <input id="contactEmail" type="email" autocomplete="email" required placeholder="{{ services_copy.booking_email_placeholder }}">
+      </div>
+      <div class="field">
+        <label for="contactPhone">{{ services_copy.booking_phone_label }}</label>
+        <input id="contactPhone" type="tel" inputmode="tel" autocomplete="tel" pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}" required placeholder="{{ services_copy.booking_phone_placeholder }}">
+      </div>
+      <div class="note">{{ services_copy.booking_confirmation_hint }}</div>
+      <div class="status error" id="bookError" style="display:none;"></div>
+      <div class="status success" id="bookSuccess" style="display:none;"></div>
+
+      <div class="actions">
+        <button class="btn btn--ghost" type="button" id="bookCancel">{{ services_copy.booking_cancel_label }}</button>
+        <button class="btn btn--primary" type="button" id="bookSubmit" disabled>{{ services_copy.booking_confirm_label }}</button>
+      </div>
+    </div>
+  </div>
+
+  <button type="button" id="contactFab" class="contact-fab" aria-haspopup="dialog" aria-controls="contactModal" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
+    </svg>
+    {{ services_copy.contact_fab_label }}
+  </button>
+
+  <div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
+    <div class="contact-dialog">
+      <button class="contact-close" type="button" aria-label="{{ services_copy.contact_close_label }}">x</button>
+      <h2 id="contactTitle" class="contact-title">{{ services_copy.contact_modal_title }}</h2>
+
+      <div class="contact-body">
+        <div class="contact-row">
+          <div>
+            <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
+            <div class="contact-sub">{{ services_copy.contact_email_label }}</div>
+          </div>
+          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ services_copy.contact_copy_label }}</button>
+        </div>
+
+        <div class="contact-row">
+          <div>
+            <div><a href="tel:+14035250432">(403) 525-0432</a></div>
+            <div class="contact-sub">{{ services_copy.contact_phone_label }}</div>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <a class="contact-btn" href="tel:+14035250432">{{ services_copy.contact_call_label }}</a>
+            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ services_copy.contact_copy_label }}</button>
+          </div>
+        </div>
+
+        <div class="contact-actions">
+          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ services_copy.contact_write_email_label }}</a>
+          <a class="contact-btn" href="sms:+14035250432">{{ services_copy.contact_text_label }}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{ contact_prefill|json_script:"contactPrefillData" }}
+
+  <script src="{% static 'js/topbar.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+
+  <script>
+    (function(){
+      const apiAvail = "/accounts/api/availability/";
+      const apiBook = "/accounts/api/book/";
+      const copy = {
+        summaryDefault: "{{ services_copy.booking_summary_default|escapejs }}",
+        summaryStaffPrefix: "{{ services_copy.booking_summary_staff_prefix|escapejs }}",
+        summaryTimePrefix: "{{ services_copy.booking_summary_time_prefix|escapejs }}",
+        summaryTimeSelected: "{{ services_copy.booking_summary_time_selected_label|escapejs }}",
+        noStaffLabel: "{{ services_copy.booking_no_staff_label|escapejs }}",
+        noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
+        noOpenTimesOnPrefix: "{{ services_copy.booking_no_open_times_on_prefix|escapejs }}",
+        noOpenTimesOnSuffix: "{{ services_copy.booking_no_open_times_on_suffix|escapejs }}",
+        failedSlotsLabel: "{{ services_copy.booking_failed_slots_label|escapejs }}",
+        availabilityErrorLabel: "{{ services_copy.booking_availability_error_label|escapejs }}",
+        missingContactError: "{{ services_copy.booking_missing_contact_error|escapejs }}",
+        createErrorLabel: "{{ services_copy.booking_create_error_label|escapejs }}",
+        createdLabel: "{{ services_copy.booking_created_label|escapejs }}",
+        timeLabel: "{{ services_copy.booking_time_label|escapejs }}",
+        bookingErrorLabel: "{{ services_copy.booking_error_label|escapejs }}",
+        pickDayLabel: "{{ services_copy.booking_mobile_pick_day_label|escapejs }}"
+      };
+
+      const modal = document.getElementById('bookModal');
+      const elServiceName = document.getElementById('bookServiceName');
+      const elMaster = document.getElementById('bookMaster');
+      const elDate = document.getElementById('bookDate');
+      const elTime = document.getElementById('bookTime');
+      const elTimeList = document.getElementById('bookTimeList');
+      const elSummary = document.getElementById('bookSummary');
+      const elStatus = document.getElementById('bookingStatus');
+      const elError = document.getElementById('bookError');
+      const elSuccess = document.getElementById('bookSuccess');
+      const btnSubmit = document.getElementById('bookSubmit');
+      const btnClose = document.getElementById('bookClose');
+      const btnCancel = document.getElementById('bookCancel');
+
+      const contactPrefillEl = document.getElementById('contactPrefillData');
+      const contactPrefill = contactPrefillEl ? JSON.parse(contactPrefillEl.textContent) : {name:'', email:'', phone:''};
+      const contactInputs = {
+        name: document.getElementById('contactName'),
+        email: document.getElementById('contactEmail'),
+        phone: document.getElementById('contactPhone'),
+      };
+
+      const state = {
+        serviceId:null,
+        serviceName:'',
+        masterId:null,
+        slotIso:null,
+        masters:[],
+        timeMap:new Map(),
+      };
+
+      function setStatus(text, isError){
+        elStatus.textContent = text || '';
+        elStatus.classList.toggle('error', Boolean(isError));
+      }
+
+      function showModal(){
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden','false');
+        document.body.style.overflow = 'hidden';
+        document.body.classList.add('modal-open');
+      }
+      function hideModal(){
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden','true');
+        document.body.style.overflow = '';
+        document.body.classList.remove('modal-open');
+      }
+
+      function getCookie(name){
+        const m = document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)');
+        return m ? m.pop() : '';
+      }
+      function ymd(d){
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        return `${d.getFullYear()}-${m}-${day}`;
+      }
+      function hmValue(d){
+        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      }
+      function fmtHM(d){
+        return d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+      }
+
+      function contactIsComplete(){
+        return Boolean(contactInputs.name.value.trim() && contactInputs.email.value.trim() && contactInputs.phone.value.trim());
+      }
+      function updateSubmitState(){
+        btnSubmit.disabled = !(state.serviceId && state.masterId && state.slotIso && contactIsComplete());
+      }
+
+      Object.values(contactInputs).forEach(input=>{
+        input.addEventListener('input', ()=>{
+          elError.style.display='none';
+          updateSubmitState();
+        });
+      });
+
+      function hydrateContact(){
+        contactInputs.name.value = contactPrefill.name || '';
+        contactInputs.email.value = contactPrefill.email || '';
+        contactInputs.phone.value = contactPrefill.phone || '';
+      }
+
+      function setSummaryDefault(){
+        elSummary.textContent = copy.summaryDefault;
+      }
+
+      function renderMasterOptions(){
+        elMaster.innerHTML = '';
+        if (!state.masters.length){
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = copy.noStaffLabel;
+          elMaster.appendChild(opt);
+          elMaster.disabled = true;
+          return;
+        }
+        elMaster.disabled = false;
+        state.masters.forEach(m=>{
+          const opt = document.createElement('option');
+          opt.value = String(m.id);
+          opt.textContent = m.name;
+          elMaster.appendChild(opt);
+        });
+        if (!state.masterId || !state.masters.find(m=>String(m.id) === String(state.masterId))){
+          state.masterId = state.masters[0].id;
+        }
+        elMaster.value = String(state.masterId);
+      }
+
+      function buildTimeMap(slots){
+        const map = new Map();
+        const times = [];
+        slots.forEach(iso=>{
+          const d = new Date(iso);
+          if (Number.isNaN(d.getTime())) return;
+          const key = hmValue(d);
+          if (!map.has(key)){
+            map.set(key, iso);
+            times.push(key);
+          }
+        });
+        times.sort();
+        return {map, times};
+      }
+
+      function renderTimeOptions(times){
+        elTimeList.innerHTML = '';
+        times.forEach(t=>{
+          const opt = document.createElement('option');
+          opt.value = t;
+          elTimeList.appendChild(opt);
+        });
+        if (!times.length){
+          elTime.value = '';
+          elTime.disabled = true;
+          elTime.min = '';
+          elTime.max = '';
+          elTime.step = '';
+          return;
+        }
+        elTime.disabled = false;
+        elTime.min = times[0];
+        elTime.max = times[times.length - 1];
+        elTime.step = '60';
+      }
+
+      function syncSummary(){
+        if (!state.slotIso){
+          setSummaryDefault();
+          return;
+        }
+        const slotDate = new Date(state.slotIso);
+        const dayLabel = slotDate.toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
+        const staffName = elMaster.selectedOptions[0]?.textContent?.trim() || '-';
+        elSummary.textContent = `${copy.summaryStaffPrefix} ${staffName}. ${copy.summaryTimePrefix} ${fmtHM(slotDate)}, ${dayLabel}.`;
+      }
+
+      function applyTimeValue(timeValue){
+        const iso = state.timeMap.get(timeValue);
+        if (!iso){
+          state.slotIso = null;
+          setSummaryDefault();
+          setStatus(copy.noOpenTimesLabel, true);
+          updateSubmitState();
+          return;
+        }
+        state.slotIso = iso;
+        syncSummary();
+        setStatus('', false);
+        updateSubmitState();
+      }
+
+      async function loadAvailability(dateKey){
+        if (!state.serviceId || !dateKey) return;
+        setStatus(copy.pickDayLabel, false);
+        elError.style.display = 'none';
+        elSuccess.style.display = 'none';
+        state.slotIso = null;
+        setSummaryDefault();
+        updateSubmitState();
+
+        try{
+          const params = new URLSearchParams({service: state.serviceId, date: dateKey});
+          const r = await fetch(`${apiAvail}?${params.toString()}`, {credentials:'same-origin'});
+          if (!r.ok) throw new Error(copy.failedSlotsLabel);
+          const data = await r.json();
+          state.masters = data.masters || [];
+          renderMasterOptions();
+          if (!state.masters.length){
+            renderTimeOptions([]);
+            setStatus(copy.noStaffLabel, true);
+            return;
+          }
+          const activeMaster = state.masters.find(m=>String(m.id)===String(state.masterId)) || state.masters[0];
+          state.masterId = activeMaster.id;
+          const {map, times} = buildTimeMap(activeMaster.slots || []);
+          state.timeMap = map;
+          renderTimeOptions(times);
+          if (!times.length){
+            const dayLabel = new Date(dateKey).toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
+            setStatus(`${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`, true);
+            return;
+          }
+          setStatus('', false);
+        }catch(err){
+          setStatus(err.message || copy.availabilityErrorLabel, true);
+        }
+      }
+
+      elMaster.addEventListener('change', ()=>{
+        const masterId = elMaster.value;
+        state.masterId = masterId ? Number(masterId) : null;
+        state.slotIso = null;
+        setSummaryDefault();
+        updateSubmitState();
+        const activeMaster = state.masters.find(m=>String(m.id) === String(state.masterId));
+        const {map, times} = buildTimeMap(activeMaster?.slots || []);
+        state.timeMap = map;
+        renderTimeOptions(times);
+        if (!times.length){
+          setStatus(copy.noOpenTimesLabel, true);
+          return;
+        }
+        setStatus('', false);
+      });
+
+      elDate.addEventListener('change', ()=>{
+        loadAvailability(elDate.value);
+      });
+
+      elTime.addEventListener('change', ()=>{
+        applyTimeValue(elTime.value);
+      });
+
+      function openModal(serviceId, serviceName){
+        state.serviceId = serviceId;
+        state.serviceName = serviceName || '';
+        state.masterId = null;
+        state.slotIso = null;
+        state.masters = [];
+        state.timeMap = new Map();
+        elServiceName.textContent = state.serviceName;
+        elError.style.display = 'none';
+        elSuccess.style.display = 'none';
+        hydrateContact();
+        setSummaryDefault();
+        updateSubmitState();
+        const today = ymd(new Date());
+        elDate.value = today;
+        showModal();
+        loadAvailability(today);
+      }
+
+      async function submitBooking(){
+        if (!state.serviceId || !state.masterId || !state.slotIso) return;
+        if (!contactIsComplete()){
+          elError.textContent = copy.missingContactError;
+          elError.style.display = 'block';
+          return;
+        }
+        btnSubmit.disabled = true;
+        elError.style.display = 'none';
+        elSuccess.style.display = 'none';
+        try{
+          const resp = await fetch(apiBook, {
+            method:'POST',
+            headers:{
+              'Content-Type':'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials:'same-origin',
+            body: JSON.stringify({
+              service: state.serviceId,
+              master: state.masterId,
+              start_time: state.slotIso,
+              contact: {
+                name: contactInputs.name.value.trim(),
+                email: contactInputs.email.value.trim(),
+                phone: contactInputs.phone.value.trim()
+              }
+            })
+          });
+          const data = await resp.json().catch(()=>({}));
+          if (!resp.ok){
+            const contactErrors = data?.errors?.contact;
+            let message = (contactErrors && Object.values(contactErrors).find(Boolean)) || data?.error || data?.detail || copy.createErrorLabel;
+            if (Array.isArray(message)) message = message[0];
+            throw new Error(message);
+          }
+          const timeText = data.appointment?.start_time ? new Date(data.appointment.start_time).toLocaleString() : '';
+          elSuccess.textContent = copy.createdLabel + (timeText ? ` ${copy.timeLabel} ${timeText}` : '');
+          elSuccess.style.display = 'block';
+          setTimeout(()=>{ window.location.reload(); }, 800);
+        }catch(err){
+          elError.textContent = err.message || copy.bookingErrorLabel;
+          elError.style.display = 'block';
+          updateSubmitState();
+        }
+      }
+
+      document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('[data-service-id][data-service-name]');
+        if (btn){
+          openModal(btn.dataset.serviceId, btn.dataset.serviceName || 'service');
+        }
+      });
+
+      btnClose.addEventListener('click', hideModal);
+      btnCancel.addEventListener('click', hideModal);
+      modal.addEventListener('click', (e)=>{ if (e.target === modal) hideModal(); });
+      btnSubmit.addEventListener('click', submitBooking);
+    })();
+  </script>
+
+  <script>
+    (function(){
+      /* ===== Live search (shared behavior) ===== */
+      const qInput = document.querySelector('input[name="q"]');
+      const catSel = document.querySelector('select[name="cat"]');
+      const liveTitle = document.getElementById('liveTitle');
+      const liveGrid  = document.getElementById('liveGrid');
+      const serverContent = document.getElementById('serverContent');
+      const resetLink = document.querySelector('a.btn.btn--ghost[href*="client-dashboard"]');
+      if (!qInput || !catSel || !liveTitle || !liveGrid || !serverContent) return;
+
+      const searchCopy = {
+        contactForEstimate: "{{ services_copy.contact_for_estimate_label|escapejs }}",
+        fromLabel: "{{ services_copy.from_label|escapejs }}",
+        pickTimeLabel: "{{ services_copy.pick_time_label|escapejs }}",
+        durationSeparator: "{{ services_copy.duration_separator|escapejs }}",
+        durationUnit: "{{ services_copy.duration_unit|escapejs }}",
+        serviceImageAriaLabel: "{{ services_copy.service_image_aria_label|escapejs }}",
+        serviceImageFallback: "{{ services_copy.service_image_fallback_label|escapejs }}",
+        bookAriaPrefix: "{{ services_copy.book_aria_prefix|escapejs }}",
+        catalogEmpty: "{{ services_copy.catalog_empty_label|escapejs }}",
+      };
+
+      function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+      function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+      function formatMoney(val){
+        const num = Number(val);
+        if (Number.isFinite(num)) return num.toFixed(2);
+        return val || '';
+      }
+      function showLive(){ liveTitle.style.display='block'; liveGrid.style.display='grid'; serverContent.style.display='none'; }
+      function hideLive(){ liveTitle.style.display='none'; liveGrid.style.display='none'; serverContent.style.display='block'; }
+      function skeleton(n=6){
+        return Array.from({length:n}).map(()=>`
+          <article class="service-card" aria-hidden="true">
+            <div class="service-card__img ph" style="height:auto; aspect-ratio:4/3;"></div>
+            <div class="ph" style="height:16px;margin-top:10px;border-radius:6px;"></div>
+            <div class="ph" style="height:12px;margin-top:6px;border-radius:6px;"></div>
+            <div class="ph" style="height:34px;margin-top:12px;border-radius:10px;"></div>
+          </article>`).join('');
+      }
+      function cardHTML(s){
+        let priceBlock;
+        if (s.contact_for_estimate){
+          const fromVal = s.estimate_from_price ? formatMoney(s.estimate_from_price) : '';
+          const hint = fromVal ? `<span class="price__hint">${escapeHtml(searchCopy.fromLabel)} $${escapeHtml(fromVal)}</span>` : '';
+          priceBlock = `<strong>${escapeHtml(searchCopy.contactForEstimate)}</strong>${hint ? ' ' + hint : ''}`;
+        } else {
+          const hasDisc = Number.isFinite(+s.discount_percent) && +s.discount_percent > 0;
+          if (hasDisc){
+            priceBlock = `<span class="old">$${escapeHtml(formatMoney(s.base_price))}</span>
+               <strong>$${escapeHtml(formatMoney(s.price))}</strong>
+               <span class="badge">-${escapeHtml(String(s.discount_percent))}%</span>`;
+          } else {
+            const current = s.price || s.base_price;
+            priceBlock = `<strong>$${escapeHtml(formatMoney(current))}</strong>`;
+          }
+        }
+        const desc = s.description ? `<p>${escapeHtml(s.description)}</p>` : '';
+        const hasImage = typeof s.image === 'string' && s.image.trim().length > 0;
+        const media = hasImage
+          ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.name)}" loading="lazy" decoding="async">`
+          : `<div class="ph" aria-hidden="true">${escapeHtml(searchCopy.serviceImageFallback)}</div>`;
+        const badge = s.category ? `<span class="service-card__badge">${escapeHtml(s.category)}</span>` : '';
+        const rawDuration = s.duration_min;
+        const durationValue = Number(rawDuration);
+        const hasDuration = Number.isFinite(durationValue) && durationValue > 0;
+        const durationBits = hasDuration
+          ? [searchCopy.durationSeparator, String(rawDuration), searchCopy.durationUnit]
+              .filter(Boolean)
+              .map(escapeHtml)
+              .join(" ")
+          : '';
+        const metaBits = [priceBlock, durationBits].filter(Boolean).join(' ');
+        return `
+          <article class="service-card"
+                   data-service-id="${escapeHtml(s.id)}"
+                   data-service-name="${escapeHtml(s.name)}">
+            <div class="service-card__img" aria-label="${escapeHtml(searchCopy.serviceImageAriaLabel)}">
+              ${media}
+              ${badge}
+            </div>
+            <h3>${escapeHtml(s.name)}</h3>
+            ${desc}
+            <div class="service-meta">${metaBits}</div>
+            <button class="btn btn--primary"
+                    type="button"
+                    data-service-id="${escapeHtml(s.id)}"
+                    data-service-name="${escapeHtml(s.name)}">${escapeHtml(searchCopy.pickTimeLabel)}</button>
+          </article>`;
+      }
+
+      let aborter=null;
+      async function fetchServices(q, cat){
+        if (aborter) aborter.abort();
+        aborter = new AbortController();
+        const params = new URLSearchParams();
+        if (q) params.set('q', q);
+        if (cat) params.set('cat', cat);
+        const url = `/accounts/api/services/search/?${params.toString()}`;
+        const r = await fetch(url, { signal: aborter.signal, credentials: 'same-origin' });
+        if (!r.ok) throw new Error('Failed to load');
+        return r.json();
+      }
+
+      const runSearch = debounce(async ()=>{
+        const q = qInput.value.trim();
+        const cat = catSel.value || '';
+        if (!q && !cat) { hideLive(); return; }
+        showLive();
+        liveGrid.innerHTML = skeleton();
+        try{
+          const data = await fetchServices(q, cat);
+          const items = (data && data.results) || [];
+          if (!items.length){
+            liveGrid.innerHTML = `<div class="empty">${escapeHtml(searchCopy.catalogEmpty)}</div>`;
+            return;
+          }
+          liveGrid.innerHTML = items.map(cardHTML).join('');
+        }catch(_){
+          hideLive();
+        }
+      }, 250);
+
+      qInput.addEventListener('input', runSearch);
+      catSel.addEventListener('change', runSearch);
+      if (resetLink){
+        resetLink.addEventListener('click', (e)=>{
+          e.preventDefault();
+          qInput.value = '';
+          catSel.value = '';
+          hideLive();
+          document.getElementById('services')?.scrollIntoView({behavior:'smooth', block:'start'});
+        });
+      }
+      if (qInput.value.trim() || catSel.value){
+        runSearch();
+      }
+    })();
+  </script>
+
+  <script>
+  (function(){
+    const fab   = document.getElementById('contactFab');
+    const modal = document.getElementById('contactModal');
+    if (!fab || !modal) return;
+    const closeBtn = modal.querySelector('.contact-close');
+    const copyLabel = "{{ services_copy.contact_copy_label|escapejs }}";
+    const copySuccess = "{{ services_copy.contact_copy_success_label|escapejs }}";
+    const copyFailed = "{{ services_copy.contact_copy_failed_label|escapejs }}";
+    let lastFocus = null;
+
+    function openModal(){
+      lastFocus = document.activeElement;
+      modal.setAttribute('open','');
+      fab.setAttribute('aria-expanded','true');
+      setTimeout(()=>closeBtn.focus(),0);
+      document.addEventListener('keydown', onKey);
+    }
+    function closeModal(){
+      modal.removeAttribute('open');
+      fab.setAttribute('aria-expanded','false');
+      if (lastFocus) lastFocus.focus();
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e){
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Tab'){
+        const focusables = modal.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
+        const list = Array.from(focusables).filter(el=>!el.disabled && el.offsetParent!==null);
+        if(!list.length) return;
+        const first = list[0], last = list[list.length-1];
+        if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+      }
+    }
+
+    fab.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+
+    modal.querySelectorAll('[data-copy]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        try{ await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent=copySuccess; setTimeout(()=>btn.textContent=copyLabel,1200); }
+        catch{ btn.textContent=copyFailed; setTimeout(()=>btn.textContent=copyLabel,1200); }
+      });
+    });
+  })();
+  </script>
+
+  {% include "includes/analytics_tracker.html" %}
+</body>
+</html>

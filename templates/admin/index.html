@@ -54,6 +54,33 @@
       <div class="kpi-trend neutral">Last updated list</div>
     </article>
 
+    <article class="kpi-card">
+      <small>Client UI check</small>
+      {% if latest_ui_check %}
+        <div class="kpi-value">{{ latest_ui_check.get_status_display }}</div>
+        <div class="kpi-trend{% if latest_ui_check.status == 'failed' %} critical{% elif latest_ui_check.status == 'warning' %} neutral{% endif %}">
+          Last run {{ latest_ui_check.finished_at|default:latest_ui_check.started_at|date:"M d H:i" }}
+        </div>
+        <div class="kpi-trend neutral">
+          Failures {{ latest_ui_check.failures_count }} · Warnings {{ latest_ui_check.warnings_count }}
+        </div>
+      {% else %}
+        <div class="kpi-value">Not run</div>
+        <div class="kpi-trend neutral">No checks yet</div>
+      {% endif %}
+      <form method="post" action="{% url 'admin-ui-check-run' %}">
+        {% csrf_token %}
+        <button type="submit" class="button" {% if ui_check_running %}disabled{% endif %}>
+          {% if ui_check_running %}Running…{% else %}Run UI check{% endif %}
+        </button>
+      </form>
+      {% if ui_check_next_due %}
+        <div class="kpi-trend{% if ui_check_due %} critical{% else %} neutral{% endif %}">
+          Next due {{ ui_check_next_due|date:"M d H:i" }}
+        </div>
+      {% endif %}
+    </article>
+
     {% if not is_master %}
     <article class="kpi-card">
       <small>Revenue (7 days)</small>
@@ -63,7 +90,7 @@
     {% endif %}
   </div>
 
-  <div class="dashboard-grid">
+  <div class="dashboard-grid{% if not is_master %} dashboard-grid-primary{% endif %}">
     {% if not is_master %}
       <section class="data-panel chart-card span-2">
         <div class="panel-title">Revenue trend</div>
@@ -114,9 +141,39 @@
         {% endfor %}
       </div>
     </section>
+    {% if web_analytics %}
+    <section class="data-panel analytics-table-panel top-pages-panel">
+      <div class="panel-title">Top pages</div>
+      <div class="panel-subtitle">Most viewed</div>
+      {% if web_analytics.top_pages %}
+        <table class="analytics-table top-pages-table">
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Views</th>
+              <th>Avg time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for page in web_analytics.top_pages %}
+              <tr>
+                <td><code>{{ page.path }}</code></td>
+                <td>{{ page.views }}</td>
+                <td>{{ page.avg_seconds }}s</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <p>No page views collected yet.</p>
+        </div>
+      {% endif %}
+    </section>
+    {% endif %}
     {% endif %}
 
-    <section class="data-panel span-2">
+    <section class="data-panel{% if not is_master %} span-3{% else %} span-2{% endif %}">
       <div class="panel-title">Today's next appointments</div>
       <div class="panel-subtitle">Live view of the remaining schedule</div>
       {% if today_appointments %}
@@ -158,11 +215,42 @@
       <canvas id="weekdayChart"></canvas>
     </section>
 
+    {% if not is_master and web_analytics %}
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Slowest pages</div>
+      <div class="panel-subtitle">Highest dwell time</div>
+      {% if web_analytics.slow_pages %}
+        <table class="analytics-table">
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Avg time</th>
+              <th>Views</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for page in web_analytics.slow_pages %}
+              <tr>
+                <td><code>{{ page.path }}</code></td>
+                <td>{{ page.avg_seconds }}s</td>
+                <td>{{ page.views }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <p>No long reads detected.</p>
+        </div>
+      {% endif %}
+    </section>
+    {% else %}
     <section class="data-panel chart-card">
       <div class="panel-title">Payment methods</div>
       <div class="panel-subtitle">Last 30 days</div>
       <canvas id="paymentMethodChart"></canvas>
     </section>
+    {% endif %}
 
     <section class="data-panel chart-card span-2">
       <div class="panel-title">Status trend</div>
@@ -173,7 +261,7 @@
 
   {% if not is_master and web_analytics %}
   <div class="dashboard-grid analytics-grid">
-    <section class="data-panel span-2 analytics-overview">
+    <section class="data-panel span-3 analytics-overview">
       <div class="panel-title">Web traffic overview</div>
       <div class="panel-subtitle">Last {{ web_analytics.window_days }} days · public website</div>
       <div class="analytics-kpi-grid">
@@ -323,64 +411,6 @@
               </div>
             {% endfor %}
           </div>
-        </div>
-      {% endif %}
-    </section>
-
-    <section class="data-panel analytics-table-panel">
-      <div class="panel-title">Top pages</div>
-      <div class="panel-subtitle">Most viewed</div>
-      {% if web_analytics.top_pages %}
-        <table class="analytics-table">
-          <thead>
-            <tr>
-              <th>Path</th>
-              <th>Views</th>
-              <th>Avg time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for page in web_analytics.top_pages %}
-              <tr>
-                <td><code>{{ page.path }}</code></td>
-                <td>{{ page.views }}</td>
-                <td>{{ page.avg_seconds }}s</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="empty-state">
-          <p>No page views collected yet.</p>
-        </div>
-      {% endif %}
-    </section>
-
-    <section class="data-panel analytics-table-panel">
-      <div class="panel-title">Slowest pages</div>
-      <div class="panel-subtitle">Highest dwell time</div>
-      {% if web_analytics.slow_pages %}
-        <table class="analytics-table">
-          <thead>
-            <tr>
-              <th>Path</th>
-              <th>Avg time</th>
-              <th>Views</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for page in web_analytics.slow_pages %}
-              <tr>
-                <td><code>{{ page.path }}</code></td>
-                <td>{{ page.avg_seconds }}s</td>
-                <td>{{ page.views }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="empty-state">
-          <p>No long reads detected.</p>
         </div>
       {% endif %}
     </section>

@@ -4,9 +4,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>BGM Customs — Home</title>
+  <title>BGM — Home</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% with meta_title="BGM Customs — Performance Builds & VIP Service" meta_description="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM Customs in Calgary." meta_image=hero_media.src meta_section="home" %}
+  {% with meta_title="BGM — Performance Builds & VIP Service" meta_description="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM in Calgary." meta_image=hero_media.src meta_section="home" %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
   {% if font_settings.preload_fonts %}
@@ -62,21 +62,121 @@
     nav .btn,nav .btn--ghost{padding:0;border:none;background:none}
 
     .hero{position:relative;overflow:hidden;background:transparent}
-    .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(2rem,6vw,4.5rem) 0;align-items:center}
+    .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(1.6rem,4.5vw,3.6rem) 0;align-items:center}
     .hero__title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15}
     .hero__lead{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);max-width:54ch;margin-top:1rem}
     .hero__cta{display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap}
+    .hero__logo-block{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:.85rem;
+      margin:0 auto 1.1rem;
+      width:100%;
+    }
+    .hero__logo{
+      width:clamp(110px, var(--hero-logo-size, 180px), 240px);
+      height:clamp(110px, var(--hero-logo-size, 180px), 240px);
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:var(--hero-logo-bg, #0b0b0b);
+      box-shadow:var(--shadow);
+      display:grid;
+      place-items:center;
+      position:relative;
+      overflow:hidden;
+      --hero-logo-backdrop:none;
+    }
+    .hero__logo--bg-dark{--hero-logo-bg:#0b0b0b;}
+    .hero__logo--bg-light{--hero-logo-bg:#f3f3f3;border-color:rgba(0,0,0,.2);}
+    .hero__logo--bg-light .hero__logo-text{color:#111;}
+    .hero__logo--bg-accent{
+      --hero-logo-bg:radial-gradient(circle at 30% 30%, rgba(255,255,255,.25), rgba(213,0,0,.45)), #2a0000;
+      border-color:rgba(255,255,255,.22);
+    }
+    .hero__logo--bg-transparent{
+      --hero-logo-bg:transparent;
+      border-color:rgba(255,255,255,.28);
+      box-shadow:none;
+    }
+    .hero__logo--no-ring{
+      border-color:transparent;
+      box-shadow:none;
+    }
+    .hero__logo--backdrop::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image:var(--hero-logo-backdrop);
+      background-size:cover;
+      background-position:center;
+      opacity:.78;
+      filter:saturate(1.05) contrast(1.05);
+    }
+    .hero__logo--backdrop::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:radial-gradient(circle at 30% 25%, rgba(255,255,255,.25), transparent 55%);
+      opacity:.6;
+    }
+    .hero__logo img{
+      position:relative;
+      width:64%;
+      height:64%;
+      object-fit:contain;
+      z-index:1;
+      filter:drop-shadow(0 8px 18px rgba(0,0,0,.55));
+    }
+    .hero__logo-text{
+      position:relative;
+      z-index:1;
+      font-weight:900;
+      letter-spacing:.22em;
+      font-size:.95rem;
+      text-transform:uppercase;
+      color:#fff;
+    }
+    .hero__logo-photo{
+      width:min(var(--hero-logo-photo-width, 440px), 100%);
+      height:var(--hero-logo-photo-height, auto);
+      border-radius:1.2rem;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,#0b0b0b,#0a0a0a);
+      box-shadow:var(--shadow);
+    }
+    .hero__logo-photo img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:cover;
+    }
     .stat{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow)}
     .stat b{font-size:1.35rem}
     .frame{border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02),0 14px 28px rgba(0,0,0,.45);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted-2)}
+    .hero__media.frame{aspect-ratio:var(--hero-media-aspect, 18/9);height:var(--hero-media-height, auto);}
     .frame--media{position:relative;overflow:hidden}
     .frame--media img{width:100%;height:100%;object-fit:cover;display:block;filter:contrast(1.05)}
     .frame__play{position:absolute;inset:0;margin:auto;width:72px;height:72px;border-radius:999px;display:grid;place-items:center;font-size:28px;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.18);color:#fff}
-    .hero__media{position:relative}
+    .hero__media{position:relative;width:min(100%, var(--hero-media-width, 100%));max-width:100%;justify-self:end;}
     .hero__disclaimer{position:absolute;left:1.1rem;bottom:1.1rem;padding:.35rem .9rem;border-radius:.85rem;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.6);color:rgba(255,255,255,.82);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;display:inline-flex;align-items:center;gap:.45rem;backdrop-filter:blur(6px)}
     .hero__disclaimer::before{content:"";width:18px;height:1px;background:rgba(255,255,255,.45);flex-shrink:0}
     @media (max-width:900px){
-      .hero__disclaimer{position:static;margin-top:.85rem;padding:.4rem .85rem;backdrop-filter:none}
+      .hero__disclaimer{
+        position:static;
+        margin-top:.85rem;
+        padding:.4rem .85rem;
+        backdrop-filter:none;
+        width:100%;
+        max-width:100%;
+        line-height:1.35;
+        font-size:.72rem;
+        display:-webkit-box;
+        -webkit-line-clamp:2;
+        -webkit-box-orient:vertical;
+        overflow:hidden;
+      }
     }
 
     .section{padding:clamp(2rem,6vw,4rem) 0;border-top:1px solid var(--line)}
@@ -91,6 +191,52 @@
     .grid{display:grid;gap:1rem}
     .grid--services{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
     .grid--products{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+    .grid--products .card{height:100%}
+    .grid--products .card > a{
+      display:flex;
+      flex-direction:column;
+      gap:.5rem;
+      flex:1;
+    }
+    .grid--gallery{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+
+    .home-gallery{margin:1rem 0 1.6rem}
+    .home-gallery__head{margin-bottom:1rem}
+    .gallery-card{
+      position:relative;
+      display:block;
+      border-radius:1rem;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));
+      box-shadow:var(--shadow);
+      transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;
+    }
+    .gallery-card:hover{transform:translateY(-3px);border-color:rgba(213,0,0,.45)}
+    .gallery-card:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+    .gallery-card .frame{
+      border:none;
+      border-radius:0;
+      box-shadow:none;
+      aspect-ratio:4/3;
+      background:#0b0b0b;
+    }
+    .gallery-card__meta{
+      position:absolute;
+      left:.8rem;
+      right:.8rem;
+      bottom:.8rem;
+      display:flex;
+      flex-direction:column;
+      gap:.2rem;
+      padding:.4rem .6rem;
+      border-radius:.7rem;
+      background:rgba(0,0,0,.6);
+      border:1px solid rgba(255,255,255,.16);
+      backdrop-filter:blur(6px);
+    }
+    .gallery-card__title{font-weight:800;font-size:.92rem}
+    .gallery-card__caption{font-size:.78rem;color:rgba(255,255,255,.82)}
 
     .card{display:flex;flex-direction:column;gap:.75rem;padding:1rem;border-radius:1rem;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .22s ease}
     .card:hover{transform:translateY(-3px)}
@@ -106,6 +252,14 @@
     .grid--services .card{height:100%}
     .grid--services .card__cta{margin-top:auto}
     .empty{color:var(--muted-2);font-style:italic;padding:1rem}
+
+    .home-card-actions{
+      display:flex;
+      gap:.5rem;
+      flex-wrap:wrap;
+      margin-top:auto;
+      padding-top:.4rem;
+    }
 
     .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
     .tile{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:1rem;padding:1rem}
@@ -320,6 +474,8 @@
     }
 
     .mobi-quick, #mobileServices, #mobileProducts{ margin-top:.9rem; }
+    .mobi-photo-break{ margin:1.1rem 0; }
+    .mobi-photo-break.frame{ aspect-ratio:16/9; }
     .mobi-actions{ display:grid; grid-template-columns:1fr 1fr; gap:.65rem; }
     .mobi-action{
       display:flex; flex-direction:column; gap:.25rem; padding:.9rem;
@@ -336,12 +492,29 @@
       #services #serverContent{ display:none !important; }
       #products .grid.grid--products{ display:none !important; }
     }
+    @media (max-width: 640px){
+      .mobi-photo-break.frame{ aspect-ratio:4/3; }
+    }
   </style>
 
   <style id="hide-hero-image-mobile">
     @media (max-width: 860px){
-      .hero__media{ display:none !important; }
+      .hero__media{
+        display:block !important;
+        width:100%;
+        order:2;
+      }
       .hero__inner{ grid-template-columns: 1fr !important; }
+      .hero__media.frame{
+        aspect-ratio:auto;
+        height:auto;
+      }
+      .hero__media img{
+        width:100%;
+        height:auto;
+        max-height:42vh;
+        border-radius:1rem;
+      }
     }
   </style>
   <style id="home-mobile-density">
@@ -352,8 +525,19 @@
       .hero__lead{ font-size:1rem; margin-top:.85rem; }
       .hero__cta{ flex-direction:column; align-items:stretch; }
       .hero__cta .btn{ width:100%; justify-content:center; }
-      .hero__stats{ display:grid; grid-template-columns:1fr; gap:.7rem; }
-      .stat{ padding:1rem 1.05rem; }
+      .hero__stats{ display:grid; grid-template-columns:1fr; gap:.45rem; width:100%; }
+      .hero__stats br{ display:none; }
+      .stat{
+        width:100%;
+        padding:.35rem 0;
+        background:transparent;
+        border:none;
+        box-shadow:none;
+        line-height:1.35;
+      }
+      .stat b{ display:inline; font-size:1rem; margin-right:.45rem; }
+      .stat span{ display:inline; font-size:.95rem; }
+      .mobi-actions{ grid-template-columns:1fr; }
 
       .section{ padding:2.2rem 0; }
       .section__head{ flex-direction:column; align-items:flex-start; gap:.6rem; }
@@ -365,6 +549,7 @@
 
       .grid--services,
       .grid--products,
+      .grid--gallery,
       .tiles{ grid-template-columns:1fr; }
 
       .card{ padding:1rem; gap:.6rem; }
@@ -397,6 +582,61 @@
       .mobi-actions{ grid-template-columns:1fr; }
       .mobi-action{ padding:1rem; }
     }
+  </style>
+  <style id="mobile-sidebar-unified">
+    @media (max-width:960px){
+      body.nav-open{ overflow:hidden; }
+      .site-header{ z-index:10000 !important; }
+      .site-header__toggle{ position:relative; z-index:10002 !important; }
+      .site-header nav{
+        position:fixed !important;
+        inset:0 !important;
+        height:100dvh !important;
+        padding-top:calc(var(--site-header-height) + 1rem) !important;
+        padding-inline:clamp(20px,6vw,36px) !important;
+        padding-bottom:calc(28px + env(safe-area-inset-bottom)) !important;
+        background:rgba(6,6,6,.62) !important;
+        -webkit-backdrop-filter:blur(24px) saturate(1.2) !important;
+        backdrop-filter:blur(24px) saturate(1.2) !important;
+        display:flex !important;
+        align-items:flex-start !important;
+        opacity:0;
+        pointer-events:none;
+        transform:translateY(-12px);
+        transition:opacity .22s ease, transform .22s ease;
+        overflow-y:auto !important;
+        overscroll-behavior:contain;
+        z-index:10001 !important;
+      }
+      .site-header--open nav,
+      body.nav-open .site-header nav,
+      .site-header .site-header__toggle[aria-expanded="true"] ~ nav{
+        opacity:1 !important;
+        pointer-events:auto !important;
+        transform:translateY(0) !important;
+      }
+      .site-header nav ul{
+        flex-direction:column !important;
+        align-items:stretch !important;
+        gap:1rem !important;
+        width:100% !important;
+      }
+      .site-header nav li{ width:100% !important; }
+      .site-header nav a,
+      .site-header nav .btn,
+      .site-header nav .btn--ghost{
+        width:100% !important;
+        min-height:56px;
+        padding:1.1rem 1.2rem !important;
+        border-radius:1rem !important;
+        background:rgba(255,255,255,.05) !important;
+        border:1px solid rgba(255,255,255,.12) !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:space-between !important;
+      }
+    }
+    body.nav-open .contact-fab{ display:none !important; }
   </style>
 </head>
 
@@ -449,6 +689,26 @@
   </header>
 
   <section class="hero" id="top">
+    {% if home_copy.hero_logo or home_copy.hero_logo_backdrop %}
+      {% with logo_layout=home_copy.hero_logo_layout|default:"overlay" logo_bg=home_copy.hero_logo_bg_style|default:"dark" %}
+        <div class="container">
+          <div class="hero__logo-block hero__logo-block--{{ logo_layout }}" style="--hero-logo-size: {{ home_copy.hero_logo_size|default:180 }}px;">
+            <div class="hero__logo hero__logo--bg-{{ logo_bg }}{% if not home_copy.hero_logo_show_ring %} hero__logo--no-ring{% endif %}{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} hero__logo--backdrop{% endif %}"{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} style="--hero-logo-backdrop:url('{{ home_copy.hero_logo_backdrop.url }}')"{% endif %}>
+              {% if home_copy.hero_logo %}
+                <img src="{{ home_copy.hero_logo.url }}" alt="{{ home_copy.hero_logo_alt }}"{% if not home_copy.hero_logo_alt %} aria-hidden="true"{% endif %} loading="lazy" decoding="async">
+              {% else %}
+                <span class="hero__logo-text">BGM</span>
+              {% endif %}
+            </div>
+            {% if home_copy.hero_logo_backdrop and logo_layout == 'stacked' %}
+              <div class="hero__logo-photo"{% if home_copy.hero_logo_photo_width or home_copy.hero_logo_photo_height %} style="{% if home_copy.hero_logo_photo_width %}--hero-logo-photo-width: {{ home_copy.hero_logo_photo_width }}px;{% endif %}{% if home_copy.hero_logo_photo_height %}--hero-logo-photo-height: {{ home_copy.hero_logo_photo_height }}px;{% endif %}"{% endif %}>
+                <img src="{{ home_copy.hero_logo_backdrop.url }}" alt="" loading="lazy" decoding="async">
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endwith %}
+    {% endif %}
     <div class="container hero__inner">
       <div>
         <p class="kicker">{{ home_copy.hero_kicker }}</p>
@@ -484,14 +744,20 @@
         </div>
       </div>
 
-      <div class="frame frame--media hero__media">
+      <div class="frame frame--media hero__media"{% if home_copy.hero_media_width or home_copy.hero_media_height %} style="{% if home_copy.hero_media_width %}--hero-media-width: {{ home_copy.hero_media_width }}px;{% endif %}{% if home_copy.hero_media_height %}--hero-media-height: {{ home_copy.hero_media_height }}px;{% endif %}"{% endif %}>
         <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'BGM hero' }}" loading="lazy" decoding="async">
         <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
       </div>
+
     </div>
   </section>
 
   <main id="main">
+    <div class="container only-mobile" aria-label="Featured build">
+      <div class="frame frame--media mobi-photo-break">
+        <img src="{% static 'img/hero-services.jpg' %}" alt="Service bay detail" loading="lazy" decoding="async">
+      </div>
+    </div>
     <!-- ========================= SERVICES on Home (limit 8) ========================= -->
     <section id="services" class="section">
       <div class="container">
@@ -501,6 +767,31 @@
             <p class="section__desc">{{ home_copy.services_desc }}</p>
           </div>
           <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
+        </div>
+
+        <div class="home-gallery" aria-label="{{ home_copy.gallery_title }}">
+          <div class="section__head home-gallery__head">
+            <div>
+              <h3 class="section__title">{{ home_copy.gallery_title }}</h3>
+              <p class="section__desc">{{ home_copy.gallery_desc }}</p>
+            </div>
+            <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
+          </div>
+          <div class="grid grid--gallery">
+            {% for item in home_gallery_items %}
+              <a class="gallery-card" href="{{ item.url }}" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
+                <div class="frame frame--media">
+                  <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy" decoding="async">
+                </div>
+                {% if item.title or item.caption %}
+                  <div class="gallery-card__meta">
+                    {% if item.title %}<span class="gallery-card__title">{{ item.title }}</span>{% endif %}
+                    {% if item.caption %}<span class="gallery-card__caption">{{ item.caption|truncatewords:10 }}</span>{% endif %}
+                  </div>
+                {% endif %}
+              </a>
+            {% endfor %}
+          </div>
         </div>
 
         <!-- Mobile services lite -->
@@ -578,7 +869,9 @@
                     </div>
                   </div>
                   {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
-                  <div class="dur">{{ home_copy.services_duration_prefix }} {{ s.duration_min }} {{ home_copy.services_duration_suffix }}</div>
+                  {% if s.duration_min %}
+                    <div class="dur">{{ home_copy.services_duration_prefix }} {{ s.duration_min }} {{ home_copy.services_duration_suffix }}</div>
+                  {% endif %}
                   <div class="card__cta">
                     <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">{{ home_copy.services_book_now_label }}</a>
                   </div>
@@ -621,7 +914,9 @@
                     </div>
                   </div>
                   {% if s.description %}<p class="muted">{{ s.description|truncatewords:26 }}</p>{% endif %}
-                  <div class="dur">{{ home_copy.services_duration_prefix }} {{ s.duration_min }} {{ home_copy.services_duration_suffix }}</div>
+                  {% if s.duration_min %}
+                    <div class="dur">{{ home_copy.services_duration_prefix }} {{ s.duration_min }} {{ home_copy.services_duration_suffix }}</div>
+                  {% endif %}
                   <div class="card__cta">
                     <a class="btn btn--primary" href="{% url 'client-dashboard' %}?book={{ s.id }}#services">{{ home_copy.services_book_now_label }}</a>
                   </div>
@@ -634,6 +929,12 @@
         </div>
       </div>
     </section>
+
+    <div class="container only-mobile" aria-label="Featured parts">
+      <div class="frame frame--media mobi-photo-break">
+        <img src="{% static 'img/hero-products.jpg' %}" alt="Performance parts display" loading="lazy" decoding="async">
+      </div>
+    </div>
 
     <!-- ========================= PRODUCTS ========================= -->
     <section id="products" class="section">
@@ -694,7 +995,7 @@
                   </div>
                   {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
                 </a>
-                <div class="home-card-actions" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
+                <div class="home-card-actions">
                   {% if p.contact_for_estimate %}
                     <a class="btn btn--primary" href="{% url 'home' %}#contact">{{ home_copy.products_contact_us_label }}</a>
                     <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
@@ -861,10 +1162,16 @@
       const cat   = s.category ? `<span class="card__badge">${esc(s.category)}</span>` : '';
       const desc  = s.description ? `<p class="muted">${esc(s.description)}</p>` : '';
       const bookingHref = toBookingUrl(s.id);
-      const durationBits = [copy.durationPrefix, String(s.duration_min), copy.durationSuffix]
-        .filter(Boolean)
-        .map(esc)
-        .join(" ");
+      const rawDuration = s.duration_min;
+      const durationValue = Number(rawDuration);
+      const hasDuration = Number.isFinite(durationValue) && durationValue > 0;
+      const durationBits = hasDuration
+        ? [copy.durationPrefix, String(rawDuration), copy.durationSuffix]
+            .filter(Boolean)
+            .map(esc)
+            .join(" ")
+        : "";
+      const durationHtml = durationBits ? `<div class="dur">${durationBits}</div>` : "";
       return `
         <article class="card">
           <div class="card__img">${media}${cat}</div>
@@ -873,7 +1180,7 @@
             <div class="price">${price}</div>
           </div>
           ${desc}
-          <div class="dur">${durationBits}</div>
+          ${durationHtml}
           <div class="card__cta"><a class="btn btn--primary" href="${bookingHref}">${esc(copy.bookNowLabel)}</a></div>
         </article>`;
     }

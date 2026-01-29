@@ -148,9 +148,13 @@ class TelegramMessageLog(models.Model):
     EVENT_APPOINTMENT_CREATED = "appointment_created"
     EVENT_ORDER_CREATED = "order_created"
     EVENT_SERVICE_LEAD = "service_lead"
+    EVENT_FITMENT_REQUEST = "fitment_request"
+    EVENT_SITE_NOTICE_WELCOME = "site_notice_welcome"
+    EVENT_ORDER_REVIEW_REQUEST = "order_review_request"
     EVENT_REMINDER = "reminder"
     EVENT_DIGEST = "digest"
     EVENT_MANUAL = "manual"
+    EVENT_UI_CHECK = "ui_check"
 
     event_type = models.CharField(max_length=64, db_index=True)
     chat_id = models.BigIntegerField()

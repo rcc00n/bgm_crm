@@ -154,6 +154,11 @@ body {
   color: var(--sidebar-link);
   border-right: 1px solid var(--sidebar-border);
   box-shadow: 24px 0 60px rgba(2, 6, 23, 0.4);
+  overflow-x: hidden;
+}
+
+.main-sidebar .sidebar {
+  overflow-x: hidden;
 }
 
 .main-sidebar .brand-link {
@@ -176,6 +181,7 @@ body {
 
 .main-sidebar .nav-sidebar {
   padding: 18px 18px 40px;
+  overflow-x: hidden;
 }
 
 .nav-sidebar > .nav-item {
@@ -193,6 +199,8 @@ body {
   gap: 12px;
   position: relative;
   transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  box-sizing: border-box;
+  width: calc(100% - 8px);
 }
 
 .nav-sidebar .nav-link i {
@@ -285,6 +293,18 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.sidebar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ef4444;
+  display: inline-block;
+  margin-left: 8px;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+  vertical-align: middle;
+  flex: 0 0 auto;
 }
 
 .sidebar-mini.sidebar-collapse .main-sidebar {
@@ -469,6 +489,16 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px;
   align-items: start;
+}
+
+.dashboard-grid-primary {
+  grid-template-columns: repeat(3, minmax(320px, 1fr));
+  grid-auto-flow: dense;
+}
+
+.analytics-grid {
+  grid-template-columns: repeat(3, minmax(320px, 1fr));
+  grid-auto-flow: dense;
 }
 
 .dashboard-grid .span-2 {
@@ -771,12 +801,29 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   color: var(--admin-text-muted);
 }
 
+.analytics-table th:nth-child(2),
+.analytics-table th:nth-child(3),
+.analytics-table td:nth-child(2),
+.analytics-table td:nth-child(3) {
+  text-align: right;
+}
+
 .analytics-table code {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 12px;
   background: rgba(15, 23, 42, 0.06);
   padding: 2px 6px;
   border-radius: 6px;
+}
+
+.top-pages-table code {
+  background: rgba(225, 29, 72, 0.12);
+  color: #be123c;
+  font-weight: 600;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: inline-block;
+  max-width: 100%;
 }
 
 .analytics-people {
@@ -809,6 +856,14 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   .dashboard-grid .span-2,
   .dashboard-grid .span-3 {
     grid-column: span 1;
+  }
+
+  .dashboard-grid-primary {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+
+  .analytics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   }
 }
 

@@ -29,6 +29,7 @@ from core.models import (
     PageFontSetting,
 )
 from core.services.fonts import build_page_font_context
+from core.services.media import build_home_gallery_media
 
 from .forms import (
     ClientRegistrationForm,
@@ -75,6 +76,8 @@ class RoleRequiredMixin(LoginRequiredMixin):
     required_role: str | None = None
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
         if self.required_role and not request.user.userrole_set.filter(role__name=self.required_role).exists():
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
@@ -313,7 +316,7 @@ from core.models import ServiceCategory, Service
 
 # accounts/views.py (или где у вас HomeView)
 from django.views.generic import TemplateView
-from core.models import Service, ServiceCategory, HomePageCopy   # ваши модели услуг
+from core.models import Service, ServiceCategory, HomePageCopy, ProjectJournalEntry   # ваши модели услуг
 from store.models import Product                    # товары
 
 
@@ -383,7 +386,8 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
-        ctx["home_copy"] = HomePageCopy.get_solo()
+        home_copy = HomePageCopy.get_solo()
+        ctx["home_copy"] = home_copy
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]
@@ -404,6 +408,38 @@ class HomeView(TemplateView):
             .order_by("-created_at")
         )
         ctx["home_products"] = _select_home_products(products_qs, limit=8, in_house_target=4)
+        gallery_url = (home_copy.gallery_cta_url or "").strip() or reverse("project-journal")
+        gallery_posts = list(
+            ProjectJournalEntry.objects.published()
+            .filter(cover_image__isnull=False)
+            .exclude(cover_image="")
+            .order_by("-featured", "-published_at")[:4]
+        )
+        gallery_items = [
+            {
+                "src": post.cover_image.url,
+                "alt": post.hero_title or post.title,
+                "title": post.hero_title or post.title,
+                "caption": post.result_highlight or post.excerpt,
+                "url": post.get_absolute_url(),
+            }
+            for post in gallery_posts
+        ]
+        if len(gallery_items) < 4:
+            for asset in build_home_gallery_media():
+                if len(gallery_items) >= 4:
+                    break
+                gallery_items.append(
+                    {
+                        "src": asset["src"],
+                        "alt": asset.get("alt") or "",
+                        "title": asset.get("title") or "",
+                        "caption": asset.get("caption") or "",
+                        "url": gallery_url,
+                    }
+                )
+        ctx["home_gallery_items"] = gallery_items
+        ctx["home_gallery_url"] = gallery_url
         return ctx
 
     

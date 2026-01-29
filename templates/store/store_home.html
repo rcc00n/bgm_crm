@@ -30,7 +30,7 @@
 </section>
 
 
-<section class="section">
+<section class="section" data-search-root>
   <div class="container">
 
     {# ================== FILTERS ================== #}
@@ -49,6 +49,30 @@
         {% if filters_active %}
           <a class="filters-toolbar__clear" href="{% url 'store' %}">{{ store_copy.filters_reset_label }}</a>
         {% endif %}
+      </div>
+
+      <div class="search-bar" data-product-search data-search-mode="swap">
+        <label class="visually-hidden" for="productSearch">Search products</label>
+        <div class="search-bar__field">
+          <span class="search-bar__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M15.5 14h-.79l-.28-.27A6 6 0 1 0 14 15.5l.27.28v.79L20 21.5 21.5 20l-6-6zm-5.5 0A4.5 4.5 0 1 1 10 5a4.5 4.5 0 0 1 0 9z"/>
+            </svg>
+          </span>
+          <input id="productSearch"
+                 class="search-bar__input"
+                 type="search"
+                 inputmode="search"
+                 autocomplete="off"
+                 placeholder="Search products">
+          <button type="button" class="search-bar__clear" data-search-clear hidden>Clear</button>
+        </div>
+        <div class="search-bar__meta" data-search-count aria-live="polite"></div>
+      </div>
+      <p class="search-empty" data-search-empty hidden>No products match your search.</p>
+      <div class="search-results" data-search-results hidden>
+        <h3 class="search-results__title">Search results</h3>
+        <div class="grid grid--cards" data-search-results-grid></div>
       </div>
 
       <form id="catalogFilters"
@@ -95,28 +119,31 @@
       </div>
     </div>
 
-    <div class="grid grid--cards">
-      {% for c in categories %}
-        <a class="card cat" href="{% url 'store-category' slug=c.slug %}" title="{{ c.name }}">
-          <div class="card__img cat__img">
-            {% if c.image %}
-              <img src="{{ c.image.url }}" alt="{{ c.display_name }}" loading="lazy">
-            {% else %}
-              <div class="ph" aria-hidden="true"></div>
-            {% endif %}
-            <div class="cat__overlay">
-              <span class="cat__title">{{ c.display_name }}</span>
-              <span class="cat__arrow" aria-hidden="true">→</span>
+    <details class="categories-collapse" id="categoriesCollapse" open>
+      <summary class="categories-toggle">Show categories</summary>
+      <div class="grid grid--cards categories-grid">
+        {% for c in categories %}
+          <a class="card cat" href="{% url 'store-category' slug=c.slug %}" title="{{ c.name }}">
+            <div class="card__img cat__img">
+              {% if c.image %}
+                <img src="{{ c.image.url }}" alt="{{ c.display_name }}" loading="lazy">
+              {% else %}
+                <div class="ph" aria-hidden="true"></div>
+              {% endif %}
+              <div class="cat__overlay">
+                <span class="cat__title">{{ c.display_name }}</span>
+                <span class="cat__arrow" aria-hidden="true">→</span>
+              </div>
             </div>
-          </div>
-          {% if c.description %}
-            <p class="section__desc cat__desc">{{ c.description|truncatewords:18 }}</p>
-          {% endif %}
-        </a>
-      {% empty %}
-        <p class="section__desc">{{ store_copy.categories_empty_label }}</p>
-      {% endfor %}
-    </div>
+            {% if c.description %}
+              <p class="section__desc cat__desc">{{ c.description|truncatewords:18 }}</p>
+            {% endif %}
+          </a>
+        {% empty %}
+          <p class="section__desc">{{ store_copy.categories_empty_label }}</p>
+        {% endfor %}
+      </div>
+    </details>
 
     {# ================== RESULTS (visible when filters are active) ================== #}
     {% if filters_active %}
@@ -129,7 +156,7 @@
 
       <div class="grid grid--cards">
         {% for p in products %}
-          <article class="card product">
+          <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
             <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
               <div class="card__img">
                 {% if p.main_image %}
@@ -180,7 +207,7 @@
 
       <div class="grid grid--cards">
         {% for p in new_arrivals %}
-          <article class="card product">
+          <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
             <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
               <div class="card__img">
                 {% if p.main_image %}
@@ -228,52 +255,57 @@
       </div>
     </div>
 
-    {% for cat, items in sections %}
-      <div class="section__head" style="margin-top:1rem">
-        <div><h3 class="section__title" style="font-size:1.1rem">{{ cat.name }}</h3></div>
-        <div><a class="btn btn--ghost" href="{% url 'store-category' slug=cat.slug %}">{{ store_copy.browse_view_all_label }}</a></div>
-      </div>
-      <div class="grid grid--cards">
-        {% for p in items %}
-          <article class="card product">
-            <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
-              <div class="card__img">
-                {% if p.main_image %}
-                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
-                {% elif p.image %}
-                  <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
-                {% else %}
-                  <div class="ph" aria-hidden="true"></div>
-                {% endif %}
-              </div>
-              <div class="product__meta">
-                <h3 class="product__title">{{ p.name }}</h3>
-                <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
-                <div class="price price--stacked">
-                  {% if p.contact_for_estimate %}
-                    <strong>{{ store_copy.contact_for_estimate_label }}</strong>
-                    {% if p.estimate_from_price %}<span class="price__hint">{{ store_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
-                  {% else %}
-                    <div class="price__retail-row">
-                      {% if p.has_option_price_overrides %}<span class="price__hint">{{ store_copy.from_label }}</span>{% endif %}
-                      <strong>{{ p.display_price|money }}</strong>
-                      {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
-                    </div>
-                    {% if dealer_portal.show_discount %}
-                      <div class="price__dealer-row">
-                        <span class="price__hint">{{ store_copy.dealer_label }} {{ dealer_portal.discount_percent }}%</span>
-                        <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                        <span class="price__save">{{ store_copy.save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
-                      </div>
+    <details class="categories-collapse categories-collapse--sections" id="browseCollapse" open>
+      <summary class="categories-toggle">Show category products</summary>
+      <div class="browse-sections">
+        {% for cat, items in sections %}
+          <div class="section__head" style="margin-top:1rem">
+            <div><h3 class="section__title" style="font-size:1.1rem">{{ cat.name }}</h3></div>
+            <div><a class="btn btn--ghost" href="{% url 'store-category' slug=cat.slug %}">{{ store_copy.browse_view_all_label }}</a></div>
+          </div>
+          <div class="grid grid--cards">
+            {% for p in items %}
+            <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
+              <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
+                <div class="card__img">
+                    {% if p.main_image %}
+                      <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                    {% elif p.image %}
+                      <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
+                    {% else %}
+                      <div class="ph" aria-hidden="true"></div>
                     {% endif %}
-                  {% endif %}
-                </div>
-              </div>
-            </a>
-          </article>
+                  </div>
+                  <div class="product__meta">
+                    <h3 class="product__title">{{ p.name }}</h3>
+                    <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
+                    <div class="price price--stacked">
+                      {% if p.contact_for_estimate %}
+                        <strong>{{ store_copy.contact_for_estimate_label }}</strong>
+                        {% if p.estimate_from_price %}<span class="price__hint">{{ store_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
+                      {% else %}
+                        <div class="price__retail-row">
+                          {% if p.has_option_price_overrides %}<span class="price__hint">{{ store_copy.from_label }}</span>{% endif %}
+                          <strong>{{ p.display_price|money }}</strong>
+                          {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
+                        </div>
+                        {% if dealer_portal.show_discount %}
+                          <div class="price__dealer-row">
+                            <span class="price__hint">{{ store_copy.dealer_label }} {{ dealer_portal.discount_percent }}%</span>
+                            <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+                            <span class="price__save">{{ store_copy.save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                          </div>
+                        {% endif %}
+                      {% endif %}
+                    </div>
+                  </div>
+                </a>
+              </article>
+            {% endfor %}
+          </div>
         {% endfor %}
       </div>
-    {% endfor %}
+    </details>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 <script>
@@ -379,6 +411,29 @@
 })();
 </script>
 
+<script>
+  (function(){
+    const mq = window.matchMedia('(max-width: 900px)');
+    const blocks = document.querySelectorAll('.categories-collapse');
+    if (!blocks.length) return;
+    const sync = () => {
+      blocks.forEach((el) => {
+        if (mq.matches) {
+          el.removeAttribute('open');
+        } else {
+          el.setAttribute('open', '');
+        }
+      });
+    };
+    sync();
+    if (mq.addEventListener) {
+      mq.addEventListener('change', sync);
+    } else if (mq.addListener) {
+      mq.addListener(sync);
+    }
+  })();
+</script>
+
   </div>
 </section>
 
@@ -463,6 +518,41 @@
   .cat__arrow{opacity:.9;transform:translateX(0);transition:transform .18s ease}
   .cat:hover .cat__arrow{transform:translateX(3px)}
   .cat__desc{margin:.5rem .25rem 0}
+  .categories-collapse{margin-top:.6rem}
+  .categories-toggle{
+    list-style:none;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.6rem;
+    font-weight:800;
+    letter-spacing:.04em;
+    padding:.75rem .9rem;
+    border-radius:.85rem;
+    border:1px solid var(--card-border);
+    background:var(--card-bg);
+  }
+  .categories-toggle::-webkit-details-marker{display:none}
+  .categories-toggle::after{
+    content:"+";
+    font-size:1.1rem;
+    line-height:1;
+    opacity:.8;
+  }
+  .categories-collapse[open] .categories-toggle::after{content:"–"}
+  @media (min-width:901px){
+    .categories-toggle{display:none}
+  }
+  @media (max-width:900px){
+    .categories-collapse{
+      border:1px solid var(--card-border);
+      border-radius:1rem;
+      padding:.5rem;
+      background:var(--card-bg);
+    }
+    .categories-collapse[open]{padding-bottom:1rem}
+  }
 
   /* Product */
   .card.product{display:flex;flex-direction:column;height:100%}

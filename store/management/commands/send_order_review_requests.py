@@ -5,8 +5,10 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from store.models import Order
+from notifications.services import notify_about_order_review_request
 
 logger = logging.getLogger(__name__)
 
@@ -70,26 +72,34 @@ class Command(BaseCommand):
             recipient = (order.email or "").strip()
             if not recipient:
                 continue
-            brand = getattr(settings, "SITE_BRAND_NAME", "BGM Customs")
-            subject = f"{brand} - how did we do?"
-            text_lines = [
-                f"Hi {order.customer_name},",
-                "Thanks again for your order.",
-                "If everything looks good, would you leave us a quick review?",
+            brand = email_brand_name()
+            context = base_email_context(
+                {
+                    "brand": brand,
+                    "customer_name": order.customer_name,
+                    "order_id": order.pk,
+                    "review_url": review_url,
+                    "store_url": store_url,
+                }
+            )
+            template = render_email_template("order_review_request", context)
+            link_lines = [
                 f"Leave a review: {review_url}",
-                "",
-                "Questions? Reply to this email and we'll help.",
+                f"Shop store: {store_url}",
             ]
+            text_body = join_text_sections(
+                [template.greeting],
+                template.intro_lines,
+                link_lines,
+                template.footer_lines,
+            )
 
             try:
                 html_body = build_email_html(
-                    title="How did we do?",
-                    preheader="A quick review helps the team a ton.",
-                    greeting=f"Hi {order.customer_name},",
-                    intro_lines=[
-                        "Thanks again for your order.",
-                        "If everything looks good, would you leave us a quick review?",
-                    ],
+                    title=template.title,
+                    preheader=template.preheader,
+                    greeting=template.greeting,
+                    intro_lines=template.intro_lines,
                     detail_rows=[
                         ("Order #", order.pk),
                         ("Status", order.get_status_display()),
@@ -98,13 +108,15 @@ class Command(BaseCommand):
                         ("Leave a review", review_url),
                         ("Shop store", store_url),
                     ],
-                    cta_label="Leave a review",
+                    notice_title=template.notice_title or None,
+                    notice_lines=template.notice_lines,
+                    cta_label=template.cta_label,
                     cta_url=review_url,
-                    footer_lines=["Questions? Reply to this email and we'll help."],
+                    footer_lines=template.footer_lines,
                 )
                 send_html_email(
-                    subject=subject,
-                    text_body="\n".join(text_lines),
+                    subject=template.subject,
+                    text_body=text_body,
                     html_body=html_body,
                     from_email=sender,
                     recipient_list=[recipient],
@@ -112,6 +124,15 @@ class Command(BaseCommand):
             except Exception:
                 logger.exception("Failed to send review request for order %s", order.pk)
                 continue
+
+            try:
+                notify_about_order_review_request(
+                    order.pk,
+                    review_url=review_url,
+                    store_url=store_url,
+                )
+            except Exception:
+                logger.exception("Failed to send Telegram review request alert for order %s", order.pk)
 
             order.review_request_sent_at = timezone.now()
             order.save(update_fields=["review_request_sent_at"])

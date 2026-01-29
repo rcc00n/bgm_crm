@@ -5,9 +5,15 @@ from typing import Any, Dict, Iterable, List, Optional
 from django import template
 from django.apps import apps
 from django.conf import settings
+from django.contrib.admin.models import LogEntry
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Max
+from django.db.utils import DatabaseError, OperationalError
 from django.urls import NoReverseMatch, reverse
+from django.utils import timezone
 from django.utils.text import capfirst
 
+from core.models import AdminSidebarSeen
 register = template.Library()
 
 
@@ -83,6 +89,9 @@ def _build_item(
         url_name = url_name or f"admin:{meta['app']}_{meta['model_lower']}_changelist"
         if not active_patterns:
             active_patterns = [f"admin:{meta['app']}_{meta['model_lower']}_"]
+        item["model_label"] = f"{meta['app']}.{meta['model_lower']}"
+        item["app_label"] = meta["app"]
+        item["model_name"] = meta["model_lower"]
 
     if perms and not user.has_perms(perms):
         return None
@@ -104,6 +113,104 @@ def _build_item(
     item.setdefault("icon", settings.JAZZMIN_SETTINGS.get("default_icon_children", "fas fa-circle"))
     item.update({"url": url, "is_active": is_active})
     return item
+
+
+def _collect_model_labels(sidebar: List[Dict[str, Any]]) -> List[str]:
+    labels: List[str] = []
+    for section in sidebar:
+        for group in section.get("groups", []):
+            for item in group.get("items", []):
+                model_label = item.get("model_label")
+                if model_label:
+                    labels.append(model_label)
+    return labels
+
+
+def _apply_notification_state(sidebar: List[Dict[str, Any]], user) -> None:
+    model_labels = _collect_model_labels(sidebar)
+    if not model_labels:
+        return
+
+    app_labels = {label.split(".", 1)[0] for label in model_labels}
+    model_names = {label.split(".", 1)[1] for label in model_labels}
+
+    try:
+        content_types = ContentType.objects.filter(app_label__in=app_labels, model__in=model_names)
+        ct_id_to_label = {ct.id: f"{ct.app_label}.{ct.model}" for ct in content_types}
+        ct_ids = list(ct_id_to_label.keys())
+
+        latest_by_label: Dict[str, Any] = {}
+        if ct_ids:
+            latest_rows = (
+                LogEntry.objects.filter(content_type_id__in=ct_ids)
+                .exclude(user_id=getattr(user, "id", None))
+                .values("content_type_id")
+                .annotate(last_action=Max("action_time"))
+            )
+            latest_by_label = {
+                ct_id_to_label[row["content_type_id"]]: row["last_action"]
+                for row in latest_rows
+                if row.get("content_type_id") in ct_id_to_label
+            }
+
+        seen_rows = AdminSidebarSeen.objects.filter(
+            user=user,
+            app_label__in=app_labels,
+            model_name__in=model_names,
+        ).values("app_label", "model_name", "last_seen_at")
+        seen_map = {
+            f"{row['app_label']}.{row['model_name']}": row["last_seen_at"]
+            for row in seen_rows
+        }
+    except (DatabaseError, OperationalError):
+        return
+
+    baseline = user.last_login or getattr(user, "date_joined", None) or timezone.now()
+    activity_cache: Dict[tuple[str, str], Any] = {}
+
+    for section in sidebar:
+        section_has_unseen = False
+        for group in section.get("groups", []):
+            group_has_unseen = False
+            for item in group.get("items", []):
+                model_label = item.get("model_label")
+                has_unseen = False
+                if model_label:
+                    last_seen = seen_map.get(model_label, baseline)
+                    activity_field = item.get("activity_field")
+                    if activity_field:
+                        cache_key = (model_label, activity_field)
+                        if cache_key not in activity_cache:
+                            try:
+                                app_label, model_name = model_label.split(".", 1)
+                                model = apps.get_model(app_label, model_name)
+                                last_action = (
+                                    model.objects.order_by(f"-{activity_field}")
+                                    .values_list(activity_field, flat=True)
+                                    .first()
+                                )
+                            except Exception:
+                                last_action = None
+                            activity_cache[cache_key] = last_action
+                        else:
+                            last_action = activity_cache[cache_key]
+                    else:
+                        last_action = latest_by_label.get(model_label)
+
+                    if last_action:
+                        if timezone.is_naive(last_action):
+                            last_action = timezone.make_aware(
+                                last_action,
+                                timezone.get_default_timezone(),
+                            )
+                        has_unseen = last_action > last_seen
+                item["has_unseen"] = has_unseen
+                if has_unseen:
+                    group_has_unseen = True
+            group["has_unseen"] = group_has_unseen
+            if group_has_unseen:
+                section_has_unseen = True
+        section["has_unseen"] = section_has_unseen
 
 
 @register.simple_tag(takes_context=True)
@@ -150,4 +257,5 @@ def build_admin_sidebar(context) -> List[Dict[str, Any]]:
                     "is_open": any(group["is_open"] for group in groups_payload),
                 }
             )
+    _apply_notification_state(sidebar, user)
     return sidebar

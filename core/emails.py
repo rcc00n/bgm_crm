@@ -62,6 +62,15 @@ def _format_url(raw: str) -> str:
     return f"https://{raw}"
 
 
+def _resolve_brand_name() -> str:
+    try:
+        from core.email_templates import email_brand_name
+
+        return email_brand_name()
+    except Exception:
+        return getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+
+
 def build_email_html(
     *,
     title: str,
@@ -78,7 +87,7 @@ def build_email_html(
     cta_url: str | None = None,
     link_rows: Sequence[tuple[object, object]] | None = None,
 ) -> str:
-    brand_name = _safe(getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors"))
+    brand_name = _safe(_resolve_brand_name())
     tagline = _safe(getattr(settings, "SITE_BRAND_TAGLINE", ""))
     address = _safe(getattr(settings, "COMPANY_ADDRESS", ""))
     phone = _safe(getattr(settings, "COMPANY_PHONE", ""))

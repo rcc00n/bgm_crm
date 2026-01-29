@@ -6,7 +6,7 @@ from django.contrib.admin import DateFieldListFilter
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
-from django.contrib import admin
+from django.contrib import admin, messages
 from django import forms
 from django.db import models
 from django.db.models import Sum, Count
@@ -29,6 +29,7 @@ from django.http import HttpResponse
 from .filters import *
 from .models import *
 from .forms import *
+from core.email_templates import template_tokens
 from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
 from core.utils import get_staff_queryset, format_currency
 from datetime import timedelta, time
@@ -184,6 +185,18 @@ def custom_index(request):
         else None
     )
 
+    latest_ui_check = ClientUiCheckRun.objects.order_by("-started_at").first()
+    ui_check_next_due = None
+    ui_check_due = False
+    ui_check_running = False
+    if latest_ui_check:
+        ui_check_next_due = latest_ui_check.started_at + timedelta(days=3)
+        ui_check_due = ui_check_next_due <= timezone.now()
+        ui_check_running = (
+            latest_ui_check.status == ClientUiCheckRun.Status.RUNNING
+            and latest_ui_check.started_at >= timezone.now() - timedelta(hours=6)
+        )
+
     context = admin.site.each_context(request)
     context.update({
         "is_master": is_master,
@@ -206,6 +219,10 @@ def custom_index(request):
         "status_trend": status_trend,
         "web_analytics": analytics_summary,
         "web_analytics_periods": analytics_periods,
+        "latest_ui_check": latest_ui_check,
+        "ui_check_next_due": ui_check_next_due,
+        "ui_check_due": ui_check_due,
+        "ui_check_running": ui_check_running,
     })
     return TemplateResponse(request, "admin/index.html", context)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -1694,6 +1711,17 @@ class HomePageCopyAdmin(admin.ModelAdmin):
         }),
         ("Hero", {
             "fields": (
+                "hero_logo",
+                "hero_logo_backdrop",
+                "hero_logo_layout",
+                "hero_logo_bg_style",
+                "hero_logo_size",
+                "hero_logo_show_ring",
+                "hero_logo_photo_width",
+                "hero_logo_photo_height",
+                "hero_media_width",
+                "hero_media_height",
+                "hero_logo_alt",
                 "hero_kicker",
                 "hero_title",
                 "hero_lead",
@@ -1755,6 +1783,14 @@ class HomePageCopyAdmin(admin.ModelAdmin):
                 "services_book_now_label",
                 "services_nothing_found_label",
                 "services_failed_load_label",
+            )
+        }),
+        ("Photo gallery", {
+            "fields": (
+                "gallery_title",
+                "gallery_desc",
+                "gallery_cta_label",
+                "gallery_cta_url",
             )
         }),
         ("Shared pricing labels", {
@@ -2773,6 +2809,60 @@ class DealerStatusPageCopyAdmin(admin.ModelAdmin):
         return "Dealer portal"
 
 
+@admin.register(EmailTemplate)
+class EmailTemplateAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "updated_at")
+    search_fields = ("name", "subject", "title")
+    readonly_fields = ("name", "slug", "description", "token_help", "created_at", "updated_at")
+    change_list_template = "admin/core/emailtemplate/change_list.html"
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Template", {"fields": ("name", "description", "slug", "token_help")}),
+        ("Message", {"fields": ("subject", "preheader", "title", "greeting", "intro")}),
+        ("Callout", {"fields": ("notice_title", "notice")}),
+        ("Footer & button", {"fields": ("footer", "cta_label")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Available placeholders")
+    def token_help(self, obj):
+        tokens = template_tokens(obj.slug)
+        if not tokens:
+            return "No placeholders."
+        return ", ".join(f"{{{token}}}" for token in tokens)
+
+    def changelist_view(self, request, extra_context=None):
+        class EmailTemplateSettingsForm(forms.ModelForm):
+            class Meta:
+                model = EmailTemplateSettings
+                fields = ("brand_name",)
+
+        settings_obj = EmailTemplateSettings.get_solo()
+        if request.method == "POST" and request.POST.get("email_settings_submit") == "1":
+            form = EmailTemplateSettingsForm(request.POST, instance=settings_obj)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Email brand updated.")
+                settings_obj = EmailTemplateSettings.get_solo()
+            else:
+                messages.error(request, "Please correct the brand name field.")
+        else:
+            form = EmailTemplateSettingsForm(instance=settings_obj)
+
+        extra_context = extra_context or {}
+        extra_context["email_settings_form"] = form
+        extra_context["email_settings_updated_at"] = settings_obj.updated_at
+        return super().changelist_view(request, extra_context=extra_context)
+
+
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
@@ -2930,4 +3020,36 @@ class PageViewAdmin(admin.ModelAdmin):
     search_fields = ("path", "page_instance_id", "session__session_key", "user__username")
     list_filter = ("started_at",)
     readonly_fields = ("created_at", "updated_at")
+    ordering = ("-started_at",)
+
+
+@admin.register(ClientUiCheckRun)
+class ClientUiCheckRunAdmin(admin.ModelAdmin):
+    list_display = (
+        "started_at",
+        "status",
+        "trigger",
+        "total_pages",
+        "failures_count",
+        "warnings_count",
+    )
+    list_filter = ("status", "trigger", "started_at")
+    search_fields = ("summary",)
+    readonly_fields = (
+        "trigger",
+        "status",
+        "started_at",
+        "finished_at",
+        "duration_ms",
+        "total_pages",
+        "total_links",
+        "total_forms",
+        "total_buttons",
+        "failures_count",
+        "warnings_count",
+        "skipped_count",
+        "summary",
+        "report",
+        "triggered_by",
+    )
     ordering = ("-started_at",)

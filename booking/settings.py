@@ -16,9 +16,17 @@ def _dec_env(name: str, default: str) -> Decimal:
     except (InvalidOperation, TypeError):
         return Decimal(default)
 
+
+def _bool_env(name: str, default: str = "False") -> bool:
+    """
+    Safe boolean parser for env vars.
+    Accepts: 1/0, true/false, yes/no, on/off (case-insensitive).
+    """
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "y", "on"}
+
 # ── Основное ─────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = _bool_env("DEBUG", "False")
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -203,7 +211,7 @@ MARKETING = {
     "google_tag_manager_id": os.getenv("GOOGLE_TAG_MANAGER_ID", "GTM-M7FTNXV6"),
     "google_ads_id": os.getenv("GOOGLE_ADS_ID", ""),
     "google_ads_conversion_label": os.getenv("GOOGLE_ADS_CONVERSION_LABEL", ""),
-    "google_ads_send_page_view": os.getenv("GOOGLE_ADS_SEND_PAGE_VIEW", "True") == "True",
+    "google_ads_send_page_view": _bool_env("GOOGLE_ADS_SEND_PAGE_VIEW", "True"),
 }
 
 # ── Company contact (email footer defaults) ──────────────────────────────
@@ -255,8 +263,8 @@ EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.sendgrid.net")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "apikey")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", os.getenv("SENDGRID_API_KEY", ""))
-EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False") == "True"
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+EMAIL_USE_SSL = _bool_env("EMAIL_USE_SSL", "False")
+EMAIL_USE_TLS = _bool_env("EMAIL_USE_TLS", "True")
 if EMAIL_USE_SSL:
     EMAIL_USE_TLS = False
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
@@ -292,6 +300,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.AuthIdleTimeoutMiddleware",
+    "core.middleware.AdminSidebarSeenMiddleware",
     "core.middleware.VisitorAnalyticsMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -382,17 +392,23 @@ if os.getenv("USE_S3_MEDIA") == "1":
 
 # ── Безопасность продакшна ──────────────────────────────────────────────
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "True") == "True"
+SECURE_SSL_REDIRECT = _bool_env("SECURE_SSL_REDIRECT", "True")
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h]
 
+# ── Сессии ──────────────────────────────────────────────────────────────
+# Принудительный логаут после 30 минут бездействия.
+SESSION_COOKIE_AGE = 60 * 30
+SESSION_SAVE_EVERY_REQUEST = False
+AUTH_IDLE_TIMEOUT_SECONDS = 60 * 30
+
 # ── Jazzmin (как было) ───────────────────────────────────────────────────
 ADMIN_SIDEBAR_SECTIONS = [
     {
         "label": "Operations",
-        "icon": "fas fa-gauge-high",
+        "icon": "fas fa-tachometer-alt",
         "groups": [
             {
                 "label": "Appointments",
@@ -406,7 +422,7 @@ ADMIN_SIDEBAR_SECTIONS = [
             },
             {
                 "label": "Staffing",
-                "icon": "fas fa-user-gear",
+                "icon": "fas fa-user-cog",
                 "items": [
                     {"model": "core.MasterAvailability", "label": "Availability"},
                     {"model": "core.MasterProfile", "label": "Team Profiles"},
@@ -416,7 +432,7 @@ ADMIN_SIDEBAR_SECTIONS = [
             },
             {
                 "label": "Payments",
-                "icon": "fas fa-sack-dollar",
+                "icon": "fas fa-money-bill-wave",
                 "items": [
                     {"model": "core.Payment"},
                     {"model": "core.PaymentStatus", "label": "Payment Status"},
@@ -431,6 +447,24 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "core.ServiceDiscount", "label": "Service Discounts"},
                     {"model": "core.PromoCode", "label": "Promo Codes"},
                     {"model": "core.AppointmentPromoCode", "label": "Appointment Promo Codes"},
+                ],
+            },
+            {
+                "label": "Automation",
+                "icon": "fas fa-robot",
+                "items": [
+                    {"model": "notifications.TelegramContact", "label": "Contacts"},
+                    {"model": "notifications.TelegramBotSettings", "label": "Bot Settings"},
+                    {"model": "notifications.TelegramReminder", "label": "Reminders"},
+                    {"model": "notifications.TelegramMessageLog", "label": "Delivery Log"},
+                ],
+            },
+            {
+                "label": "Analytics",
+                "icon": "fas fa-chart-line",
+                "items": [
+                    {"model": "core.VisitorSession", "label": "Visitor Sessions"},
+                    {"model": "core.PageView", "label": "Page Views"},
                 ],
             },
         ],
@@ -482,17 +516,29 @@ ADMIN_SIDEBAR_SECTIONS = [
                 ],
             },
             {
+                "label": "Services Catalog",
+                "icon": "fas fa-tools",
+                "items": [
+                    {"model": "core.ServiceCategory", "label": "Service Categories"},
+                    {"model": "core.Service"},
+                ],
+            },
+            {
                 "label": "Vehicles & Fitment",
                 "icon": "fas fa-car-side",
                 "items": [
                     {"model": "store.CarMake", "label": "Car Makes"},
                     {"model": "store.CarModel", "label": "Car Models"},
-                    {"model": "store.CustomFitmentRequest", "label": "Fitment Requests"},
+                    {
+                        "model": "store.CustomFitmentRequest",
+                        "label": "Fitment Requests",
+                        "activity_field": "created_at",
+                    },
                 ],
             },
             {
                 "label": "Orders",
-                "icon": "fas fa-cart-shopping",
+                "icon": "fas fa-shopping-cart",
                 "items": [
                     {"model": "store.Order", "label": "Orders"},
                     {"model": "store.OrderItem", "label": "Order Items"},
@@ -501,63 +547,39 @@ ADMIN_SIDEBAR_SECTIONS = [
         ],
     },
     {
-        "label": "Automation",
-        "icon": "fas fa-robot",
+        "label": "Website Content",
+        "icon": "fas fa-globe",
         "groups": [
             {
-                "label": "Telegram Bot",
-                "icon": "fas fa-paper-plane",
+                "label": "Branding & Fonts",
+                "icon": "fas fa-font",
                 "items": [
-                    {"model": "notifications.TelegramContact", "label": "Contacts"},
-                    {"model": "notifications.TelegramBotSettings", "label": "Bot Settings"},
-                    {"model": "notifications.TelegramReminder", "label": "Reminders"},
-                    {"model": "notifications.TelegramMessageLog", "label": "Delivery Log"},
-                ],
-            },
-        ],
-    },
-    {
-        "label": "Content & Insights",
-        "icon": "fas fa-bullhorn",
-        "groups": [
-            {
-                "label": "Services & Packages",
-                "icon": "fas fa-screwdriver-wrench",
-                "items": [
-                    {"model": "core.ServiceCategory", "label": "Service Categories"},
-                    {"model": "core.Service"},
-                ],
-            },
-            {
-                "label": "Website",
-                "icon": "fas fa-globe",
-                "items": [
-                    {"model": "core.LegalPage", "label": "Legal Pages"},
                     {"model": "core.FontPreset", "label": "Font Library"},
                     {"model": "core.PageFontSetting", "label": "Page Fonts"},
-                    {"model": "core.HomePageCopy", "label": "Home Page Copy"},
-                    {"model": "core.ServicesPageCopy", "label": "Services Page Copy"},
-                    {"model": "core.StorePageCopy", "label": "Products Page Copy"},
-                    {"model": "core.LandingPageReview", "label": "Landing Reviews"},
-                    {"model": "core.ProjectJournalEntry", "label": "Project Journal"},
+                ],
+            },
+            {
+                "label": "Media & Hero Assets",
+                "icon": "fas fa-images",
+                "items": [
                     {"model": "core.HeroImage", "label": "Hero Assets"},
                 ],
             },
             {
-                "label": "Public Pages",
-                "icon": "fas fa-file-alt",
+                "label": "Page Copy",
+                "icon": "fas fa-pen-nib",
                 "items": [
+                    {"model": "core.HomePageCopy", "label": "Home Page Copy"},
+                    {"model": "core.ServicesPageCopy", "label": "Services Page Copy"},
+                    {"model": "core.StorePageCopy", "label": "Products Page Copy"},
                     {"model": "core.FinancingPageCopy", "label": "Financing Page Copy"},
                     {"model": "core.AboutPageCopy", "label": "About Page Copy"},
                     {"model": "core.DealerStatusPageCopy", "label": "Dealer Portal Copy"},
-                ],
-            },
-            {
-                "label": "Client Portal & Merch",
-                "icon": "fas fa-layer-group",
-                "items": [
                     {"model": "core.ClientPortalPageCopy", "label": "Client Portal Copy"},
                     {"model": "core.MerchPageCopy", "label": "Merch Page Copy"},
+                    {"model": "core.LegalPage", "label": "Legal Pages"},
+                    {"model": "core.LandingPageReview", "label": "Landing Reviews"},
+                    {"model": "core.ProjectJournalEntry", "label": "Project Journal"},
                 ],
             },
             {
@@ -565,21 +587,14 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "icon": "fas fa-bell",
                 "items": [
                     {"model": "core.Notification", "label": "Notifications"},
-                ],
-            },
-            {
-                "label": "Analytics",
-                "icon": "fas fa-chart-line",
-                "items": [
-                    {"model": "core.VisitorSession", "label": "Visitor Sessions"},
-                    {"model": "core.PageView", "label": "Page Views"},
+                    {"model": "core.EmailTemplate", "label": "Email Templates"},
                 ],
             },
         ],
     },
     {
         "label": "System",
-        "icon": "fas fa-shield-halved",
+        "icon": "fas fa-shield-alt",
         "groups": [
             {
                 "label": "Access Control",
@@ -610,16 +625,16 @@ JAZZMIN_SETTINGS = {
         "auth.User": "fas fa-user",
         "auth.Group": "fas fa-users-cog",
         "core.Appointment": "fas fa-calendar-check",
-        "core.AppointmentStatus": "fas fa-circle-dot",
+        "core.AppointmentStatus": "fas fa-dot-circle",
         "core.AppointmentStatusHistory": "fas fa-wave-square",
         "core.AppointmentPrepayment": "fas fa-coins",
-        "core.AppointmentPromoCode": "fas fa-ticket",
+        "core.AppointmentPromoCode": "fas fa-ticket-alt",
         "core.ClientFile": "fas fa-folder-open",
         "core.ClientReview": "fas fa-comments",
         "core.ClientSource": "fas fa-bullseye",
         "core.DealerApplication": "fas fa-user-check",
         "core.DealerTierLevel": "fas fa-medal",
-        "core.HeroImage": "fas fa-panorama",
+        "core.HeroImage": "fas fa-image",
         "core.HomePageCopy": "fas fa-pen-nib",
         "core.FinancingPageCopy": "fas fa-credit-card",
         "core.AboutPageCopy": "fas fa-info-circle",
@@ -630,25 +645,26 @@ JAZZMIN_SETTINGS = {
         "core.StorePageCopy": "fas fa-store",
         "core.FontPreset": "fas fa-font",
         "core.PageFontSetting": "fas fa-heading",
+        "core.EmailTemplate": "fas fa-envelope-open-text",
         "core.LandingPageReview": "fas fa-star",
-        "core.LegalPage": "fas fa-scale-balanced",
+        "core.LegalPage": "fas fa-balance-scale",
         "core.MasterAvailability": "fas fa-business-time",
         "core.MasterProfile": "fas fa-user-tie",
         "core.MasterRoom": "fas fa-warehouse",
         "core.Notification": "fas fa-bell",
         "core.PageView": "fas fa-chart-area",
-        "core.Payment": "fas fa-sack-dollar",
+        "core.Payment": "fas fa-money-bill-wave",
         "core.PaymentMethod": "fas fa-credit-card",
-        "core.PaymentStatus": "fas fa-list-check",
+        "core.PaymentStatus": "fas fa-clipboard-check",
         "core.PrepaymentOption": "fas fa-piggy-bank",
         "core.PromoCode": "fas fa-ticket-alt",
         "core.ProjectJournalEntry": "fas fa-newspaper",
-        "core.Role": "fas fa-shield-halved",
-        "core.Service": "fas fa-screwdriver-wrench",
-        "core.ServiceCategory": "fas fa-diagram-project",
-        "core.ServiceDiscount": "fas fa-badge-percent",
+        "core.Role": "fas fa-user-shield",
+        "core.Service": "fas fa-tools",
+        "core.ServiceCategory": "fas fa-project-diagram",
+        "core.ServiceDiscount": "fas fa-percent",
         "core.ServiceLead": "fas fa-inbox",
-        "core.ServiceMaster": "fas fa-user-gear",
+        "core.ServiceMaster": "fas fa-user-cog",
         "core.UserProfile": "fas fa-id-badge",
         "core.UserRole": "fas fa-user-tag",
         "core.VisitorSession": "fas fa-user-clock",
@@ -656,7 +672,7 @@ JAZZMIN_SETTINGS = {
         "store.CarModel": "fas fa-car-side",
         "store.Category": "fas fa-tags",
         "store.CustomFitmentRequest": "fas fa-ruler-combined",
-        "store.Order": "fas fa-cart-shopping",
+        "store.Order": "fas fa-shopping-cart",
         "store.OrderItem": "fas fa-receipt",
         "store.StorePricingSettings": "fas fa-percent",
         "store.Product": "fas fa-box-open",
@@ -712,7 +728,7 @@ AUTHENTICATION_BACKENDS = [
     "core.auth_backends.EmailPhoneBackend",
 ]
 LOGIN_REDIRECT_URL = "/home/"
-LOGOUT_REDIRECT_URL = "/home/"
+LOGOUT_REDIRECT_URL = "home"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ── Логи в stdout (dokku logs) ───────────────────────────────────────────

@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from store.models import AbandonedCart
 
@@ -108,24 +109,33 @@ def _send_email(recipient: str, *, subject: str, text_body: str, html_body: str)
 
 
 def _build_email_1(cart: AbandonedCart) -> tuple[str, str, str]:
-    brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    brand = email_brand_name()
     links = _link_bundle()
-    subject = f"{brand} - your cart is waiting"
-    text_lines = [
-        "Hi there,",
-        "You left a few items in your cart. We saved them for you.",
+    context = base_email_context(
+        {
+            "brand": brand,
+            "checkout_url": links["checkout"],
+            "cart_url": links["cart"],
+            "store_url": links["store"],
+        }
+    )
+    template = render_email_template("abandoned_cart_1", context)
+    link_lines = [
         f"Resume checkout: {links['checkout']}",
         f"View cart: {links['cart']}",
-        "",
-        "Questions? Reply to this email and we will help.",
+        f"Shop store: {links['store']}",
     ]
+    text_body = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        link_lines,
+        template.footer_lines,
+    )
     html_body = build_email_html(
-        title="Your cart is waiting",
-        preheader="You left a few items behind. Resume checkout anytime.",
-        greeting="Hi there,",
-        intro_lines=[
-            "You left a few items in your cart. We saved them for you.",
-        ],
+        title=template.title,
+        preheader=template.preheader,
+        greeting=template.greeting,
+        intro_lines=template.intro_lines,
         item_rows=_item_rows(cart),
         summary_rows=_summary_rows(cart),
         link_rows=[
@@ -133,32 +143,43 @@ def _build_email_1(cart: AbandonedCart) -> tuple[str, str, str]:
             ("View cart", links["cart"]),
             ("Shop store", links["store"]),
         ],
-        cta_label="Resume checkout",
+        notice_title=template.notice_title or None,
+        notice_lines=template.notice_lines,
+        cta_label=template.cta_label,
         cta_url=links["checkout"],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        footer_lines=template.footer_lines,
     )
-    return subject, "\n".join(text_lines), html_body
+    return template.subject, text_body, html_body
 
 
 def _build_email_2(cart: AbandonedCart) -> tuple[str, str, str]:
-    brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    brand = email_brand_name()
     links = _link_bundle()
-    subject = f"{brand} - still want these items?"
-    text_lines = [
-        "Hi there,",
-        "Your cart is still saved. If you want us to help with fitment or shipping, reply here.",
+    context = base_email_context(
+        {
+            "brand": brand,
+            "checkout_url": links["checkout"],
+            "cart_url": links["cart"],
+            "store_url": links["store"],
+        }
+    )
+    template = render_email_template("abandoned_cart_2", context)
+    link_lines = [
         f"Checkout: {links['checkout']}",
         f"Cart: {links['cart']}",
-        "",
-        "Questions? Reply to this email and we will help.",
+        f"Shop store: {links['store']}",
     ]
+    text_body = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        link_lines,
+        template.footer_lines,
+    )
     html_body = build_email_html(
-        title="Your cart is still saved",
-        preheader="Finish checkout whenever you are ready.",
-        greeting="Hi there,",
-        intro_lines=[
-            "Your cart is still saved. If you want help with fitment or shipping, reply here.",
-        ],
+        title=template.title,
+        preheader=template.preheader,
+        greeting=template.greeting,
+        intro_lines=template.intro_lines,
         item_rows=_item_rows(cart),
         summary_rows=_summary_rows(cart),
         link_rows=[
@@ -166,32 +187,43 @@ def _build_email_2(cart: AbandonedCart) -> tuple[str, str, str]:
             ("View cart", links["cart"]),
             ("Shop store", links["store"]),
         ],
-        cta_label="Go to checkout",
+        notice_title=template.notice_title or None,
+        notice_lines=template.notice_lines,
+        cta_label=template.cta_label,
         cta_url=links["checkout"],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        footer_lines=template.footer_lines,
     )
-    return subject, "\n".join(text_lines), html_body
+    return template.subject, text_body, html_body
 
 
 def _build_email_3(cart: AbandonedCart) -> tuple[str, str, str]:
-    brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    brand = email_brand_name()
     links = _link_bundle()
-    subject = f"{brand} - last reminder for your cart"
-    text_lines = [
-        "Hi there,",
-        "Just a final reminder in case you still want these items.",
+    context = base_email_context(
+        {
+            "brand": brand,
+            "checkout_url": links["checkout"],
+            "cart_url": links["cart"],
+            "store_url": links["store"],
+        }
+    )
+    template = render_email_template("abandoned_cart_3", context)
+    link_lines = [
         f"Checkout: {links['checkout']}",
         f"Cart: {links['cart']}",
-        "",
-        "Questions? Reply to this email and we will help.",
+        f"Shop store: {links['store']}",
     ]
+    text_body = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        link_lines,
+        template.footer_lines,
+    )
     html_body = build_email_html(
-        title="Last reminder for your cart",
-        preheader="Your cart is ready if you still want these items.",
-        greeting="Hi there,",
-        intro_lines=[
-            "Just a final reminder in case you still want these items.",
-        ],
+        title=template.title,
+        preheader=template.preheader,
+        greeting=template.greeting,
+        intro_lines=template.intro_lines,
         item_rows=_item_rows(cart),
         summary_rows=_summary_rows(cart),
         link_rows=[
@@ -199,11 +231,13 @@ def _build_email_3(cart: AbandonedCart) -> tuple[str, str, str]:
             ("View cart", links["cart"]),
             ("Shop store", links["store"]),
         ],
-        cta_label="Checkout now",
+        notice_title=template.notice_title or None,
+        notice_lines=template.notice_lines,
+        cta_label=template.cta_label,
         cta_url=links["checkout"],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        footer_lines=template.footer_lines,
     )
-    return subject, "\n".join(text_lines), html_body
+    return template.subject, text_body, html_body
 
 
 class Command(BaseCommand):

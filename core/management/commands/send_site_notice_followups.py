@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from core.models import SiteNoticeSignup
 
@@ -74,36 +75,48 @@ def _send_email(recipient: str, *, subject: str, text_body: str, html_body: str)
 
 
 def _build_followup_2(signup: SiteNoticeSignup) -> tuple[str, str, str]:
-    brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    brand = email_brand_name()
     code = (signup.welcome_code or "").strip()
     links = _link_bundle()
 
-    subject = f"{brand} follow-up: your 5% code"
-    text_lines = [
-        f"Hi there,",
-        "Quick customer note: \"The install was clean and the team kept me updated the whole time.\"",
-        f"Your welcome code is still ready: {code}",
-        "Use it on any product or service invoice.",
-        "",
+    context = base_email_context(
+        {
+            "brand": brand,
+            "welcome_code": code,
+            "best_sellers_url": links["best_sellers"],
+            "services_url": links["services"],
+            "booking_url": links["booking"],
+        }
+    )
+    template = render_email_template("site_notice_followup_2", context)
+    notice_text_lines = []
+    if template.notice_lines:
+        if template.notice_title:
+            notice_text_lines = [f"{template.notice_title}: {line}" for line in template.notice_lines]
+        else:
+            notice_text_lines = list(template.notice_lines)
+    summary_lines = [f"Welcome code: {code}", "Discount: 5% off"]
+    link_lines = [
         f"Best sellers: {links['best_sellers']}",
         f"Services: {links['services']}",
         f"Booking: {links['booking']}",
-        "",
-        "Questions? Reply to this email and we will help.",
     ]
+    text_body = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        notice_text_lines,
+        summary_lines,
+        link_lines,
+        template.footer_lines,
+    )
 
     html_body = build_email_html(
-        title="Your welcome code is still ready",
-        preheader=f"Customer note + your 5% code: {code}",
-        greeting="Hi there,",
-        intro_lines=[
-            f"Your welcome code is still active: {code}.",
-            "Use it on any product or service invoice.",
-        ],
-        notice_title="Customer note",
-        notice_lines=[
-            "\"The install was clean and the team kept me updated the whole time.\""
-        ],
+        title=template.title,
+        preheader=template.preheader,
+        greeting=template.greeting,
+        intro_lines=template.intro_lines,
+        notice_title=template.notice_title or None,
+        notice_lines=template.notice_lines,
         summary_rows=[
             ("Welcome code", code),
             ("Discount", "5% off"),
@@ -113,43 +126,52 @@ def _build_followup_2(signup: SiteNoticeSignup) -> tuple[str, str, str]:
             ("Services", links["services"]),
             ("Booking", links["booking"]),
         ],
-        cta_label="Shop best sellers",
+        cta_label=template.cta_label,
         cta_url=links["best_sellers"],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        footer_lines=template.footer_lines,
     )
-    return subject, "\n".join(text_lines), html_body
+    return template.subject, text_body, html_body
 
 
 def _build_followup_3(signup: SiteNoticeSignup) -> tuple[str, str, str]:
-    brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    brand = email_brand_name()
     links = _link_bundle()
 
-    subject = f"{brand} - want a quote or want to book in?"
-    text_lines = [
-        "Want a quote or want to book in?",
+    context = base_email_context(
+        {
+            "brand": brand,
+            "services_url": links["services"],
+            "booking_url": links["booking"],
+        }
+    )
+    template = render_email_template("site_notice_followup_3", context)
+    link_lines = [
         f"Book now: {links['booking']}",
         f"Browse services: {links['services']}",
-        "",
-        "Questions? Reply to this email and we will help.",
     ]
+    text_body = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        link_lines,
+        template.footer_lines,
+    )
 
     html_body = build_email_html(
-        title="Want a quote or want to book in?",
-        preheader="Ready when you are - book or browse services.",
-        greeting="Hi there,",
-        intro_lines=[
-            "We can price it out fast or lock in a time that works for you.",
-            "Pick a service or jump straight to booking.",
-        ],
+        title=template.title,
+        preheader=template.preheader,
+        greeting=template.greeting,
+        intro_lines=template.intro_lines,
         link_rows=[
             ("Book now", links["booking"]),
             ("Browse services", links["services"]),
         ],
-        cta_label="Book a service",
+        notice_title=template.notice_title or None,
+        notice_lines=template.notice_lines,
+        cta_label=template.cta_label,
         cta_url=links["booking"],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        footer_lines=template.footer_lines,
     )
-    return subject, "\n".join(text_lines), html_body
+    return template.subject, text_body, html_body
 
 
 class Command(BaseCommand):

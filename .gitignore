@@ -161,3 +161,6 @@ cython_debug/
 /*.pdf
 *.Zone.Identifier
 *:Zone.Identifier
+
+# Local-only dev helpers (ignored)
+local_dev/
