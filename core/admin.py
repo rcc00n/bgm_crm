@@ -1690,6 +1690,28 @@ class LegalPageAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(AdminLoginBranding)
+class AdminLoginBrandingAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        ("Logo", {"fields": ("login_logo", "login_logo_dark", "login_logo_alt")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if AdminLoginBranding.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Admin login"
+
+
 @admin.register(HomePageCopy)
 class HomePageCopyAdmin(admin.ModelAdmin):
     list_display = ("label", "updated_at")

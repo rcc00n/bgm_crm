@@ -100,6 +100,49 @@ class AdminSidebarSeen(models.Model):
         return f"{self.user} → {self.app_label}.{self.model_name}"
 
 
+class AdminLoginBranding(models.Model):
+    """
+    Stores logo assets for the admin login screen.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    login_logo = models.ImageField(
+        upload_to="admin/branding/",
+        blank=True,
+        null=True,
+        help_text="Logo shown on the admin login screen.",
+    )
+    login_logo_dark = models.ImageField(
+        upload_to="admin/branding/",
+        blank=True,
+        null=True,
+        help_text="Optional dark mode logo for the admin login screen.",
+    )
+    login_logo_alt = models.CharField(
+        max_length=120,
+        default="Admin logo",
+        help_text="Accessible alt text for the login logo.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Admin login branding"
+        verbose_name_plural = "Admin login branding"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Admin login branding"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
 class ClientUiCheckRun(models.Model):
     """
     Stores results of automated client UI checks.
