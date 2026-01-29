@@ -20,6 +20,7 @@ from django.template.defaultfilters import filesizeformat
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
+from django.core.exceptions import PermissionDenied
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
@@ -2994,6 +2995,7 @@ class EmailCampaignAdmin(admin.ModelAdmin):
         "status_badge",
         "audience_total_display",
         "sent_summary",
+        "send_button",
         "send_completed_at",
         "updated_at",
     )
@@ -3114,6 +3116,68 @@ class EmailCampaignAdmin(admin.ModelAdmin):
     def recipients_link(self, obj):
         if not obj or not obj.pk:
             return "—"
+
+    @admin.display(description="Actions")
+    def send_button(self, obj):
+        if obj.status not in {
+            EmailCampaign.Status.DRAFT,
+            EmailCampaign.Status.PARTIAL,
+            EmailCampaign.Status.FAILED,
+        }:
+            return "—"
+        try:
+            url = reverse("admin:core_emailcampaign_send", args=[obj.pk])
+        except Exception:
+            return "—"
+        return format_html('<a class="button" href="{}">Send</a>', url)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<int:campaign_id>/send/",
+                self.admin_site.admin_view(self.send_view),
+                name="core_emailcampaign_send",
+            ),
+        ]
+        return custom_urls + urls
+
+    def send_view(self, request, campaign_id):
+        campaign = self.get_object(request, campaign_id)
+        if campaign is None:
+            return HttpResponseRedirect(reverse("admin:core_emailcampaign_changelist"))
+        if not self.has_change_permission(request, campaign):
+            raise PermissionDenied
+
+        if request.method == "POST":
+            try:
+                result = send_campaign(campaign, triggered_by=request.user)
+            except Exception as exc:
+                messages.error(request, f"Send failed: {exc}")
+            else:
+                status = result.get("status")
+                if status in {EmailCampaign.Status.SENT, EmailCampaign.Status.PARTIAL}:
+                    messages.success(
+                        request,
+                        f"Campaign sent. {result.get('sent', 0)} sent, {result.get('failed', 0)} failed.",
+                    )
+                elif status == "no_recipients":
+                    messages.warning(request, "Campaign has no recipients.")
+                elif status == "skipped":
+                    messages.warning(request, "Campaign already sent.")
+                else:
+                    messages.error(request, "Campaign send failed.")
+            return HttpResponseRedirect(reverse("admin:core_emailcampaign_changelist"))
+
+        counts = estimate_campaign_audience(campaign)
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "campaign": campaign,
+            "audience_counts": counts,
+            "title": "Send email campaign",
+        }
+        return TemplateResponse(request, "admin/core/emailcampaign/send_confirm.html", context)
         try:
             url = reverse("admin:core_emailcampaignrecipient_changelist")
             return format_html('<a href="{}?campaign__id__exact={}">View recipients</a>', url, obj.pk)
