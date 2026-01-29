@@ -269,6 +269,7 @@ if EMAIL_USE_SSL:
     EMAIL_USE_TLS = False
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", SUPPORT_EMAIL or "")
+EMAIL_VERIFICATION_RESEND_MINUTES = int(os.getenv("EMAIL_VERIFICATION_RESEND_MINUTES", "10"))
 
 # ── Приложения ───────────────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -737,7 +738,6 @@ JAZZMIN_UI_TWEAKS = {
 # ── Аутентификация ───────────────────────────────────────────────────────
 LOGIN_URL = "login"
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
     "core.auth_backends.EmailPhoneBackend",
 ]
 LOGIN_REDIRECT_URL = "/home/"

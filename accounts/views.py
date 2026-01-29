@@ -1,9 +1,14 @@
 # accounts/views.py
 from __future__ import annotations
 
+import logging
+from datetime import timedelta
+
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
+from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, get_object_or_404
@@ -13,6 +18,8 @@ from django.views.generic import TemplateView, ListView
 from django.views.generic.edit import CreateView
 
 from django.utils import timezone
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.db.models import OuterRef, Subquery, Count
 from django.db.models.functions import TruncMonth
 from django.conf import settings
@@ -30,16 +37,98 @@ from core.models import (
 )
 from core.services.fonts import build_page_font_context
 from core.services.media import build_home_gallery_media
+from core.emails import build_email_html, send_html_email
+from core.email_templates import email_brand_name, join_text_sections
 
 from .forms import (
     ClientRegistrationForm,
     ClientProfileForm,
+    VerifiedLoginForm,
 )
 
 CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
 CLIENT_PORTAL_FILE_MAX_BYTES = CLIENT_PORTAL_FILE_MAX_MB * 1024 * 1024
 CLIENT_PORTAL_ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".pdf"}
 CLIENT_PORTAL_ALLOWED_MIME_TYPES = {"application/pdf"}
+
+logger = logging.getLogger(__name__)
+UserModel = get_user_model()
+EMAIL_VERIFICATION_RESEND_MINUTES = int(getattr(settings, "EMAIL_VERIFICATION_RESEND_MINUTES", 10))
+
+
+def _build_email_verification_url(request, user) -> str:
+    uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    return request.build_absolute_uri(
+        reverse("verify-email", kwargs={"uidb64": uidb64, "token": token})
+    )
+
+
+def _send_email_verification(request, user, *, force: bool = False) -> bool:
+    profile = getattr(user, "userprofile", None)
+    if not profile:
+        return False
+    if not user.email:
+        return False
+    if profile.email_verified_at:
+        return False
+
+    now = timezone.now()
+    if not force and profile.email_verification_sent_at:
+        if now - profile.email_verification_sent_at < timedelta(minutes=EMAIL_VERIFICATION_RESEND_MINUTES):
+            return False
+
+    sender = (
+        getattr(settings, "DEFAULT_FROM_EMAIL", None)
+        or getattr(settings, "SUPPORT_EMAIL", None)
+    )
+    if not sender:
+        logger.warning("Missing DEFAULT_FROM_EMAIL/SUPPORT_EMAIL for email verification.")
+        raise ValueError("Email service is unavailable.")
+
+    brand = email_brand_name()
+    verify_url = _build_email_verification_url(request, user)
+    expiry_seconds = int(getattr(settings, "PASSWORD_RESET_TIMEOUT", 60 * 60 * 72))
+    expiry_hours = max(1, int(expiry_seconds / 3600))
+
+    greeting_name = user.get_full_name() or user.username or "there"
+    greeting = f"Hi {greeting_name},"
+    intro_lines = [
+        f"Thanks for creating your {brand} account.",
+        "Please confirm your email address to finish setting up your account.",
+    ]
+    notice_lines = [f"This verification link expires in {expiry_hours} hours."]
+    footer_lines = ["If you did not request this, you can ignore this email."]
+
+    text_body = join_text_sections(
+        [greeting],
+        intro_lines,
+        [f"Verify your email: {verify_url}"],
+        notice_lines,
+        footer_lines,
+    )
+    html_body = build_email_html(
+        title="Verify your email",
+        preheader="Confirm your email to activate your account.",
+        greeting=greeting,
+        intro_lines=intro_lines,
+        notice_title="Security",
+        notice_lines=notice_lines,
+        footer_lines=footer_lines,
+        cta_label="Verify email",
+        cta_url=verify_url,
+    )
+    send_html_email(
+        subject=f"{brand} - verify your email",
+        text_body=text_body,
+        html_body=html_body,
+        from_email=sender,
+        recipient_list=[user.email],
+    )
+
+    profile.email_verification_sent_at = now
+    profile.save(update_fields=["email_verification_sent_at"])
+    return True
 
 # =========================
 # Аутентификация и доступ
@@ -52,6 +141,7 @@ class RoleBasedLoginView(LoginView):
       • Client → mainmenu
     """
     template_name = "registration/login.html"
+    authentication_form = VerifiedLoginForm
 
     def get_success_url(self):
         user = self.request.user
@@ -68,6 +158,24 @@ class RoleBasedLoginView(LoginView):
 
         return super().get_success_url()
 
+    def form_invalid(self, form):
+        user = getattr(form, "unverified_user", None)
+        if user:
+            try:
+                sent = _send_email_verification(self.request, user, force=False)
+                if sent:
+                    messages.info(
+                        self.request,
+                        "We sent you a new verification email. Please check your inbox.",
+                    )
+            except Exception:
+                logger.exception("Failed to resend verification email to %s", user.email)
+                messages.error(
+                    self.request,
+                    "We couldn't resend the verification email right now.",
+                )
+        return super().form_invalid(form)
+
 
 class RoleRequiredMixin(LoginRequiredMixin):
     """
@@ -81,6 +189,27 @@ class RoleRequiredMixin(LoginRequiredMixin):
         if self.required_role and not request.user.userrole_set.filter(role__name=self.required_role).exists():
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
+
+
+class EmailVerificationView(View):
+    def get(self, request, uidb64, token, *args, **kwargs):
+        user = None
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = UserModel.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+            user = None
+
+        if user and default_token_generator.check_token(user, token):
+            profile = getattr(user, "userprofile", None)
+            if profile and not profile.email_verified_at:
+                profile.email_verified_at = timezone.now()
+                profile.save(update_fields=["email_verified_at"])
+            messages.success(request, "Email verified. You can sign in now.")
+            return redirect("login")
+
+        messages.error(request, "This verification link is invalid or expired.")
+        return redirect("login")
 
 
 # =========================
@@ -297,10 +426,26 @@ class ClientRegisterView(CreateView):
     success_url = None  # вычисляем в get_success_url()
 
     def form_valid(self, form):
-        form.save()
+        user = form.save()
+        try:
+            sent = _send_email_verification(self.request, user, force=True)
+            if not sent:
+                raise ValueError("Email verification was not sent.")
+        except Exception:
+            logger.exception("Failed to send verification email to %s", user.email)
+            user.delete()
+            if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse(
+                    {"__all__": ["Unable to send verification email right now."]},
+                    status=500,
+                )
+            form.add_error(None, "Unable to send verification email right now.")
+            return self.form_invalid(form)
+
         if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
             return HttpResponse("OK")
-        return super().form_valid(form)
+        messages.success(self.request, "Check your email to verify your account.")
+        return redirect(self.get_success_url())
 
     def form_invalid(self, form):
         if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
