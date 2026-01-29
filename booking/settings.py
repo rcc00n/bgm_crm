@@ -558,6 +558,7 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "items": [
                     {"model": "core.FontPreset", "label": "Font Library"},
                     {"model": "core.PageFontSetting", "label": "Page Fonts"},
+                    {"model": "core.TopbarSettings", "label": "Topbar Settings"},
                     {"model": "core.AdminLoginBranding", "label": "Admin Login Branding"},
                 ],
             },
@@ -658,6 +659,7 @@ JAZZMIN_SETTINGS = {
         "core.StorePageCopy": "fas fa-store",
         "core.FontPreset": "fas fa-font",
         "core.PageFontSetting": "fas fa-heading",
+        "core.TopbarSettings": "fas fa-stream",
         "core.AdminLoginBranding": "fas fa-sign-in-alt",
         "core.EmailTemplate": "fas fa-envelope-open-text",
         "core.EmailCampaign": "fas fa-paper-plane",
