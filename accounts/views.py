@@ -76,6 +76,8 @@ class RoleRequiredMixin(LoginRequiredMixin):
     required_role: str | None = None
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
         if self.required_role and not request.user.userrole_set.filter(role__name=self.required_role).exists():
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
