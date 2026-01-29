@@ -30,5 +30,7 @@ def order_created(sender, instance, created, **kwargs):
 def fitment_request_created(sender, instance, created, **kwargs):
     if not created:
         return
+    if getattr(instance, "_skip_telegram_notify", False):
+        return
 
     transaction.on_commit(lambda: services.notify_about_fitment_request(instance.pk))

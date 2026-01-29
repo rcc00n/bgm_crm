@@ -32,6 +32,7 @@ from .models import (
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm
 from core.models import Payment, PaymentMethod, StorePageCopy
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
+from notifications import services as notification_services
 
 logger = logging.getLogger(__name__)
 
@@ -606,8 +607,13 @@ def product_detail(request, slug: str):
         form_data.setdefault("source_url", request.build_absolute_uri())
         quote_form = CustomFitmentRequestForm(form_data)
         if quote_form.is_valid():
-            fitment_request = quote_form.save()
+            fitment_request = quote_form.save(commit=False)
+            fitment_request._skip_telegram_notify = True  # avoid duplicate signal send
+            fitment_request.save()
             _notify_fitment_request(fitment_request)
+            transaction.on_commit(
+                lambda: notification_services.notify_about_fitment_request(fitment_request.pk)
+            )
             messages.success(
                 request,
                 "Thanks! Your build notes reached our team. Expect a reply within 1-2 business days.",
@@ -706,7 +712,7 @@ def _cart_positions(session, *, dealer_discount: int = 0):
     cart = _cart(session)
     items = cart.get("items", [])
     if not items:
-        return [], Decimal("0.00")
+        return [], Decimal("0.00"), Decimal("0.00")
 
     quant = Decimal("0.01")
     product_ids = {it["product_id"] for it in items}

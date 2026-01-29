@@ -305,23 +305,28 @@ def _pick_role_user(role_name: str):
 
 def _build_clients() -> dict[str, Client]:
     host = _preferred_host()
-    clients = {"anon": Client(HTTP_HOST=host)}
+    def make_client() -> Client:
+        client = Client(HTTP_HOST=host)
+        client.raise_request_exception = False
+        return client
+
+    clients = {"anon": make_client()}
 
     client_user = _pick_role_user("Client")
     if client_user:
-        client = Client(HTTP_HOST=host)
+        client = make_client()
         client.force_login(client_user)
         clients["client"] = client
 
     master_user = _pick_role_user("Master")
     if master_user:
-        client = Client(HTTP_HOST=host)
+        client = make_client()
         client.force_login(master_user)
         clients["master"] = client
 
     staff_user = get_user_model().objects.filter(is_staff=True, is_active=True).first()
     if staff_user:
-        client = Client(HTTP_HOST=host)
+        client = make_client()
         client.force_login(staff_user)
         clients["staff"] = client
 
@@ -363,17 +368,22 @@ def _fetch_with_context(url: str, clients: dict[str, Client]) -> UrlCheckResult:
     return base_result
 
 
-def _fetch_body(url: str, client: Client) -> tuple[str, str | None]:
-    response = client.get(url, follow=True)
+def _fetch_body(url: str, client: Client) -> tuple[str, str | None, int | None, str | None]:
+    try:
+        response = client.get(url, follow=True)
+    except Exception as exc:
+        return "", None, None, f"{exc.__class__.__name__}: {exc}"
+
+    status_code = getattr(response, "status_code", None)
     content_type = response.headers.get("Content-Type")
     if content_type and "text/html" not in content_type:
-        return "", content_type
+        return "", content_type, status_code, None
     charset = response.charset or "utf-8"
     try:
         body = response.content.decode(charset, errors="replace")
     except Exception:
         body = response.content.decode("utf-8", errors="replace")
-    return body, content_type
+    return body, content_type, status_code, None
 
 
 def _format_status(status: str) -> str:
@@ -603,12 +613,37 @@ def _perform_ui_audit() -> dict[str, Any]:
                 queue.append((redirect_url, depth + 1))
 
         context_client = clients.get(result.context, clients["anon"])
-        body, content_type = _fetch_body(current_url, context_client)
+        body, content_type, body_status, body_error = _fetch_body(current_url, context_client)
+        if body_error:
+            issues.append({
+                "level": "FAIL",
+                "target": current_url,
+                "detail": body_error,
+            })
+            stats["failures"] += 1
+            continue
+        if body_status and body_status >= 400:
+            issues.append({
+                "level": "FAIL",
+                "target": current_url,
+                "detail": f"HTTP {body_status}",
+            })
+            stats["failures"] += 1
+            continue
         if content_type and "text/html" not in content_type:
             continue
 
         parser = HtmlAuditParser()
-        parser.feed(body)
+        try:
+            parser.feed(body)
+        except Exception as exc:
+            issues.append({
+                "level": "FAIL",
+                "target": current_url,
+                "detail": f"{exc.__class__.__name__}: {exc}",
+            })
+            stats["failures"] += 1
+            continue
 
         stats["links"] += len(parser.links)
         stats["forms"] += len(parser.forms)
