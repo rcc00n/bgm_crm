@@ -399,6 +399,7 @@ def _format_status(status: str) -> str:
 def _telegram_report(run: ClientUiCheckRun) -> str:
     stats = run.report.get("stats", {}) if run.report else {}
     issues = run.report.get("issues", []) if run.report else []
+    error_message = run.report.get("error") if run.report else None
 
     header = f"<b>Client UI check — {timezone.localtime(run.started_at).strftime('%Y-%m-%d %H:%M')}</b>"
     status_line = f"Status: {_format_status(run.status)}"
@@ -422,10 +423,15 @@ def _telegram_report(run: ClientUiCheckRun) -> str:
     if duration_ms:
         lines.append(f"Duration: {duration_ms / 1000:.1f}s")
 
-    if run.status == ClientUiCheckRun.Status.FAILED and run.summary:
-        lines.append(f"Error: {html.escape(run.summary[:400])}")
+    if error_message:
+        lines.append(f"Error: {html.escape(str(error_message)[:400])}")
 
     if issues:
+        def sort_key(item: dict[str, str]) -> int:
+            level = (item.get("level") or "").upper()
+            return 0 if level == "FAIL" else 1
+
+        issues = sorted(issues, key=sort_key)
         lines.append("")
         lines.append("Top issues:")
         max_items = 10
@@ -505,6 +511,7 @@ def run_client_ui_check(*, trigger: str, triggered_by=None, force: bool = False,
         run.failures_count = 1
         run.report = {
             "summary": run.summary,
+            "error": run.summary,
             "stats": {
                 "pages": 0,
                 "links": 0,
