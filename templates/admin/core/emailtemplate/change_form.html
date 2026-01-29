@@ -4,6 +4,25 @@
 {% block extrahead %}
   {{ block.super }}
   <style>
+    body.model-emailtemplate.change-form #content {
+      max-width: none;
+    }
+
+    body.model-emailtemplate.change-form.colMS {
+      margin-right: 0;
+    }
+
+    body.model-emailtemplate.change-form #content-main {
+      float: none;
+      width: 100%;
+    }
+
+    body.model-emailtemplate.change-form #content-related {
+      float: none;
+      width: 100%;
+      margin: 20px 0 0;
+    }
+
     .email-preview-module {
       margin-top: 24px;
     }
