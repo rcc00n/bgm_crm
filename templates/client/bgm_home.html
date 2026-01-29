@@ -6,7 +6,7 @@
   <meta charset="utf-8">
   <title>BGM — Home</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% with meta_title="BGM — Performance Builds & VIP Service" meta_description="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM in Calgary." meta_image=hero_media.src meta_section="home" %}
+  {% with meta_title="BGM — Performance Builds & VIP Service" meta_description="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM in Calgary." meta_image=hero_carousel.0.src|default:hero_media.src meta_section="home" %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
   {% if font_settings.preload_fonts %}
@@ -162,6 +162,33 @@
     .hero__media{position:relative;width:min(100%, var(--hero-media-width, 100%));max-width:100%;justify-self:end;}
     .hero__disclaimer{position:absolute;left:1.1rem;bottom:1.1rem;padding:.35rem .9rem;border-radius:.85rem;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.6);color:rgba(255,255,255,.82);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;display:inline-flex;align-items:center;gap:.45rem;backdrop-filter:blur(6px)}
     .hero__disclaimer::before{content:"";width:18px;height:1px;background:rgba(255,255,255,.45);flex-shrink:0}
+    .hero__media--carousel{display:block;}
+    .hero__slides{position:relative;width:100%;height:100%;}
+    .hero__slide{position:absolute;inset:0;opacity:0;transition:opacity .45s ease;}
+    .hero__slide.is-active{opacity:1;}
+    .hero__media--carousel .hero__disclaimer{z-index:3;}
+    .hero__carousel-btn{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      width:42px;
+      height:42px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(0,0,0,.45);
+      backdrop-filter:blur(4px);
+      color:#fff;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      transition:.2s ease;
+      z-index:3;
+    }
+    .hero__carousel-btn:hover{border-color:rgba(213,0,0,.6);transform:translateY(-50%) scale(1.03);}
+    .hero__carousel-btn svg{width:22px;height:22px;display:block;}
+    .hero__carousel-btn--prev{left:.65rem;}
+    .hero__carousel-btn--next{right:.65rem;}
+    .hero__media--carousel[data-slides="1"] .hero__carousel-btn{display:none;}
     @media (max-width:900px){
       .hero__disclaimer{
         position:static;
@@ -177,6 +204,10 @@
         -webkit-box-orient:vertical;
         overflow:hidden;
       }
+      .hero__slides{height:auto;}
+      .hero__slide{position:relative;opacity:1;display:none;}
+      .hero__slide.is-active{display:block;}
+      .hero__carousel-btn{width:38px;height:38px;}
     }
 
     .section{padding:clamp(2rem,6vw,4rem) 0;border-top:1px solid var(--line)}
@@ -745,10 +776,44 @@
         </div>
       </div>
 
-      <div class="frame frame--media hero__media"{% if home_copy.hero_media_width or home_copy.hero_media_height %} style="{% if home_copy.hero_media_width %}--hero-media-width: {{ home_copy.hero_media_width }}px;{% endif %}{% if home_copy.hero_media_height %}--hero-media-height: {{ home_copy.hero_media_height }}px;{% endif %}"{% endif %}>
-        <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'BGM hero' }}" loading="lazy" decoding="async">
-        <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
-      </div>
+      {% if hero_carousel %}
+        <div class="frame frame--media hero__media hero__media--carousel"
+             data-hero-carousel
+             data-interval="8000"
+             data-slides="{{ hero_carousel|length }}"
+             aria-roledescription="carousel"
+             aria-label="Hero image carousel"
+             {% if home_copy.hero_media_width or home_copy.hero_media_height %}style="{% if home_copy.hero_media_width %}--hero-media-width: {{ home_copy.hero_media_width }}px;{% endif %}{% if home_copy.hero_media_height %}--hero-media-height: {{ home_copy.hero_media_height }}px;{% endif %}"{% endif %}>
+          <div class="hero__slides" data-hero-slides>
+            {% for slide in hero_carousel %}
+              <div class="hero__slide{% if forloop.first %} is-active{% endif %}"
+                   data-hero-slide
+                   data-caption="{{ slide.caption|default:hero_media.caption|default:'Product may not appear exactly as shown.' }}">
+                <img src="{{ slide.src }}"
+                     alt="{{ slide.alt|default:hero_media.alt|default:'BGM hero' }}"
+                     loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                     decoding="async">
+              </div>
+            {% endfor %}
+          </div>
+          <button class="hero__carousel-btn hero__carousel-btn--prev" type="button" aria-label="Previous image" data-hero-prev>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="hero__carousel-btn hero__carousel-btn--next" type="button" aria-label="Next image" data-hero-next>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <p class="hero__disclaimer" data-hero-caption>{{ hero_carousel.0.caption|default:hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
+        </div>
+      {% else %}
+        <div class="frame frame--media hero__media"{% if home_copy.hero_media_width or home_copy.hero_media_height %} style="{% if home_copy.hero_media_width %}--hero-media-width: {{ home_copy.hero_media_width }}px;{% endif %}{% if home_copy.hero_media_height %}--hero-media-height: {{ home_copy.hero_media_height }}px;{% endif %}"{% endif %}>
+          <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'BGM hero' }}" loading="lazy" decoding="async">
+          <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
+        </div>
+      {% endif %}
 
     </div>
   </section>
@@ -1324,6 +1389,85 @@
 
   <!-- Unified topbar behavior -->
   <script src="{% static 'js/topbar.js' %}"></script>
+
+  <!-- Hero carousel -->
+  <script id="hero-carousel-js">
+  (function(){
+    const carousels = document.querySelectorAll('[data-hero-carousel]');
+    if (!carousels.length) return;
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    carousels.forEach((carousel) => {
+      const slides = Array.from(carousel.querySelectorAll('[data-hero-slide]'));
+      if (!slides.length) return;
+
+      const captionEl = carousel.querySelector('[data-hero-caption]');
+      const prevBtn = carousel.querySelector('[data-hero-prev]');
+      const nextBtn = carousel.querySelector('[data-hero-next]');
+      let index = slides.findIndex((slide) => slide.classList.contains('is-active'));
+      if (index < 0) index = 0;
+
+      slides.forEach((slide, idx) => {
+        slide.setAttribute('aria-hidden', idx === index ? 'false' : 'true');
+      });
+
+      const setCaption = (slide) => {
+        if (!captionEl) return;
+        const caption = slide.getAttribute('data-caption') || captionEl.textContent;
+        captionEl.textContent = caption;
+      };
+
+      const showSlide = (nextIndex) => {
+        slides[index].classList.remove('is-active');
+        slides[index].setAttribute('aria-hidden', 'true');
+        index = (nextIndex + slides.length) % slides.length;
+        const active = slides[index];
+        active.classList.add('is-active');
+        active.setAttribute('aria-hidden', 'false');
+        setCaption(active);
+      };
+
+      let timer = null;
+      const interval = parseInt(carousel.getAttribute('data-interval') || '8000', 10);
+
+      const startTimer = () => {
+        if (prefersReduced || slides.length < 2 || interval <= 0) return;
+        timer = window.setInterval(() => showSlide(index + 1), interval);
+      };
+      const stopTimer = () => {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+      };
+      const resetTimer = () => {
+        stopTimer();
+        startTimer();
+      };
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          showSlide(index - 1);
+          resetTimer();
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          showSlide(index + 1);
+          resetTimer();
+        });
+      }
+
+      carousel.addEventListener('mouseenter', stopTimer);
+      carousel.addEventListener('mouseleave', startTimer);
+      carousel.addEventListener('focusin', stopTimer);
+      carousel.addEventListener('focusout', startTimer);
+
+      setCaption(slides[index]);
+      startTimer();
+    });
+  })();
+  </script>
 
   <!-- Contact modal bindings -->
   <script id="contact-fab-js">

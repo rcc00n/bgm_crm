@@ -2,7 +2,11 @@
 from django.conf import settings
 from django.urls import resolve, reverse
 
-from core.services.media import DEFAULT_MEDIA_CAPTION, resolve_media_asset
+from core.services.media import (
+    DEFAULT_MEDIA_CAPTION,
+    build_home_hero_carousel,
+    resolve_media_asset,
+)
 
 from .models import HeroImage, TopbarSettings
 from core.services.fonts import serialize_font_preset
@@ -63,7 +67,12 @@ def hero_media(request):
         defaults.get("caption", DEFAULT_CAPTION),
     )
     payload["location"] = url_name or payload.get("location", "")
-    return {"hero_media": payload}
+
+    hero_carousel = []
+    if url_name == "home":
+        hero_carousel = build_home_hero_carousel()
+
+    return {"hero_media": payload, "hero_carousel": hero_carousel}
 
 
 def dealer_portal(request):

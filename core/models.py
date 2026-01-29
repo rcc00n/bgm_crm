@@ -2134,6 +2134,10 @@ class HeroImage(models.Model):
     """
     class Location(models.TextChoices):
         HOME = "home", "Home hero"
+        HOME_CAROUSEL_A = "home-carousel-a", "Home hero carousel — slide 1"
+        HOME_CAROUSEL_B = "home-carousel-b", "Home hero carousel — slide 2"
+        HOME_CAROUSEL_C = "home-carousel-c", "Home hero carousel — slide 3"
+        HOME_CAROUSEL_D = "home-carousel-d", "Home hero carousel — slide 4"
         HOME_GALLERY_A = "home-gallery-a", "Home gallery — slot 1"
         HOME_GALLERY_B = "home-gallery-b", "Home gallery — slot 2"
         HOME_GALLERY_C = "home-gallery-c", "Home gallery — slot 3"
