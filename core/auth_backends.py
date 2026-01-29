@@ -8,6 +8,17 @@ class EmailPhoneBackend(ModelBackend):
     """
     Позволяет войти по username, e-mail или телефону.
     """
+    def user_can_authenticate(self, user):
+        is_allowed = super().user_can_authenticate(user)
+        if not is_allowed:
+            return False
+        if user.is_staff or user.is_superuser:
+            return True
+        profile = getattr(user, "userprofile", None)
+        if profile and not profile.email_verified_at:
+            return False
+        return True
+
     def authenticate(self, request, username=None, password=None, **kwargs):
         if username is None or password is None:
             return None

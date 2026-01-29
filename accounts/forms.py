@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
+from django.db.models import Q
 
 import phonenumbers
 
@@ -164,6 +165,52 @@ class ClientLoginForm(AuthenticationForm):
             raise forms.ValidationError("Incorrect credentials.")
         self.confirm_login_allowed(self.user_cache)
         return self.cleaned_data
+
+
+# ---------- Login with email verification ----------
+class VerifiedLoginForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        self.unverified_user = None
+        super().__init__(*args, **kwargs)
+
+    def _raise_unverified_if_needed(self, identifier: str) -> None:
+        UserModel = get_user_model()
+        user = UserModel.objects.filter(
+            Q(username=identifier)
+            | Q(email__iexact=identifier)
+            | Q(userprofile__phone=identifier)
+        ).first()
+        if user and not user.is_staff and not user.is_superuser:
+            profile = getattr(user, "userprofile", None)
+            if profile and not profile.email_verified_at:
+                self.unverified_user = user
+                raise forms.ValidationError(
+                    "Please verify your email before signing in.",
+                    code="email_unverified",
+                )
+
+    def clean(self):
+        username = self.cleaned_data.get("username")
+        password = self.cleaned_data.get("password")
+
+        if username is not None and password:
+            self.user_cache = authenticate(self.request, username=username, password=password)
+            if self.user_cache is None:
+                self._raise_unverified_if_needed(username)
+                raise self.get_invalid_login_error()
+            self.confirm_login_allowed(self.user_cache)
+
+        return self.cleaned_data
+
+    def confirm_login_allowed(self, user):
+        profile = getattr(user, "userprofile", None)
+        if profile and not profile.email_verified_at and not user.is_staff and not user.is_superuser:
+            self.unverified_user = user
+            raise forms.ValidationError(
+                "Please verify your email before signing in.",
+                code="email_unverified",
+            )
+        super().confirm_login_allowed(user)
 
 
 # ---------- Profile edit ----------

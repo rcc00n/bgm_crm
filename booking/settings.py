@@ -269,6 +269,7 @@ if EMAIL_USE_SSL:
     EMAIL_USE_TLS = False
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", SUPPORT_EMAIL or "")
+EMAIL_VERIFICATION_RESEND_MINUTES = int(os.getenv("EMAIL_VERIFICATION_RESEND_MINUTES", "10"))
 
 # ── Приложения ───────────────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -556,6 +557,7 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "items": [
                     {"model": "core.FontPreset", "label": "Font Library"},
                     {"model": "core.PageFontSetting", "label": "Page Fonts"},
+                    {"model": "core.AdminLoginBranding", "label": "Admin Login Branding"},
                 ],
             },
             {
@@ -587,6 +589,16 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "icon": "fas fa-bell",
                 "items": [
                     {"model": "core.Notification", "label": "Notifications"},
+                    {
+                        "model": "core.EmailCampaign",
+                        "label": "Email Campaigns",
+                        "activity_field": "created_at",
+                    },
+                    {
+                        "model": "core.EmailSubscriber",
+                        "label": "Email Subscribers",
+                        "activity_field": "created_at",
+                    },
                     {"model": "core.EmailTemplate", "label": "Email Templates"},
                 ],
             },
@@ -645,7 +657,11 @@ JAZZMIN_SETTINGS = {
         "core.StorePageCopy": "fas fa-store",
         "core.FontPreset": "fas fa-font",
         "core.PageFontSetting": "fas fa-heading",
+        "core.AdminLoginBranding": "fas fa-sign-in-alt",
         "core.EmailTemplate": "fas fa-envelope-open-text",
+        "core.EmailCampaign": "fas fa-paper-plane",
+        "core.EmailSubscriber": "fas fa-user-plus",
+        "core.EmailCampaignRecipient": "fas fa-envelope",
         "core.LandingPageReview": "fas fa-star",
         "core.LegalPage": "fas fa-balance-scale",
         "core.MasterAvailability": "fas fa-business-time",
@@ -724,7 +740,6 @@ JAZZMIN_UI_TWEAKS = {
 # ── Аутентификация ───────────────────────────────────────────────────────
 LOGIN_URL = "login"
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
     "core.auth_backends.EmailPhoneBackend",
 ]
 LOGIN_REDIRECT_URL = "/home/"

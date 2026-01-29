@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans "Home" %}</a>
+  › <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_label|capfirst }}</a>
+  › <a href="{% url 'admin:core_emailcampaign_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  › {% trans "Send" %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <div class="module aligned">
+    <h1>Send email campaign</h1>
+    <p><strong>Campaign:</strong> {{ campaign.name }}</p>
+    <p><strong>Status:</strong> {{ campaign.get_status_display }}</p>
+    <p>
+      <strong>Estimated audience:</strong>
+      {{ audience_counts.estimated_total }}
+      (Subscribers: {{ audience_counts.subscriber_count }},
+      Registered users: {{ audience_counts.user_count }})
+    </p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="submit-row">
+        <input type="submit" value="Send campaign" class="default" />
+        <a href="{% url 'admin:core_emailcampaign_changelist' %}" class="button cancel-link">Back to list</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

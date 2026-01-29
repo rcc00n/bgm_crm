@@ -100,6 +100,49 @@ class AdminSidebarSeen(models.Model):
         return f"{self.user} → {self.app_label}.{self.model_name}"
 
 
+class AdminLoginBranding(models.Model):
+    """
+    Stores logo assets for the admin login screen.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    login_logo = models.ImageField(
+        upload_to="admin/branding/",
+        blank=True,
+        null=True,
+        help_text="Logo shown on the admin login screen.",
+    )
+    login_logo_dark = models.ImageField(
+        upload_to="admin/branding/",
+        blank=True,
+        null=True,
+        help_text="Optional dark mode logo for the admin login screen.",
+    )
+    login_logo_alt = models.CharField(
+        max_length=120,
+        default="Admin logo",
+        help_text="Accessible alt text for the login logo.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Admin login branding"
+        verbose_name_plural = "Admin login branding"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Admin login branding"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
 class ClientUiCheckRun(models.Model):
     """
     Stores results of automated client UI checks.
@@ -1545,6 +1588,154 @@ class EmailTemplate(models.Model):
         return self.name
 
 
+class EmailSubscriber(models.Model):
+    class Source(models.TextChoices):
+        IMPORT = "import", "Imported list"
+        MANUAL = "manual", "Manual entry"
+
+    email = models.EmailField(unique=True)
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.MANUAL)
+    is_active = models.BooleanField(default=True)
+    added_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="email_subscribers_added",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email subscriber"
+        verbose_name_plural = "Email subscribers"
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["email"]),
+            models.Index(fields=["is_active"]),
+        ]
+
+    def __str__(self) -> str:
+        return self.email
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.email = self.email.strip().lower()
+        super().save(*args, **kwargs)
+
+
+class EmailCampaign(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        SENDING = "sending", "Sending"
+        SENT = "sent", "Sent"
+        PARTIAL = "partial", "Sent with errors"
+        FAILED = "failed", "Failed"
+
+    name = models.CharField(max_length=160)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
+    from_email = models.EmailField(blank=True)
+
+    subject = models.CharField(max_length=180)
+    preheader = models.CharField(max_length=180, blank=True)
+    title = models.CharField(max_length=140)
+    greeting = models.CharField(max_length=160, blank=True)
+    intro = models.TextField(
+        blank=True,
+        help_text="One sentence per line. These lines appear near the top of the email.",
+    )
+    notice_title = models.CharField(max_length=120, blank=True)
+    notice = models.TextField(
+        blank=True,
+        help_text="Optional callout. One sentence per line.",
+    )
+    footer = models.TextField(
+        blank=True,
+        help_text="One sentence per line. Appears at the bottom of the email.",
+    )
+    cta_label = models.CharField(max_length=80, blank=True)
+    cta_url = models.URLField(max_length=500, blank=True)
+
+    include_subscribers = models.BooleanField(default=True)
+    include_registered_users = models.BooleanField(
+        default=True,
+        help_text="Only users who opted into marketing emails are included.",
+    )
+
+    recipients_total = models.PositiveIntegerField(default=0)
+    sent_count = models.PositiveIntegerField(default=0)
+    failed_count = models.PositiveIntegerField(default=0)
+    send_started_at = models.DateTimeField(null=True, blank=True)
+    send_completed_at = models.DateTimeField(null=True, blank=True)
+    sent_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="email_campaigns_sent",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email campaign"
+        verbose_name_plural = "Email campaigns"
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class EmailCampaignRecipient(models.Model):
+    class Source(models.TextChoices):
+        SUBSCRIBER = "subscriber", "Subscriber list"
+        USER = "user", "Registered user"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
+        SKIPPED = "skipped", "Skipped"
+
+    campaign = models.ForeignKey(EmailCampaign, on_delete=models.CASCADE)
+    email = models.EmailField()
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="email_campaign_recipients",
+    )
+    source = models.CharField(max_length=16, choices=Source.choices)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    error_message = models.CharField(max_length=255, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Email campaign recipient"
+        verbose_name_plural = "Email campaign recipients"
+        ordering = ("-created_at",)
+        unique_together = ("campaign", "email")
+        indexes = [
+            models.Index(fields=["campaign", "status"]),
+            models.Index(fields=["email"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.email} ({self.campaign})"
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.email = self.email.strip().lower()
+        super().save(*args, **kwargs)
+
+
 class FontPreset(models.Model):
     """
     Reusable font definition that can be applied to public-facing pages.
@@ -2063,6 +2254,8 @@ class UserProfile(models.Model):
     email_marketing_consent = models.BooleanField(default=False)   # согласие на рассылки
     email_marketing_consented_at = models.DateTimeField(null=True, blank=True)
     how_heard = models.CharField(max_length=32, choices=HowHeard.choices, blank=True)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
+    email_verification_sent_at = models.DateTimeField(null=True, blank=True)
 
     def set_marketing_consent(self, value: bool):
         """Convenience helper: switches consent flag and timestamp in sync."""

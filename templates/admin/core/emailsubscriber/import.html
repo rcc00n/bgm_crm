@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans "Home" %}</a>
+  › <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst }}</a>
+  › <a href="{{ changelist_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
+  › {% trans "Import" %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <div class="module aligned">
+    <h1>Import email subscribers</h1>
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <fieldset class="module aligned">
+        {{ form.as_p }}
+      </fieldset>
+      <div class="submit-row">
+        <input type="submit" value="Import" class="default" />
+        <a href="{{ changelist_url }}" class="button cancel-link">Back to list</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="module" style="margin-top:1.2rem;">
+    <h2>Supported formats</h2>
+    <p><strong>CSV/XLSX:</strong> any column that contains email addresses will be imported.</p>
+    <p>Tip: Use a column header like <code>email</code> for clarity.</p>
+  </div>
+{% endblock %}
