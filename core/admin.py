@@ -2886,14 +2886,85 @@ class EmailTemplateSettingsForm(forms.ModelForm):
         widgets = {
             "company_website": forms.TextInput(attrs={"placeholder": "https://example.com"}),
             "support_email": forms.EmailInput(attrs={"placeholder": "support@example.com"}),
-            "accent_color": forms.TextInput(attrs={"type": "color"}),
-            "dark_color": forms.TextInput(attrs={"type": "color"}),
-            "bg_color": forms.TextInput(attrs={"type": "color"}),
+            "accent_color": forms.TextInput(attrs={"placeholder": "#d50000"}),
+            "dark_color": forms.TextInput(attrs={"placeholder": "#0b0b0c"}),
+            "bg_color": forms.TextInput(attrs={"placeholder": "#0b0b0c"}),
         }
+
+
+class EmailTemplateAdminForm(forms.ModelForm):
+    brand_name = forms.CharField(
+        required=False,
+        label="Brand name",
+        help_text="Leave blank to use the site default.",
+    )
+    brand_tagline = forms.CharField(
+        required=False,
+        label="Brand tagline",
+        help_text="Leave blank to use the site default.",
+    )
+    company_address = forms.CharField(
+        required=False,
+        label="Company address",
+        help_text="Leave blank to use the site default.",
+    )
+    company_phone = forms.CharField(
+        required=False,
+        label="Company phone",
+        help_text="Leave blank to use the site default.",
+    )
+    company_website = forms.CharField(
+        required=False,
+        label="Company website",
+        help_text="Leave blank to use the site default.",
+        widget=forms.TextInput(attrs={"placeholder": "https://example.com"}),
+    )
+    support_email = forms.EmailField(
+        required=False,
+        label="Support email",
+        help_text="Leave blank to use the site default.",
+        widget=forms.EmailInput(attrs={"placeholder": "support@example.com"}),
+    )
+    accent_color = forms.CharField(
+        required=False,
+        label="Accent color",
+        help_text="Leave blank to use the site default (hex like #d50000).",
+        widget=forms.TextInput(attrs={"placeholder": "#d50000"}),
+    )
+    dark_color = forms.CharField(
+        required=False,
+        label="Dark color",
+        help_text="Leave blank to use the site default (hex like #0b0b0c).",
+        widget=forms.TextInput(attrs={"placeholder": "#0b0b0c"}),
+    )
+    bg_color = forms.CharField(
+        required=False,
+        label="Background color",
+        help_text="Leave blank to use the site default (hex like #0b0b0c).",
+        widget=forms.TextInput(attrs={"placeholder": "#0b0b0c"}),
+    )
+
+    class Meta:
+        model = EmailTemplate
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        settings_obj = EmailTemplateSettings.get_solo()
+        self.fields["brand_name"].initial = settings_obj.brand_name or ""
+        self.fields["brand_tagline"].initial = settings_obj.brand_tagline or ""
+        self.fields["company_address"].initial = settings_obj.company_address or ""
+        self.fields["company_phone"].initial = settings_obj.company_phone or ""
+        self.fields["company_website"].initial = settings_obj.company_website or ""
+        self.fields["support_email"].initial = settings_obj.support_email or ""
+        self.fields["accent_color"].initial = settings_obj.accent_color or ""
+        self.fields["dark_color"].initial = settings_obj.dark_color or ""
+        self.fields["bg_color"].initial = settings_obj.bg_color or ""
 
 
 @admin.register(EmailTemplate)
 class EmailTemplateAdmin(admin.ModelAdmin):
+    form = EmailTemplateAdminForm
     list_display = ("name", "slug", "updated_at")
     search_fields = ("name", "subject", "title")
     readonly_fields = ("name", "slug", "description", "token_help", "created_at", "updated_at")
@@ -2904,6 +2975,19 @@ class EmailTemplateAdmin(admin.ModelAdmin):
     }
     fieldsets = (
         ("Template", {"fields": ("name", "description", "slug", "token_help")}),
+        ("Email settings (global)", {
+            "fields": (
+                "brand_name",
+                "brand_tagline",
+                "company_address",
+                "company_phone",
+                "company_website",
+                "support_email",
+                "accent_color",
+                "dark_color",
+                "bg_color",
+            )
+        }),
         ("Message", {"fields": ("subject", "preheader", "title", "greeting", "intro")}),
         ("Callout", {"fields": ("notice_title", "notice")}),
         ("Footer & button", {"fields": ("footer", "cta_label", "cta_url")}),
@@ -2915,6 +2999,20 @@ class EmailTemplateAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        settings_obj = EmailTemplateSettings.get_solo()
+        settings_obj.brand_name = form.cleaned_data.get("brand_name", "") or ""
+        settings_obj.brand_tagline = form.cleaned_data.get("brand_tagline", "") or ""
+        settings_obj.company_address = form.cleaned_data.get("company_address", "") or ""
+        settings_obj.company_phone = form.cleaned_data.get("company_phone", "") or ""
+        settings_obj.company_website = form.cleaned_data.get("company_website", "") or ""
+        settings_obj.support_email = form.cleaned_data.get("support_email", "") or ""
+        settings_obj.accent_color = form.cleaned_data.get("accent_color", "") or ""
+        settings_obj.dark_color = form.cleaned_data.get("dark_color", "") or ""
+        settings_obj.bg_color = form.cleaned_data.get("bg_color", "") or ""
+        settings_obj.save()
 
     @admin.display(description="Available placeholders")
     def token_help(self, obj):

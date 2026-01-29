@@ -299,7 +299,7 @@
   <div class="module email-preview-module">
     <h2 style="margin-top: 0;">Email preview</h2>
     <p class="help">Click any text in the preview to edit it. Tokens like <code>{brand}</code> stay visible here.</p>
-    <p class="help">Global branding/colors live in <a href="{{ email_settings_url }}">Email settings</a>.</p>
+    <p class="help">Global branding/colors live in the “Email settings (global)” section (also in <a href="{{ email_settings_url }}">Email settings</a>).</p>
     <div class="email-preview"
          data-email-preview-root
          data-email-brand="{{ email_preview_defaults.brand_name|default_if_none:''|escape }}"
@@ -322,8 +322,8 @@
       </div>
       <div class="email-preview__canvas">
         <div class="email-preview__frame">
-          <div class="email-preview__brand" data-preview-field="brand_name"></div>
-          <div class="email-preview__tagline" data-preview-field="brand_tagline"></div>
+          <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
+          <div class="email-preview__tagline" data-preview-field="brand_tagline" contenteditable="true" data-placeholder="Brand tagline"></div>
           <div class="email-preview__card">
             <div class="email-preview__accent"></div>
             <div class="email-preview__content">
@@ -372,7 +372,7 @@
             </div>
           </div>
           <div class="email-preview__contact">
-            <div class="email-preview__brand" data-preview-field="brand_name"></div>
+            <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
             <div data-preview-field="contact_line"></div>
           </div>
           <div class="email-preview__note">Sample rows (details/items/links) are for layout only.</div>
@@ -437,14 +437,18 @@
       };
 
       const getInputValue = (input) => (input ? input.value : '');
+      const resolveValue = (input, fallback) => {
+        const value = (input ? input.value : '').trim();
+        return value || (fallback || '');
+      };
 
       const syncGlobalFields = () => {
-        const address = (globalFields.company_address.input ? globalFields.company_address.input.value : globalFields.company_address.fallback || '').trim();
-        const phone = (globalFields.company_phone.input ? globalFields.company_phone.input.value : globalFields.company_phone.fallback || '').trim();
-        const website = (globalFields.company_website.input ? globalFields.company_website.input.value : globalFields.company_website.fallback || '').trim();
+        const address = resolveValue(globalFields.company_address.input, globalFields.company_address.fallback);
+        const phone = resolveValue(globalFields.company_phone.input, globalFields.company_phone.fallback);
+        const website = resolveValue(globalFields.company_website.input, globalFields.company_website.fallback);
 
-        updateFieldPreview('brand_name', (globalFields.brand_name.input ? globalFields.brand_name.input.value : globalFields.brand_name.fallback || '').trim());
-        updateFieldPreview('brand_tagline', (globalFields.brand_tagline.input ? globalFields.brand_tagline.input.value : globalFields.brand_tagline.fallback || '').trim());
+        updateFieldPreview('brand_name', resolveValue(globalFields.brand_name.input, globalFields.brand_name.fallback));
+        updateFieldPreview('brand_tagline', resolveValue(globalFields.brand_tagline.input, globalFields.brand_tagline.fallback));
 
         const contactPieces = [address, phone, website].filter(Boolean);
         updateFieldPreview('contact_line', contactPieces.join(' | '));
@@ -453,7 +457,7 @@
       const syncColors = () => {
         colorFields.forEach(color => {
           const input = document.getElementById(color.inputId);
-          const value = (input ? input.value : color.fallback || '').trim();
+          const value = resolveValue(input, color.fallback);
           if (value) {
             root.style.setProperty(color.cssVar, value);
           }
@@ -482,7 +486,7 @@
 
         const ctaButton = root.querySelector('.email-preview__button');
         if (ctaButton) {
-          const fallbackWebsite = (globalFields.company_website.input ? globalFields.company_website.input.value : globalFields.company_website.fallback || '').trim();
+          const fallbackWebsite = resolveValue(globalFields.company_website.input, globalFields.company_website.fallback);
           const href = ctaUrl || fallbackWebsite || '#';
           ctaButton.setAttribute('href', href);
         }
@@ -525,18 +529,30 @@
       Object.entries(globalFields).forEach(([name, config]) => {
         const input = document.getElementById(config.inputId);
         config.input = input || null;
-        if (!input) {
-          updateFieldPreview(name, config.fallback);
-          return;
-        }
         const update = () => {
-          updateFieldPreview(name, input.value.trim());
+          updateFieldPreview(name, resolveValue(input, config.fallback));
           syncGlobalFields();
           updateSections();
         };
         update();
-        input.addEventListener('input', update);
-        input.addEventListener('change', update);
+        if (input) {
+          input.addEventListener('input', update);
+          input.addEventListener('change', update);
+        }
+
+        root.querySelectorAll(`[data-preview-field="${name}"]`).forEach(node => {
+          if (!node.hasAttribute('contenteditable')) return;
+          node.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+            }
+          });
+          node.addEventListener('input', () => {
+            if (!input) return;
+            input.value = node.textContent.trim();
+            update();
+          });
+        });
       });
 
       colorFields.forEach(color => {

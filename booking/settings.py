@@ -41,7 +41,7 @@ SITE_BRAND_NAME = os.getenv(
 )
 SITE_BRAND_TAGLINE = os.getenv(
     "SITE_BRAND_TAGLINE",
-    "Performance builds and outlaw styling out of Calgary.",
+    "Performance builds and outlaw styling.",
 )
 SITE_DEFAULT_DESCRIPTION = os.getenv(
     "SITE_DEFAULT_DESCRIPTION",
