@@ -30,7 +30,17 @@ from django.http import HttpResponse, HttpResponseRedirect
 from .filters import *
 from .models import *
 from .forms import *
-from core.email_templates import template_tokens
+from core.email_templates import (
+    email_accent_color,
+    email_bg_color,
+    email_brand_name,
+    email_brand_tagline,
+    email_company_address,
+    email_company_phone,
+    email_company_website,
+    email_dark_color,
+    template_tokens,
+)
 from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
 from core.services.email_campaigns import (
     estimate_campaign_audience,
@@ -2859,12 +2869,36 @@ class DealerStatusPageCopyAdmin(admin.ModelAdmin):
         return "Dealer portal"
 
 
+class EmailTemplateSettingsForm(forms.ModelForm):
+    class Meta:
+        model = EmailTemplateSettings
+        fields = (
+            "brand_name",
+            "brand_tagline",
+            "company_address",
+            "company_phone",
+            "company_website",
+            "support_email",
+            "accent_color",
+            "dark_color",
+            "bg_color",
+        )
+        widgets = {
+            "company_website": forms.TextInput(attrs={"placeholder": "https://example.com"}),
+            "support_email": forms.EmailInput(attrs={"placeholder": "support@example.com"}),
+            "accent_color": forms.TextInput(attrs={"type": "color"}),
+            "dark_color": forms.TextInput(attrs={"type": "color"}),
+            "bg_color": forms.TextInput(attrs={"type": "color"}),
+        }
+
+
 @admin.register(EmailTemplate)
 class EmailTemplateAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "updated_at")
     search_fields = ("name", "subject", "title")
     readonly_fields = ("name", "slug", "description", "token_help", "created_at", "updated_at")
     change_list_template = "admin/core/emailtemplate/change_list.html"
+    change_form_template = "admin/core/emailtemplate/change_form.html"
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
@@ -2872,7 +2906,7 @@ class EmailTemplateAdmin(admin.ModelAdmin):
         ("Template", {"fields": ("name", "description", "slug", "token_help")}),
         ("Message", {"fields": ("subject", "preheader", "title", "greeting", "intro")}),
         ("Callout", {"fields": ("notice_title", "notice")}),
-        ("Footer & button", {"fields": ("footer", "cta_label")}),
+        ("Footer & button", {"fields": ("footer", "cta_label", "cta_url")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
 
@@ -2889,28 +2923,50 @@ class EmailTemplateAdmin(admin.ModelAdmin):
             return "No placeholders."
         return ", ".join(f"{{{token}}}" for token in tokens)
 
-    def changelist_view(self, request, extra_context=None):
-        class EmailTemplateSettingsForm(forms.ModelForm):
-            class Meta:
-                model = EmailTemplateSettings
-                fields = ("brand_name",)
-
+    def _get_email_settings_form(self, request):
         settings_obj = EmailTemplateSettings.get_solo()
         if request.method == "POST" and request.POST.get("email_settings_submit") == "1":
             form = EmailTemplateSettingsForm(request.POST, instance=settings_obj)
             if form.is_valid():
                 form.save()
-                messages.success(request, "Email brand updated.")
+                messages.success(request, "Email settings updated.")
                 settings_obj = EmailTemplateSettings.get_solo()
             else:
-                messages.error(request, "Please correct the brand name field.")
+                messages.error(request, "Please correct the highlighted fields.")
         else:
             form = EmailTemplateSettingsForm(instance=settings_obj)
+        return form, settings_obj
+
+    def _email_preview_defaults(self):
+        return {
+            "brand_name": email_brand_name(),
+            "brand_tagline": email_brand_tagline(),
+            "company_address": email_company_address(),
+            "company_phone": email_company_phone(),
+            "company_website": email_company_website(),
+            "accent_color": email_accent_color(),
+            "dark_color": email_dark_color(),
+            "bg_color": email_bg_color(),
+        }
+
+    def changelist_view(self, request, extra_context=None):
+        form, settings_obj = self._get_email_settings_form(request)
 
         extra_context = extra_context or {}
         extra_context["email_settings_form"] = form
         extra_context["email_settings_updated_at"] = settings_obj.updated_at
         return super().changelist_view(request, extra_context=extra_context)
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["email_preview_defaults"] = self._email_preview_defaults()
+        extra_context["email_settings_url"] = reverse("admin:core_emailtemplate_changelist")
+        return super().changeform_view(
+            request,
+            object_id=object_id,
+            form_url=form_url,
+            extra_context=extra_context,
+        )
 
 
 class EmailSubscriberImportForm(forms.Form):

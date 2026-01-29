@@ -127,7 +127,7 @@ def _build_followup_2(signup: SiteNoticeSignup) -> tuple[str, str, str]:
             ("Booking", links["booking"]),
         ],
         cta_label=template.cta_label,
-        cta_url=links["best_sellers"],
+        cta_url=template.cta_url or links["best_sellers"],
         footer_lines=template.footer_lines,
     )
     return template.subject, text_body, html_body
@@ -168,7 +168,7 @@ def _build_followup_3(signup: SiteNoticeSignup) -> tuple[str, str, str]:
         notice_title=template.notice_title or None,
         notice_lines=template.notice_lines,
         cta_label=template.cta_label,
-        cta_url=links["booking"],
+        cta_url=template.cta_url or links["booking"],
         footer_lines=template.footer_lines,
     )
     return template.subject, text_body, html_body

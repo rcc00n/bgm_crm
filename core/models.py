@@ -1515,6 +1515,45 @@ class EmailTemplateSettings(models.Model):
         blank=True,
         help_text="Optional override for SITE_BRAND_NAME when sending emails.",
     )
+    brand_tagline = models.CharField(
+        max_length=140,
+        blank=True,
+        help_text="Optional override for SITE_BRAND_TAGLINE in email headers/footers.",
+    )
+    company_address = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional override for COMPANY_ADDRESS in email footers.",
+    )
+    company_phone = models.CharField(
+        max_length=40,
+        blank=True,
+        help_text="Optional override for COMPANY_PHONE in email footers.",
+    )
+    company_website = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional override for COMPANY_WEBSITE in email footers and CTA defaults.",
+    )
+    support_email = models.EmailField(
+        blank=True,
+        help_text="Optional override for SUPPORT_EMAIL placeholders.",
+    )
+    accent_color = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Optional override for EMAIL_ACCENT_COLOR (hex like #d50000).",
+    )
+    dark_color = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Optional override for EMAIL_DARK_COLOR (hex like #0b0b0c).",
+    )
+    bg_color = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Optional override for EMAIL_BG_COLOR (hex like #0b0b0c).",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -1575,6 +1614,11 @@ class EmailTemplate(models.Model):
         help_text="One sentence per line. Appears at the bottom of the email.",
     )
     cta_label = models.CharField(max_length=80, blank=True)
+    cta_url = models.CharField(
+        max_length=240,
+        blank=True,
+        help_text="Optional button link override. Supports placeholders like {company_website}.",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
