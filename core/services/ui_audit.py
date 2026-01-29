@@ -412,6 +412,9 @@ def _telegram_report(run: ClientUiCheckRun) -> str:
     if duration_ms:
         lines.append(f"Duration: {duration_ms / 1000:.1f}s")
 
+    if run.status == ClientUiCheckRun.Status.FAILED and run.summary:
+        lines.append(f"Error: {html.escape(run.summary[:400])}")
+
     if issues:
         lines.append("")
         lines.append("Top issues:")
@@ -464,6 +467,8 @@ def run_client_ui_check(*, trigger: str, triggered_by=None, force: bool = False,
 
     started = time.monotonic()
     try:
+        if MAX_PAGES <= 0:
+            raise ValueError("CLIENT_UI_CHECK_MAX_PAGES must be > 0.")
         report = _perform_ui_audit()
         stats = report.get("stats", {})
         failures = stats.get("failures", 0)
@@ -487,7 +492,20 @@ def run_client_ui_check(*, trigger: str, triggered_by=None, force: bool = False,
     except Exception as exc:
         run.status = ClientUiCheckRun.Status.FAILED
         run.summary = f"{exc.__class__.__name__}: {exc}"
-        run.report = {"summary": run.summary}
+        run.failures_count = 1
+        run.report = {
+            "summary": run.summary,
+            "stats": {
+                "pages": 0,
+                "links": 0,
+                "buttons": 0,
+                "forms": 0,
+                "failures": 1,
+                "warnings": 0,
+                "skipped": 0,
+            },
+            "issues": [{"level": "FAIL", "target": "audit", "detail": run.summary}],
+        }
         logger.exception("Client UI check failed")
     finally:
         run.finished_at = timezone.now()
