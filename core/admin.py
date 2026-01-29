@@ -25,12 +25,18 @@ from django.utils.decorators import method_decorator
 import json
 import csv
 from django.urls import path, reverse, NoReverseMatch
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from .filters import *
 from .models import *
 from .forms import *
 from core.email_templates import template_tokens
 from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
+from core.services.email_campaigns import (
+    estimate_campaign_audience,
+    import_email_subscribers,
+    render_campaign_email,
+    send_campaign,
+)
 from core.utils import get_staff_queryset, format_currency
 from datetime import timedelta, time
 # -----------------------------
@@ -2862,6 +2868,335 @@ class EmailTemplateAdmin(admin.ModelAdmin):
         extra_context["email_settings_updated_at"] = settings_obj.updated_at
         return super().changelist_view(request, extra_context=extra_context)
 
+
+class EmailSubscriberImportForm(forms.Form):
+    file = forms.FileField(
+        label="Email list file",
+        help_text="Upload CSV or XLSX. Any column that contains email addresses will be imported.",
+    )
+    reactivate = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Reactivate existing emails",
+        help_text="If an email already exists but is inactive, turn it back on.",
+    )
+
+
+@admin.register(EmailSubscriber)
+class EmailSubscriberAdmin(ExportCsvMixin, admin.ModelAdmin):
+    list_display = ("email", "source", "is_active", "added_by", "created_at")
+    list_filter = ("source", "is_active", ("created_at", DateFieldListFilter))
+    search_fields = ("email",)
+    readonly_fields = ("created_at", "updated_at")
+    change_list_template = "admin/core/emailsubscriber/change_list.html"
+
+    fieldsets = (
+        ("Subscriber", {"fields": ("email", "source", "is_active", "added_by")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        opts = self.model._meta
+        custom_urls = [
+            path(
+                "import/",
+                self.admin_site.admin_view(self.import_view),
+                name=f"{opts.app_label}_{opts.model_name}_import",
+            ),
+        ]
+        return custom_urls + urls
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        opts = self.model._meta
+        try:
+            extra_context["import_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_import"
+            )
+        except Exception:
+            extra_context["import_url"] = None
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def import_view(self, request):
+        opts = self.model._meta
+        changelist_url = reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
+
+        if request.method == "POST":
+            form = EmailSubscriberImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                file_obj = form.cleaned_data["file"]
+                reactivate = form.cleaned_data["reactivate"]
+                try:
+                    results = import_email_subscribers(
+                        file_obj,
+                        added_by=request.user,
+                        reactivate=reactivate,
+                    )
+                except Exception as exc:
+                    messages.error(request, f"Import failed: {exc}")
+                else:
+                    messages.success(
+                        request,
+                        "Imported {created} new emails. "
+                        "Reactivated {reactivated}. "
+                        "Skipped {skipped}.".format(**results),
+                    )
+                    if results.get("invalid"):
+                        messages.warning(
+                            request,
+                            f"Skipped {results['invalid']} invalid email value(s).",
+                        )
+                    return HttpResponseRedirect(changelist_url)
+        else:
+            form = EmailSubscriberImportForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": opts,
+            "app_label": opts.app_label,
+            "form": form,
+            "changelist_url": changelist_url,
+            "title": "Import email subscribers",
+        }
+        return TemplateResponse(request, "admin/core/emailsubscriber/import.html", context)
+
+    def save_model(self, request, obj, form, change):
+        if not obj.added_by:
+            obj.added_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+class EmailCampaignAdminForm(forms.ModelForm):
+    send_now = forms.BooleanField(
+        required=False,
+        label="Send now",
+        help_text="Send immediately after saving. Sent campaigns are locked for editing.",
+    )
+
+    class Meta:
+        model = EmailCampaign
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = getattr(self, "instance", None)
+        if instance and instance.pk and instance.status != EmailCampaign.Status.DRAFT:
+            self.fields["send_now"].disabled = True
+            self.fields["send_now"].help_text = "Already sent or sending."
+
+
+@admin.register(EmailCampaign)
+class EmailCampaignAdmin(admin.ModelAdmin):
+    form = EmailCampaignAdminForm
+    list_display = (
+        "name",
+        "status_badge",
+        "audience_total_display",
+        "sent_summary",
+        "send_completed_at",
+        "updated_at",
+    )
+    list_filter = ("status", "include_subscribers", "include_registered_users", "created_at")
+    search_fields = ("name", "subject", "title")
+    readonly_fields = (
+        "status",
+        "token_help",
+        "audience_preview",
+        "recipients_total",
+        "sent_count",
+        "failed_count",
+        "send_started_at",
+        "send_completed_at",
+        "sent_by",
+        "recipients_link",
+        "preview_block",
+        "created_at",
+        "updated_at",
+    )
+    fieldsets = (
+        ("Campaign", {"fields": ("name", "status", "from_email", "send_now", "token_help")}),
+        ("Content", {"fields": ("subject", "preheader", "title", "greeting", "intro")}),
+        ("Callout", {"fields": ("notice_title", "notice")}),
+        ("Footer & button", {"fields": ("footer", "cta_label", "cta_url")}),
+        ("Audience", {"fields": ("include_subscribers", "include_registered_users", "audience_preview")}),
+        ("Delivery", {
+            "fields": (
+                "sent_by",
+                "send_started_at",
+                "send_completed_at",
+                "recipients_total",
+                "sent_count",
+                "failed_count",
+                "recipients_link",
+            )
+        }),
+        ("Preview", {"fields": ("preview_block",)}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+    actions = ("send_selected_campaigns",)
+
+    @admin.display(description="Status")
+    def status_badge(self, obj):
+        colors = {
+            EmailCampaign.Status.DRAFT: "#64748b",
+            EmailCampaign.Status.SENDING: "#0ea5e9",
+            EmailCampaign.Status.SENT: "#16a34a",
+            EmailCampaign.Status.PARTIAL: "#f97316",
+            EmailCampaign.Status.FAILED: "#dc2626",
+        }
+        color = colors.get(obj.status, "#64748b")
+        return format_html(
+            '<span style="padding:0.2rem 0.6rem;border-radius:999px;background:{}1a;color:{};font-size:0.85rem;">{}</span>',
+            color,
+            color,
+            obj.get_status_display(),
+        )
+
+    @admin.display(description="Audience size")
+    def audience_total_display(self, obj):
+        if obj.recipients_total:
+            return obj.recipients_total
+        counts = estimate_campaign_audience(obj)
+        total = counts.get("estimated_total", 0)
+        return total or "—"
+
+    @admin.display(description="Sent")
+    def sent_summary(self, obj):
+        if not obj.recipients_total:
+            return "—"
+        return f"{obj.sent_count}/{obj.recipients_total}"
+
+    @admin.display(description="Available placeholders")
+    def token_help(self, obj):
+        tokens = [
+            "{brand}",
+            "{support_email}",
+            "{company_website}",
+            "{company_phone}",
+            "{first_name}",
+            "{last_name}",
+            "{full_name}",
+            "{email}",
+        ]
+        return ", ".join(tokens)
+
+    @admin.display(description="Audience preview")
+    def audience_preview(self, obj):
+        if not obj or not obj.pk:
+            return "Save the campaign to see the audience size."
+        counts = estimate_campaign_audience(obj)
+        parts = []
+        if obj.include_subscribers:
+            parts.append(f"Subscribers: {counts['subscriber_count']}")
+        if obj.include_registered_users:
+            parts.append(f"Registered users (consent): {counts['user_count']}")
+        if not parts:
+            return "No audience selected."
+        parts.append("Duplicates are removed when sending.")
+        return mark_safe("<br>".join(parts))
+
+    @admin.display(description="Preview")
+    def preview_block(self, obj):
+        if not obj or not obj.pk:
+            return "Save the campaign to preview."
+        content = render_campaign_email(obj)
+        return format_html(
+            "<div><strong>Subject:</strong> {}</div>"
+            "<div><strong>Preheader:</strong> {}</div>"
+            "<div style=\"margin-top:6px; white-space:pre-wrap;\">{}</div>",
+            content.subject,
+            content.preheader or "—",
+            content.text_body or "—",
+        )
+
+    @admin.display(description="Recipients")
+    def recipients_link(self, obj):
+        if not obj or not obj.pk:
+            return "—"
+        try:
+            url = reverse("admin:core_emailcampaignrecipient_changelist")
+            return format_html('<a href="{}?campaign__id__exact={}">View recipients</a>', url, obj.pk)
+        except Exception:
+            return "—"
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        if obj and obj.status != EmailCampaign.Status.DRAFT:
+            readonly.extend(
+                [
+                    "name",
+                    "from_email",
+                    "subject",
+                    "preheader",
+                    "title",
+                    "greeting",
+                    "intro",
+                    "notice_title",
+                    "notice",
+                    "footer",
+                    "cta_label",
+                    "cta_url",
+                    "include_subscribers",
+                    "include_registered_users",
+                ]
+            )
+        return readonly
+
+    @admin.action(description="Send selected campaigns now")
+    def send_selected_campaigns(self, request, queryset):
+        sent = 0
+        failed = 0
+        skipped = 0
+        for campaign in queryset:
+            try:
+                result = send_campaign(campaign, triggered_by=request.user)
+            except Exception as exc:
+                failed += 1
+                messages.error(request, f"{campaign.name}: {exc}")
+                continue
+            status = result.get("status")
+            if status in {EmailCampaign.Status.SENT, EmailCampaign.Status.PARTIAL}:
+                sent += 1
+            elif status == "skipped":
+                skipped += 1
+            else:
+                failed += 1
+        if sent:
+            messages.success(request, f"Sent {sent} campaign(s).")
+        if skipped:
+            messages.warning(request, f"Skipped {skipped} campaign(s) (already sent).")
+        if failed:
+            messages.error(request, f"Failed to send {failed} campaign(s).")
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if form.cleaned_data.get("send_now"):
+            try:
+                result = send_campaign(obj, triggered_by=request.user)
+            except Exception as exc:
+                messages.error(request, f"Send failed: {exc}")
+                return
+            status = result.get("status")
+            if status in {EmailCampaign.Status.SENT, EmailCampaign.Status.PARTIAL}:
+                messages.success(
+                    request,
+                    f"Campaign sent. {result.get('sent', 0)} sent, {result.get('failed', 0)} failed.",
+                )
+            elif status == "no_recipients":
+                messages.warning(request, "Campaign has no recipients.")
+            elif status == "skipped":
+                messages.warning(request, "Campaign already sent.")
+            else:
+                messages.error(request, "Campaign send failed.")
+
+
+@admin.register(EmailCampaignRecipient)
+class EmailCampaignRecipientAdmin(ExportCsvMixin, admin.ModelAdmin):
+    list_display = ("email", "campaign", "status", "source", "sent_at")
+    list_filter = ("campaign", "status", "source", ("sent_at", DateFieldListFilter))
+    search_fields = ("email", "campaign__name", "user__email")
+    readonly_fields = ("campaign", "email", "user", "source", "status", "error_message", "sent_at", "created_at")
 
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):

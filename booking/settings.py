@@ -587,6 +587,8 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "icon": "fas fa-bell",
                 "items": [
                     {"model": "core.Notification", "label": "Notifications"},
+                    {"model": "core.EmailCampaign", "label": "Email Campaigns"},
+                    {"model": "core.EmailSubscriber", "label": "Email Subscribers"},
                     {"model": "core.EmailTemplate", "label": "Email Templates"},
                 ],
             },
@@ -646,6 +648,9 @@ JAZZMIN_SETTINGS = {
         "core.FontPreset": "fas fa-font",
         "core.PageFontSetting": "fas fa-heading",
         "core.EmailTemplate": "fas fa-envelope-open-text",
+        "core.EmailCampaign": "fas fa-paper-plane",
+        "core.EmailSubscriber": "fas fa-user-plus",
+        "core.EmailCampaignRecipient": "fas fa-envelope",
         "core.LandingPageReview": "fas fa-star",
         "core.LegalPage": "fas fa-balance-scale",
         "core.MasterAvailability": "fas fa-business-time",
