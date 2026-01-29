@@ -15,6 +15,7 @@ from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404
 from django.views.decorators.http import require_POST
 from PIL import Image, UnidentifiedImageError
 from square.client import Square, SquareEnvironment
@@ -582,11 +583,15 @@ def category_list(request, slug):
 
 
 def product_detail(request, slug: str):
-    product = get_object_or_404(
-        Product.objects.select_related("category").prefetch_related("options", "compatible_models"),
-        slug=slug,
-        is_active=True
-    )
+    try:
+        product = get_object_or_404(
+            Product.objects.select_related("category").prefetch_related("options", "compatible_models"),
+            slug=slug,
+            is_active=True
+        )
+    except Http404:
+        messages.info(request, "This product is no longer available. Explore other parts below.")
+        return redirect("store:store")
     options = product.get_active_options()
     default_option = next((opt for opt in options if not getattr(opt, "is_separator", False)), None)
     related = (

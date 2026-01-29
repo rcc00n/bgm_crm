@@ -92,6 +92,11 @@ STATIC_EXTENSIONS = {
     ".xlsx",
 }
 
+IGNORED_WARNING_DETAILS = {
+    "Button without action",
+    "Anchor with empty href (#) and no handler",
+}
+
 
 @dataclass
 class UrlCheckResult:
@@ -571,6 +576,24 @@ def _perform_ui_audit() -> dict[str, Any]:
         "skipped": 0,
     }
 
+    def add_warning(target: str, detail: str) -> None:
+        if detail in IGNORED_WARNING_DETAILS:
+            return
+        issues.append({
+            "level": "WARN",
+            "target": target,
+            "detail": detail,
+        })
+        stats["warnings"] += 1
+
+    def add_failure(target: str, detail: str) -> None:
+        issues.append({
+            "level": "FAIL",
+            "target": target,
+            "detail": detail,
+        })
+        stats["failures"] += 1
+
     while queue and len(visited) < MAX_PAGES:
         current_url, depth = queue.popleft()
         if current_url in visited:
@@ -585,30 +608,15 @@ def _perform_ui_audit() -> dict[str, Any]:
         stats["pages"] += 1
 
         if result.error:
-            issues.append({
-                "level": "FAIL",
-                "target": current_url,
-                "detail": result.error,
-            })
-            stats["failures"] += 1
+            add_failure(current_url, result.error)
             continue
 
         if result.status_code and result.status_code >= 400:
-            issues.append({
-                "level": "FAIL",
-                "target": current_url,
-                "detail": f"HTTP {result.status_code}",
-            })
-            stats["failures"] += 1
+            add_failure(current_url, f"HTTP {result.status_code}")
             continue
 
         if not result.status_code:
-            issues.append({
-                "level": "FAIL",
-                "target": current_url,
-                "detail": "No response status",
-            })
-            stats["failures"] += 1
+            add_failure(current_url, "No response status")
             continue
 
         if result.redirect_to and depth < MAX_DEPTH:
@@ -622,20 +630,10 @@ def _perform_ui_audit() -> dict[str, Any]:
         context_client = clients.get(result.context, clients["anon"])
         body, content_type, body_status, body_error = _fetch_body(current_url, context_client)
         if body_error:
-            issues.append({
-                "level": "FAIL",
-                "target": current_url,
-                "detail": body_error,
-            })
-            stats["failures"] += 1
+            add_failure(current_url, body_error)
             continue
         if body_status and body_status >= 400:
-            issues.append({
-                "level": "FAIL",
-                "target": current_url,
-                "detail": f"HTTP {body_status}",
-            })
-            stats["failures"] += 1
+            add_failure(current_url, f"HTTP {body_status}")
             continue
         if content_type and "text/html" not in content_type:
             continue
@@ -644,12 +642,7 @@ def _perform_ui_audit() -> dict[str, Any]:
         try:
             parser.feed(body)
         except Exception as exc:
-            issues.append({
-                "level": "FAIL",
-                "target": current_url,
-                "detail": f"{exc.__class__.__name__}: {exc}",
-            })
-            stats["failures"] += 1
+            add_failure(current_url, f"{exc.__class__.__name__}: {exc}")
             continue
 
         stats["links"] += len(parser.links)
@@ -666,12 +659,7 @@ def _perform_ui_audit() -> dict[str, Any]:
             normalized = _normalize_url(candidate or "", base_url)
             if not normalized:
                 if href and href.strip() == "#" and not onclick and not data_attrs:
-                    issues.append({
-                        "level": "WARN",
-                        "target": current_url,
-                        "detail": "Anchor with empty href (#) and no handler",
-                    })
-                    stats["warnings"] += 1
+                    add_warning(current_url, "Anchor with empty href (#) and no handler")
                 continue
 
             path = _path_only(normalized)
@@ -686,12 +674,7 @@ def _perform_ui_audit() -> dict[str, Any]:
                 continue
 
             if not _check_resolve(path):
-                issues.append({
-                    "level": "FAIL",
-                    "target": path,
-                    "detail": "URL does not resolve",
-                })
-                stats["failures"] += 1
+                add_failure(path, "URL does not resolve")
                 continue
 
             if depth < MAX_DEPTH and normalized not in visited:
@@ -702,12 +685,7 @@ def _perform_ui_audit() -> dict[str, Any]:
             method = (form.get("method", "") or "get").lower()
             normalized = _normalize_url(action or current_url, base_url)
             if not normalized:
-                issues.append({
-                    "level": "WARN",
-                    "target": current_url,
-                    "detail": "Form without action",
-                })
-                stats["warnings"] += 1
+                add_warning(current_url, "Form without action")
                 continue
 
             path = _path_only(normalized)
@@ -716,12 +694,7 @@ def _perform_ui_audit() -> dict[str, Any]:
                 continue
 
             if not _check_resolve(path):
-                issues.append({
-                    "level": "FAIL",
-                    "target": path,
-                    "detail": f"Form action unresolved ({method.upper()})",
-                })
-                stats["failures"] += 1
+                add_failure(path, f"Form action unresolved ({method.upper()})")
                 continue
 
             if method == "get" and depth < MAX_DEPTH and normalized not in visited:
@@ -738,12 +711,7 @@ def _perform_ui_audit() -> dict[str, Any]:
                 if normalized and not _is_skip_url(normalized):
                     path = _path_only(normalized)
                     if not _check_resolve(path):
-                        issues.append({
-                            "level": "FAIL",
-                            "target": path,
-                            "detail": "Button target unresolved",
-                        })
-                        stats["failures"] += 1
+                        add_failure(path, "Button target unresolved")
                     elif depth < MAX_DEPTH and normalized not in visited:
                         queue.append((normalized, depth + 1))
                 continue
@@ -751,12 +719,7 @@ def _perform_ui_audit() -> dict[str, Any]:
             if onclick or data_attrs:
                 continue
 
-            issues.append({
-                "level": "WARN",
-                "target": current_url,
-                "detail": "Button without action",
-            })
-            stats["warnings"] += 1
+            add_warning(current_url, "Button without action")
 
     summary = (
         f"Checked {stats['pages']} page(s), "
