@@ -180,15 +180,14 @@ class AdminSidebarSeenMiddleware(MiddlewareMixin):
         return None
 
 
-class AuthAbsoluteTimeoutMiddleware:
+class AuthIdleTimeoutMiddleware:
     """
-    Forces re-login after a fixed time window (default: 30 minutes),
-    regardless of user activity.
+    Forces re-login after a period of inactivity (default: 30 minutes).
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
-        self.timeout_seconds = int(getattr(settings, "AUTH_ABSOLUTE_TIMEOUT_SECONDS", 1800))
+        self.timeout_seconds = int(getattr(settings, "AUTH_IDLE_TIMEOUT_SECONDS", 1800))
         default_exempt = (
             "/accounts/login/",
             "/accounts/logout/",
@@ -204,19 +203,18 @@ class AuthAbsoluteTimeoutMiddleware:
         if user and user.is_authenticated and self.timeout_seconds > 0:
             if not any(path.startswith(prefix) for prefix in self.exempt_paths):
                 now = timezone.now()
-                raw = request.session.get("_auth_login_at")
-                login_at = None
+                raw = request.session.get("_auth_last_seen_at")
+                last_seen = None
                 if raw:
                     try:
-                        login_at = datetime.fromisoformat(raw)
+                        last_seen = datetime.fromisoformat(raw)
                     except Exception:
-                        login_at = None
-                if not login_at:
-                    request.session["_auth_login_at"] = now.isoformat()
+                        last_seen = None
+                if last_seen and timezone.is_naive(last_seen):
+                    last_seen = timezone.make_aware(last_seen, timezone.get_default_timezone())
+                if last_seen and now - last_seen >= timedelta(seconds=self.timeout_seconds):
+                    logout(request)
+                    request.session.flush()
                 else:
-                    if timezone.is_naive(login_at):
-                        login_at = timezone.make_aware(login_at, timezone.get_default_timezone())
-                    if now - login_at >= timedelta(seconds=self.timeout_seconds):
-                        logout(request)
-                        request.session.flush()
+                    request.session["_auth_last_seen_at"] = now.isoformat()
         return self.get_response(request)
