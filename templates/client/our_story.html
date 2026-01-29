@@ -65,15 +65,35 @@
   /* Header / Topbar */
   .site-header{ position:sticky; top:0; z-index:1000; background:#000; border-bottom:1px solid var(--line); }
   .site-header__inner{ display:flex; align-items:center; justify-content:space-between; gap:1.25rem; padding:.7rem 0; }
-  .brand{ display:flex; align-items:baseline; gap:.9rem; min-width:max-content; font-weight:900; }
-  .brand__logo{ display:inline-flex; gap:.4rem; font-family:var(--font-body); font-weight:900; font-size:clamp(1.2rem,1.8vw,1.55rem); letter-spacing:.06em; line-height:1; text-transform:uppercase; }
+  .brand{
+    display:flex; align-items:baseline; gap:.9rem; min-width:max-content;
+    font-weight:var(--topbar-brand-weight, 900);
+  }
+  .brand__logo{
+    display:inline-flex; gap:.4rem; line-height:1;
+    font-family:var(--topbar-brand-font, var(--font-body));
+    font-weight:var(--topbar-brand-weight, 900);
+    font-size:var(--topbar-brand-size, clamp(1.2rem,1.8vw,1.55rem));
+    letter-spacing:var(--topbar-brand-letter-spacing, .06em);
+    text-transform:var(--topbar-brand-transform, uppercase);
+  }
   .brand__word--white{ color:#fff; }
   .brand__word--red{ color:var(--accent); }
-  .brand__tagline{ margin-left:1rem; font-family:var(--font-body); font-weight:900; letter-spacing:.12em; color:rgba(255,255,255,.78); white-space:nowrap; font-size:clamp(.78rem,.95vw,.95rem); text-transform:uppercase; }
+  .brand__tagline{
+    margin-left:1rem; color:rgba(255,255,255,.78); white-space:nowrap; font-size:clamp(.78rem,.95vw,.95rem);
+    font-family:var(--topbar-nav-font, var(--font-body));
+    font-weight:900; letter-spacing:.12em; text-transform:uppercase;
+  }
 
   .site-header nav{ margin-left:auto; }
   .site-header nav ul{ display:flex; align-items:center; justify-content:flex-end; gap:1.6rem; list-style:none; flex-wrap:nowrap; }
-  .site-header nav a{ background:none; border:0; border-radius:0; padding:0; line-height:1.15; font-family:var(--font-body); font-weight:700; letter-spacing:.02em; font-size:.95rem; color:rgba(255,255,255,.92); text-transform:none; }
+  .site-header nav a{
+    background:none; border:0; border-radius:0; padding:0; line-height:1.15;
+    font-family:var(--topbar-nav-font, var(--font-body));
+    font-weight:700; letter-spacing:.02em;
+    font-size:var(--topbar-nav-size-desktop, .95rem);
+    color:rgba(255,255,255,.92); text-transform:none;
+  }
   .site-header nav a:hover, .site-header nav a[aria-current="page"]{ color:#fff; }
   .site-header .badge{ padding:.12rem .5rem; font-size:.72rem; transform:translateY(-.04rem); }
 

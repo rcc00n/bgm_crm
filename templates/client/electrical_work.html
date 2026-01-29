@@ -442,25 +442,25 @@
       font-style:normal;
     }
 
-    /* Top bar: Diesel */
+    /* Top bar */
     .site-header .brand,
     .site-header .brand__logo,
-    .site-header .brand__logo .brand__word,
+    .site-header .brand__logo .brand__word{
+      font-family:var(--topbar-brand-font, var(--font-head))!important;
+      font-style:normal!important;
+      font-weight:var(--topbar-brand-weight, 900)!important;
+      text-transform:var(--topbar-brand-transform, uppercase)!important;
+      letter-spacing:var(--topbar-brand-letter-spacing, .06em)!important;
+      line-height:1!important;
+    }
+    .site-header .brand__logo{font-size:var(--topbar-brand-size, clamp(1.2rem,1.8vw,1.55rem))!important}
     .site-header .brand__tagline,
     .site-header nav a,
     .site-header nav .btn,
     .site-header nav .btn--ghost{
-      font-family:var(--font-ui)!important;
+      font-family:var(--topbar-nav-font, var(--font-ui))!important;
       font-style:normal!important;
     }
-    .site-header .brand__logo,
-    .site-header .brand__logo .brand__word{
-      font-weight:900!important;
-      text-transform:uppercase!important;
-      letter-spacing:.06em!important;
-      line-height:1!important;
-    }
-    .site-header .brand__logo{font-size:clamp(1.2rem,1.8vw,1.55rem)!important}
     .site-header .brand__tagline{
       font-weight:900!important;
       text-transform:uppercase!important;

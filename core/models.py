@@ -1886,6 +1886,87 @@ class PageFontSetting(models.Model):
     def resolved_ui_font(self) -> FontPreset:
         return self.ui_font or self.body_font
 
+
+class TopbarSettings(models.Model):
+    """
+    Global navigation bar styling controls exposed in the admin UI.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    brand_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_brand_settings",
+        help_text="Font used for the business name in the top bar.",
+    )
+    nav_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_nav_settings",
+        help_text="Font used for navigation links and badges.",
+    )
+
+    brand_size_desktop = models.CharField(
+        max_length=32,
+        default="clamp(1.25rem, 2.1vw, 1.7rem)",
+        help_text="CSS font-size value for the brand text (desktop).",
+    )
+    brand_weight = models.CharField(
+        max_length=16,
+        default="400",
+        help_text="CSS font-weight for the brand text.",
+    )
+    brand_letter_spacing = models.CharField(
+        max_length=16,
+        default="0",
+        help_text="CSS letter-spacing for the brand text.",
+    )
+    brand_transform = models.CharField(
+        max_length=16,
+        default="none",
+        help_text="CSS text-transform for the brand text.",
+    )
+
+    nav_size = models.CharField(
+        max_length=16,
+        default="0.95rem",
+        help_text="CSS font-size for nav links (mobile).",
+    )
+    nav_size_desktop = models.CharField(
+        max_length=16,
+        default="1.05rem",
+        help_text="CSS font-size for nav links (desktop).",
+    )
+    padding_y_desktop = models.CharField(
+        max_length=16,
+        default="0.95rem",
+        help_text="CSS padding-block for the top bar (desktop).",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Topbar settings"
+        verbose_name_plural = "Topbar settings"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Topbar settings"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
 class ProjectJournalQuerySet(models.QuerySet):
     def published(self):
         return self.filter(

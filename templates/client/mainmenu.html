@@ -315,12 +315,15 @@ main h3{
 
   </style>
   <style id="diesel-overrides">
-  /* 1) Топбар полностью на Diesel */
+  /* 1) Топбар */
   .site-header .brand,
-  .site-header .brand__word,
+  .site-header .brand__word{
+    font-family: var(--topbar-brand-font, var(--font-body)) !important;
+    font-style: normal !important;
+  }
   .site-header nav a,
   .site-header .badge{
-    font-family: var(--font-body) !important;  /* Diesel */
+    font-family: var(--topbar-nav-font, var(--font-body)) !important;
     font-style: normal !important;
   }
   /* меню — не капсом, читаемый кегль */
@@ -328,7 +331,7 @@ main h3{
     text-transform: none !important;
     letter-spacing: .02em !important;
     font-weight: 700 !important;
-    font-size: .95rem !important;
+    font-size: var(--topbar-nav-size-desktop, .95rem) !important;
   }
 
   /* 2) Заголовок hero — не капсом и тоже Diesel */

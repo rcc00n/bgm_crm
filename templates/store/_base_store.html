@@ -87,12 +87,20 @@
 
     /* Brand (text mark uses Diesel) */
     .brand{ display:flex; align-items:baseline; gap:.9rem; min-width:max-content; font-weight:900; letter-spacing:.5px; }
-    .brand__logo{ all:unset; display:inline-flex; gap:.5rem; line-height:1; font-weight:900; letter-spacing:.06em; font-size:clamp(1.2rem,1.8vw,1.55rem); font-family:var(--font-display); text-transform:uppercase; }
+    .brand__logo{
+      all:unset; display:inline-flex; gap:.5rem; line-height:1;
+      font-weight:var(--topbar-brand-weight, 900);
+      letter-spacing:var(--topbar-brand-letter-spacing, .06em);
+      font-size:var(--topbar-brand-size, clamp(1.2rem,1.8vw,1.55rem));
+      font-family:var(--topbar-brand-font, var(--font-display));
+      text-transform:var(--topbar-brand-transform, uppercase);
+    }
     .brand__word--white{ color:#fff; }
     .brand__word--red{ color:var(--accent); }
     .brand__tagline{
       margin-left:1.1rem; white-space:nowrap; font-size:clamp(.78rem,.95vw,.95rem);
       font-weight:900; letter-spacing:.12em; line-height:1; color:rgba(255,255,255,.78); text-transform:uppercase;
+      font-family:var(--topbar-nav-font, var(--font-ui, var(--font-body)));
     }
 
     /* Nav (desktop) */
@@ -100,8 +108,9 @@
     nav ul{ display:flex; align-items:center; gap:1.4rem; list-style:none; }
     nav a{
       display:inline-flex; align-items:center; gap:.45rem;
-      line-height:1; font-weight:800; letter-spacing:.08em; font-size:.82rem;
+      line-height:1; font-weight:800; letter-spacing:.08em; font-size:var(--topbar-nav-size-desktop, .82rem);
       text-transform:uppercase; color:rgba(255,255,255,.78);
+      font-family:var(--topbar-nav-font, var(--font-ui, var(--font-body)));
     }
     nav a:hover, nav a[aria-current="page"]{ color:#fff; }
     nav .btn, nav .btn--ghost{ padding:0; border:0; background:none; border-radius:0; }
@@ -109,12 +118,15 @@
 
     .site-header .brand,
     .site-header .brand__logo,
-    .site-header .brand__logo .brand__word,
+    .site-header .brand__logo .brand__word{
+      font-family:var(--topbar-brand-font, var(--font-display));
+      font-style:normal;
+    }
     .site-header .brand__tagline,
     .site-header nav a,
     .site-header nav .btn,
     .site-header nav .btn--ghost{
-      font-family:var(--font-ui, var(--font-body));
+      font-family:var(--topbar-nav-font, var(--font-ui, var(--font-body)));
       font-style:normal;
     }
 

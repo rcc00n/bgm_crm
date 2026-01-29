@@ -1677,6 +1677,27 @@ class PageFontSettingAdmin(admin.ModelAdmin):
         return format_html("<style>{}</style>{}", mark_safe(face_block), mark_safe(preview_block))
 
 
+@admin.register(TopbarSettings)
+class TopbarSettingsAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        ("Fonts", {"fields": ("brand_font", "nav_font")}),
+        ("Sizing", {"fields": ("brand_size_desktop", "nav_size", "nav_size_desktop", "padding_y_desktop")}),
+        ("Brand styling", {"fields": ("brand_weight", "brand_letter_spacing", "brand_transform")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="Topbar settings")
+    def label(self, obj):
+        return "Topbar settings"
+
+    def has_add_permission(self, request):
+        if TopbarSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+
 @admin.register(LegalPage)
 class LegalPageAdmin(admin.ModelAdmin):
     list_display = ("title", "slug", "is_active", "updated_at")

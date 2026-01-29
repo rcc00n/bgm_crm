@@ -84,7 +84,7 @@
   grid-template-columns:max-content minmax(0,1fr) max-content !important;
   align-items:center !important;
   column-gap:clamp(14px, 2vw, 36px) !important;
-  padding-block:.8rem !important;
+  padding-block:var(--topbar-padding-y-desktop, .8rem) !important;
 }
 
 /* бренд — как на втором */
@@ -93,11 +93,12 @@
   display:flex !important;
   align-items:baseline !important;
   gap:.55rem !important;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.06em;
+  font-weight:var(--topbar-brand-weight, 900);
+  text-transform:var(--topbar-brand-transform, uppercase);
+  letter-spacing:var(--topbar-brand-letter-spacing, .06em);
+  font-family:var(--topbar-brand-font, var(--font-body, inherit));
 }
-.brand__word{ font-size:clamp(.9rem, 1vw, 1rem); line-height:1; }
+.brand__word{ font-size:var(--topbar-brand-size, clamp(.9rem, 1vw, 1rem)); line-height:1; }
 .brand__word--white{ color:#fff; }
 .brand__word--red{ color:#d50000; }
 
@@ -113,6 +114,7 @@
   letter-spacing:.12em;
   color:rgba(255,255,255,.72);
   font-size:clamp(.78rem, .95vw, .95rem);
+  font-family:var(--topbar-nav-font, var(--font-body, inherit));
 }
 
 /* меню справа */
@@ -129,8 +131,9 @@
   text-transform:uppercase; font-weight:900;
   letter-spacing:.06em;
   color:rgba(255,255,255,.82);
-  font-size:clamp(.72rem, .9vw, .92rem) !important;
+  font-size:var(--topbar-nav-size-desktop, clamp(.72rem, .9vw, .92rem)) !important;
   white-space:nowrap; line-height:1;
+  font-family:var(--topbar-nav-font, var(--font-body, inherit));
 }
 .site-header nav a:hover,
 .site-header nav a[aria-current="page"]{ color:#fff !important; }
@@ -145,7 +148,7 @@
 /* адаптация */
 @media (max-width: 1300px){
   .site-header nav ul{ gap:.6rem !important; }
-  .site-header nav a{ font-size:.72rem !important; letter-spacing:.05em !important; }
+  .site-header nav a{ font-size:var(--topbar-nav-size, .72rem) !important; letter-spacing:.05em !important; }
 }
 @media (max-width: 1150px){
   .belt{ display:none !important; }
