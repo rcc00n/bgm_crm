@@ -272,6 +272,15 @@ def admin_ui_check_run(request):
     return redirect("admin:index")
 
 
+@require_POST
+@csrf_exempt
+def admin_analytics_collect(request):
+    user = request.user
+    if not user.is_authenticated or not user.is_staff:
+        return JsonResponse({"error": "Staff authentication required."}, status=403)
+    return analytics_collect(request)
+
+
 def admin_staff_usage(request):
     user = request.user
     is_master = user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
