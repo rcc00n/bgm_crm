@@ -74,6 +74,57 @@
         </div>
       {% endif %}
     </section>
+
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Staff action history</div>
+      <div class="panel-subtitle">Admin add/change/delete actions · last {{ staff_action_history.window_days }} days · showing {{ staff_action_history.limit }} entries</div>
+
+      {% if staff_action_history.entries %}
+        <div class="table-scroll">
+          <table class="analytics-table staff-action-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Action</th>
+                <th>Object</th>
+                <th>Model</th>
+                <th>Details</th>
+                <th>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in staff_action_history.entries %}
+                <tr>
+                  <td>
+                    <strong>{{ entry.user_name }}</strong>
+                    {% if entry.user_email %}
+                      <div class="staff-usage-email">{{ entry.user_email }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="action-pill {{ entry.action_class }}">{{ entry.action_label }}</span>
+                  </td>
+                  <td>
+                    {% if entry.object_url %}
+                      <a href="{{ entry.object_url }}">{{ entry.object_repr }}</a>
+                    {% else %}
+                      {{ entry.object_repr }}
+                    {% endif %}
+                  </td>
+                  <td>{{ entry.model_label }}</td>
+                  <td>{{ entry.message }}</td>
+                  <td>{{ entry.action_time|date:"M d · H:i" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <p>No admin activity logged yet.</p>
+        </div>
+      {% endif %}
+    </section>
   </div>
 </div>
 {% endblock %}

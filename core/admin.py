@@ -2051,6 +2051,7 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "hero_lead",
                 "hero_primary_cta_label",
                 "hero_secondary_cta_label",
+                "hero_background_asset",
             )
         }),
         ("Hero background", {
@@ -2059,7 +2060,12 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "hero_main_alt_text",
                 "hero_main_caption",
             ),
-            "description": "Default hero image used when the carousel is empty.",
+            "description": "Default hero image used when the carousel is empty. If any carousel slide is set, it overrides this background.",
+        }),
+        ("Layout overrides", {
+            "fields": ("layout_overrides",),
+            "description": "Hidden layout data for the page builder.",
+            "classes": ("layout-overrides",),
         }),
         ("Hero carousel", {
             "fields": (
@@ -3873,6 +3879,41 @@ class HeroImageAdmin(admin.ModelAdmin):
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
 
+
+@admin.register(BackgroundAsset)
+class BackgroundAssetAdmin(admin.ModelAdmin):
+    list_display = ("title", "is_active", "updated_at", "image_preview")
+    list_editable = ("is_active",)
+    search_fields = ("title", "alt_text", "caption")
+    list_filter = ("is_active",)
+    readonly_fields = ("image_preview", "created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("title", "is_active")}),
+        ("Media", {"fields": ("image", "image_preview", "alt_text", "caption")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+
+@admin.register(SiteBackgroundSettings)
+class SiteBackgroundSettingsAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("default_background",)}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="Settings")
+    def label(self, obj):
+        return "Site background"
+
+    def has_add_permission(self, request):
+        if SiteBackgroundSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 @admin.register(ServiceLead)
 class ServiceLeadAdmin(admin.ModelAdmin):

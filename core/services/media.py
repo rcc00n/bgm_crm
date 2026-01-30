@@ -46,14 +46,17 @@ def resolve_media_asset(
 
     if hero and hero.image:
         try:
+            hero_alt = getattr(hero, "alt_text", "") or getattr(hero, "title", "")
+            hero_caption = getattr(hero, "caption", "")
+            hero_title = getattr(hero, "title", "")
             payload.update(
                 {
                     "src": hero.image.url,
-                    "alt": hero.alt_text or hero.title or payload["alt"],
-                    "caption": hero.caption or payload["caption"],
-                    "location": hero.location,
+                    "alt": hero_alt or payload["alt"],
+                    "caption": hero_caption or payload["caption"],
+                    "location": getattr(hero, "location", payload["location"]),
                     "is_custom": True,
-                    "title": hero.title or "",
+                    "title": hero_title or payload.get("title", ""),
                 }
             )
         except Exception:

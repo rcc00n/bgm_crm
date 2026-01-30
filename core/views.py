@@ -57,7 +57,11 @@ from core.services.media import (
     build_performance_tuning_media,
 )
 from core.services.lead_security import evaluate_lead_submission, log_lead_submission
-from core.services.analytics import summarize_staff_usage_periods, summarize_web_analytics_insights
+from core.services.analytics import (
+    summarize_staff_usage_periods,
+    summarize_staff_action_history,
+    summarize_web_analytics_insights,
+)
 from notifications.services import (
     notify_about_service_lead,
     notify_about_site_notice_signup,
@@ -288,11 +292,13 @@ def admin_staff_usage(request):
         raise PermissionDenied
 
     staff_usage_periods = summarize_staff_usage_periods(windows=[1, 7, 30])
+    staff_action_history = summarize_staff_action_history(window_days=30, limit=200)
     context = admin.site.each_context(request)
     context.update(
         {
             "title": "Staff time tracking",
             "staff_usage_periods": staff_usage_periods,
+            "staff_action_history": staff_action_history,
         }
     )
     return TemplateResponse(request, "admin/staff_usage.html", context)

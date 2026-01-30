@@ -6,10 +6,12 @@ from typing import Dict, List, Optional
 
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
 from django.db.models import Avg, Case, Count, IntegerField, Max, Q, Sum, When
 from django.db.models.functions import TruncDate
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
+from django.utils.text import capfirst
 
 from core.models import PageView, VisitorSession
 
@@ -897,3 +899,77 @@ def summarize_staff_usage_periods(
         )
 
     return results
+
+
+def _staff_action_meta(flag: int) -> Dict[str, str]:
+    if flag == ADDITION:
+        return {"label": "Added", "css": "added"}
+    if flag == CHANGE:
+        return {"label": "Changed", "css": "changed"}
+    if flag == DELETION:
+        return {"label": "Deleted", "css": "deleted"}
+    return {"label": "Action", "css": "changed"}
+
+
+def summarize_staff_action_history(
+    window_days: int = 30,
+    limit: int = 200,
+    include_inactive: bool = False,
+) -> Dict[str, object]:
+    """
+    Recent admin actions (add/change/delete) performed by staff users.
+    """
+    limit = max(1, min(int(limit or 0), 500))
+    window_days = max(1, min(int(window_days or 0), 365))
+    since = timezone.now() - timedelta(days=window_days)
+
+    entries_qs = (
+        LogEntry.objects.select_related("user", "content_type")
+        .filter(action_time__gte=since, user__is_staff=True)
+        .order_by("-action_time")
+    )
+    if not include_inactive:
+        entries_qs = entries_qs.filter(user__is_active=True)
+
+    entries = []
+    for entry in entries_qs[:limit]:
+        user = entry.user
+        user_name = (
+            user.get_full_name() or user.username or user.email or f"User {user.pk}"
+        )
+        user_email = user.email or ""
+
+        meta = _staff_action_meta(entry.action_flag)
+        model_label = capfirst(entry.content_type.name) if entry.content_type else "System"
+        object_label = entry.object_repr or "—"
+        message = entry.get_change_message() or "—"
+
+        object_url = None
+        if entry.content_type and entry.object_id and entry.action_flag != DELETION:
+            try:
+                object_url = reverse(
+                    f"admin:{entry.content_type.app_label}_{entry.content_type.model}_change",
+                    args=[entry.object_id],
+                )
+            except NoReverseMatch:
+                object_url = None
+
+        entries.append(
+            {
+                "user_name": user_name.strip(),
+                "user_email": user_email,
+                "action_label": meta["label"],
+                "action_class": meta["css"],
+                "model_label": model_label,
+                "object_repr": object_label,
+                "object_url": object_url,
+                "message": message,
+                "action_time": entry.action_time,
+            }
+        )
+
+    return {
+        "window_days": window_days,
+        "limit": limit,
+        "entries": entries,
+    }

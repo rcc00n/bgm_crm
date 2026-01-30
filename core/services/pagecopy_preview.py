@@ -608,6 +608,11 @@ def render_pagecopy_preview(request: HttpRequest, model_cls: type, preview_copy:
     if not config:
         return ""
 
+    try:
+        setattr(request, "pagecopy_preview_model", model_cls)
+    except Exception:
+        pass
+
     context = build_preview_context(request, model_cls, preview_copy)
     html_text = render_to_string(config.template, context=context, request=request)
     html_text = inject_preview_spans(html_text)
