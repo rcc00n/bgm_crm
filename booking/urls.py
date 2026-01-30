@@ -19,6 +19,11 @@ urlpatterns = [
         name="admin-client-contact",
     ),
     path("admin/ui-check/run/", core_views.admin_ui_check_run, name="admin-ui-check-run"),
+    path(
+        "admin/staffing/time-tracking/",
+        admin.site.admin_view(core_views.admin_staff_usage),
+        name="admin-staff-usage",
+    ),
     # Admin
     path("admin/", admin.site.urls),
 

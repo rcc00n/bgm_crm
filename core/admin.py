@@ -41,16 +41,17 @@ from core.email_templates import (
     email_dark_color,
     template_tokens,
 )
-from core.services.analytics import (
-    summarize_staff_usage_periods,
-    summarize_web_analytics,
-    summarize_web_analytics_periods,
-)
+from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
 from core.services.email_campaigns import (
     estimate_campaign_audience,
     import_email_subscribers,
     render_campaign_email,
     send_campaign,
+)
+from core.services.pagecopy_preview import (
+    PREVIEW_CONFIG,
+    PreviewCopy,
+    render_pagecopy_preview,
 )
 from core.utils import get_staff_queryset, format_currency
 from datetime import timedelta, time
@@ -205,9 +206,6 @@ def custom_index(request):
         if not is_master
         else None
     )
-    staff_usage_periods = (
-        summarize_staff_usage_periods(windows=[1, 7, 30]) if not is_master else None
-    )
 
     latest_ui_check = ClientUiCheckRun.objects.order_by("-started_at").first()
     ui_check_next_due = None
@@ -243,7 +241,6 @@ def custom_index(request):
         "status_trend": status_trend,
         "web_analytics": analytics_summary,
         "web_analytics_periods": analytics_periods,
-        "staff_usage_periods": staff_usage_periods,
         "latest_ui_check": latest_ui_check,
         "ui_check_next_due": ui_check_next_due,
         "ui_check_due": ui_check_due,
@@ -1755,11 +1752,210 @@ class PageCopyAdminMixin(admin.ModelAdmin):
     change_form_template = "admin/core/pagecopy/change_form.html"
     save_on_top = True
 
+    def get_urls(self):
+        urls = super().get_urls()
+        opts = self.model._meta
+        custom = [
+            path(
+                "preview/",
+                self.admin_site.admin_view(self.preview_view),
+                name=f"{opts.app_label}_{opts.model_name}_preview",
+            ),
+        ]
+        return custom + urls
+
+    def _get_preview_instance(self, request, obj):
+        if request.method != "POST":
+            return obj
+        form_class = self.get_form(request, obj=obj, change=True)
+        form = form_class(request.POST, request.FILES, instance=obj)
+        if form.is_valid():
+            return form.save(commit=False)
+        return obj
+
+    def preview_view(self, request):
+        config = PREVIEW_CONFIG.get(self.model)
+        if not config:
+            return HttpResponse("Preview is not configured for this page.", status=400)
+
+        object_id = request.GET.get("object_id") or request.POST.get("object_id")
+        obj = None
+        if object_id:
+            obj = self.get_object(request, object_id)
+        if not obj:
+            try:
+                obj = self.model.objects.first()
+            except Exception:
+                obj = None
+        if not obj:
+            return HttpResponse("Preview data not available.", status=400)
+
+        preview_instance = self._get_preview_instance(request, obj)
+        text_fields = [
+            field.name
+            for field in self.model._meta.get_fields()
+            if isinstance(field, (models.CharField, models.TextField))
+        ]
+        preview_copy = PreviewCopy(preview_instance, text_fields)
+        base_href = request.build_absolute_uri("/")
+        html_text = render_pagecopy_preview(request, self.model, preview_copy, base_href)
+        if not html_text:
+            return HttpResponse("Preview is not available for this page.", status=400)
+        return HttpResponse(html_text)
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        opts = self.model._meta
+        try:
+            preview_url = reverse(f"admin:{opts.app_label}_{opts.model_name}_preview")
+            if object_id:
+                preview_url = f"{preview_url}?object_id={object_id}"
+        except Exception:
+            preview_url = None
+        extra_context["pagecopy_preview_url"] = preview_url
+        return super().changeform_view(
+            request,
+            object_id=object_id,
+            form_url=form_url,
+            extra_context=extra_context,
+        )
+
+
+HOME_HERO_CAROUSEL_SLOTS = (
+    ("hero_carousel_1", HeroImage.Location.HOME_CAROUSEL_A, "Slide 1"),
+    ("hero_carousel_2", HeroImage.Location.HOME_CAROUSEL_B, "Slide 2"),
+    ("hero_carousel_3", HeroImage.Location.HOME_CAROUSEL_C, "Slide 3"),
+    ("hero_carousel_4", HeroImage.Location.HOME_CAROUSEL_D, "Slide 4"),
+)
+
+
+class HomePageCopyAdminForm(forms.ModelForm):
+    hero_carousel_1_image = forms.ImageField(
+        required=False,
+        label="Carousel slide 1 image",
+        help_text="Optional. Upload a 16:9 image. If any slide is set, the hero switches to a carousel.",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_carousel_1_alt_text = forms.CharField(
+        required=False,
+        label="Carousel slide 1 alt text",
+        max_length=160,
+    )
+    hero_carousel_1_caption = forms.CharField(
+        required=False,
+        label="Carousel slide 1 caption",
+        max_length=160,
+    )
+    hero_carousel_2_image = forms.ImageField(
+        required=False,
+        label="Carousel slide 2 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_carousel_2_alt_text = forms.CharField(
+        required=False,
+        label="Carousel slide 2 alt text",
+        max_length=160,
+    )
+    hero_carousel_2_caption = forms.CharField(
+        required=False,
+        label="Carousel slide 2 caption",
+        max_length=160,
+    )
+    hero_carousel_3_image = forms.ImageField(
+        required=False,
+        label="Carousel slide 3 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_carousel_3_alt_text = forms.CharField(
+        required=False,
+        label="Carousel slide 3 alt text",
+        max_length=160,
+    )
+    hero_carousel_3_caption = forms.CharField(
+        required=False,
+        label="Carousel slide 3 caption",
+        max_length=160,
+    )
+    hero_carousel_4_image = forms.ImageField(
+        required=False,
+        label="Carousel slide 4 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_carousel_4_alt_text = forms.CharField(
+        required=False,
+        label="Carousel slide 4 alt text",
+        max_length=160,
+    )
+    hero_carousel_4_caption = forms.CharField(
+        required=False,
+        label="Carousel slide 4 caption",
+        max_length=160,
+    )
+
+    class Meta:
+        model = HomePageCopy
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        locations = [slot[1] for slot in HOME_HERO_CAROUSEL_SLOTS]
+        try:
+            assets = HeroImage.objects.filter(location__in=locations)
+        except Exception:
+            assets = []
+        asset_map = {asset.location: asset for asset in assets}
+
+        for prefix, location, label in HOME_HERO_CAROUSEL_SLOTS:
+            asset = asset_map.get(location)
+            image_field = f"{prefix}_image"
+            alt_field = f"{prefix}_alt_text"
+            caption_field = f"{prefix}_caption"
+            if asset and getattr(asset, "image", None):
+                self.fields[image_field].initial = asset.image
+            if asset:
+                self.fields[alt_field].initial = asset.alt_text
+                self.fields[caption_field].initial = asset.caption
+
+    def save_carousel_assets(self):
+        locations = [slot[1] for slot in HOME_HERO_CAROUSEL_SLOTS]
+        existing_assets = {asset.location: asset for asset in HeroImage.objects.filter(location__in=locations)}
+
+        for prefix, location, label in HOME_HERO_CAROUSEL_SLOTS:
+            image_field = f"{prefix}_image"
+            alt_field = f"{prefix}_alt_text"
+            caption_field = f"{prefix}_caption"
+            image_value = self.cleaned_data.get(image_field)
+            alt_text = (self.cleaned_data.get(alt_field) or "").strip()
+            caption = (self.cleaned_data.get(caption_field) or "").strip()
+
+            asset = existing_assets.get(location)
+            has_new_image = image_value not in (None, False)
+            has_any_value = has_new_image or alt_text or caption
+
+            if not asset and not has_any_value:
+                continue
+
+            if not asset:
+                asset = HeroImage(location=location)
+
+            if image_value is False:
+                asset.image = None
+            elif image_value:
+                asset.image = image_value
+
+            asset.alt_text = alt_text
+            asset.caption = caption
+            if not asset.title:
+                asset.title = f"Home hero carousel {label}"
+            asset.is_active = bool(asset.image)
+            asset.save()
+
 
 @admin.register(HomePageCopy)
 class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
+    form = HomePageCopyAdminForm
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
@@ -1802,6 +1998,23 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "hero_primary_cta_label",
                 "hero_secondary_cta_label",
             )
+        }),
+        ("Hero carousel", {
+            "fields": (
+                "hero_carousel_1_image",
+                "hero_carousel_1_alt_text",
+                "hero_carousel_1_caption",
+                "hero_carousel_2_image",
+                "hero_carousel_2_alt_text",
+                "hero_carousel_2_caption",
+                "hero_carousel_3_image",
+                "hero_carousel_3_alt_text",
+                "hero_carousel_3_caption",
+                "hero_carousel_4_image",
+                "hero_carousel_4_alt_text",
+                "hero_carousel_4_caption",
+            ),
+            "description": "Upload up to 4 slides. If any slide is set, the hero image switches to a carousel.",
         }),
         ("Hero stats", {
             "fields": (
@@ -1977,6 +2190,11 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     @admin.display(description="Page")
     def label(self, obj):
         return "Home page"
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if hasattr(form, "save_carousel_assets"):
+            form.save_carousel_assets()
 
 
 @admin.register(ServicesPageCopy)

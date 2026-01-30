@@ -1,0 +1,79 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="col-12">
+  <div class="dashboard-shell">
+    <section class="data-panel">
+      <div class="panel-title">Employee time tracking</div>
+      <div class="panel-subtitle">Active time on admin panel vs client site. Time counts only while the tab is visible.</div>
+
+      {% if staff_usage_periods %}
+        <div class="period-grid staff-usage-grid">
+          {% for period in staff_usage_periods %}
+            <div class="period-card staff-usage-card">
+              <div class="period-card-header">
+                <strong>{{ period.label }}</strong>
+                <span class="pill muted">{{ period.window_days }} days</span>
+              </div>
+              <div class="staff-usage-summary">
+                <div class="usage-total">
+                  <strong>{{ period.totals.total_label }}</strong>
+                  <span>Total time</span>
+                </div>
+                <div>Admin {{ period.totals.admin_label }} · Client {{ period.totals.client_label }}</div>
+                <div>{{ period.active_staff_count }} of {{ period.staff_count }} staff active · {{ period.totals.total_views }} views</div>
+              </div>
+              {% if not period.has_data %}
+                <div class="staff-usage-note">No tracked activity yet for this period.</div>
+              {% endif %}
+              {% if period.staff_count %}
+                <div class="table-scroll">
+                  <table class="analytics-table staff-usage-table">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th class="numeric">Admin time</th>
+                        <th class="numeric">Client time</th>
+                        <th class="numeric">Total time</th>
+                        <th class="numeric">Admin views</th>
+                        <th class="numeric">Client views</th>
+                        <th>Last active</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in period.rows %}
+                        <tr>
+                          <td>
+                            <strong>{{ row.name }}</strong>
+                            {% if row.email %}
+                              <div class="staff-usage-email">{{ row.email }}</div>
+                            {% endif %}
+                          </td>
+                          <td class="numeric">{{ row.admin_label }}</td>
+                          <td class="numeric">{{ row.client_label }}</td>
+                          <td class="numeric">{{ row.total_label }}</td>
+                          <td class="numeric">{{ row.admin_views }}</td>
+                          <td class="numeric">{{ row.client_views }}</td>
+                          <td>{% if row.last_seen %}{{ row.last_seen|date:"M d · H:i" }}{% else %}—{% endif %}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <div class="empty-state">
+                  <p>No staff accounts found.</p>
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <p>No tracking data yet.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

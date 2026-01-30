@@ -5,7 +5,7 @@ import re
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Prefetch, Q
-from django.contrib import messages
+from django.contrib import admin, messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -14,10 +14,11 @@ from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_
 from django.views.decorators.cache import never_cache
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils import timezone
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import validate_email
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.template.response import TemplateResponse
 from datetime import datetime
 import json
 from django.utils.functional import cached_property
@@ -56,6 +57,7 @@ from core.services.media import (
     build_performance_tuning_media,
 )
 from core.services.lead_security import evaluate_lead_submission, log_lead_submission
+from core.services.analytics import summarize_staff_usage_periods
 from notifications.services import (
     notify_about_service_lead,
     notify_about_site_notice_signup,
@@ -268,6 +270,23 @@ def admin_ui_check_run(request):
     details = f"failures {run.failures_count}, warnings {run.warnings_count}"
     messages.success(request, f"UI check completed: {status_label} ({details}).")
     return redirect("admin:index")
+
+
+def admin_staff_usage(request):
+    user = request.user
+    is_master = user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
+    if is_master:
+        raise PermissionDenied
+
+    staff_usage_periods = summarize_staff_usage_periods(windows=[1, 7, 30])
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Staff time tracking",
+            "staff_usage_periods": staff_usage_periods,
+        }
+    )
+    return TemplateResponse(request, "admin/staff_usage.html", context)
 
 # ===== API =====
 

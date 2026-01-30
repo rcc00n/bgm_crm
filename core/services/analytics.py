@@ -4,8 +4,10 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.db.models import Avg, Case, Count, IntegerField, Max, Q, Sum, When
 from django.db.models.functions import TruncDate
+from django.urls import reverse
 from django.utils import timezone
 
 from core.models import PageView, VisitorSession
@@ -239,7 +241,32 @@ def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) 
     start_date = day_list[0]
     start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
 
-    admin_filter = Q(path__startswith="/admin")
+    admin_filter = Q(pk__isnull=True)
+    admin_prefixes = []
+    try:
+        admin_prefixes.append(reverse("admin:index"))
+    except Exception:
+        admin_prefixes = []
+    configured_prefixes = getattr(settings, "ADMIN_USAGE_PATH_PREFIXES", None) or []
+    for prefix in configured_prefixes:
+        if prefix:
+            admin_prefixes.append(prefix)
+    admin_prefixes.extend(["/admin/", "/admin"])
+    normalized_prefixes = []
+    for prefix in admin_prefixes:
+        if not prefix:
+            continue
+        if not prefix.startswith("/"):
+            prefix = f"/{prefix}"
+        normalized_prefixes.append(prefix)
+
+    for prefix in dict.fromkeys(normalized_prefixes):
+        admin_filter |= (
+            Q(path__startswith=prefix)
+            | Q(path__contains=prefix)
+            | Q(full_path__startswith=prefix)
+            | Q(full_path__contains=prefix)
+        )
     client_filter = ~Q(path__startswith="/admin")
 
     base_views = PageView.objects.filter(

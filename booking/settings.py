@@ -430,6 +430,13 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "core.MasterProfile", "label": "Team Profiles"},
                     {"model": "core.ServiceMaster", "label": "Service Assignment"},
                     {"model": "core.MasterRoom", "label": "Rooms & Bays"},
+                    {
+                        "label": "Time Tracking",
+                        "url": "admin-staff-usage",
+                        "icon": "fas fa-clock",
+                        "active_patterns": ["admin-staff-usage"],
+                        "permissions": ["auth.view_user"],
+                    },
                 ],
             },
             {
