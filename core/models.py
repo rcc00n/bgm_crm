@@ -233,6 +233,10 @@ class LegalPage(models.Model):
         return reverse("legal-page", kwargs={"slug": self.slug})
 
 
+def default_home_layout_overrides() -> dict:
+    return {"desktop": {}, "mobile": {}}
+
+
 class HomePageCopy(models.Model):
     """
     Editable static text for the public home page.
@@ -352,6 +356,12 @@ class HomePageCopy(models.Model):
     hero_stat_2_subtitle = models.CharField(max_length=80, default="no cookie‑cutter kits")
     hero_stat_3_title = models.CharField(max_length=60, default="24/7")
     hero_stat_3_subtitle = models.CharField(max_length=80, default="Book online fast quotes")
+
+    layout_overrides = models.JSONField(
+        default=default_home_layout_overrides,
+        blank=True,
+        help_text="Manual layout offsets for hero elements (page builder).",
+    )
 
     hero_mobile_action_1_title = models.CharField(max_length=60, default="Book a Service")
     hero_mobile_action_1_subtitle = models.CharField(max_length=80, default="Pick date & time")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import html
+import json
 import re
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -26,6 +27,7 @@ from core.models import (
     Service,
 )
 from core.services.fonts import build_page_font_context
+from core.services.page_layout import build_layout_styles, layout_config_for_model, normalize_layout_overrides
 
 TOKEN_START_RE = re.compile(r"\[\[\[PCF:([a-zA-Z0-9_]+)\]\]\]")
 TOKEN_END_RE = re.compile(r"\[\[\[/PCF:([a-zA-Z0-9_]+)\]\]\]")
@@ -160,7 +162,17 @@ def inject_preview_spans(html_text: str) -> str:
     return "".join(processed)
 
 
-def inject_preview_helpers(html_text: str, base_href: str) -> str:
+def inject_preview_helpers(
+    html_text: str,
+    base_href: str,
+    layout_config: Optional[Dict[str, Any]] = None,
+    layout_overrides: Optional[Dict[str, Any]] = None,
+) -> str:
+    layout_config = layout_config or {}
+    layout_overrides = normalize_layout_overrides(layout_overrides or {})
+    layout_config_json = json.dumps(layout_config)
+    layout_state_json = json.dumps(layout_overrides)
+
     style = """
 <style>
   [data-copy-field] {
@@ -178,6 +190,18 @@ def inject_preview_helpers(html_text: str, base_href: str) -> str:
     outline: 2px solid rgba(37, 99, 235, 0.8);
     background: rgba(37, 99, 235, 0.08);
   }
+
+  body.pagecopy-layout-mode [data-layout-key] {
+    outline: 1px dashed rgba(14, 165, 233, 0.7);
+    outline-offset: 2px;
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+  }
+
+  body.pagecopy-layout-mode [data-layout-key]:hover {
+    outline-color: rgba(56, 189, 248, 0.95);
+  }
 </style>
 """
 
@@ -185,7 +209,6 @@ def inject_preview_helpers(html_text: str, base_href: str) -> str:
 <script>
   (function() {
     const fields = Array.from(document.querySelectorAll('[data-copy-field]'));
-    if (!fields.length) return;
 
     const byField = {};
 
@@ -233,9 +256,145 @@ def inject_preview_helpers(html_text: str, base_href: str) -> str:
       const value = data.value;
       (byField[field] || []).forEach(node => setNodeValue(node, value));
     });
+
+    const layoutConfig = __LAYOUT_CONFIG__;
+    const layoutState = __LAYOUT_STATE__;
+    const layoutKeys = Object.keys(layoutConfig || {});
+    const layoutNodes = new Map();
+    let layoutModeActive = false;
+    let currentMode = 'desktop';
+
+    const normalizeMode = (mode) => (mode === 'mobile' ? 'mobile' : 'desktop');
+    const getModeState = () => {
+      layoutState.desktop = layoutState.desktop || {};
+      layoutState.mobile = layoutState.mobile || {};
+      return layoutState[currentMode];
+    };
+
+    const applyLayout = () => {
+      const state = getModeState();
+      layoutNodes.forEach((nodes, key) => {
+        const coords = state[key] || {};
+        const x = Number(coords.x || 0);
+        const y = Number(coords.y || 0);
+        nodes.forEach(node => {
+          if (x || y) {
+            node.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+          } else {
+            node.style.transform = '';
+          }
+        });
+      });
+    };
+
+    const setLayoutMode = (active) => {
+      layoutModeActive = !!active;
+      document.body.classList.toggle('pagecopy-layout-mode', layoutModeActive);
+      fields.forEach(node => {
+        node.setAttribute('contenteditable', layoutModeActive ? 'false' : 'true');
+      });
+    };
+
+    const syncLayoutState = () => {
+      if (window.parent) {
+        window.parent.postMessage({ type: 'pagecopy:layout', layout: layoutState }, '*');
+      }
+    };
+
+    const resetLayout = (scope) => {
+      if (scope === 'all') {
+        layoutState.desktop = {};
+        layoutState.mobile = {};
+      } else {
+        layoutState[currentMode] = {};
+      }
+      applyLayout();
+      syncLayoutState();
+    };
+
+    if (layoutKeys.length) {
+      layoutKeys.forEach(key => {
+        const meta = layoutConfig[key] || {};
+        const selector = meta.selector || meta;
+        if (!selector) return;
+        const nodes = Array.from(document.querySelectorAll(selector));
+        if (!nodes.length) return;
+        nodes.forEach(node => {
+          node.dataset.layoutKey = key;
+        });
+        layoutNodes.set(key, nodes);
+      });
+
+      applyLayout();
+
+      let dragKey = null;
+      let dragStartX = 0;
+      let dragStartY = 0;
+      let originX = 0;
+      let originY = 0;
+
+      const onPointerDown = (event) => {
+        if (!layoutModeActive) return;
+        if (event.button && event.button !== 0) return;
+        const target = event.target.closest('[data-layout-key]');
+        if (!target) return;
+        const key = target.dataset.layoutKey;
+        if (!key || !layoutNodes.has(key)) return;
+        event.preventDefault();
+        dragKey = key;
+        const state = getModeState();
+        const coords = state[key] || {};
+        originX = Number(coords.x || 0);
+        originY = Number(coords.y || 0);
+        dragStartX = event.clientX;
+        dragStartY = event.clientY;
+        target.setPointerCapture(event.pointerId);
+      };
+
+      const onPointerMove = (event) => {
+        if (!layoutModeActive || !dragKey) return;
+        event.preventDefault();
+        const dx = event.clientX - dragStartX;
+        const dy = event.clientY - dragStartY;
+        const nextX = Math.round(originX + dx);
+        const nextY = Math.round(originY + dy);
+        const state = getModeState();
+        state[dragKey] = { x: nextX, y: nextY };
+        applyLayout();
+      };
+
+      const onPointerUp = (event) => {
+        if (!layoutModeActive || !dragKey) return;
+        event.preventDefault();
+        dragKey = null;
+        syncLayoutState();
+      };
+
+      document.addEventListener('pointerdown', onPointerDown);
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+    }
+
+    window.addEventListener('message', (event) => {
+      const data = event.data || {};
+      if (data.type === 'pagecopy:mode') {
+        currentMode = normalizeMode(data.mode);
+        applyLayout();
+        return;
+      }
+      if (data.type === 'pagecopy:layout-mode') {
+        setLayoutMode(data.active);
+        return;
+      }
+      if (data.type === 'pagecopy:layout-reset') {
+        resetLayout(data.scope === 'all' ? 'all' : 'current');
+      }
+    });
   })();
 </script>
 """
+    script = script.replace("__LAYOUT_CONFIG__", layout_config_json)
+    script = script.replace("__LAYOUT_STATE__", layout_state_json)
 
     if "</head>" in html_text:
         html_text = html_text.replace(
@@ -423,6 +582,9 @@ def build_preview_context(request: HttpRequest, model_cls: type, preview_copy: A
     if config.header_key:
         ctx[config.header_key] = preview_copy
 
+    raw_copy = getattr(preview_copy, "_instance", preview_copy)
+    ctx["layout_styles"] = build_layout_styles(model_cls, getattr(raw_copy, "layout_overrides", None))
+
     if config.use_anonymous_user:
         ctx["user"] = AnonymousUser()
         preview_request = copy.copy(request)
@@ -430,7 +592,6 @@ def build_preview_context(request: HttpRequest, model_cls: type, preview_copy: A
         ctx["request"] = preview_request
 
     if model_cls is HomePageCopy:
-        raw_copy = getattr(preview_copy, "_instance", preview_copy)
         gallery_url = (getattr(raw_copy, "gallery_cta_url", "") or "").strip() or reverse("project-journal")
         ctx["home_gallery_url"] = gallery_url
         gallery_items = ctx.get("home_gallery_items")
@@ -450,5 +611,13 @@ def render_pagecopy_preview(request: HttpRequest, model_cls: type, preview_copy:
     context = build_preview_context(request, model_cls, preview_copy)
     html_text = render_to_string(config.template, context=context, request=request)
     html_text = inject_preview_spans(html_text)
-    html_text = inject_preview_helpers(html_text, base_href)
+    raw_copy = getattr(preview_copy, "_instance", preview_copy)
+    layout_config = layout_config_for_model(model_cls)
+    layout_overrides = getattr(raw_copy, "layout_overrides", None)
+    html_text = inject_preview_helpers(
+        html_text,
+        base_href,
+        layout_config=layout_config,
+        layout_overrides=layout_overrides,
+    )
     return html_text

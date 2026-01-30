@@ -1,9 +1,12 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from unittest.mock import patch
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 
+from notifications.services import queue_lead_digest
 from notifications.models import (
     TelegramBotSettings,
     TelegramContact,
@@ -127,3 +130,54 @@ class TelegramReminderTests(TestCase):
         )
 
         self.assertEqual(list(TelegramReminder.due()), [due])
+
+
+class LeadDigestScheduleTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
+    def _dt(self, year, month, day, hour, minute=0):
+        tz = timezone.get_default_timezone()
+        return timezone.make_aware(datetime(year, month, day, hour, minute), tz)
+
+    @patch("notifications.services.send_telegram_message")
+    @patch("notifications.services.timezone.now")
+    def test_digest_only_sends_on_scheduled_slots(self, mock_now, mock_send):
+        mock_now.side_effect = [
+            self._dt(2026, 1, 30, 14, 0),
+            self._dt(2026, 1, 30, 15, 5),
+            self._dt(2026, 1, 30, 15, 10),
+            self._dt(2026, 1, 30, 21, 1),
+        ]
+
+        queue_lead_digest(
+            form_type="site_notice",
+            suspicious=True,
+            ip_address="1.2.3.4",
+            asn="AS100",
+        )
+        self.assertEqual(mock_send.call_count, 0)
+
+        queue_lead_digest(
+            form_type="site_notice",
+            suspicious=True,
+            ip_address="1.2.3.5",
+            asn="AS100",
+        )
+        self.assertEqual(mock_send.call_count, 1)
+
+        queue_lead_digest(
+            form_type="site_notice",
+            suspicious=True,
+            ip_address="1.2.3.6",
+            asn="AS200",
+        )
+        self.assertEqual(mock_send.call_count, 1)
+
+        queue_lead_digest(
+            form_type="site_notice",
+            suspicious=True,
+            ip_address="1.2.3.7",
+            asn="AS200",
+        )
+        self.assertEqual(mock_send.call_count, 2)

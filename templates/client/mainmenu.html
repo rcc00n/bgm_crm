@@ -829,8 +829,7 @@ main h3{
             </div>
             <div class="mobile-booking__row">
               <label class="mobile-booking__label" for="mobileTime">{{ services_copy.booking_available_times_label }}</label>
-              <input id="mobileTime" class="mobile-booking__input" type="time" aria-label="{{ services_copy.booking_available_times_label }}" list="mobileTimeList">
-              <datalist id="mobileTimeList"></datalist>
+              <select id="mobileTime" class="mobile-booking__input" aria-label="{{ services_copy.booking_available_times_label }}"></select>
               <div class="mobile-booking__meta">
                 <span class="mobile-booking__status" id="mobileStatus">{{ services_copy.booking_mobile_pick_day_label }}</span>
               </div>
@@ -895,6 +894,7 @@ main h3{
       summaryTimePrefix: "{{ services_copy.booking_summary_time_prefix|escapejs }}",
       summaryTimeSelected: "{{ services_copy.booking_summary_time_selected_label|escapejs }}",
       mobilePickDayLabel: "{{ services_copy.booking_mobile_pick_day_label|escapejs }}",
+      chooseTimeLabel: "{{ services_copy.booking_choose_time_label|escapejs }}",
       noAvailabilityLabel: "{{ services_copy.booking_no_availability_label|escapejs }}",
       noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
       noOpenTimesOnPrefix: "{{ services_copy.booking_no_open_times_on_prefix|escapejs }}",
@@ -943,7 +943,6 @@ main h3{
     const mobileBooking=document.getElementById('mobileBooking');
     const mobileDateInput=document.getElementById('mobileDate');
     const mobileTimeInput=document.getElementById('mobileTime');
-    const mobileTimeList=document.getElementById('mobileTimeList');
     const mobileTodayBtn=document.getElementById('mobileTodayBtn');
     const mobileStatus=document.getElementById('mobileStatus');
     const mobileQuery = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
@@ -1101,13 +1100,15 @@ main h3{
 
     function clearMobileTimeInput(){
       if (!mobileTimeInput) return;
-      mobileTimeInput.value = '';
+      mobileTimeInput.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = copy.chooseTimeLabel || copy.mobilePickDayLabel;
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      mobileTimeInput.appendChild(placeholder);
       mobileTimeInput.disabled = true;
-      mobileTimeInput.min = '';
-      mobileTimeInput.max = '';
-      mobileTimeInput.step = '';
       mobileTimeInput.setCustomValidity('');
-      if (mobileTimeList) mobileTimeList.innerHTML = '';
     }
 
     function updateMobileTimeOptions(times){
@@ -1117,12 +1118,19 @@ main h3{
         return;
       }
       mobileTimeInput.disabled = false;
-      mobileTimeInput.min = times[0];
-      mobileTimeInput.max = times[times.length - 1];
-      mobileTimeInput.step = String(STEP_MIN * 60);
-      if (mobileTimeList){
-        mobileTimeList.innerHTML = times.map(t=>`<option value="${t}"></option>`).join('');
-      }
+      mobileTimeInput.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = copy.chooseTimeLabel || copy.mobilePickDayLabel;
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      mobileTimeInput.appendChild(placeholder);
+      times.forEach(t=>{
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = formatTimeLabel(t);
+        mobileTimeInput.appendChild(opt);
+      });
     }
 
     function syncMobileDateRange(startDate){

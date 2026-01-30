@@ -11,6 +11,7 @@ from core.services.analytics import (
     summarize_staff_usage,
     summarize_web_analytics,
     summarize_web_analytics_periods,
+    summarize_web_analytics_insights,
 )
 
 
@@ -185,3 +186,45 @@ class StaffUsageSummaryTests(TestCase):
         idle_row = rows[idle_staff.id]
         self.assertEqual(idle_row["total_seconds"], 0)
         self.assertEqual(idle_row["admin_views"], 0)
+
+
+class AnalyticsInsightsSummaryTests(TestCase):
+    def test_insights_summary_includes_breakdowns(self):
+        session = VisitorSession.objects.create(
+            session_key="insights-session",
+            landing_path="/",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0 Safari/537.36",
+            referrer="https://google.com/search?q=test",
+            ip_address="203.0.113.10",
+        )
+        PageView.objects.create(
+            session=session,
+            user=None,
+            page_instance_id="insights-pv",
+            path="/",
+            full_path="/?utm=test",
+            page_title="Home",
+            referrer="https://google.com/search?q=test",
+            started_at=timezone.now() - timedelta(minutes=2),
+            duration_ms=9000,
+            timezone_offset=-300,
+            viewport_width=1280,
+            viewport_height=720,
+        )
+
+        summary = summarize_web_analytics_insights(window_days=7, host="example.com")
+        self.assertTrue(summary["has_data"])
+        self.assertEqual(summary["totals"]["visits"], 1)
+        self.assertEqual(summary["totals"]["page_views"], 1)
+        self.assertEqual(summary["sessions"]["bounce_sessions"], 1)
+        self.assertEqual(summary["landing_pages"][0]["path"], "/")
+
+        browser_map = {row["label"]: row["count"] for row in summary["browser_mix"]}
+        os_map = {row["label"]: row["count"] for row in summary["os_mix"]}
+        referrer_map = {row["label"]: row["count"] for row in summary["referrer_mix"]}
+        device_map = {row["label"]: row["count"] for row in summary["device_mix"]}
+
+        self.assertEqual(browser_map.get("Chrome"), 1)
+        self.assertEqual(os_map.get("Windows"), 1)
+        self.assertEqual(referrer_map.get("Search"), 1)
+        self.assertEqual(device_map.get("Desktop"), 1)

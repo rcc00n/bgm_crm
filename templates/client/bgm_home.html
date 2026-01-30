@@ -670,6 +670,11 @@
     }
     body.nav-open .contact-fab{ display:none !important; }
   </style>
+  {% if layout_styles %}
+  <style>
+    {{ layout_styles|safe }}
+  </style>
+  {% endif %}
 </head>
 
 <body>

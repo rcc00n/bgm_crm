@@ -1117,3 +1117,54 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   font-weight: 600;
   padding: 10px 18px;
 }
+
+.insights-window {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.pill.active {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+}
+
+.insights-mix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.insights-mix-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insights-mix-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px dashed var(--admin-divider);
+  padding-bottom: 6px;
+}
+
+.insights-mix-list li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.insights-mix-list span {
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+
+.insights-mix-list strong {
+  font-size: 13px;
+}
