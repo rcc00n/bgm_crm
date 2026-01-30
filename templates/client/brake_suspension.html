@@ -1,4 +1,4 @@
-{% load static dealer_extras %}
+{% load static dealer_extras lead_security %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -443,25 +443,25 @@
       font-style:normal;
     }
 
-    /* Top bar: UI font */
+    /* Top bar */
     .site-header .brand,
     .site-header .brand__logo,
-    .site-header .brand__logo .brand__word,
+    .site-header .brand__logo .brand__word{
+      font-family:var(--topbar-brand-font, var(--font-head))!important;
+      font-style:normal!important;
+      font-weight:var(--topbar-brand-weight, 900)!important;
+      text-transform:var(--topbar-brand-transform, uppercase)!important;
+      letter-spacing:var(--topbar-brand-letter-spacing, .06em)!important;
+      line-height:1!important;
+    }
+    .site-header .brand__logo{font-size:var(--topbar-brand-size, clamp(1.2rem,1.8vw,1.55rem))!important}
     .site-header .brand__tagline,
     .site-header nav a,
     .site-header nav .btn,
     .site-header nav .btn--ghost{
-      font-family:var(--font-ui)!important;
+      font-family:var(--topbar-nav-font, var(--font-ui))!important;
       font-style:normal!important;
     }
-    .site-header .brand__logo,
-    .site-header .brand__logo .brand__word{
-      font-weight:900!important;
-      text-transform:uppercase!important;
-      letter-spacing:.06em!important;
-      line-height:1!important;
-    }
-    .site-header .brand__logo{font-size:clamp(1.2rem,1.8vw,1.55rem)!important}
     .site-header .brand__tagline{
       font-weight:900!important;
       text-transform:uppercase!important;
@@ -690,6 +690,7 @@
       <aside class="hero__panel">
         <form id="service-form" class="form" method="post" action="{% url 'service-lead-submit' %}" autocomplete="on">
           {% csrf_token %}
+          {% lead_security_fields "service_lead" %}
           <input type="hidden" name="source_page" value="brake_suspension">
           <input type="hidden" name="source_url" value="{{ request.build_absolute_uri }}">
           <input type="hidden" name="next" value="{{ request.build_absolute_uri }}#service-form">
@@ -967,6 +968,7 @@
   <!-- Unified topbar behavior -->
   <script src="{% static 'js/topbar.js' %}"></script>
 
+  {% include "includes/lead_security_script.html" %}
   {% include "includes/site_notice_script.html" %}
   {% include "includes/analytics_tracker.html" %}
 </body>

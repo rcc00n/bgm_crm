@@ -1,0 +1,11 @@
+{# Shared anti-bot script for lead forms #}
+<script>
+(function () {
+  const fields = document.querySelectorAll('input[data-lead-rendered]');
+  if (!fields.length) return;
+  const now = Date.now();
+  fields.forEach((field) => {
+    if (!field.value) field.value = String(now);
+  });
+})();
+</script>

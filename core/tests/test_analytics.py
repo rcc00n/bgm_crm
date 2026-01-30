@@ -7,7 +7,11 @@ from django.urls import reverse
 from django.utils import timezone
 
 from core.models import PageView, VisitorSession
-from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
+from core.services.analytics import (
+    summarize_staff_usage,
+    summarize_web_analytics,
+    summarize_web_analytics_periods,
+)
 
 
 class AnalyticsCollectViewTests(TestCase):
@@ -127,3 +131,57 @@ class AnalyticsPeriodSummaryTests(TestCase):
         self.assertEqual(periods[2]["label"], "Last 30 days")
         self.assertEqual(periods[0]["totals"].get("visits"), 1)
         self.assertEqual(periods[0]["engagement"].get("sample_size"), 1)
+
+
+class StaffUsageSummaryTests(TestCase):
+    def test_staff_usage_splits_admin_and_client(self):
+        staff = User.objects.create_user("staffer", password="pass1234", is_staff=True)
+        idle_staff = User.objects.create_user("idle", password="pass1234", is_staff=True)
+
+        session = VisitorSession.objects.create(
+            session_key="staff-session",
+            user=staff,
+            landing_path="/admin/",
+            user_agent="pytest",
+        )
+
+        PageView.objects.create(
+            session=session,
+            user=staff,
+            page_instance_id="staff-admin",
+            path="/admin/core/appointment/",
+            full_path="/admin/core/appointment/",
+            page_title="Admin",
+            referrer="",
+            started_at=timezone.now() - timedelta(minutes=5),
+            duration_ms=60000,
+        )
+        PageView.objects.create(
+            session=session,
+            user=staff,
+            page_instance_id="staff-client",
+            path="/client/dashboard/",
+            full_path="/client/dashboard/",
+            page_title="Client",
+            referrer="",
+            started_at=timezone.now() - timedelta(minutes=4),
+            duration_ms=120000,
+        )
+
+        summary = summarize_staff_usage(window_days=7)
+        rows = {row["user_id"]: row for row in summary["rows"]}
+
+        self.assertTrue(summary["has_data"])
+        self.assertIn(staff.id, rows)
+        self.assertIn(idle_staff.id, rows)
+
+        staff_row = rows[staff.id]
+        self.assertEqual(staff_row["admin_seconds"], 60)
+        self.assertEqual(staff_row["client_seconds"], 120)
+        self.assertEqual(staff_row["total_seconds"], 180)
+        self.assertEqual(staff_row["admin_views"], 1)
+        self.assertEqual(staff_row["client_views"], 1)
+
+        idle_row = rows[idle_staff.id]
+        self.assertEqual(idle_row["total_seconds"], 0)
+        self.assertEqual(idle_row["admin_views"], 0)

@@ -794,6 +794,11 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   text-align: left;
 }
 
+.analytics-table th.numeric,
+.analytics-table td.numeric {
+  text-align: right;
+}
+
 .analytics-table th {
   font-size: 12px;
   text-transform: uppercase;
@@ -814,6 +819,53 @@ body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar .nav-link span {
   background: rgba(15, 23, 42, 0.06);
   padding: 2px 6px;
   border-radius: 6px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.staff-usage-grid {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.staff-usage-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--admin-text-muted);
+  margin-bottom: 8px;
+}
+
+.staff-usage-summary .usage-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.staff-usage-summary .usage-total strong {
+  font-size: 18px;
+  color: var(--admin-text-strong);
+}
+
+.staff-usage-summary .usage-total span {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-text-muted);
+}
+
+.staff-usage-email {
+  font-size: 12px;
+  color: var(--admin-text-muted);
+  margin-top: 4px;
+}
+
+.staff-usage-note {
+  font-size: 12px;
+  color: var(--admin-text-muted);
+  margin-bottom: 6px;
 }
 
 .top-pages-table code {

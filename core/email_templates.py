@@ -22,6 +22,7 @@ class EmailTemplateDefinition:
     notice_lines: Sequence[str] = ()
     footer_lines: Sequence[str] = ()
     cta_label: str = ""
+    cta_url: str = ""
     tokens: Sequence[str] = ()
 
 
@@ -36,6 +37,7 @@ class RenderedEmailTemplate:
     notice_lines: list[str]
     footer_lines: list[str]
     cta_label: str
+    cta_url: str
 
 
 EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
@@ -270,23 +272,66 @@ class _SafeDict(dict):
         return ""
 
 
-def email_brand_name() -> str:
-    default_brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+BASE_EMAIL_TOKENS = ("brand", "support_email", "company_website", "company_phone")
+
+
+def _email_setting_value(attr: str, default: str = "") -> str:
     try:
         settings_obj = EmailTemplateSettings.objects.first()
     except Exception:
-        return default_brand
-    if settings_obj and settings_obj.brand_name and settings_obj.brand_name.strip():
-        return settings_obj.brand_name.strip()
-    return default_brand
+        return default
+    if not settings_obj:
+        return default
+    value = getattr(settings_obj, attr, "")
+    if value is None:
+        return default
+    value_text = str(value).strip()
+    return value_text or default
+
+
+def email_brand_name() -> str:
+    default_brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
+    return _email_setting_value("brand_name", default_brand)
+
+
+def email_brand_tagline() -> str:
+    return _email_setting_value("brand_tagline", getattr(settings, "SITE_BRAND_TAGLINE", ""))
+
+
+def email_company_address() -> str:
+    return _email_setting_value("company_address", getattr(settings, "COMPANY_ADDRESS", ""))
+
+
+def email_company_phone() -> str:
+    return _email_setting_value("company_phone", getattr(settings, "COMPANY_PHONE", ""))
+
+
+def email_company_website() -> str:
+    return _email_setting_value("company_website", getattr(settings, "COMPANY_WEBSITE", ""))
+
+
+def email_support_email() -> str:
+    return _email_setting_value("support_email", getattr(settings, "SUPPORT_EMAIL", ""))
+
+
+def email_accent_color() -> str:
+    return _email_setting_value("accent_color", getattr(settings, "EMAIL_ACCENT_COLOR", "#d50000"))
+
+
+def email_dark_color() -> str:
+    return _email_setting_value("dark_color", getattr(settings, "EMAIL_DARK_COLOR", "#0b0b0c"))
+
+
+def email_bg_color() -> str:
+    return _email_setting_value("bg_color", getattr(settings, "EMAIL_BG_COLOR", "#0b0b0c"))
 
 
 def base_email_context(extra: dict[str, object] | None = None) -> dict[str, str]:
     context = {
         "brand": email_brand_name(),
-        "support_email": getattr(settings, "SUPPORT_EMAIL", ""),
-        "company_website": getattr(settings, "COMPANY_WEBSITE", ""),
-        "company_phone": getattr(settings, "COMPANY_PHONE", ""),
+        "support_email": email_support_email(),
+        "company_website": email_company_website(),
+        "company_phone": email_company_phone(),
     }
     if extra:
         context.update(extra)
@@ -334,6 +379,7 @@ def render_email_template(slug: str, context: dict[str, str]) -> RenderedEmailTe
         notice_raw = "\n".join(definition.notice_lines)
         footer_raw = "\n".join(definition.footer_lines)
         cta_raw = definition.cta_label
+        cta_url_raw = definition.cta_url
     else:
         subject_raw = record.subject
         preheader_raw = record.preheader
@@ -344,6 +390,7 @@ def render_email_template(slug: str, context: dict[str, str]) -> RenderedEmailTe
         notice_raw = record.notice
         footer_raw = record.footer
         cta_raw = record.cta_label
+        cta_url_raw = record.cta_url
 
     merged_context = {token: "" for token in (definition.tokens or [])}
     merged_context.update(context)
@@ -357,6 +404,7 @@ def render_email_template(slug: str, context: dict[str, str]) -> RenderedEmailTe
     notice_lines = _render_lines(_split_lines(notice_raw), merged_context)
     footer_lines = _render_lines(_split_lines(footer_raw), merged_context)
     cta_label = _format_value(cta_raw, merged_context)
+    cta_url = _format_value(cta_url_raw, merged_context)
 
     return RenderedEmailTemplate(
         subject=subject,
@@ -368,6 +416,7 @@ def render_email_template(slug: str, context: dict[str, str]) -> RenderedEmailTe
         notice_lines=notice_lines,
         footer_lines=footer_lines,
         cta_label=cta_label,
+        cta_url=cta_url,
     )
 
 
@@ -375,7 +424,11 @@ def template_tokens(slug: str) -> list[str]:
     definition = EMAIL_TEMPLATE_DEFINITIONS.get(slug)
     if not definition:
         return []
-    return list(definition.tokens or [])
+    tokens = list(definition.tokens or [])
+    for token in BASE_EMAIL_TOKENS:
+        if token not in tokens:
+            tokens.append(token)
+    return tokens
 
 
 def _as_lines(section: Iterable[str] | str | None) -> list[str]:

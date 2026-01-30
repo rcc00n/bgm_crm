@@ -1,7 +1,28 @@
 /* Unified topbar styling to match the reference header. */
+@font-face{
+  font-family:"Diesel";
+  src:url("../fonts/Diesel.ttf") format("truetype");
+  font-display:swap;
+}
+
+@font-face{
+  font-family:"Ford";
+  src:url("../fonts/Ford.ttf") format("truetype");
+  font-display:swap;
+}
+
 :root{
-  --topbar-font: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
+  --topbar-nav-font: "Diesel", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
+  --topbar-brand-font: "Ford", "Diesel", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
+  --topbar-font: var(--topbar-nav-font);
   --topbar-red: #d50000;
+  --topbar-brand-size: clamp(1.25rem, 2.1vw, 1.7rem);
+  --topbar-brand-weight: 400;
+  --topbar-brand-letter-spacing: 0;
+  --topbar-brand-transform: none;
+  --topbar-nav-size: .95rem;
+  --topbar-nav-size-desktop: 1.05rem;
+  --topbar-padding-y-desktop: .95rem;
 }
 
 body .site-header{
@@ -20,10 +41,18 @@ body .site-header__inner{
 body .site-header .brand,
 body .site-header .brand__logo,
 body .site-header .brand__logo .brand__word,
-body .site-header .brand__word,
+body .site-header .brand__word{
+  font-family: var(--topbar-brand-font) !important;
+  font-style: normal !important;
+}
+
 body .site-header nav a,
+body .site-header nav .btn,
+body .site-header nav .btn--ghost,
+body .site-header .brand__tagline,
+body .site-header .belt,
 body .site-header .badge{
-  font-family: var(--topbar-font) !important;
+  font-family: var(--topbar-nav-font) !important;
   font-style: normal !important;
 }
 
@@ -41,16 +70,16 @@ body .site-header .brand__logo{
   align-items: center !important;
   gap: .45rem !important;
   line-height: 1 !important;
-  font-weight: 900 !important;
-  letter-spacing: .08em !important;
-  font-size: clamp(1.1rem, 1.7vw, 1.45rem) !important;
-  text-transform: uppercase !important;
+  font-weight: var(--topbar-brand-weight) !important;
+  letter-spacing: var(--topbar-brand-letter-spacing) !important;
+  font-size: var(--topbar-brand-size) !important;
+  text-transform: var(--topbar-brand-transform) !important;
 }
 
 body .site-header .brand__word{
-  font-weight: 900 !important;
+  font-weight: inherit !important;
   line-height: 1 !important;
-  text-transform: uppercase !important;
+  text-transform: inherit !important;
 }
 
 body .site-header .brand__word--white{ color: #fff !important; }
@@ -58,7 +87,6 @@ body .site-header .brand__word--red{ color: var(--topbar-red) !important; }
 
 body .site-header .brand__tagline,
 body .site-header .belt{
-  font-family: var(--topbar-font) !important;
   font-weight: 800 !important;
   font-size: .78rem !important;
   letter-spacing: .18em !important;
@@ -76,9 +104,8 @@ body .site-header .belt{
 body .site-header nav a,
 body .site-header nav .btn,
 body .site-header nav .btn--ghost{
-  font-family: var(--topbar-font) !important;
   font-weight: 700 !important;
-  font-size: .9rem !important;
+  font-size: var(--topbar-nav-size) !important;
   letter-spacing: .04em !important;
   line-height: 1.1 !important;
   text-transform: none !important;
@@ -113,7 +140,7 @@ body .site-header .badge{
     align-items: center !important;
     justify-content: space-between !important;
     gap: 1.4rem !important;
-    padding: .55rem 0 !important;
+    padding-block: var(--topbar-padding-y-desktop) !important;
   }
 
   body .site-header nav{
@@ -128,6 +155,7 @@ body .site-header .badge{
 
   body .site-header nav a{
     padding: .2rem 0 !important;
+    font-size: var(--topbar-nav-size-desktop) !important;
   }
 
   body .site-header__toggle{

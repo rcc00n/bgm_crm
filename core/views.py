@@ -5,7 +5,7 @@ import re
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Prefetch, Q
-from django.contrib import messages
+from django.contrib import admin, messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -14,10 +14,11 @@ from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_
 from django.views.decorators.cache import never_cache
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils import timezone
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import validate_email
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.template.response import TemplateResponse
 from datetime import datetime
 import json
 from django.utils.functional import cached_property
@@ -55,7 +56,13 @@ from core.services.media import (
     build_electrical_work_media,
     build_performance_tuning_media,
 )
-from notifications.services import notify_about_service_lead, notify_about_site_notice_signup
+from core.services.lead_security import evaluate_lead_submission, log_lead_submission
+from core.services.analytics import summarize_staff_usage_periods
+from notifications.services import (
+    notify_about_service_lead,
+    notify_about_site_notice_signup,
+    queue_lead_digest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -263,6 +270,32 @@ def admin_ui_check_run(request):
     details = f"failures {run.failures_count}, warnings {run.warnings_count}"
     messages.success(request, f"UI check completed: {status_label} ({details}).")
     return redirect("admin:index")
+
+
+@require_POST
+@csrf_exempt
+def admin_analytics_collect(request):
+    user = request.user
+    if not user.is_authenticated or not user.is_staff:
+        return JsonResponse({"error": "Staff authentication required."}, status=403)
+    return analytics_collect(request)
+
+
+def admin_staff_usage(request):
+    user = request.user
+    is_master = user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
+    if is_master:
+        raise PermissionDenied
+
+    staff_usage_periods = summarize_staff_usage_periods(windows=[1, 7, 30])
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Staff time tracking",
+            "staff_usage_periods": staff_usage_periods,
+        }
+    )
+    return TemplateResponse(request, "admin/staff_usage.html", context)
 
 # ===== API =====
 
@@ -737,6 +770,12 @@ def site_notice_signup(request):
         messages.error(request, message)
         return HttpResponseRedirect(_lead_redirect_target(request))
 
+    def _silent_success():
+        if is_ajax:
+            return JsonResponse({"ok": True, "message": "Check your inbox for your code."})
+        messages.success(request, "Thanks! Check your inbox for your code.")
+        return HttpResponseRedirect(_lead_redirect_target(request))
+
     email = (request.POST.get("email") or "").strip()
     if not email and request.content_type and "application/json" in request.content_type:
         try:
@@ -745,13 +784,83 @@ def site_notice_signup(request):
         except (UnicodeDecodeError, json.JSONDecodeError, AttributeError):
             email = ""
 
+    evaluation = evaluate_lead_submission(request, purpose="site_notice", email=email)
+
+    if evaluation.action == "rate_limited":
+        log_lead_submission(
+            form_type="site_notice",
+            evaluation=evaluation,
+            outcome="rate_limited",
+            success=False,
+            validation_errors="rate_limited",
+        )
+        return _error("Please try again in a few minutes.", status=429)
+
+    if evaluation.honeypot_hit:
+        log_lead_submission(
+            form_type="site_notice",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="honeypot",
+        )
+        queue_lead_digest(
+            form_type="site_notice",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        return _silent_success()
+
+    if not evaluation.token_valid:
+        log_lead_submission(
+            form_type="site_notice",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors=f"token:{evaluation.token_error or 'invalid'}",
+        )
+        if evaluation.token_error == "too_fast":
+            return _error("Please wait a moment and try again.", status=429)
+        return _error("Please refresh the page and try again.", status=400)
+
     if not email:
+        log_lead_submission(
+            form_type="site_notice",
+            evaluation=evaluation,
+            outcome="rejected",
+            success=False,
+            validation_errors="email_missing",
+        )
         return _error("Email is required.")
 
     try:
         validate_email(email)
     except ValidationError:
+        log_lead_submission(
+            form_type="site_notice",
+            evaluation=evaluation,
+            outcome="rejected",
+            success=False,
+            validation_errors="email_invalid",
+        )
         return _error("Enter a valid email.")
+
+    if evaluation.action == "blocked":
+        log_lead_submission(
+            form_type="site_notice",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="score_block",
+        )
+        queue_lead_digest(
+            form_type="site_notice",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        return _silent_success()
 
     sender = (
         getattr(settings, "DEFAULT_FROM_EMAIL", None)
@@ -759,6 +868,13 @@ def site_notice_signup(request):
     )
     if not sender:
         logger.warning("Missing DEFAULT_FROM_EMAIL/SUPPORT_EMAIL for site notice signup.")
+        log_lead_submission(
+            form_type="site_notice",
+            evaluation=evaluation,
+            outcome="rejected",
+            success=False,
+            validation_errors="email_sender_missing",
+        )
         return _error("Email service is unavailable.", status=500)
 
     code = _resolve_site_notice_code()
@@ -784,7 +900,7 @@ def site_notice_signup(request):
             notice_lines=template.notice_lines,
             footer_lines=template.footer_lines,
             cta_label=template.cta_label,
-            cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
+            cta_url=template.cta_url,
         )
         send_html_email(
             subject=template.subject,
@@ -795,6 +911,13 @@ def site_notice_signup(request):
         )
     except Exception:
         logger.exception("Failed to send site notice code email to %s", email)
+        log_lead_submission(
+            form_type="site_notice",
+            evaluation=evaluation,
+            outcome="rejected",
+            success=False,
+            validation_errors="email_send_failed",
+        )
         return _error("Unable to send the code right now.", status=500)
 
     signup = None
@@ -808,10 +931,18 @@ def site_notice_signup(request):
         logger.exception("Failed to record site notice signup for %s", email)
 
     if signup:
-        try:
-            notify_about_site_notice_signup(signup.pk)
-        except Exception:
-            logger.exception("Failed to send Telegram alert for site notice signup %s", signup.pk)
+        if evaluation.action == "allow":
+            try:
+                notify_about_site_notice_signup(signup.pk)
+            except Exception:
+                logger.exception("Failed to send Telegram alert for site notice signup %s", signup.pk)
+        else:
+            queue_lead_digest(
+                form_type="site_notice",
+                suspicious=True,
+                ip_address=evaluation.ip_address,
+                asn=evaluation.cf_asn,
+            )
 
     try:
         user = CustomUserDisplay.objects.filter(email__iexact=email).first()
@@ -821,6 +952,13 @@ def site_notice_signup(request):
             profile.save(update_fields=["email_marketing_consent", "email_marketing_consented_at"])
     except Exception:
         logger.exception("Failed to update marketing consent for %s", email)
+
+    log_lead_submission(
+        form_type="site_notice",
+        evaluation=evaluation,
+        outcome="suspected" if evaluation.action == "suspect" else "accepted",
+        success=True,
+    )
 
     if is_ajax:
         return JsonResponse({"ok": True, "message": "Check your inbox for your code."})
@@ -835,10 +973,92 @@ def submit_service_lead(request):
     """
     Capture marketing/landing page leads and fan out notifications.
     """
+    email = (request.POST.get("email") or "").strip()
+    evaluation = evaluate_lead_submission(request, purpose="service_lead", email=email)
+
+    if evaluation.action == "rate_limited":
+        log_lead_submission(
+            form_type="service_lead",
+            evaluation=evaluation,
+            outcome="rate_limited",
+            success=False,
+            validation_errors="rate_limited",
+        )
+        messages.error(request, "Please try again in a few minutes.")
+        return HttpResponseRedirect(_lead_redirect_target(request))
+
+    if evaluation.honeypot_hit:
+        log_lead_submission(
+            form_type="service_lead",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="honeypot",
+        )
+        queue_lead_digest(
+            form_type="service_lead",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        messages.success(
+            request,
+            "Thanks! Your request reached our team. Expect a reply shortly.",
+        )
+        return HttpResponseRedirect(_lead_redirect_target(request))
+
+    if not evaluation.token_valid:
+        log_lead_submission(
+            form_type="service_lead",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors=f"token:{evaluation.token_error or 'invalid'}",
+        )
+        if evaluation.token_error == "too_fast":
+            messages.error(request, "Please wait a moment and try again.")
+        else:
+            messages.error(request, "Please refresh the page and try again.")
+        return HttpResponseRedirect(_lead_redirect_target(request))
+
+    if evaluation.action == "blocked":
+        log_lead_submission(
+            form_type="service_lead",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="score_block",
+        )
+        queue_lead_digest(
+            form_type="service_lead",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        messages.success(
+            request,
+            "Thanks! Your request reached our team. Expect a reply shortly.",
+        )
+        return HttpResponseRedirect(_lead_redirect_target(request))
+
     form = ServiceLeadForm(request.POST)
     if form.is_valid():
         lead = form.save()
-        notify_about_service_lead(lead.pk)
+        if evaluation.action == "allow":
+            notify_about_service_lead(lead.pk)
+        else:
+            queue_lead_digest(
+                form_type="service_lead",
+                suspicious=True,
+                ip_address=evaluation.ip_address,
+                asn=evaluation.cf_asn,
+            )
+        log_lead_submission(
+            form_type="service_lead",
+            evaluation=evaluation,
+            outcome="suspected" if evaluation.action == "suspect" else "accepted",
+            success=True,
+        )
         messages.success(
             request,
             "Thanks! Your request reached our team. Expect a reply shortly.",
@@ -849,6 +1069,13 @@ def submit_service_lead(request):
     error_msg = "Please correct the highlighted fields and try again."
     if errors:
         error_msg = f"{error_msg} ({'; '.join(errors)})"
+    log_lead_submission(
+        form_type="service_lead",
+        evaluation=evaluation,
+        outcome="rejected",
+        success=False,
+        validation_errors="; ".join(errors),
+    )
     messages.error(request, error_msg)
     return HttpResponseRedirect(_lead_redirect_target(request))
 

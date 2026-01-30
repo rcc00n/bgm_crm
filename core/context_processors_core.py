@@ -2,9 +2,14 @@
 from django.conf import settings
 from django.urls import resolve, reverse
 
-from core.services.media import DEFAULT_MEDIA_CAPTION, resolve_media_asset
+from core.services.media import (
+    DEFAULT_MEDIA_CAPTION,
+    build_home_hero_carousel,
+    resolve_media_asset,
+)
 
-from .models import HeroImage
+from .models import HeroImage, TopbarSettings
+from core.services.fonts import serialize_font_preset
 
 # Default static fallbacks for every public route that expects a hero.
 DEFAULT_CAPTION = DEFAULT_MEDIA_CAPTION
@@ -62,7 +67,12 @@ def hero_media(request):
         defaults.get("caption", DEFAULT_CAPTION),
     )
     payload["location"] = url_name or payload.get("location", "")
-    return {"hero_media": payload}
+
+    hero_carousel = []
+    if url_name == "home":
+        hero_carousel = build_home_hero_carousel()
+
+    return {"hero_media": payload, "hero_carousel": hero_carousel}
 
 
 def dealer_portal(request):
@@ -177,5 +187,34 @@ def currency(request):
         "currency": {
             "code": getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD"),
             "symbol": getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$"),
+        }
+    }
+
+
+def topbar_style(request):
+    settings_obj = TopbarSettings.get_solo()
+    brand_font = settings_obj.brand_font
+    nav_font = settings_obj.nav_font
+
+    fonts = []
+    for font in (brand_font, nav_font):
+        if not font or not font.url:
+            continue
+        serialized = serialize_font_preset(font)
+        if serialized and serialized not in fonts:
+            fonts.append(serialized)
+
+    return {
+        "topbar_settings": {
+            "brand": serialize_font_preset(brand_font),
+            "nav": serialize_font_preset(nav_font),
+            "brand_size": settings_obj.brand_size_desktop,
+            "brand_weight": settings_obj.brand_weight,
+            "brand_letter_spacing": settings_obj.brand_letter_spacing,
+            "brand_transform": settings_obj.brand_transform,
+            "nav_size": settings_obj.nav_size,
+            "nav_size_desktop": settings_obj.nav_size_desktop,
+            "padding_y_desktop": settings_obj.padding_y_desktop,
+            "fonts": fonts,
         }
     }

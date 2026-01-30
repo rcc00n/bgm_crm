@@ -1,6 +1,7 @@
 # urls_accounts.py (accounts_folder)
 from django.urls import path
 from django.contrib.auth.views import LogoutView
+from django.contrib.auth import views as auth_views
 from django.urls import reverse_lazy  # ← ДОБАВИЛИ
 
 from .views import (
@@ -9,6 +10,7 @@ from .views import (
     MasterDashboardView,
     ClientAppointmentsListView,
     ClientRegisterView,
+    EmailVerificationView,
     MainMenuView,
     ClientFileUploadView,
     ClientFileDeleteView,
@@ -27,10 +29,44 @@ urlpatterns = [
     # Аутентификация
     path("login/",    RoleBasedLoginView.as_view(),   name="login"),
     path("register/", ClientRegisterView.as_view(),   name="register"),
+    path("verify-email/<uidb64>/<token>/", EmailVerificationView.as_view(), name="verify-email"),
     path(
         "logout/",
         LogoutView.as_view(next_page=reverse_lazy("home")),  # ← БЫЛО "/home/", СТАЛО reverse_lazy
         name="logout",
+    ),
+    path(
+        "password-reset/",
+        auth_views.PasswordResetView.as_view(
+            template_name="registration/password_reset_form.html",
+            email_template_name="registration/password_reset_email.txt",
+            html_email_template_name="registration/password_reset_email.html",
+            subject_template_name="registration/password_reset_subject.txt",
+            success_url=reverse_lazy("password_reset_done"),
+        ),
+        name="password_reset",
+    ),
+    path(
+        "password-reset/done/",
+        auth_views.PasswordResetDoneView.as_view(
+            template_name="registration/password_reset_done.html",
+        ),
+        name="password_reset_done",
+    ),
+    path(
+        "reset/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name="registration/password_reset_confirm.html",
+            success_url=reverse_lazy("password_reset_complete"),
+        ),
+        name="password_reset_confirm",
+    ),
+    path(
+        "reset/done/",
+        auth_views.PasswordResetCompleteView.as_view(
+            template_name="registration/password_reset_complete.html",
+        ),
+        name="password_reset_complete",
     ),
 
     # ЛК и API — без изменений

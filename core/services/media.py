@@ -63,6 +63,37 @@ def resolve_media_asset(
     return payload
 
 
+def build_home_hero_carousel():
+    """
+    Carousel assets for the home page hero.
+    Returns only active uploaded slides (no fallbacks).
+    """
+    locations = [
+        HeroImage.Location.HOME_CAROUSEL_A,
+        HeroImage.Location.HOME_CAROUSEL_B,
+        HeroImage.Location.HOME_CAROUSEL_C,
+        HeroImage.Location.HOME_CAROUSEL_D,
+    ]
+    asset_map = _prefetch_hero_assets(locations)
+
+    slides = []
+    for location in locations:
+        asset = asset_map.get(location)
+        if not asset:
+            continue
+        slide = resolve_media_asset(
+            location,
+            "img/hero-home.jpg",
+            "Home hero",
+            DEFAULT_MEDIA_CAPTION,
+            asset=asset,
+        )
+        slide["slot"] = str(location)
+        slides.append(slide)
+
+    return slides
+
+
 def build_home_gallery_media():
     """
     Assets for the home page gallery slots.

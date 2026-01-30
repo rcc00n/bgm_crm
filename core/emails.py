@@ -2,10 +2,19 @@ from __future__ import annotations
 
 from typing import Iterable, Sequence
 
-from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import escape
 
+from core.email_templates import (
+    email_accent_color,
+    email_bg_color,
+    email_brand_name,
+    email_brand_tagline,
+    email_company_address,
+    email_company_phone,
+    email_company_website,
+    email_dark_color,
+)
 
 FONT_STACK = "'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', Verdana, sans-serif"
 
@@ -62,15 +71,6 @@ def _format_url(raw: str) -> str:
     return f"https://{raw}"
 
 
-def _resolve_brand_name() -> str:
-    try:
-        from core.email_templates import email_brand_name
-
-        return email_brand_name()
-    except Exception:
-        return getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
-
-
 def build_email_html(
     *,
     title: str,
@@ -87,15 +87,15 @@ def build_email_html(
     cta_url: str | None = None,
     link_rows: Sequence[tuple[object, object]] | None = None,
 ) -> str:
-    brand_name = _safe(_resolve_brand_name())
-    tagline = _safe(getattr(settings, "SITE_BRAND_TAGLINE", ""))
-    address = _safe(getattr(settings, "COMPANY_ADDRESS", ""))
-    phone = _safe(getattr(settings, "COMPANY_PHONE", ""))
-    website = _safe(getattr(settings, "COMPANY_WEBSITE", ""))
-    accent = _safe(getattr(settings, "EMAIL_ACCENT_COLOR", "#d50000"))
-    dark = _safe(getattr(settings, "EMAIL_DARK_COLOR", "#0b0b0c"))
-    bg = _safe(getattr(settings, "EMAIL_BG_COLOR", "#0b0b0c"))
-    company_url = _format_url(getattr(settings, "COMPANY_WEBSITE", "")) or ""
+    brand_name = _safe(email_brand_name())
+    tagline = _safe(email_brand_tagline())
+    address = _safe(email_company_address())
+    phone = _safe(email_company_phone())
+    website = _safe(email_company_website())
+    accent = _safe(email_accent_color())
+    dark = _safe(email_dark_color())
+    bg = _safe(email_bg_color())
+    company_url = _format_url(email_company_website()) or ""
 
     detail_rows = _clean_rows(detail_rows)
     summary_rows = _clean_rows(summary_rows)

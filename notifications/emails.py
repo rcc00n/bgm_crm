@@ -96,7 +96,7 @@ def send_appointment_confirmation(appointment_id) -> bool:
             notice_lines=template.notice_lines,
             footer_lines=template.footer_lines,
             cta_label=template.cta_label,
-            cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
+            cta_url=template.cta_url,
         )
         send_html_email(
             subject=template.subject,

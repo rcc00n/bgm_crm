@@ -96,9 +96,12 @@
     if (event.target === notice) closeNotice(true);
   };
 
+  let markFormRendered = () => {};
+
   const openNotice = () => {
     if (!notice.hasAttribute('hidden')) return;
 
+    markFormRendered();
     lastFocused = document.activeElement;
     notice.removeAttribute('hidden');
     document.body.classList.add('site-notice-open');
@@ -158,6 +161,11 @@
     const statusEl = notice.querySelector('[data-notice-status]');
     const submitBtn = signupForm.querySelector('button[type="submit"]');
     const submitLabel = submitBtn ? submitBtn.textContent : '';
+    const renderedField = signupForm.querySelector('input[data-lead-rendered]');
+
+    markFormRendered = () => {
+      if (renderedField && !renderedField.value) renderedField.value = String(Date.now());
+    };
 
     const setStatus = (state, message) => {
       if (!statusEl) return;
@@ -182,6 +190,7 @@
 
     signupForm.addEventListener('submit', async (event) => {
       event.preventDefault();
+      markFormRendered();
       const emailField = signupForm.querySelector('input[type="email"]');
       if (emailField && !emailField.checkValidity()) {
         emailField.reportValidity();

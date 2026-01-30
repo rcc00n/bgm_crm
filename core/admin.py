@@ -20,17 +20,39 @@ from django.template.defaultfilters import filesizeformat
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
+from django.core.exceptions import PermissionDenied
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
 import csv
 from django.urls import path, reverse, NoReverseMatch
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from .filters import *
 from .models import *
 from .forms import *
-from core.email_templates import template_tokens
+from core.email_templates import (
+    email_accent_color,
+    email_bg_color,
+    email_brand_name,
+    email_brand_tagline,
+    email_company_address,
+    email_company_phone,
+    email_company_website,
+    email_dark_color,
+    template_tokens,
+)
 from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
+from core.services.email_campaigns import (
+    estimate_campaign_audience,
+    import_email_subscribers,
+    render_campaign_email,
+    send_campaign,
+)
+from core.services.pagecopy_preview import (
+    PREVIEW_CONFIG,
+    PreviewCopy,
+    render_pagecopy_preview,
+)
 from core.utils import get_staff_queryset, format_currency
 from datetime import timedelta, time
 # -----------------------------
@@ -1670,6 +1692,27 @@ class PageFontSettingAdmin(admin.ModelAdmin):
         return format_html("<style>{}</style>{}", mark_safe(face_block), mark_safe(preview_block))
 
 
+@admin.register(TopbarSettings)
+class TopbarSettingsAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        ("Fonts", {"fields": ("brand_font", "nav_font")}),
+        ("Sizing", {"fields": ("brand_size_desktop", "nav_size", "nav_size_desktop", "padding_y_desktop")}),
+        ("Brand styling", {"fields": ("brand_weight", "brand_letter_spacing", "brand_transform")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="Topbar settings")
+    def label(self, obj):
+        return "Topbar settings"
+
+    def has_add_permission(self, request):
+        if TopbarSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+
 @admin.register(LegalPage)
 class LegalPageAdmin(admin.ModelAdmin):
     list_display = ("title", "slug", "is_active", "updated_at")
@@ -1683,14 +1726,241 @@ class LegalPageAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(HomePageCopy)
-class HomePageCopyAdmin(admin.ModelAdmin):
+@admin.register(AdminLoginBranding)
+class AdminLoginBrandingAdmin(admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        ("Logo", {"fields": ("login_logo", "login_logo_dark", "login_logo_alt")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if AdminLoginBranding.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Admin login"
+
+
+class PageCopyAdminMixin(admin.ModelAdmin):
+    change_form_template = "admin/core/pagecopy/change_form.html"
+    save_on_top = True
+
+    def get_urls(self):
+        urls = super().get_urls()
+        opts = self.model._meta
+        custom = [
+            path(
+                "preview/",
+                self.admin_site.admin_view(self.preview_view),
+                name=f"{opts.app_label}_{opts.model_name}_preview",
+            ),
+        ]
+        return custom + urls
+
+    def _get_preview_instance(self, request, obj):
+        if request.method != "POST":
+            return obj
+        form_class = self.get_form(request, obj=obj, change=True)
+        form = form_class(request.POST, request.FILES, instance=obj)
+        if form.is_valid():
+            return form.save(commit=False)
+        return obj
+
+    def preview_view(self, request):
+        config = PREVIEW_CONFIG.get(self.model)
+        if not config:
+            return HttpResponse("Preview is not configured for this page.", status=400)
+
+        object_id = request.GET.get("object_id") or request.POST.get("object_id")
+        obj = None
+        if object_id:
+            obj = self.get_object(request, object_id)
+        if not obj:
+            try:
+                obj = self.model.objects.first()
+            except Exception:
+                obj = None
+        if not obj:
+            return HttpResponse("Preview data not available.", status=400)
+
+        preview_instance = self._get_preview_instance(request, obj)
+        text_fields = [
+            field.name
+            for field in self.model._meta.get_fields()
+            if isinstance(field, (models.CharField, models.TextField))
+        ]
+        preview_copy = PreviewCopy(preview_instance, text_fields)
+        base_href = request.build_absolute_uri("/")
+        html_text = render_pagecopy_preview(request, self.model, preview_copy, base_href)
+        if not html_text:
+            return HttpResponse("Preview is not available for this page.", status=400)
+        return HttpResponse(html_text)
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        opts = self.model._meta
+        try:
+            preview_url = reverse(f"admin:{opts.app_label}_{opts.model_name}_preview")
+            if object_id:
+                preview_url = f"{preview_url}?object_id={object_id}"
+        except Exception:
+            preview_url = None
+        extra_context["pagecopy_preview_url"] = preview_url
+        return super().changeform_view(
+            request,
+            object_id=object_id,
+            form_url=form_url,
+            extra_context=extra_context,
+        )
+
+
+HOME_HERO_CAROUSEL_SLOTS = (
+    ("hero_carousel_1", HeroImage.Location.HOME_CAROUSEL_A, "Slide 1"),
+    ("hero_carousel_2", HeroImage.Location.HOME_CAROUSEL_B, "Slide 2"),
+    ("hero_carousel_3", HeroImage.Location.HOME_CAROUSEL_C, "Slide 3"),
+    ("hero_carousel_4", HeroImage.Location.HOME_CAROUSEL_D, "Slide 4"),
+)
+
+
+class HomePageCopyAdminForm(forms.ModelForm):
+    hero_carousel_1_image = forms.ImageField(
+        required=False,
+        label="Carousel slide 1 image",
+        help_text="Optional. Upload a 16:9 image. If any slide is set, the hero switches to a carousel.",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_carousel_1_alt_text = forms.CharField(
+        required=False,
+        label="Carousel slide 1 alt text",
+        max_length=160,
+    )
+    hero_carousel_1_caption = forms.CharField(
+        required=False,
+        label="Carousel slide 1 caption",
+        max_length=160,
+    )
+    hero_carousel_2_image = forms.ImageField(
+        required=False,
+        label="Carousel slide 2 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_carousel_2_alt_text = forms.CharField(
+        required=False,
+        label="Carousel slide 2 alt text",
+        max_length=160,
+    )
+    hero_carousel_2_caption = forms.CharField(
+        required=False,
+        label="Carousel slide 2 caption",
+        max_length=160,
+    )
+    hero_carousel_3_image = forms.ImageField(
+        required=False,
+        label="Carousel slide 3 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_carousel_3_alt_text = forms.CharField(
+        required=False,
+        label="Carousel slide 3 alt text",
+        max_length=160,
+    )
+    hero_carousel_3_caption = forms.CharField(
+        required=False,
+        label="Carousel slide 3 caption",
+        max_length=160,
+    )
+    hero_carousel_4_image = forms.ImageField(
+        required=False,
+        label="Carousel slide 4 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_carousel_4_alt_text = forms.CharField(
+        required=False,
+        label="Carousel slide 4 alt text",
+        max_length=160,
+    )
+    hero_carousel_4_caption = forms.CharField(
+        required=False,
+        label="Carousel slide 4 caption",
+        max_length=160,
+    )
+
+    class Meta:
+        model = HomePageCopy
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        locations = [slot[1] for slot in HOME_HERO_CAROUSEL_SLOTS]
+        try:
+            assets = HeroImage.objects.filter(location__in=locations)
+        except Exception:
+            assets = []
+        asset_map = {asset.location: asset for asset in assets}
+
+        for prefix, location, label in HOME_HERO_CAROUSEL_SLOTS:
+            asset = asset_map.get(location)
+            image_field = f"{prefix}_image"
+            alt_field = f"{prefix}_alt_text"
+            caption_field = f"{prefix}_caption"
+            if asset and getattr(asset, "image", None):
+                self.fields[image_field].initial = asset.image
+            if asset:
+                self.fields[alt_field].initial = asset.alt_text
+                self.fields[caption_field].initial = asset.caption
+
+    def save_carousel_assets(self):
+        locations = [slot[1] for slot in HOME_HERO_CAROUSEL_SLOTS]
+        existing_assets = {asset.location: asset for asset in HeroImage.objects.filter(location__in=locations)}
+
+        for prefix, location, label in HOME_HERO_CAROUSEL_SLOTS:
+            image_field = f"{prefix}_image"
+            alt_field = f"{prefix}_alt_text"
+            caption_field = f"{prefix}_caption"
+            image_value = self.cleaned_data.get(image_field)
+            alt_text = (self.cleaned_data.get(alt_field) or "").strip()
+            caption = (self.cleaned_data.get(caption_field) or "").strip()
+
+            asset = existing_assets.get(location)
+            has_new_image = image_value not in (None, False)
+            has_any_value = has_new_image or alt_text or caption
+
+            if not asset and not has_any_value:
+                continue
+
+            if not asset:
+                asset = HeroImage(location=location)
+
+            if image_value is False:
+                asset.image = None
+            elif image_value:
+                asset.image = image_value
+
+            asset.alt_text = alt_text
+            asset.caption = caption
+            if not asset.title:
+                asset.title = f"Home hero carousel {label}"
+            asset.is_active = bool(asset.image)
+            asset.save()
+
+
+@admin.register(HomePageCopy)
+class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    form = HomePageCopyAdminForm
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
     fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
         ("Header & navigation", {
             "fields": (
                 "skip_to_main_label",
@@ -1728,6 +1998,23 @@ class HomePageCopyAdmin(admin.ModelAdmin):
                 "hero_primary_cta_label",
                 "hero_secondary_cta_label",
             )
+        }),
+        ("Hero carousel", {
+            "fields": (
+                "hero_carousel_1_image",
+                "hero_carousel_1_alt_text",
+                "hero_carousel_1_caption",
+                "hero_carousel_2_image",
+                "hero_carousel_2_alt_text",
+                "hero_carousel_2_caption",
+                "hero_carousel_3_image",
+                "hero_carousel_3_alt_text",
+                "hero_carousel_3_caption",
+                "hero_carousel_4_image",
+                "hero_carousel_4_alt_text",
+                "hero_carousel_4_caption",
+            ),
+            "description": "Upload up to 4 slides. If any slide is set, the hero image switches to a carousel.",
         }),
         ("Hero stats", {
             "fields": (
@@ -1904,9 +2191,14 @@ class HomePageCopyAdmin(admin.ModelAdmin):
     def label(self, obj):
         return "Home page"
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if hasattr(form, "save_carousel_assets"):
+            form.save_carousel_assets()
+
 
 @admin.register(ServicesPageCopy)
-class ServicesPageCopyAdmin(admin.ModelAdmin):
+class ServicesPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2043,7 +2335,7 @@ class ServicesPageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(StorePageCopy)
-class StorePageCopyAdmin(admin.ModelAdmin):
+class StorePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2159,7 +2451,7 @@ class StorePageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(ClientPortalPageCopy)
-class ClientPortalPageCopyAdmin(admin.ModelAdmin):
+class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2339,7 +2631,7 @@ class ClientPortalPageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(MerchPageCopy)
-class MerchPageCopyAdmin(admin.ModelAdmin):
+class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2427,7 +2719,7 @@ class MerchPageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(FinancingPageCopy)
-class FinancingPageCopyAdmin(admin.ModelAdmin):
+class FinancingPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2559,7 +2851,7 @@ class FinancingPageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(AboutPageCopy)
-class AboutPageCopyAdmin(admin.ModelAdmin):
+class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2688,7 +2980,7 @@ class AboutPageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(DealerStatusPageCopy)
-class DealerStatusPageCopyAdmin(admin.ModelAdmin):
+class DealerStatusPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2809,20 +3101,128 @@ class DealerStatusPageCopyAdmin(admin.ModelAdmin):
         return "Dealer portal"
 
 
+class EmailTemplateSettingsForm(forms.ModelForm):
+    class Meta:
+        model = EmailTemplateSettings
+        fields = (
+            "brand_name",
+            "brand_tagline",
+            "company_address",
+            "company_phone",
+            "company_website",
+            "support_email",
+            "accent_color",
+            "dark_color",
+            "bg_color",
+        )
+        widgets = {
+            "company_website": forms.TextInput(attrs={"placeholder": "https://example.com"}),
+            "support_email": forms.EmailInput(attrs={"placeholder": "support@example.com"}),
+            "accent_color": forms.TextInput(attrs={"placeholder": "#d50000"}),
+            "dark_color": forms.TextInput(attrs={"placeholder": "#0b0b0c"}),
+            "bg_color": forms.TextInput(attrs={"placeholder": "#0b0b0c"}),
+        }
+
+
+class EmailTemplateAdminForm(forms.ModelForm):
+    brand_name = forms.CharField(
+        required=False,
+        label="Brand name",
+        help_text="Leave blank to use the site default.",
+    )
+    brand_tagline = forms.CharField(
+        required=False,
+        label="Brand tagline",
+        help_text="Leave blank to use the site default.",
+    )
+    company_address = forms.CharField(
+        required=False,
+        label="Company address",
+        help_text="Leave blank to use the site default.",
+    )
+    company_phone = forms.CharField(
+        required=False,
+        label="Company phone",
+        help_text="Leave blank to use the site default.",
+    )
+    company_website = forms.CharField(
+        required=False,
+        label="Company website",
+        help_text="Leave blank to use the site default.",
+        widget=forms.TextInput(attrs={"placeholder": "https://example.com"}),
+    )
+    support_email = forms.EmailField(
+        required=False,
+        label="Support email",
+        help_text="Leave blank to use the site default.",
+        widget=forms.EmailInput(attrs={"placeholder": "support@example.com"}),
+    )
+    accent_color = forms.CharField(
+        required=False,
+        label="Accent color",
+        help_text="Leave blank to use the site default (hex like #d50000).",
+        widget=forms.TextInput(attrs={"placeholder": "#d50000"}),
+    )
+    dark_color = forms.CharField(
+        required=False,
+        label="Dark color",
+        help_text="Leave blank to use the site default (hex like #0b0b0c).",
+        widget=forms.TextInput(attrs={"placeholder": "#0b0b0c"}),
+    )
+    bg_color = forms.CharField(
+        required=False,
+        label="Background color",
+        help_text="Leave blank to use the site default (hex like #0b0b0c).",
+        widget=forms.TextInput(attrs={"placeholder": "#0b0b0c"}),
+    )
+
+    class Meta:
+        model = EmailTemplate
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        settings_obj = EmailTemplateSettings.get_solo()
+        self.fields["brand_name"].initial = settings_obj.brand_name or ""
+        self.fields["brand_tagline"].initial = settings_obj.brand_tagline or ""
+        self.fields["company_address"].initial = settings_obj.company_address or ""
+        self.fields["company_phone"].initial = settings_obj.company_phone or ""
+        self.fields["company_website"].initial = settings_obj.company_website or ""
+        self.fields["support_email"].initial = settings_obj.support_email or ""
+        self.fields["accent_color"].initial = settings_obj.accent_color or ""
+        self.fields["dark_color"].initial = settings_obj.dark_color or ""
+        self.fields["bg_color"].initial = settings_obj.bg_color or ""
+
+
 @admin.register(EmailTemplate)
 class EmailTemplateAdmin(admin.ModelAdmin):
+    form = EmailTemplateAdminForm
     list_display = ("name", "slug", "updated_at")
     search_fields = ("name", "subject", "title")
     readonly_fields = ("name", "slug", "description", "token_help", "created_at", "updated_at")
     change_list_template = "admin/core/emailtemplate/change_list.html"
+    change_form_template = "admin/core/emailtemplate/change_form.html"
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
     fieldsets = (
         ("Template", {"fields": ("name", "description", "slug", "token_help")}),
+        ("Email settings (global)", {
+            "fields": (
+                "brand_name",
+                "brand_tagline",
+                "company_address",
+                "company_phone",
+                "company_website",
+                "support_email",
+                "accent_color",
+                "dark_color",
+                "bg_color",
+            )
+        }),
         ("Message", {"fields": ("subject", "preheader", "title", "greeting", "intro")}),
         ("Callout", {"fields": ("notice_title", "notice")}),
-        ("Footer & button", {"fields": ("footer", "cta_label")}),
+        ("Footer & button", {"fields": ("footer", "cta_label", "cta_url")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
 
@@ -2832,6 +3232,20 @@ class EmailTemplateAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        settings_obj = EmailTemplateSettings.get_solo()
+        settings_obj.brand_name = form.cleaned_data.get("brand_name", "") or ""
+        settings_obj.brand_tagline = form.cleaned_data.get("brand_tagline", "") or ""
+        settings_obj.company_address = form.cleaned_data.get("company_address", "") or ""
+        settings_obj.company_phone = form.cleaned_data.get("company_phone", "") or ""
+        settings_obj.company_website = form.cleaned_data.get("company_website", "") or ""
+        settings_obj.support_email = form.cleaned_data.get("support_email", "") or ""
+        settings_obj.accent_color = form.cleaned_data.get("accent_color", "") or ""
+        settings_obj.dark_color = form.cleaned_data.get("dark_color", "") or ""
+        settings_obj.bg_color = form.cleaned_data.get("bg_color", "") or ""
+        settings_obj.save()
+
     @admin.display(description="Available placeholders")
     def token_help(self, obj):
         tokens = template_tokens(obj.slug)
@@ -2839,29 +3253,465 @@ class EmailTemplateAdmin(admin.ModelAdmin):
             return "No placeholders."
         return ", ".join(f"{{{token}}}" for token in tokens)
 
-    def changelist_view(self, request, extra_context=None):
-        class EmailTemplateSettingsForm(forms.ModelForm):
-            class Meta:
-                model = EmailTemplateSettings
-                fields = ("brand_name",)
-
+    def _get_email_settings_form(self, request):
         settings_obj = EmailTemplateSettings.get_solo()
         if request.method == "POST" and request.POST.get("email_settings_submit") == "1":
             form = EmailTemplateSettingsForm(request.POST, instance=settings_obj)
             if form.is_valid():
                 form.save()
-                messages.success(request, "Email brand updated.")
+                messages.success(request, "Email settings updated.")
                 settings_obj = EmailTemplateSettings.get_solo()
             else:
-                messages.error(request, "Please correct the brand name field.")
+                messages.error(request, "Please correct the highlighted fields.")
         else:
             form = EmailTemplateSettingsForm(instance=settings_obj)
+        return form, settings_obj
+
+    def _email_preview_defaults(self):
+        return {
+            "brand_name": email_brand_name(),
+            "brand_tagline": email_brand_tagline(),
+            "company_address": email_company_address(),
+            "company_phone": email_company_phone(),
+            "company_website": email_company_website(),
+            "accent_color": email_accent_color(),
+            "dark_color": email_dark_color(),
+            "bg_color": email_bg_color(),
+        }
+
+    def changelist_view(self, request, extra_context=None):
+        form, settings_obj = self._get_email_settings_form(request)
 
         extra_context = extra_context or {}
         extra_context["email_settings_form"] = form
         extra_context["email_settings_updated_at"] = settings_obj.updated_at
         return super().changelist_view(request, extra_context=extra_context)
 
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["email_preview_defaults"] = self._email_preview_defaults()
+        extra_context["email_settings_url"] = reverse("admin:core_emailtemplate_changelist")
+        return super().changeform_view(
+            request,
+            object_id=object_id,
+            form_url=form_url,
+            extra_context=extra_context,
+        )
+
+
+class EmailSubscriberImportForm(forms.Form):
+    file = forms.FileField(
+        label="Email list file",
+        help_text="Upload CSV or XLSX. Any column that contains email addresses will be imported.",
+    )
+    reactivate = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Reactivate existing emails",
+        help_text="If an email already exists but is inactive, turn it back on.",
+    )
+
+
+@admin.register(EmailSubscriber)
+class EmailSubscriberAdmin(ExportCsvMixin, admin.ModelAdmin):
+    list_display = ("email", "source", "is_active", "added_by", "created_at")
+    list_filter = ("source", "is_active", ("created_at", DateFieldListFilter))
+    search_fields = ("email",)
+    readonly_fields = ("created_at", "updated_at")
+    change_list_template = "admin/core/emailsubscriber/change_list.html"
+
+    fieldsets = (
+        ("Subscriber", {"fields": ("email", "source", "is_active", "added_by")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        opts = self.model._meta
+        custom_urls = [
+            path(
+                "import/",
+                self.admin_site.admin_view(self.import_view),
+                name=f"{opts.app_label}_{opts.model_name}_import",
+            ),
+        ]
+        return custom_urls + urls
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        opts = self.model._meta
+        try:
+            extra_context["import_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_import"
+            )
+        except Exception:
+            extra_context["import_url"] = None
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def import_view(self, request):
+        opts = self.model._meta
+        changelist_url = reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
+
+        if request.method == "POST":
+            form = EmailSubscriberImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                file_obj = form.cleaned_data["file"]
+                reactivate = form.cleaned_data["reactivate"]
+                try:
+                    results = import_email_subscribers(
+                        file_obj,
+                        added_by=request.user,
+                        reactivate=reactivate,
+                    )
+                except Exception as exc:
+                    messages.error(request, f"Import failed: {exc}")
+                else:
+                    messages.success(
+                        request,
+                        "Imported {created} new emails. "
+                        "Reactivated {reactivated}. "
+                        "Skipped {skipped}.".format(**results),
+                    )
+                    if results.get("invalid"):
+                        messages.warning(
+                            request,
+                            f"Skipped {results['invalid']} invalid email value(s).",
+                        )
+                    return HttpResponseRedirect(changelist_url)
+        else:
+            form = EmailSubscriberImportForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": opts,
+            "app_label": opts.app_label,
+            "form": form,
+            "changelist_url": changelist_url,
+            "title": "Import email subscribers",
+        }
+        return TemplateResponse(request, "admin/core/emailsubscriber/import.html", context)
+
+    def save_model(self, request, obj, form, change):
+        if not obj.added_by:
+            obj.added_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+class EmailCampaignAdminForm(forms.ModelForm):
+    send_now = forms.BooleanField(
+        required=False,
+        label="Send now",
+        help_text="Send immediately after saving. Sent campaigns are locked for editing.",
+    )
+
+    class Meta:
+        model = EmailCampaign
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = getattr(self, "instance", None)
+        if instance and instance.pk and instance.status != EmailCampaign.Status.DRAFT:
+            self.fields["send_now"].disabled = True
+            self.fields["send_now"].help_text = "Already sent or sending."
+
+
+@admin.register(EmailCampaign)
+class EmailCampaignAdmin(admin.ModelAdmin):
+    form = EmailCampaignAdminForm
+    change_form_template = "admin/core/emailcampaign/change_form.html"
+    list_display = (
+        "name",
+        "status_badge",
+        "audience_total_display",
+        "sent_summary",
+        "send_button",
+        "send_completed_at",
+        "updated_at",
+    )
+    list_filter = ("status", "include_subscribers", "include_registered_users", "created_at")
+    search_fields = ("name", "subject", "title")
+    readonly_fields = (
+        "status",
+        "token_help",
+        "audience_preview",
+        "recipients_total",
+        "sent_count",
+        "failed_count",
+        "send_started_at",
+        "send_completed_at",
+        "sent_by",
+        "recipients_link",
+        "created_at",
+        "updated_at",
+    )
+    fieldsets = (
+        ("Campaign", {"fields": ("name", "status", "from_email", "send_now", "token_help")}),
+        ("Content", {"fields": ("subject", "preheader", "title", "greeting", "intro")}),
+        ("Callout", {"fields": ("notice_title", "notice")}),
+        ("Footer & button", {"fields": ("footer", "cta_label", "cta_url")}),
+        ("Audience", {"fields": ("include_subscribers", "include_registered_users", "audience_preview")}),
+        ("Delivery", {
+            "fields": (
+                "sent_by",
+                "send_started_at",
+                "send_completed_at",
+                "recipients_total",
+                "sent_count",
+                "failed_count",
+                "recipients_link",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+    actions = ("send_selected_campaigns",)
+
+    @admin.display(description="Status")
+    def status_badge(self, obj):
+        colors = {
+            EmailCampaign.Status.DRAFT: "#64748b",
+            EmailCampaign.Status.SENDING: "#0ea5e9",
+            EmailCampaign.Status.SENT: "#16a34a",
+            EmailCampaign.Status.PARTIAL: "#f97316",
+            EmailCampaign.Status.FAILED: "#dc2626",
+        }
+        color = colors.get(obj.status, "#64748b")
+        return format_html(
+            '<span style="padding:0.2rem 0.6rem;border-radius:999px;background:{}1a;color:{};font-size:0.85rem;">{}</span>',
+            color,
+            color,
+            obj.get_status_display(),
+        )
+
+    @admin.display(description="Audience size")
+    def audience_total_display(self, obj):
+        if obj.recipients_total:
+            return obj.recipients_total
+        counts = estimate_campaign_audience(obj)
+        total = counts.get("estimated_total", 0)
+        return total or "—"
+
+    @admin.display(description="Sent")
+    def sent_summary(self, obj):
+        if not obj.recipients_total:
+            return "—"
+        return f"{obj.sent_count}/{obj.recipients_total}"
+
+    @admin.display(description="Available placeholders")
+    def token_help(self, obj):
+        tokens = [
+            "{brand}",
+            "{support_email}",
+            "{company_website}",
+            "{company_phone}",
+            "{first_name}",
+            "{last_name}",
+            "{full_name}",
+            "{email}",
+        ]
+        return ", ".join(tokens)
+
+    @admin.display(description="Audience preview")
+    def audience_preview(self, obj):
+        if not obj or not obj.pk:
+            return "Save the campaign to see the audience size."
+        counts = estimate_campaign_audience(obj)
+        parts = []
+        if obj.include_subscribers:
+            parts.append(f"Subscribers: {counts['subscriber_count']}")
+        if obj.include_registered_users:
+            parts.append(f"Registered users (consent): {counts['user_count']}")
+        if not parts:
+            return "No audience selected."
+        parts.append("Duplicates are removed when sending.")
+        return mark_safe("<br>".join(parts))
+
+    @admin.display(description="Preview")
+    def preview_block(self, obj):
+        if not obj or not obj.pk:
+            return "Save the campaign to preview."
+        content = render_campaign_email(obj)
+        return format_html(
+            "<div><strong>Subject:</strong> {}</div>"
+            "<div><strong>Preheader:</strong> {}</div>"
+            "<div style=\"margin-top:6px; white-space:pre-wrap;\">{}</div>",
+            content.subject,
+            content.preheader or "—",
+            content.text_body or "—",
+        )
+
+    @admin.display(description="Recipients")
+    def recipients_link(self, obj):
+        if not obj or not obj.pk:
+            return "—"
+
+    @admin.display(description="Actions")
+    def send_button(self, obj):
+        if obj.status not in {
+            EmailCampaign.Status.DRAFT,
+            EmailCampaign.Status.PARTIAL,
+            EmailCampaign.Status.FAILED,
+        }:
+            return "—"
+        try:
+            url = reverse("admin:core_emailcampaign_send", args=[obj.pk])
+        except Exception:
+            return "—"
+        return format_html('<a class="button" href="{}">Send</a>', url)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<int:campaign_id>/send/",
+                self.admin_site.admin_view(self.send_view),
+                name="core_emailcampaign_send",
+            ),
+        ]
+        return custom_urls + urls
+
+    def _email_preview_defaults(self):
+        return {
+            "brand_name": email_brand_name(),
+            "brand_tagline": email_brand_tagline(),
+            "company_address": email_company_address(),
+            "company_phone": email_company_phone(),
+            "company_website": email_company_website(),
+            "accent_color": email_accent_color(),
+            "dark_color": email_dark_color(),
+            "bg_color": email_bg_color(),
+        }
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["email_preview_defaults"] = self._email_preview_defaults()
+        extra_context["email_settings_url"] = reverse("admin:core_emailtemplate_changelist")
+        return super().changeform_view(
+            request,
+            object_id=object_id,
+            form_url=form_url,
+            extra_context=extra_context,
+        )
+
+    def send_view(self, request, campaign_id):
+        campaign = self.get_object(request, campaign_id)
+        if campaign is None:
+            return HttpResponseRedirect(reverse("admin:core_emailcampaign_changelist"))
+        if not self.has_change_permission(request, campaign):
+            raise PermissionDenied
+
+        if request.method == "POST":
+            try:
+                result = send_campaign(campaign, triggered_by=request.user)
+            except Exception as exc:
+                messages.error(request, f"Send failed: {exc}")
+            else:
+                status = result.get("status")
+                if status in {EmailCampaign.Status.SENT, EmailCampaign.Status.PARTIAL}:
+                    messages.success(
+                        request,
+                        f"Campaign sent. {result.get('sent', 0)} sent, {result.get('failed', 0)} failed.",
+                    )
+                elif status == "no_recipients":
+                    messages.warning(request, "Campaign has no recipients.")
+                elif status == "skipped":
+                    messages.warning(request, "Campaign already sent.")
+                else:
+                    messages.error(request, "Campaign send failed.")
+            return HttpResponseRedirect(reverse("admin:core_emailcampaign_changelist"))
+
+        counts = estimate_campaign_audience(campaign)
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "campaign": campaign,
+            "audience_counts": counts,
+            "title": "Send email campaign",
+        }
+        return TemplateResponse(request, "admin/core/emailcampaign/send_confirm.html", context)
+        try:
+            url = reverse("admin:core_emailcampaignrecipient_changelist")
+            return format_html('<a href="{}?campaign__id__exact={}">View recipients</a>', url, obj.pk)
+        except Exception:
+            return "—"
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        if obj and obj.status != EmailCampaign.Status.DRAFT:
+            readonly.extend(
+                [
+                    "name",
+                    "from_email",
+                    "subject",
+                    "preheader",
+                    "title",
+                    "greeting",
+                    "intro",
+                    "notice_title",
+                    "notice",
+                    "footer",
+                    "cta_label",
+                    "cta_url",
+                    "include_subscribers",
+                    "include_registered_users",
+                ]
+            )
+        return readonly
+
+    @admin.action(description="Send selected campaigns now")
+    def send_selected_campaigns(self, request, queryset):
+        sent = 0
+        failed = 0
+        skipped = 0
+        for campaign in queryset:
+            try:
+                result = send_campaign(campaign, triggered_by=request.user)
+            except Exception as exc:
+                failed += 1
+                messages.error(request, f"{campaign.name}: {exc}")
+                continue
+            status = result.get("status")
+            if status in {EmailCampaign.Status.SENT, EmailCampaign.Status.PARTIAL}:
+                sent += 1
+            elif status == "skipped":
+                skipped += 1
+            else:
+                failed += 1
+        if sent:
+            messages.success(request, f"Sent {sent} campaign(s).")
+        if skipped:
+            messages.warning(request, f"Skipped {skipped} campaign(s) (already sent).")
+        if failed:
+            messages.error(request, f"Failed to send {failed} campaign(s).")
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if form.cleaned_data.get("send_now"):
+            try:
+                result = send_campaign(obj, triggered_by=request.user)
+            except Exception as exc:
+                messages.error(request, f"Send failed: {exc}")
+                return
+            status = result.get("status")
+            if status in {EmailCampaign.Status.SENT, EmailCampaign.Status.PARTIAL}:
+                messages.success(
+                    request,
+                    f"Campaign sent. {result.get('sent', 0)} sent, {result.get('failed', 0)} failed.",
+                )
+            elif status == "no_recipients":
+                messages.warning(request, "Campaign has no recipients.")
+            elif status == "skipped":
+                messages.warning(request, "Campaign already sent.")
+            else:
+                messages.error(request, "Campaign send failed.")
+
+
+@admin.register(EmailCampaignRecipient)
+class EmailCampaignRecipientAdmin(ExportCsvMixin, admin.ModelAdmin):
+    list_display = ("email", "campaign", "status", "source", "sent_at")
+    list_filter = ("campaign", "status", "source", ("sent_at", DateFieldListFilter))
+    search_fields = ("email", "campaign__name", "user__email")
+    readonly_fields = ("campaign", "email", "user", "source", "status", "error_message", "sent_at", "created_at")
 
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
@@ -2980,6 +3830,40 @@ class ServiceLeadAdmin(admin.ModelAdmin):
         ("Contact", {"fields": ("full_name", "phone", "email")}),
         ("Vehicle & request", {"fields": ("vehicle", "service_needed", "notes")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+
+@admin.register(LeadSubmissionEvent)
+class LeadSubmissionEventAdmin(admin.ModelAdmin):
+    list_display = (
+        "created_at",
+        "form_type",
+        "outcome",
+        "success",
+        "suspicion_score",
+        "ip_address",
+        "cf_country",
+        "cf_asn",
+    )
+    list_filter = ("form_type", "outcome", "success", "created_at")
+    search_fields = (
+        "ip_address",
+        "user_agent",
+        "referer",
+        "origin",
+        "path",
+        "session_key_hash",
+        "cf_asn",
+        "cf_asn_org",
+    )
+    readonly_fields = ("created_at",)
+    ordering = ("-created_at",)
+    fieldsets = (
+        (None, {"fields": ("form_type", "outcome", "success", "suspicion_score")}),
+        ("Request", {"fields": ("path", "referer", "origin", "accept_language", "user_agent")}),
+        ("Network", {"fields": ("ip_address", "cf_country", "cf_asn", "cf_asn_org")}),
+        ("Session", {"fields": ("session_key_hash", "session_first_seen_at", "time_on_page_ms")}),
+        ("Diagnostics", {"fields": ("validation_errors", "flags", "created_at")}),
     )
 
 

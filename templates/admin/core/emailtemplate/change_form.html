@@ -1,0 +1,596 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <style>
+    body.model-emailtemplate.change-form #content {
+      max-width: none;
+    }
+
+    body.model-emailtemplate.change-form #content.colMS {
+      margin-right: 0;
+    }
+
+    body.model-emailtemplate.change-form #content-main {
+      float: none;
+      width: 100%;
+    }
+
+    body.model-emailtemplate.change-form #content-related {
+      float: none;
+      width: 100%;
+      margin: 20px 0 0;
+    }
+
+    .email-preview-module {
+      margin-top: 24px;
+    }
+
+    .email-preview {
+      --email-accent: #d50000;
+      --email-dark: #0b0b0c;
+      --email-bg: #0b0b0c;
+      --email-card: #ffffff;
+      --email-muted: #6b7280;
+      --email-text: #111827;
+      font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', Verdana, sans-serif;
+    }
+
+    .email-preview__meta {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+    }
+
+    .email-preview__meta-row {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .email-preview__meta-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .email-preview__meta-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      min-width: 90px;
+    }
+
+    .email-preview__meta-value {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .email-preview__canvas {
+      background: var(--email-bg);
+      border-radius: 12px;
+      padding: 24px 16px 30px;
+      color: #ffffff;
+    }
+
+    .email-preview__frame {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .email-preview__brand {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .email-preview__tagline {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #d1d5db;
+      margin-bottom: 14px;
+    }
+
+    .email-preview__card {
+      background: var(--email-card);
+      color: var(--email-text);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+
+    .email-preview__accent {
+      height: 4px;
+      background: var(--email-accent);
+    }
+
+    .email-preview__content {
+      padding: 24px 28px 22px;
+    }
+
+    .email-preview__title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .email-preview__greeting {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .email-preview__intro p,
+    .email-preview__notice-body p,
+    .email-preview__footer p {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #374151;
+    }
+
+    .email-preview__section-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin: 16px 0 6px;
+    }
+
+    .email-preview__table {
+      border-top: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 6px 0;
+    }
+
+    .email-preview__row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13px;
+      color: #374151;
+    }
+
+    .email-preview__row strong {
+      color: #111827;
+      font-weight: 700;
+    }
+
+    .email-preview__notice {
+      border: 1px solid #e5e7eb;
+      border-left: 4px solid var(--email-accent);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 16px;
+    }
+
+    .email-preview__notice-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .email-preview__items,
+    .email-preview__summary,
+    .email-preview__links {
+      margin-top: 18px;
+    }
+
+    .email-preview__item-row,
+    .email-preview__link-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 13px;
+    }
+
+    .email-preview__summary-box {
+      background: var(--email-dark);
+      color: #ffffff;
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    .email-preview__summary-box .email-preview__row {
+      color: #e5e7eb;
+    }
+
+    .email-preview__summary-box .email-preview__row strong {
+      color: #ffffff;
+    }
+
+    .email-preview__links a {
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--email-accent);
+      color: var(--email-accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      text-decoration: none;
+      margin-bottom: 6px;
+    }
+
+    .email-preview__cta {
+      margin-top: 20px;
+    }
+
+    .email-preview__button {
+      display: inline-block;
+      padding: 12px 20px;
+      background: var(--email-accent);
+      color: #ffffff;
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 11px;
+      font-weight: 800;
+      border-radius: 999px;
+    }
+
+    .email-preview__cta-url {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .email-preview__footer {
+      margin-top: 18px;
+      color: #4b5563;
+    }
+
+    .email-preview__footer p {
+      margin-bottom: 6px;
+    }
+
+    .email-preview__contact {
+      text-align: center;
+      margin-top: 22px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .email-preview__contact .email-preview__brand {
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+
+    .email-preview__note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .email-preview [contenteditable="true"] {
+      outline: 1px dashed transparent;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .email-preview [contenteditable="true"]:focus {
+      outline-color: var(--email-accent);
+      background: #fff7f7;
+    }
+
+    .email-preview [contenteditable="true"]:empty::before {
+      content: attr(data-placeholder);
+      color: #9ca3af;
+    }
+
+    @media (max-width: 768px) {
+      .email-preview__content {
+        padding: 20px;
+      }
+
+      .email-preview__meta-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .email-preview__meta-label {
+        min-width: auto;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block after_field_sets %}
+  {{ block.super }}
+  <div class="module email-preview-module">
+    <h2 style="margin-top: 0;">Email preview</h2>
+    <p class="help">Click any text in the preview to edit it. Tokens like <code>{brand}</code> stay visible here.</p>
+    <p class="help">Global branding/colors live in the “Email settings (global)” section (also in <a href="{{ email_settings_url }}">Email settings</a>).</p>
+    <div class="email-preview"
+         data-email-preview-root
+         data-email-brand="{{ email_preview_defaults.brand_name|default_if_none:''|escape }}"
+         data-email-tagline="{{ email_preview_defaults.brand_tagline|default_if_none:''|escape }}"
+         data-email-address="{{ email_preview_defaults.company_address|default_if_none:''|escape }}"
+         data-email-phone="{{ email_preview_defaults.company_phone|default_if_none:''|escape }}"
+         data-email-website="{{ email_preview_defaults.company_website|default_if_none:''|escape }}"
+         data-email-accent="{{ email_preview_defaults.accent_color|default_if_none:''|escape }}"
+         data-email-dark="{{ email_preview_defaults.dark_color|default_if_none:''|escape }}"
+         data-email-bg="{{ email_preview_defaults.bg_color|default_if_none:''|escape }}">
+      <div class="email-preview__meta">
+        <div class="email-preview__meta-row">
+          <span class="email-preview__meta-label">Subject</span>
+          <div class="email-preview__meta-value" data-preview-field="subject" contenteditable="true" data-placeholder="Subject line"></div>
+        </div>
+        <div class="email-preview__meta-row">
+          <span class="email-preview__meta-label">Preheader</span>
+          <div class="email-preview__meta-value" data-preview-field="preheader" contenteditable="true" data-placeholder="Preheader text"></div>
+        </div>
+      </div>
+      <div class="email-preview__canvas">
+        <div class="email-preview__frame">
+          <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
+          <div class="email-preview__tagline" data-preview-field="brand_tagline" contenteditable="true" data-placeholder="Brand tagline"></div>
+          <div class="email-preview__card">
+            <div class="email-preview__accent"></div>
+            <div class="email-preview__content">
+              <div class="email-preview__title" data-preview-field="title" contenteditable="true" data-placeholder="Title"></div>
+              <div class="email-preview__greeting" data-preview-field="greeting" contenteditable="true" data-placeholder="Greeting"></div>
+              <div class="email-preview__intro" data-preview-field="intro" data-multiline="1" contenteditable="true" data-placeholder="Intro lines"></div>
+
+              <div class="email-preview__section-label">Details</div>
+              <div class="email-preview__table">
+                <div class="email-preview__row"><span>Order #</span><strong>12345</strong></div>
+                <div class="email-preview__row"><span>Total</span><strong>$1,250.00</strong></div>
+                <div class="email-preview__row"><span>Status</span><strong>Processing</strong></div>
+              </div>
+
+              <div class="email-preview__notice" data-preview-section="notice">
+                <div class="email-preview__notice-title" data-preview-field="notice_title" contenteditable="true" data-placeholder="Callout title"></div>
+                <div class="email-preview__notice-body" data-preview-field="notice" data-multiline="1" contenteditable="true" data-placeholder="Callout lines"></div>
+              </div>
+
+              <div class="email-preview__items">
+                <div class="email-preview__section-label">Items</div>
+                <div class="email-preview__item-row"><span>Wheel Set</span><strong>4</strong></div>
+                <div class="email-preview__item-row"><span>Brake Kit</span><strong>1</strong></div>
+              </div>
+
+              <div class="email-preview__summary">
+                <div class="email-preview__section-label">Summary</div>
+                <div class="email-preview__summary-box">
+                  <div class="email-preview__row"><span>Subtotal</span><strong>$1,100.00</strong></div>
+                  <div class="email-preview__row"><span>Tax</span><strong>$150.00</strong></div>
+                </div>
+              </div>
+
+              <div class="email-preview__links">
+                <div class="email-preview__section-label">Quick links</div>
+                <div class="email-preview__link-row"><a href="#" tabindex="-1">Shop</a></div>
+                <div class="email-preview__link-row"><a href="#" tabindex="-1">Book</a></div>
+              </div>
+
+              <div class="email-preview__cta" data-preview-section="cta">
+                <a class="email-preview__button" href="#" data-preview-field="cta_label" contenteditable="true" data-placeholder="Button label"></a>
+                <div class="email-preview__cta-url" data-preview-field="cta_url" contenteditable="true" data-placeholder="Button link (optional)"></div>
+              </div>
+
+              <div class="email-preview__footer" data-preview-field="footer" data-multiline="1" contenteditable="true" data-placeholder="Footer lines"></div>
+            </div>
+          </div>
+          <div class="email-preview__contact">
+            <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
+            <div data-preview-field="contact_line"></div>
+          </div>
+          <div class="email-preview__note">Sample rows (details/items/links) are for layout only.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      const root = document.querySelector('[data-email-preview-root]');
+      if (!root) return;
+
+      const previewFields = [
+        { name: 'subject', inputId: 'id_subject' },
+        { name: 'preheader', inputId: 'id_preheader' },
+        { name: 'title', inputId: 'id_title' },
+        { name: 'greeting', inputId: 'id_greeting' },
+        { name: 'intro', inputId: 'id_intro', multiline: true },
+        { name: 'notice_title', inputId: 'id_notice_title' },
+        { name: 'notice', inputId: 'id_notice', multiline: true },
+        { name: 'footer', inputId: 'id_footer', multiline: true },
+        { name: 'cta_label', inputId: 'id_cta_label' },
+        { name: 'cta_url', inputId: 'id_cta_url' }
+      ];
+
+      const globalFields = {
+        brand_name: { inputId: 'id_brand_name', fallback: root.dataset.emailBrand || '' },
+        brand_tagline: { inputId: 'id_brand_tagline', fallback: root.dataset.emailTagline || '' },
+        company_address: { inputId: 'id_company_address', fallback: root.dataset.emailAddress || '' },
+        company_phone: { inputId: 'id_company_phone', fallback: root.dataset.emailPhone || '' },
+        company_website: { inputId: 'id_company_website', fallback: root.dataset.emailWebsite || '' }
+      };
+
+      const colorFields = [
+        { inputId: 'id_accent_color', cssVar: '--email-accent', fallback: root.dataset.emailAccent || '#d50000' },
+        { inputId: 'id_dark_color', cssVar: '--email-dark', fallback: root.dataset.emailDark || '#0b0b0c' },
+        { inputId: 'id_bg_color', cssVar: '--email-bg', fallback: root.dataset.emailBg || '#0b0b0c' }
+      ];
+
+      const updateLines = (node, value) => {
+        node.textContent = '';
+        const lines = (value || '')
+          .split(/\r?\n/)
+          .map(line => line.trim())
+          .filter(Boolean);
+        if (!lines.length) return;
+        lines.forEach(line => {
+          const p = document.createElement('p');
+          p.textContent = line;
+          node.appendChild(p);
+        });
+      };
+
+      const updateFieldPreview = (name, value, multiline) => {
+        root.querySelectorAll(`[data-preview-field="${name}"]`).forEach(node => {
+          if (multiline || node.dataset.multiline === '1') {
+            updateLines(node, value);
+          } else {
+            node.textContent = value || '';
+          }
+        });
+      };
+
+      const getInputValue = (input) => (input ? input.value : '');
+      const resolveValue = (input, fallback) => {
+        const value = (input ? input.value : '').trim();
+        return value || (fallback || '');
+      };
+
+      const syncGlobalFields = () => {
+        const address = resolveValue(globalFields.company_address.input, globalFields.company_address.fallback);
+        const phone = resolveValue(globalFields.company_phone.input, globalFields.company_phone.fallback);
+        const website = resolveValue(globalFields.company_website.input, globalFields.company_website.fallback);
+
+        updateFieldPreview('brand_name', resolveValue(globalFields.brand_name.input, globalFields.brand_name.fallback));
+        updateFieldPreview('brand_tagline', resolveValue(globalFields.brand_tagline.input, globalFields.brand_tagline.fallback));
+
+        const contactPieces = [address, phone, website].filter(Boolean);
+        updateFieldPreview('contact_line', contactPieces.join(' | '));
+      };
+
+      const syncColors = () => {
+        colorFields.forEach(color => {
+          const input = document.getElementById(color.inputId);
+          const value = resolveValue(input, color.fallback);
+          if (value) {
+            root.style.setProperty(color.cssVar, value);
+          }
+        });
+      };
+
+      const updateSections = () => {
+        const noticeTitle = getInputValue(document.getElementById('id_notice_title')).trim();
+        const noticeBody = getInputValue(document.getElementById('id_notice')).trim();
+        const noticeSection = root.querySelector('[data-preview-section="notice"]');
+        if (noticeSection) {
+          noticeSection.style.display = (noticeTitle || noticeBody) ? '' : 'none';
+        }
+
+        const ctaLabel = getInputValue(document.getElementById('id_cta_label')).trim();
+        const ctaUrl = getInputValue(document.getElementById('id_cta_url')).trim();
+        const ctaSection = root.querySelector('[data-preview-section="cta"]');
+        if (ctaSection) {
+          ctaSection.style.display = ctaLabel ? '' : 'none';
+        }
+
+        const ctaUrlNode = root.querySelector('[data-preview-field="cta_url"]');
+        if (ctaUrlNode) {
+          ctaUrlNode.style.display = ctaUrl ? '' : 'none';
+        }
+
+        const ctaButton = root.querySelector('.email-preview__button');
+        if (ctaButton) {
+          const fallbackWebsite = resolveValue(globalFields.company_website.input, globalFields.company_website.fallback);
+          const href = ctaUrl || fallbackWebsite || '#';
+          ctaButton.setAttribute('href', href);
+        }
+      };
+
+      previewFields.forEach(field => {
+        const input = document.getElementById(field.inputId);
+        if (!input) return;
+
+        const update = () => {
+          updateFieldPreview(field.name, input.value, field.multiline);
+          updateSections();
+        };
+
+        update();
+        input.addEventListener('input', update);
+        input.addEventListener('change', update);
+
+        root.querySelectorAll(`[data-preview-field="${field.name}"]`).forEach(node => {
+          if (!node.hasAttribute('contenteditable')) return;
+          if (!field.multiline && node.dataset.multiline !== '1') {
+            node.addEventListener('keydown', (event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+              }
+            });
+          }
+          node.addEventListener('input', () => {
+            if (field.multiline || node.dataset.multiline === '1') {
+              const text = node.innerText.replace(/\u00A0/g, ' ').trim();
+              input.value = text;
+            } else {
+              input.value = node.textContent.trim();
+            }
+            updateSections();
+          });
+        });
+      });
+
+      Object.entries(globalFields).forEach(([name, config]) => {
+        const input = document.getElementById(config.inputId);
+        config.input = input || null;
+        const update = () => {
+          updateFieldPreview(name, resolveValue(input, config.fallback));
+          syncGlobalFields();
+          updateSections();
+        };
+        update();
+        if (input) {
+          input.addEventListener('input', update);
+          input.addEventListener('change', update);
+        }
+
+        root.querySelectorAll(`[data-preview-field="${name}"]`).forEach(node => {
+          if (!node.hasAttribute('contenteditable')) return;
+          node.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+            }
+          });
+          node.addEventListener('input', () => {
+            if (!input) return;
+            input.value = node.textContent.trim();
+            update();
+          });
+        });
+      });
+
+      colorFields.forEach(color => {
+        const input = document.getElementById(color.inputId);
+        if (!input) return;
+        input.addEventListener('input', syncColors);
+        input.addEventListener('change', syncColors);
+      });
+
+      syncGlobalFields();
+      syncColors();
+      updateSections();
+
+      root.addEventListener('click', (event) => {
+        const link = event.target.closest('a');
+        if (link && root.contains(link)) {
+          event.preventDefault();
+        }
+      });
+    })();
+  </script>
+{% endblock %}

@@ -100,6 +100,49 @@ class AdminSidebarSeen(models.Model):
         return f"{self.user} → {self.app_label}.{self.model_name}"
 
 
+class AdminLoginBranding(models.Model):
+    """
+    Stores logo assets for the admin login screen.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    login_logo = models.ImageField(
+        upload_to="admin/branding/",
+        blank=True,
+        null=True,
+        help_text="Logo shown on the admin login screen.",
+    )
+    login_logo_dark = models.ImageField(
+        upload_to="admin/branding/",
+        blank=True,
+        null=True,
+        help_text="Optional dark mode logo for the admin login screen.",
+    )
+    login_logo_alt = models.CharField(
+        max_length=120,
+        default="Admin logo",
+        help_text="Accessible alt text for the login logo.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Admin login branding"
+        verbose_name_plural = "Admin login branding"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Admin login branding"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
 class ClientUiCheckRun(models.Model):
     """
     Stores results of automated client UI checks.
@@ -205,6 +248,15 @@ class HomePageCopy(models.Model):
         TRANSPARENT = "transparent", "Transparent"
 
     singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    # Meta
+    meta_title = models.CharField(
+        max_length=140,
+        default="BGM — Performance Builds & VIP Service",
+    )
+    meta_description = models.TextField(
+        default="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM in Calgary.",
+    )
 
     # Header & navigation
     skip_to_main_label = models.CharField(max_length=120, default="Skip to main content")
@@ -1472,6 +1524,45 @@ class EmailTemplateSettings(models.Model):
         blank=True,
         help_text="Optional override for SITE_BRAND_NAME when sending emails.",
     )
+    brand_tagline = models.CharField(
+        max_length=140,
+        blank=True,
+        help_text="Optional override for SITE_BRAND_TAGLINE in email headers/footers.",
+    )
+    company_address = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional override for COMPANY_ADDRESS in email footers.",
+    )
+    company_phone = models.CharField(
+        max_length=40,
+        blank=True,
+        help_text="Optional override for COMPANY_PHONE in email footers.",
+    )
+    company_website = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional override for COMPANY_WEBSITE in email footers and CTA defaults.",
+    )
+    support_email = models.EmailField(
+        blank=True,
+        help_text="Optional override for SUPPORT_EMAIL placeholders.",
+    )
+    accent_color = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Optional override for EMAIL_ACCENT_COLOR (hex like #d50000).",
+    )
+    dark_color = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Optional override for EMAIL_DARK_COLOR (hex like #0b0b0c).",
+    )
+    bg_color = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Optional override for EMAIL_BG_COLOR (hex like #0b0b0c).",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -1532,6 +1623,11 @@ class EmailTemplate(models.Model):
         help_text="One sentence per line. Appears at the bottom of the email.",
     )
     cta_label = models.CharField(max_length=80, blank=True)
+    cta_url = models.CharField(
+        max_length=240,
+        blank=True,
+        help_text="Optional button link override. Supports placeholders like {company_website}.",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1543,6 +1639,154 @@ class EmailTemplate(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+class EmailSubscriber(models.Model):
+    class Source(models.TextChoices):
+        IMPORT = "import", "Imported list"
+        MANUAL = "manual", "Manual entry"
+
+    email = models.EmailField(unique=True)
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.MANUAL)
+    is_active = models.BooleanField(default=True)
+    added_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="email_subscribers_added",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email subscriber"
+        verbose_name_plural = "Email subscribers"
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["email"]),
+            models.Index(fields=["is_active"]),
+        ]
+
+    def __str__(self) -> str:
+        return self.email
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.email = self.email.strip().lower()
+        super().save(*args, **kwargs)
+
+
+class EmailCampaign(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        SENDING = "sending", "Sending"
+        SENT = "sent", "Sent"
+        PARTIAL = "partial", "Sent with errors"
+        FAILED = "failed", "Failed"
+
+    name = models.CharField(max_length=160)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
+    from_email = models.EmailField(blank=True)
+
+    subject = models.CharField(max_length=180)
+    preheader = models.CharField(max_length=180, blank=True)
+    title = models.CharField(max_length=140)
+    greeting = models.CharField(max_length=160, blank=True)
+    intro = models.TextField(
+        blank=True,
+        help_text="One sentence per line. These lines appear near the top of the email.",
+    )
+    notice_title = models.CharField(max_length=120, blank=True)
+    notice = models.TextField(
+        blank=True,
+        help_text="Optional callout. One sentence per line.",
+    )
+    footer = models.TextField(
+        blank=True,
+        help_text="One sentence per line. Appears at the bottom of the email.",
+    )
+    cta_label = models.CharField(max_length=80, blank=True)
+    cta_url = models.URLField(max_length=500, blank=True)
+
+    include_subscribers = models.BooleanField(default=True)
+    include_registered_users = models.BooleanField(
+        default=True,
+        help_text="Only users who opted into marketing emails are included.",
+    )
+
+    recipients_total = models.PositiveIntegerField(default=0)
+    sent_count = models.PositiveIntegerField(default=0)
+    failed_count = models.PositiveIntegerField(default=0)
+    send_started_at = models.DateTimeField(null=True, blank=True)
+    send_completed_at = models.DateTimeField(null=True, blank=True)
+    sent_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="email_campaigns_sent",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email campaign"
+        verbose_name_plural = "Email campaigns"
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class EmailCampaignRecipient(models.Model):
+    class Source(models.TextChoices):
+        SUBSCRIBER = "subscriber", "Subscriber list"
+        USER = "user", "Registered user"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
+        SKIPPED = "skipped", "Skipped"
+
+    campaign = models.ForeignKey(EmailCampaign, on_delete=models.CASCADE)
+    email = models.EmailField()
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="email_campaign_recipients",
+    )
+    source = models.CharField(max_length=16, choices=Source.choices)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    error_message = models.CharField(max_length=255, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Email campaign recipient"
+        verbose_name_plural = "Email campaign recipients"
+        ordering = ("-created_at",)
+        unique_together = ("campaign", "email")
+        indexes = [
+            models.Index(fields=["campaign", "status"]),
+            models.Index(fields=["email"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.email} ({self.campaign})"
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.email = self.email.strip().lower()
+        super().save(*args, **kwargs)
 
 
 class FontPreset(models.Model):
@@ -1695,6 +1939,87 @@ class PageFontSetting(models.Model):
     def resolved_ui_font(self) -> FontPreset:
         return self.ui_font or self.body_font
 
+
+class TopbarSettings(models.Model):
+    """
+    Global navigation bar styling controls exposed in the admin UI.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    brand_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_brand_settings",
+        help_text="Font used for the business name in the top bar.",
+    )
+    nav_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_nav_settings",
+        help_text="Font used for navigation links and badges.",
+    )
+
+    brand_size_desktop = models.CharField(
+        max_length=32,
+        default="clamp(1.25rem, 2.1vw, 1.7rem)",
+        help_text="CSS font-size value for the brand text (desktop).",
+    )
+    brand_weight = models.CharField(
+        max_length=16,
+        default="400",
+        help_text="CSS font-weight for the brand text.",
+    )
+    brand_letter_spacing = models.CharField(
+        max_length=16,
+        default="0",
+        help_text="CSS letter-spacing for the brand text.",
+    )
+    brand_transform = models.CharField(
+        max_length=16,
+        default="none",
+        help_text="CSS text-transform for the brand text.",
+    )
+
+    nav_size = models.CharField(
+        max_length=16,
+        default="0.95rem",
+        help_text="CSS font-size for nav links (mobile).",
+    )
+    nav_size_desktop = models.CharField(
+        max_length=16,
+        default="1.05rem",
+        help_text="CSS font-size for nav links (desktop).",
+    )
+    padding_y_desktop = models.CharField(
+        max_length=16,
+        default="0.95rem",
+        help_text="CSS padding-block for the top bar (desktop).",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Topbar settings"
+        verbose_name_plural = "Topbar settings"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Topbar settings"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
 class ProjectJournalQuerySet(models.QuerySet):
     def published(self):
         return self.filter(
@@ -1818,6 +2143,10 @@ class HeroImage(models.Model):
     """
     class Location(models.TextChoices):
         HOME = "home", "Home hero"
+        HOME_CAROUSEL_A = "home-carousel-a", "Home hero carousel — slide 1"
+        HOME_CAROUSEL_B = "home-carousel-b", "Home hero carousel — slide 2"
+        HOME_CAROUSEL_C = "home-carousel-c", "Home hero carousel — slide 3"
+        HOME_CAROUSEL_D = "home-carousel-d", "Home hero carousel — slide 4"
         HOME_GALLERY_A = "home-gallery-a", "Home gallery — slot 1"
         HOME_GALLERY_B = "home-gallery-b", "Home gallery — slot 2"
         HOME_GALLERY_C = "home-gallery-c", "Home gallery — slot 3"
@@ -2063,6 +2392,8 @@ class UserProfile(models.Model):
     email_marketing_consent = models.BooleanField(default=False)   # согласие на рассылки
     email_marketing_consented_at = models.DateTimeField(null=True, blank=True)
     how_heard = models.CharField(max_length=32, choices=HowHeard.choices, blank=True)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
+    email_verification_sent_at = models.DateTimeField(null=True, blank=True)
 
     def set_marketing_consent(self, value: bool):
         """Convenience helper: switches consent flag and timestamp in sync."""
@@ -2921,6 +3252,54 @@ class ServiceLead(models.Model):
 
     def __str__(self) -> str:
         return f"{self.full_name} — {self.service_needed}"
+
+
+class LeadSubmissionEvent(models.Model):
+    """
+    Non-PII logging for public lead/signup submissions.
+    """
+
+    class FormType(models.TextChoices):
+        SITE_NOTICE = ("site_notice", "Site notice signup")
+        SERVICE_LEAD = ("service_lead", "Service lead")
+
+    class Outcome(models.TextChoices):
+        ACCEPTED = ("accepted", "Accepted")
+        SUSPECTED = ("suspected", "Accepted (suspected)")
+        BLOCKED = ("blocked", "Blocked")
+        RATE_LIMITED = ("rate_limited", "Rate limited")
+        REJECTED = ("rejected", "Rejected")
+
+    form_type = models.CharField(max_length=40, choices=FormType.choices, db_index=True)
+    outcome = models.CharField(max_length=40, choices=Outcome.choices, db_index=True)
+    success = models.BooleanField(default=False)
+    suspicion_score = models.PositiveSmallIntegerField(default=0)
+    validation_errors = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    accept_language = models.CharField(max_length=512, blank=True)
+    referer = models.CharField(max_length=600, blank=True)
+    origin = models.CharField(max_length=300, blank=True)
+    path = models.CharField(max_length=300, blank=True)
+    session_key_hash = models.CharField(max_length=64, blank=True)
+    session_first_seen_at = models.DateTimeField(null=True, blank=True)
+    time_on_page_ms = models.PositiveIntegerField(null=True, blank=True)
+    cf_country = models.CharField(max_length=12, blank=True)
+    cf_asn = models.CharField(max_length=40, blank=True)
+    cf_asn_org = models.CharField(max_length=200, blank=True)
+    flags = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["form_type", "created_at"]),
+            models.Index(fields=["outcome", "created_at"]),
+            models.Index(fields=["ip_address", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_form_type_display()} • {self.get_outcome_display()} @ {self.created_at:%Y-%m-%d %H:%M:%S}"
 
 
 class LandingPageReview(models.Model):

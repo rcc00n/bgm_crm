@@ -37,6 +37,30 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  {% if topbar_settings %}
+    <style id="topbar-style">
+      {% for font in topbar_settings.fonts %}
+      @font-face{
+        font-family:"{{ font.family }}";
+        src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+        font-weight:{{ font.weight|default:"400" }};
+        font-style:{{ font.style|default:"normal" }};
+        font-display:{{ font.display|default:"swap" }};
+      }
+      {% endfor %}
+      :root{
+        {% if topbar_settings.brand.stack %}--topbar-brand-font: {{ topbar_settings.brand.stack|safe }};{% endif %}
+        {% if topbar_settings.nav.stack %}--topbar-nav-font: {{ topbar_settings.nav.stack|safe }};{% endif %}
+        {% if topbar_settings.brand_size %}--topbar-brand-size: {{ topbar_settings.brand_size }};{% endif %}
+        {% if topbar_settings.brand_weight %}--topbar-brand-weight: {{ topbar_settings.brand_weight }};{% endif %}
+        {% if topbar_settings.brand_letter_spacing %}--topbar-brand-letter-spacing: {{ topbar_settings.brand_letter_spacing }};{% endif %}
+        {% if topbar_settings.brand_transform %}--topbar-brand-transform: {{ topbar_settings.brand_transform }};{% endif %}
+        {% if topbar_settings.nav_size %}--topbar-nav-size: {{ topbar_settings.nav_size }};{% endif %}
+        {% if topbar_settings.nav_size_desktop %}--topbar-nav-size-desktop: {{ topbar_settings.nav_size_desktop }};{% endif %}
+        {% if topbar_settings.padding_y_desktop %}--topbar-padding-y-desktop: {{ topbar_settings.padding_y_desktop }};{% endif %}
+      }
+    </style>
+  {% endif %}
 
   <script type="application/ld+json">
   {

@@ -733,22 +733,19 @@
 .hero--store h1.title{ text-transform:none !important; }
 </style>
 <style id="topbar-brand-diesel">
-  /* принудительно как на Merch */
+  /* controlled by topbar settings */
   .site-header .brand,
   .site-header .brand__word{
-    font-family: var(--font-body) !important;  /* Diesel */
+    font-family: var(--topbar-brand-font, var(--font-body)) !important;
     font-style: normal !important;
-    text-transform: uppercase !important;
-    letter-spacing: .06em !important;
-    font-variant-ligatures: none;              /* на всякий случай */
+    text-transform: var(--topbar-brand-transform, none) !important;
+    letter-spacing: var(--topbar-brand-letter-spacing, .06em) !important;
   }
 </style>
 <style id="topbar-logo-bigger">
-  /* логотип в топбаре — крупнее */
   .site-header .brand__word{
-    font-size: clamp(1.1rem, 1.55vw, 1.4rem) !important; /* было ~1rem */
+    font-size: var(--topbar-brand-size, clamp(1.1rem, 1.55vw, 1.4rem)) !important;
     line-height: 1 !important;
-    letter-spacing: .06em; /* как и было, для фирменного вида */
   }
   /* чуть увеличим расстояние между словами, если нужно */
   .site-header .brand{ gap: .65rem !important; }

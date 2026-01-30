@@ -8,6 +8,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Sequence
 
+from django.core.cache import cache
 from django.db.models import (
     DecimalField,
     ExpressionWrapper,
@@ -80,6 +81,89 @@ def send_telegram_message(
             error_message=error_text[:500],
         )
     return delivered
+
+
+def _format_digest_counts(items: dict[str, int], limit: int = 3) -> str:
+    if not items:
+        return ""
+    ordered = sorted(items.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+    return ", ".join(f"{label} ({count})" for label, count in ordered)
+
+
+def queue_lead_digest(
+    *,
+    form_type: str,
+    suspicious: bool,
+    ip_address: str | None = None,
+    asn: str | None = None,
+    interval_seconds: int = 300,
+) -> None:
+    """
+    Aggregate noisy lead alerts and emit a compact digest every interval.
+    """
+    cache_key = f"tg:lead_digest:{form_type}"
+    now = timezone.now()
+    state = cache.get(cache_key) or {
+        "started_at": now,
+        "total": 0,
+        "suspected": 0,
+        "ips": {},
+        "asns": {},
+    }
+
+    state["total"] = int(state.get("total") or 0) + 1
+    if suspicious:
+        state["suspected"] = int(state.get("suspected") or 0) + 1
+
+    ips = state.get("ips") or {}
+    if ip_address and len(ips) < 25:
+        ips[ip_address] = int(ips.get(ip_address, 0)) + 1
+    state["ips"] = ips
+
+    asns = state.get("asns") or {}
+    if asn and len(asns) < 25:
+        asns[asn] = int(asns.get(asn, 0)) + 1
+    state["asns"] = asns
+
+    started_at = state.get("started_at") or now
+    if isinstance(started_at, str):
+        try:
+            started_at = timezone.datetime.fromisoformat(started_at)
+        except Exception:
+            started_at = now
+
+    elapsed = (now - started_at).total_seconds()
+    if elapsed >= interval_seconds:
+        total = int(state.get("total") or 0)
+        suspected = int(state.get("suspected") or 0)
+        top_ips = _format_digest_counts(state.get("ips") or {})
+        top_asns = _format_digest_counts(state.get("asns") or {})
+
+        label = "Site notice" if form_type == "site_notice" else "Service leads"
+        message = (
+            f"<b>Lead digest — {label}</b>\n"
+            f"Window: {int(elapsed // 60)} min\n"
+            f"New: {total}\n"
+            f"Suspected: {suspected}\n"
+        )
+        if top_ips:
+            message += f"Top IPs: {top_ips}\n"
+        if top_asns:
+            message += f"Top ASN: {top_asns}\n"
+
+        send_telegram_message(
+            message,
+            event_type=TelegramMessageLog.EVENT_DIGEST,
+        )
+        state = {
+            "started_at": now,
+            "total": 0,
+            "suspected": 0,
+            "ips": {},
+            "asns": {},
+        }
+
+    cache.set(cache_key, state, timeout=interval_seconds * 4)
 
 
 def notify_about_appointment(appointment_id) -> int:

@@ -30,7 +30,7 @@
 /* применяем Diesel ВЕЗДЕ + аккуратный кернинг */
 html, body,
 button, input, select, textarea,
-label, .btn, .errorlist, .modal__dialog,
+label, .btn, .errorlist, .messages, .modal__dialog,
 .field, .reg-form, .wrapper, .card,
 h1.title, .modal h2 {
   font-family: var(--font-body) !important;
@@ -94,6 +94,13 @@ h1.title{
 
   --error-bg:#3b0000;
   --error-text:#ff8a80;
+
+  --info-bg:#0b2638;
+  --info-text:#8fd8ff;
+  --success-bg:#08321c;
+  --success-text:#9fffc3;
+  --warning-bg:#3b2a00;
+  --warning-text:#ffd47a;
 }
 
 /* ===== Background ===== */
@@ -177,6 +184,28 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
 .errorlist{
   margin:0 0 14px;padding:14px 18px;list-style:none;font-size:14px;border-radius:14px;
   background:var(--error-bg);color:var(--error-text);
+}
+.messages{
+  margin:0 0 14px;padding:0;list-style:none;
+}
+.messages li{
+  margin:0 0 10px;padding:12px 16px;border-radius:14px;font-size:14px;
+  background:var(--info-bg);color:var(--info-text);
+}
+.messages li.success{background:var(--success-bg);color:var(--success-text);}
+.messages li.error{background:var(--error-bg);color:var(--error-text);}
+.messages li.warning{background:var(--warning-bg);color:var(--warning-text);}
+.login-links{
+  display:flex;justify-content:flex-end;align-items:center;
+  margin:8px 0 16px;
+}
+.login-links a{
+  color:var(--muted);font-size:14px;text-decoration:none;
+}
+.login-links a:hover{color:#fff;text-decoration:underline;}
+.login-note{
+  margin:12px 0 0;padding:10px 14px;border-radius:12px;
+  background:var(--info-bg);color:var(--info-text);font-size:14px;
 }
 
 /* ===== Registration modal ===== */
@@ -397,6 +426,13 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
 
     <form method="post" class="login-form">
       {% csrf_token %}
+      {% if messages %}
+      <ul class="messages" role="alert" aria-live="polite">
+        {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
       {{ form.non_field_errors }}
 
       <div class="field">
@@ -417,8 +453,13 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
         </button>
       </div>
 
+      <div class="login-links">
+        <a href="{% url 'password_reset' %}">Forgot password?</a>
+      </div>
+
       <button type="submit" class="btn">Sign in</button>
       <button type="button" id="openReg" class="btn btn--ghost" style="margin-top:12px;">Create account</button>
+      <p class="login-note" id="regNotice" style="display:none;">Check your email to verify your account.</p>
     </form>
   </div>
 </div>
@@ -550,6 +591,8 @@ document.getElementById('regForm').addEventListener('submit',async e=>{
     if(t.trim()==='OK'){
       modal.classList.remove('show');
       document.querySelector('input[name="username"]').value=data.get('username');
+      const note=document.getElementById('regNotice');
+      if(note) note.style.display='block';
     }else showErrors(JSON.parse(t));
   }else showErrors(await r.json());
 });

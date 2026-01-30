@@ -11,7 +11,7 @@ DEFAULT_FONT_SLUGS = {
 }
 
 
-def _serialize_font(font: Optional[FontPreset]) -> Dict[str, str]:
+def serialize_font_preset(font: Optional[FontPreset]) -> Dict[str, str]:
     if not font:
         return {}
     return {
@@ -74,12 +74,12 @@ def build_page_font_context(page_slug: str) -> Dict[str, object]:
         if font and font not in ordered_fonts:
             ordered_fonts.append(font)
 
-    serialized_fonts = [_serialize_font(font) for font in ordered_fonts if font]
+    serialized_fonts = [serialize_font_preset(font) for font in ordered_fonts if font]
 
     return {
-        "body": _serialize_font(body_font),
-        "heading": _serialize_font(heading_font),
-        "ui": _serialize_font(ui_font),
+        "body": serialize_font_preset(body_font),
+        "heading": serialize_font_preset(heading_font),
+        "ui": serialize_font_preset(ui_font),
         "fonts": serialized_fonts,
         "preload_fonts": [font for font in serialized_fonts if font.get("preload") and font.get("url")],
     }

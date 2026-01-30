@@ -3,8 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from django.db.models import Avg, Count
+from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.db.models import Avg, Case, Count, IntegerField, Max, Q, Sum, When
 from django.db.models.functions import TruncDate
+from django.urls import reverse
 from django.utils import timezone
 
 from core.models import PageView, VisitorSession
@@ -29,6 +32,22 @@ def _day_range(window_days: int):
     today = timezone.localdate()
     start = today - timedelta(days=window_days - 1)
     return [start + timedelta(days=offset) for offset in range(window_days)]
+
+
+def _format_duration(seconds: int) -> str:
+    seconds = max(0, int(round(seconds or 0)))
+    if seconds <= 0:
+        return "0m"
+    if seconds < 60:
+        return "<1m"
+    minutes, _ = divmod(seconds, 60)
+    if minutes < 60:
+        return f"{minutes}m"
+    hours, minutes = divmod(minutes, 60)
+    if hours < 24:
+        return f"{hours}h {minutes}m" if minutes else f"{hours}h"
+    days, hours = divmod(hours, 24)
+    return f"{days}d {hours}h" if hours else f"{days}d"
 
 
 def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
@@ -207,6 +226,172 @@ def summarize_web_analytics_periods(
                 "totals": summary.get("totals", {}),
                 "engagement": summary.get("engagement", {}),
                 "traffic_highlights": summary.get("traffic_highlights", {}),
+            }
+        )
+
+    return results
+
+
+def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) -> Dict[str, object]:
+    """
+    Summarize staff time on admin vs client pages within a window.
+    """
+    window_days = max(1, min(window_days, 90))
+    day_list = _day_range(window_days)
+    start_date = day_list[0]
+    start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+
+    admin_filter = Q(pk__isnull=True)
+    admin_prefixes = []
+    try:
+        admin_prefixes.append(reverse("admin:index"))
+    except Exception:
+        admin_prefixes = []
+    configured_prefixes = getattr(settings, "ADMIN_USAGE_PATH_PREFIXES", None) or []
+    for prefix in configured_prefixes:
+        if prefix:
+            admin_prefixes.append(prefix)
+    admin_prefixes.extend(["/admin/", "/admin"])
+    normalized_prefixes = []
+    for prefix in admin_prefixes:
+        if not prefix:
+            continue
+        if not prefix.startswith("/"):
+            prefix = f"/{prefix}"
+        normalized_prefixes.append(prefix)
+
+    for prefix in dict.fromkeys(normalized_prefixes):
+        admin_filter |= (
+            Q(path__startswith=prefix)
+            | Q(path__contains=prefix)
+            | Q(full_path__startswith=prefix)
+            | Q(full_path__contains=prefix)
+        )
+    client_filter = ~Q(path__startswith="/admin")
+
+    base_views = PageView.objects.filter(
+        started_at__gte=start_dt,
+        user__isnull=False,
+        user__is_staff=True,
+    )
+
+    aggregates = base_views.values("user_id").annotate(
+        admin_duration_ms=Sum(
+            Case(When(admin_filter, then="duration_ms"), default=0, output_field=IntegerField())
+        ),
+        client_duration_ms=Sum(
+            Case(When(client_filter, then="duration_ms"), default=0, output_field=IntegerField())
+        ),
+        admin_views=Count("id", filter=admin_filter),
+        client_views=Count("id", filter=client_filter),
+        total_views=Count("id"),
+        last_seen=Max("updated_at"),
+    )
+    by_user = {row["user_id"]: row for row in aggregates}
+
+    User = get_user_model()
+    staff_qs = User.objects.filter(is_staff=True)
+    if not include_inactive:
+        staff_qs = staff_qs.filter(is_active=True)
+    staff_list = list(staff_qs.order_by("first_name", "last_name", "username", "email"))
+
+    rows = []
+    total_admin_ms = 0
+    total_client_ms = 0
+    total_admin_views = 0
+    total_client_views = 0
+
+    for user in staff_list:
+        data = by_user.get(user.id, {})
+        admin_ms = int(data.get("admin_duration_ms") or 0)
+        client_ms = int(data.get("client_duration_ms") or 0)
+        admin_views = int(data.get("admin_views") or 0)
+        client_views = int(data.get("client_views") or 0)
+        total_ms = admin_ms + client_ms
+
+        admin_seconds = int(round(admin_ms / 1000))
+        client_seconds = int(round(client_ms / 1000))
+        total_seconds = int(round(total_ms / 1000))
+
+        total_admin_ms += admin_ms
+        total_client_ms += client_ms
+        total_admin_views += admin_views
+        total_client_views += client_views
+
+        display_name = user.get_full_name() or user.username or user.email or f"User {user.id}"
+
+        rows.append(
+            {
+                "user_id": user.id,
+                "name": display_name.strip(),
+                "email": user.email or "",
+                "admin_seconds": admin_seconds,
+                "client_seconds": client_seconds,
+                "total_seconds": total_seconds,
+                "admin_label": _format_duration(admin_seconds),
+                "client_label": _format_duration(client_seconds),
+                "total_label": _format_duration(total_seconds),
+                "admin_views": admin_views,
+                "client_views": client_views,
+                "total_views": admin_views + client_views,
+                "last_seen": data.get("last_seen"),
+            }
+        )
+
+    rows.sort(key=lambda row: (-row["total_seconds"], row["name"].lower()))
+    active_staff = sum(1 for row in rows if row["total_seconds"] > 0)
+
+    total_admin_seconds = int(round(total_admin_ms / 1000))
+    total_client_seconds = int(round(total_client_ms / 1000))
+    total_seconds = int(round((total_admin_ms + total_client_ms) / 1000))
+
+    return {
+        "window_days": window_days,
+        "has_data": total_seconds > 0,
+        "staff_count": len(rows),
+        "active_staff_count": active_staff,
+        "totals": {
+            "admin_seconds": total_admin_seconds,
+            "client_seconds": total_client_seconds,
+            "total_seconds": total_seconds,
+            "admin_label": _format_duration(total_admin_seconds),
+            "client_label": _format_duration(total_client_seconds),
+            "total_label": _format_duration(total_seconds),
+            "admin_views": total_admin_views,
+            "client_views": total_client_views,
+            "total_views": total_admin_views + total_client_views,
+        },
+        "rows": rows,
+    }
+
+
+def summarize_staff_usage_periods(
+    windows: List[int], include_inactive: bool = False
+) -> List[Dict[str, object]]:
+    """
+    Produce staff usage summaries for multiple windows.
+    """
+    normalized_seen = set()
+    results: List[Dict[str, object]] = []
+
+    for days in windows:
+        normalized = max(1, min(days, 90))
+        if normalized in normalized_seen:
+            continue
+        normalized_seen.add(normalized)
+
+        summary = summarize_staff_usage(window_days=normalized, include_inactive=include_inactive)
+        label = "Today" if normalized == 1 else f"Last {normalized} days"
+
+        results.append(
+            {
+                "label": label,
+                "window_days": normalized,
+                "has_data": summary.get("has_data"),
+                "staff_count": summary.get("staff_count", 0),
+                "active_staff_count": summary.get("active_staff_count", 0),
+                "totals": summary.get("totals", {}),
+                "rows": summary.get("rows", []),
             }
         )
 
