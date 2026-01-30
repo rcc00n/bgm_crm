@@ -41,7 +41,11 @@ from core.email_templates import (
     email_dark_color,
     template_tokens,
 )
-from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
+from core.services.analytics import (
+    summarize_staff_usage_periods,
+    summarize_web_analytics,
+    summarize_web_analytics_periods,
+)
 from core.services.email_campaigns import (
     estimate_campaign_audience,
     import_email_subscribers,
@@ -201,6 +205,9 @@ def custom_index(request):
         if not is_master
         else None
     )
+    staff_usage_periods = (
+        summarize_staff_usage_periods(windows=[1, 7, 30]) if not is_master else None
+    )
 
     latest_ui_check = ClientUiCheckRun.objects.order_by("-started_at").first()
     ui_check_next_due = None
@@ -236,6 +243,7 @@ def custom_index(request):
         "status_trend": status_trend,
         "web_analytics": analytics_summary,
         "web_analytics_periods": analytics_periods,
+        "staff_usage_periods": staff_usage_periods,
         "latest_ui_check": latest_ui_check,
         "ui_check_next_due": ui_check_next_due,
         "ui_check_due": ui_check_due,
