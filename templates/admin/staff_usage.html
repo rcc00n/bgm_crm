@@ -77,7 +77,18 @@
 
     <section class="data-panel analytics-table-panel">
       <div class="panel-title">Staff action history</div>
-      <div class="panel-subtitle">Admin add/change/delete actions · last {{ staff_action_history.window_days }} days · showing {{ staff_action_history.limit }} entries</div>
+      <div class="panel-subtitle">
+        Admin add/change/delete actions · last {{ staff_action_history.window_days }} days ·
+        {{ staff_action_history.total_count }} total · page {{ staff_action_history.page }} of {{ staff_action_history.total_pages }}
+      </div>
+
+      <div class="action-history-controls">
+        <div class="action-history-meta">Rows per page</div>
+        <div class="action-history-actions">
+          <a class="pill{% if staff_action_history.per_page == 25 %} active{% endif %}" href="?per_page=25&page=1">25</a>
+          <a class="pill{% if staff_action_history.per_page == 50 %} active{% endif %}" href="?per_page=50&page=1">50</a>
+        </div>
+      </div>
 
       {% if staff_action_history.entries %}
         <div class="table-scroll">
@@ -118,6 +129,20 @@
               {% endfor %}
             </tbody>
           </table>
+        </div>
+
+        <div class="action-history-pagination">
+          {% if staff_action_history.has_previous %}
+            <a class="page-link" href="?page={{ staff_action_history.prev_page }}&per_page={{ staff_action_history.per_page }}">Prev</a>
+          {% else %}
+            <span class="page-link disabled">Prev</span>
+          {% endif %}
+          <span class="page-status">Page {{ staff_action_history.page }} of {{ staff_action_history.total_pages }}</span>
+          {% if staff_action_history.has_next %}
+            <a class="page-link" href="?page={{ staff_action_history.next_page }}&per_page={{ staff_action_history.per_page }}">Next</a>
+          {% else %}
+            <span class="page-link disabled">Next</span>
+          {% endif %}
         </div>
       {% else %}
         <div class="empty-state">

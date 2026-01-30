@@ -59,13 +59,10 @@
               {% for section in structured_sidebar %}
                 <li class="nav-header">
                   {{ section.label }}
-                  {% if section.has_unseen %}
-                    <span class="sidebar-dot" aria-hidden="true"></span>
-                  {% endif %}
                 </li>
                 {% for group in section.groups %}
                   <li class="nav-item has-treeview{% if group.is_open %} menu-open{% endif %}">
-                    <a href="javascript:void(0)" class="nav-link{% if group.is_open %} active{% endif %}">
+                    <a href="javascript:void(0)" class="nav-link{% if group.is_open %} active{% endif %}{% if group.has_unseen %} has-unseen{% endif %}">
                       <i class="nav-icon {{ group.icon }}"></i>
                       <p>
                         {{ group.label }}
@@ -81,7 +78,7 @@
                     <ul class="nav nav-treeview"{% if group.is_open %} style="display:block"{% endif %}>
                       {% for item in group.items %}
                         <li class="nav-item">
-                          <a href="{{ item.url }}" class="nav-link{% if item.is_active %} active{% endif %}">
+                          <a href="{{ item.url }}" class="nav-link{% if item.is_active %} active{% endif %}{% if item.has_unseen %} has-unseen{% endif %}">
                             <i class="nav-icon {{ item.icon }}"></i>
                             <p>
                               {{ item.label }}

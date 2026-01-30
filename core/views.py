@@ -291,8 +291,23 @@ def admin_staff_usage(request):
     if is_master:
         raise PermissionDenied
 
+    page_raw = request.GET.get("page")
+    per_page_raw = request.GET.get("per_page")
+    try:
+        page = int(page_raw or 1)
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(per_page_raw or 50)
+    except (TypeError, ValueError):
+        per_page = 50
+
     staff_usage_periods = summarize_staff_usage_periods(windows=[1, 7, 30])
-    staff_action_history = summarize_staff_action_history(window_days=30, limit=200)
+    staff_action_history = summarize_staff_action_history(
+        window_days=30,
+        page=page,
+        per_page=per_page,
+    )
     context = admin.site.each_context(request)
     context.update(
         {

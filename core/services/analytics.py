@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
+from django.core.paginator import Paginator
 from django.db.models import Avg, Case, Count, IntegerField, Max, Q, Sum, When
 from django.db.models.functions import TruncDate
 from django.urls import NoReverseMatch, reverse
@@ -913,14 +914,26 @@ def _staff_action_meta(flag: int) -> Dict[str, str]:
 
 def summarize_staff_action_history(
     window_days: int = 30,
-    limit: int = 200,
+    page: int = 1,
+    per_page: int = 50,
     include_inactive: bool = False,
 ) -> Dict[str, object]:
     """
     Recent admin actions (add/change/delete) performed by staff users.
     """
-    limit = max(1, min(int(limit or 0), 500))
     window_days = max(1, min(int(window_days or 0), 365))
+    allowed_page_sizes = {25, 50}
+    try:
+        per_page = int(per_page or 0)
+    except (TypeError, ValueError):
+        per_page = 50
+    if per_page not in allowed_page_sizes:
+        per_page = 50
+
+    try:
+        page = int(page or 1)
+    except (TypeError, ValueError):
+        page = 1
     since = timezone.now() - timedelta(days=window_days)
 
     entries_qs = (
@@ -931,8 +944,12 @@ def summarize_staff_action_history(
     if not include_inactive:
         entries_qs = entries_qs.filter(user__is_active=True)
 
+    paginator = Paginator(entries_qs, per_page)
+    page_obj = paginator.get_page(page)
+    total_pages = paginator.num_pages or 1
+
     entries = []
-    for entry in entries_qs[:limit]:
+    for entry in page_obj.object_list:
         user = entry.user
         user_name = (
             user.get_full_name() or user.username or user.email or f"User {user.pk}"
@@ -970,6 +987,13 @@ def summarize_staff_action_history(
 
     return {
         "window_days": window_days,
-        "limit": limit,
+        "per_page": per_page,
+        "page": page_obj.number,
+        "total_pages": total_pages,
+        "total_count": paginator.count,
+        "has_next": page_obj.has_next(),
+        "has_previous": page_obj.has_previous(),
+        "next_page": page_obj.next_page_number() if page_obj.has_next() else None,
+        "prev_page": page_obj.previous_page_number() if page_obj.has_previous() else None,
         "entries": entries,
     }
