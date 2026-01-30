@@ -432,7 +432,7 @@ def build_services_context(request: HttpRequest) -> Dict[str, Any]:
 
 
 def build_store_context(request: HttpRequest) -> Dict[str, Any]:
-    from store.forms import ProductFilterForm
+    from store.forms_store import ProductFilterForm
     from store.models import Category, Product
     from store.views import _apply_filters
 
