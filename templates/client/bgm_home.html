@@ -4,9 +4,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>BGM — Home</title>
+  <title>{{ home_copy.meta_title|default:"BGM — Performance Builds & VIP Service" }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% with meta_title="BGM — Performance Builds & VIP Service" meta_description="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM in Calgary." meta_image=hero_carousel.0.src|default:hero_media.src meta_section="home" %}
+  {% with meta_title=home_copy.meta_title|default:"BGM — Performance Builds & VIP Service" meta_description=home_copy.meta_description|default:"Performance-driven builds, detailing, tuning, and a curated product catalog by BGM in Calgary." meta_image=hero_carousel.0.src|default:hero_media.src meta_section="home" %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
   {% if font_settings.preload_fonts %}

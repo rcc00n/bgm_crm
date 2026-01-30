@@ -1,0 +1,423 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block bodyclass %}{{ block.super }} pagecopy-preview{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <style>
+    body.pagecopy-preview #content {
+      max-width: none;
+    }
+
+    body.pagecopy-preview #content.colMS {
+      margin-right: 0;
+    }
+
+    body.pagecopy-preview #content-main {
+      float: none;
+      width: 100%;
+    }
+
+    body.pagecopy-preview #content-related {
+      float: none;
+      width: 100%;
+      margin: 20px 0 0;
+    }
+
+    .pagecopy-preview-module {
+      margin-top: 24px;
+    }
+
+    .pagecopy-preview-module > h2 {
+      margin-top: 0;
+    }
+
+    .pagecopy-preview {
+      background: #f8fafc;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      padding: 20px;
+    }
+
+    .pagecopy-preview__section {
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      padding: 18px 18px 12px;
+      margin-bottom: 18px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .pagecopy-preview__section:last-child {
+      margin-bottom: 0;
+    }
+
+    .pagecopy-preview__section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #64748b;
+      margin: 0 0 12px;
+    }
+
+    .pagecopy-preview__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .pagecopy-preview__item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .pagecopy-preview__label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #94a3b8;
+      font-weight: 700;
+    }
+
+    .pagecopy-preview__value {
+      border-radius: 10px;
+      padding: 8px 10px;
+      border: 1px dashed transparent;
+      background: #f8fafc;
+      min-height: 34px;
+      line-height: 1.5;
+      color: #0f172a;
+      font-size: 15px;
+      transition: border 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      white-space: pre-wrap;
+    }
+
+    .pagecopy-preview__value[contenteditable="true"]:focus {
+      outline: none;
+      border-color: rgba(37, 99, 235, 0.6);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+      background: #ffffff;
+    }
+
+    .pagecopy-preview__value:empty::before {
+      content: attr(data-placeholder);
+      color: #94a3b8;
+    }
+
+    .pagecopy-preview__value.is-readonly {
+      background: #f1f5f9;
+      border-style: solid;
+      border-color: rgba(15, 23, 42, 0.08);
+      color: #64748b;
+    }
+
+    .pagecopy-preview__value--title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      background: transparent;
+      padding: 0;
+      border: none;
+    }
+
+    .pagecopy-preview__value--hero {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      background: transparent;
+      padding: 0;
+      border: none;
+    }
+
+    .pagecopy-preview__value--kicker {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.24em;
+      color: #ef4444;
+      font-weight: 700;
+      background: transparent;
+      padding: 0;
+      border: none;
+    }
+
+    .pagecopy-preview__value--lead {
+      font-size: 16px;
+      color: #334155;
+      background: transparent;
+      padding: 0;
+      border: none;
+    }
+
+    .pagecopy-preview__value--badge {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(239, 68, 68, 0.12);
+      color: #b91c1c;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .pagecopy-preview__value--button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: #0f172a;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .pagecopy-preview__value--nav {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .pagecopy-preview__value--meta {
+      font-size: 13px;
+      color: #475569;
+      background: #f1f5f9;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .pagecopy-preview__value--stat {
+      font-size: 14px;
+      font-weight: 700;
+      background: #0f172a;
+      color: #ffffff;
+    }
+
+    .pagecopy-preview__note {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 8px;
+    }
+
+    .pagecopy-preview__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .pagecopy-preview {
+        padding: 16px;
+      }
+
+      .pagecopy-preview__section {
+        padding: 14px 14px 10px;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block after_field_sets %}
+  {{ block.super }}
+  <div class="module pagecopy-preview-module">
+    <h2 style="margin-top: 0;">Page preview</h2>
+    <p class="help">Click any text in the preview to edit it. Changes sync to the fields above.</p>
+    <div class="pagecopy-preview" data-pagecopy-preview>
+      {% for fieldset in adminform %}
+        {% if fieldset.name != "Timestamps" %}
+          <section class="pagecopy-preview__section" data-preview-section>
+            <h3 class="pagecopy-preview__section-title">{{ fieldset.name|default:"Content" }}</h3>
+            <div class="pagecopy-preview__grid">
+              {% for line in fieldset %}
+                {% for field in line %}
+                  {% if not field.is_hidden and not field.is_readonly %}
+                    <div class="pagecopy-preview__item" data-preview-item data-preview-field="{{ field.field.name }}" data-preview-label="{{ field.field.label|default:field.field.name }}">
+                      <div class="pagecopy-preview__label">{{ field.field.label|default:field.field.name }}</div>
+                      <div class="pagecopy-preview__value" data-preview-value data-placeholder="{{ field.field.label|default:field.field.name }}" contenteditable="true"></div>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <p class="pagecopy-preview__note">Non-text settings (images, toggles, dropdowns) still live in the form above.</p>
+  </div>
+  <script>
+    (function() {
+      const previewRoot = document.querySelector('[data-pagecopy-preview]');
+      if (!previewRoot) {
+        return;
+      }
+
+      const form = document.querySelector('#content-main form');
+      if (!form) {
+        return;
+      }
+
+      const items = Array.from(previewRoot.querySelectorAll('[data-preview-item]'));
+      const syncing = new Map();
+
+      const guessKind = (name) => {
+        const key = name.toLowerCase();
+        if (key.includes('hero_title')) return 'hero';
+        if (key.includes('title')) return 'title';
+        if (key.includes('kicker') || key.includes('eyebrow')) return 'kicker';
+        if (key.includes('lead') || key.includes('desc') || key.includes('paragraph') || key.includes('answer') || key.includes('disclaimer') || key.includes('note')) return 'lead';
+        if (key.includes('badge') || key.includes('chip') || key.includes('tag')) return 'badge';
+        if (key.includes('nav_') || key.includes('menu') || key.includes('toggle')) return 'nav';
+        if (key.includes('cta') || key.includes('button') || key.includes('label')) return 'button';
+        if (key.includes('meta')) return 'meta';
+        if (key.includes('stat')) return 'stat';
+        return 'text';
+      };
+
+      const safeEscape = (value) => {
+        if (window.CSS && typeof CSS.escape === 'function') {
+          return CSS.escape(value);
+        }
+        return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\\\$&');
+      };
+
+      const getInput = (name) => form.querySelector(`[name="${safeEscape(name)}"]`);
+
+      const isEditableInput = (input) => {
+        if (!input || input.disabled) return false;
+        if (input.tagName === 'TEXTAREA') return true;
+        if (input.tagName !== 'INPUT') return false;
+        if (['text', 'email', 'url', 'search', 'tel', 'number'].includes(input.type)) return true;
+        return false;
+      };
+
+      const isMultilineInput = (input) => input && input.tagName === 'TEXTAREA';
+
+      const getValueFromInput = (input) => {
+        if (!input) return '';
+        if (input.type === 'checkbox') {
+          return input.checked ? 'Enabled' : 'Disabled';
+        }
+        if (input.tagName === 'SELECT') {
+          const option = input.selectedOptions && input.selectedOptions[0];
+          return option ? option.textContent.trim() : '';
+        }
+        if (input.type === 'file') {
+          const row = input.closest('.form-row, .fieldBox, .form-group');
+          const existing = row ? row.querySelector('a') : null;
+          if (existing) {
+            return existing.textContent.trim();
+          }
+          return input.value ? input.value.split('\\').pop() : 'No file selected';
+        }
+        return input.value || '';
+      };
+
+      const setNodeValue = (node, value, multiline) => {
+        const cleanValue = value == null ? '' : String(value);
+        if (!cleanValue) {
+          node.innerHTML = '';
+          return;
+        }
+        if (multiline) {
+          node.innerHTML = '';
+          cleanValue.split(/\n/).forEach((line, idx) => {
+            if (idx > 0) {
+              node.appendChild(document.createElement('br'));
+            }
+            node.appendChild(document.createTextNode(line));
+          });
+          return;
+        }
+        node.textContent = cleanValue;
+      };
+
+      const getNodeValue = (node, multiline) => {
+        if (!node) return '';
+        if (multiline) {
+          return node.innerText.replace(/\r/g, '');
+        }
+        return node.textContent.trim();
+      };
+
+      const applyKindClass = (node, kind) => {
+        if (!node) return;
+        node.classList.remove(
+          'pagecopy-preview__value--hero',
+          'pagecopy-preview__value--title',
+          'pagecopy-preview__value--kicker',
+          'pagecopy-preview__value--lead',
+          'pagecopy-preview__value--badge',
+          'pagecopy-preview__value--button',
+          'pagecopy-preview__value--nav',
+          'pagecopy-preview__value--meta',
+          'pagecopy-preview__value--stat'
+        );
+        if (kind && kind !== 'text') {
+          node.classList.add(`pagecopy-preview__value--${kind}`);
+        }
+      };
+
+      items.forEach((item) => {
+        const fieldName = item.dataset.previewField;
+        const label = item.dataset.previewLabel || fieldName;
+        const valueNode = item.querySelector('[data-preview-value]');
+        if (!valueNode) return;
+
+        const input = getInput(fieldName);
+        if (!input) {
+          item.style.display = 'none';
+          return;
+        }
+
+        const multiline = isMultilineInput(input);
+        const editable = isEditableInput(input);
+        const kind = guessKind(fieldName);
+
+        valueNode.dataset.placeholder = label;
+        applyKindClass(valueNode, kind);
+
+        if (!editable) {
+          valueNode.setAttribute('contenteditable', 'false');
+          valueNode.classList.add('is-readonly');
+        }
+
+        const renderFromInput = () => {
+          if (syncing.get(fieldName)) return;
+          syncing.set(fieldName, true);
+          const value = getValueFromInput(input);
+          setNodeValue(valueNode, value, multiline);
+          syncing.set(fieldName, false);
+        };
+
+        renderFromInput();
+
+        input.addEventListener('input', renderFromInput);
+        input.addEventListener('change', renderFromInput);
+
+        if (editable) {
+          valueNode.addEventListener('input', () => {
+            if (syncing.get(fieldName)) return;
+            syncing.set(fieldName, true);
+            const nextValue = getNodeValue(valueNode, multiline);
+            input.value = nextValue;
+            syncing.set(fieldName, false);
+          });
+        }
+      });
+    })();
+  </script>
+{% endblock %}

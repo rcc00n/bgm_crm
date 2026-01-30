@@ -1743,14 +1743,20 @@ class AdminLoginBrandingAdmin(admin.ModelAdmin):
         return "Admin login"
 
 
+class PageCopyAdminMixin(admin.ModelAdmin):
+    change_form_template = "admin/core/pagecopy/change_form.html"
+    save_on_top = True
+
+
 @admin.register(HomePageCopy)
-class HomePageCopyAdmin(admin.ModelAdmin):
+class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
     fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
         ("Header & navigation", {
             "fields": (
                 "skip_to_main_label",
@@ -1966,7 +1972,7 @@ class HomePageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(ServicesPageCopy)
-class ServicesPageCopyAdmin(admin.ModelAdmin):
+class ServicesPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2103,7 +2109,7 @@ class ServicesPageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(StorePageCopy)
-class StorePageCopyAdmin(admin.ModelAdmin):
+class StorePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2219,7 +2225,7 @@ class StorePageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(ClientPortalPageCopy)
-class ClientPortalPageCopyAdmin(admin.ModelAdmin):
+class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2399,7 +2405,7 @@ class ClientPortalPageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(MerchPageCopy)
-class MerchPageCopyAdmin(admin.ModelAdmin):
+class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2487,7 +2493,7 @@ class MerchPageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(FinancingPageCopy)
-class FinancingPageCopyAdmin(admin.ModelAdmin):
+class FinancingPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2619,7 +2625,7 @@ class FinancingPageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(AboutPageCopy)
-class AboutPageCopyAdmin(admin.ModelAdmin):
+class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {
@@ -2748,7 +2754,7 @@ class AboutPageCopyAdmin(admin.ModelAdmin):
 
 
 @admin.register(DealerStatusPageCopy)
-class DealerStatusPageCopyAdmin(admin.ModelAdmin):
+class DealerStatusPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     formfield_overrides = {

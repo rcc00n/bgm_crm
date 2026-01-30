@@ -249,6 +249,15 @@ class HomePageCopy(models.Model):
 
     singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
 
+    # Meta
+    meta_title = models.CharField(
+        max_length=140,
+        default="BGM — Performance Builds & VIP Service",
+    )
+    meta_description = models.TextField(
+        default="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM in Calgary.",
+    )
+
     # Header & navigation
     skip_to_main_label = models.CharField(max_length=120, default="Skip to main content")
     brand_word_white = models.CharField(max_length=40, default="BAD GUY")
