@@ -96,3 +96,21 @@ class BuildEmailHtmlTests(SimpleTestCase):
         self.assertIn("Footer line", html)
         self.assertIn("View Order", html)
         self.assertIn("https://example.com/order", html)
+
+    def test_build_email_html_links_and_default_cta(self):
+        with _patched_email_branding():
+            html = emails.build_email_html(
+                title="Hello",
+                preheader="Preheader",
+                greeting="Hi",
+                intro_lines=["Intro"],
+                link_rows=[("Track order", "tracking.example/abc"), ("Missing", "")],
+                cta_label="Visit",
+                cta_url=None,
+            )
+
+        self.assertIn("Quick links", html)
+        self.assertIn("https://tracking.example/abc", html)
+        self.assertNotIn("Missing", html)
+        self.assertIn("href=\"https://bgm.example\"", html)
+        self.assertIn(">Visit<", html)
