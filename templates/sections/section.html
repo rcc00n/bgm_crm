@@ -1,6 +1,7 @@
-{% with cfg=section.config %}
+{% with cfg=section.config layout=section.layout_vars %}
     <section
       class="builder-section builder-section--{{ section.section_type }}"
+      data-section-id="{{ section.pk }}"
       style="
         {% if section.background_color %}background-color:{{ section.background_color }};{% endif %}
         {% if section.background_image and section.background_image.image %}
@@ -13,7 +14,25 @@
       {% if section.overlay_color %}
         <div class="builder-section__overlay" style="background:{{ section.overlay_color }};"></div>
       {% endif %}
-      <div class="builder-section__inner">
+      <div
+        class="builder-section__inner"
+        data-layout-section
+        data-section-id="{{ section.pk }}"
+        data-layout-x="{{ layout.desktop.x }}"
+        data-layout-y="{{ layout.desktop.y }}"
+        {% if layout.desktop.w %}data-layout-w="{{ layout.desktop.w }}"{% endif %}
+        data-layout-x-mobile="{{ layout.mobile.x }}"
+        data-layout-y-mobile="{{ layout.mobile.y }}"
+        {% if layout.mobile.w %}data-layout-w-mobile="{{ layout.mobile.w }}"{% endif %}
+        style="
+          --layout-x: {{ layout.desktop.x }}px;
+          --layout-y: {{ layout.desktop.y }}px;
+          {% if layout.desktop.w %}--layout-w: {{ layout.desktop.w }}px;{% endif %}
+          --layout-x-mobile: {{ layout.mobile.x }}px;
+          --layout-y-mobile: {{ layout.mobile.y }}px;
+          {% if layout.mobile.w %}--layout-w-mobile: {{ layout.mobile.w }}px;{% endif %}
+        "
+      >
         {% if section.section_type == "hero" %}
           {% if cfg.title %}<h1 class="builder-section__title">{{ cfg.title }}</h1>{% endif %}
           {% if cfg.body %}<div class="builder-section__body">{{ cfg.body|safe }}</div>{% endif %}

@@ -167,7 +167,7 @@
       transition: opacity 0.2s ease;
     }
 
-    html.js body.pagecopy-preview:not(.pagecopy-section-config-ready) #pagesection_set-group {
+    html.js body.pagecopy-preview.pagecopy-section-config-pending #pagesection_set-group {
       opacity: 0;
       pointer-events: none;
     }
@@ -183,6 +183,11 @@
     .pagecopy-section-hint__title {
       font-weight: 600;
       margin-bottom: 4px;
+    }
+
+    .pagecopy-preview__layout-help {
+      margin-top: 8px;
+      max-width: 640px;
     }
 
     .pagecopy-preview__frame-wrap[data-preview-mode="desktop"] .pagecopy-preview__frame {
@@ -247,6 +252,10 @@
         </div>
       </div>
     </div>
+    <p class="help pagecopy-preview__layout-help">
+      Как редактировать: добавьте секцию в форме ниже, нажмите “Move elements”, затем перетащите блоки в превью.
+      Для изменения ширины тяните за квадратный уголок. Новые секции появляются после сохранения.
+    </p>
     <div class="pagecopy-preview__frame-wrap">
       {% if pagecopy_preview_url %}
         <iframe
@@ -333,6 +342,12 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script>
     (function() {
+      if (document.body) {
+        document.body.classList.add('pagecopy-section-config-pending');
+        window.setTimeout(() => {
+          document.body.classList.remove('pagecopy-section-config-pending');
+        }, 2000);
+      }
       const form = document.querySelector('#content-main form');
       const frame = document.querySelector('[data-pagecopy-preview-frame]');
       const saveButton = document.querySelector('[data-pagecopy-save]');
@@ -343,10 +358,17 @@
       const layoutReset = document.querySelector('[data-pagecopy-layout-reset]');
       const layoutField = form ? form.querySelector('[name="layout_overrides"]') : null;
       const statusIndicator = document.querySelector('[data-pagecopy-status]');
-      if (!form || !frame) return;
+      if (!form) {
+        if (document.body) {
+          document.body.classList.remove('pagecopy-section-config-pending');
+          document.body.classList.add('pagecopy-section-config-ready');
+        }
+        return;
+      }
 
-      const previewUrl = frame.dataset.previewUrl;
-      if (!previewUrl) return;
+      const previewUrl = frame ? frame.dataset.previewUrl : null;
+      const hasPreview = !!previewUrl;
+      const sectionLayoutSaveUrl = "{{ page_section_layout_save_url|default:'' }}";
 
       let renderTimer = null;
       let renderInFlight = false;
@@ -452,8 +474,8 @@
           const hint = document.createElement('div');
           hint.className = 'pagecopy-section-hint';
           hint.innerHTML =
-            '<div class="pagecopy-section-hint__title">Sections</div>' +
-            '<p class="help">Choose section type to see the right fields.</p>';
+            '<div class="pagecopy-section-hint__title">Секции</div>' +
+            '<p class="help">Выберите тип секции — появятся нужные поля. Добавить можно через “Add another Page section” внизу, порядок — перетаскиванием.</p>';
           group.parentNode.insertBefore(hint, group);
         };
 
@@ -510,6 +532,7 @@
         }
         updateAll();
         if (document.body) {
+          document.body.classList.remove('pagecopy-section-config-pending');
           document.body.classList.add('pagecopy-section-config-ready');
         }
       };
@@ -608,7 +631,8 @@
         }
       };
 
-      if (!layoutField) {
+      const hasLayoutControls = !!layoutField || !!sectionLayoutSaveUrl;
+      if (!hasLayoutControls) {
         if (layoutToggle) layoutToggle.style.display = 'none';
         if (layoutReset) layoutReset.style.display = 'none';
       }
@@ -620,7 +644,7 @@
       };
 
       const syncFrameState = () => {
-        if (!frame.contentWindow) return;
+        if (!frame || !frame.contentWindow) return;
         frame.contentWindow.postMessage({ type: 'pagecopy:mode', mode: currentMode }, '*');
         frame.contentWindow.postMessage({ type: 'pagecopy:layout-mode', active: layoutActive }, '*');
       };
@@ -664,6 +688,40 @@
         return '';
       };
 
+      const sectionLayoutTimers = new Map();
+      const scheduleSectionLayoutSave = (payload) => {
+        if (!sectionLayoutSaveUrl || !payload || !payload.sectionId) return;
+        const key = `${payload.sectionId}:${payload.mode || 'desktop'}`;
+        if (sectionLayoutTimers.has(key)) {
+          clearTimeout(sectionLayoutTimers.get(key));
+        }
+        const timer = setTimeout(() => {
+          sectionLayoutTimers.delete(key);
+          setStatus('saving', 'Saving layout...');
+          fetch(sectionLayoutSaveUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error('Layout update failed');
+              return response.json();
+            })
+            .then(() => {
+              setStatus('saved', 'Layout saved');
+            })
+            .catch(() => {
+              setStatus('error', 'Layout save failed');
+            });
+        }, 250);
+        sectionLayoutTimers.set(key, timer);
+      };
+
       const isTextInput = (input) => {
         if (!input) return false;
         if (input.tagName === 'TEXTAREA') return true;
@@ -672,11 +730,12 @@
       };
 
       const sendSync = (name, value) => {
-        if (!frame.contentWindow) return;
+        if (!frame || !frame.contentWindow) return;
         frame.contentWindow.postMessage({ type: 'pagecopy:sync', field: name, value }, '*');
       };
 
       const renderPreview = () => {
+        if (!hasPreview || !frame) return;
         if (renderInFlight) {
           pendingRender = true;
           return;
@@ -771,6 +830,17 @@
           return;
         }
 
+        if (data.type === 'pagecopy:section-layout') {
+          if (!data.sectionId) return;
+          scheduleSectionLayoutSave({
+            section_id: data.sectionId,
+            sectionId: data.sectionId,
+            mode: data.mode || 'desktop',
+            layout: data.layout || {},
+          });
+          return;
+        }
+
         if (data.type === 'pagecopy:layout') {
           if (!layoutField) return;
           const payload = data.layout || {};
@@ -801,13 +871,15 @@
           if (layoutField) {
             layoutField.value = JSON.stringify(payload);
           }
-          if (frame.contentWindow) {
+          if (frame && frame.contentWindow) {
             frame.contentWindow.postMessage({ type: 'pagecopy:layout-reset', scope: 'all' }, '*');
           }
         });
       }
 
-      frame.addEventListener('load', () => syncFrameState());
+      if (frame) {
+        frame.addEventListener('load', () => syncFrameState());
+      }
       setMode(resolveInitialMode());
       setLayoutActive(false);
       setStatus('idle');

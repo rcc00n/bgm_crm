@@ -220,12 +220,38 @@ def inject_preview_helpers(
   body.pagecopy-layout-mode [data-layout-key]:hover {
     outline-color: rgba(56, 189, 248, 0.95);
   }
+
+  body a,
+  body.pagecopy-preview-frame a {
+    pointer-events: none;
+    cursor: default;
+  }
+
+  .pagecopy-layout-handle {
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 14px;
+    height: 14px;
+    background: #38bdf8;
+    border: 2px solid #0ea5e9;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.2);
+    cursor: se-resize;
+    display: none;
+  }
+
+  body.pagecopy-layout-mode [data-layout-key] .pagecopy-layout-handle {
+    display: block;
+  }
 </style>
 """
 
     script = """
 <script>
   (function() {
+    document.body.classList.add('pagecopy-preview-frame');
+
     const fields = Array.from(document.querySelectorAll('[data-copy-field]'));
     const saveUrl = __PAGECOPY_SAVE_URL__;
     const pagecopyMeta = __PAGECOPY_META__;
@@ -460,7 +486,7 @@ def inject_preview_helpers(
 
     const layoutConfig = __LAYOUT_CONFIG__;
     const layoutState = __LAYOUT_STATE__;
-    const layoutKeys = Object.keys(layoutConfig || {});
+    const sectionLayoutState = { desktop: {}, mobile: {} };
     const layoutNodes = new Map();
     let layoutModeActive = false;
     let currentMode = 'desktop';
@@ -471,18 +497,83 @@ def inject_preview_helpers(
       layoutState.mobile = layoutState.mobile || {};
       return layoutState[currentMode];
     };
+    const getSectionModeState = () => {
+      sectionLayoutState.desktop = sectionLayoutState.desktop || {};
+      sectionLayoutState.mobile = sectionLayoutState.mobile || {};
+      return sectionLayoutState[currentMode];
+    };
+
+    const parseNumber = (value) => {
+      const num = Number(value);
+      return Number.isFinite(num) ? Math.round(num) : 0;
+    };
+    const parseWidth = (value) => {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return null;
+      const width = Math.round(num);
+      return width > 0 ? width : null;
+    };
+
+    const ensureHandle = (node) => {
+      if (!node || node.querySelector('.pagecopy-layout-handle')) return;
+      const computed = window.getComputedStyle(node);
+      if (computed && computed.position === 'static') {
+        node.style.position = 'relative';
+      }
+      const handle = document.createElement('span');
+      handle.className = 'pagecopy-layout-handle';
+      handle.setAttribute('aria-hidden', 'true');
+      node.appendChild(handle);
+    };
+
+    const registerLayoutNodes = (key, nodes, meta) => {
+      if (!nodes || !nodes.length) return;
+      const kind = meta && meta.kind ? meta.kind : 'pagecopy';
+      const sectionId = meta && meta.sectionId ? meta.sectionId : null;
+      nodes.forEach(node => {
+        node.dataset.layoutKey = key;
+        node.dataset.layoutKind = kind;
+        if (sectionId) {
+          node.dataset.sectionId = sectionId;
+        }
+        ensureHandle(node);
+      });
+      layoutNodes.set(key, { nodes, kind, sectionId });
+    };
 
     const applyLayout = () => {
-      const state = getModeState();
-      layoutNodes.forEach((nodes, key) => {
+      layoutNodes.forEach((meta, key) => {
+        const state = meta.kind === 'section' ? getSectionModeState() : getModeState();
         const coords = state[key] || {};
         const x = Number(coords.x || 0);
         const y = Number(coords.y || 0);
-        nodes.forEach(node => {
+        const w = coords.w ? Number(coords.w) : null;
+        (meta.nodes || []).forEach(node => {
+          if (meta.kind === 'section') {
+            const isMobile = currentMode === 'mobile';
+            const xVar = isMobile ? '--layout-x-mobile' : '--layout-x';
+            const yVar = isMobile ? '--layout-y-mobile' : '--layout-y';
+            const wVar = isMobile ? '--layout-w-mobile' : '--layout-w';
+            node.style.setProperty(xVar, `${x}px`);
+            node.style.setProperty(yVar, `${y}px`);
+            if (w) {
+              node.style.setProperty(wVar, `${w}px`);
+            } else {
+              node.style.removeProperty(wVar);
+            }
+            node.style.transform = '';
+            node.style.width = '';
+            return;
+          }
           if (x || y) {
             node.style.transform = `translate3d(${x}px, ${y}px, 0)`;
           } else {
             node.style.transform = '';
+          }
+          if (w) {
+            node.style.width = `${w}px`;
+          } else {
+            node.style.width = '';
           }
         });
       });
@@ -509,48 +600,116 @@ def inject_preview_helpers(
       }
     };
 
+    const syncSectionLayoutState = (key) => {
+      const meta = layoutNodes.get(key);
+      if (!meta || meta.kind !== 'section') return;
+      if (window.parent) {
+        const state = getSectionModeState()[key] || {};
+        window.parent.postMessage(
+          { type: 'pagecopy:section-layout', sectionId: meta.sectionId, mode: currentMode, layout: state },
+          '*'
+        );
+      }
+    };
+
+    const syncAllSectionLayoutState = () => {
+      layoutNodes.forEach((meta, key) => {
+        if (meta.kind === 'section') {
+          syncSectionLayoutState(key);
+        }
+      });
+    };
+
     const resetLayout = (scope) => {
       if (scope === 'all') {
         layoutState.desktop = {};
         layoutState.mobile = {};
+        sectionLayoutState.desktop = {};
+        sectionLayoutState.mobile = {};
       } else {
         layoutState[currentMode] = {};
+        sectionLayoutState[currentMode] = {};
       }
       applyLayout();
       syncLayoutState();
+      syncAllSectionLayoutState();
     };
 
-    if (layoutKeys.length) {
-      layoutKeys.forEach(key => {
-        const meta = layoutConfig[key] || {};
-        const selector = meta.selector || meta;
-        if (!selector) return;
-        const nodes = Array.from(document.querySelectorAll(selector));
-        if (!nodes.length) return;
-        nodes.forEach(node => {
-          node.dataset.layoutKey = key;
-        });
-        layoutNodes.set(key, nodes);
-      });
+    Object.keys(layoutConfig || {}).forEach(key => {
+      const meta = layoutConfig[key] || {};
+      const selector = meta.selector || meta;
+      if (!selector) return;
+      const nodes = Array.from(document.querySelectorAll(selector));
+      if (!nodes.length) return;
+      registerLayoutNodes(key, nodes, { kind: 'pagecopy' });
+    });
 
+    const sectionNodes = Array.from(document.querySelectorAll('[data-layout-section][data-section-id]'));
+    sectionNodes.forEach(node => {
+      const sectionId = node.dataset.sectionId;
+      if (!sectionId) return;
+      const key = `section-${sectionId}`;
+      registerLayoutNodes(key, [node], { kind: 'section', sectionId });
+      const desktop = {
+        x: parseNumber(node.dataset.layoutX),
+        y: parseNumber(node.dataset.layoutY),
+        w: parseWidth(node.dataset.layoutW),
+      };
+      const mobile = {
+        x: parseNumber(node.dataset.layoutXMobile),
+        y: parseNumber(node.dataset.layoutYMobile),
+        w: parseWidth(node.dataset.layoutWMobile),
+      };
+      if (desktop.x || desktop.y || desktop.w) {
+        sectionLayoutState.desktop[key] = desktop;
+      }
+      if (mobile.x || mobile.y || mobile.w) {
+        sectionLayoutState.mobile[key] = mobile;
+      }
+    });
+
+    if (layoutNodes.size) {
       applyLayout();
 
       let dragKey = null;
+      let dragMeta = null;
       let dragStartX = 0;
       let dragStartY = 0;
       let originX = 0;
       let originY = 0;
+      let resizeKey = null;
+      let resizeMeta = null;
+      let resizeStartX = 0;
+      let resizeStartWidth = 0;
 
       const onPointerDown = (event) => {
         if (!layoutModeActive) return;
         if (event.button && event.button !== 0) return;
+        const handle = event.target.closest('.pagecopy-layout-handle');
+        if (handle) {
+          const target = handle.closest('[data-layout-key]');
+          if (!target) return;
+          const key = target.dataset.layoutKey;
+          const meta = layoutNodes.get(key);
+          if (!meta) return;
+          event.preventDefault();
+          resizeKey = key;
+          resizeMeta = meta;
+          resizeStartX = event.clientX;
+          resizeStartWidth = target.getBoundingClientRect().width;
+          target.setPointerCapture(event.pointerId);
+          return;
+        }
+
         const target = event.target.closest('[data-layout-key]');
         if (!target) return;
         const key = target.dataset.layoutKey;
-        if (!key || !layoutNodes.has(key)) return;
+        const meta = layoutNodes.get(key);
+        if (!meta) return;
         event.preventDefault();
         dragKey = key;
-        const state = getModeState();
+        dragMeta = meta;
+        const state = meta.kind === 'section' ? getSectionModeState() : getModeState();
         const coords = state[key] || {};
         originX = Number(coords.x || 0);
         originY = Number(coords.y || 0);
@@ -560,22 +719,53 @@ def inject_preview_helpers(
       };
 
       const onPointerMove = (event) => {
-        if (!layoutModeActive || !dragKey) return;
+        if (!layoutModeActive) return;
+        if (resizeKey && resizeMeta) {
+          event.preventDefault();
+          const dx = event.clientX - resizeStartX;
+          const nextW = Math.max(160, Math.round(resizeStartWidth + dx));
+          const state = resizeMeta.kind === 'section' ? getSectionModeState() : getModeState();
+          const coords = state[resizeKey] || {};
+          state[resizeKey] = { x: coords.x || 0, y: coords.y || 0, w: nextW };
+          applyLayout();
+          return;
+        }
+        if (!dragKey || !dragMeta) return;
         event.preventDefault();
         const dx = event.clientX - dragStartX;
         const dy = event.clientY - dragStartY;
         const nextX = Math.round(originX + dx);
         const nextY = Math.round(originY + dy);
-        const state = getModeState();
-        state[dragKey] = { x: nextX, y: nextY };
+        const state = dragMeta.kind === 'section' ? getSectionModeState() : getModeState();
+        const coords = state[dragKey] || {};
+        state[dragKey] = { x: nextX, y: nextY, w: coords.w || null };
         applyLayout();
       };
 
       const onPointerUp = (event) => {
-        if (!layoutModeActive || !dragKey) return;
+        if (!layoutModeActive) return;
+        if (resizeKey && resizeMeta) {
+          event.preventDefault();
+          const key = resizeKey;
+          resizeKey = null;
+          resizeMeta = null;
+          if (layoutNodes.get(key)?.kind === 'section') {
+            syncSectionLayoutState(key);
+          } else {
+            syncLayoutState();
+          }
+          return;
+        }
+        if (!dragKey || !dragMeta) return;
         event.preventDefault();
+        const key = dragKey;
         dragKey = null;
-        syncLayoutState();
+        dragMeta = null;
+        if (layoutNodes.get(key)?.kind === 'section') {
+          syncSectionLayoutState(key);
+        } else {
+          syncLayoutState();
+        }
       };
 
       document.addEventListener('pointerdown', onPointerDown);

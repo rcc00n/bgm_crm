@@ -2071,6 +2071,10 @@ class PageCopyAdminMixin(admin.ModelAdmin):
                 obj = None
         extra_context["pagecopy_preview_url"] = preview_url
         extra_context["pagecopy_draft_data"] = self._get_draft_data(obj)
+        try:
+            extra_context["page_section_layout_save_url"] = reverse("admin-pagecopy-save-section-layout")
+        except Exception:
+            extra_context["page_section_layout_save_url"] = None
         font_page = PAGECOPY_FONT_PAGES.get(self.model)
         if font_page:
             extra_context["page_font_page"] = font_page

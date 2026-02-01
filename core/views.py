@@ -43,6 +43,7 @@ from core.models import (
     PageFontSetting,
     PageCopyDraft,
     FontPreset,
+    PageSection,
     LandingPageReview,
     PromoCode,
     SiteNoticeSignup,
@@ -169,6 +170,82 @@ def admin_pagecopy_save_field(request):
     draft.save(update_fields=["data", "updated_at"])
 
     return JsonResponse({"ok": True, "draft": True, "field": field_name, "value": value})
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
+def admin_pagecopy_save_section_layout(request):
+    payload = {}
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            payload = {}
+    if not payload:
+        payload = request.POST.dict()
+
+    section_id = payload.get("section_id") or payload.get("sectionId")
+    mode = (payload.get("mode") or "desktop").strip().lower()
+    layout = payload.get("layout") or {}
+
+    if not section_id:
+        return JsonResponse({"ok": False, "error": "Missing section id."}, status=400)
+
+    try:
+        section_id = int(section_id)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "Invalid section id."}, status=400)
+
+    if mode not in {"desktop", "mobile"}:
+        mode = "desktop"
+
+    if not request.user.has_perm("core.change_pagesection"):
+        raise PermissionDenied
+
+    section = PageSection.objects.filter(pk=section_id).first()
+    if not section:
+        return JsonResponse({"ok": False, "error": "Section not found."}, status=404)
+
+    if not isinstance(layout, dict):
+        layout = {}
+
+    def _coerce_int(value, default=0):
+        try:
+            return int(round(float(value)))
+        except Exception:
+            return default
+
+    def _coerce_width(value):
+        if value is None or value == "":
+            return None
+        try:
+            width = int(round(float(value)))
+        except Exception:
+            return None
+        return width if width > 0 else None
+
+    next_state = {
+        "x": _coerce_int(layout.get("x", 0)),
+        "y": _coerce_int(layout.get("y", 0)),
+        "w": _coerce_width(layout.get("w")),
+    }
+
+    overrides = section.layout_overrides if isinstance(section.layout_overrides, dict) else {}
+    if "desktop" not in overrides:
+        overrides["desktop"] = {}
+    if "mobile" not in overrides:
+        overrides["mobile"] = {}
+
+    if next_state["x"] or next_state["y"] or next_state["w"]:
+        overrides[mode] = next_state
+    else:
+        overrides[mode] = {}
+
+    section.layout_overrides = overrides
+    section.save(update_fields=["layout_overrides", "updated_at"])
+
+    return JsonResponse({"ok": True, "section_id": section.pk, "mode": mode, "layout": overrides.get(mode, {})})
 
 
 @staff_member_required

@@ -35,6 +35,11 @@ urlpatterns = [
         name="admin-pagecopy-save-fonts",
     ),
     path(
+        "admin/pagecopy/save-section-layout/",
+        admin.site.admin_view(core_views.admin_pagecopy_save_section_layout),
+        name="admin-pagecopy-save-section-layout",
+    ),
+    path(
         "admin/pagecopy/upload-font/",
         admin.site.admin_view(core_views.admin_pagecopy_upload_font),
         name="admin-pagecopy-upload-font",
