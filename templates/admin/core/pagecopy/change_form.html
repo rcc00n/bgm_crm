@@ -407,7 +407,7 @@
   {{ pagecopy_draft_data|json_script:"pagecopyDraftData" }}
   {% if page_font_page %}
     {{ page_font_page|json_script:"pagecopyFontPage" }}
-    {{ page_font_styles|default:{}|json_script:"pagecopyFontStyles" }}
+    {{ page_font_styles|json_script:"pagecopyFontStyles" }}
   {% endif %}
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script>
