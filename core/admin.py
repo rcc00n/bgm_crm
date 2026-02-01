@@ -1993,6 +1993,8 @@ class PageCopyAdminMixin(admin.ModelAdmin):
             return {}
         content_type = ContentType.objects.get_for_model(obj.__class__)
         draft = PageCopyDraft.objects.filter(content_type=content_type, object_id=obj.pk).first()
+        if not draft:
+            return {}
         return draft.data or {}
 
     def get_urls(self):
