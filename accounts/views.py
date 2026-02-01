@@ -462,6 +462,7 @@ from core.models import ServiceCategory, Service
 # accounts/views.py (или где у вас HomeView)
 from django.views.generic import TemplateView
 from core.models import Service, ServiceCategory, HomePageCopy, ProjectJournalEntry   # ваши модели услуг
+from core.services.page_layout import build_layout_styles
 from store.models import Product                    # товары
 
 
@@ -533,6 +534,7 @@ class HomeView(TemplateView):
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
         home_copy = HomePageCopy.get_solo()
         ctx["home_copy"] = home_copy
+        ctx["layout_styles"] = build_layout_styles(HomePageCopy, home_copy.layout_overrides)
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]

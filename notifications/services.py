@@ -33,6 +33,11 @@ class TelegramConfigurationError(Exception):
     """Raised when Telegram bot actions are requested without valid settings."""
 
 
+# Lead digests are limited to 3pm and 9pm local time to avoid spam.
+LEAD_DIGEST_HOURS_LOCAL = (15, 21)
+LEAD_DIGEST_CACHE_TTL = 60 * 60 * 48
+
+
 def build_bot(settings_obj: TelegramBotSettings | None = None) -> tuple[TeleBot, TelegramBotSettings]:
     settings_obj = settings_obj or TelegramBotSettings.load_active()
     if not settings_obj:
@@ -90,6 +95,18 @@ def _format_digest_counts(items: dict[str, int], limit: int = 3) -> str:
     return ", ".join(f"{label} ({count})" for label, count in ordered)
 
 
+def _lead_digest_slot(now_local: timezone.datetime) -> timezone.datetime | None:
+    for hour in sorted(LEAD_DIGEST_HOURS_LOCAL, reverse=True):
+        slot_dt = now_local.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if now_local >= slot_dt:
+            return slot_dt
+    return None
+
+
+def _lead_digest_slot_key(slot_dt: timezone.datetime) -> str:
+    return slot_dt.strftime("%Y-%m-%d-%H")
+
+
 def queue_lead_digest(
     *,
     form_type: str,
@@ -99,7 +116,7 @@ def queue_lead_digest(
     interval_seconds: int = 300,
 ) -> None:
     """
-    Aggregate noisy lead alerts and emit a compact digest every interval.
+    Aggregate noisy lead alerts and emit a compact digest at 3pm/9pm local time.
     """
     cache_key = f"tg:lead_digest:{form_type}"
     now = timezone.now()
@@ -109,6 +126,7 @@ def queue_lead_digest(
         "suspected": 0,
         "ips": {},
         "asns": {},
+        "last_sent_slot": "",
     }
 
     state["total"] = int(state.get("total") or 0) + 1
@@ -131,9 +149,15 @@ def queue_lead_digest(
             started_at = timezone.datetime.fromisoformat(started_at)
         except Exception:
             started_at = now
+    if timezone.is_naive(started_at):
+        started_at = timezone.make_aware(started_at, timezone.get_default_timezone())
 
-    elapsed = (now - started_at).total_seconds()
-    if elapsed >= interval_seconds:
+    slot_dt = _lead_digest_slot(localtime(now))
+    slot_key = _lead_digest_slot_key(slot_dt) if slot_dt else ""
+    last_sent_slot = state.get("last_sent_slot") or ""
+
+    if slot_dt and slot_key and slot_key != last_sent_slot:
+        elapsed = (now - started_at).total_seconds()
         total = int(state.get("total") or 0)
         suspected = int(state.get("suspected") or 0)
         top_ips = _format_digest_counts(state.get("ips") or {})
@@ -161,9 +185,11 @@ def queue_lead_digest(
             "suspected": 0,
             "ips": {},
             "asns": {},
+            "last_sent_slot": slot_key,
         }
 
-    cache.set(cache_key, state, timeout=interval_seconds * 4)
+    cache_timeout = max(interval_seconds * 4, LEAD_DIGEST_CACHE_TTL)
+    cache.set(cache_key, state, timeout=cache_timeout)
 
 
 def notify_about_appointment(appointment_id) -> int:

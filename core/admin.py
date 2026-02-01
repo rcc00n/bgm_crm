@@ -1830,6 +1830,22 @@ HOME_HERO_CAROUSEL_SLOTS = (
 
 
 class HomePageCopyAdminForm(forms.ModelForm):
+    hero_main_image = forms.ImageField(
+        required=False,
+        label="Hero background image",
+        help_text="Default hero image (used when no carousel slides are set).",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_main_alt_text = forms.CharField(
+        required=False,
+        label="Hero background alt text",
+        max_length=160,
+    )
+    hero_main_caption = forms.CharField(
+        required=False,
+        label="Hero background caption",
+        max_length=160,
+    )
     hero_carousel_1_image = forms.ImageField(
         required=False,
         label="Carousel slide 1 image",
@@ -1898,12 +1914,25 @@ class HomePageCopyAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if "layout_overrides" in self.fields:
+            self.fields["layout_overrides"].required = False
+            self.fields["layout_overrides"].widget = forms.HiddenInput()
         locations = [slot[1] for slot in HOME_HERO_CAROUSEL_SLOTS]
         try:
             assets = HeroImage.objects.filter(location__in=locations)
         except Exception:
             assets = []
         asset_map = {asset.location: asset for asset in assets}
+
+        try:
+            hero_asset = HeroImage.objects.filter(location=HeroImage.Location.HOME).first()
+        except Exception:
+            hero_asset = None
+        if hero_asset and getattr(hero_asset, "image", None):
+            self.fields["hero_main_image"].initial = hero_asset.image
+        if hero_asset:
+            self.fields["hero_main_alt_text"].initial = hero_asset.alt_text
+            self.fields["hero_main_caption"].initial = hero_asset.caption
 
         for prefix, location, label in HOME_HERO_CAROUSEL_SLOTS:
             asset = asset_map.get(location)
@@ -1915,6 +1944,31 @@ class HomePageCopyAdminForm(forms.ModelForm):
             if asset:
                 self.fields[alt_field].initial = asset.alt_text
                 self.fields[caption_field].initial = asset.caption
+
+    def save_hero_asset(self):
+        image_value = self.cleaned_data.get("hero_main_image")
+        alt_text = (self.cleaned_data.get("hero_main_alt_text") or "").strip()
+        caption = (self.cleaned_data.get("hero_main_caption") or "").strip()
+
+        has_new_image = image_value not in (None, False)
+        has_any_value = has_new_image or alt_text or caption
+        asset = HeroImage.objects.filter(location=HeroImage.Location.HOME).first()
+        if not asset and not has_any_value:
+            return
+        if not asset:
+            asset = HeroImage(location=HeroImage.Location.HOME)
+
+        if image_value is False:
+            asset.image = None
+        elif image_value:
+            asset.image = image_value
+
+        asset.alt_text = alt_text
+        asset.caption = caption
+        if not asset.title:
+            asset.title = "Home hero"
+        asset.is_active = bool(asset.image)
+        asset.save()
 
     def save_carousel_assets(self):
         locations = [slot[1] for slot in HOME_HERO_CAROUSEL_SLOTS]
@@ -1997,7 +2051,21 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "hero_lead",
                 "hero_primary_cta_label",
                 "hero_secondary_cta_label",
+                "hero_background_asset",
             )
+        }),
+        ("Hero background", {
+            "fields": (
+                "hero_main_image",
+                "hero_main_alt_text",
+                "hero_main_caption",
+            ),
+            "description": "Default hero image used when the carousel is empty. If any carousel slide is set, it overrides this background.",
+        }),
+        ("Layout overrides", {
+            "fields": ("layout_overrides",),
+            "description": "Hidden layout data for the page builder.",
+            "classes": ("layout-overrides",),
         }),
         ("Hero carousel", {
             "fields": (
@@ -2193,6 +2261,8 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
+        if hasattr(form, "save_hero_asset"):
+            form.save_hero_asset()
         if hasattr(form, "save_carousel_assets"):
             form.save_carousel_assets()
 
@@ -3809,6 +3879,41 @@ class HeroImageAdmin(admin.ModelAdmin):
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
 
+
+@admin.register(BackgroundAsset)
+class BackgroundAssetAdmin(admin.ModelAdmin):
+    list_display = ("title", "is_active", "updated_at", "image_preview")
+    list_editable = ("is_active",)
+    search_fields = ("title", "alt_text", "caption")
+    list_filter = ("is_active",)
+    readonly_fields = ("image_preview", "created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("title", "is_active")}),
+        ("Media", {"fields": ("image", "image_preview", "alt_text", "caption")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+
+@admin.register(SiteBackgroundSettings)
+class SiteBackgroundSettingsAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("default_background",)}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="Settings")
+    def label(self, obj):
+        return "Site background"
+
+    def has_add_permission(self, request):
+        if SiteBackgroundSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 @admin.register(ServiceLead)
 class ServiceLeadAdmin(admin.ModelAdmin):

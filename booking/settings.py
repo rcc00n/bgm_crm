@@ -472,6 +472,13 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "label": "Analytics",
                 "icon": "fas fa-chart-line",
                 "items": [
+                    {
+                        "label": "Insights",
+                        "url": "admin-analytics-insights",
+                        "icon": "fas fa-chart-pie",
+                        "active_patterns": ["admin-analytics-insights"],
+                        "permissions": ["core.view_visitorsession"],
+                    },
                     {"model": "core.VisitorSession", "label": "Visitor Sessions"},
                     {"model": "core.PageView", "label": "Page Views"},
                 ],

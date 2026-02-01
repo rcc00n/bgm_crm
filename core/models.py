@@ -233,6 +233,91 @@ class LegalPage(models.Model):
         return reverse("legal-page", kwargs={"slug": self.slug})
 
 
+class BackgroundAsset(models.Model):
+    """
+    Reusable background image that can be applied across multiple pages.
+    """
+    title = models.CharField(max_length=120, blank=True)
+    image = models.ImageField(
+        upload_to="backgrounds/",
+        blank=True,
+        null=True,
+        help_text="Upload a background image (webp/jpg recommended).",
+    )
+    alt_text = models.CharField(
+        max_length=160,
+        blank=True,
+        help_text="Accessible description shown to screen readers.",
+    )
+    caption = models.CharField(
+        max_length=160,
+        blank=True,
+        help_text="Optional short line rendered under the hero image.",
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Background asset"
+        verbose_name_plural = "Background assets"
+        ordering = ["-updated_at"]
+
+    def __str__(self) -> str:
+        return self.title or f"Background {self.pk}"
+
+    def image_preview(self):
+        if self.image:
+            from django.utils.html import format_html
+            try:
+                return format_html(
+                    '<img src="{}" style="height:60px;border-radius:8px;object-fit:cover;">',
+                    self.image.url,
+                )
+            except Exception:
+                return "—"
+        return "—"
+    image_preview.short_description = "Preview"
+
+
+class SiteBackgroundSettings(models.Model):
+    """
+    Singleton for controlling a global background applied across the site.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    default_background = models.ForeignKey(
+        BackgroundAsset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="site_defaults",
+        help_text="If set, overrides page-specific hero backgrounds across the site.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Site background"
+        verbose_name_plural = "Site backgrounds"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Site background"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
+def default_home_layout_overrides() -> dict:
+    return {"desktop": {}, "mobile": {}}
+
+
 class HomePageCopy(models.Model):
     """
     Editable static text for the public home page.
@@ -352,6 +437,21 @@ class HomePageCopy(models.Model):
     hero_stat_2_subtitle = models.CharField(max_length=80, default="no cookie‑cutter kits")
     hero_stat_3_title = models.CharField(max_length=60, default="24/7")
     hero_stat_3_subtitle = models.CharField(max_length=80, default="Book online fast quotes")
+
+    hero_background_asset = models.ForeignKey(
+        BackgroundAsset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="home_pages",
+        help_text="Optional background from the library (overrides the uploaded hero background).",
+    )
+
+    layout_overrides = models.JSONField(
+        default=default_home_layout_overrides,
+        blank=True,
+        help_text="Manual layout offsets for hero elements (page builder).",
+    )
 
     hero_mobile_action_1_title = models.CharField(max_length=60, default="Book a Service")
     hero_mobile_action_1_subtitle = models.CharField(max_length=80, default="Pick date & time")

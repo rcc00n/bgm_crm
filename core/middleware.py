@@ -162,6 +162,11 @@ class AdminSidebarSeenMiddleware(MiddlewareMixin):
                             model_name = rest[: -len(suffix_token)]
                             break
         if not app_label or not model_name:
+            segments = [segment for segment in path.strip("/").split("/") if segment]
+            if len(segments) >= 3 and segments[0] == "admin":
+                app_label = app_label or segments[1]
+                model_name = model_name or segments[2]
+        if not app_label or not model_name:
             return None
 
         has_access = any(

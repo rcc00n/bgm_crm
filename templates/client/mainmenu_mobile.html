@@ -410,8 +410,7 @@
         </div>
         <div class="field">
           <label for="bookTime">{{ services_copy.booking_available_times_label }}</label>
-          <input id="bookTime" type="time" list="bookTimeList">
-          <datalist id="bookTimeList"></datalist>
+          <select id="bookTime"></select>
         </div>
       </div>
       <div class="status" id="bookingStatus">{{ services_copy.booking_mobile_pick_day_label }}</div>
@@ -499,6 +498,7 @@
         summaryStaffPrefix: "{{ services_copy.booking_summary_staff_prefix|escapejs }}",
         summaryTimePrefix: "{{ services_copy.booking_summary_time_prefix|escapejs }}",
         summaryTimeSelected: "{{ services_copy.booking_summary_time_selected_label|escapejs }}",
+        chooseTimeLabel: "{{ services_copy.booking_choose_time_label|escapejs }}",
         noStaffLabel: "{{ services_copy.booking_no_staff_label|escapejs }}",
         noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
         noOpenTimesOnPrefix: "{{ services_copy.booking_no_open_times_on_prefix|escapejs }}",
@@ -518,7 +518,6 @@
       const elMaster = document.getElementById('bookMaster');
       const elDate = document.getElementById('bookDate');
       const elTime = document.getElementById('bookTime');
-      const elTimeList = document.getElementById('bookTimeList');
       const elSummary = document.getElementById('bookSummary');
       const elStatus = document.getElementById('bookingStatus');
       const elError = document.getElementById('bookError');
@@ -576,6 +575,13 @@
       }
       function fmtHM(d){
         return d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+      }
+      function formatTimeLabel(value){
+        const bits = (value || '').split(':').map(n=>parseInt(n,10));
+        if (bits.length !== 2 || bits.some(n=>Number.isNaN(n))) return value || '';
+        const d = new Date();
+        d.setHours(bits[0], bits[1], 0, 0);
+        return fmtHM(d);
       }
 
       function contactIsComplete(){
@@ -642,24 +648,24 @@
       }
 
       function renderTimeOptions(times){
-        elTimeList.innerHTML = '';
+        elTime.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = copy.chooseTimeLabel || copy.pickDayLabel;
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        elTime.appendChild(placeholder);
+        if (!times.length){
+          elTime.disabled = true;
+          return;
+        }
         times.forEach(t=>{
           const opt = document.createElement('option');
           opt.value = t;
-          elTimeList.appendChild(opt);
+          opt.textContent = formatTimeLabel(t);
+          elTime.appendChild(opt);
         });
-        if (!times.length){
-          elTime.value = '';
-          elTime.disabled = true;
-          elTime.min = '';
-          elTime.max = '';
-          elTime.step = '';
-          return;
-        }
         elTime.disabled = false;
-        elTime.min = times[0];
-        elTime.max = times[times.length - 1];
-        elTime.step = '60';
       }
 
       function syncSummary(){
@@ -674,6 +680,13 @@
       }
 
       function applyTimeValue(timeValue){
+        if (!timeValue){
+          state.slotIso = null;
+          setSummaryDefault();
+          setStatus(copy.chooseTimeLabel, false);
+          updateSubmitState();
+          return;
+        }
         const iso = state.timeMap.get(timeValue);
         if (!iso){
           state.slotIso = null;
@@ -719,6 +732,11 @@
             setStatus(`${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`, true);
             return;
           }
+          if (times.length === 1){
+            elTime.value = times[0];
+            applyTimeValue(times[0]);
+            return;
+          }
           setStatus('', false);
         }catch(err){
           setStatus(err.message || copy.availabilityErrorLabel, true);
@@ -737,6 +755,11 @@
         renderTimeOptions(times);
         if (!times.length){
           setStatus(copy.noOpenTimesLabel, true);
+          return;
+        }
+        if (times.length === 1){
+          elTime.value = times[0];
+          applyTimeValue(times[0]);
           return;
         }
         setStatus('', false);

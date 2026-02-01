@@ -57,7 +57,11 @@ from core.services.media import (
     build_performance_tuning_media,
 )
 from core.services.lead_security import evaluate_lead_submission, log_lead_submission
-from core.services.analytics import summarize_staff_usage_periods
+from core.services.analytics import (
+    summarize_staff_usage_periods,
+    summarize_staff_action_history,
+    summarize_web_analytics_insights,
+)
 from notifications.services import (
     notify_about_service_lead,
     notify_about_site_notice_signup,
@@ -287,15 +291,63 @@ def admin_staff_usage(request):
     if is_master:
         raise PermissionDenied
 
+    page_raw = request.GET.get("page")
+    per_page_raw = request.GET.get("per_page")
+    try:
+        page = int(page_raw or 1)
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(per_page_raw or 50)
+    except (TypeError, ValueError):
+        per_page = 50
+
     staff_usage_periods = summarize_staff_usage_periods(windows=[1, 7, 30])
+    staff_action_history = summarize_staff_action_history(
+        window_days=30,
+        page=page,
+        per_page=per_page,
+    )
     context = admin.site.each_context(request)
     context.update(
         {
             "title": "Staff time tracking",
             "staff_usage_periods": staff_usage_periods,
+            "staff_action_history": staff_action_history,
         }
     )
     return TemplateResponse(request, "admin/staff_usage.html", context)
+
+
+def admin_web_analytics_insights(request):
+    user = request.user
+    is_master = user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
+    if is_master:
+        raise PermissionDenied
+
+    window_raw = request.GET.get("window") or ""
+    try:
+        window_days = int(window_raw)
+    except (TypeError, ValueError):
+        window_days = 30
+    window_days = max(1, min(window_days, 90))
+
+    analytics_summary = summarize_web_analytics_insights(
+        window_days=window_days,
+        host=request.get_host(),
+        include_admin=False,
+    )
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Web analytics insights",
+            "analytics": analytics_summary,
+            "window_days": analytics_summary.get("window_days", window_days),
+            "window_options": [1, 7, 30, 60, 90],
+        }
+    )
+    return TemplateResponse(request, "admin/analytics_insights.html", context)
 
 # ===== API =====
 

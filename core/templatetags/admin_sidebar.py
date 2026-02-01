@@ -209,6 +209,8 @@ def _apply_notification_state(sidebar: List[Dict[str, Any]], user) -> None:
                     group_has_unseen = True
             group["has_unseen"] = group_has_unseen
             if group_has_unseen:
+                group["is_open"] = True
+            if group_has_unseen:
                 section_has_unseen = True
         section["has_unseen"] = section_has_unseen
 

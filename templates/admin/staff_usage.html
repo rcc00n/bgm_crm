@@ -74,6 +74,82 @@
         </div>
       {% endif %}
     </section>
+
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Staff action history</div>
+      <div class="panel-subtitle">
+        Admin add/change/delete actions · last {{ staff_action_history.window_days }} days ·
+        {{ staff_action_history.total_count }} total · page {{ staff_action_history.page }} of {{ staff_action_history.total_pages }}
+      </div>
+
+      <div class="action-history-controls">
+        <div class="action-history-meta">Rows per page</div>
+        <div class="action-history-actions">
+          <a class="pill{% if staff_action_history.per_page == 25 %} active{% endif %}" href="?per_page=25&page=1">25</a>
+          <a class="pill{% if staff_action_history.per_page == 50 %} active{% endif %}" href="?per_page=50&page=1">50</a>
+        </div>
+      </div>
+
+      {% if staff_action_history.entries %}
+        <div class="table-scroll">
+          <table class="analytics-table staff-action-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Action</th>
+                <th>Object</th>
+                <th>Model</th>
+                <th>Details</th>
+                <th>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in staff_action_history.entries %}
+                <tr>
+                  <td>
+                    <strong>{{ entry.user_name }}</strong>
+                    {% if entry.user_email %}
+                      <div class="staff-usage-email">{{ entry.user_email }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="action-pill {{ entry.action_class }}">{{ entry.action_label }}</span>
+                  </td>
+                  <td>
+                    {% if entry.object_url %}
+                      <a href="{{ entry.object_url }}">{{ entry.object_repr }}</a>
+                    {% else %}
+                      {{ entry.object_repr }}
+                    {% endif %}
+                  </td>
+                  <td>{{ entry.model_label }}</td>
+                  <td>{{ entry.message }}</td>
+                  <td>{{ entry.action_time|date:"M d · H:i" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="action-history-pagination">
+          {% if staff_action_history.has_previous %}
+            <a class="page-link" href="?page={{ staff_action_history.prev_page }}&per_page={{ staff_action_history.per_page }}">Prev</a>
+          {% else %}
+            <span class="page-link disabled">Prev</span>
+          {% endif %}
+          <span class="page-status">Page {{ staff_action_history.page }} of {{ staff_action_history.total_pages }}</span>
+          {% if staff_action_history.has_next %}
+            <a class="page-link" href="?page={{ staff_action_history.next_page }}&per_page={{ staff_action_history.per_page }}">Next</a>
+          {% else %}
+            <span class="page-link disabled">Next</span>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <p>No admin activity logged yet.</p>
+        </div>
+      {% endif %}
+    </section>
   </div>
 </div>
 {% endblock %}

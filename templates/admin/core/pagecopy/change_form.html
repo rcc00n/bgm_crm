@@ -45,16 +45,34 @@
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pagecopy-preview__actions-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pagecopy-preview__actions .button.is-active {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #fff;
     }
 
     .pagecopy-preview__frame-wrap {
       margin-top: 16px;
       border-radius: 16px;
-      overflow: hidden;
+      overflow: auto;
       border: 1px solid rgba(15, 23, 42, 0.12);
       box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
       background: #0b0b0c;
       min-height: 70vh;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
     }
 
     .pagecopy-preview__frame {
@@ -63,10 +81,23 @@
       border: 0;
       display: block;
       background: #0b0b0c;
+      border-radius: 12px;
     }
 
     .pagecopy-preview__frame.is-loading {
       opacity: 0.6;
+    }
+
+    .pagecopy-preview__frame-wrap[data-preview-mode="desktop"] .pagecopy-preview__frame {
+      width: 1280px;
+      height: min(820px, 80vh);
+    }
+
+    .pagecopy-preview__frame-wrap[data-preview-mode="mobile"] .pagecopy-preview__frame {
+      width: 390px;
+      height: min(780px, 80vh);
+      border-radius: 24px;
+      box-shadow: 0 20px 44px rgba(15, 23, 42, 0.4);
     }
 
     .pagecopy-preview__fallback {
@@ -78,6 +109,15 @@
     @media (max-width: 768px) {
       .pagecopy-preview__frame {
         height: 70vh;
+      }
+    }
+
+    @media (min-width: 992px) {
+      body.pagecopy-preview .submit-row,
+      body.pagecopy-preview .object-tools {
+        position: sticky;
+        top: 16px;
+        z-index: 10;
       }
     }
   </style>
@@ -92,10 +132,20 @@
         <p class="help">Edit in the form or click text directly on the page. Layout + styling match the live site.</p>
       </div>
       <div class="pagecopy-preview__actions">
-        <button type="button" class="button" data-pagecopy-refresh>Refresh preview</button>
-        {% if pagecopy_preview_url %}
-          <a class="button" href="{{ pagecopy_preview_url }}" target="_blank" rel="noopener">Open preview</a>
-        {% endif %}
+        <div class="pagecopy-preview__actions-group">
+          <button type="button" class="button" data-pagecopy-refresh>Refresh preview</button>
+          {% if pagecopy_preview_url %}
+            <a class="button" href="{{ pagecopy_preview_url }}" target="_blank" rel="noopener">Open preview</a>
+          {% endif %}
+        </div>
+        <div class="pagecopy-preview__actions-group">
+          <button type="button" class="button" data-pagecopy-mode="desktop">Desktop</button>
+          <button type="button" class="button" data-pagecopy-mode="mobile">Mobile</button>
+        </div>
+        <div class="pagecopy-preview__actions-group">
+          <button type="button" class="button" data-pagecopy-layout-toggle>Move elements</button>
+          <button type="button" class="button" data-pagecopy-layout-reset>Reset positions</button>
+        </div>
       </div>
     </div>
     <div class="pagecopy-preview__frame-wrap">
@@ -116,6 +166,11 @@
       const form = document.querySelector('#content-main form');
       const frame = document.querySelector('[data-pagecopy-preview-frame]');
       const refreshButton = document.querySelector('[data-pagecopy-refresh]');
+      const frameWrap = document.querySelector('.pagecopy-preview__frame-wrap');
+      const modeButtons = Array.from(document.querySelectorAll('[data-pagecopy-mode]'));
+      const layoutToggle = document.querySelector('[data-pagecopy-layout-toggle]');
+      const layoutReset = document.querySelector('[data-pagecopy-layout-reset]');
+      const layoutField = form ? form.querySelector('[name="layout_overrides"]') : null;
       if (!form || !frame) return;
 
       const previewUrl = frame.dataset.previewUrl;
@@ -125,6 +180,48 @@
       let renderInFlight = false;
       let pendingRender = false;
       let suppressRender = false;
+      let currentMode = 'desktop';
+      let layoutActive = false;
+
+      if (!layoutField) {
+        if (layoutToggle) layoutToggle.style.display = 'none';
+        if (layoutReset) layoutReset.style.display = 'none';
+      }
+
+      const resolveInitialMode = () => {
+        const stored = window.localStorage ? window.localStorage.getItem('pagecopy.preview.mode') : null;
+        if (stored === 'desktop' || stored === 'mobile') return stored;
+        return window.innerWidth >= 1100 ? 'desktop' : 'mobile';
+      };
+
+      const syncFrameState = () => {
+        if (!frame.contentWindow) return;
+        frame.contentWindow.postMessage({ type: 'pagecopy:mode', mode: currentMode }, '*');
+        frame.contentWindow.postMessage({ type: 'pagecopy:layout-mode', active: layoutActive }, '*');
+      };
+
+      const setMode = (mode) => {
+        currentMode = mode === 'mobile' ? 'mobile' : 'desktop';
+        if (frameWrap) {
+          frameWrap.dataset.previewMode = currentMode;
+        }
+        modeButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.pagecopyMode === currentMode);
+        });
+        if (window.localStorage) {
+          window.localStorage.setItem('pagecopy.preview.mode', currentMode);
+        }
+        syncFrameState();
+      };
+
+      const setLayoutActive = (active) => {
+        layoutActive = !!active;
+        if (layoutToggle) {
+          layoutToggle.classList.toggle('is-active', layoutActive);
+          layoutToggle.setAttribute('aria-pressed', layoutActive ? 'true' : 'false');
+        }
+        syncFrameState();
+      };
 
       const safeEscape = (value) => {
         if (window.CSS && typeof CSS.escape === 'function') {
@@ -221,12 +318,45 @@
 
         if (data.type === 'pagecopy:blur') {
           scheduleRender(200);
+          return;
+        }
+
+        if (data.type === 'pagecopy:layout') {
+          if (!layoutField) return;
+          const payload = data.layout || {};
+          suppressRender = true;
+          layoutField.value = JSON.stringify(payload);
+          suppressRender = false;
         }
       });
 
       if (refreshButton) {
         refreshButton.addEventListener('click', () => renderPreview());
       }
+
+      modeButtons.forEach((button) => {
+        button.addEventListener('click', () => setMode(button.dataset.pagecopyMode));
+      });
+
+      if (layoutToggle) {
+        layoutToggle.addEventListener('click', () => setLayoutActive(!layoutActive));
+      }
+
+      if (layoutReset) {
+        layoutReset.addEventListener('click', () => {
+          const payload = { desktop: {}, mobile: {} };
+          if (layoutField) {
+            layoutField.value = JSON.stringify(payload);
+          }
+          if (frame.contentWindow) {
+            frame.contentWindow.postMessage({ type: 'pagecopy:layout-reset', scope: 'all' }, '*');
+          }
+        });
+      }
+
+      frame.addEventListener('load', () => syncFrameState());
+      setMode(resolveInitialMode());
+      setLayoutActive(false);
 
       renderPreview();
     })();

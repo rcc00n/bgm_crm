@@ -29,6 +29,11 @@ urlpatterns = [
         admin.site.admin_view(core_views.admin_staff_usage),
         name="admin-staff-usage",
     ),
+    path(
+        "admin/analytics/insights/",
+        admin.site.admin_view(core_views.admin_web_analytics_insights),
+        name="admin-analytics-insights",
+    ),
     # Admin
     path("admin/", admin.site.urls),
 
