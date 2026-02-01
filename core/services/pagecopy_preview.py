@@ -1394,12 +1394,15 @@ def inject_preview_helpers(
 
     document.addEventListener('click', (event) => {
       if (!event || !event.target) return;
-      if (event.target.closest('.pagecopy-inspector')) return;
-      if (event.target.closest('.pagecopy-layout-handle')) return;
-      if (event.target.closest('.pagecopy-section-handle')) return;
+      const rawTarget = event.target;
+      const target = rawTarget.nodeType === 3 ? rawTarget.parentElement : rawTarget;
+      if (!target || !target.closest) return;
+      if (target.closest('.pagecopy-inspector')) return;
+      if (target.closest('.pagecopy-layout-handle')) return;
+      if (target.closest('.pagecopy-section-handle')) return;
       if (layoutModeActive) return;
-      const fieldNode = event.target.closest('[data-copy-field]');
-      const layoutNode = event.target.closest('[data-layout-key]');
+      const fieldNode = target.closest('[data-copy-field]');
+      const layoutNode = target.closest('[data-layout-key]');
       if (!fieldNode && !layoutNode) return;
       openInspector(event, fieldNode, layoutNode);
     });
