@@ -1,9 +1,11 @@
 from contextlib import contextmanager
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+from django.core import mail
+from django.test import SimpleTestCase, TestCase, override_settings
 
 from core import emails
+from core.models import EmailSendLog
 
 
 @contextmanager
@@ -114,3 +116,26 @@ class BuildEmailHtmlTests(SimpleTestCase):
         self.assertNotIn("Missing", html)
         self.assertIn("href=\"https://bgm.example\"", html)
         self.assertIn(">Visit<", html)
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class SendHtmlEmailTests(TestCase):
+    def test_send_html_email_logs_success(self):
+        emails.send_html_email(
+            subject="Test subject",
+            text_body="Hello",
+            html_body="<b>Hi</b>",
+            from_email="noreply@example.com",
+            recipient_list=["alice@example.com", "bob@example.com"],
+            email_type="order",
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        log = EmailSendLog.objects.get()
+        self.assertTrue(log.success)
+        self.assertEqual(log.email_type, "order")
+        self.assertEqual(log.subject, "Test subject")
+        self.assertEqual(log.from_email, "noreply@example.com")
+        self.assertEqual(log.recipients, ["alice@example.com", "bob@example.com"])
+        self.assertEqual(log.recipient_count, 2)
+        self.assertEqual(log.error_message, "")
