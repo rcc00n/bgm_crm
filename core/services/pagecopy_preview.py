@@ -9,8 +9,11 @@ from types import SimpleNamespace
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from django.contrib.auth.models import AnonymousUser
+from django.conf import settings
+from django.db import models
 from django.http import HttpRequest
 from django.template.loader import render_to_string
+from django.templatetags.static import static
 from django.utils.timezone import now
 from django.urls import reverse
 
@@ -28,6 +31,7 @@ from core.models import (
 )
 from core.services.fonts import build_page_font_context
 from core.services.page_layout import build_layout_styles, layout_config_for_model, normalize_layout_overrides
+from core.services.page_sections import get_page_sections
 
 TOKEN_START_RE = re.compile(r"\[\[\[PCF:([a-zA-Z0-9_]+)\]\]\]")
 TOKEN_END_RE = re.compile(r"\[\[\[/PCF:([a-zA-Z0-9_]+)\]\]\]")
@@ -92,7 +96,7 @@ def _match_token(text: str, index: int) -> Optional[Tuple[str, str, int]]:
     return None
 
 
-def _wrap_tokens_outside_tags(html_text: str) -> str:
+def _wrap_tokens_outside_tags(html_text: str, field_types: Optional[Dict[str, str]] = None) -> str:
     out = []
     in_tag = False
     quote: Optional[str] = None
@@ -107,8 +111,12 @@ def _wrap_tokens_outside_tags(html_text: str) -> str:
                 kind, field, end = token
                 if kind == "start":
                     field_attr = html.escape(field, quote=True)
+                    copy_type = (field_types or {}).get(field, "plain")
+                    copy_type_attr = html.escape(copy_type, quote=True)
                     out.append(
-                        f'<span data-copy-field="{field_attr}" contenteditable="true" spellcheck="false">'
+                        f'<span data-copy-field="{field_attr}" '
+                        f'data-copy-type="{copy_type_attr}" '
+                        f'contenteditable="true" spellcheck="false">'
                     )
                     stack.append(field)
                 else:
@@ -147,7 +155,7 @@ def _wrap_tokens_outside_tags(html_text: str) -> str:
     return "".join(out)
 
 
-def inject_preview_spans(html_text: str) -> str:
+def inject_preview_spans(html_text: str, field_types: Optional[Dict[str, str]] = None) -> str:
     parts = re.split(
         r"(<script\b.*?</script>|<style\b.*?</style>)",
         html_text,
@@ -158,7 +166,7 @@ def inject_preview_spans(html_text: str) -> str:
         if part.lower().startswith("<script") or part.lower().startswith("<style"):
             processed.append(TOKEN_MARK_RE.sub("", part))
         else:
-            processed.append(_wrap_tokens_outside_tags(part))
+            processed.append(_wrap_tokens_outside_tags(part, field_types=field_types))
     return "".join(processed)
 
 
@@ -167,11 +175,21 @@ def inject_preview_helpers(
     base_href: str,
     layout_config: Optional[Dict[str, Any]] = None,
     layout_overrides: Optional[Dict[str, Any]] = None,
+    save_url: Optional[str] = None,
+    pagecopy_meta: Optional[Dict[str, Any]] = None,
+    editor_config: Optional[Dict[str, Any]] = None,
+    editor_upload_url: Optional[str] = None,
+    editor_browse_url: Optional[str] = None,
 ) -> str:
     layout_config = layout_config or {}
     layout_overrides = normalize_layout_overrides(layout_overrides or {})
     layout_config_json = json.dumps(layout_config)
     layout_state_json = json.dumps(layout_overrides)
+    save_url_json = json.dumps(save_url or "")
+    pagecopy_meta_json = json.dumps(pagecopy_meta or {})
+    editor_config_json = json.dumps(editor_config or {})
+    editor_upload_url_json = json.dumps(editor_upload_url or "")
+    editor_browse_url_json = json.dumps(editor_browse_url or "")
 
     style = """
 <style>
@@ -209,45 +227,228 @@ def inject_preview_helpers(
 <script>
   (function() {
     const fields = Array.from(document.querySelectorAll('[data-copy-field]'));
+    const saveUrl = __PAGECOPY_SAVE_URL__;
+    const pagecopyMeta = __PAGECOPY_META__;
+    const editorConfig = __PAGECOPY_EDITOR_CONFIG__;
+    const editorUploadUrl = __PAGECOPY_EDITOR_UPLOAD_URL__;
+    const editorBrowseUrl = __PAGECOPY_EDITOR_BROWSE_URL__;
+    const canAutosave = !!(
+      saveUrl && pagecopyMeta && pagecopyMeta.model && pagecopyMeta.object_id
+    );
 
     const byField = {};
+    const editors = new Map();
+    const saveTimers = new Map();
+    const lastValues = new Map();
+    const savedValues = new Map();
+    let suppressEditorChange = false;
+    let pendingSaves = 0;
+    let hasError = false;
+
+    const notifyAutosave = (state, detail) => {
+      if (window.parent) {
+        window.parent.postMessage({ type: 'pagecopy:autosave', state, detail }, '*');
+      }
+    };
+
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) {
+        return decodeURIComponent(parts.pop().split(';').shift());
+      }
+      return '';
+    };
+
+    const readPlainValue = (node) => {
+      const htmlValue = (node.innerHTML || '').replace(/\r/g, '');
+      const normalized = htmlValue
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/(div|p|li|h[1-6])>/gi, '\n')
+        .replace(/<(div|p|li|h[1-6])[^>]*>/gi, '');
+      const temp = document.createElement('div');
+      temp.innerHTML = normalized;
+      let text = temp.textContent || '';
+      text = text.replace(/\u00a0/g, ' ');
+      return text;
+    };
+
+    const readRichValue = (node) => {
+      let htmlValue = node.innerHTML || '';
+      htmlValue = htmlValue.replace(/\r/g, '');
+      return htmlValue;
+    };
 
     const setNodeValue = (node, value) => {
-      const text = value == null ? '' : String(value);
-      const lines = text.split(/\n/);
-      node.textContent = '';
-      lines.forEach((line, idx) => {
-        if (idx) node.appendChild(document.createElement('br'));
-        node.appendChild(document.createTextNode(line));
+      const htmlValue = value == null ? '' : String(value);
+      const copyType = node.dataset.copyType || 'plain';
+      const editor = editors.get(node);
+      if (editor) {
+        suppressEditorChange = true;
+        editor.setData(htmlValue || '', {
+          callback: () => {
+            suppressEditorChange = false;
+          }
+        });
+        return;
+      }
+      if (copyType === 'rich') {
+        node.innerHTML = htmlValue;
+        return;
+      }
+      if (htmlValue.indexOf('<') === -1 && htmlValue.indexOf('&') === -1 && htmlValue.includes('\n')) {
+        const lines = htmlValue.split(/\n/);
+        node.textContent = '';
+        lines.forEach((line, idx) => {
+          if (idx) node.appendChild(document.createElement('br'));
+          node.appendChild(document.createTextNode(line));
+        });
+      } else {
+        node.textContent = htmlValue;
+      }
+    };
+
+    const updateAutosaveState = () => {
+      if (!canAutosave) return;
+      if (pendingSaves > 0) {
+        notifyAutosave('saving');
+      } else if (hasError) {
+        notifyAutosave('error');
+      } else {
+        notifyAutosave('saved');
+      }
+    };
+
+    const commitSave = (field, value) => {
+      if (!canAutosave) return;
+      if (lastValues.get(field) !== value) return;
+      if (savedValues.get(field) === value) {
+        updateAutosaveState();
+        return;
+      }
+      pendingSaves += 1;
+      updateAutosaveState();
+      const payload = {
+        model: pagecopyMeta.model,
+        object_id: pagecopyMeta.object_id,
+        field,
+        value,
+      };
+      fetch(saveUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error('Request failed');
+          return response.json();
+        })
+        .then(() => {
+          savedValues.set(field, value);
+          hasError = false;
+        })
+        .catch(() => {
+          hasError = true;
+        })
+        .finally(() => {
+          pendingSaves = Math.max(0, pendingSaves - 1);
+          updateAutosaveState();
+        });
+    };
+
+    const scheduleSave = (field, value, immediate) => {
+      if (!canAutosave) return;
+      const textValue = value == null ? '' : String(value);
+      lastValues.set(field, textValue);
+      hasError = false;
+      notifyAutosave('dirty', { field });
+      const existing = saveTimers.get(field);
+      if (existing) clearTimeout(existing);
+      if (immediate) {
+        commitSave(field, textValue);
+        return;
+      }
+      const timer = setTimeout(() => commitSave(field, textValue), 500);
+      saveTimers.set(field, timer);
+    };
+
+    const syncFieldValue = (field, value, sourceNode) => {
+      (byField[field] || []).forEach(item => {
+        if (item !== sourceNode) {
+          setNodeValue(item, value);
+        }
       });
+    };
+
+    const handleFieldChange = (field, value, sourceNode) => {
+      syncFieldValue(field, value, sourceNode);
+      if (window.parent) {
+        window.parent.postMessage({ type: 'pagecopy:update', field, value }, '*');
+      }
+      scheduleSave(field, value, false);
+    };
+
+    const handleFieldBlur = (field, value) => {
+      if (window.parent) {
+        window.parent.postMessage({ type: 'pagecopy:blur', field }, '*');
+      }
+      scheduleSave(field, value, true);
     };
 
     fields.forEach(node => {
       const field = node.dataset.copyField;
       if (!field) return;
+      const copyType = node.dataset.copyType || 'plain';
       node.setAttribute('contenteditable', 'true');
       node.setAttribute('spellcheck', 'false');
       byField[field] = byField[field] || [];
       byField[field].push(node);
 
       node.addEventListener('input', () => {
-        const value = node.innerText.replace(/\r/g, '');
-        (byField[field] || []).forEach(item => {
-          if (item !== node) {
-            setNodeValue(item, value);
-          }
-        });
-        if (window.parent) {
-          window.parent.postMessage({ type: 'pagecopy:update', field, value }, '*');
-        }
+        if (editors.has(node)) return;
+        const value = copyType === 'rich' ? readRichValue(node) : readPlainValue(node);
+        handleFieldChange(field, value, node);
       });
 
       node.addEventListener('blur', () => {
-        if (window.parent) {
-          window.parent.postMessage({ type: 'pagecopy:blur', field }, '*');
-        }
+        if (editors.has(node)) return;
+        const value = copyType === 'rich' ? readRichValue(node) : readPlainValue(node);
+        handleFieldBlur(field, value);
       });
     });
+
+    if (window.CKEDITOR && typeof CKEDITOR.inline === 'function') {
+      CKEDITOR.disableAutoInline = true;
+      const config = Object.assign({}, editorConfig || {});
+      if (editorUploadUrl) {
+        config.filebrowserUploadUrl = editorUploadUrl;
+        config.filebrowserUploadMethod = 'form';
+      }
+      if (editorBrowseUrl) {
+        config.filebrowserBrowseUrl = editorBrowseUrl;
+      }
+      fields.forEach(node => {
+        const field = node.dataset.copyField;
+        if (!field) return;
+        const copyType = node.dataset.copyType || 'plain';
+        if (copyType !== 'rich') return;
+        const editor = CKEDITOR.inline(node, config);
+        editors.set(node, editor);
+        editor.on('change', () => {
+          if (suppressEditorChange) return;
+          handleFieldChange(field, editor.getData(), node);
+        });
+        editor.on('blur', () => {
+          if (suppressEditorChange) return;
+          handleFieldBlur(field, editor.getData());
+        });
+      });
+    }
 
     window.addEventListener('message', (event) => {
       const data = event.data || {};
@@ -292,6 +493,13 @@ def inject_preview_helpers(
       document.body.classList.toggle('pagecopy-layout-mode', layoutModeActive);
       fields.forEach(node => {
         node.setAttribute('contenteditable', layoutModeActive ? 'false' : 'true');
+      });
+      editors.forEach(editor => {
+        try {
+          editor.setReadOnly(layoutModeActive);
+        } catch (err) {
+          // ignore
+        }
       });
     };
 
@@ -393,17 +601,28 @@ def inject_preview_helpers(
   })();
 </script>
 """
+    ckeditor_src = static("ckeditor/ckeditor.js")
     script = script.replace("__LAYOUT_CONFIG__", layout_config_json)
     script = script.replace("__LAYOUT_STATE__", layout_state_json)
+    script = script.replace("__PAGECOPY_SAVE_URL__", save_url_json)
+    script = script.replace("__PAGECOPY_META__", pagecopy_meta_json)
+    script = script.replace("__PAGECOPY_EDITOR_CONFIG__", editor_config_json)
+    script = script.replace("__PAGECOPY_EDITOR_UPLOAD_URL__", editor_upload_url_json)
+    script = script.replace("__PAGECOPY_EDITOR_BROWSE_URL__", editor_browse_url_json)
 
+    head_inject = (
+        f'<base href="{html.escape(base_href, quote=True)}">'
+        f"{style}"
+        f'<script src="{html.escape(ckeditor_src, quote=True)}"></script>'
+    )
     if "</head>" in html_text:
         html_text = html_text.replace(
             "</head>",
-            f'<base href="{html.escape(base_href, quote=True)}">{style}</head>',
+            f"{head_inject}</head>",
             1,
         )
     else:
-        html_text = f'<base href="{html.escape(base_href, quote=True)}">{style}' + html_text
+        html_text = f"{head_inject}" + html_text
 
     if "</body>" in html_text:
         html_text = html_text.replace("</body>", f"{script}</body>", 1)
@@ -425,6 +644,7 @@ def build_services_context(request: HttpRequest) -> Dict[str, Any]:
     from core.views import _build_catalog_context
 
     ctx = _build_catalog_context(request)
+    ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.SERVICES)
     ctx.setdefault("contact_prefill", {"name": "", "email": "", "phone": ""})
     ctx.setdefault("profile", None)
     ctx.setdefault("appointments", [])
@@ -468,6 +688,7 @@ def build_store_context(request: HttpRequest) -> Dict[str, Any]:
         "products": filtered_qs[:24],
         "new_arrivals": new_arrivals,
         "sections": sections,
+        "font_settings": build_page_font_context(PageFontSetting.Page.STORE),
     }
 
 
@@ -584,6 +805,7 @@ def build_preview_context(request: HttpRequest, model_cls: type, preview_copy: A
 
     raw_copy = getattr(preview_copy, "_instance", preview_copy)
     ctx["layout_styles"] = build_layout_styles(model_cls, getattr(raw_copy, "layout_overrides", None))
+    ctx["page_sections"] = get_page_sections(raw_copy)
 
     if config.use_anonymous_user:
         ctx["user"] = AnonymousUser()
@@ -615,14 +837,44 @@ def render_pagecopy_preview(request: HttpRequest, model_cls: type, preview_copy:
 
     context = build_preview_context(request, model_cls, preview_copy)
     html_text = render_to_string(config.template, context=context, request=request)
-    html_text = inject_preview_spans(html_text)
+    field_types = {}
+    for field in model_cls._meta.get_fields():
+        if isinstance(field, models.TextField):
+            field_types[field.name] = "rich"
+        elif isinstance(field, models.CharField):
+            field_types[field.name] = "plain"
+    html_text = inject_preview_spans(html_text, field_types=field_types)
     raw_copy = getattr(preview_copy, "_instance", preview_copy)
     layout_config = layout_config_for_model(model_cls)
     layout_overrides = getattr(raw_copy, "layout_overrides", None)
+    try:
+        save_url = reverse("admin-pagecopy-save-field")
+    except Exception:
+        save_url = None
+    try:
+        editor_upload_url = reverse("ckeditor_upload")
+    except Exception:
+        editor_upload_url = None
+    try:
+        editor_browse_url = reverse("ckeditor_browse")
+    except Exception:
+        editor_browse_url = None
+    editor_config = getattr(settings, "CKEDITOR_CONFIGS", {}).get("pagecopy", {})
+    if editor_upload_url:
+        editor_upload_url = f"{editor_upload_url}?type=Images"
+    pagecopy_meta = {
+        "model": f"{model_cls._meta.app_label}.{model_cls._meta.model_name}",
+        "object_id": getattr(raw_copy, "pk", None),
+    }
     html_text = inject_preview_helpers(
         html_text,
         base_href,
         layout_config=layout_config,
         layout_overrides=layout_overrides,
+        save_url=save_url,
+        pagecopy_meta=pagecopy_meta,
+        editor_config=editor_config,
+        editor_upload_url=editor_upload_url,
+        editor_browse_url=editor_browse_url,
     )
     return html_text

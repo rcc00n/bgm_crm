@@ -9,6 +9,9 @@
 {% endblock %}
 
 {% block body %}
+  {% if page_sections %}
+    {% include "sections/render_sections.html" %}
+  {% else %}
 <div id="bg"></div>
 
 <section class="hero hero--store">
@@ -27,9 +30,6 @@
       <p class="hero__disclaimer">{{ hero_media.caption|default:store_copy.hero_disclaimer_fallback|default:"Product may not appear exactly as shown." }}</p>
     </div>
   </div>
-</section>
-
-
 <section class="section" data-search-root>
   <div class="container">
 
@@ -751,4 +751,5 @@
   .site-header .brand{ gap: .65rem !important; }
 </style>
 
+  {% endif %}
 {% endblock %}

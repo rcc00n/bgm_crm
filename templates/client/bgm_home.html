@@ -678,6 +678,10 @@
 </head>
 
 <body>
+  {% if page_sections %}
+    {% include "sections/render_sections.html" %}
+  {% else %}
+
   {% include "includes/marketing_body.html" %}
   {% include "includes/site_notice_markup.html" with site_notice_version="offer-v1" %}
 
@@ -750,7 +754,7 @@
       <div>
         <p class="kicker">{{ home_copy.hero_kicker }}</p>
         <h1 class="hero__title">{{ home_copy.hero_title }}</h1>
-        <p class="hero__lead">{{ home_copy.hero_lead }}</p>
+        <p class="hero__lead">{{ home_copy.hero_lead|safe }}</p>
         <div class="hero__cta">
           <a class="btn btn--primary" href="#services">{{ home_copy.hero_primary_cta_label }}</a>
           <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">{{ home_copy.hero_secondary_cta_label }}</a>
@@ -835,7 +839,7 @@
         <div class="section__head">
           <div>
             <h2 class="section__title">{{ home_copy.services_title }}</h2>
-            <p class="section__desc">{{ home_copy.services_desc }}</p>
+            <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
           </div>
           <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
         </div>
@@ -844,7 +848,7 @@
           <div class="section__head home-gallery__head">
             <div>
               <h3 class="section__title">{{ home_copy.gallery_title }}</h3>
-              <p class="section__desc">{{ home_copy.gallery_desc }}</p>
+              <p class="section__desc">{{ home_copy.gallery_desc|safe }}</p>
             </div>
             <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
           </div>
@@ -1524,6 +1528,7 @@
   </script>
 
   {% include "includes/analytics_tracker.html" %}
+  {% endif %}
 </body>
 </html>
 

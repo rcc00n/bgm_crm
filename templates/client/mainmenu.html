@@ -8,6 +8,11 @@
   {% with meta_title=services_copy.meta_title|default:"Bad Guy Motors — Upgrades & Booking" meta_description=services_copy.meta_description|default:"Browse detailing, protection, and performance services with live pricing from Bad Guy Motors." meta_section="services" meta_keywords=marketing.default_keywords %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
+  {% if font_settings and font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% endif %}
 
   <!-- Performance hints -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,11 +36,38 @@
       --site-header-height:72px;
       --site-header-toggle-size:46px;
     }
+    /* Fonts */
+    {% with fs=font_settings %}
+    {% for font in fs.fonts %}
+      {% if font.has_source %}
+    @font-face{
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
+    }
+      {% endif %}
+    {% endfor %}
+    {% with body_stack=fs.body.stack|default:'"Inter", system-ui, sans-serif' %}
+    {% with heading_stack=fs.heading.stack|default:body_stack %}
+    {% with ui_stack=fs.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui:   {{ ui_stack|safe }};
+    }
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
     ::selection{ background:var(--red); color:#fff; }
 
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
-    body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55;min-height:100dvh;overflow-x:hidden}
+    body{background:var(--bg);color:var(--ink);font-family:var(--font-body, Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif);line-height:1.55;min-height:100dvh;overflow-x:hidden}
+    body,button,input,select,textarea{font-family:var(--font-body, Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif)}
+    h1,h2,h3,h4,h5,h6{font-family:var(--font-head, var(--font-body, Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif))}
     img{max-width:100%;display:block}
     a{color:inherit;text-decoration:none}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
@@ -621,6 +653,10 @@ main h3{
 
 </head>
 <body data-template-version="mainmenu-mobile-v2-2026-01-26">
+  {% if page_sections %}
+    {% include "sections/render_sections.html" %}
+  {% else %}
+
   {% include "includes/marketing_body.html" %}
 <div id="bg"></div>
 <a href="#services" class="visually-hidden">{{ services_copy.skip_to_main_label }}</a>
@@ -632,7 +668,7 @@ main h3{
 
 <section class="hero">
   <h1>{{ services_copy.hero_title }}</h1>
-  <p>{{ services_copy.hero_lead }}</p>
+  <p>{{ services_copy.hero_lead|safe }}</p>
   <div class="cta"><a href="#services" class="btn btn--primary">{{ services_copy.hero_cta_label }}</a></div>
 </section>
 
@@ -2130,5 +2166,6 @@ body.modal-open .contact-fab{ display:none !important; }
 {% include "includes/analytics_tracker.html" %}
 
 
+  {% endif %}
 </body>
 </html>

@@ -18,6 +18,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  {% if font_settings and font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% endif %}
 
   <style>
     /* ========================== VARIABLES & FONTS ========================== */
@@ -47,6 +52,30 @@
       src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
       font-weight:100 900; font-style:normal; font-display:swap;
     }
+    {% if font_settings %}
+      {% for font in font_settings.fonts %}
+        {% if font.has_source %}
+    @font-face{
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
+    }
+        {% endif %}
+      {% endfor %}
+      {% with body_stack=font_settings.body.stack|default:'"Inter", system-ui, sans-serif' %}
+      {% with heading_stack=font_settings.heading.stack|default:body_stack %}
+      {% with ui_stack=font_settings.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui:   {{ ui_stack|safe }};
+    }
+      {% endwith %}
+      {% endwith %}
+      {% endwith %}
+    {% endif %}
 
     /* ============================== BASE / RESET ============================ */
     *,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }

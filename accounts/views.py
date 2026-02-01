@@ -37,6 +37,7 @@ from core.models import (
 )
 from core.services.fonts import build_page_font_context
 from core.services.media import build_home_gallery_media
+from core.services.page_sections import get_page_sections
 from core.emails import build_email_html, send_html_email
 from core.email_templates import email_brand_name, join_text_sections
 
@@ -534,6 +535,7 @@ class HomeView(TemplateView):
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
         home_copy = HomePageCopy.get_solo()
         ctx["home_copy"] = home_copy
+        ctx["page_sections"] = get_page_sections(home_copy)
         ctx["layout_styles"] = build_layout_styles(HomePageCopy, home_copy.layout_overrides)
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()

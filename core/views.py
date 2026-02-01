@@ -4,16 +4,20 @@ import re
 
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
+from django.db import models
 from django.db.models import Prefetch, Q
 from django.contrib import admin, messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.contenttypes.models import ContentType
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils import timezone
+from django.utils.text import slugify
+from django.utils.html import strip_tags
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import validate_email
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseRedirect
@@ -21,6 +25,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.template.response import TemplateResponse
 from datetime import datetime
 import json
+import html as py_html
 from django.utils.functional import cached_property
 
 from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
@@ -36,6 +41,8 @@ from core.models import (
     PageView,
     VisitorSession,
     PageFontSetting,
+    PageCopyDraft,
+    FontPreset,
     LandingPageReview,
     PromoCode,
     SiteNoticeSignup,
@@ -56,6 +63,8 @@ from core.services.media import (
     build_electrical_work_media,
     build_performance_tuning_media,
 )
+from core.services.page_sections import get_page_sections
+from core.services.pagecopy_preview import PREVIEW_CONFIG
 from core.services.lead_security import evaluate_lead_submission, log_lead_submission
 from core.services.analytics import (
     summarize_staff_usage_periods,
@@ -76,6 +85,199 @@ logger = logging.getLogger(__name__)
 def admin_logout(request):
     logout(request)
     return redirect(getattr(settings, "LOGOUT_REDIRECT_URL", "/"))
+
+
+def _resolve_pagecopy_model(label: str):
+    label = (label or "").strip().lower()
+    if not label:
+        return None
+    for model_cls in PREVIEW_CONFIG.keys():
+        model_label = f"{model_cls._meta.app_label}.{model_cls._meta.model_name}".lower()
+        if model_label == label:
+            return model_cls
+    return None
+
+
+def _normalize_plain_value(value: str) -> str:
+    text = (value or "").replace("\r", "")
+    text = re.sub(r"<br\\s*/?>", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"</(div|p|li|h[1-6])>", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"<(div|p|li|h[1-6])[^>]*>", "", text, flags=re.IGNORECASE)
+    text = strip_tags(text)
+    text = py_html.unescape(text)
+    return text
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
+def admin_pagecopy_save_field(request):
+    payload = {}
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            payload = {}
+    if not payload:
+        payload = request.POST.dict()
+
+    model_label = (payload.get("model") or "").strip()
+    field_name = (payload.get("field") or "").strip()
+    object_id = payload.get("object_id") or payload.get("objectId")
+    value = payload.get("value", "")
+
+    if not model_label or not field_name:
+        return JsonResponse({"ok": False, "error": "Missing parameters."}, status=400)
+
+    model_cls = _resolve_pagecopy_model(model_label)
+    if not model_cls:
+        return JsonResponse({"ok": False, "error": "Unsupported model."}, status=400)
+
+    if not request.user.has_perm(f"{model_cls._meta.app_label}.change_{model_cls._meta.model_name}"):
+        raise PermissionDenied
+
+    try:
+        field_obj = model_cls._meta.get_field(field_name)
+    except Exception:
+        return JsonResponse({"ok": False, "error": "Unknown field."}, status=400)
+
+    if not isinstance(field_obj, (models.CharField, models.TextField)):
+        return JsonResponse({"ok": False, "error": "Field type not supported."}, status=400)
+
+    try:
+        object_id = int(object_id) if object_id is not None else None
+    except (TypeError, ValueError):
+        object_id = None
+
+    obj = model_cls.objects.filter(pk=object_id).first() if object_id else model_cls.objects.first()
+    if not obj:
+        return JsonResponse({"ok": False, "error": "Object not found."}, status=404)
+
+    if value is None:
+        value = ""
+    value = str(value)
+    if isinstance(field_obj, models.CharField):
+        value = _normalize_plain_value(value)
+        if field_obj.max_length:
+            value = value[: field_obj.max_length]
+
+    content_type = ContentType.objects.get_for_model(model_cls)
+    draft, _ = PageCopyDraft.objects.get_or_create(content_type=content_type, object_id=obj.pk)
+    payload = draft.data or {}
+    payload[field_name] = value
+    draft.data = payload
+    draft.save(update_fields=["data", "updated_at"])
+
+    return JsonResponse({"ok": True, "draft": True, "field": field_name, "value": value})
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
+def admin_pagecopy_save_fonts(request):
+    payload = {}
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            payload = {}
+    if not payload:
+        payload = request.POST.dict()
+
+    page = (payload.get("page") or "").strip()
+    body_font_id = payload.get("body_font") or payload.get("bodyFont")
+    heading_font_id = payload.get("heading_font") or payload.get("headingFont")
+    ui_font_id = payload.get("ui_font") or payload.get("uiFont")
+
+    if not page:
+        return JsonResponse({"ok": False, "error": "Missing page."}, status=400)
+
+    valid_pages = {choice for choice, _ in PageFontSetting.Page.choices}
+    if page not in valid_pages:
+        return JsonResponse({"ok": False, "error": "Unsupported page."}, status=400)
+
+    if not request.user.has_perm("core.change_pagefontsetting"):
+        raise PermissionDenied
+
+    def _get_font(font_id):
+        try:
+            return FontPreset.objects.get(pk=int(font_id))
+        except Exception:
+            return None
+
+    body_font = _get_font(body_font_id)
+    heading_font = _get_font(heading_font_id)
+    ui_font = _get_font(ui_font_id) if ui_font_id else None
+
+    if not body_font or not heading_font:
+        return JsonResponse({"ok": False, "error": "Invalid font selection."}, status=400)
+
+    setting, _ = PageFontSetting.objects.get_or_create(
+        page=page,
+        defaults={"body_font": body_font, "heading_font": heading_font, "ui_font": ui_font},
+    )
+    setting.body_font = body_font
+    setting.heading_font = heading_font
+    setting.ui_font = ui_font
+    setting.save(update_fields=["body_font", "heading_font", "ui_font", "updated_at"])
+
+    return JsonResponse({"ok": True})
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
+def admin_pagecopy_upload_font(request):
+    if not request.user.has_perm("core.add_fontpreset"):
+        raise PermissionDenied
+
+    page = (request.POST.get("page") or "").strip()
+    role = (request.POST.get("role") or "").strip()
+    name = (request.POST.get("name") or "").strip()
+    family = (request.POST.get("family") or "").strip()
+    font_file = request.FILES.get("font_file")
+
+    valid_pages = {choice for choice, _ in PageFontSetting.Page.choices}
+    if page not in valid_pages:
+        return JsonResponse({"ok": False, "error": "Unsupported page."}, status=400)
+    if role not in {"body", "heading", "ui"}:
+        return JsonResponse({"ok": False, "error": "Invalid role."}, status=400)
+    if not font_file:
+        return JsonResponse({"ok": False, "error": "Missing font file."}, status=400)
+
+    font_name = name or font_file.name.rsplit(".", 1)[0]
+    font_family = family or font_name
+    base_slug = slugify(font_name)[:45] or "font"
+    slug = base_slug
+    counter = 2
+    while FontPreset.objects.filter(slug=slug).exists():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    preset = FontPreset.objects.create(
+        slug=slug,
+        name=font_name,
+        font_family=font_family,
+        font_file=font_file,
+        mime_type=getattr(font_file, "content_type", "") or "font/ttf",
+        preload=True,
+        is_active=True,
+    )
+
+    if request.user.has_perm("core.change_pagefontsetting"):
+        setting, _ = PageFontSetting.objects.get_or_create(
+            page=page,
+            defaults={"body_font": preset, "heading_font": preset, "ui_font": preset},
+        )
+        if role == "body":
+            setting.body_font = preset
+        elif role == "heading":
+            setting.heading_font = preset
+        else:
+            setting.ui_font = preset
+        setting.save(update_fields=["body_font", "heading_font", "ui_font", "updated_at"])
+
+    return JsonResponse({"ok": True, "font": {"id": preset.pk, "name": preset.name}, "role": role})
 
 def _normalize_search_text(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "").lower()).strip()
@@ -203,6 +405,8 @@ def public_mainmenu(request):
     ctx["services_copy"] = ServicesPageCopy.get_solo()
     ctx["header_copy"] = ctx["services_copy"]
     ctx["contact_prefill"] = {"name": "", "email": "", "phone": ""}
+    ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.SERVICES)
+    ctx["page_sections"] = get_page_sections(ctx["services_copy"])
 
     if request.user.is_authenticated:
         user = request.user

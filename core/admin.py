@@ -19,6 +19,7 @@ from django.utils.safestring import mark_safe
 from django.template.defaultfilters import filesizeformat
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.admin import GenericStackedInline
 from django.http import JsonResponse
 from django.core.exceptions import PermissionDenied
 from django.views.decorators.csrf import csrf_exempt
@@ -27,6 +28,7 @@ import json
 import csv
 from django.urls import path, reverse, NoReverseMatch
 from django.http import HttpResponse, HttpResponseRedirect
+from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from .filters import *
 from .models import *
 from .forms import *
@@ -1748,9 +1750,250 @@ class AdminLoginBrandingAdmin(admin.ModelAdmin):
         return "Admin login"
 
 
+class PageSectionAdminForm(forms.ModelForm):
+    config_title = forms.CharField(label="Title", required=False)
+    config_body = forms.CharField(
+        label="Body",
+        required=False,
+        widget=CKEditorUploadingWidget(config_name="pagecopy"),
+    )
+    config_cta_label = forms.CharField(label="CTA label", required=False)
+    config_cta_url = forms.CharField(label="CTA url", required=False)
+    config_image_url = forms.CharField(label="Image url", required=False)
+    config_image_alt = forms.CharField(label="Image alt text", required=False)
+
+    config_gallery_image_1_url = forms.CharField(label="Gallery image 1 url", required=False)
+    config_gallery_image_1_alt = forms.CharField(label="Gallery image 1 alt", required=False)
+    config_gallery_image_2_url = forms.CharField(label="Gallery image 2 url", required=False)
+    config_gallery_image_2_alt = forms.CharField(label="Gallery image 2 alt", required=False)
+    config_gallery_image_3_url = forms.CharField(label="Gallery image 3 url", required=False)
+    config_gallery_image_3_alt = forms.CharField(label="Gallery image 3 alt", required=False)
+    config_gallery_image_4_url = forms.CharField(label="Gallery image 4 url", required=False)
+    config_gallery_image_4_alt = forms.CharField(label="Gallery image 4 alt", required=False)
+    config_gallery_image_5_url = forms.CharField(label="Gallery image 5 url", required=False)
+    config_gallery_image_5_alt = forms.CharField(label="Gallery image 5 alt", required=False)
+    config_gallery_image_6_url = forms.CharField(label="Gallery image 6 url", required=False)
+    config_gallery_image_6_alt = forms.CharField(label="Gallery image 6 alt", required=False)
+
+    config_faq_1_question = forms.CharField(label="FAQ 1 question", required=False)
+    config_faq_1_answer = forms.CharField(
+        label="FAQ 1 answer",
+        required=False,
+        widget=CKEditorUploadingWidget(config_name="pagecopy"),
+    )
+    config_faq_2_question = forms.CharField(label="FAQ 2 question", required=False)
+    config_faq_2_answer = forms.CharField(
+        label="FAQ 2 answer",
+        required=False,
+        widget=CKEditorUploadingWidget(config_name="pagecopy"),
+    )
+    config_faq_3_question = forms.CharField(label="FAQ 3 question", required=False)
+    config_faq_3_answer = forms.CharField(
+        label="FAQ 3 answer",
+        required=False,
+        widget=CKEditorUploadingWidget(config_name="pagecopy"),
+    )
+    config_faq_4_question = forms.CharField(label="FAQ 4 question", required=False)
+    config_faq_4_answer = forms.CharField(
+        label="FAQ 4 answer",
+        required=False,
+        widget=CKEditorUploadingWidget(config_name="pagecopy"),
+    )
+
+    config_custom_html = forms.CharField(
+        label="Custom HTML",
+        required=False,
+        widget=CKEditorUploadingWidget(config_name="pagecopy"),
+    )
+
+    class Meta:
+        model = PageSection
+        fields = (
+            "section_type",
+            "order",
+            "is_hidden",
+            "background_image",
+            "background_color",
+            "overlay_color",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        config = getattr(self.instance, "config", {}) or {}
+
+        self.fields["config_title"].initial = config.get("title", "")
+        self.fields["config_body"].initial = config.get("body", "")
+        self.fields["config_cta_label"].initial = config.get("cta_label", "")
+        self.fields["config_cta_url"].initial = config.get("cta_url", "")
+        self.fields["config_image_url"].initial = config.get("image_url", "")
+        self.fields["config_image_alt"].initial = config.get("image_alt", "")
+
+        images = config.get("images") or []
+        for idx in range(1, 7):
+            image = images[idx - 1] if len(images) >= idx else {}
+            self.fields[f"config_gallery_image_{idx}_url"].initial = image.get("url", "")
+            self.fields[f"config_gallery_image_{idx}_alt"].initial = image.get("alt", "")
+
+        items = config.get("items") or []
+        for idx in range(1, 5):
+            item = items[idx - 1] if len(items) >= idx else {}
+            self.fields[f"config_faq_{idx}_question"].initial = item.get("question", "")
+            self.fields[f"config_faq_{idx}_answer"].initial = item.get("answer", "")
+
+        self.fields["config_custom_html"].initial = config.get("html", "")
+
+        field_type_map = {
+            "config_title": "hero,text,image,gallery,faq,custom",
+            "config_body": "hero,text,image,gallery,faq",
+            "config_cta_label": "hero,text",
+            "config_cta_url": "hero,text",
+            "config_image_url": "image",
+            "config_image_alt": "image",
+            "config_custom_html": "custom",
+        }
+        for idx in range(1, 7):
+            field_type_map[f"config_gallery_image_{idx}_url"] = "gallery"
+            field_type_map[f"config_gallery_image_{idx}_alt"] = "gallery"
+        for idx in range(1, 5):
+            field_type_map[f"config_faq_{idx}_question"] = "faq"
+            field_type_map[f"config_faq_{idx}_answer"] = "faq"
+
+        for name, types in field_type_map.items():
+            field = self.fields.get(name)
+            if field:
+                field.widget.attrs["data-section-types"] = types
+
+    def clean(self):
+        cleaned_data = super().clean()
+        section_type = cleaned_data.get("section_type")
+        known_keys = {"title", "body", "cta_label", "cta_url", "image_url", "image_alt", "images", "items", "html"}
+        config = {
+            key: value
+            for key, value in (self.instance.config or {}).items()
+            if key not in known_keys
+        }
+
+        title = cleaned_data.get("config_title")
+        body = cleaned_data.get("config_body")
+        cta_label = cleaned_data.get("config_cta_label")
+        cta_url = cleaned_data.get("config_cta_url")
+        image_url = cleaned_data.get("config_image_url")
+        image_alt = cleaned_data.get("config_image_alt")
+        custom_html = cleaned_data.get("config_custom_html")
+
+        if title:
+            config["title"] = title
+        if body and section_type in {"hero", "text", "image", "gallery", "faq"}:
+            config["body"] = body
+        if section_type in {"hero", "text"}:
+            if cta_label:
+                config["cta_label"] = cta_label
+            if cta_url:
+                config["cta_url"] = cta_url
+        if section_type == "image":
+            if image_url:
+                config["image_url"] = image_url
+            if image_alt:
+                config["image_alt"] = image_alt
+        if section_type == "gallery":
+            images = []
+            for idx in range(1, 7):
+                url = cleaned_data.get(f"config_gallery_image_{idx}_url")
+                alt = cleaned_data.get(f"config_gallery_image_{idx}_alt")
+                if url:
+                    images.append({"url": url, "alt": alt or ""})
+            if images:
+                config["images"] = images
+        if section_type == "faq":
+            items = []
+            for idx in range(1, 5):
+                question = cleaned_data.get(f"config_faq_{idx}_question")
+                answer = cleaned_data.get(f"config_faq_{idx}_answer")
+                if question or answer:
+                    items.append({"question": question or "", "answer": answer or ""})
+            if items:
+                config["items"] = items
+        if section_type == "custom" and custom_html:
+            config["html"] = custom_html
+
+        cleaned_data["config"] = config
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.config = self.cleaned_data.get("config", {})
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
+class PageSectionInline(GenericStackedInline):
+    model = PageSection
+    form = PageSectionAdminForm
+    extra = 1
+    fields = (
+        "section_type",
+        "order",
+        "is_hidden",
+        "background_image",
+        "background_color",
+        "overlay_color",
+        "config_title",
+        "config_body",
+        "config_cta_label",
+        "config_cta_url",
+        "config_image_url",
+        "config_image_alt",
+        "config_gallery_image_1_url",
+        "config_gallery_image_1_alt",
+        "config_gallery_image_2_url",
+        "config_gallery_image_2_alt",
+        "config_gallery_image_3_url",
+        "config_gallery_image_3_alt",
+        "config_gallery_image_4_url",
+        "config_gallery_image_4_alt",
+        "config_gallery_image_5_url",
+        "config_gallery_image_5_alt",
+        "config_gallery_image_6_url",
+        "config_gallery_image_6_alt",
+        "config_faq_1_question",
+        "config_faq_1_answer",
+        "config_faq_2_question",
+        "config_faq_2_answer",
+        "config_faq_3_question",
+        "config_faq_3_answer",
+        "config_faq_4_question",
+        "config_faq_4_answer",
+        "config_custom_html",
+    )
+    ordering = ("order",)
+
+
+PAGECOPY_FONT_PAGES = {
+    HomePageCopy: PageFontSetting.Page.HOME,
+    ServicesPageCopy: PageFontSetting.Page.SERVICES,
+    StorePageCopy: PageFontSetting.Page.STORE,
+}
+
+
 class PageCopyAdminMixin(admin.ModelAdmin):
     change_form_template = "admin/core/pagecopy/change_form.html"
     save_on_top = True
+    inlines = [PageSectionInline]
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+        if isinstance(db_field, models.TextField):
+            formfield.widget = CKEditorUploadingWidget(config_name="pagecopy")
+        return formfield
+
+    def _get_draft_data(self, obj):
+        if not obj or not getattr(obj, "pk", None):
+            return {}
+        content_type = ContentType.objects.get_for_model(obj.__class__)
+        draft = PageCopyDraft.objects.filter(content_type=content_type, object_id=obj.pk).first()
+        return draft.data or {}
 
     def get_urls(self):
         urls = super().get_urls()
@@ -1791,6 +2034,10 @@ class PageCopyAdminMixin(admin.ModelAdmin):
             return HttpResponse("Preview data not available.", status=400)
 
         preview_instance = self._get_preview_instance(request, obj)
+        if request.method != "POST":
+            draft = PageCopyDraft.for_instance(obj)
+            if draft:
+                draft.apply_to_instance(preview_instance)
         text_fields = [
             field.name
             for field in self.model._meta.get_fields()
@@ -1812,13 +2059,38 @@ class PageCopyAdminMixin(admin.ModelAdmin):
                 preview_url = f"{preview_url}?object_id={object_id}"
         except Exception:
             preview_url = None
+        obj = None
+        if object_id:
+            obj = self.get_object(request, object_id)
+        if not obj:
+            try:
+                obj = self.model.objects.first()
+            except Exception:
+                obj = None
         extra_context["pagecopy_preview_url"] = preview_url
+        extra_context["pagecopy_draft_data"] = self._get_draft_data(obj)
+        font_page = PAGECOPY_FONT_PAGES.get(self.model)
+        if font_page:
+            extra_context["page_font_page"] = font_page
+            extra_context["page_font_options"] = FontPreset.objects.filter(is_active=True).order_by("name")
+            extra_context["page_font_setting"] = PageFontSetting.objects.filter(page=font_page).first()
+            try:
+                extra_context["page_font_save_url"] = reverse("admin-pagecopy-save-fonts")
+                extra_context["page_font_upload_url"] = reverse("admin-pagecopy-upload-font")
+            except Exception:
+                extra_context["page_font_save_url"] = None
+                extra_context["page_font_upload_url"] = None
         return super().changeform_view(
             request,
             object_id=object_id,
             form_url=form_url,
             extra_context=extra_context,
         )
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        content_type = ContentType.objects.get_for_model(obj.__class__)
+        PageCopyDraft.objects.filter(content_type=content_type, object_id=obj.pk).delete()
 
 
 HOME_HERO_CAROUSEL_SLOTS = (
@@ -2014,7 +2286,7 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
     fieldsets = (
-        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Meta", {"fields": ("meta_title", "meta_description", "default_background")}),
         ("Header & navigation", {
             "fields": (
                 "skip_to_main_label",
@@ -2275,7 +2547,7 @@ class ServicesPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
     fieldsets = (
-        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Meta", {"fields": ("meta_title", "meta_description", "default_background")}),
         ("Header & navigation", {
             "fields": (
                 "skip_to_main_label",
@@ -2412,7 +2684,7 @@ class StorePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
     fieldsets = (
-        ("Meta", {"fields": ("page_title", "meta_title", "meta_description")}),
+        ("Meta", {"fields": ("page_title", "meta_title", "meta_description", "default_background")}),
         ("Header & navigation", {
             "fields": (
                 "brand_word_white",

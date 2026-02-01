@@ -8,7 +8,7 @@ from core.services.media import (
     resolve_media_asset,
 )
 
-from .models import HeroImage, TopbarSettings, HomePageCopy, SiteBackgroundSettings
+from .models import HeroImage, TopbarSettings, HomePageCopy, ServicesPageCopy, StorePageCopy
 from core.services.fonts import serialize_font_preset
 
 # Default static fallbacks for every public route that expects a hero.
@@ -59,6 +59,12 @@ PREVIEW_MODEL_URLS = {
     "DealerStatusPageCopy": "dealer-status",
 }
 
+PAGE_BACKGROUND_MODELS = {
+    "home": HomePageCopy,
+    "client-dashboard": ServicesPageCopy,
+    "store": StorePageCopy,
+}
+
 
 def _resolve_url_name(request) -> str:
     preview_model = getattr(request, "pagecopy_preview_model", None)
@@ -78,20 +84,14 @@ def hero_media(request):
     defaults = HERO_FALLBACKS.get(url_name, FALLBACK)
     location_key = HERO_DB_BINDINGS.get(url_name)
 
-    global_asset = None
-    try:
-        settings_obj = SiteBackgroundSettings.get_solo()
-        candidate = settings_obj.default_background if settings_obj else None
-        if candidate and candidate.is_active and candidate.image:
-            global_asset = candidate
-    except Exception:
-        global_asset = None
-
     page_asset = None
-    if not global_asset and url_name == "home":
+    page_model = PAGE_BACKGROUND_MODELS.get(url_name)
+    if page_model:
         try:
-            home_copy = HomePageCopy.get_solo()
-            candidate = home_copy.hero_background_asset if home_copy else None
+            page_copy = page_model.get_solo()
+            candidate = getattr(page_copy, "default_background", None)
+            if not candidate and url_name == "home":
+                candidate = getattr(page_copy, "hero_background_asset", None)
             if candidate and candidate.is_active and candidate.image:
                 page_asset = candidate
         except Exception:
@@ -102,7 +102,7 @@ def hero_media(request):
         defaults["path"],
         defaults.get("alt") or f"BGM — {url_name or 'preview'}",
         defaults.get("caption", DEFAULT_CAPTION),
-        asset=global_asset or page_asset,
+        asset=page_asset,
     )
     payload["location"] = url_name or payload.get("location", "")
 

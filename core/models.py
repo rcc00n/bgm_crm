@@ -1,6 +1,8 @@
 from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 import uuid
 from django.core.exceptions import ValidationError
 from datetime import timedelta, time
@@ -314,6 +316,101 @@ class SiteBackgroundSettings(models.Model):
         return obj
 
 
+class PageCopyDraft(models.Model):
+    """
+    Stores autosaved draft edits for PageCopy models before publishing.
+    """
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
+    data = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Page copy draft"
+        verbose_name_plural = "Page copy drafts"
+        unique_together = ("content_type", "object_id")
+
+    def __str__(self) -> str:
+        return f"Draft for {self.content_type} #{self.object_id}"
+
+    @classmethod
+    def for_instance(cls, instance):
+        if not instance or not getattr(instance, "pk", None):
+            return None
+        content_type = ContentType.objects.get_for_model(instance.__class__)
+        draft, _ = cls.objects.get_or_create(content_type=content_type, object_id=instance.pk)
+        return draft
+
+    def apply_to_instance(self, instance):
+        if not instance:
+            return instance
+        payload = self.data or {}
+        for field_name, value in payload.items():
+            try:
+                field_obj = instance._meta.get_field(field_name)
+            except Exception:
+                continue
+            if isinstance(field_obj, (models.CharField, models.TextField)):
+                setattr(instance, field_name, value)
+        return instance
+
+
+class PageSection(models.Model):
+    """
+    Dynamic page builder section tied to a PageCopy model.
+    """
+
+    class SectionType(models.TextChoices):
+        HERO = "hero", "Hero"
+        TEXT = "text", "Text"
+        IMAGE = "image", "Image"
+        GALLERY = "gallery", "Gallery"
+        FAQ = "faq", "FAQ"
+        CUSTOM = "custom", "Custom HTML"
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    pagecopy = GenericForeignKey("content_type", "object_id")
+    section_type = models.CharField(max_length=40, choices=SectionType.choices)
+    order = models.PositiveIntegerField(default=0)
+    config = models.JSONField(default=dict, blank=True)
+    background_image = models.ForeignKey(
+        BackgroundAsset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="page_sections",
+    )
+    background_color = models.CharField(
+        max_length=32,
+        blank=True,
+        help_text="Optional CSS color (hex/rgb) for the section background.",
+    )
+    overlay_color = models.CharField(
+        max_length=32,
+        blank=True,
+        help_text="Optional overlay color applied on top of background image.",
+    )
+    layout_overrides = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Manual layout overrides for section elements.",
+    )
+    is_hidden = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Page section"
+        verbose_name_plural = "Page sections"
+        ordering = ("order", "id")
+
+    def __str__(self) -> str:
+        return f"{self.get_section_type_display()} (#{self.pk})"
+
+
 def default_home_layout_overrides() -> dict:
     return {"desktop": {}, "mobile": {}}
 
@@ -341,6 +438,14 @@ class HomePageCopy(models.Model):
     )
     meta_description = models.TextField(
         default="Performance-driven builds, detailing, tuning, and a curated product catalog by BGM in Calgary.",
+    )
+    default_background = models.ForeignKey(
+        BackgroundAsset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="home_default_backgrounds",
+        help_text="Optional default background for the home page.",
     )
 
     # Header & navigation
@@ -649,6 +754,14 @@ class ServicesPageCopy(models.Model):
     meta_description = models.TextField(
         default="Browse detailing, protection, and performance services with live pricing from Bad Guy Motors."
     )
+    default_background = models.ForeignKey(
+        BackgroundAsset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="services_default_backgrounds",
+        help_text="Optional default background for the services page.",
+    )
 
     skip_to_main_label = models.CharField(max_length=120, default="Skip to main content")
     brand_word_white = models.CharField(max_length=40, default="BAD GUY")
@@ -795,6 +908,14 @@ class StorePageCopy(models.Model):
     meta_title = models.CharField(max_length=160, default="BGM Customs — Storefront")
     meta_description = models.TextField(
         default="Shop curated parts, aero, lighting, and performance upgrades from BGM Customs."
+    )
+    default_background = models.ForeignKey(
+        BackgroundAsset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="store_default_backgrounds",
+        help_text="Optional default background for the store page.",
     )
 
     brand_word_white = models.CharField(max_length=40, default="BAD GUY")
@@ -1993,6 +2114,8 @@ class PageFontSetting(models.Model):
 
     class Page(models.TextChoices):
         HOME = "home", "Home page"
+        SERVICES = "services", "Services page"
+        STORE = "store", "Store page"
         FINANCING = "financing", "Financing page"
         BRAKE_SUSPENSION = "brake_suspension", "Brake & Suspension page"
         WHEEL_TIRE_SERVICE = "wheel_tire_service", "Wheel & Tire Service page"
