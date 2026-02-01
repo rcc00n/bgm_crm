@@ -271,12 +271,14 @@
         <div class="pagecopy-preview__actions-group">
           <button type="button" class="button" data-pagecopy-layout-toggle>Move elements</button>
           <button type="button" class="button" data-pagecopy-layout-reset>Reset positions</button>
+          <button type="button" class="button" data-pagecopy-section-toggle>Move sections</button>
         </div>
       </div>
     </div>
     <p class="help pagecopy-preview__layout-help">
       Как редактировать: добавьте секцию в форме ниже, нажмите “Move elements”, затем перетащите блоки в превью.
-      Для изменения ширины тяните за квадратный уголок. Новые секции появляются после сохранения.
+      Для изменения ширины тяните за квадратный уголок. “Move sections” включает перетаскивание секций за иконку руки.
+      Клик по тексту открывает быстрые параметры. Новые секции появляются после сохранения.
     </p>
     <div class="pagecopy-preview__frame-wrap">
       {% if pagecopy_preview_url %}
@@ -426,6 +428,7 @@
       const modeButtons = Array.from(document.querySelectorAll('[data-pagecopy-mode]'));
       const layoutToggle = document.querySelector('[data-pagecopy-layout-toggle]');
       const layoutReset = document.querySelector('[data-pagecopy-layout-reset]');
+      const sectionToggle = document.querySelector('[data-pagecopy-section-toggle]');
       const layoutField = form ? form.querySelector('[name="layout_overrides"]') : null;
       const statusIndicator = document.querySelector('[data-pagecopy-status]');
       if (!form) {
@@ -439,6 +442,7 @@
       const previewUrl = frame ? frame.dataset.previewUrl : null;
       const hasPreview = !!previewUrl;
       const sectionLayoutSaveUrl = "{{ page_section_layout_save_url|default:'' }}";
+      const sectionOrderSaveUrl = "{{ page_section_order_save_url|default:'' }}";
 
       let renderTimer = null;
       let renderInFlight = false;
@@ -447,6 +451,7 @@
       let suppressStatus = false;
       let currentMode = 'desktop';
       let layoutActive = false;
+      let sectionModeActive = false;
       let draftData = {};
       const fontPageScript = document.getElementById('pagecopyFontPage');
       const fontPage = fontPageScript ? JSON.parse(fontPageScript.textContent || '""') : '';
@@ -787,6 +792,10 @@
         if (layoutToggle) layoutToggle.style.display = 'none';
         if (layoutReset) layoutReset.style.display = 'none';
       }
+      const hasSectionControls = !!sectionOrderSaveUrl;
+      if (!hasSectionControls) {
+        if (sectionToggle) sectionToggle.style.display = 'none';
+      }
 
       const resolveInitialMode = () => {
         const stored = window.localStorage ? window.localStorage.getItem('pagecopy.preview.mode') : null;
@@ -798,6 +807,7 @@
         if (!frame || !frame.contentWindow) return;
         frame.contentWindow.postMessage({ type: 'pagecopy:mode', mode: currentMode }, '*');
         frame.contentWindow.postMessage({ type: 'pagecopy:layout-mode', active: layoutActive }, '*');
+        frame.contentWindow.postMessage({ type: 'pagecopy:section-mode', active: sectionModeActive }, '*');
       };
 
       const setMode = (mode) => {
@@ -819,6 +829,15 @@
         if (layoutToggle) {
           layoutToggle.classList.toggle('is-active', layoutActive);
           layoutToggle.setAttribute('aria-pressed', layoutActive ? 'true' : 'false');
+        }
+        syncFrameState();
+      };
+
+      const setSectionModeActive = (active) => {
+        sectionModeActive = !!active;
+        if (sectionToggle) {
+          sectionToggle.classList.toggle('is-active', sectionModeActive);
+          sectionToggle.setAttribute('aria-pressed', sectionModeActive ? 'true' : 'false');
         }
         syncFrameState();
       };
@@ -871,6 +890,57 @@
             });
         }, 250);
         sectionLayoutTimers.set(key, timer);
+      };
+
+      const updateSectionOrderInputs = (order) => {
+        if (!Array.isArray(order) || !order.length) return;
+        const group = document.getElementById('pagesection_set-group');
+        if (!group) return;
+        const rows = Array.from(group.querySelectorAll('.inline-related')).filter(
+          (row) => !row.classList.contains('empty-form')
+        );
+        const map = new Map();
+        rows.forEach((row) => {
+          const idInput = row.querySelector('input[name$="-id"]');
+          const orderInput = row.querySelector('input[name$="-order"]');
+          if (!idInput || !orderInput) return;
+          map.set(String(idInput.value || ''), orderInput);
+        });
+        order.forEach((sectionId, idx) => {
+          const input = map.get(String(sectionId));
+          if (!input) return;
+          input.value = idx;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      };
+
+      let sectionOrderTimer = null;
+      const scheduleSectionOrderSave = (payload) => {
+        if (!sectionOrderSaveUrl || !payload || !Array.isArray(payload.order)) return;
+        clearTimeout(sectionOrderTimer);
+        sectionOrderTimer = setTimeout(() => {
+          setStatus('saving', 'Saving section order...');
+          fetch(sectionOrderSaveUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error('Section order update failed');
+              return response.json();
+            })
+            .then(() => {
+              setStatus('saved', 'Section order saved');
+            })
+            .catch(() => {
+              setStatus('error', 'Section order save failed');
+            });
+        }, 250);
       };
 
       const isTextInput = (input) => {
@@ -992,6 +1062,22 @@
           return;
         }
 
+        if (data.type === 'pagecopy:section-order') {
+          const order = Array.isArray(data.order) ? data.order : [];
+          if (order.length) {
+            updateSectionOrderInputs(order);
+            const payload = { order };
+            if (data.meta && data.meta.model) {
+              payload.model = data.meta.model;
+            }
+            if (data.meta && data.meta.object_id) {
+              payload.object_id = data.meta.object_id;
+            }
+            scheduleSectionOrderSave(payload);
+          }
+          return;
+        }
+
         if (data.type === 'pagecopy:layout') {
           if (!layoutField) return;
           const payload = data.layout || {};
@@ -1016,6 +1102,10 @@
         layoutToggle.addEventListener('click', () => setLayoutActive(!layoutActive));
       }
 
+      if (sectionToggle) {
+        sectionToggle.addEventListener('click', () => setSectionModeActive(!sectionModeActive));
+      }
+
       if (layoutReset) {
         layoutReset.addEventListener('click', () => {
           const payload = { desktop: {}, mobile: {} };
@@ -1033,6 +1123,7 @@
       }
       setMode(resolveInitialMode());
       setLayoutActive(false);
+      setSectionModeActive(false);
       setStatus('idle');
 
       applyDraftData(draftData);

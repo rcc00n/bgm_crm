@@ -244,6 +244,173 @@ def inject_preview_helpers(
   body.pagecopy-layout-mode [data-layout-key] .pagecopy-layout-handle {
     display: block;
   }
+
+  body.pagecopy-section-mode .builder-section {
+    outline: 1px dashed rgba(34, 197, 94, 0.55);
+    outline-offset: -8px;
+  }
+
+  .pagecopy-section-handle {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 6;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.35);
+    background: rgba(15, 23, 42, 0.82);
+    color: #f8fafc;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.35);
+  }
+
+  body.pagecopy-section-mode .pagecopy-section-handle {
+    display: flex;
+  }
+
+  .pagecopy-section-handle svg {
+    width: 18px;
+    height: 18px;
+    stroke: #f8fafc;
+  }
+
+  .pagecopy-section-placeholder {
+    border: 2px dashed rgba(34, 197, 94, 0.45);
+    border-radius: 12px;
+    margin: 12px 0;
+  }
+
+  .pagecopy-section-dragging {
+    opacity: 0.92;
+    cursor: grabbing;
+  }
+
+  .pagecopy-section-dragging .pagecopy-section-handle {
+    cursor: grabbing;
+  }
+
+  .pagecopy-inspector {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    width: 320px;
+    background: #0f172a;
+    color: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 14px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.45);
+    z-index: 99999;
+    font-size: 12px;
+  }
+
+  .pagecopy-inspector__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(15, 23, 42, 0.9);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    cursor: move;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .pagecopy-inspector__title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .pagecopy-inspector__close {
+    background: transparent;
+    border: 0;
+    color: #e2e8f0;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .pagecopy-inspector__body {
+    padding: 10px 12px 14px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .pagecopy-inspector__group {
+    display: grid;
+    gap: 6px;
+  }
+
+  .pagecopy-inspector__group-title {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .pagecopy-inspector label {
+    font-size: 11px;
+    color: #cbd5f5;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .pagecopy-inspector input,
+  .pagecopy-inspector textarea,
+  .pagecopy-inspector select {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.8);
+    color: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .pagecopy-inspector textarea {
+    min-height: 72px;
+    resize: vertical;
+  }
+
+  .pagecopy-inspector__row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .pagecopy-inspector__actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .pagecopy-inspector__button {
+    background: #2563eb;
+    border: 0;
+    color: #fff;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .pagecopy-inspector__button--ghost {
+    background: transparent;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    color: #e2e8f0;
+  }
+
+  .pagecopy-inspector__meta {
+    font-size: 11px;
+    color: #94a3b8;
+  }
 </style>
 """
 
@@ -489,7 +656,10 @@ def inject_preview_helpers(
     const sectionLayoutState = { desktop: {}, mobile: {} };
     const layoutNodes = new Map();
     let layoutModeActive = false;
+    let sectionModeActive = false;
     let currentMode = 'desktop';
+    const inspectorRegistry = new Map();
+    let inspectorZIndex = 10000;
 
     const normalizeMode = (mode) => (mode === 'mobile' ? 'mobile' : 'desktop');
     const getModeState = () => {
@@ -579,6 +749,449 @@ def inject_preview_helpers(
       });
     };
 
+    const humanizeLabel = (value) => {
+      return String(value || '').replace(/_/g, ' ').trim();
+    };
+
+    const bringInspectorToFront = (panel) => {
+      inspectorZIndex += 1;
+      panel.style.zIndex = String(20000 + inspectorZIndex);
+    };
+
+    const makePanelDraggable = (panel, handle) => {
+      if (!panel || !handle) return;
+      let dragging = false;
+      let startX = 0;
+      let startY = 0;
+      let startLeft = 0;
+      let startTop = 0;
+
+      const onPointerDown = (event) => {
+        if (event.button && event.button !== 0) return;
+        event.preventDefault();
+        const rect = panel.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
+        startX = event.clientX;
+        startY = event.clientY;
+        dragging = true;
+        panel.style.left = `${startLeft}px`;
+        panel.style.top = `${startTop}px`;
+        panel.style.right = 'auto';
+        panel.style.bottom = 'auto';
+        bringInspectorToFront(panel);
+        handle.setPointerCapture(event.pointerId);
+      };
+
+      const onPointerMove = (event) => {
+        if (!dragging) return;
+        const dx = event.clientX - startX;
+        const dy = event.clientY - startY;
+        const nextLeft = Math.max(8, startLeft + dx);
+        const nextTop = Math.max(8, startTop + dy);
+        panel.style.left = `${nextLeft}px`;
+        panel.style.top = `${nextTop}px`;
+      };
+
+      const onPointerUp = (event) => {
+        if (!dragging) return;
+        dragging = false;
+        try {
+          handle.releasePointerCapture(event.pointerId);
+        } catch (err) {
+          // ignore
+        }
+      };
+
+      handle.addEventListener('pointerdown', onPointerDown);
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+    };
+
+    const getLayoutValuesForKey = (key, kind) => {
+      const state = kind === 'section' ? getSectionModeState() : getModeState();
+      const coords = state[key] || {};
+      return {
+        x: Number(coords.x || 0),
+        y: Number(coords.y || 0),
+        w: coords.w != null ? Number(coords.w) : '',
+      };
+    };
+
+    const setLayoutValuesForKey = (key, kind, values) => {
+      if (!key) return;
+      const state = kind === 'section' ? getSectionModeState() : getModeState();
+      const nextX = parseNumber(values.x);
+      const nextY = parseNumber(values.y);
+      const nextW = parseWidth(values.w);
+      if (!nextX && !nextY && !nextW) {
+        delete state[key];
+      } else {
+        state[key] = { x: nextX, y: nextY, w: nextW };
+      }
+      applyLayout();
+      if (kind === 'section') {
+        syncSectionLayoutState(key);
+      } else {
+        syncLayoutState();
+      }
+    };
+
+    const refreshInspectorLayoutValues = (key) => {
+      inspectorRegistry.forEach((entry) => {
+        if (!entry.layoutKey || entry.layoutKey !== key) return;
+        if (!entry.layoutInputs) return;
+        const values = getLayoutValuesForKey(entry.layoutKey, entry.layoutKind);
+        entry.layoutInputs.x.value = values.x;
+        entry.layoutInputs.y.value = values.y;
+        entry.layoutInputs.w.value = values.w === '' ? '' : values.w;
+        if (entry.layoutInputs.modeLabel) {
+          entry.layoutInputs.modeLabel.textContent = currentMode === 'mobile' ? 'Mobile' : 'Desktop';
+        }
+      });
+    };
+
+    const refreshAllInspectorLayouts = () => {
+      inspectorRegistry.forEach((entry) => {
+        if (!entry.layoutInputs) return;
+        const values = getLayoutValuesForKey(entry.layoutKey, entry.layoutKind);
+        entry.layoutInputs.x.value = values.x;
+        entry.layoutInputs.y.value = values.y;
+        entry.layoutInputs.w.value = values.w === '' ? '' : values.w;
+        if (entry.layoutInputs.modeLabel) {
+          entry.layoutInputs.modeLabel.textContent = currentMode === 'mobile' ? 'Mobile' : 'Desktop';
+        }
+      });
+    };
+
+    const createInspector = (config) => {
+      const panel = document.createElement('div');
+      panel.className = 'pagecopy-inspector';
+      bringInspectorToFront(panel);
+
+      const header = document.createElement('div');
+      header.className = 'pagecopy-inspector__header';
+
+      const title = document.createElement('div');
+      title.className = 'pagecopy-inspector__title';
+      title.textContent = config.title || 'Edit';
+
+      const closeButton = document.createElement('button');
+      closeButton.type = 'button';
+      closeButton.className = 'pagecopy-inspector__close';
+      closeButton.textContent = 'x';
+
+      header.appendChild(title);
+      header.appendChild(closeButton);
+      panel.appendChild(header);
+
+      const body = document.createElement('div');
+      body.className = 'pagecopy-inspector__body';
+      panel.appendChild(body);
+
+      const entry = {
+        panel,
+        field: config.field || '',
+        copyType: config.copyType || 'plain',
+        node: config.node || null,
+        layoutKey: config.layoutKey || '',
+        layoutKind: config.layoutKind || 'pagecopy',
+        layoutInputs: null,
+        fieldInput: null,
+        modeLabel: null,
+      };
+
+      if (entry.field && entry.node) {
+        const group = document.createElement('div');
+        group.className = 'pagecopy-inspector__group';
+        const groupTitle = document.createElement('div');
+        groupTitle.className = 'pagecopy-inspector__group-title';
+        groupTitle.textContent = 'Content';
+        const label = document.createElement('label');
+        label.textContent = humanizeLabel(entry.field);
+        const input = document.createElement('textarea');
+        input.value = entry.copyType === 'rich' ? readRichValue(entry.node) : readPlainValue(entry.node);
+        input.addEventListener('input', () => {
+          const value = input.value;
+          if (entry.node) {
+            setNodeValue(entry.node, value);
+          }
+          handleFieldChange(entry.field, value, entry.node);
+        });
+        input.addEventListener('blur', () => {
+          const value = input.value;
+          handleFieldBlur(entry.field, value);
+        });
+        group.appendChild(groupTitle);
+        group.appendChild(label);
+        group.appendChild(input);
+        body.appendChild(group);
+        entry.fieldInput = input;
+      }
+
+      if (entry.layoutKey) {
+        const layoutGroup = document.createElement('div');
+        layoutGroup.className = 'pagecopy-inspector__group';
+        const groupTitle = document.createElement('div');
+        groupTitle.className = 'pagecopy-inspector__group-title';
+        groupTitle.textContent = 'Layout';
+        const meta = document.createElement('div');
+        meta.className = 'pagecopy-inspector__meta';
+        meta.textContent = currentMode === 'mobile' ? 'Mobile' : 'Desktop';
+        const row = document.createElement('div');
+        row.className = 'pagecopy-inspector__row';
+
+        const xWrap = document.createElement('div');
+        const xLabel = document.createElement('label');
+        xLabel.textContent = 'X';
+        const xInput = document.createElement('input');
+        xInput.type = 'number';
+        xInput.step = '1';
+
+        const yWrap = document.createElement('div');
+        const yLabel = document.createElement('label');
+        yLabel.textContent = 'Y';
+        const yInput = document.createElement('input');
+        yInput.type = 'number';
+        yInput.step = '1';
+
+        const wWrap = document.createElement('div');
+        const wLabel = document.createElement('label');
+        wLabel.textContent = 'Width';
+        const wInput = document.createElement('input');
+        wInput.type = 'number';
+        wInput.step = '1';
+        wInput.placeholder = 'auto';
+
+        xWrap.appendChild(xLabel);
+        xWrap.appendChild(xInput);
+        yWrap.appendChild(yLabel);
+        yWrap.appendChild(yInput);
+        wWrap.appendChild(wLabel);
+        wWrap.appendChild(wInput);
+        row.appendChild(xWrap);
+        row.appendChild(yWrap);
+        row.appendChild(wWrap);
+
+        const actions = document.createElement('div');
+        actions.className = 'pagecopy-inspector__actions';
+        const resetButton = document.createElement('button');
+        resetButton.type = 'button';
+        resetButton.className = 'pagecopy-inspector__button pagecopy-inspector__button--ghost';
+        resetButton.textContent = 'Reset layout';
+        actions.appendChild(resetButton);
+
+        const updateLayout = () => {
+          setLayoutValuesForKey(entry.layoutKey, entry.layoutKind, {
+            x: xInput.value,
+            y: yInput.value,
+            w: wInput.value,
+          });
+          refreshInspectorLayoutValues(entry.layoutKey);
+        };
+        let layoutTimer = null;
+        const queueLayoutUpdate = () => {
+          clearTimeout(layoutTimer);
+          layoutTimer = setTimeout(updateLayout, 120);
+        };
+
+        xInput.addEventListener('input', queueLayoutUpdate);
+        yInput.addEventListener('input', queueLayoutUpdate);
+        wInput.addEventListener('input', queueLayoutUpdate);
+        resetButton.addEventListener('click', () => {
+          xInput.value = 0;
+          yInput.value = 0;
+          wInput.value = '';
+          updateLayout();
+        });
+
+        layoutGroup.appendChild(groupTitle);
+        layoutGroup.appendChild(meta);
+        layoutGroup.appendChild(row);
+        layoutGroup.appendChild(actions);
+        body.appendChild(layoutGroup);
+
+        entry.layoutInputs = { x: xInput, y: yInput, w: wInput, modeLabel: meta };
+        const values = getLayoutValuesForKey(entry.layoutKey, entry.layoutKind);
+        entry.layoutInputs.x.value = values.x;
+        entry.layoutInputs.y.value = values.y;
+        entry.layoutInputs.w.value = values.w === '' ? '' : values.w;
+      }
+
+      closeButton.addEventListener('click', () => {
+        inspectorRegistry.delete(config.key);
+        panel.remove();
+      });
+
+      panel.addEventListener('pointerdown', () => bringInspectorToFront(panel));
+      makePanelDraggable(panel, header);
+      return entry;
+    };
+
+    const openInspector = (event, fieldNode, layoutNode) => {
+      if (!event) return;
+      const field = fieldNode ? fieldNode.dataset.copyField : '';
+      const copyType = fieldNode ? fieldNode.dataset.copyType || 'plain' : 'plain';
+      const layoutKey = layoutNode ? layoutNode.dataset.layoutKey : '';
+      const layoutKind = layoutNode ? layoutNode.dataset.layoutKind || 'pagecopy' : 'pagecopy';
+      const key = field ? `field:${field}` : (layoutKey ? `layout:${layoutKey}` : '');
+      if (!key) return;
+
+      let entry = inspectorRegistry.get(key);
+      if (!entry) {
+        const title = field ? `Edit ${humanizeLabel(field)}` : `Layout ${humanizeLabel(layoutKey)}`;
+        entry = createInspector({
+          key,
+          title,
+          field,
+          copyType,
+          node: fieldNode,
+          layoutKey,
+          layoutKind,
+        });
+        inspectorRegistry.set(key, entry);
+        document.body.appendChild(entry.panel);
+        const rect = entry.panel.getBoundingClientRect();
+        const left = Math.min(window.innerWidth - rect.width - 12, event.clientX + 16);
+        const top = Math.min(window.innerHeight - rect.height - 12, event.clientY + 16);
+        entry.panel.style.left = `${Math.max(12, left)}px`;
+        entry.panel.style.top = `${Math.max(12, top)}px`;
+      } else {
+        entry.node = fieldNode || entry.node;
+        if (entry.fieldInput && entry.node) {
+          entry.fieldInput.value = entry.copyType === 'rich' ? readRichValue(entry.node) : readPlainValue(entry.node);
+        }
+        if (entry.layoutInputs) {
+          const values = getLayoutValuesForKey(entry.layoutKey, entry.layoutKind);
+          entry.layoutInputs.x.value = values.x;
+          entry.layoutInputs.y.value = values.y;
+          entry.layoutInputs.w.value = values.w === '' ? '' : values.w;
+          if (entry.layoutInputs.modeLabel) {
+            entry.layoutInputs.modeLabel.textContent = currentMode === 'mobile' ? 'Mobile' : 'Desktop';
+          }
+        }
+        bringInspectorToFront(entry.panel);
+      }
+    };
+
+    const setSectionMode = (active) => {
+      sectionModeActive = !!active;
+      document.body.classList.toggle('pagecopy-section-mode', sectionModeActive);
+    };
+
+    const ensureSectionHandles = () => {
+      const sections = Array.from(document.querySelectorAll('.builder-section[data-section-id]'));
+      sections.forEach((section) => {
+        if (section.querySelector('.pagecopy-section-handle')) return;
+        const handle = document.createElement('button');
+        handle.type = 'button';
+        handle.className = 'pagecopy-section-handle';
+        handle.setAttribute('aria-label', 'Move section');
+        handle.innerHTML = (
+          '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M7 11V5a1 1 0 0 1 2 0v6"/>' +
+          '<path d="M9 11V4a1 1 0 0 1 2 0v7"/>' +
+          '<path d="M11 11V4a1 1 0 0 1 2 0v7"/>' +
+          '<path d="M13 11V5a1 1 0 0 1 2 0v8"/>' +
+          '<path d="M15 13l1.5-1a1 1 0 0 1 1.5.8V18c0 2-1.5 3-3 3H9c-2 0-3-1-3.5-2L4 15a1 1 0 0 1 1.4-1.4l2.6 2"/>' +
+          '</svg>'
+        );
+        section.insertBefore(handle, section.firstChild);
+      });
+    };
+
+    const notifySectionOrder = () => {
+      if (!window.parent) return;
+      const order = Array.from(document.querySelectorAll('.builder-section[data-section-id]'))
+        .map((section) => section.dataset.sectionId)
+        .filter(Boolean);
+      if (!order.length) return;
+      window.parent.postMessage({ type: 'pagecopy:section-order', order, meta: pagecopyMeta || null }, '*');
+    };
+
+    const setupSectionDrag = () => {
+      let dragSection = null;
+      let dragHandle = null;
+      let dragStartY = 0;
+      let placeholder = null;
+
+      const onPointerDown = (event) => {
+        if (!sectionModeActive) return;
+        const handle = event.target.closest('.pagecopy-section-handle');
+        if (!handle) return;
+        if (event.button && event.button !== 0) return;
+        const section = handle.closest('.builder-section[data-section-id]');
+        if (!section) return;
+        event.preventDefault();
+        dragSection = section;
+        dragHandle = handle;
+        dragStartY = event.clientY;
+        const rect = section.getBoundingClientRect();
+        placeholder = document.createElement('div');
+        placeholder.className = 'pagecopy-section-placeholder';
+        placeholder.style.height = `${rect.height}px`;
+        section.parentNode.insertBefore(placeholder, section.nextSibling);
+        section.classList.add('pagecopy-section-dragging');
+        section.style.width = `${rect.width}px`;
+        section.style.transform = 'translate3d(0, 0, 0)';
+        handle.setPointerCapture(event.pointerId);
+      };
+
+      const onPointerMove = (event) => {
+        if (!dragSection) return;
+        const dy = event.clientY - dragStartY;
+        dragSection.style.transform = `translate3d(0, ${dy}px, 0)`;
+        const sections = Array.from(document.querySelectorAll('.builder-section[data-section-id]')).filter(
+          (section) => section !== dragSection
+        );
+        const pointerY = event.clientY;
+        let inserted = false;
+        sections.forEach((section) => {
+          if (inserted) return;
+          const rect = section.getBoundingClientRect();
+          if (pointerY < rect.top + rect.height / 2) {
+            section.parentNode.insertBefore(placeholder, section);
+            inserted = true;
+          }
+        });
+        if (!inserted && placeholder) {
+          const parent = dragSection.parentNode;
+          if (parent) {
+            parent.appendChild(placeholder);
+          }
+        }
+      };
+
+      const onPointerUp = (event) => {
+        if (!dragSection) return;
+        event.preventDefault();
+        dragSection.classList.remove('pagecopy-section-dragging');
+        dragSection.style.transform = '';
+        dragSection.style.width = '';
+        if (dragHandle) {
+          try {
+            dragHandle.releasePointerCapture(event.pointerId);
+          } catch (err) {
+            // ignore
+          }
+        }
+        if (placeholder && placeholder.parentNode) {
+          placeholder.parentNode.insertBefore(dragSection, placeholder);
+        }
+        if (placeholder && placeholder.parentNode) {
+          placeholder.parentNode.removeChild(placeholder);
+        }
+        placeholder = null;
+        dragSection = null;
+        dragHandle = null;
+        notifySectionOrder();
+      };
+
+      document.addEventListener('pointerdown', onPointerDown);
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+    };
+
     const setLayoutMode = (active) => {
       layoutModeActive = !!active;
       document.body.classList.toggle('pagecopy-layout-mode', layoutModeActive);
@@ -633,6 +1246,7 @@ def inject_preview_helpers(
       applyLayout();
       syncLayoutState();
       syncAllSectionLayoutState();
+      refreshAllInspectorLayouts();
     };
 
     Object.keys(layoutConfig || {}).forEach(key => {
@@ -754,6 +1368,7 @@ def inject_preview_helpers(
           } else {
             syncLayoutState();
           }
+          refreshInspectorLayoutValues(key);
           return;
         }
         if (!dragKey || !dragMeta) return;
@@ -766,6 +1381,7 @@ def inject_preview_helpers(
         } else {
           syncLayoutState();
         }
+        refreshInspectorLayoutValues(key);
       };
 
       document.addEventListener('pointerdown', onPointerDown);
@@ -773,15 +1389,35 @@ def inject_preview_helpers(
       document.addEventListener('pointerup', onPointerUp);
     }
 
+    ensureSectionHandles();
+    setupSectionDrag();
+
+    document.addEventListener('click', (event) => {
+      if (!event || !event.target) return;
+      if (event.target.closest('.pagecopy-inspector')) return;
+      if (event.target.closest('.pagecopy-layout-handle')) return;
+      if (event.target.closest('.pagecopy-section-handle')) return;
+      if (layoutModeActive) return;
+      const fieldNode = event.target.closest('[data-copy-field]');
+      const layoutNode = event.target.closest('[data-layout-key]');
+      if (!fieldNode && !layoutNode) return;
+      openInspector(event, fieldNode, layoutNode);
+    });
+
     window.addEventListener('message', (event) => {
       const data = event.data || {};
       if (data.type === 'pagecopy:mode') {
         currentMode = normalizeMode(data.mode);
         applyLayout();
+        refreshAllInspectorLayouts();
         return;
       }
       if (data.type === 'pagecopy:layout-mode') {
         setLayoutMode(data.active);
+        return;
+      }
+      if (data.type === 'pagecopy:section-mode') {
+        setSectionMode(data.active);
         return;
       }
       if (data.type === 'pagecopy:layout-reset') {

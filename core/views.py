@@ -251,6 +251,70 @@ def admin_pagecopy_save_section_layout(request):
 @staff_member_required
 @require_POST
 @csrf_protect
+def admin_pagecopy_save_section_order(request):
+    payload = {}
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            payload = {}
+    if not payload:
+        payload = request.POST.dict()
+
+    order = payload.get("order") or []
+    model_label = (payload.get("model") or "").strip()
+    object_id = payload.get("object_id") or payload.get("objectId")
+
+    if not isinstance(order, list):
+        return JsonResponse({"ok": False, "error": "Invalid order payload."}, status=400)
+    if not order:
+        return JsonResponse({"ok": False, "error": "Missing section order."}, status=400)
+
+    if not request.user.has_perm("core.change_pagesection"):
+        raise PermissionDenied
+
+    resolved_ids = []
+    for entry in order:
+        try:
+            resolved_ids.append(int(entry))
+        except (TypeError, ValueError):
+            continue
+
+    if not resolved_ids:
+        return JsonResponse({"ok": False, "error": "No valid section ids."}, status=400)
+
+    filters = {"pk__in": resolved_ids}
+    if model_label and object_id:
+        model_cls = _resolve_pagecopy_model(model_label)
+        if not model_cls:
+            return JsonResponse({"ok": False, "error": "Unsupported model."}, status=400)
+        try:
+            object_id = int(object_id)
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "error": "Invalid object id."}, status=400)
+        content_type = ContentType.objects.get_for_model(model_cls)
+        filters.update({"content_type": content_type, "object_id": object_id})
+
+    sections = list(PageSection.objects.filter(**filters))
+    if not sections:
+        return JsonResponse({"ok": False, "error": "Sections not found."}, status=404)
+
+    allowed = {section.pk for section in sections}
+    updates = []
+    for idx, section_id in enumerate(resolved_ids):
+        if section_id not in allowed:
+            continue
+        updates.append((section_id, idx))
+
+    for section_id, next_order in updates:
+        PageSection.objects.filter(pk=section_id).update(order=next_order)
+
+    return JsonResponse({"ok": True, "order": resolved_ids})
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
 def admin_pagecopy_save_fonts(request):
     payload = {}
     if request.body:
