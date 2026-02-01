@@ -88,6 +88,28 @@
       font-weight: 600;
     }
 
+    .pagecopy-fonts-advanced {
+      margin-top: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 12px;
+      padding: 12px;
+      background: #ffffff;
+    }
+
+    .pagecopy-fonts-advanced summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .pagecopy-fonts-group h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+
+    .pagecopy-fonts-group .help {
+      margin-top: 6px;
+    }
+
     .pagecopy-preview__status {
       padding: 6px 12px;
       border-radius: 999px;
@@ -304,6 +326,53 @@
         </select>
       </div>
     </div>
+    <details class="pagecopy-fonts-advanced">
+      <summary>Typography details</summary>
+      <div class="pagecopy-fonts-grid">
+        <div class="pagecopy-fonts-group">
+          <h3>Body text</h3>
+          <label for="pagecopy-font-body-size">Base size</label>
+          <input type="text" id="pagecopy-font-body-size" data-pagecopy-font-style data-font-style-role="body" data-font-style-key="size" placeholder="e.g. 16px or 1rem">
+          <label for="pagecopy-font-body-line-height">Line height</label>
+          <input type="text" id="pagecopy-font-body-line-height" data-pagecopy-font-style data-font-style-role="body" data-font-style-key="line_height" placeholder="e.g. 1.55">
+          <label for="pagecopy-font-body-weight">Weight</label>
+          <input type="text" id="pagecopy-font-body-weight" data-pagecopy-font-style data-font-style-role="body" data-font-style-key="weight" placeholder="e.g. 400">
+          <label for="pagecopy-font-body-letter-spacing">Letter spacing</label>
+          <input type="text" id="pagecopy-font-body-letter-spacing" data-pagecopy-font-style data-font-style-role="body" data-font-style-key="letter_spacing" placeholder="e.g. 0.02em">
+        </div>
+        <div class="pagecopy-fonts-group">
+          <h3>Headings</h3>
+          <label for="pagecopy-font-heading-weight">Weight</label>
+          <input type="text" id="pagecopy-font-heading-weight" data-pagecopy-font-style data-font-style-role="heading" data-font-style-key="weight" placeholder="e.g. 900">
+          <label for="pagecopy-font-heading-letter-spacing">Letter spacing</label>
+          <input type="text" id="pagecopy-font-heading-letter-spacing" data-pagecopy-font-style data-font-style-role="heading" data-font-style-key="letter_spacing" placeholder="e.g. 0.01em">
+          <label for="pagecopy-font-heading-transform">Text transform</label>
+          <select id="pagecopy-font-heading-transform" data-pagecopy-font-style data-font-style-role="heading" data-font-style-key="transform">
+            <option value="">Default</option>
+            <option value="none">None</option>
+            <option value="uppercase">Uppercase</option>
+            <option value="lowercase">Lowercase</option>
+            <option value="capitalize">Capitalize</option>
+          </select>
+        </div>
+        <div class="pagecopy-fonts-group">
+          <h3>UI & buttons</h3>
+          <label for="pagecopy-font-ui-weight">Weight</label>
+          <input type="text" id="pagecopy-font-ui-weight" data-pagecopy-font-style data-font-style-role="ui" data-font-style-key="weight" placeholder="e.g. 700">
+          <label for="pagecopy-font-ui-letter-spacing">Letter spacing</label>
+          <input type="text" id="pagecopy-font-ui-letter-spacing" data-pagecopy-font-style data-font-style-role="ui" data-font-style-key="letter_spacing" placeholder="e.g. 0.03em">
+          <label for="pagecopy-font-ui-transform">Text transform</label>
+          <select id="pagecopy-font-ui-transform" data-pagecopy-font-style data-font-style-role="ui" data-font-style-key="transform">
+            <option value="">Default</option>
+            <option value="none">None</option>
+            <option value="uppercase">Uppercase</option>
+            <option value="lowercase">Lowercase</option>
+            <option value="capitalize">Capitalize</option>
+          </select>
+          <p class="help">Changes apply only to this page. Leave blank to keep existing styles.</p>
+        </div>
+      </div>
+    </details>
     <details class="pagecopy-fonts-upload">
       <summary>Upload a custom font</summary>
       <div class="pagecopy-fonts-grid">
@@ -338,6 +407,7 @@
   {{ pagecopy_draft_data|json_script:"pagecopyDraftData" }}
   {% if page_font_page %}
     {{ page_font_page|json_script:"pagecopyFontPage" }}
+    {{ page_font_styles|default:{}|json_script:"pagecopyFontStyles" }}
   {% endif %}
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script>
@@ -382,6 +452,9 @@
       const fontPage = fontPageScript ? JSON.parse(fontPageScript.textContent || '""') : '';
       const fontSaveUrl = '{{ page_font_save_url|default:"" }}';
       const fontUploadUrl = '{{ page_font_upload_url|default:"" }}';
+      const fontStyleSaveUrl = '{{ page_font_style_save_url|default:"" }}';
+      const fontStyleScript = document.getElementById('pagecopyFontStyles');
+      const fontStyleData = fontStyleScript ? JSON.parse(fontStyleScript.textContent || '{}') : {};
 
       const draftScript = document.getElementById('pagecopyDraftData');
       if (draftScript) {
@@ -629,6 +702,84 @@
               });
           });
         }
+      };
+
+      const setupFontStyleControls = () => {
+        const styleInputs = Array.from(document.querySelectorAll('[data-pagecopy-font-style]'));
+        if (!fontPage || !fontStyleSaveUrl || !styleInputs.length) return;
+
+        const stylePayload = (fontStyleData && typeof fontStyleData === 'object') ? fontStyleData : {};
+
+        const applyInitialValues = () => {
+          styleInputs.forEach((input) => {
+            const role = input.dataset.fontStyleRole;
+            const key = input.dataset.fontStyleKey;
+            if (!role || !key) return;
+            const value = stylePayload[role] && stylePayload[role][key];
+            if (value != null) {
+              input.value = value;
+            }
+          });
+        };
+
+        const collectValues = () => {
+          const result = { body: {}, heading: {}, ui: {} };
+          styleInputs.forEach((input) => {
+            const role = input.dataset.fontStyleRole;
+            const key = input.dataset.fontStyleKey;
+            if (!role || !key) return;
+            const value = String(input.value || '').trim();
+            if (value) {
+              result[role][key] = value;
+            }
+          });
+          Object.keys(result).forEach((role) => {
+            if (!Object.keys(result[role]).length) {
+              delete result[role];
+            }
+          });
+          return result;
+        };
+
+        let styleTimer = null;
+        const sendStyleUpdate = () => {
+          clearTimeout(styleTimer);
+          styleTimer = setTimeout(() => {
+            const styles = collectValues();
+            setStatus('saving', 'Saving typography...');
+            fetch(fontStyleSaveUrl, {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: JSON.stringify({ page: fontPage, styles }),
+            })
+              .then((response) => {
+                if (!response.ok) throw new Error('Typography update failed');
+                return response.json();
+              })
+              .then((data) => {
+                if (data && data.styles) {
+                  Object.assign(stylePayload, data.styles);
+                }
+                setStatus('saved', 'Typography saved');
+                renderPreview();
+              })
+              .catch(() => {
+                setStatus('error', 'Typography save failed');
+              });
+          }, 350);
+        };
+
+        styleInputs.forEach((input) => {
+          input.addEventListener('input', sendStyleUpdate);
+          input.addEventListener('change', sendStyleUpdate);
+        });
+
+        applyInitialValues();
       };
 
       const hasLayoutControls = !!layoutField || !!sectionLayoutSaveUrl;
@@ -888,6 +1039,7 @@
       setupSectionConfigVisibility();
       setupSectionSorting();
       setupFontControls();
+      setupFontStyleControls();
       renderPreview();
     })();
   </script>

@@ -304,6 +304,86 @@ def admin_pagecopy_save_fonts(request):
 @staff_member_required
 @require_POST
 @csrf_protect
+def admin_pagecopy_save_font_styles(request):
+    payload = {}
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            payload = {}
+    if not payload:
+        payload = request.POST.dict()
+
+    page = (payload.get("page") or "").strip()
+    styles = payload.get("styles") or {}
+
+    if not page:
+        return JsonResponse({"ok": False, "error": "Missing page."}, status=400)
+
+    valid_pages = {choice for choice, _ in PageFontSetting.Page.choices}
+    if page not in valid_pages:
+        return JsonResponse({"ok": False, "error": "Unsupported page."}, status=400)
+
+    if not request.user.has_perm("core.change_pagefontsetting"):
+        raise PermissionDenied
+
+    if not isinstance(styles, dict):
+        styles = {}
+
+    allowed_transforms = {"none", "uppercase", "lowercase", "capitalize"}
+
+    def _clean_style_value(value):
+        if value is None:
+            return ""
+        if isinstance(value, (int, float)):
+            value = str(value)
+        text = str(value).strip()
+        if not text:
+            return ""
+        text = re.sub(r"[;{}]", "", text)
+        return text[:64]
+
+    def _normalize_role(role_name):
+        role_raw = styles.get(role_name)
+        if not isinstance(role_raw, dict):
+            return {}
+        cleaned = {}
+        for key in ("size", "weight", "line_height", "letter_spacing", "transform"):
+            value = _clean_style_value(role_raw.get(key))
+            if not value:
+                continue
+            if key == "transform" and value not in allowed_transforms:
+                continue
+            cleaned[key] = value
+        return cleaned
+
+    normalized = {}
+    for role in ("body", "heading", "ui"):
+        cleaned = _normalize_role(role)
+        if cleaned:
+            normalized[role] = cleaned
+
+    setting = PageFontSetting.objects.filter(page=page).first()
+    if not setting:
+        fallback_font = FontPreset.objects.filter(is_active=True).order_by("name").first()
+        if not fallback_font:
+            return JsonResponse({"ok": False, "error": "Font presets not available."}, status=404)
+        setting = PageFontSetting.objects.create(
+            page=page,
+            body_font=fallback_font,
+            heading_font=fallback_font,
+            ui_font=None,
+        )
+
+    setting.style_overrides = normalized
+    setting.save(update_fields=["style_overrides", "updated_at"])
+
+    return JsonResponse({"ok": True, "styles": normalized})
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
 def admin_pagecopy_upload_font(request):
     if not request.user.has_perm("core.add_fontpreset"):
         raise PermissionDenied

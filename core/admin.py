@@ -2080,12 +2080,19 @@ class PageCopyAdminMixin(admin.ModelAdmin):
             extra_context["page_font_page"] = font_page
             extra_context["page_font_options"] = FontPreset.objects.filter(is_active=True).order_by("name")
             extra_context["page_font_setting"] = PageFontSetting.objects.filter(page=font_page).first()
+            extra_context["page_font_styles"] = (
+                extra_context["page_font_setting"].style_overrides
+                if extra_context["page_font_setting"]
+                else {}
+            )
             try:
                 extra_context["page_font_save_url"] = reverse("admin-pagecopy-save-fonts")
                 extra_context["page_font_upload_url"] = reverse("admin-pagecopy-upload-font")
+                extra_context["page_font_style_save_url"] = reverse("admin-pagecopy-save-font-styles")
             except Exception:
                 extra_context["page_font_save_url"] = None
                 extra_context["page_font_upload_url"] = None
+                extra_context["page_font_style_save_url"] = None
         return super().changeform_view(
             request,
             object_id=object_id,

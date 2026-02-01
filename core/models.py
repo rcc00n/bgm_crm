@@ -2146,6 +2146,11 @@ class PageFontSetting(models.Model):
         blank=True,
         help_text="Optional override for navigation, buttons, and labels. Defaults to body font.",
     )
+    style_overrides = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Optional per-page typography overrides (size, weight, spacing).",
+    )
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
