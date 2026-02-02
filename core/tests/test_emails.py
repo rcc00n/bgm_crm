@@ -139,3 +139,27 @@ class SendHtmlEmailTests(TestCase):
         self.assertEqual(log.recipients, ["alice@example.com", "bob@example.com"])
         self.assertEqual(log.recipient_count, 2)
         self.assertEqual(log.error_message, "")
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class SendHtmlEmailFailureTests(TestCase):
+    def test_send_html_email_logs_failure(self):
+        with patch.object(
+            emails.EmailMultiAlternatives,
+            "send",
+            side_effect=RuntimeError("Boom"),
+        ):
+            with self.assertRaises(RuntimeError):
+                emails.send_html_email(
+                    subject="Oops",
+                    text_body="Hello",
+                    html_body="<b>Hi</b>",
+                    from_email="noreply@example.com",
+                    recipient_list=["fail@example.com"],
+                    email_type="invoice",
+                )
+
+        log = EmailSendLog.objects.get()
+        self.assertFalse(log.success)
+        self.assertEqual(log.email_type, "invoice")
+        self.assertIn("RuntimeError: Boom", log.error_message)
