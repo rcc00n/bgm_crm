@@ -1,0 +1,234 @@
+/* Global density + scale adjustments (desktop-focused). */
+
+html {
+  font-size: 16px;
+}
+
+body {
+  line-height: 1.55;
+}
+
+@media (min-width: 1024px) {
+  html {
+    font-size: 15px !important;
+  }
+
+  body {
+    line-height: 1.45 !important;
+  }
+
+  :root {
+    --container: clamp(320px, 90vw, 1180px) !important;
+    --site-header-height: 64px !important;
+    --site-header-toggle-size: 40px !important;
+    --radius-lg: 1.05rem !important;
+    --radius-md: 0.75rem !important;
+    --radius-sm: 0.5rem !important;
+    --topbar-padding-y-desktop: 0.65rem !important;
+    --topbar-nav-size-desktop: 0.95rem !important;
+    --topbar-brand-size: clamp(1.05rem, 1.5vw, 1.35rem) !important;
+  }
+
+  h1 {
+    font-size: clamp(1.9rem, 2.8vw, 2.6rem) !important;
+    line-height: 1.1 !important;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 2.1vw, 2.1rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  h3 {
+    font-size: clamp(1.25rem, 1.6vw, 1.6rem) !important;
+    line-height: 1.25 !important;
+  }
+
+  .title,
+  .hero h1,
+  .hero__title {
+    font-size: clamp(1.9rem, 3.2vw, 2.8rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .section__title {
+    font-size: 1.45rem !important;
+  }
+
+  .modal__title {
+    font-size: 1.2rem !important;
+  }
+
+  .container {
+    padding-inline: 0.9rem !important;
+  }
+
+  .site-header__inner {
+    padding: 0.6rem 0 !important;
+  }
+
+  .site-header nav a {
+    padding: 0.4rem 0.6rem !important;
+  }
+
+  .hero {
+    padding-top: 3.6rem !important;
+    padding-bottom: 2.6rem !important;
+  }
+
+  .hero__inner {
+    gap: 1.5rem !important;
+    padding: clamp(1.6rem, 4.5vw, 3.5rem) 0 !important;
+  }
+
+  .section {
+    padding: 1.75rem 0 !important;
+  }
+
+  .section__head {
+    gap: 0.85rem !important;
+    margin-bottom: 0.85rem !important;
+  }
+
+  .btn,
+  button.btn,
+  a.btn {
+    padding: 0.55rem 0.9rem !important;
+    min-height: 38px !important;
+  }
+
+  .btn--small {
+    padding: 0.4rem 0.6rem !important;
+    min-height: 32px !important;
+  }
+
+  input,
+  select,
+  textarea,
+  .field input,
+  .field select,
+  .field textarea {
+    padding: 0.5rem 0.7rem !important;
+    min-height: 38px !important;
+  }
+
+  .card,
+  .service-card,
+  .tile,
+  .summary,
+  .callout,
+  .file-card {
+    padding: 0.9rem !important;
+    border-radius: 0.85rem !important;
+  }
+
+  .panel-pad {
+    padding: 1rem !important;
+  }
+
+  .modal__dialog {
+    padding: 0.9rem !important;
+    border-radius: 0.9rem !important;
+  }
+
+  .btn-row,
+  .filters,
+  .services-grid {
+    gap: 0.85rem !important;
+  }
+
+  /* Tailwind utility tightening on desktop. */
+  .p-8 {
+    padding: 1rem !important;
+  }
+
+  .px-8 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .py-8 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  .gap-8 {
+    gap: 1rem !important;
+  }
+
+  .space-y-8 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1rem !important;
+  }
+
+  .gap-6 {
+    gap: 1.1rem !important;
+  }
+
+  .mt-8 {
+    margin-top: 1.5rem !important;
+  }
+
+  .mt-6 {
+    margin-top: 1.25rem !important;
+  }
+
+  .text-4xl {
+    font-size: 2rem !important;
+  }
+
+  .text-3xl {
+    font-size: 1.6rem !important;
+  }
+
+  .text-2xl {
+    font-size: 1.4rem !important;
+  }
+
+  .text-xl {
+    font-size: 1.2rem !important;
+  }
+
+  /* Dashboard-specific tightening (client portal). */
+  .app-wrap .sidebar {
+    width: 14.5rem !important;
+  }
+
+  .app-wrap main {
+    padding: 1.5rem !important;
+  }
+
+  .app-wrap .sidebar-link,
+  .app-wrap .logout-btn {
+    padding: 0.5rem 0.75rem !important;
+    min-height: 38px !important;
+  }
+
+  .app-wrap .ol2__grid {
+    grid-auto-rows: 32px !important;
+  }
+
+  .app-wrap .ol2__cell {
+    padding: 0.2rem 0.3rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .app-wrap .ol2__day .t {
+    font-size: 0.85rem !important;
+  }
+
+  .app-wrap .ol2__day .s {
+    font-size: 0.7rem !important;
+  }
+
+  .app-wrap .chip {
+    height: 1.45rem !important;
+    min-width: 3rem !important;
+    font-size: 0.82rem !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  html {
+    font-size: 14.5px !important;
+  }
+}
