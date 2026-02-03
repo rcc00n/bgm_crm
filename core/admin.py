@@ -1974,6 +1974,8 @@ PAGECOPY_FONT_PAGES = {
     HomePageCopy: PageFontSetting.Page.HOME,
     ServicesPageCopy: PageFontSetting.Page.SERVICES,
     StorePageCopy: PageFontSetting.Page.STORE,
+    MerchPageCopy: PageFontSetting.Page.MERCH,
+    AboutPageCopy: PageFontSetting.Page.ABOUT,
 }
 
 
@@ -2768,6 +2770,18 @@ class StorePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "browse_view_all_label",
             )
         }),
+        ("Product comparison", {
+            "fields": (
+                "comparison_title",
+                "comparison_desc",
+                "comparison_left_title",
+                "comparison_left_subtitle",
+                "comparison_left_body",
+                "comparison_right_title",
+                "comparison_right_subtitle",
+                "comparison_right_body",
+            )
+        }),
         ("Pricing labels", {
             "fields": (
                 "contact_for_estimate_label",
@@ -2919,6 +2933,10 @@ class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "profile_email_label",
                 "profile_birth_date_label",
                 "profile_save_label",
+                "profile_email_prefs_title",
+                "profile_email_marketing_label",
+                "profile_email_product_label",
+                "profile_email_service_label",
             )
         }),
         ("Reschedule modal", {
@@ -3031,21 +3049,64 @@ class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "section_badge_label",
             )
         }),
+        ("Coming soon state", {
+            "fields": (
+                "coming_soon_enabled",
+                "coming_soon_badge",
+                "coming_soon_title",
+                "coming_soon_desc",
+            )
+        }),
+        ("Card meta labels", {"fields": ("card_colors_label", "card_sizes_label")}),
         ("Drop idea cards", {
             "fields": (
                 "card_1_title",
                 "card_1_desc",
+                "card_1_photo",
+                "card_1_photo_alt",
+                "card_1_colors",
+                "card_1_sizes",
                 "card_2_title",
                 "card_2_desc",
+                "card_2_photo",
+                "card_2_photo_alt",
+                "card_2_colors",
+                "card_2_sizes",
                 "card_3_title",
                 "card_3_desc",
+                "card_3_photo",
+                "card_3_photo_alt",
+                "card_3_colors",
+                "card_3_sizes",
                 "card_4_title",
                 "card_4_desc",
+                "card_4_photo",
+                "card_4_photo_alt",
+                "card_4_colors",
+                "card_4_sizes",
+            )
+        }),
+        ("Social links", {
+            "fields": (
+                "social_section_title",
+                "social_section_desc",
+                "social_link_1_label",
+                "social_link_1_url",
+                "social_link_2_label",
+                "social_link_2_url",
+                "social_link_3_label",
+                "social_link_3_url",
+                "social_link_4_label",
+                "social_link_4_url",
             )
         }),
         ("Bottom CTA", {"fields": ("bottom_cta_label",)}),
         ("Contact modal", {
             "fields": (
+                "contact_email",
+                "contact_email_subject",
+                "contact_phone",
+                "contact_phone_display",
                 "contact_fab_label",
                 "contact_modal_title",
                 "contact_close_label",
@@ -3250,6 +3311,12 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "story_title",
                 "story_paragraph_1",
                 "story_paragraph_2",
+                "story_photo",
+                "story_photo_alt",
+                "story_photo_placeholder",
+                "story_photo_title",
+                "story_photo_subtitle",
+                "story_photo_caption",
             )
         }),
         ("What we build", {
@@ -4070,11 +4137,40 @@ class EmailCampaignRecipientAdmin(ExportCsvMixin, admin.ModelAdmin):
     search_fields = ("email", "campaign__name", "user__email")
     readonly_fields = ("campaign", "email", "user", "source", "status", "error_message", "sent_at", "created_at")
 
+
+@admin.register(EmailSendLog)
+class EmailSendLogAdmin(admin.ModelAdmin):
+    list_display = ("email_type", "recipient_count", "success", "sent_at", "subject")
+    list_filter = ("email_type", "success", ("sent_at", DateFieldListFilter))
+    search_fields = ("subject", "from_email", "recipients")
+    readonly_fields = (
+        "email_type",
+        "subject",
+        "from_email",
+        "recipients",
+        "recipient_count",
+        "success",
+        "error_message",
+        "sent_at",
+    )
+
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
     list_filter = ("status", "featured", "published_at")
-    search_fields = ("title", "excerpt", "body", "tags", "client_name", "location", "services")
+    search_fields = (
+        "title",
+        "excerpt",
+        "overview",
+        "parts",
+        "customizations",
+        "backstory",
+        "body",
+        "tags",
+        "client_name",
+        "location",
+        "services",
+    )
     ordering = ("-published_at", "-updated_at")
     readonly_fields = ("created_at", "updated_at", "published_at", "preview_link")
     prepopulated_fields = {"slug": ("title",)}
@@ -4085,11 +4181,19 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
                 "slug",
                 "headline",
                 "excerpt",
-                "body",
                 "cover_image",
                 "result_highlight",
             )
         }),
+        ("Build breakdown", {
+            "fields": (
+                "overview",
+                "parts",
+                "customizations",
+                "backstory",
+            )
+        }),
+        ("Full report", {"fields": ("body",)}),
         ("Project meta", {
             "fields": (
                 "client_name",

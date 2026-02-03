@@ -7,8 +7,8 @@ from core.models import FontPreset, PageFontSetting
 
 # Default fallbacks in case admin configuration is missing.
 DEFAULT_FONT_SLUGS = {
-    "body": "diesel",
-    "heading": "ford",
+    "body": "inter",
+    "heading": "diesel",
 }
 
 

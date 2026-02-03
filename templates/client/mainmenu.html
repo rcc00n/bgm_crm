@@ -134,13 +134,13 @@
       padding:5.2rem 1rem 3.2rem;background:
       radial-gradient(60% 120% at 82% -10%, rgba(213,0,0,.18) 0%, rgba(213,0,0,0) 60%),
       radial-gradient(60% 120% at 12% 110%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%);border-bottom:1px solid var(--line)}
-    .hero h1{font:900 clamp(2.2rem,4.5vw,3.4rem)/1.05 Inter;text-transform:uppercase;letter-spacing:.8px;text-shadow:0 0 18px rgba(213,0,0,.25)}
+    .hero h1{font-family:var(--font-head);font-weight:900;font-size:clamp(2.2rem,4.5vw,3.4rem);line-height:1.05;text-transform:uppercase;letter-spacing:.8px;text-shadow:0 0 18px rgba(213,0,0,.25)}
     .hero p{font-size:1.05rem;max-width:60ch;color:var(--muted)}
     .hero .cta{margin-top:.35rem}
 
     /* Catalog */
     main{position:relative;z-index:2}
-    h2{font:900 1.6rem/1.2 Inter;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1.25rem}
+    h2{font-family:var(--font-head);font-weight:900;font-size:1.6rem;line-height:1.2;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1.25rem}
     .filters{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.25rem 0 1.75rem}
     .filters input,.filters select{padding:.65rem 1rem;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:.95rem;min-width:170px;background:var(--field-bg);color:var(--ink)}
     .filters ::placeholder{color:var(--muted)}
@@ -303,8 +303,8 @@
     }
 
     :root{
-      --font-body:"Diesel", Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
-      --font-head:"Ford",  Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      --font-body:"Inter", Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      --font-head:"Diesel",  Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
     }
 
     /* глобально */
@@ -1816,7 +1816,7 @@ main h3{
     position:relative;
   }
   .contact-title{
-    font-family:var(--font-head,"Ford"),system-ui,sans-serif;
+    font-family:var(--font-head,"Diesel"),system-ui,sans-serif;
     font-weight:900; letter-spacing:.005em; line-height:1.15;
     font-size:1.6rem; margin:.2rem 2.2rem 1rem .2rem; color:#fff;
     text-transform:none;

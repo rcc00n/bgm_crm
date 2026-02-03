@@ -51,12 +51,20 @@ class ClientRegistrationForm(UserCreationForm):
     )
 
     email_marketing_consent = forms.BooleanField(
-        required=False, label="I agree to receive e-mail updates and offers"
+        required=False, label="News & offers"
+    )
+
+    email_product_updates = forms.BooleanField(
+        required=False, label="Product drops & merch alerts"
+    )
+
+    email_service_updates = forms.BooleanField(
+        required=False, label="Build updates & service reminders"
     )
 
     accepted_terms = forms.BooleanField(
         required=True,
-        label="I have read and agree to the Terms & Conditions",
+        label="I AGREE",
         error_messages={
             "required": "You must accept the Terms & Conditions to create an account."
         },
@@ -67,6 +75,7 @@ class ClientRegistrationForm(UserCreationForm):
         fields = (
             "username", "email", "phone",
             "address", "how_heard", "email_marketing_consent",
+            "email_product_updates", "email_service_updates",
             "accepted_terms",
             "password1", "password2"
         )
@@ -130,6 +139,8 @@ class ClientRegistrationForm(UserCreationForm):
                 phone=phone,
                 address=self.cleaned_data.get("address") or "",
                 how_heard=self.cleaned_data.get("how_heard") or "",
+                email_product_updates=bool(self.cleaned_data.get("email_product_updates")),
+                email_service_updates=bool(self.cleaned_data.get("email_service_updates")),
             )
             # marketing consent + timestamp
             consent = bool(self.cleaned_data.get("email_marketing_consent"))
@@ -137,6 +148,7 @@ class ClientRegistrationForm(UserCreationForm):
             profile.save(update_fields=[
                 "address", "how_heard",
                 "email_marketing_consent", "email_marketing_consented_at",
+                "email_product_updates", "email_service_updates",
             ])
 
             # assign Client role
@@ -231,7 +243,13 @@ class ClientProfileForm(forms.Form):
         choices=[("", "- Select -")] + list(HowHeard.choices)
     )
     email_marketing_consent = forms.BooleanField(
-        required=False, label="I agree to receive news and offers via e-mail"
+        required=False, label="News & offers"
+    )
+    email_product_updates = forms.BooleanField(
+        required=False, label="Product drops & merch alerts"
+    )
+    email_service_updates = forms.BooleanField(
+        required=False, label="Build updates & service reminders"
     )
 
     def __init__(self, *args, **kwargs):
@@ -246,6 +264,8 @@ class ClientProfileForm(forms.Form):
             self.fields["address"].initial = prof.address
             self.fields["how_heard"].initial = prof.how_heard
             self.fields["email_marketing_consent"].initial = prof.email_marketing_consent
+            self.fields["email_product_updates"].initial = prof.email_product_updates
+            self.fields["email_service_updates"].initial = prof.email_service_updates
         except UserProfile.DoesNotExist:
             pass
 
@@ -293,9 +313,12 @@ class ClientProfileForm(forms.Form):
         # consent + timestamp via model helper
         consent = bool(self.cleaned_data.get("email_marketing_consent"))
         prof.set_marketing_consent(consent)
+        prof.email_product_updates = bool(self.cleaned_data.get("email_product_updates"))
+        prof.email_service_updates = bool(self.cleaned_data.get("email_service_updates"))
 
         prof.save(update_fields=[
             "phone", "birth_date", "address", "how_heard",
             "email_marketing_consent", "email_marketing_consented_at",
+            "email_product_updates", "email_service_updates",
         ])
         return u

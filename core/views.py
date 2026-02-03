@@ -1143,12 +1143,14 @@ def financing_view(request):
 
 def our_story_view(request):
     about_copy = AboutPageCopy.get_solo()
+    font_settings = build_page_font_context(PageFontSetting.Page.ABOUT)
     return render(
         request,
         "client/our_story.html",
         {
             "about_copy": about_copy,
             "header_copy": about_copy,
+            "font_settings": font_settings,
         },
     )
 
@@ -1385,6 +1387,7 @@ def site_notice_signup(request):
             html_body=html_body,
             from_email=sender,
             recipient_list=[email],
+            email_type="site_notice_welcome",
         )
     except Exception:
         logger.exception("Failed to send site notice code email to %s", email)
@@ -1583,15 +1586,47 @@ def project_journal_view(request):
         post for post in visible_posts
         if not featured_post or post.pk != featured_post.pk
     ]
+    gallery_posts = list(visible_posts)
+
+    project_payload = []
+    for post in gallery_posts:
+        published_label = ""
+        if post.published_at:
+            published_label = timezone.localtime(post.published_at).strftime("%b %d, %Y")
+        project_payload.append(
+            {
+                "id": str(post.pk),
+                "slug": post.slug,
+                "title": post.title,
+                "hero_title": post.hero_title,
+                "excerpt": post.excerpt or "",
+                "overview": post.overview or "",
+                "parts": post.parts or "",
+                "customizations": post.customizations or "",
+                "backstory": post.backstory or "",
+                "body": post.body or "",
+                "result_highlight": post.result_highlight or "",
+                "client_name": post.client_name or "",
+                "location": post.location or "",
+                "reading_time": post.reading_time or 0,
+                "published_label": published_label,
+                "cover_image": post.cover_image.url if post.cover_image else "",
+                "services": post.services_list,
+                "tags": post.tag_list,
+            }
+        )
 
     context = {
         "featured_post": featured_post,
         "journal_posts": remaining_posts,
+        "gallery_posts": gallery_posts,
+        "project_payload": project_payload,
         "available_tags": available_tags,
         "tag_filter": tag_filter,
         "has_posts": bool(visible_posts),
         "page_title": "Project Journal",
         "meta_description": "Quiet corner of Bad Guy Motors where we document completed builds, wraps, and custom work.",
+        "font_settings": build_page_font_context(PageFontSetting.Page.PROJECT_JOURNAL),
     }
     return render(request, "client/project_journal.html", context)
 

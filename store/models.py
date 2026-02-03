@@ -699,6 +699,7 @@ class Order(models.Model):
                 html_body=html_body,
                 from_email=sender,
                 recipient_list=[recipient],
+                email_type=template_slug,
             )
         except Exception:
             logger.exception(

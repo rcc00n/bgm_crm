@@ -11,8 +11,14 @@
   {% endwith %}
 
   <!-- Preload custom fonts -->
-  <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
-  <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
+  {% if font_settings and font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% else %}
+    <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="{% static 'fonts/Inter-Variable.ttf' %}" as="font" type="font/ttf" crossorigin>
+  {% endif %}
 
   <style>
     /* ========================== VARIABLES & FONTS ========================== */
@@ -25,20 +31,40 @@
       --site-header-height:72px;
       --site-header-toggle-size:46px;
 
-      --font-body:"Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      --font-head:"Ford",  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      --font-body:"Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      --font-head:"Diesel",  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     }
 
+    {% if font_settings %}
+      {% for font in font_settings.fonts %}
+        {% if font.has_source %}
+    @font-face{
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
+    }
+        {% endif %}
+      {% endfor %}
+      {% with body_stack=font_settings.body.stack|default:'"Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' %}
+      {% with heading_stack=font_settings.heading.stack|default:'"Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' %}
+      {% with ui_stack=font_settings.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui:   {{ ui_stack|safe }};
+    }
+      {% endwith %}
+      {% endwith %}
+      {% endwith %}
+    {% else %}
     @font-face{
       font-family:"Diesel";
       src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
       font-weight:100 900; font-style:normal; font-display:swap;
     }
-    @font-face{
-      font-family:"Ford";
-      src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
-      font-weight:100 900; font-style:normal; font-display:swap;
-    }
+    {% endif %}
 
     /* ============================== BASE RESET ============================= */
     *,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
@@ -220,6 +246,47 @@
       background:linear-gradient(180deg,var(--panel),var(--panel-2));
       border:1px solid var(--line); border-radius:1rem; padding:1rem; box-shadow:var(--shadow);
     }
+    .card__media{
+      border-radius:.85rem; overflow:hidden; border:1px solid rgba(255,255,255,.08);
+      background:#0c0c0c;
+    }
+    .card__media img{ width:100%; height:100%; object-fit:cover; aspect-ratio:4/3; }
+    .card__body{ display:grid; gap:.45rem; }
+    .card__meta{
+      margin-top:.6rem; display:grid; gap:.4rem; font-size:.92rem; color:var(--muted-2);
+    }
+    .card__meta-row{ display:flex; flex-wrap:wrap; gap:.4rem .6rem; align-items:baseline; }
+    .card__meta dt{
+      font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; color:var(--muted-2);
+      font-weight:800;
+    }
+    .card__meta dd{ margin:0; color:var(--fg); font-weight:700; }
+
+    .coming-soon{
+      display:grid; gap:.55rem; margin:1rem 0 1.6rem;
+      padding:1rem 1.1rem; border-radius:1rem;
+      border:1px solid rgba(213,0,0,.35); background:rgba(213,0,0,.08);
+      box-shadow:0 14px 26px rgba(213,0,0,.18);
+    }
+    .coming-soon__title{ font-family:var(--font-head); font-size:1.25rem; font-weight:900; }
+    .section--coming-soon .card{ border-style:dashed; }
+
+    .social{
+      margin-top:1.8rem; padding:1.1rem;
+      border:1px solid var(--line); border-radius:1rem;
+      background:linear-gradient(180deg,#0c0c0c,#111111);
+      display:grid; gap:.75rem;
+    }
+    .social__title{ font-family:var(--font-head); font-weight:900; font-size:1.2rem; }
+    .social__links{ display:flex; flex-wrap:wrap; gap:.6rem; }
+    .social__link{
+      display:inline-flex; align-items:center; gap:.4rem;
+      padding:.55rem .95rem; border-radius:999px;
+      border:1px solid rgba(255,255,255,.16); color:#fff;
+      font-weight:800; letter-spacing:.02em; transition:.2s ease;
+      background:rgba(255,255,255,.04);
+    }
+    .social__link:hover{ border-color:rgba(213,0,0,.6); color:#fff; box-shadow:0 0 18px rgba(213,0,0,.25); }
 
     /* Skeleton shimmer */
     .sk{ height:140px; border-radius:.8rem; background:linear-gradient(90deg,#111,#151515,#111); background-size:200% 100%; animation:sh 1.1s ease-in-out infinite; }
@@ -460,7 +527,7 @@ body.nav-open .contact-fab,
   </section>
 
   <main id="main">
-    <section class="section">
+    <section class="section{% if merch_copy.coming_soon_enabled %} section--coming-soon{% endif %}">
       <div class="container">
         <div class="section__head">
           <div>
@@ -470,31 +537,160 @@ body.nav-open .contact-fab,
           <span class="badge">{{ merch_copy.section_badge_label }}</span>
         </div>
 
+        {% if merch_copy.coming_soon_enabled %}
+          <div class="coming-soon">
+            <span class="badge">{{ merch_copy.coming_soon_badge }}</span>
+            <div>
+              <div class="coming-soon__title">{{ merch_copy.coming_soon_title }}</div>
+              <p class="section__desc">{{ merch_copy.coming_soon_desc }}</p>
+            </div>
+          </div>
+        {% endif %}
+
         <div class="grid grid--cards">
           <article class="card">
-            <div class="sk"></div>
-            <h3 class="diesel">{{ merch_copy.card_1_title }}</h3>
-            <p class="section__desc">{{ merch_copy.card_1_desc }}</p>
+            {% if merch_copy.card_1_photo %}
+              <div class="card__media">
+                <img src="{{ merch_copy.card_1_photo.url }}" alt="{{ merch_copy.card_1_photo_alt|default:merch_copy.card_1_title }}" loading="lazy" decoding="async">
+              </div>
+            {% else %}
+              <div class="sk"></div>
+            {% endif %}
+            <div class="card__body">
+              <h3 class="diesel">{{ merch_copy.card_1_title }}</h3>
+              <p class="section__desc">{{ merch_copy.card_1_desc }}</p>
+              {% if merch_copy.card_1_colors or merch_copy.card_1_sizes %}
+                <dl class="card__meta">
+                  {% if merch_copy.card_1_colors %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_colors_label }}</dt>
+                      <dd>{{ merch_copy.card_1_colors }}</dd>
+                    </div>
+                  {% endif %}
+                  {% if merch_copy.card_1_sizes %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_sizes_label }}</dt>
+                      <dd>{{ merch_copy.card_1_sizes }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              {% endif %}
+            </div>
           </article>
 
           <article class="card">
-            <div class="sk"></div>
-            <h3 class="diesel">{{ merch_copy.card_2_title }}</h3>
-            <p class="section__desc">{{ merch_copy.card_2_desc }}</p>
+            {% if merch_copy.card_2_photo %}
+              <div class="card__media">
+                <img src="{{ merch_copy.card_2_photo.url }}" alt="{{ merch_copy.card_2_photo_alt|default:merch_copy.card_2_title }}" loading="lazy" decoding="async">
+              </div>
+            {% else %}
+              <div class="sk"></div>
+            {% endif %}
+            <div class="card__body">
+              <h3 class="diesel">{{ merch_copy.card_2_title }}</h3>
+              <p class="section__desc">{{ merch_copy.card_2_desc }}</p>
+              {% if merch_copy.card_2_colors or merch_copy.card_2_sizes %}
+                <dl class="card__meta">
+                  {% if merch_copy.card_2_colors %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_colors_label }}</dt>
+                      <dd>{{ merch_copy.card_2_colors }}</dd>
+                    </div>
+                  {% endif %}
+                  {% if merch_copy.card_2_sizes %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_sizes_label }}</dt>
+                      <dd>{{ merch_copy.card_2_sizes }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              {% endif %}
+            </div>
           </article>
 
           <article class="card">
-            <div class="sk"></div>
-            <h3 class="diesel">{{ merch_copy.card_3_title }}</h3>
-            <p class="section__desc">{{ merch_copy.card_3_desc }}</p>
+            {% if merch_copy.card_3_photo %}
+              <div class="card__media">
+                <img src="{{ merch_copy.card_3_photo.url }}" alt="{{ merch_copy.card_3_photo_alt|default:merch_copy.card_3_title }}" loading="lazy" decoding="async">
+              </div>
+            {% else %}
+              <div class="sk"></div>
+            {% endif %}
+            <div class="card__body">
+              <h3 class="diesel">{{ merch_copy.card_3_title }}</h3>
+              <p class="section__desc">{{ merch_copy.card_3_desc }}</p>
+              {% if merch_copy.card_3_colors or merch_copy.card_3_sizes %}
+                <dl class="card__meta">
+                  {% if merch_copy.card_3_colors %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_colors_label }}</dt>
+                      <dd>{{ merch_copy.card_3_colors }}</dd>
+                    </div>
+                  {% endif %}
+                  {% if merch_copy.card_3_sizes %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_sizes_label }}</dt>
+                      <dd>{{ merch_copy.card_3_sizes }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              {% endif %}
+            </div>
           </article>
 
           <article class="card">
-            <div class="sk"></div>
-            <h3 class="diesel">{{ merch_copy.card_4_title }}</h3>
-            <p class="section__desc">{{ merch_copy.card_4_desc }}</p>
+            {% if merch_copy.card_4_photo %}
+              <div class="card__media">
+                <img src="{{ merch_copy.card_4_photo.url }}" alt="{{ merch_copy.card_4_photo_alt|default:merch_copy.card_4_title }}" loading="lazy" decoding="async">
+              </div>
+            {% else %}
+              <div class="sk"></div>
+            {% endif %}
+            <div class="card__body">
+              <h3 class="diesel">{{ merch_copy.card_4_title }}</h3>
+              <p class="section__desc">{{ merch_copy.card_4_desc }}</p>
+              {% if merch_copy.card_4_colors or merch_copy.card_4_sizes %}
+                <dl class="card__meta">
+                  {% if merch_copy.card_4_colors %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_colors_label }}</dt>
+                      <dd>{{ merch_copy.card_4_colors }}</dd>
+                    </div>
+                  {% endif %}
+                  {% if merch_copy.card_4_sizes %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_sizes_label }}</dt>
+                      <dd>{{ merch_copy.card_4_sizes }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              {% endif %}
+            </div>
           </article>
         </div>
+
+        {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
+          <div class="social">
+            <div>
+              <div class="social__title">{{ merch_copy.social_section_title }}</div>
+              <p class="section__desc">{{ merch_copy.social_section_desc }}</p>
+            </div>
+            <div class="social__links">
+              {% if merch_copy.social_link_1_url %}
+                <a class="social__link" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
+              {% endif %}
+              {% if merch_copy.social_link_2_url %}
+                <a class="social__link" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
+              {% endif %}
+              {% if merch_copy.social_link_3_url %}
+                <a class="social__link" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
+              {% endif %}
+              {% if merch_copy.social_link_4_url %}
+                <a class="social__link" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
 
         <div class="btn-row" style="margin-top:1.5rem">
           <a class="btn btn--primary" href="{% url 'home' %}">{{ merch_copy.bottom_cta_label }}</a>
@@ -525,29 +721,39 @@ body.nav-open .contact-fab,
       <h2 id="contactTitle" class="contact-title">{{ merch_copy.contact_modal_title }}</h2>
 
       <div class="contact-body">
-        <div class="contact-row">
-          <div>
-            <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
-            <div class="contact-sub">{{ merch_copy.contact_email_label }}</div>
-          </div>
-          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ merch_copy.contact_copy_label }}</button>
-        </div>
+        {% with contact_email=merch_copy.contact_email|default:"" contact_phone=merch_copy.contact_phone|default:"" contact_phone_display=merch_copy.contact_phone_display|default:merch_copy.contact_phone %}
+          {% if contact_email %}
+            <div class="contact-row">
+              <div>
+                <div><a href="mailto:{{ contact_email }}">{{ contact_email }}</a></div>
+                <div class="contact-sub">{{ merch_copy.contact_email_label }}</div>
+              </div>
+              <button class="contact-btn" data-copy="{{ contact_email }}" type="button">{{ merch_copy.contact_copy_label }}</button>
+            </div>
+          {% endif %}
 
-        <div class="contact-row">
-          <div>
-            <div><a href="tel:+14035250432">(403) 525-0432</a></div>
-            <div class="contact-sub">{{ merch_copy.contact_phone_label }}</div>
-          </div>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-            <a class="contact-btn" href="tel:+14035250432">{{ merch_copy.contact_call_label }}</a>
-            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ merch_copy.contact_copy_label }}</button>
-          </div>
-        </div>
+          {% if contact_phone %}
+            <div class="contact-row">
+              <div>
+                <div><a href="tel:{{ contact_phone }}">{{ contact_phone_display }}</a></div>
+                <div class="contact-sub">{{ merch_copy.contact_phone_label }}</div>
+              </div>
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                <a class="contact-btn" href="tel:{{ contact_phone }}">{{ merch_copy.contact_call_label }}</a>
+                <button class="contact-btn" data-copy="{{ contact_phone }}" type="button">{{ merch_copy.contact_copy_label }}</button>
+              </div>
+            </div>
+          {% endif %}
 
-        <div class="contact-actions">
-          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ merch_copy.contact_write_email_label }}</a>
-          <a class="contact-btn" href="sms:+14035250432">{{ merch_copy.contact_text_label }}</a>
-        </div>
+          <div class="contact-actions">
+            {% if contact_email %}
+              <a class="contact-btn" href="mailto:{{ contact_email }}?subject={{ merch_copy.contact_email_subject|urlencode }}">{{ merch_copy.contact_write_email_label }}</a>
+            {% endif %}
+            {% if contact_phone %}
+              <a class="contact-btn" href="sms:{{ contact_phone }}">{{ merch_copy.contact_text_label }}</a>
+            {% endif %}
+          </div>
+        {% endwith %}
       </div>
     </div>
   </div>

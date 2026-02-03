@@ -120,6 +120,7 @@ class Command(BaseCommand):
                     html_body=html_body,
                     from_email=sender,
                     recipient_list=[recipient],
+                    email_type="order_review_request",
                 )
             except Exception:
                 logger.exception("Failed to send review request for order %s", order.pk)

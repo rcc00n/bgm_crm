@@ -299,6 +299,10 @@
     .tile--link .tile__cta{margin-top:.1rem;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--muted);display:inline-flex;align-items:center;gap:.35rem}
     .tile--link:hover,.tile--link:focus-visible{border-color:rgba(213,0,0,.65);box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 20px rgba(213,0,0,.2);transform:translateY(-2px);outline:none}
     .tile--link:hover .tile__cta,.tile--link:focus-visible .tile__cta{color:var(--accent)}
+    .reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1.1rem}
+    .review-card{display:flex;flex-direction:column;gap:.6rem}
+    .review-stars{font-size:.9rem;color:var(--accent-2);letter-spacing:.14em}
+    .review-author{font-weight:800;color:rgba(255,255,255,.9);font-size:.95rem}
 
     details{background:var(--panel);border:1px solid var(--line);border-radius:.8rem;padding:.8rem}
     summary{cursor:pointer;font-weight:700}
@@ -336,8 +340,8 @@
     }
       {% endif %}
     {% endfor %}
-    {% with body_stack=fs.body.stack|default:'"Diesel", system-ui, sans-serif' %}
-    {% with heading_stack=fs.heading.stack|default:'"Ford", system-ui, sans-serif' %}
+    {% with body_stack=fs.body.stack|default:'"Inter", system-ui, sans-serif' %}
+    {% with heading_stack=fs.heading.stack|default:'"Diesel", system-ui, sans-serif' %}
     {% with ui_stack=fs.ui.stack|default:body_stack %}
     :root{
       --font-body: {{ body_stack|safe }};
@@ -1167,6 +1171,22 @@
             <span class="tile__cta">{{ home_copy.why_warranty_cta }}</span>
           </a>
         </div>
+        {% if home_reviews %}
+          <div class="reviews-grid" aria-label="Testimonials">
+            {% for review in home_reviews %}
+              <article class="tile review-card">
+                <div class="review-stars" aria-hidden="true">
+                  {% for _ in review.star_range %}★{% endfor %}
+                </div>
+                <p class="muted">&ldquo;{{ review.quote }}&rdquo;</p>
+                <p class="review-author">
+                  {{ review.reviewer_name }}{% if review.reviewer_title %} &mdash; {{ review.reviewer_title }}{% endif %}
+                </p>
+                <span class="sr-only">{{ review.rating }} star review</span>
+              </article>
+            {% endfor %}
+          </div>
+        {% endif %}
       </div>
     </section>
 
@@ -1356,7 +1376,7 @@
       position:relative;
     }
     .contact-title{
-      font-family:var(--font-head,"Ford"),system-ui,sans-serif;
+      font-family:var(--font-head,"Diesel"),system-ui,sans-serif;
       font-weight:900; letter-spacing:.005em; line-height:1.15;
       font-size:1.6rem; margin:.2rem 2.2rem 1rem .2rem; color:#fff;
       text-transform:none;

@@ -43,6 +43,12 @@ class Role(models.Model):
     Represents a role that can be assigned to a user (e.g., Master, Client, Admin).
     """
     name = models.CharField(max_length=20, unique=True)
+    notify_on_new_appointment = models.BooleanField(default=False)
+    notify_on_new_order = models.BooleanField(default=False)
+    notify_on_service_lead = models.BooleanField(default=False)
+    notify_on_fitment_request = models.BooleanField(default=False)
+    notify_on_site_notice_signup = models.BooleanField(default=False)
+    notify_on_order_review_request = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -968,6 +974,22 @@ class StorePageCopy(models.Model):
     browse_desc = models.CharField(max_length=80, default="Explore all categories")
     browse_view_all_label = models.CharField(max_length=40, default="View all")
 
+    comparison_title = models.CharField(max_length=80, default="Armadillo vs SCL")
+    comparison_desc = models.CharField(
+        max_length=160,
+        default="Two liner finishes, two personalities. Compare the feel before you book.",
+    )
+    comparison_left_title = models.CharField(max_length=60, default="Armadillo")
+    comparison_left_subtitle = models.CharField(max_length=80, default="Textured, rugged liner")
+    comparison_left_body = models.TextField(
+        default="Thick, textured finish built for abuse.\nIdeal for heavy-use beds and work rigs.\nMaximum grip and impact resistance.",
+    )
+    comparison_right_title = models.CharField(max_length=60, default="SCL")
+    comparison_right_subtitle = models.CharField(max_length=80, default="Smooth Criminal Liner")
+    comparison_right_body = models.TextField(
+        default="Smoother finish with a show-ready look.\nEasy to clean with a sleek feel.\nGreat for street builds and interiors.",
+    )
+
     contact_for_estimate_label = models.CharField(max_length=80, default="Contact for estimate")
     from_label = models.CharField(max_length=40, default="From")
     dealer_label = models.CharField(max_length=40, default="Dealer")
@@ -1132,6 +1154,10 @@ class ClientPortalPageCopy(models.Model):
     profile_email_label = models.CharField(max_length=40, default="E-mail")
     profile_birth_date_label = models.CharField(max_length=40, default="Birth date")
     profile_save_label = models.CharField(max_length=60, default="Save changes")
+    profile_email_prefs_title = models.CharField(max_length=80, default="Email preferences")
+    profile_email_marketing_label = models.CharField(max_length=120, default="News & offers")
+    profile_email_product_label = models.CharField(max_length=120, default="Product drops & merch alerts")
+    profile_email_service_label = models.CharField(max_length=120, default="Build updates & service reminders")
 
     reschedule_modal_title = models.CharField(max_length=80, default="Reschedule appointment")
     reschedule_close_label = models.CharField(max_length=40, default="Close")
@@ -1244,18 +1270,74 @@ class MerchPageCopy(models.Model):
     section_title = models.CharField(max_length=80, default="First drop ideas")
     section_desc = models.CharField(max_length=120, default="We’re sampling cuts, fabrics and prints.")
     section_badge_label = models.CharField(max_length=20, default="WIP")
+    coming_soon_enabled = models.BooleanField(default=True)
+    coming_soon_badge = models.CharField(max_length=40, default="Coming soon")
+    coming_soon_title = models.CharField(max_length=120, default="Merch drop incoming")
+    coming_soon_desc = models.CharField(
+        max_length=200,
+        default="We’re finalizing samples, colours, and sizing. Join the drop list for first access.",
+    )
+
+    card_colors_label = models.CharField(max_length=40, default="Colours")
+    card_sizes_label = models.CharField(max_length=40, default="Sizes")
 
     card_1_title = models.CharField(max_length=60, default="T-Shirts")
     card_1_desc = models.CharField(max_length=120, default="Heavyweight cotton, oversized fit.")
+    card_1_photo = models.ImageField(upload_to="merch/cards/", blank=True, null=True)
+    card_1_photo_alt = models.CharField(max_length=140, blank=True)
+    card_1_colors = models.CharField(max_length=160, blank=True)
+    card_1_sizes = models.CharField(max_length=160, blank=True)
     card_2_title = models.CharField(max_length=60, default="Hoodies")
     card_2_desc = models.CharField(max_length=120, default="Brushed fleece, embroidered logos.")
+    card_2_photo = models.ImageField(upload_to="merch/cards/", blank=True, null=True)
+    card_2_photo_alt = models.CharField(max_length=140, blank=True)
+    card_2_colors = models.CharField(max_length=160, blank=True)
+    card_2_sizes = models.CharField(max_length=160, blank=True)
     card_3_title = models.CharField(max_length=60, default="Caps")
     card_3_desc = models.CharField(max_length=120, default="Low-profile, structured.")
+    card_3_photo = models.ImageField(upload_to="merch/cards/", blank=True, null=True)
+    card_3_photo_alt = models.CharField(max_length=140, blank=True)
+    card_3_colors = models.CharField(max_length=160, blank=True)
+    card_3_sizes = models.CharField(max_length=160, blank=True)
     card_4_title = models.CharField(max_length=60, default="Posters")
     card_4_desc = models.CharField(max_length=120, default="Garage & office wall essentials.")
+    card_4_photo = models.ImageField(upload_to="merch/cards/", blank=True, null=True)
+    card_4_photo_alt = models.CharField(max_length=140, blank=True)
+    card_4_colors = models.CharField(max_length=160, blank=True)
+    card_4_sizes = models.CharField(max_length=160, blank=True)
+
+    social_section_title = models.CharField(max_length=80, default="Follow the drop")
+    social_section_desc = models.CharField(
+        max_length=160,
+        default="Behind-the-scenes, restocks, and first access alerts.",
+    )
+    social_link_1_label = models.CharField(max_length=40, default="Instagram")
+    social_link_1_url = models.URLField(
+        blank=True,
+        default="https://www.instagram.com/badguymotors?igsh=N2QwZnVybTJrZW8=",
+    )
+    social_link_2_label = models.CharField(max_length=40, default="Facebook")
+    social_link_2_url = models.URLField(
+        blank=True,
+        default="https://www.facebook.com/share/1Gsej2u5X4/?mibextid=wwXIfr",
+    )
+    social_link_3_label = models.CharField(max_length=40, default="YouTube")
+    social_link_3_url = models.URLField(
+        blank=True,
+        default="https://youtube.com/@badguymotors?si=PObKEe6vNMEr3Z2b",
+    )
+    social_link_4_label = models.CharField(max_length=40, default="TikTok")
+    social_link_4_url = models.URLField(
+        blank=True,
+        default="https://www.tiktok.com/@savoies0?_r=1&_t=ZS-93JwAHrfF5k",
+    )
 
     bottom_cta_label = models.CharField(max_length=40, default="← Home")
 
+    contact_email = models.EmailField(default="support@badguymotors.com")
+    contact_email_subject = models.CharField(max_length=120, default="Inquiry from website")
+    contact_phone = models.CharField(max_length=32, default="+14035250432")
+    contact_phone_display = models.CharField(max_length=40, default="(403) 525-0432")
     contact_fab_label = models.CharField(max_length=60, default="Contact us")
     contact_modal_title = models.CharField(max_length=60, default="Contact us")
     contact_close_label = models.CharField(max_length=40, default="Close")
@@ -1501,6 +1583,30 @@ class AboutPageCopy(models.Model):
             "Every build is personal: the parts we design, the welds we lay, the timelines we keep. We want "
             "our daughters to see what it means to run a business with grit, integrity, and pride."
         )
+    )
+    story_photo = models.ImageField(
+        upload_to="about/story/",
+        blank=True,
+        null=True,
+        help_text="Optional photo shown in the Our Story section.",
+    )
+    story_photo_alt = models.CharField(
+        max_length=160,
+        default="Denim & Kacy at Bad Guy Motors",
+    )
+    story_photo_placeholder = models.CharField(
+        max_length=12,
+        default="DK",
+        help_text="Fallback initials shown when no photo is uploaded.",
+    )
+    story_photo_title = models.CharField(max_length=80, default="Denim & Kacy")
+    story_photo_subtitle = models.CharField(
+        max_length=120,
+        default="Co-owners, Bad Guy Motors",
+    )
+    story_photo_caption = models.CharField(
+        max_length=200,
+        default="Built on grit, family, and second chances.",
     )
 
     build_title = models.CharField(max_length=80, default="What we build")
@@ -2010,6 +2116,33 @@ class EmailCampaignRecipient(models.Model):
         super().save(*args, **kwargs)
 
 
+class EmailSendLog(models.Model):
+    """
+    Lightweight log of outbound emails for auditing and troubleshooting.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email_type = models.CharField(max_length=120, db_index=True)
+    subject = models.CharField(max_length=200, blank=True)
+    from_email = models.EmailField(blank=True)
+    recipients = models.JSONField(default=list, blank=True)
+    recipient_count = models.PositiveIntegerField(default=0)
+    success = models.BooleanField(default=True)
+    error_message = models.TextField(blank=True)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-sent_at",)
+        verbose_name = "Email send log"
+        verbose_name_plural = "Email send logs"
+        indexes = [
+            models.Index(fields=["email_type"]),
+            models.Index(fields=["sent_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.email_type} ({self.recipient_count})"
+
+
 class FontPreset(models.Model):
     """
     Reusable font definition that can be applied to public-facing pages.
@@ -2116,11 +2249,14 @@ class PageFontSetting(models.Model):
         HOME = "home", "Home page"
         SERVICES = "services", "Services page"
         STORE = "store", "Store page"
+        MERCH = "merch", "Merch page"
         FINANCING = "financing", "Financing page"
+        ABOUT = "about", "About page"
         BRAKE_SUSPENSION = "brake_suspension", "Brake & Suspension page"
         WHEEL_TIRE_SERVICE = "wheel_tire_service", "Wheel & Tire Service page"
         PERFORMANCE_TUNING = "performance_tuning", "Performance Tuning page"
         ELECTRICAL_WORK = "electrical_work", "Electrical Work page"
+        PROJECT_JOURNAL = "project_journal", "Project journal"
 
     page = models.CharField(
         max_length=80,
@@ -2272,6 +2408,22 @@ class ProjectJournalEntry(models.Model):
     excerpt = models.TextField(
         blank=True,
         help_text="Short teaser shown on cards and previews.",
+    )
+    overview = models.TextField(
+        blank=True,
+        help_text="High-level summary for the gallery overview panel.",
+    )
+    parts = models.TextField(
+        blank=True,
+        help_text="Parts list or components used (one per line).",
+    )
+    customizations = models.TextField(
+        blank=True,
+        help_text="Custom fabrication, tuning, or unique upgrades (one per line).",
+    )
+    backstory = models.TextField(
+        blank=True,
+        help_text="Narrative backstory for the build.",
     )
     body = models.TextField()
     cover_image = models.ImageField(upload_to="project-journal/", blank=True, null=True)
@@ -2619,6 +2771,8 @@ class UserProfile(models.Model):
     address = models.TextField(blank=True)                         # одна строка/много строк — на твой вкус
     email_marketing_consent = models.BooleanField(default=False)   # согласие на рассылки
     email_marketing_consented_at = models.DateTimeField(null=True, blank=True)
+    email_product_updates = models.BooleanField(default=False)
+    email_service_updates = models.BooleanField(default=False)
     how_heard = models.CharField(max_length=32, choices=HowHeard.choices, blank=True)
     email_verified_at = models.DateTimeField(null=True, blank=True)
     email_verification_sent_at = models.DateTimeField(null=True, blank=True)
@@ -3536,6 +3690,7 @@ class LandingPageReview(models.Model):
     """
 
     class Page(models.TextChoices):
+        HOME = ("home", "Home page")
         PERFORMANCE_TUNING = ("performance_tuning", "Performance tuning")
         ELECTRICAL_WORK = ("electrical_work", "Electrical work")
         BRAKE_SUSPENSION = ("brake_suspension", "Brake & suspension")

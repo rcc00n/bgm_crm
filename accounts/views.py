@@ -33,6 +33,7 @@ from core.models import (
     ClientFile,
     ClientPortalPageCopy,
     MerchPageCopy,
+    LandingPageReview,
     PageFontSetting,
 )
 from core.services.fonts import build_page_font_context
@@ -125,6 +126,7 @@ def _send_email_verification(request, user, *, force: bool = False) -> bool:
         html_body=html_body,
         from_email=sender,
         recipient_list=[user.email],
+        email_type="email_verification",
     )
 
     profile.email_verification_sent_at = now
@@ -537,6 +539,13 @@ class HomeView(TemplateView):
         ctx["home_copy"] = home_copy
         ctx["page_sections"] = get_page_sections(home_copy)
         ctx["layout_styles"] = build_layout_styles(HomePageCopy, home_copy.layout_overrides)
+        ctx["home_reviews"] = (
+            LandingPageReview.objects.filter(
+                page=LandingPageReview.Page.HOME,
+                is_published=True,
+            )
+            .order_by("display_order", "-created_at")
+        )
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]
@@ -614,6 +623,7 @@ class MerchPlaceholderView(TemplateView):
         ctx = super().get_context_data(**kwargs)
         ctx["merch_copy"] = MerchPageCopy.get_solo()
         ctx["header_copy"] = ctx["merch_copy"]
+        ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
         return ctx
 
 # accounts/views.py

@@ -104,6 +104,7 @@ def send_appointment_confirmation(appointment_id) -> bool:
             html_body=html_body,
             from_email=sender,
             recipient_list=[recipient],
+            email_type="appointment_confirmation",
         )
     except Exception:
         logger.exception(

@@ -53,7 +53,14 @@ def _sender() -> str:
     )
 
 
-def _send_email(recipient: str, *, subject: str, text_body: str, html_body: str) -> bool:
+def _send_email(
+    recipient: str,
+    *,
+    subject: str,
+    text_body: str,
+    html_body: str,
+    email_type: str,
+) -> bool:
     sender = _sender()
     if not sender:
         logger.warning("Missing DEFAULT_FROM_EMAIL/SUPPORT_EMAIL for site notice followups.")
@@ -67,6 +74,7 @@ def _send_email(recipient: str, *, subject: str, text_body: str, html_body: str)
             html_body=html_body,
             from_email=sender,
             recipient_list=[recipient],
+            email_type=email_type,
         )
     except Exception:
         logger.exception("Failed to send site notice followup to %s", recipient)
@@ -198,14 +206,26 @@ class Command(BaseCommand):
 
         for signup in followup_2:
             subject, text_body, html_body = _build_followup_2(signup)
-            if _send_email(signup.email, subject=subject, text_body=text_body, html_body=html_body):
+            if _send_email(
+                signup.email,
+                subject=subject,
+                text_body=text_body,
+                html_body=html_body,
+                email_type="site_notice_followup_2",
+            ):
                 signup.followup_2_sent_at = now
                 signup.save(update_fields=["followup_2_sent_at"])
                 sent_2 += 1
 
         for signup in followup_3:
             subject, text_body, html_body = _build_followup_3(signup)
-            if _send_email(signup.email, subject=subject, text_body=text_body, html_body=html_body):
+            if _send_email(
+                signup.email,
+                subject=subject,
+                text_body=text_body,
+                html_body=html_body,
+                email_type="site_notice_followup_3",
+            ):
                 signup.followup_3_sent_at = now
                 signup.save(update_fields=["followup_3_sent_at"])
                 sent_3 += 1

@@ -90,7 +90,14 @@ def _summary_rows(cart: AbandonedCart) -> list[tuple[str, str]]:
     return [("Cart total", _format_money(cart.cart_total, symbol, code, include_code=True))]
 
 
-def _send_email(recipient: str, *, subject: str, text_body: str, html_body: str) -> bool:
+def _send_email(
+    recipient: str,
+    *,
+    subject: str,
+    text_body: str,
+    html_body: str,
+    email_type: str,
+) -> bool:
     sender = _sender()
     if not sender or not recipient:
         return False
@@ -101,6 +108,7 @@ def _send_email(recipient: str, *, subject: str, text_body: str, html_body: str)
             html_body=html_body,
             from_email=sender,
             recipient_list=[recipient],
+            email_type=email_type,
         )
     except Exception:
         logger.exception("Failed to send abandoned cart email to %s", recipient)
@@ -265,7 +273,13 @@ class Command(BaseCommand):
             if not cart.cart_items or cart.cart_total <= 0:
                 continue
             subject, text_body, html_body = _build_email_1(cart)
-            if _send_email(cart.email, subject=subject, text_body=text_body, html_body=html_body):
+            if _send_email(
+                cart.email,
+                subject=subject,
+                text_body=text_body,
+                html_body=html_body,
+                email_type="abandoned_cart_1",
+            ):
                 cart.email_1_sent_at = now
                 cart.save(update_fields=["email_1_sent_at"])
                 sent_1 += 1
@@ -279,7 +293,13 @@ class Command(BaseCommand):
             if not cart.cart_items or cart.cart_total <= 0:
                 continue
             subject, text_body, html_body = _build_email_2(cart)
-            if _send_email(cart.email, subject=subject, text_body=text_body, html_body=html_body):
+            if _send_email(
+                cart.email,
+                subject=subject,
+                text_body=text_body,
+                html_body=html_body,
+                email_type="abandoned_cart_2",
+            ):
                 cart.email_2_sent_at = now
                 cart.save(update_fields=["email_2_sent_at"])
                 sent_2 += 1
@@ -293,7 +313,13 @@ class Command(BaseCommand):
             if not cart.cart_items or cart.cart_total <= 0:
                 continue
             subject, text_body, html_body = _build_email_3(cart)
-            if _send_email(cart.email, subject=subject, text_body=text_body, html_body=html_body):
+            if _send_email(
+                cart.email,
+                subject=subject,
+                text_body=text_body,
+                html_body=html_body,
+                email_type="abandoned_cart_3",
+            ):
                 cart.email_3_sent_at = now
                 cart.save(update_fields=["email_3_sent_at"])
                 sent_3 += 1

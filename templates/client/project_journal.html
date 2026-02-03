@@ -10,9 +10,16 @@
       {% include "includes/marketing_head.html" %}
     {% endwith %}
   {% endwith %}
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Preload custom fonts -->
+  {% if font_settings and font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% else %}
+    <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="{% static 'fonts/Inter-Variable.ttf' %}" as="font" type="font/ttf" crossorigin>
+  {% endif %}
   <style>
     :root {
       color-scheme: dark;
@@ -29,9 +36,41 @@
       --radius-lg:22px;
       --radius-md:16px;
       --radius-sm:10px;
-      --body-font:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      --display-font:"Space Grotesk","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --font-body:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --font-head:"Diesel",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --body-font:var(--font-body);
+      --display-font:var(--font-head);
     }
+    {% if font_settings %}
+      {% for font in font_settings.fonts %}
+        {% if font.has_source %}
+    @font-face{
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
+    }
+        {% endif %}
+      {% endfor %}
+      {% with body_stack=font_settings.body.stack|default:'"Inter", system-ui, -apple-system, "Segoe UI", sans-serif' %}
+      {% with heading_stack=font_settings.heading.stack|default:'"Diesel", system-ui, -apple-system, "Segoe UI", sans-serif' %}
+      {% with ui_stack=font_settings.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui:   {{ ui_stack|safe }};
+    }
+      {% endwith %}
+      {% endwith %}
+      {% endwith %}
+    {% else %}
+    @font-face{
+      font-family:"Diesel";
+      src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
+      font-weight:100 900; font-style:normal; font-display:swap;
+    }
+    {% endif %}
     *,*::before,*::after { box-sizing:border-box; }
     body {
       margin:0;
@@ -93,61 +132,86 @@
       border-color:transparent;
       box-shadow:0 0 25px rgba(255,45,45,.35);
     }
-    .featured {
-      margin-bottom:3.5rem;
+    .gallery {
+      display:grid;
+      gap:2rem;
     }
-    .featured-card {
-      position:relative;
-      border-radius:var(--radius-lg);
-      padding:2.5rem;
-      overflow:hidden;
-      border:1px solid var(--card-border);
+    .gallery-stage {
       background:linear-gradient(145deg,#101018,#040406);
-      min-height:420px;
-      display:flex;
-      flex-direction:column;
-      justify-content:flex-end;
-      isolation:isolate;
+      border:1px solid var(--card-border);
+      border-radius:var(--radius-lg);
+      padding:2.25rem;
       box-shadow:var(--glow);
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:2rem;
     }
-    .featured-card::before {
-      content:"";
-      position:absolute;
-      inset:0;
-      background-image:var(--cover, radial-gradient(circle at top,#ff2d2d22,#000));
-      background-size:cover;
-      background-position:center;
-      opacity:0.35;
-      z-index:-2;
-      transition:opacity .3s ease;
+    .stage-media {
+      position:relative;
+      border-radius:var(--radius-md);
+      overflow:hidden;
+      background:radial-gradient(circle at top,#ff2d2d22,#0b0b12);
+      min-height:320px;
     }
-    .featured-card::after {
-      content:"";
-      position:absolute;
-      inset:0;
-      background:linear-gradient(180deg,rgba(1,1,3,0) 0%,rgba(1,1,3,.9) 75%);
-      z-index:-1;
+    .stage-media img {
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
     }
-    .featured-card:hover::before {
-      opacity:.5;
+    .stage-placeholder {
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      font-size:.95rem;
+      padding:2rem;
+      text-align:center;
     }
-    .featured-meta {
+    .stage-content {
+      display:grid;
+      gap:1rem;
+      align-content:start;
+    }
+    .stage-meta {
       display:flex;
       flex-wrap:wrap;
       gap:1rem;
       font-size:.9rem;
       color:var(--muted);
     }
-    .featured h2 {
+    .stage-title {
+      font-family:var(--display-font);
       font-size:2rem;
-      margin:.75rem 0 .5rem;
+      margin:.25rem 0 .2rem;
     }
-    .featured .excerpt {
-      max-width:720px;
+    .stage-excerpt {
       font-size:1rem;
       line-height:1.7;
       color:var(--ink);
-      margin-bottom:1.5rem;
+    }
+    .stage-sections {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:.9rem;
+    }
+    .stage-section {
+      background:var(--bg-muted);
+      border:1px solid var(--line);
+      border-radius:var(--radius-sm);
+      padding:1rem;
+    }
+    .stage-section h3 {
+      margin:0 0 .55rem;
+      font-size:.8rem;
+      text-transform:uppercase;
+      letter-spacing:.18em;
+      color:var(--muted);
+    }
+    .stage-report {
+      margin-top:.25rem;
     }
     .chip {
       padding:.4rem .9rem;
@@ -162,12 +226,6 @@
       background:linear-gradient(120deg,var(--accent),var(--accent-dark));
       box-shadow:0 10px 25px rgba(255,45,45,.25);
       color:#fff;
-    }
-    .featured .actions {
-      display:flex;
-      flex-wrap:wrap;
-      gap:.75rem;
-      margin-top:auto;
     }
     .btn {
       padding:.85rem 1.4rem;
@@ -192,10 +250,14 @@
       width:16px;
       height:16px;
     }
-    .card-grid {
+    .gallery-strip {
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-      gap:1.5rem;
+      grid-auto-flow:column;
+      grid-auto-columns:minmax(240px,1fr);
+      gap:1rem;
+      overflow-x:auto;
+      padding-bottom:.75rem;
+      scroll-snap-type:x mandatory;
     }
     .post-card {
       background:var(--card);
@@ -207,6 +269,19 @@
       flex-direction:column;
       gap:1rem;
       position:relative;
+      cursor:pointer;
+      text-align:left;
+      transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+      scroll-snap-align:start;
+    }
+    .post-card[aria-pressed="true"] {
+      border-color:rgba(255,45,45,.7);
+      box-shadow:0 0 30px rgba(255,45,45,.25);
+      transform:translateY(-2px);
+    }
+    .post-card:focus-visible {
+      outline:2px solid rgba(255,255,255,.7);
+      outline-offset:3px;
     }
     .post-card::before {
       content:"";
@@ -227,6 +302,19 @@
       height:180px;
       object-fit:cover;
       border-radius:var(--radius-sm);
+    }
+    .post-card__placeholder {
+      width:100%;
+      height:180px;
+      border-radius:var(--radius-sm);
+      background:linear-gradient(135deg,#0d0d14,#15151f);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:var(--muted);
+      font-size:.85rem;
+      padding:1rem;
     }
     .post-card h3 {
       margin:.5rem 0 0;
@@ -286,15 +374,22 @@
       color:var(--muted);
       background:rgba(255,255,255,.02);
     }
-    @media (max-width:720px) {
+    @media (max-width:900px) {
       body {
         padding:2rem 1rem 3rem;
       }
-      .featured-card {
-        padding:1.75rem;
+      .gallery-stage {
+        grid-template-columns:1fr;
+        padding:1.6rem;
+      }
+      .stage-media {
+        min-height:240px;
       }
       .tag-filter {
         justify-content:flex-start;
+      }
+      .gallery-strip {
+        grid-auto-columns:minmax(220px,70vw);
       }
     }
   </style>
@@ -327,96 +422,110 @@
     </header>
 
     {% if has_posts and featured_post %}
-    <section class="featured" id="project-{{ featured_post.slug }}">
-      {% if featured_post.cover_image %}
-        {% with image_url=featured_post.cover_image.url %}
-        <article class="featured-card" style="--cover:url('{{ image_url }}');">
-        {% endwith %}
-      {% else %}
-        <article class="featured-card">
-      {% endif %}
-        <div class="featured-meta">
-          <span>{{ featured_post.published_at|date:"M d, Y" }}</span>
-          {% if featured_post.client_name %}
-            <span>Client · {{ featured_post.client_name }}</span>
-          {% endif %}
-          {% if featured_post.location %}
-            <span>{{ featured_post.location }}</span>
-          {% endif %}
-          <span>{{ featured_post.reading_time }} min read</span>
-        </div>
-        <h2>{{ featured_post.hero_title }}</h2>
-        {% if featured_post.result_highlight %}
-          <div class="chip chip--accent">{{ featured_post.result_highlight }}</div>
-        {% endif %}
-        <p class="excerpt">
-          {{ featured_post.excerpt|default:"This build highlight is ready whenever you are." }}
-        </p>
-        {% if featured_post.services_list %}
-          <div class="tag-row" aria-label="Services performed">
-            {% for service in featured_post.services_list %}
-              <span>{{ service }}</span>
-            {% endfor %}
-          </div>
-        {% endif %}
-        {% if featured_post.tag_list %}
-          <div class="tag-row" aria-label="Tags">
-            {% for tag in featured_post.tag_list %}
-              <span>#{{ tag }}</span>
-            {% endfor %}
-          </div>
-        {% endif %}
-        <details>
-          <summary>
-            Read the full report
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </summary>
-          <div class="body-copy">
-            {{ featured_post.body|linebreaks }}
-          </div>
-        </details>
-      </article>
-    </section>
-    {% endif %}
-
-    {% if has_posts %}
-      {% if journal_posts %}
-      <section class="card-grid">
-        {% for post in journal_posts %}
-          <article class="post-card" id="project-{{ post.slug }}">
-            {% if post.cover_image %}
-              <img src="{{ post.cover_image.url }}" alt="{{ post.title }} cover">
+      <section class="gallery" aria-live="polite">
+        <div class="gallery-stage" data-active-id="{{ featured_post.id }}">
+          <div class="stage-media">
+            {% if featured_post.cover_image %}
+              <img id="projectImage" src="{{ featured_post.cover_image.url }}" alt="{{ featured_post.hero_title|default:featured_post.title }}" loading="lazy" decoding="async">
+            {% else %}
+              <div id="projectPlaceholder" class="stage-placeholder">Cover image coming soon.</div>
             {% endif %}
-            <div class="meta-line">
-              <span>{{ post.published_at|date:"M d, Y" }}</span>
-              <span>{{ post.reading_time }} min read</span>
+          </div>
+          <div class="stage-content">
+            <div class="stage-meta" id="projectMeta">
+              <span data-field="date">{{ featured_post.published_at|date:"M d, Y" }}</span>
+              {% if featured_post.client_name %}
+                <span data-field="client">Client · {{ featured_post.client_name }}</span>
+              {% endif %}
+              {% if featured_post.location %}
+                <span data-field="location">{{ featured_post.location }}</span>
+              {% endif %}
+              <span data-field="reading">{{ featured_post.reading_time }} min read</span>
             </div>
-            <h3>{{ post.title }}</h3>
-            <p>{{ post.excerpt|default:"Full write-up inside the report panel." }}</p>
-            {% if post.tag_list %}
-              <div class="tag-row">
-                {% for tag in post.tag_list %}
+            <h2 class="stage-title" id="projectTitle">{{ featured_post.hero_title }}</h2>
+            <div class="chip chip--accent" id="projectHighlight" {% if not featured_post.result_highlight %}hidden{% endif %}>
+              {{ featured_post.result_highlight }}
+            </div>
+            <p class="stage-excerpt" id="projectExcerpt">
+              {{ featured_post.excerpt|default:"This build highlight is ready whenever you are." }}
+            </p>
+            {% if featured_post.services_list %}
+              <div class="tag-row" id="projectServices" aria-label="Services performed">
+                {% for service in featured_post.services_list %}
+                  <span>{{ service }}</span>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="tag-row" id="projectServices" aria-label="Services performed" hidden></div>
+            {% endif %}
+            {% if featured_post.tag_list %}
+              <div class="tag-row" id="projectTags" aria-label="Tags">
+                {% for tag in featured_post.tag_list %}
                   <span>#{{ tag }}</span>
                 {% endfor %}
               </div>
+            {% else %}
+              <div class="tag-row" id="projectTags" aria-label="Tags" hidden></div>
             {% endif %}
-            <details>
+            <div class="stage-sections">
+              <div class="stage-section" data-section="overview" {% if not featured_post.overview and not featured_post.excerpt %}hidden{% endif %}>
+                <h3>Overview</h3>
+                <div class="body-copy" data-field="overview">
+                  {{ featured_post.overview|default:featured_post.excerpt|linebreaks }}
+                </div>
+              </div>
+              <div class="stage-section" data-section="parts" {% if not featured_post.parts %}hidden{% endif %}>
+                <h3>Parts</h3>
+                <div class="body-copy" data-field="parts">{{ featured_post.parts|linebreaks }}</div>
+              </div>
+              <div class="stage-section" data-section="customizations" {% if not featured_post.customizations %}hidden{% endif %}>
+                <h3>Customizations</h3>
+                <div class="body-copy" data-field="customizations">{{ featured_post.customizations|linebreaks }}</div>
+              </div>
+              <div class="stage-section" data-section="backstory" {% if not featured_post.backstory %}hidden{% endif %}>
+                <h3>Backstory</h3>
+                <div class="body-copy" data-field="backstory">{{ featured_post.backstory|linebreaks }}</div>
+              </div>
+            </div>
+            <details class="stage-report" id="projectReport" {% if not featured_post.body %}hidden{% endif %}>
               <summary>
-                Open report
+                Read the full report
                 <svg viewBox="0 0 24 24" fill="none">
                   <path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </summary>
-              <div class="body-copy">
-                {{ post.body|linebreaks }}
+              <div class="body-copy" data-field="body">
+                {{ featured_post.body|linebreaks }}
               </div>
             </details>
-          </article>
-        {% endfor %}
+          </div>
+        </div>
+
+        <div class="gallery-strip" role="list">
+          {% for post in gallery_posts %}
+            <article class="post-card" data-project-id="{{ post.id }}" data-project-slug="{{ post.slug }}" role="button" tabindex="0" aria-pressed="{% if featured_post and post.id == featured_post.id %}true{% else %}false{% endif %}">
+              {% if post.cover_image %}
+                <img src="{{ post.cover_image.url }}" alt="{{ post.title }} cover" loading="lazy" decoding="async">
+              {% else %}
+                <div class="post-card__placeholder">Cover image pending</div>
+              {% endif %}
+              <div class="meta-line">
+                <span>{{ post.published_at|date:"M d, Y" }}</span>
+                <span>{{ post.reading_time }} min read</span>
+              </div>
+              <h3>{{ post.title }}</h3>
+              <p>{{ post.excerpt|default:"Tap to view the full build breakdown." }}</p>
+              {% if post.tag_list %}
+                <div class="tag-row">
+                  {% for tag in post.tag_list %}
+                    <span>#{{ tag }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
       </section>
-      {% endif %}
     {% else %}
       <section class="empty-state">
         {% if tag_filter %}
@@ -427,6 +536,247 @@
       </section>
     {% endif %}
   </main>
+  {% if has_posts and featured_post %}
+    {{ project_payload|json_script:"projectJournalData" }}
+    <script>
+      (function(){
+        const dataEl = document.getElementById('projectJournalData');
+        if (!dataEl) return;
+        let projects = [];
+        try{
+          projects = JSON.parse(dataEl.textContent);
+        }catch(err){
+          return;
+        }
+        if (!Array.isArray(projects) || !projects.length) return;
+
+        const byId = new Map();
+        const bySlug = new Map();
+        projects.forEach((project) => {
+          if (project && project.id) {
+            byId.set(project.id, project);
+          }
+          if (project && project.slug) {
+            bySlug.set(project.slug, project);
+          }
+        });
+
+        const stage = document.querySelector('.gallery-stage');
+        if (!stage) return;
+        const media = stage.querySelector('.stage-media');
+        let imageEl = document.getElementById('projectImage');
+        let placeholderEl = document.getElementById('projectPlaceholder');
+
+        const titleEl = document.getElementById('projectTitle');
+        const excerptEl = document.getElementById('projectExcerpt');
+        const highlightEl = document.getElementById('projectHighlight');
+        const servicesEl = document.getElementById('projectServices');
+        const tagsEl = document.getElementById('projectTags');
+        const reportEl = document.getElementById('projectReport');
+        const reportBodyEl = stage.querySelector('[data-field="body"]');
+
+        const metaEls = {
+          date: stage.querySelector('[data-field="date"]'),
+          client: stage.querySelector('[data-field="client"]'),
+          location: stage.querySelector('[data-field="location"]'),
+          reading: stage.querySelector('[data-field="reading"]'),
+        };
+
+        const sectionEls = {
+          overview: {
+            wrapper: stage.querySelector('[data-section="overview"]'),
+            body: stage.querySelector('[data-field="overview"]'),
+          },
+          parts: {
+            wrapper: stage.querySelector('[data-section="parts"]'),
+            body: stage.querySelector('[data-field="parts"]'),
+          },
+          customizations: {
+            wrapper: stage.querySelector('[data-section="customizations"]'),
+            body: stage.querySelector('[data-field="customizations"]'),
+          },
+          backstory: {
+            wrapper: stage.querySelector('[data-section="backstory"]'),
+            body: stage.querySelector('[data-field="backstory"]'),
+          },
+        };
+
+        const cards = Array.from(document.querySelectorAll('[data-project-id]'));
+
+        function renderText(container, text){
+          if (!container) return;
+          container.innerHTML = '';
+          const value = (text || '').trim();
+          if (!value) return;
+          const lines = value.split(/\n+/).filter(Boolean);
+          if (!lines.length) {
+            container.textContent = value;
+            return;
+          }
+          lines.forEach((line) => {
+            const p = document.createElement('p');
+            p.textContent = line;
+            container.appendChild(p);
+          });
+        }
+
+        function setMeta(el, value, prefix){
+          if (!el) return;
+          if (!value) {
+            el.hidden = true;
+            return;
+          }
+          el.hidden = false;
+          el.textContent = prefix ? `${prefix}${value}` : value;
+        }
+
+        function renderChips(container, items, prefix){
+          if (!container) return;
+          container.innerHTML = '';
+          if (!items || !items.length) {
+            container.hidden = true;
+            return;
+          }
+          container.hidden = false;
+          items.forEach((item) => {
+            const span = document.createElement('span');
+            span.textContent = prefix ? `${prefix}${item}` : item;
+            container.appendChild(span);
+          });
+        }
+
+        function updateMedia(src, altText){
+          const hasSrc = Boolean(src);
+          if (hasSrc) {
+            if (!imageEl) {
+              imageEl = document.createElement('img');
+              imageEl.id = 'projectImage';
+              imageEl.loading = 'lazy';
+              imageEl.decoding = 'async';
+              media.appendChild(imageEl);
+            }
+            imageEl.src = src;
+            imageEl.alt = altText || 'Project cover';
+            imageEl.hidden = false;
+            if (placeholderEl) {
+              placeholderEl.hidden = true;
+            }
+          } else {
+            if (imageEl) {
+              imageEl.hidden = true;
+            }
+            if (!placeholderEl) {
+              placeholderEl = document.createElement('div');
+              placeholderEl.id = 'projectPlaceholder';
+              placeholderEl.className = 'stage-placeholder';
+              placeholderEl.textContent = 'Cover image coming soon.';
+              media.appendChild(placeholderEl);
+            }
+            placeholderEl.hidden = false;
+          }
+        }
+
+        function setSection(key, value){
+          const section = sectionEls[key];
+          if (!section || !section.body) return;
+          const text = (value || '').trim();
+          if (!text) {
+            if (section.wrapper) section.wrapper.hidden = true;
+            return;
+          }
+          if (section.wrapper) section.wrapper.hidden = false;
+          renderText(section.body, text);
+        }
+
+        function setActive(project, options){
+          if (!project) return;
+          const opts = options || {};
+          stage.dataset.activeId = project.id;
+          updateMedia(project.cover_image, project.hero_title || project.title);
+          if (titleEl) titleEl.textContent = project.hero_title || project.title || '';
+          if (excerptEl) {
+            excerptEl.textContent = project.excerpt || project.overview || 'This build highlight is ready whenever you are.';
+          }
+          if (highlightEl) {
+            if (project.result_highlight) {
+              highlightEl.textContent = project.result_highlight;
+              highlightEl.hidden = false;
+            } else {
+              highlightEl.hidden = true;
+            }
+          }
+
+          setMeta(metaEls.date, project.published_label || '', '');
+          setMeta(metaEls.client, project.client_name ? `Client · ${project.client_name}` : '', '');
+          setMeta(metaEls.location, project.location || '', '');
+          setMeta(metaEls.reading, project.reading_time ? `${project.reading_time} min read` : '', '');
+
+          renderChips(servicesEl, project.services, '');
+          renderChips(tagsEl, project.tags, '#');
+
+          setSection('overview', project.overview || project.excerpt);
+          setSection('parts', project.parts);
+          setSection('customizations', project.customizations);
+          setSection('backstory', project.backstory);
+
+          if (reportEl && reportBodyEl) {
+            const bodyText = (project.body || '').trim();
+            if (!bodyText) {
+              reportEl.hidden = true;
+            } else {
+              reportEl.hidden = false;
+              reportEl.removeAttribute('open');
+              renderText(reportBodyEl, bodyText);
+            }
+          }
+
+          cards.forEach((card) => {
+            const isActive = card.dataset.projectId === project.id;
+            card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          });
+
+          if (opts.updateHash && project.slug) {
+            history.replaceState(null, '', `#project-${project.slug}`);
+          }
+        }
+
+        function selectById(id, options){
+          if (!id) return;
+          const project = byId.get(id);
+          if (project) {
+            setActive(project, options);
+          }
+        }
+
+        cards.forEach((card) => {
+          card.addEventListener('click', () => {
+            selectById(card.dataset.projectId, { updateHash: true });
+          });
+          card.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              selectById(card.dataset.projectId, { updateHash: true });
+            }
+          });
+        });
+
+        const hash = window.location.hash || '';
+        if (hash.startsWith('#project-')) {
+          const slug = hash.replace('#project-', '');
+          const project = bySlug.get(slug);
+          if (project) {
+            setActive(project);
+            return;
+          }
+        }
+
+        const initialId = stage.dataset.activeId;
+        if (initialId) {
+          selectById(initialId);
+        }
+      })();
+    </script>
+  {% endif %}
 {% include "includes/analytics_tracker.html" %}
 </body>
 </html>

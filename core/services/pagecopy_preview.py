@@ -1522,7 +1522,9 @@ def build_store_context(request: HttpRequest) -> Dict[str, Any]:
 
 
 def build_merch_context(request: HttpRequest) -> Dict[str, Any]:
-    return {}
+    return {
+        "font_settings": build_page_font_context(PageFontSetting.Page.MERCH),
+    }
 
 
 def build_financing_context(request: HttpRequest) -> Dict[str, Any]:
@@ -1532,7 +1534,9 @@ def build_financing_context(request: HttpRequest) -> Dict[str, Any]:
 
 
 def build_about_context(request: HttpRequest) -> Dict[str, Any]:
-    return {}
+    return {
+        "font_settings": build_page_font_context(PageFontSetting.Page.ABOUT),
+    }
 
 
 def build_client_portal_context(request: HttpRequest) -> Dict[str, Any]:

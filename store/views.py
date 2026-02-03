@@ -346,6 +346,7 @@ def _notify_fitment_request(request_obj):
             html_body=html_body,
             from_email=sender,
             recipient_list=recipients,
+            email_type="fitment_request_internal",
         )
     except Exception:
         logger.exception("Failed to notify about custom fitment request (id=%s)", request_obj.pk)
@@ -516,6 +517,7 @@ def _send_order_confirmation(
             html_body=html_body,
             from_email=sender,
             recipient_list=[recipient],
+            email_type="order_confirmation",
         )
     except Exception:
         logger.exception("Failed to send order confirmation email for order %s", getattr(order, "pk", None))

@@ -12,8 +12,8 @@
 }
 
 :root{
-  --topbar-nav-font: "Diesel", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
-  --topbar-brand-font: "Ford", "Diesel", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
+  --topbar-nav-font: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
+  --topbar-brand-font: "Diesel", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
   --topbar-font: var(--topbar-nav-font);
   --topbar-red: #d50000;
   --topbar-brand-size: clamp(1.25rem, 2.1vw, 1.7rem);
