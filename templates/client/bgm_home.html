@@ -299,6 +299,10 @@
     .tile--link .tile__cta{margin-top:.1rem;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--muted);display:inline-flex;align-items:center;gap:.35rem}
     .tile--link:hover,.tile--link:focus-visible{border-color:rgba(213,0,0,.65);box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 20px rgba(213,0,0,.2);transform:translateY(-2px);outline:none}
     .tile--link:hover .tile__cta,.tile--link:focus-visible .tile__cta{color:var(--accent)}
+    .reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1.1rem}
+    .review-card{display:flex;flex-direction:column;gap:.6rem}
+    .review-stars{font-size:.9rem;color:var(--accent-2);letter-spacing:.14em}
+    .review-author{font-weight:800;color:rgba(255,255,255,.9);font-size:.95rem}
 
     details{background:var(--panel);border:1px solid var(--line);border-radius:.8rem;padding:.8rem}
     summary{cursor:pointer;font-weight:700}
@@ -336,14 +340,52 @@
     }
       {% endif %}
     {% endfor %}
-    {% with body_stack=fs.body.stack|default:'"Diesel", system-ui, sans-serif' %}
-    {% with heading_stack=fs.heading.stack|default:'"Ford", system-ui, sans-serif' %}
+    {% with body_stack=fs.body.stack|default:'"Inter", system-ui, sans-serif' %}
+    {% with heading_stack=fs.heading.stack|default:'"Diesel", system-ui, sans-serif' %}
     {% with ui_stack=fs.ui.stack|default:body_stack %}
     :root{
       --font-body: {{ body_stack|safe }};
       --font-head: {{ heading_stack|safe }};
       --font-ui:   {{ ui_stack|safe }};
     }
+    {% with body_styles=fs.styles.body heading_styles=fs.styles.heading ui_styles=fs.styles.ui %}
+    {% if body_styles or heading_styles or ui_styles %}
+    :root{
+      {% if body_styles.size %}--font-body-size: {{ body_styles.size|escape }};{% endif %}
+      {% if body_styles.line_height %}--font-body-line-height: {{ body_styles.line_height|escape }};{% endif %}
+      {% if body_styles.weight %}--font-body-weight: {{ body_styles.weight|escape }};{% endif %}
+      {% if body_styles.letter_spacing %}--font-body-letter-spacing: {{ body_styles.letter_spacing|escape }};{% endif %}
+      {% if heading_styles.weight %}--font-head-weight: {{ heading_styles.weight|escape }};{% endif %}
+      {% if heading_styles.letter_spacing %}--font-head-letter-spacing: {{ heading_styles.letter_spacing|escape }};{% endif %}
+      {% if heading_styles.transform %}--font-head-transform: {{ heading_styles.transform|escape }};{% endif %}
+      {% if ui_styles.weight %}--font-ui-weight: {{ ui_styles.weight|escape }};{% endif %}
+      {% if ui_styles.letter_spacing %}--font-ui-letter-spacing: {{ ui_styles.letter_spacing|escape }};{% endif %}
+      {% if ui_styles.transform %}--font-ui-transform: {{ ui_styles.transform|escape }};{% endif %}
+    }
+    {% if body_styles.size or body_styles.line_height or body_styles.weight or body_styles.letter_spacing %}
+    body{
+      {% if body_styles.size %}font-size: var(--font-body-size) !important;{% endif %}
+      {% if body_styles.line_height %}line-height: var(--font-body-line-height) !important;{% endif %}
+      {% if body_styles.weight %}font-weight: var(--font-body-weight) !important;{% endif %}
+      {% if body_styles.letter_spacing %}letter-spacing: var(--font-body-letter-spacing) !important;{% endif %}
+    }
+    {% endif %}
+    {% if heading_styles.weight or heading_styles.letter_spacing or heading_styles.transform %}
+    h1,h2,h3,h4,h5,h6,.hero__title{
+      {% if heading_styles.weight %}font-weight: var(--font-head-weight) !important;{% endif %}
+      {% if heading_styles.letter_spacing %}letter-spacing: var(--font-head-letter-spacing) !important;{% endif %}
+      {% if heading_styles.transform %}text-transform: var(--font-head-transform) !important;{% endif %}
+    }
+    {% endif %}
+    {% if ui_styles.weight or ui_styles.letter_spacing or ui_styles.transform %}
+    button,.btn,.badge,nav a,input,select,textarea,.site-header__toggle{
+      {% if ui_styles.weight %}font-weight: var(--font-ui-weight) !important;{% endif %}
+      {% if ui_styles.letter_spacing %}letter-spacing: var(--font-ui-letter-spacing) !important;{% endif %}
+      {% if ui_styles.transform %}text-transform: var(--font-ui-transform) !important;{% endif %}
+    }
+    {% endif %}
+    {% endif %}
+    {% endwith %}
     {% endwith %}
     {% endwith %}
     {% endwith %}
@@ -678,6 +720,10 @@
 </head>
 
 <body>
+  {% if page_sections %}
+    {% include "sections/render_sections.html" %}
+  {% else %}
+
   {% include "includes/marketing_body.html" %}
   {% include "includes/site_notice_markup.html" with site_notice_version="offer-v1" %}
 
@@ -750,7 +796,7 @@
       <div>
         <p class="kicker">{{ home_copy.hero_kicker }}</p>
         <h1 class="hero__title">{{ home_copy.hero_title }}</h1>
-        <p class="hero__lead">{{ home_copy.hero_lead }}</p>
+        <p class="hero__lead">{{ home_copy.hero_lead|safe }}</p>
         <div class="hero__cta">
           <a class="btn btn--primary" href="#services">{{ home_copy.hero_primary_cta_label }}</a>
           <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">{{ home_copy.hero_secondary_cta_label }}</a>
@@ -835,7 +881,7 @@
         <div class="section__head">
           <div>
             <h2 class="section__title">{{ home_copy.services_title }}</h2>
-            <p class="section__desc">{{ home_copy.services_desc }}</p>
+            <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
           </div>
           <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
         </div>
@@ -844,7 +890,7 @@
           <div class="section__head home-gallery__head">
             <div>
               <h3 class="section__title">{{ home_copy.gallery_title }}</h3>
-              <p class="section__desc">{{ home_copy.gallery_desc }}</p>
+              <p class="section__desc">{{ home_copy.gallery_desc|safe }}</p>
             </div>
             <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
           </div>
@@ -1125,6 +1171,22 @@
             <span class="tile__cta">{{ home_copy.why_warranty_cta }}</span>
           </a>
         </div>
+        {% if home_reviews %}
+          <div class="reviews-grid" aria-label="Testimonials">
+            {% for review in home_reviews %}
+              <article class="tile review-card">
+                <div class="review-stars" aria-hidden="true">
+                  {% for _ in review.star_range %}★{% endfor %}
+                </div>
+                <p class="muted">&ldquo;{{ review.quote }}&rdquo;</p>
+                <p class="review-author">
+                  {{ review.reviewer_name }}{% if review.reviewer_title %} &mdash; {{ review.reviewer_title }}{% endif %}
+                </p>
+                <span class="sr-only">{{ review.rating }} star review</span>
+              </article>
+            {% endfor %}
+          </div>
+        {% endif %}
       </div>
     </section>
 
@@ -1314,7 +1376,7 @@
       position:relative;
     }
     .contact-title{
-      font-family:var(--font-head,"Ford"),system-ui,sans-serif;
+      font-family:var(--font-head,"Diesel"),system-ui,sans-serif;
       font-weight:900; letter-spacing:.005em; line-height:1.15;
       font-size:1.6rem; margin:.2rem 2.2rem 1rem .2rem; color:#fff;
       text-transform:none;
@@ -1524,6 +1586,7 @@
   </script>
 
   {% include "includes/analytics_tracker.html" %}
+  {% endif %}
 </body>
 </html>
 

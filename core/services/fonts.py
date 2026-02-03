@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import re
 from typing import Dict, List, Optional
 
 from core.models import FontPreset, PageFontSetting
 
 # Default fallbacks in case admin configuration is missing.
 DEFAULT_FONT_SLUGS = {
-    "body": "diesel",
-    "heading": "ford",
+    "body": "inter",
+    "heading": "diesel",
 }
 
 
@@ -28,6 +29,40 @@ def serialize_font_preset(font: Optional[FontPreset]) -> Dict[str, str]:
         "preload": font.preload,
         "has_source": bool(font.url),
     }
+
+
+def _clean_style_value(value: Optional[object]) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (int, float)):
+        value = str(value)
+    text = str(value).strip()
+    if not text:
+        return ""
+    text = re.sub(r"[;{}]", "", text)
+    return text[:64]
+
+
+def _normalize_style_overrides(raw: Optional[object]) -> Dict[str, Dict[str, str]]:
+    if not isinstance(raw, dict):
+        return {}
+    normalized: Dict[str, Dict[str, str]] = {}
+    allowed_transforms = {"none", "uppercase", "lowercase", "capitalize"}
+    for role in ("body", "heading", "ui"):
+        role_raw = raw.get(role)
+        if not isinstance(role_raw, dict):
+            continue
+        cleaned: Dict[str, str] = {}
+        for key in ("size", "weight", "line_height", "letter_spacing", "transform"):
+            value = _clean_style_value(role_raw.get(key))
+            if not value:
+                continue
+            if key == "transform" and value not in allowed_transforms:
+                continue
+            cleaned[key] = value
+        if cleaned:
+            normalized[role] = cleaned
+    return normalized
 
 
 def _pick_font(slug: Optional[str], font_map: Dict[str, FontPreset], fallback: Optional[str] = None) -> Optional[FontPreset]:
@@ -52,10 +87,13 @@ def build_page_font_context(page_slug: str) -> Dict[str, object]:
     except PageFontSetting.DoesNotExist:
         page_fonts = None
 
+    style_overrides: Dict[str, Dict[str, str]] = {}
+
     if page_fonts:
         slug_map["body"] = page_fonts.body_font.slug
         slug_map["heading"] = page_fonts.heading_font.slug
         slug_map["ui"] = page_fonts.resolved_ui_font.slug
+        style_overrides = _normalize_style_overrides(page_fonts.style_overrides)
     else:
         slug_map["ui"] = slug_map["body"]
 
@@ -82,4 +120,5 @@ def build_page_font_context(page_slug: str) -> Dict[str, object]:
         "ui": serialize_font_preset(ui_font),
         "fonts": serialized_fonts,
         "preload_fonts": [font for font in serialized_fonts if font.get("preload") and font.get("url")],
+        "styles": style_overrides,
     }

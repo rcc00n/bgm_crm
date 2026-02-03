@@ -9,6 +9,7 @@ from email.utils import parseaddr
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db.models import Q
 from django.utils import timezone
 
 from openpyxl import load_workbook
@@ -126,7 +127,11 @@ def estimate_campaign_audience(campaign: EmailCampaign) -> dict[str, int]:
         subscriber_count = EmailSubscriber.objects.filter(is_active=True).count()
     if campaign.include_registered_users:
         user_count = (
-            CustomUserDisplay.objects.filter(userprofile__email_marketing_consent=True)
+            CustomUserDisplay.objects.filter(
+                Q(userprofile__email_marketing_consent=True)
+                | Q(userprofile__email_product_updates=True)
+                | Q(userprofile__email_service_updates=True)
+            )
             .exclude(email__isnull=True)
             .exclude(email__exact="")
             .count()
@@ -154,7 +159,11 @@ def collect_campaign_recipients(campaign: EmailCampaign) -> list[dict[str, objec
 
     if campaign.include_registered_users:
         users = (
-            CustomUserDisplay.objects.filter(userprofile__email_marketing_consent=True)
+            CustomUserDisplay.objects.filter(
+                Q(userprofile__email_marketing_consent=True)
+                | Q(userprofile__email_product_updates=True)
+                | Q(userprofile__email_service_updates=True)
+            )
             .exclude(email__isnull=True)
             .exclude(email__exact="")
             .select_related("userprofile")
@@ -247,6 +256,7 @@ def send_campaign(
                 html_body=content.html_body,
                 from_email=sender,
                 recipient_list=[email],
+                email_type=f"campaign:{campaign.pk}",
             )
         except Exception as exc:
             failed_count += 1

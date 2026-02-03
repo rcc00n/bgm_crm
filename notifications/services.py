@@ -8,6 +8,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Sequence
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models import (
     DecimalField,
@@ -21,6 +22,9 @@ from django.utils import timezone
 from django.utils.timezone import localtime
 from telebot import TeleBot
 from telebot.apihelper import ApiTelegramException
+
+from core.emails import build_email_html, send_html_email
+from core.email_templates import join_text_sections
 
 from .models import (
     TelegramBotSettings,
@@ -86,6 +90,99 @@ def send_telegram_message(
             error_message=error_text[:500],
         )
     return delivered
+
+
+ROLE_NOTIFICATION_FIELDS = {
+    TelegramMessageLog.EVENT_APPOINTMENT_CREATED: "notify_on_new_appointment",
+    TelegramMessageLog.EVENT_ORDER_CREATED: "notify_on_new_order",
+    TelegramMessageLog.EVENT_SERVICE_LEAD: "notify_on_service_lead",
+    TelegramMessageLog.EVENT_FITMENT_REQUEST: "notify_on_fitment_request",
+    TelegramMessageLog.EVENT_SITE_NOTICE_WELCOME: "notify_on_site_notice_signup",
+    TelegramMessageLog.EVENT_ORDER_REVIEW_REQUEST: "notify_on_order_review_request",
+}
+
+
+def _staff_recipients_for_event(event_type: str) -> list[str]:
+    field = ROLE_NOTIFICATION_FIELDS.get(event_type)
+    if not field:
+        return []
+    from core.models import CustomUserDisplay, Role
+
+    roles = Role.objects.filter(**{field: True})
+    if not roles.exists():
+        return []
+    users = (
+        CustomUserDisplay.objects.filter(
+            is_staff=True,
+            is_active=True,
+            userrole__role__in=roles,
+        )
+        .exclude(email__isnull=True)
+        .exclude(email__exact="")
+        .distinct()
+    )
+    emails = sorted({user.email.strip().lower() for user in users if user.email})
+    return emails
+
+
+def send_staff_email_notification(
+    *,
+    event_type: str,
+    subject: str,
+    intro_lines: Sequence[str],
+    detail_rows: Sequence[tuple[str, object]] | None = None,
+    item_rows: Sequence[tuple[object, object]] | None = None,
+    notice_lines: Sequence[str] | None = None,
+) -> int:
+    recipients = _staff_recipients_for_event(event_type)
+    if not recipients:
+        return 0
+    sender = (
+        getattr(settings, "DEFAULT_FROM_EMAIL", None)
+        or getattr(settings, "SUPPORT_EMAIL", None)
+    )
+    if not sender:
+        return 0
+
+    greeting = "Team,"
+    html_body = build_email_html(
+        title=subject,
+        preheader=subject,
+        greeting=greeting,
+        intro_lines=list(intro_lines),
+        detail_rows=detail_rows,
+        item_rows=item_rows,
+        notice_lines=list(notice_lines or []),
+        footer_lines=[],
+    )
+    detail_lines = []
+    for label, value in detail_rows or []:
+        value_text = str(value).strip() if value is not None else ""
+        if not value_text:
+            continue
+        detail_lines.append(f"{label}: {value_text}")
+    text_body = join_text_sections(
+        [greeting],
+        list(intro_lines),
+        detail_lines,
+        list(notice_lines or []),
+    )
+
+    sent = 0
+    for recipient in recipients:
+        try:
+            send_html_email(
+                subject=subject,
+                text_body=text_body,
+                html_body=html_body,
+                from_email=sender,
+                recipient_list=[recipient],
+                email_type=f"staff_{event_type}",
+            )
+            sent += 1
+        except Exception:
+            pass
+    return sent
 
 
 def _format_digest_counts(items: dict[str, int], limit: int = 3) -> str:
@@ -194,8 +291,6 @@ def queue_lead_digest(
 
 def notify_about_appointment(appointment_id) -> int:
     settings_obj = TelegramBotSettings.load_active()
-    if not settings_obj or not settings_obj.notify_on_new_appointment:
-        return 0
     from core.models import Appointment
 
     appointment = Appointment.objects.select_related(
@@ -224,16 +319,34 @@ def notify_about_appointment(appointment_id) -> int:
     if appointment.contact_email:
         message += f"Email: {appointment.contact_email}\n"
 
-    return send_telegram_message(
-        message,
+    detail_rows = [
+        ("Client", client_name),
+        ("Service", service_name),
+        ("Tech", master_name),
+        ("When", start),
+    ]
+    if appointment.contact_phone:
+        detail_rows.append(("Phone", appointment.contact_phone))
+    if appointment.contact_email:
+        detail_rows.append(("Email", appointment.contact_email))
+
+    send_staff_email_notification(
         event_type=TelegramMessageLog.EVENT_APPOINTMENT_CREATED,
+        subject="New appointment booked",
+        intro_lines=[f"{client_name} booked {service_name}."],
+        detail_rows=detail_rows,
     )
+
+    if settings_obj and settings_obj.notify_on_new_appointment:
+        return send_telegram_message(
+            message,
+            event_type=TelegramMessageLog.EVENT_APPOINTMENT_CREATED,
+        )
+    return 0
 
 
 def notify_about_order(order_id) -> int:
     settings_obj = TelegramBotSettings.load_active()
-    if not settings_obj or not settings_obj.notify_on_new_order:
-        return 0
 
     from store.models import Order
 
@@ -261,10 +374,32 @@ def notify_about_order(order_id) -> int:
     if order.notes:
         message += f"\nNote: {order.notes}"
 
-    return send_telegram_message(
-        message,
+    detail_rows = [
+        ("Order #", order.pk),
+        ("Customer", order.customer_name),
+        ("Email", order.email),
+        ("Phone", order.phone or "—"),
+        ("Total", total),
+    ]
+    item_rows = []
+    for item in order.items.all():
+        option_label = f" ({item.option.name})" if getattr(item, "option", None) else ""
+        item_rows.append((f"{item.product.name}{option_label}", f"x {item.qty}"))
+
+    send_staff_email_notification(
         event_type=TelegramMessageLog.EVENT_ORDER_CREATED,
+        subject=f"New order #{order.pk}",
+        intro_lines=[f"New order from {order.customer_name}."],
+        detail_rows=detail_rows,
+        item_rows=item_rows,
     )
+
+    if settings_obj and settings_obj.notify_on_new_order:
+        return send_telegram_message(
+            message,
+            event_type=TelegramMessageLog.EVENT_ORDER_CREATED,
+        )
+    return 0
 
 
 def notify_about_service_lead(lead_id) -> int:
@@ -272,8 +407,6 @@ def notify_about_service_lead(lead_id) -> int:
     Notify ops chat about a new marketing/landing page inquiry.
     """
     settings_obj = TelegramBotSettings.load_active()
-    if not settings_obj:
-        return 0
 
     from core.models import ServiceLead  # late import to avoid circular dependency
 
@@ -297,6 +430,27 @@ def notify_about_service_lead(lead_id) -> int:
     if lead.source_url:
         message += f"Source: {_safe(lead.source_url)}"
 
+    detail_rows = [
+        ("Page", lead.get_source_page_display()),
+        ("Name", lead.full_name or "—"),
+        ("Phone", lead.phone or "—"),
+        ("Email", lead.email or "—"),
+        ("Service", lead.service_needed or "—"),
+    ]
+    if lead.vehicle:
+        detail_rows.append(("Vehicle", lead.vehicle))
+    if lead.notes:
+        detail_rows.append(("Notes", lead.notes))
+    if lead.source_url:
+        detail_rows.append(("Source", lead.source_url))
+
+    send_staff_email_notification(
+        event_type=TelegramMessageLog.EVENT_SERVICE_LEAD,
+        subject="New service lead",
+        intro_lines=[f"New service lead from {lead.full_name or 'guest'}."],
+        detail_rows=detail_rows,
+    )
+
     return send_telegram_message(
         message,
         event_type=TelegramMessageLog.EVENT_SERVICE_LEAD,
@@ -308,8 +462,6 @@ def notify_about_fitment_request(request_id) -> int:
     Notify ops chat about a new custom fitment request.
     """
     settings_obj = TelegramBotSettings.load_active()
-    if not settings_obj:
-        return 0
 
     from store.models import CustomFitmentRequest  # late import to avoid circular dependency
 
@@ -336,6 +488,29 @@ def notify_about_fitment_request(request_id) -> int:
     if req.source_url:
         message += f"Source: {_safe(req.source_url)}"
 
+    detail_rows = [
+        ("Product", product_name or "—"),
+        ("Customer", req.customer_name or "—"),
+        ("Email", req.email or "—"),
+        ("Phone", req.phone or "—"),
+        ("Vehicle", req.vehicle or "—"),
+        ("Submodel", req.submodel or "—"),
+        ("Goals", req.performance_goals or "—"),
+        ("Budget", req.budget or "—"),
+        ("Timeline", req.timeline or "—"),
+    ]
+    if req.message:
+        detail_rows.append(("Message", req.message))
+    if req.source_url:
+        detail_rows.append(("Source", req.source_url))
+
+    send_staff_email_notification(
+        event_type=TelegramMessageLog.EVENT_FITMENT_REQUEST,
+        subject="New fitment request",
+        intro_lines=[f"New fitment request from {req.customer_name or 'guest'}."],
+        detail_rows=detail_rows,
+    )
+
     return send_telegram_message(
         message,
         event_type=TelegramMessageLog.EVENT_FITMENT_REQUEST,
@@ -347,8 +522,6 @@ def notify_about_site_notice_signup(signup_id) -> int:
     Notify ops chat about a new site notice signup (welcome code sent).
     """
     settings_obj = TelegramBotSettings.load_active()
-    if not settings_obj:
-        return 0
 
     from core.models import SiteNoticeSignup  # late import to avoid circular dependency
 
@@ -365,6 +538,18 @@ def notify_about_site_notice_signup(signup_id) -> int:
         f"Sent at: {sent_at}\n"
     )
 
+    detail_rows = [
+        ("Email", signup.email),
+        ("Welcome code", signup.welcome_code),
+        ("Sent at", sent_at),
+    ]
+    send_staff_email_notification(
+        event_type=TelegramMessageLog.EVENT_SITE_NOTICE_WELCOME,
+        subject="New site notice signup",
+        intro_lines=["New site notice signup captured."],
+        detail_rows=detail_rows,
+    )
+
     return send_telegram_message(
         message,
         event_type=TelegramMessageLog.EVENT_SITE_NOTICE_WELCOME,
@@ -376,8 +561,6 @@ def notify_about_order_review_request(order_id, *, review_url: str = "", store_u
     Notify ops chat about a review request email being sent.
     """
     settings_obj = TelegramBotSettings.load_active()
-    if not settings_obj:
-        return 0
 
     from store.models import Order  # late import to avoid circular dependency
 
@@ -402,10 +585,30 @@ def notify_about_order_review_request(order_id, *, review_url: str = "", store_u
     if store_url:
         message += f"Store link: {_safe(store_url)}"
 
-    return send_telegram_message(
-        message,
+    detail_rows = [
+        ("Order #", order.pk),
+        ("Customer", order.customer_name),
+        ("Email", order.email),
+        ("Completed at", completed_at or "—"),
+    ]
+    if review_url:
+        detail_rows.append(("Review link", review_url))
+    if store_url:
+        detail_rows.append(("Store link", store_url))
+
+    send_staff_email_notification(
         event_type=TelegramMessageLog.EVENT_ORDER_REVIEW_REQUEST,
+        subject=f"Order review request sent #{order.pk}",
+        intro_lines=[f"Review request sent to {order.customer_name}."],
+        detail_rows=detail_rows,
     )
+
+    if settings_obj:
+        return send_telegram_message(
+            message,
+            event_type=TelegramMessageLog.EVENT_ORDER_REVIEW_REQUEST,
+        )
+    return 0
 
 
 def build_operations_digest() -> str:

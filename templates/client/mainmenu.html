@@ -8,6 +8,11 @@
   {% with meta_title=services_copy.meta_title|default:"Bad Guy Motors — Upgrades & Booking" meta_description=services_copy.meta_description|default:"Browse detailing, protection, and performance services with live pricing from Bad Guy Motors." meta_section="services" meta_keywords=marketing.default_keywords %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
+  {% if font_settings and font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% endif %}
 
   <!-- Performance hints -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,11 +36,76 @@
       --site-header-height:72px;
       --site-header-toggle-size:46px;
     }
+    /* Fonts */
+    {% with fs=font_settings %}
+    {% for font in fs.fonts %}
+      {% if font.has_source %}
+    @font-face{
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
+    }
+      {% endif %}
+    {% endfor %}
+    {% with body_stack=fs.body.stack|default:'"Inter", system-ui, sans-serif' %}
+    {% with heading_stack=fs.heading.stack|default:body_stack %}
+    {% with ui_stack=fs.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui:   {{ ui_stack|safe }};
+    }
+    {% with body_styles=fs.styles.body heading_styles=fs.styles.heading ui_styles=fs.styles.ui %}
+    {% if body_styles or heading_styles or ui_styles %}
+    :root{
+      {% if body_styles.size %}--font-body-size: {{ body_styles.size|escape }};{% endif %}
+      {% if body_styles.line_height %}--font-body-line-height: {{ body_styles.line_height|escape }};{% endif %}
+      {% if body_styles.weight %}--font-body-weight: {{ body_styles.weight|escape }};{% endif %}
+      {% if body_styles.letter_spacing %}--font-body-letter-spacing: {{ body_styles.letter_spacing|escape }};{% endif %}
+      {% if heading_styles.weight %}--font-head-weight: {{ heading_styles.weight|escape }};{% endif %}
+      {% if heading_styles.letter_spacing %}--font-head-letter-spacing: {{ heading_styles.letter_spacing|escape }};{% endif %}
+      {% if heading_styles.transform %}--font-head-transform: {{ heading_styles.transform|escape }};{% endif %}
+      {% if ui_styles.weight %}--font-ui-weight: {{ ui_styles.weight|escape }};{% endif %}
+      {% if ui_styles.letter_spacing %}--font-ui-letter-spacing: {{ ui_styles.letter_spacing|escape }};{% endif %}
+      {% if ui_styles.transform %}--font-ui-transform: {{ ui_styles.transform|escape }};{% endif %}
+    }
+    {% if body_styles.size or body_styles.line_height or body_styles.weight or body_styles.letter_spacing %}
+    body{
+      {% if body_styles.size %}font-size: var(--font-body-size) !important;{% endif %}
+      {% if body_styles.line_height %}line-height: var(--font-body-line-height) !important;{% endif %}
+      {% if body_styles.weight %}font-weight: var(--font-body-weight) !important;{% endif %}
+      {% if body_styles.letter_spacing %}letter-spacing: var(--font-body-letter-spacing) !important;{% endif %}
+    }
+    {% endif %}
+    {% if heading_styles.weight or heading_styles.letter_spacing or heading_styles.transform %}
+    h1,h2,h3,h4,h5,h6{
+      {% if heading_styles.weight %}font-weight: var(--font-head-weight) !important;{% endif %}
+      {% if heading_styles.letter_spacing %}letter-spacing: var(--font-head-letter-spacing) !important;{% endif %}
+      {% if heading_styles.transform %}text-transform: var(--font-head-transform) !important;{% endif %}
+    }
+    {% endif %}
+    {% if ui_styles.weight or ui_styles.letter_spacing or ui_styles.transform %}
+    button,.btn,.badge,nav a,input,select,textarea,.site-header__toggle{
+      {% if ui_styles.weight %}font-weight: var(--font-ui-weight) !important;{% endif %}
+      {% if ui_styles.letter_spacing %}letter-spacing: var(--font-ui-letter-spacing) !important;{% endif %}
+      {% if ui_styles.transform %}text-transform: var(--font-ui-transform) !important;{% endif %}
+    }
+    {% endif %}
+    {% endif %}
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
     ::selection{ background:var(--red); color:#fff; }
 
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
-    body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55;min-height:100dvh;overflow-x:hidden}
+    body{background:var(--bg);color:var(--ink);font-family:var(--font-body, Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif);line-height:1.55;min-height:100dvh;overflow-x:hidden}
+    body,button,input,select,textarea{font-family:var(--font-body, Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif)}
+    h1,h2,h3,h4,h5,h6{font-family:var(--font-head, var(--font-body, Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif))}
     img{max-width:100%;display:block}
     a{color:inherit;text-decoration:none}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
@@ -64,13 +134,13 @@
       padding:5.2rem 1rem 3.2rem;background:
       radial-gradient(60% 120% at 82% -10%, rgba(213,0,0,.18) 0%, rgba(213,0,0,0) 60%),
       radial-gradient(60% 120% at 12% 110%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%);border-bottom:1px solid var(--line)}
-    .hero h1{font:900 clamp(2.2rem,4.5vw,3.4rem)/1.05 Inter;text-transform:uppercase;letter-spacing:.8px;text-shadow:0 0 18px rgba(213,0,0,.25)}
+    .hero h1{font-family:var(--font-head);font-weight:900;font-size:clamp(2.2rem,4.5vw,3.4rem);line-height:1.05;text-transform:uppercase;letter-spacing:.8px;text-shadow:0 0 18px rgba(213,0,0,.25)}
     .hero p{font-size:1.05rem;max-width:60ch;color:var(--muted)}
     .hero .cta{margin-top:.35rem}
 
     /* Catalog */
     main{position:relative;z-index:2}
-    h2{font:900 1.6rem/1.2 Inter;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1.25rem}
+    h2{font-family:var(--font-head);font-weight:900;font-size:1.6rem;line-height:1.2;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1.25rem}
     .filters{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.25rem 0 1.75rem}
     .filters input,.filters select{padding:.65rem 1rem;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:.95rem;min-width:170px;background:var(--field-bg);color:var(--ink)}
     .filters ::placeholder{color:var(--muted)}
@@ -233,8 +303,8 @@
     }
 
     :root{
-      --font-body:"Diesel", Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
-      --font-head:"Ford",  Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      --font-body:"Inter", Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      --font-head:"Diesel",  Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
     }
 
     /* глобально */
@@ -621,6 +691,10 @@ main h3{
 
 </head>
 <body data-template-version="mainmenu-mobile-v2-2026-01-26">
+  {% if page_sections %}
+    {% include "sections/render_sections.html" %}
+  {% else %}
+
   {% include "includes/marketing_body.html" %}
 <div id="bg"></div>
 <a href="#services" class="visually-hidden">{{ services_copy.skip_to_main_label }}</a>
@@ -632,7 +706,7 @@ main h3{
 
 <section class="hero">
   <h1>{{ services_copy.hero_title }}</h1>
-  <p>{{ services_copy.hero_lead }}</p>
+  <p>{{ services_copy.hero_lead|safe }}</p>
   <div class="cta"><a href="#services" class="btn btn--primary">{{ services_copy.hero_cta_label }}</a></div>
 </section>
 
@@ -1742,7 +1816,7 @@ main h3{
     position:relative;
   }
   .contact-title{
-    font-family:var(--font-head,"Ford"),system-ui,sans-serif;
+    font-family:var(--font-head,"Diesel"),system-ui,sans-serif;
     font-weight:900; letter-spacing:.005em; line-height:1.15;
     font-size:1.6rem; margin:.2rem 2.2rem 1rem .2rem; color:#fff;
     text-transform:none;
@@ -2130,5 +2204,6 @@ body.modal-open .contact-fab{ display:none !important; }
 {% include "includes/analytics_tracker.html" %}
 
 
+  {% endif %}
 </body>
 </html>

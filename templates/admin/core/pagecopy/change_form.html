@@ -5,6 +5,9 @@
 
 {% block extrahead %}
   {{ block.super }}
+  <script>
+    document.documentElement.classList.add('js');
+  </script>
   <style>
     body.pagecopy-preview #content {
       max-width: none;
@@ -48,6 +51,100 @@
       align-items: center;
     }
 
+    .pagecopy-fonts-module {
+      margin-top: 24px;
+    }
+
+    .pagecopy-fonts-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 12px;
+    }
+
+    .pagecopy-fonts-grid label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .pagecopy-fonts-grid select,
+    .pagecopy-fonts-grid input[type="text"],
+    .pagecopy-fonts-grid input[type="file"] {
+      width: 100%;
+      padding: 8px 10px;
+    }
+
+    .pagecopy-fonts-upload {
+      margin-top: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 12px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+
+    .pagecopy-fonts-upload summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .pagecopy-fonts-advanced {
+      margin-top: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 12px;
+      padding: 12px;
+      background: #ffffff;
+    }
+
+    .pagecopy-fonts-advanced summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .pagecopy-fonts-group h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+
+    .pagecopy-fonts-group .help {
+      margin-top: 6px;
+    }
+
+    .pagecopy-preview__status {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      background: rgba(148, 163, 184, 0.18);
+      color: #475569;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+    }
+
+    .pagecopy-preview__status[data-state="dirty"] {
+      background: rgba(251, 191, 36, 0.18);
+      color: #92400e;
+      border-color: rgba(251, 191, 36, 0.6);
+    }
+
+    .pagecopy-preview__status[data-state="saving"] {
+      background: rgba(59, 130, 246, 0.16);
+      color: #1d4ed8;
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .pagecopy-preview__status[data-state="saved"] {
+      background: rgba(16, 185, 129, 0.18);
+      color: #047857;
+      border-color: rgba(16, 185, 129, 0.55);
+    }
+
+    .pagecopy-preview__status[data-state="error"] {
+      background: rgba(248, 113, 113, 0.16);
+      color: #b91c1c;
+      border-color: rgba(248, 113, 113, 0.5);
+    }
+
     .pagecopy-preview__actions-group {
       display: flex;
       gap: 8px;
@@ -86,6 +183,33 @@
 
     .pagecopy-preview__frame.is-loading {
       opacity: 0.6;
+    }
+
+    html.js body.pagecopy-preview #pagesection_set-group {
+      transition: opacity 0.2s ease;
+    }
+
+    html.js body.pagecopy-preview.pagecopy-section-config-pending #pagesection_set-group {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .pagecopy-section-hint {
+      margin: 18px 0 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px dashed rgba(15, 23, 42, 0.2);
+      background: #f8fafc;
+    }
+
+    .pagecopy-section-hint__title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .pagecopy-preview__layout-help {
+      margin-top: 8px;
+      max-width: 640px;
     }
 
     .pagecopy-preview__frame-wrap[data-preview-mode="desktop"] .pagecopy-preview__frame {
@@ -132,7 +256,9 @@
         <p class="help">Edit in the form or click text directly on the page. Layout + styling match the live site.</p>
       </div>
       <div class="pagecopy-preview__actions">
+        <div class="pagecopy-preview__status" data-pagecopy-status data-state="idle">Autosave ready</div>
         <div class="pagecopy-preview__actions-group">
+          <button type="button" class="button default" data-pagecopy-save>Save</button>
           <button type="button" class="button" data-pagecopy-refresh>Refresh preview</button>
           {% if pagecopy_preview_url %}
             <a class="button" href="{{ pagecopy_preview_url }}" target="_blank" rel="noopener">Open preview</a>
@@ -145,9 +271,15 @@
         <div class="pagecopy-preview__actions-group">
           <button type="button" class="button" data-pagecopy-layout-toggle>Move elements</button>
           <button type="button" class="button" data-pagecopy-layout-reset>Reset positions</button>
+          <button type="button" class="button" data-pagecopy-section-toggle>Move sections</button>
         </div>
       </div>
     </div>
+    <p class="help pagecopy-preview__layout-help">
+      Как редактировать: добавьте секцию в форме ниже, нажмите “Move elements”, затем перетащите блоки в превью.
+      Для изменения ширины тяните за квадратный уголок. “Move sections” включает перетаскивание секций за иконку руки.
+      Клик по тексту открывает быстрые параметры. Новые секции появляются после сохранения.
+    </p>
     <div class="pagecopy-preview__frame-wrap">
       {% if pagecopy_preview_url %}
         <iframe
@@ -161,31 +293,508 @@
       {% endif %}
     </div>
   </div>
+  {% if page_font_page %}
+  <div class="module pagecopy-fonts-module">
+    <div class="pagecopy-preview__header">
+      <div>
+        <h2>Fonts & colors</h2>
+        <p class="help">Choose type styles for this page. Uploading a font adds it to the library automatically.</p>
+      </div>
+    </div>
+    <div class="pagecopy-fonts-grid">
+      <div>
+        <label for="pagecopy-font-body">Body font</label>
+        <select id="pagecopy-font-body" data-pagecopy-font="body">
+          {% for font in page_font_options %}
+            <option value="{{ font.pk }}" {% if page_font_setting and font.pk == page_font_setting.body_font_id %}selected{% endif %}>{{ font.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="pagecopy-font-heading">Heading font</label>
+        <select id="pagecopy-font-heading" data-pagecopy-font="heading">
+          {% for font in page_font_options %}
+            <option value="{{ font.pk }}" {% if page_font_setting and font.pk == page_font_setting.heading_font_id %}selected{% endif %}>{{ font.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="pagecopy-font-ui">UI font</label>
+        <select id="pagecopy-font-ui" data-pagecopy-font="ui">
+          <option value="" {% if not page_font_setting or not page_font_setting.ui_font_id %}selected{% endif %}>Use body font</option>
+          {% for font in page_font_options %}
+            <option value="{{ font.pk }}" {% if page_font_setting and font.pk == page_font_setting.ui_font_id %}selected{% endif %}>{{ font.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <details class="pagecopy-fonts-advanced">
+      <summary>Typography details</summary>
+      <div class="pagecopy-fonts-grid">
+        <div class="pagecopy-fonts-group">
+          <h3>Body text</h3>
+          <label for="pagecopy-font-body-size">Base size</label>
+          <input type="text" id="pagecopy-font-body-size" data-pagecopy-font-style data-font-style-role="body" data-font-style-key="size" placeholder="e.g. 16px or 1rem">
+          <label for="pagecopy-font-body-line-height">Line height</label>
+          <input type="text" id="pagecopy-font-body-line-height" data-pagecopy-font-style data-font-style-role="body" data-font-style-key="line_height" placeholder="e.g. 1.55">
+          <label for="pagecopy-font-body-weight">Weight</label>
+          <input type="text" id="pagecopy-font-body-weight" data-pagecopy-font-style data-font-style-role="body" data-font-style-key="weight" placeholder="e.g. 400">
+          <label for="pagecopy-font-body-letter-spacing">Letter spacing</label>
+          <input type="text" id="pagecopy-font-body-letter-spacing" data-pagecopy-font-style data-font-style-role="body" data-font-style-key="letter_spacing" placeholder="e.g. 0.02em">
+        </div>
+        <div class="pagecopy-fonts-group">
+          <h3>Headings</h3>
+          <label for="pagecopy-font-heading-weight">Weight</label>
+          <input type="text" id="pagecopy-font-heading-weight" data-pagecopy-font-style data-font-style-role="heading" data-font-style-key="weight" placeholder="e.g. 900">
+          <label for="pagecopy-font-heading-letter-spacing">Letter spacing</label>
+          <input type="text" id="pagecopy-font-heading-letter-spacing" data-pagecopy-font-style data-font-style-role="heading" data-font-style-key="letter_spacing" placeholder="e.g. 0.01em">
+          <label for="pagecopy-font-heading-transform">Text transform</label>
+          <select id="pagecopy-font-heading-transform" data-pagecopy-font-style data-font-style-role="heading" data-font-style-key="transform">
+            <option value="">Default</option>
+            <option value="none">None</option>
+            <option value="uppercase">Uppercase</option>
+            <option value="lowercase">Lowercase</option>
+            <option value="capitalize">Capitalize</option>
+          </select>
+        </div>
+        <div class="pagecopy-fonts-group">
+          <h3>UI & buttons</h3>
+          <label for="pagecopy-font-ui-weight">Weight</label>
+          <input type="text" id="pagecopy-font-ui-weight" data-pagecopy-font-style data-font-style-role="ui" data-font-style-key="weight" placeholder="e.g. 700">
+          <label for="pagecopy-font-ui-letter-spacing">Letter spacing</label>
+          <input type="text" id="pagecopy-font-ui-letter-spacing" data-pagecopy-font-style data-font-style-role="ui" data-font-style-key="letter_spacing" placeholder="e.g. 0.03em">
+          <label for="pagecopy-font-ui-transform">Text transform</label>
+          <select id="pagecopy-font-ui-transform" data-pagecopy-font-style data-font-style-role="ui" data-font-style-key="transform">
+            <option value="">Default</option>
+            <option value="none">None</option>
+            <option value="uppercase">Uppercase</option>
+            <option value="lowercase">Lowercase</option>
+            <option value="capitalize">Capitalize</option>
+          </select>
+          <p class="help">Changes apply only to this page. Leave blank to keep existing styles.</p>
+        </div>
+      </div>
+    </details>
+    <details class="pagecopy-fonts-upload">
+      <summary>Upload a custom font</summary>
+      <div class="pagecopy-fonts-grid">
+        <div>
+          <label for="pagecopy-font-name">New font name</label>
+          <input type="text" id="pagecopy-font-name" data-pagecopy-font-name placeholder="e.g. Orbitron Bold">
+        </div>
+        <div>
+          <label for="pagecopy-font-family">Font family</label>
+          <input type="text" id="pagecopy-font-family" data-pagecopy-font-family placeholder="e.g. Orbitron">
+        </div>
+        <div>
+          <label for="pagecopy-font-file">Upload font file</label>
+          <input type="file" id="pagecopy-font-file" data-pagecopy-font-file accept=".ttf,.otf,.woff,.woff2">
+        </div>
+        <div>
+          <label for="pagecopy-font-role">Apply to</label>
+          <select id="pagecopy-font-role" data-pagecopy-font-role>
+            <option value="body">Body font</option>
+            <option value="heading">Heading font</option>
+            <option value="ui">UI font</option>
+          </select>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button type="button" class="button" data-pagecopy-font-upload>Upload font</button>
+        </div>
+      </div>
+    </details>
+  </div>
+  {% endif %}
+  {{ pagecopy_draft_data|json_script:"pagecopyDraftData" }}
+  {% if page_font_page %}
+    {{ page_font_page|json_script:"pagecopyFontPage" }}
+    {{ page_font_styles|json_script:"pagecopyFontStyles" }}
+  {% endif %}
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script>
     (function() {
+      if (document.body) {
+        document.body.classList.add('pagecopy-section-config-pending');
+        window.setTimeout(() => {
+          document.body.classList.remove('pagecopy-section-config-pending');
+        }, 2000);
+      }
       const form = document.querySelector('#content-main form');
       const frame = document.querySelector('[data-pagecopy-preview-frame]');
+      const saveButton = document.querySelector('[data-pagecopy-save]');
       const refreshButton = document.querySelector('[data-pagecopy-refresh]');
       const frameWrap = document.querySelector('.pagecopy-preview__frame-wrap');
       const modeButtons = Array.from(document.querySelectorAll('[data-pagecopy-mode]'));
       const layoutToggle = document.querySelector('[data-pagecopy-layout-toggle]');
       const layoutReset = document.querySelector('[data-pagecopy-layout-reset]');
+      const sectionToggle = document.querySelector('[data-pagecopy-section-toggle]');
       const layoutField = form ? form.querySelector('[name="layout_overrides"]') : null;
-      if (!form || !frame) return;
+      const statusIndicator = document.querySelector('[data-pagecopy-status]');
+      if (!form) {
+        if (document.body) {
+          document.body.classList.remove('pagecopy-section-config-pending');
+          document.body.classList.add('pagecopy-section-config-ready');
+        }
+        return;
+      }
 
-      const previewUrl = frame.dataset.previewUrl;
-      if (!previewUrl) return;
+      const previewUrl = frame ? frame.dataset.previewUrl : null;
+      const hasPreview = !!previewUrl;
+      const sectionLayoutSaveUrl = "{{ page_section_layout_save_url|default:'' }}";
+      const sectionOrderSaveUrl = "{{ page_section_order_save_url|default:'' }}";
 
       let renderTimer = null;
       let renderInFlight = false;
       let pendingRender = false;
       let suppressRender = false;
+      let suppressStatus = false;
       let currentMode = 'desktop';
       let layoutActive = false;
+      let sectionModeActive = false;
+      let draftData = {};
+      const fontPageScript = document.getElementById('pagecopyFontPage');
+      const fontPage = fontPageScript ? JSON.parse(fontPageScript.textContent || '""') : '';
+      const fontSaveUrl = '{{ page_font_save_url|default:"" }}';
+      const fontUploadUrl = '{{ page_font_upload_url|default:"" }}';
+      const fontStyleSaveUrl = '{{ page_font_style_save_url|default:"" }}';
+      const fontStyleScript = document.getElementById('pagecopyFontStyles');
+      const fontStyleData = fontStyleScript ? JSON.parse(fontStyleScript.textContent || '{}') : {};
 
-      if (!layoutField) {
+      const draftScript = document.getElementById('pagecopyDraftData');
+      if (draftScript) {
+        try {
+          draftData = JSON.parse(draftScript.textContent || '{}') || {};
+        } catch (err) {
+          draftData = {};
+        }
+      }
+
+      const STATUS_LABELS = {
+        idle: 'Autosave ready',
+        dirty: 'Unsaved changes - click Save',
+        saving: 'Saving draft...',
+        saved: 'Draft saved - click Save',
+        error: 'Autosave failed - click Save',
+      };
+
+      const setStatus = (state, message) => {
+        if (!statusIndicator) return;
+        statusIndicator.dataset.state = state || 'idle';
+        statusIndicator.textContent = message || STATUS_LABELS[state] || STATUS_LABELS.idle;
+      };
+
+      const applyDraftData = (payload) => {
+        if (!payload || !form) return;
+        const entries = Object.entries(payload);
+        if (!entries.length) return;
+        suppressRender = true;
+        suppressStatus = true;
+        entries.forEach(([field, value]) => {
+          const input = form.querySelector(`[name="${safeEscape(field)}"]`);
+          if (!input) return;
+          if (input.type === 'checkbox') {
+            input.checked = value === true || value === 'true';
+          } else {
+            input.value = value == null ? '' : value;
+            if (window.CKEDITOR && input.id && CKEDITOR.instances && CKEDITOR.instances[input.id]) {
+              CKEDITOR.instances[input.id].setData(value);
+            }
+          }
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        suppressRender = false;
+        suppressStatus = false;
+        setStatus('saved', 'Draft restored - click Save');
+      };
+
+      const setupSectionSorting = () => {
+        if (typeof Sortable === 'undefined') return;
+        const group = document.getElementById('pagesection_set-group');
+        if (!group) return;
+        const tableBody = group.querySelector('tbody');
+        const listContainer = tableBody || group.querySelector('.inline-group') || group;
+        if (!listContainer) return;
+
+        const getRows = () => {
+          const rows = Array.from(
+            listContainer.querySelectorAll('tr.form-row, .inline-related')
+          );
+          return rows.filter((row) => !row.classList.contains('empty-form'));
+        };
+
+        const syncOrderInputs = () => {
+          getRows().forEach((row, idx) => {
+            const input = row.querySelector('input[name$="-order"]');
+            if (input) {
+              input.value = idx;
+            }
+          });
+        };
+
+        new Sortable(listContainer, {
+          animation: 150,
+          draggable: 'tr.form-row, .inline-related',
+          onEnd: syncOrderInputs,
+        });
+
+        syncOrderInputs();
+      };
+
+      const setupSectionConfigVisibility = () => {
+        const group = document.getElementById('pagesection_set-group');
+        if (!group) return;
+
+        const ensureHint = () => {
+          if (group.previousElementSibling && group.previousElementSibling.classList.contains('pagecopy-section-hint')) {
+            return;
+          }
+          const hint = document.createElement('div');
+          hint.className = 'pagecopy-section-hint';
+          hint.innerHTML =
+            '<div class="pagecopy-section-hint__title">Секции</div>' +
+            '<p class="help">Выберите тип секции — появятся нужные поля. Добавить можно через “Add another Page section” внизу, порядок — перетаскиванием.</p>';
+          group.parentNode.insertBefore(hint, group);
+        };
+
+        const getInlineRows = () => {
+          const rows = Array.from(group.querySelectorAll('.inline-related'));
+          return rows.filter((row) => !row.classList.contains('empty-form'));
+        };
+
+        const normalizeTypes = (value) => {
+          return String(value || '')
+            .split(',')
+            .map((entry) => entry.trim().toLowerCase())
+            .filter(Boolean);
+        };
+
+        const findRow = (field) => {
+          return field.closest('.form-row, .field-box, .fieldBox, tr.form-row');
+        };
+
+        const updateInline = (inline) => {
+          if (!inline) return;
+          const select = inline.querySelector('select[name$="-section_type"]');
+          const current = select ? String(select.value || '').toLowerCase() : '';
+          inline.querySelectorAll('[data-section-types]').forEach((field) => {
+            const allowed = normalizeTypes(field.dataset.sectionTypes);
+            const shouldShow = current && allowed.includes(current);
+            const row = findRow(field);
+            if (row) {
+              row.style.display = shouldShow ? '' : 'none';
+            } else {
+              field.style.display = shouldShow ? '' : 'none';
+            }
+          });
+        };
+
+        const updateAll = () => {
+          getInlineRows().forEach(updateInline);
+        };
+
+        group.addEventListener('change', (event) => {
+          const target = event.target;
+          if (!target || target.tagName !== 'SELECT') return;
+          if (!target.name || !target.name.endsWith('-section_type')) return;
+          updateInline(target.closest('.inline-related'));
+        });
+
+        ensureHint();
+
+        if (typeof MutationObserver !== 'undefined') {
+          const observer = new MutationObserver(() => {
+            updateAll();
+          });
+          observer.observe(group, { childList: true, subtree: true });
+        }
+        updateAll();
+        if (document.body) {
+          document.body.classList.remove('pagecopy-section-config-pending');
+          document.body.classList.add('pagecopy-section-config-ready');
+        }
+      };
+
+      const setupFontControls = () => {
+        const bodySelect = document.querySelector('[data-pagecopy-font="body"]');
+        const headingSelect = document.querySelector('[data-pagecopy-font="heading"]');
+        const uiSelect = document.querySelector('[data-pagecopy-font="ui"]');
+        if (!fontPage || !fontSaveUrl || !bodySelect || !headingSelect) return;
+
+        const sendFontUpdate = () => {
+          setStatus('saving', 'Saving fonts...');
+          fetch(fontSaveUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+              page: fontPage,
+              body_font: bodySelect.value,
+              heading_font: headingSelect.value,
+              ui_font: uiSelect ? uiSelect.value : '',
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error('Font update failed');
+              return response.json();
+            })
+            .then(() => {
+              setStatus('saved', 'Fonts saved');
+              renderPreview();
+            })
+            .catch(() => {
+              setStatus('error', 'Font update failed');
+            });
+        };
+
+        bodySelect.addEventListener('change', sendFontUpdate);
+        headingSelect.addEventListener('change', sendFontUpdate);
+        if (uiSelect) {
+          uiSelect.addEventListener('change', sendFontUpdate);
+        }
+
+        const uploadButton = document.querySelector('[data-pagecopy-font-upload]');
+        const nameInput = document.querySelector('[data-pagecopy-font-name]');
+        const familyInput = document.querySelector('[data-pagecopy-font-family]');
+        const fileInput = document.querySelector('[data-pagecopy-font-file]');
+        const roleSelect = document.querySelector('[data-pagecopy-font-role]');
+        if (uploadButton && fontUploadUrl) {
+          uploadButton.addEventListener('click', () => {
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+            const payload = new FormData();
+            payload.append('page', fontPage);
+            payload.append('role', roleSelect ? roleSelect.value : 'body');
+            payload.append('name', nameInput ? nameInput.value : '');
+            payload.append('family', familyInput ? familyInput.value : '');
+            payload.append('font_file', fileInput.files[0]);
+
+            setStatus('saving', 'Uploading font...');
+            fetch(fontUploadUrl, {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: payload,
+            })
+              .then((response) => {
+                if (!response.ok) throw new Error('Upload failed');
+                return response.json();
+              })
+              .then((data) => {
+                if (!data || !data.ok || !data.font) throw new Error('Upload failed');
+                const option = new Option(data.font.name, data.font.id, true, true);
+                if (data.role === 'heading' && headingSelect) {
+                  headingSelect.add(option);
+                  headingSelect.value = String(data.font.id);
+                } else if (data.role === 'ui' && uiSelect) {
+                  uiSelect.add(option);
+                  uiSelect.value = String(data.font.id);
+                } else if (bodySelect) {
+                  bodySelect.add(option);
+                  bodySelect.value = String(data.font.id);
+                }
+                setStatus('saved', 'Font uploaded');
+                renderPreview();
+              })
+              .catch(() => {
+                setStatus('error', 'Font upload failed');
+              });
+          });
+        }
+      };
+
+      const setupFontStyleControls = () => {
+        const styleInputs = Array.from(document.querySelectorAll('[data-pagecopy-font-style]'));
+        if (!fontPage || !fontStyleSaveUrl || !styleInputs.length) return;
+
+        const stylePayload = (fontStyleData && typeof fontStyleData === 'object') ? fontStyleData : {};
+
+        const applyInitialValues = () => {
+          styleInputs.forEach((input) => {
+            const role = input.dataset.fontStyleRole;
+            const key = input.dataset.fontStyleKey;
+            if (!role || !key) return;
+            const value = stylePayload[role] && stylePayload[role][key];
+            if (value != null) {
+              input.value = value;
+            }
+          });
+        };
+
+        const collectValues = () => {
+          const result = { body: {}, heading: {}, ui: {} };
+          styleInputs.forEach((input) => {
+            const role = input.dataset.fontStyleRole;
+            const key = input.dataset.fontStyleKey;
+            if (!role || !key) return;
+            const value = String(input.value || '').trim();
+            if (value) {
+              result[role][key] = value;
+            }
+          });
+          Object.keys(result).forEach((role) => {
+            if (!Object.keys(result[role]).length) {
+              delete result[role];
+            }
+          });
+          return result;
+        };
+
+        let styleTimer = null;
+        const sendStyleUpdate = () => {
+          clearTimeout(styleTimer);
+          styleTimer = setTimeout(() => {
+            const styles = collectValues();
+            setStatus('saving', 'Saving typography...');
+            fetch(fontStyleSaveUrl, {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: JSON.stringify({ page: fontPage, styles }),
+            })
+              .then((response) => {
+                if (!response.ok) throw new Error('Typography update failed');
+                return response.json();
+              })
+              .then((data) => {
+                if (data && data.styles) {
+                  Object.assign(stylePayload, data.styles);
+                }
+                setStatus('saved', 'Typography saved');
+                renderPreview();
+              })
+              .catch(() => {
+                setStatus('error', 'Typography save failed');
+              });
+          }, 350);
+        };
+
+        styleInputs.forEach((input) => {
+          input.addEventListener('input', sendStyleUpdate);
+          input.addEventListener('change', sendStyleUpdate);
+        });
+
+        applyInitialValues();
+      };
+
+      const hasLayoutControls = !!layoutField || !!sectionLayoutSaveUrl;
+      if (!hasLayoutControls) {
         if (layoutToggle) layoutToggle.style.display = 'none';
         if (layoutReset) layoutReset.style.display = 'none';
+      }
+      const hasSectionControls = !!sectionOrderSaveUrl;
+      if (!hasSectionControls) {
+        if (sectionToggle) sectionToggle.style.display = 'none';
       }
 
       const resolveInitialMode = () => {
@@ -195,9 +804,10 @@
       };
 
       const syncFrameState = () => {
-        if (!frame.contentWindow) return;
+        if (!frame || !frame.contentWindow) return;
         frame.contentWindow.postMessage({ type: 'pagecopy:mode', mode: currentMode }, '*');
         frame.contentWindow.postMessage({ type: 'pagecopy:layout-mode', active: layoutActive }, '*');
+        frame.contentWindow.postMessage({ type: 'pagecopy:section-mode', active: sectionModeActive }, '*');
       };
 
       const setMode = (mode) => {
@@ -223,11 +833,114 @@
         syncFrameState();
       };
 
+      const setSectionModeActive = (active) => {
+        sectionModeActive = !!active;
+        if (sectionToggle) {
+          sectionToggle.classList.toggle('is-active', sectionModeActive);
+          sectionToggle.setAttribute('aria-pressed', sectionModeActive ? 'true' : 'false');
+        }
+        syncFrameState();
+      };
+
       const safeEscape = (value) => {
         if (window.CSS && typeof CSS.escape === 'function') {
           return CSS.escape(value);
         }
         return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+      };
+
+      const getCookie = (name) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+          return decodeURIComponent(parts.pop().split(';').shift());
+        }
+        return '';
+      };
+
+      const sectionLayoutTimers = new Map();
+      const scheduleSectionLayoutSave = (payload) => {
+        if (!sectionLayoutSaveUrl || !payload || !payload.sectionId) return;
+        const key = `${payload.sectionId}:${payload.mode || 'desktop'}`;
+        if (sectionLayoutTimers.has(key)) {
+          clearTimeout(sectionLayoutTimers.get(key));
+        }
+        const timer = setTimeout(() => {
+          sectionLayoutTimers.delete(key);
+          setStatus('saving', 'Saving layout...');
+          fetch(sectionLayoutSaveUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error('Layout update failed');
+              return response.json();
+            })
+            .then(() => {
+              setStatus('saved', 'Layout saved');
+            })
+            .catch(() => {
+              setStatus('error', 'Layout save failed');
+            });
+        }, 250);
+        sectionLayoutTimers.set(key, timer);
+      };
+
+      const updateSectionOrderInputs = (order) => {
+        if (!Array.isArray(order) || !order.length) return;
+        const group = document.getElementById('pagesection_set-group');
+        if (!group) return;
+        const rows = Array.from(group.querySelectorAll('.inline-related')).filter(
+          (row) => !row.classList.contains('empty-form')
+        );
+        const map = new Map();
+        rows.forEach((row) => {
+          const idInput = row.querySelector('input[name$="-id"]');
+          const orderInput = row.querySelector('input[name$="-order"]');
+          if (!idInput || !orderInput) return;
+          map.set(String(idInput.value || ''), orderInput);
+        });
+        order.forEach((sectionId, idx) => {
+          const input = map.get(String(sectionId));
+          if (!input) return;
+          input.value = idx;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      };
+
+      let sectionOrderTimer = null;
+      const scheduleSectionOrderSave = (payload) => {
+        if (!sectionOrderSaveUrl || !payload || !Array.isArray(payload.order)) return;
+        clearTimeout(sectionOrderTimer);
+        sectionOrderTimer = setTimeout(() => {
+          setStatus('saving', 'Saving section order...');
+          fetch(sectionOrderSaveUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error('Section order update failed');
+              return response.json();
+            })
+            .then(() => {
+              setStatus('saved', 'Section order saved');
+            })
+            .catch(() => {
+              setStatus('error', 'Section order save failed');
+            });
+        }, 250);
       };
 
       const isTextInput = (input) => {
@@ -238,11 +951,12 @@
       };
 
       const sendSync = (name, value) => {
-        if (!frame.contentWindow) return;
+        if (!frame || !frame.contentWindow) return;
         frame.contentWindow.postMessage({ type: 'pagecopy:sync', field: name, value }, '*');
       };
 
       const renderPreview = () => {
+        if (!hasPreview || !frame) return;
         if (renderInFlight) {
           pendingRender = true;
           return;
@@ -282,6 +996,9 @@
       form.addEventListener('input', (event) => {
         const target = event.target;
         if (!target || !target.name) return;
+        if (!suppressStatus) {
+          setStatus('dirty');
+        }
         if (suppressRender) return;
         if (isTextInput(target)) {
           sendSync(target.name, target.value || '');
@@ -294,6 +1011,9 @@
       form.addEventListener('change', (event) => {
         const target = event.target;
         if (!target || !target.name) return;
+        if (!suppressStatus) {
+          setStatus('dirty');
+        }
         if (suppressRender) return;
         scheduleRender(150);
       });
@@ -306,18 +1026,55 @@
           const input = form.querySelector(`[name="${safeEscape(field)}"]`);
           if (!input) return;
           suppressRender = true;
+          suppressStatus = true;
           if (input.type === 'checkbox') {
             input.checked = value === 'true' || value === true;
           } else {
             input.value = value;
+            if (window.CKEDITOR && input.id && CKEDITOR.instances && CKEDITOR.instances[input.id]) {
+              CKEDITOR.instances[input.id].setData(value);
+            }
           }
           input.dispatchEvent(new Event('input', { bubbles: true }));
           suppressRender = false;
+          suppressStatus = false;
           return;
         }
 
         if (data.type === 'pagecopy:blur') {
           scheduleRender(200);
+          return;
+        }
+
+        if (data.type === 'pagecopy:autosave') {
+          setStatus(data.state || 'idle');
+          return;
+        }
+
+        if (data.type === 'pagecopy:section-layout') {
+          if (!data.sectionId) return;
+          scheduleSectionLayoutSave({
+            section_id: data.sectionId,
+            sectionId: data.sectionId,
+            mode: data.mode || 'desktop',
+            layout: data.layout || {},
+          });
+          return;
+        }
+
+        if (data.type === 'pagecopy:section-order') {
+          const order = Array.isArray(data.order) ? data.order : [];
+          if (order.length) {
+            updateSectionOrderInputs(order);
+            const payload = { order };
+            if (data.meta && data.meta.model) {
+              payload.model = data.meta.model;
+            }
+            if (data.meta && data.meta.object_id) {
+              payload.object_id = data.meta.object_id;
+            }
+            scheduleSectionOrderSave(payload);
+          }
           return;
         }
 
@@ -333,6 +1090,9 @@
       if (refreshButton) {
         refreshButton.addEventListener('click', () => renderPreview());
       }
+      if (saveButton) {
+        saveButton.addEventListener('click', () => form.submit());
+      }
 
       modeButtons.forEach((button) => {
         button.addEventListener('click', () => setMode(button.dataset.pagecopyMode));
@@ -342,22 +1102,35 @@
         layoutToggle.addEventListener('click', () => setLayoutActive(!layoutActive));
       }
 
+      if (sectionToggle) {
+        sectionToggle.addEventListener('click', () => setSectionModeActive(!sectionModeActive));
+      }
+
       if (layoutReset) {
         layoutReset.addEventListener('click', () => {
           const payload = { desktop: {}, mobile: {} };
           if (layoutField) {
             layoutField.value = JSON.stringify(payload);
           }
-          if (frame.contentWindow) {
+          if (frame && frame.contentWindow) {
             frame.contentWindow.postMessage({ type: 'pagecopy:layout-reset', scope: 'all' }, '*');
           }
         });
       }
 
-      frame.addEventListener('load', () => syncFrameState());
+      if (frame) {
+        frame.addEventListener('load', () => syncFrameState());
+      }
       setMode(resolveInitialMode());
       setLayoutActive(false);
+      setSectionModeActive(false);
+      setStatus('idle');
 
+      applyDraftData(draftData);
+      setupSectionConfigVisibility();
+      setupSectionSorting();
+      setupFontControls();
+      setupFontStyleControls();
       renderPreview();
     })();
   </script>

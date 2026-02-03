@@ -31,8 +31,10 @@ from .models import (
     CarModel,
 )
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm
-from core.models import Payment, PaymentMethod, StorePageCopy
+from core.models import Payment, PaymentMethod, StorePageCopy, PageFontSetting
+from core.services.page_sections import get_page_sections
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
+from core.services.fonts import build_page_font_context
 from notifications import services as notification_services
 
 logger = logging.getLogger(__name__)
@@ -344,6 +346,7 @@ def _notify_fitment_request(request_obj):
             html_body=html_body,
             from_email=sender,
             recipient_list=recipients,
+            email_type="fitment_request_internal",
         )
     except Exception:
         logger.exception("Failed to notify about custom fitment request (id=%s)", request_obj.pk)
@@ -514,6 +517,7 @@ def _send_order_confirmation(
             html_body=html_body,
             from_email=sender,
             recipient_list=[recipient],
+            email_type="order_confirmation",
         )
     except Exception:
         logger.exception("Failed to send order confirmation email for order %s", getattr(order, "pk", None))
@@ -557,6 +561,8 @@ def store_home(request):
         "sections": sections,
         "store_copy": StorePageCopy.get_solo(),
     }
+    context["page_sections"] = get_page_sections(context["store_copy"])
+    context["font_settings"] = build_page_font_context(PageFontSetting.Page.STORE)
     return render(request, "store/store_home.html", context)
 
 

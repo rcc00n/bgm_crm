@@ -1,0 +1,80 @@
+{% with cfg=section.config layout=section.layout_vars %}
+    <section
+      class="builder-section builder-section--{{ section.section_type }}"
+      data-section-id="{{ section.pk }}"
+      style="
+        {% if section.background_color %}background-color:{{ section.background_color }};{% endif %}
+        {% if section.background_image and section.background_image.image %}
+          background-image:url('{{ section.background_image.image.url }}');
+          background-size:cover;
+          background-position:center;
+        {% endif %}
+      "
+    >
+      {% if section.overlay_color %}
+        <div class="builder-section__overlay" style="background:{{ section.overlay_color }};"></div>
+      {% endif %}
+      <div
+        class="builder-section__inner"
+        data-layout-section
+        data-section-id="{{ section.pk }}"
+        data-layout-x="{{ layout.desktop.x }}"
+        data-layout-y="{{ layout.desktop.y }}"
+        {% if layout.desktop.w %}data-layout-w="{{ layout.desktop.w }}"{% endif %}
+        data-layout-x-mobile="{{ layout.mobile.x }}"
+        data-layout-y-mobile="{{ layout.mobile.y }}"
+        {% if layout.mobile.w %}data-layout-w-mobile="{{ layout.mobile.w }}"{% endif %}
+        style="
+          --layout-x: {{ layout.desktop.x }}px;
+          --layout-y: {{ layout.desktop.y }}px;
+          {% if layout.desktop.w %}--layout-w: {{ layout.desktop.w }}px;{% endif %}
+          --layout-x-mobile: {{ layout.mobile.x }}px;
+          --layout-y-mobile: {{ layout.mobile.y }}px;
+          {% if layout.mobile.w %}--layout-w-mobile: {{ layout.mobile.w }}px;{% endif %}
+        "
+      >
+        {% if section.section_type == "hero" %}
+          {% if cfg.title %}<h1 class="builder-section__title">{{ cfg.title }}</h1>{% endif %}
+          {% if cfg.body %}<div class="builder-section__body">{{ cfg.body|safe }}</div>{% endif %}
+          {% if cfg.cta_url %}
+            <a class="builder-section__cta" href="{{ cfg.cta_url }}">{{ cfg.cta_label|default:"Learn more" }}</a>
+          {% endif %}
+        {% elif section.section_type == "text" %}
+          {% if cfg.title %}<h2 class="builder-section__title">{{ cfg.title }}</h2>{% endif %}
+          {% if cfg.body %}<div class="builder-section__body">{{ cfg.body|safe }}</div>{% endif %}
+        {% elif section.section_type == "image" %}
+          {% if cfg.title %}<h2 class="builder-section__title">{{ cfg.title }}</h2>{% endif %}
+          {% if cfg.body %}<div class="builder-section__body">{{ cfg.body|safe }}</div>{% endif %}
+          {% if cfg.image_url %}
+            <div class="builder-section__media">
+              <img src="{{ cfg.image_url }}" alt="{{ cfg.image_alt|default:"" }}">
+            </div>
+          {% endif %}
+        {% elif section.section_type == "gallery" %}
+          {% if cfg.title %}<h2 class="builder-section__title">{{ cfg.title }}</h2>{% endif %}
+          {% if cfg.body %}<div class="builder-section__body">{{ cfg.body|safe }}</div>{% endif %}
+          {% if cfg.images %}
+            <div class="builder-gallery">
+              {% for image in cfg.images %}
+                <img src="{{ image.url }}" alt="{{ image.alt|default:"" }}">
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% elif section.section_type == "faq" %}
+          {% if cfg.title %}<h2 class="builder-section__title">{{ cfg.title }}</h2>{% endif %}
+          {% if cfg.items %}
+            <div class="builder-section__body">
+              {% for item in cfg.items %}
+                <h3>{{ item.question }}</h3>
+                <div>{{ item.answer|safe }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% else %}
+          {% if cfg.title %}<h2 class="builder-section__title">{{ cfg.title }}</h2>{% endif %}
+          {% if cfg.body %}<div class="builder-section__body">{{ cfg.body|safe }}</div>{% endif %}
+          {% if cfg.html %}<div class="builder-section__body">{{ cfg.html|safe }}</div>{% endif %}
+        {% endif %}
+      </div>
+    </section>
+{% endwith %}

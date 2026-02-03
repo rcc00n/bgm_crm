@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Iterable, Sequence
 
 from django.core.mail import EmailMultiAlternatives
@@ -17,6 +18,7 @@ from core.email_templates import (
 )
 
 FONT_STACK = "'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', Verdana, sans-serif"
+logger = logging.getLogger(__name__)
 
 
 def _safe(value: object | None) -> str:
@@ -327,13 +329,37 @@ def send_html_email(
     *,
     from_email: str,
     recipient_list: Iterable[str],
+    email_type: str | None = None,
 ) -> None:
+    recipients = list(recipient_list)
     message = EmailMultiAlternatives(
         subject=subject,
         body=text_body,
         from_email=from_email,
-        to=list(recipient_list),
+        to=recipients,
     )
     if html_body:
         message.attach_alternative(html_body, "text/html")
-    message.send(fail_silently=False)
+    success = False
+    error_message = ""
+    try:
+        message.send(fail_silently=False)
+        success = True
+    except Exception as exc:
+        error_message = f"{exc.__class__.__name__}: {exc}"
+        raise
+    finally:
+        try:
+            from core.models import EmailSendLog
+
+            EmailSendLog.objects.create(
+                email_type=(email_type or "generic"),
+                subject=subject or "",
+                from_email=from_email or "",
+                recipients=recipients,
+                recipient_count=len(recipients),
+                success=success,
+                error_message=error_message[:2000],
+            )
+        except Exception:
+            logger.exception("Failed to record email send log.")

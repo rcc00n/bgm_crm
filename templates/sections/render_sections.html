@@ -1,0 +1,81 @@
+{% load static %}
+<style>
+  .builder-section {
+    position: relative;
+    padding: clamp(2rem, 6vw, 4.5rem) 0;
+  }
+  .builder-section__inner {
+    width: var(--container, min(1200px, 92vw));
+    margin: 0 auto;
+    padding: 0 1rem;
+    position: relative;
+    z-index: 2;
+  }
+  .builder-section__inner[data-layout-section] {
+    transform: translate3d(var(--layout-x, 0px), var(--layout-y, 0px), 0);
+    width: var(--layout-w, var(--container, min(1200px, 92vw)));
+    max-width: 100%;
+  }
+  .builder-section__title {
+    font-size: clamp(1.6rem, 3vw, 2.6rem);
+    margin-bottom: 0.9rem;
+  }
+  .builder-section__body {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  .builder-section__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 1rem;
+    padding: 0.7rem 1.1rem;
+    border-radius: 999px;
+    background: #d50000;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .builder-section__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+  .builder-section__media {
+    margin-top: 1.2rem;
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+  .builder-section__media img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .builder-gallery {
+    display: grid;
+    gap: 0.9rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin-top: 1.25rem;
+  }
+  .builder-gallery img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0.9rem;
+  }
+  @media (max-width: 768px) {
+    .builder-section__inner[data-layout-section] {
+      transform: translate3d(
+        var(--layout-x-mobile, var(--layout-x, 0px)),
+        var(--layout-y-mobile, var(--layout-y, 0px)),
+        0
+      );
+      width: var(--layout-w-mobile, var(--layout-w, var(--container, min(1200px, 92vw))));
+    }
+  }
+</style>
+
+{% for section in page_sections %}
+  {% include "sections/section.html" with section=section %}
+{% endfor %}

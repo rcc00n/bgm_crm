@@ -23,7 +23,7 @@
 
 /* единая переменная семейства */
 :root{
-  --font-body: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --font-credentials: "Inter", "Segoe UI", -apple-system, system-ui, Roboto, Arial, sans-serif;
 }
 
@@ -357,6 +357,17 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
   line-height:1.45;
   color:var(--ink);
 }
+.field--agree .agree-label{
+  display:block;
+  font-weight:800;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  margin-bottom:.2rem;
+}
+.field--agree .agree-meta{
+  color:var(--muted);
+  font-size:.85rem;
+}
 .field--agree a{
   color:#ff5a5a;
   font-weight:600;
@@ -531,17 +542,34 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
         <div class="field field--agree">
           <input id="consentEmail" type="checkbox" name="email_marketing_consent">
           <label for="consentEmail">
-            I agree to receive e‑mail updates and offers.
+            News &amp; offers
+          </label>
+        </div>
+
+        <div class="field field--agree">
+          <input id="consentProduct" type="checkbox" name="email_product_updates">
+          <label for="consentProduct">
+            Product drops &amp; merch alerts
+          </label>
+        </div>
+
+        <div class="field field--agree">
+          <input id="consentService" type="checkbox" name="email_service_updates">
+          <label for="consentService">
+            Build updates &amp; service reminders
           </label>
         </div>
 
         <div class="field field--agree">
           <input id="acceptTerms" type="checkbox" name="accepted_terms" required>
           <label for="acceptTerms">
-            I have read and agree to the
-            <a href="{% url 'legal-terms' %}" target="_blank" rel="noopener">
-              Terms &amp; Conditions
-            </a>.
+            <span class="agree-label">I AGREE</span>
+            <span class="agree-meta">
+              to the
+              <a href="{% url 'legal-terms' %}" target="_blank" rel="noopener">
+                Terms &amp; Conditions
+              </a>.
+            </span>
           </label>
         </div>
       </div>

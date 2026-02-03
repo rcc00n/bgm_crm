@@ -277,6 +277,8 @@ INSTALLED_APPS = [
     "accounts",
     "core",
     "notifications",
+    "ckeditor",
+    "ckeditor_uploader",
     "dal",
     "dal_select2",
     # "storages",
@@ -371,6 +373,25 @@ STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else 
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", BASE_DIR / "media")
+
+# ── CKEditor ──────────────────────────────────────────────────────────────
+CKEDITOR_UPLOAD_PATH = "pagecopy_uploads/"
+CKEDITOR_IMAGE_BACKEND = "pillow"
+CKEDITOR_CONFIGS = {
+    "pagecopy": {
+        "toolbar": [
+            {"name": "styles", "items": ["Format", "Bold", "Italic", "Underline", "Strike"]},
+            {"name": "paragraph", "items": ["NumberedList", "BulletedList", "Blockquote"]},
+            {"name": "links", "items": ["Link", "Unlink"]},
+            {"name": "insert", "items": ["Image", "Table", "HorizontalRule"]},
+            {"name": "editing", "items": ["RemoveFormat", "Source"]},
+        ],
+        "extraPlugins": ",".join(["uploadimage", "image2"]),
+        "removePlugins": ",".join(["exportpdf"]),
+        "height": 240,
+        "width": "auto",
+    }
+}
 
 # STORAGES = {
 #     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},

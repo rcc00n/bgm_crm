@@ -369,8 +369,8 @@
     }
       {% endif %}
     {% endfor %}
-    {% with body_stack=fs.body.stack|default:'"Diesel", sans-serif' %}
-    {% with heading_stack=fs.heading.stack|default:'"Ford", sans-serif' %}
+    {% with body_stack=fs.body.stack|default:'"Inter", sans-serif' %}
+    {% with heading_stack=fs.heading.stack|default:'"Diesel", sans-serif' %}
     {% with ui_stack=fs.ui.stack|default:body_stack %}
     :root{
       --font-body: {{ body_stack|safe }};

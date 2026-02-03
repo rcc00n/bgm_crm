@@ -14,6 +14,8 @@ class ClientRegistrationFormTests(TestCase):
             "address": "123 Main St",
             "how_heard": "google",
             "email_marketing_consent": True,
+            "email_product_updates": True,
+            "email_service_updates": False,
             "accepted_terms": True,
             "password1": "StrongPass123!",
             "password2": "StrongPass123!",
@@ -29,6 +31,8 @@ class ClientRegistrationFormTests(TestCase):
         self.assertEqual(user.userprofile.phone, "+14035550100")
         self.assertEqual(user.userprofile.how_heard, "google")
         self.assertTrue(user.userprofile.email_marketing_consent)
+        self.assertTrue(user.userprofile.email_product_updates)
+        self.assertFalse(user.userprofile.email_service_updates)
         self.assertTrue(user.userrole_set.filter(role__name="Client").exists())
 
     def test_rejects_duplicate_email(self):
@@ -79,6 +83,8 @@ class ClientProfileFormTests(TestCase):
             "address": "456 Main St",
             "how_heard": "facebook",
             "email_marketing_consent": True,
+            "email_product_updates": True,
+            "email_service_updates": True,
         }
 
     def test_valid_form_updates_user_and_profile(self):
@@ -94,6 +100,8 @@ class ClientProfileFormTests(TestCase):
         self.assertEqual(profile.phone, "+14035550102")
         self.assertEqual(profile.address, "456 Main St")
         self.assertTrue(profile.email_marketing_consent)
+        self.assertTrue(profile.email_product_updates)
+        self.assertTrue(profile.email_service_updates)
         self.assertIsNotNone(profile.email_marketing_consented_at)
 
     def test_rejects_duplicate_email(self):

@@ -18,6 +18,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  {% if font_settings and font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% endif %}
 
   <style>
     /* ========================== VARIABLES & FONTS ========================== */
@@ -33,7 +38,7 @@
 
       --font-body: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Roboto", Arial, sans-serif;
       --font-display: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; /* brand mark */
-      --font-head: "Ford", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;       /* accent headers */
+      --font-head: "Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;       /* accent headers */
       --font-ui: var(--font-display);
     }
 
@@ -47,6 +52,68 @@
       src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
       font-weight:100 900; font-style:normal; font-display:swap;
     }
+    {% if font_settings %}
+      {% for font in font_settings.fonts %}
+        {% if font.has_source %}
+    @font-face{
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
+    }
+        {% endif %}
+      {% endfor %}
+      {% with body_stack=font_settings.body.stack|default:'"Inter", system-ui, sans-serif' %}
+      {% with heading_stack=font_settings.heading.stack|default:body_stack %}
+      {% with ui_stack=font_settings.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui:   {{ ui_stack|safe }};
+    }
+      {% with body_styles=font_settings.styles.body heading_styles=font_settings.styles.heading ui_styles=font_settings.styles.ui %}
+      {% if body_styles or heading_styles or ui_styles %}
+    :root{
+      {% if body_styles.size %}--font-body-size: {{ body_styles.size|escape }};{% endif %}
+      {% if body_styles.line_height %}--font-body-line-height: {{ body_styles.line_height|escape }};{% endif %}
+      {% if body_styles.weight %}--font-body-weight: {{ body_styles.weight|escape }};{% endif %}
+      {% if body_styles.letter_spacing %}--font-body-letter-spacing: {{ body_styles.letter_spacing|escape }};{% endif %}
+      {% if heading_styles.weight %}--font-head-weight: {{ heading_styles.weight|escape }};{% endif %}
+      {% if heading_styles.letter_spacing %}--font-head-letter-spacing: {{ heading_styles.letter_spacing|escape }};{% endif %}
+      {% if heading_styles.transform %}--font-head-transform: {{ heading_styles.transform|escape }};{% endif %}
+      {% if ui_styles.weight %}--font-ui-weight: {{ ui_styles.weight|escape }};{% endif %}
+      {% if ui_styles.letter_spacing %}--font-ui-letter-spacing: {{ ui_styles.letter_spacing|escape }};{% endif %}
+      {% if ui_styles.transform %}--font-ui-transform: {{ ui_styles.transform|escape }};{% endif %}
+    }
+      {% if body_styles.size or body_styles.line_height or body_styles.weight or body_styles.letter_spacing %}
+    body{
+      {% if body_styles.size %}font-size: var(--font-body-size) !important;{% endif %}
+      {% if body_styles.line_height %}line-height: var(--font-body-line-height) !important;{% endif %}
+      {% if body_styles.weight %}font-weight: var(--font-body-weight) !important;{% endif %}
+      {% if body_styles.letter_spacing %}letter-spacing: var(--font-body-letter-spacing) !important;{% endif %}
+    }
+      {% endif %}
+      {% if heading_styles.weight or heading_styles.letter_spacing or heading_styles.transform %}
+    h1,h2,h3,h4,h5,h6,.title,.section__title{
+      {% if heading_styles.weight %}font-weight: var(--font-head-weight) !important;{% endif %}
+      {% if heading_styles.letter_spacing %}letter-spacing: var(--font-head-letter-spacing) !important;{% endif %}
+      {% if heading_styles.transform %}text-transform: var(--font-head-transform) !important;{% endif %}
+    }
+      {% endif %}
+      {% if ui_styles.weight or ui_styles.letter_spacing or ui_styles.transform %}
+    button,.btn,.badge,nav a,input,select,textarea,.site-header__toggle{
+      {% if ui_styles.weight %}font-weight: var(--font-ui-weight) !important;{% endif %}
+      {% if ui_styles.letter_spacing %}letter-spacing: var(--font-ui-letter-spacing) !important;{% endif %}
+      {% if ui_styles.transform %}text-transform: var(--font-ui-transform) !important;{% endif %}
+    }
+      {% endif %}
+      {% endif %}
+      {% endwith %}
+      {% endwith %}
+      {% endwith %}
+      {% endwith %}
+    {% endif %}
 
     /* ============================== BASE / RESET ============================ */
     *,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }

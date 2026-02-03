@@ -4,6 +4,7 @@ botocore==1.39.4
 Django==5.2.4
 django-autocomplete-light==3.12.1
 django-jazzmin==2.6.0
+django-ckeditor==6.7.1
 
 django-storages==1.14.6
 jmespath==1.0.1

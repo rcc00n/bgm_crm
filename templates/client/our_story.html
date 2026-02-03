@@ -10,8 +10,14 @@
   {% endwith %}
 
   <!-- Font preloads -->
-  <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
-  <link rel="preload" href="{% static 'fonts/Ford.ttf' %}"   as="font" type="font/ttf" crossorigin>
+  {% if font_settings and font_settings.preload_fonts %}
+    {% for font in font_settings.preload_fonts %}
+      <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
+    {% endfor %}
+  {% else %}
+    <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="{% static 'fonts/Inter-Variable.ttf' %}" as="font" type="font/ttf" crossorigin>
+  {% endif %}
 
   <!-- Consolidated styles -->
   <style id="page-styles">
@@ -26,19 +32,39 @@
     --text-base:clamp(.98rem,1.05vw,1.05rem);
     --text-body:clamp(1.02rem,1.25vw,1.18rem);
     --text-detail:clamp(.9rem,1vw,1rem);
-    --font-body:"Diesel",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-    --font-head:"Ford",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    --font-body:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    --font-head:"Diesel",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
   }
+  {% if font_settings %}
+    {% for font in font_settings.fonts %}
+      {% if font.has_source %}
+  @font-face{
+    font-family:"{{ font.family }}";
+    src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+    font-weight:{{ font.weight|default:"400" }};
+    font-style:{{ font.style|default:"normal" }};
+    font-display:{{ font.display|default:"swap" }};
+  }
+      {% endif %}
+    {% endfor %}
+    {% with body_stack=font_settings.body.stack|default:'"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif' %}
+    {% with heading_stack=font_settings.heading.stack|default:'"Diesel",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif' %}
+    {% with ui_stack=font_settings.ui.stack|default:body_stack %}
+  :root{
+    --font-body: {{ body_stack|safe }};
+    --font-head: {{ heading_stack|safe }};
+    --font-ui:   {{ ui_stack|safe }};
+  }
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+  {% else %}
   @font-face{
     font-family:"Diesel";
     src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
     font-weight:100 900; font-style:normal; font-display:swap;
   }
-  @font-face{
-    font-family:"Ford";
-    src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
-    font-weight:100 900; font-style:normal; font-display:swap;
-  }
+  {% endif %}
 
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
@@ -141,6 +167,13 @@
   .grid--2{ grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); }
   .card{ display:flex; flex-direction:column; gap:.65rem; padding:1.1rem; border-radius:1rem; background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--line); box-shadow:var(--shadow); transition:transform .18s ease, box-shadow .18s ease; }
   .card:hover{ transform:translateY(-2px); box-shadow:0 16px 36px rgba(0,0,0,.55); }
+  .story-photo{ display:grid; grid-template-columns:110px 1fr; gap:1rem; align-items:center; padding:.9rem; border:1px solid var(--line); border-radius:.9rem; background:rgba(255,255,255,.03); }
+  .story-photo__frame{ width:110px; height:110px; border-radius:.9rem; overflow:hidden; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); }
+  .story-photo__frame img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .story-photo__fallback{ font-weight:900; letter-spacing:.08em; color:#fff; font-size:1.2rem; }
+  .story-photo__name{ font-weight:900; font-size:1.05rem; }
+  .story-photo__role{ color:var(--muted); font-size:var(--text-detail); }
+  .story-photo__caption{ margin-top:.35rem; color:var(--muted); font-size:var(--text-detail); }
   p,.list{ font-size:var(--text-body); line-height:1.65; }
   .list{ margin:.25rem 0 0 1rem; }
   .muted{ color:var(--muted); font-size:var(--text-detail); line-height:1.6; }
@@ -305,6 +338,20 @@
           <h2 class="section__title">{{ about_copy.story_title }}</h2>
           <p>{{ about_copy.story_paragraph_1 }}</p>
           <p class="muted">{{ about_copy.story_paragraph_2 }}</p>
+          <div class="story-photo">
+            <div class="story-photo__frame">
+              {% if about_copy.story_photo %}
+                <img src="{{ about_copy.story_photo.url }}" alt="{{ about_copy.story_photo_alt }}" loading="lazy" decoding="async">
+              {% else %}
+                <span class="story-photo__fallback">{{ about_copy.story_photo_placeholder }}</span>
+              {% endif %}
+            </div>
+            <div class="story-photo__meta">
+              <div class="story-photo__name">{{ about_copy.story_photo_title }}</div>
+              <div class="story-photo__role">{{ about_copy.story_photo_subtitle }}</div>
+              {% if about_copy.story_photo_caption %}<p class="story-photo__caption">{{ about_copy.story_photo_caption }}</p>{% endif %}
+            </div>
+          </div>
         </article>
 
         <article class="card">
@@ -430,44 +477,11 @@
     </div>
   </div>
 
-  <!-- Unified UI JS (nav + contact modal) -->
+  <script src="{% static 'js/topbar.js' %}"></script>
+
+  <!-- Contact modal + clipboard -->
   <script id="ui-js">
   (() => {
-    // Mobile nav
-    const header = document.querySelector('header.site-header');
-    const toggle = document.querySelector('.site-header__toggle');
-    const nav    = document.getElementById('siteNav');
-    const mq     = window.matchMedia('(max-width: 960px)');
-    if (header && toggle && nav){
-      const isOpen = () => header.classList.contains('site-header--open') || toggle.getAttribute('aria-expanded') === 'true';
-      const setOpen = (open) => {
-        header.classList.toggle('site-header--open', !!open);
-        document.body.classList.toggle('nav-open', !!open);
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if (open && mq.matches){
-          const first = nav.querySelector('a,button,[tabindex]:not([tabindex="-1"])');
-          first && first.focus({ preventScroll:true });
-        } else if (!open){
-          toggle.focus({ preventScroll:true });
-        }
-      };
-      toggle.addEventListener('click', (e) => { if (!mq.matches) return; e.preventDefault(); setOpen(!isOpen()); });
-      nav.addEventListener('click', (e) => { if (!mq.matches) return; const act = e.target.closest('a,button'); if (!act || act.closest('form')) return; setOpen(false); });
-      document.addEventListener('keydown', (e) => { if (!mq.matches || !isOpen()) return; if (e.key === 'Escape') setOpen(false); });
-      document.addEventListener('keydown', (e) => {
-        if (!mq.matches || !isOpen() || e.key !== 'Tab') return;
-        const focusables = nav.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])');
-        const list = [...focusables].filter(el => !el.disabled && el.offsetParent !== null);
-        if (!list.length) return;
-        const first = list[0], last = list[list.length - 1];
-        if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
-      });
-      (mq.addEventListener ? mq.addEventListener('change', (ev)=>{ if (!ev.matches) setOpen(false); }) : mq.addListener((ev)=>{ if (!ev.matches) setOpen(false); }));
-      setOpen(false);
-    }
-
-    // Contact modal
     const fab   = document.getElementById('contactFab');
     const modal = document.getElementById('contactModal');
     if (fab && modal){

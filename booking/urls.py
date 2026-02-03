@@ -25,6 +25,36 @@ urlpatterns = [
     ),
     path("admin/ui-check/run/", core_views.admin_ui_check_run, name="admin-ui-check-run"),
     path(
+        "admin/pagecopy/save-field/",
+        admin.site.admin_view(core_views.admin_pagecopy_save_field),
+        name="admin-pagecopy-save-field",
+    ),
+    path(
+        "admin/pagecopy/save-fonts/",
+        admin.site.admin_view(core_views.admin_pagecopy_save_fonts),
+        name="admin-pagecopy-save-fonts",
+    ),
+    path(
+        "admin/pagecopy/save-font-styles/",
+        admin.site.admin_view(core_views.admin_pagecopy_save_font_styles),
+        name="admin-pagecopy-save-font-styles",
+    ),
+    path(
+        "admin/pagecopy/save-section-layout/",
+        admin.site.admin_view(core_views.admin_pagecopy_save_section_layout),
+        name="admin-pagecopy-save-section-layout",
+    ),
+    path(
+        "admin/pagecopy/save-section-order/",
+        admin.site.admin_view(core_views.admin_pagecopy_save_section_order),
+        name="admin-pagecopy-save-section-order",
+    ),
+    path(
+        "admin/pagecopy/upload-font/",
+        admin.site.admin_view(core_views.admin_pagecopy_upload_font),
+        name="admin-pagecopy-upload-font",
+    ),
+    path(
         "admin/staffing/time-tracking/",
         admin.site.admin_view(core_views.admin_staff_usage),
         name="admin-staff-usage",
@@ -34,6 +64,7 @@ urlpatterns = [
         admin.site.admin_view(core_views.admin_web_analytics_insights),
         name="admin-analytics-insights",
     ),
+    path("ckeditor/", include("ckeditor_uploader.urls")),
     # Admin
     path("admin/", admin.site.urls),
 
