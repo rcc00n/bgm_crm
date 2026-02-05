@@ -304,3 +304,67 @@ def topbar_style(request):
             "fonts": fonts,
         }
     }
+
+
+def cart_summary(request):
+    """
+    Expose a lightweight cart count for global UI elements (e.g., floating cart button).
+    """
+    cart_item_count = 0
+    cart_line_count = 0
+
+    if request is None:
+        return {
+            "cart_item_count": cart_item_count,
+            "cart_line_count": cart_line_count,
+        }
+
+    session = getattr(request, "session", None)
+    if session is None:
+        return {
+            "cart_item_count": cart_item_count,
+            "cart_line_count": cart_line_count,
+        }
+
+    data = session.get("cart_items")
+    if not data:
+        return {
+            "cart_item_count": cart_item_count,
+            "cart_line_count": cart_line_count,
+        }
+
+    items = []
+    if isinstance(data, dict):
+        if isinstance(data.get("items"), list):
+            items = data.get("items") or []
+        else:
+            for qty in data.values():
+                try:
+                    qty_value = max(1, int(qty))
+                except (TypeError, ValueError):
+                    continue
+                cart_item_count += qty_value
+                cart_line_count += 1
+            return {
+                "cart_item_count": cart_item_count,
+                "cart_line_count": cart_line_count,
+            }
+    elif isinstance(data, list):
+        items = data
+
+    for entry in items:
+        if isinstance(entry, dict):
+            raw_qty = entry.get("qty", 1)
+        else:
+            raw_qty = entry
+        try:
+            qty_value = max(1, int(raw_qty))
+        except (TypeError, ValueError):
+            continue
+        cart_item_count += qty_value
+        cart_line_count += 1
+
+    return {
+        "cart_item_count": cart_item_count,
+        "cart_line_count": cart_line_count,
+    }

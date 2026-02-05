@@ -1,0 +1,169 @@
+<style id="terms-gate-style">
+  body.terms-gate-open{ overflow:hidden; }
+  .terms-gate{
+    position:fixed;
+    inset:0;
+    z-index:3000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:1.5rem;
+    background:rgba(7,10,14,.8);
+    backdrop-filter:blur(4px);
+    opacity:0;
+    transition:opacity .2s ease;
+  }
+  .terms-gate[hidden]{ display:none; }
+  .terms-gate--visible{ opacity:1; }
+  .terms-gate__card{
+    width:min(640px, 100%);
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.14);
+    background:#0d1016;
+    color:#f5f7fb;
+    padding:1.6rem 1.7rem;
+    box-shadow:0 28px 80px rgba(0,0,0,.55);
+  }
+  .terms-gate__eyebrow{
+    margin:0 0 .6rem;
+    text-transform:uppercase;
+    letter-spacing:.2em;
+    font-size:.72rem;
+    font-weight:700;
+    color:rgba(245,247,251,.55);
+  }
+  .terms-gate__title{ margin:0 0 .5rem; font-size:1.7rem; letter-spacing:.01em; }
+  .terms-gate__text{ margin:0 0 1.2rem; color:rgba(245,247,251,.76); line-height:1.6; }
+  .terms-gate__check{
+    display:flex;
+    gap:.65rem;
+    align-items:flex-start;
+    font-size:.98rem;
+    line-height:1.45;
+    margin:0 0 1.2rem;
+  }
+  .terms-gate__check input{ margin-top:.2rem; transform:scale(1.05); }
+  .terms-gate__actions{ display:flex; flex-wrap:wrap; gap:.7rem; align-items:center; }
+  .terms-gate__btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:.65rem 1.1rem;
+    border-radius:.7rem;
+    border:1px solid rgba(255,255,255,.15);
+    background:#fff;
+    color:#0b0d12;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .terms-gate__btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .terms-gate__link{ color:#fff; font-weight:700; text-decoration:none; }
+  .terms-gate__link:hover{ text-decoration:underline; }
+  .terms-gate__meta{ margin:.7rem 0 0; color:rgba(245,247,251,.55); font-size:.85rem; }
+  .terms-gate__btn:focus-visible,
+  .terms-gate__link:focus-visible,
+  .terms-gate__check input:focus-visible{
+    outline:2px solid #fff;
+    outline-offset:2px;
+  }
+  @media (max-width:640px){
+    .terms-gate{ padding:1rem; }
+    .terms-gate__card{ padding:1.3rem; }
+    .terms-gate__actions{ flex-direction:column; align-items:stretch; }
+    .terms-gate__btn{ width:100%; }
+    .terms-gate__link{ text-align:center; }
+  }
+</style>
+
+<div id="termsGate" class="terms-gate" role="dialog" aria-modal="true" aria-labelledby="termsGateTitle" aria-describedby="termsGateDesc" hidden>
+  <div class="terms-gate__card" role="document">
+    <p class="terms-gate__eyebrow">Before you continue</p>
+    <h2 id="termsGateTitle" class="terms-gate__title">Accept Terms &amp; Conditions</h2>
+    <p id="termsGateDesc" class="terms-gate__text">
+      Please review and accept the Terms &amp; Conditions to use this site. You will not be able to proceed until you agree.
+    </p>
+    <label class="terms-gate__check" for="termsGateCheckbox">
+      <input id="termsGateCheckbox" type="checkbox">
+      <span>I have read and agree to the <a class="terms-gate__link" href="{% url 'legal-terms' %}" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span>
+    </label>
+    <div class="terms-gate__actions">
+      <button type="button" class="terms-gate__btn" id="termsGateAccept" disabled>Accept &amp; Continue</button>
+      <a class="terms-gate__link" href="{% url 'legal-terms' %}" target="_blank" rel="noopener">Read full terms</a>
+    </div>
+    <p class="terms-gate__meta">Acceptance is stored on this device.</p>
+  </div>
+</div>
+
+<script id="terms-gate-js">
+(function(){
+  const gate = document.getElementById('termsGate');
+  if (!gate) return;
+
+  const checkbox = document.getElementById('termsGateCheckbox');
+  const acceptBtn = document.getElementById('termsGateAccept');
+  const storageKey = 'bgm:terms-accept:v1';
+  const cookieKey = 'bgm_terms_accept_v1';
+  const cookiePattern = new RegExp('(?:^|; )' + cookieKey.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&') + '=([^;]+)');
+
+  const hasAccepted = () => {
+    try { if (window.localStorage.getItem(storageKey) === 'accepted') return true; } catch (_) {}
+    const match = document.cookie.match(cookiePattern);
+    return match ? match[1] === 'accepted' : false;
+  };
+
+  const persist = () => {
+    try { window.localStorage.setItem(storageKey, 'accepted'); } catch (_) {}
+    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3).toUTCString();
+    document.cookie = `${cookieKey}=accepted; expires=${expires}; path=/; SameSite=Lax`;
+  };
+
+  const focusables = () => gate.querySelectorAll('a,button,input,[tabindex]:not([tabindex="-1"])');
+
+  const openGate = () => {
+    gate.removeAttribute('hidden');
+    document.body.classList.add('terms-gate-open');
+    requestAnimationFrame(() => gate.classList.add('terms-gate--visible'));
+    if (checkbox) checkbox.focus();
+  };
+
+  const closeGate = () => {
+    gate.classList.remove('terms-gate--visible');
+    document.body.classList.remove('terms-gate-open');
+    setTimeout(() => gate.setAttribute('hidden', ''), 220);
+  };
+
+  if (hasAccepted()) return;
+
+  if (checkbox && acceptBtn) {
+    acceptBtn.disabled = !checkbox.checked;
+    checkbox.addEventListener('change', () => {
+      acceptBtn.disabled = !checkbox.checked;
+    });
+  }
+
+  gate.addEventListener('keydown', (event) => {
+    if (event.key !== 'Tab') return;
+    const focusable = focusables();
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+
+  if (acceptBtn) {
+    acceptBtn.addEventListener('click', () => {
+      if (checkbox && !checkbox.checked) return;
+      persist();
+      closeGate();
+    });
+  }
+
+  openGate();
+})();
+</script>

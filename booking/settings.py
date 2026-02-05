@@ -330,6 +330,7 @@ TEMPLATES = [
                 "core.context_processors_core.currency",
                 "core.context_processors_core.marketing_tags",
                 "core.context_processors_core.topbar_style",
+                "core.context_processors_core.cart_summary",
             ],
         },
     },

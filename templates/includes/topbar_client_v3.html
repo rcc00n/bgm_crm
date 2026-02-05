@@ -48,5 +48,29 @@
   </div>
 </header>
 <div class="bgm-topbar__spacer" aria-hidden="true"></div>
+<a
+  class="bgm-cart-fab"
+  href="{% url 'store-cart' %}"
+  aria-label="View cart{% if cart_item_count %}, {{ cart_item_count }} item{{ cart_item_count|pluralize }}{% endif %}"
+  title="View cart{% if cart_item_count %} ({{ cart_item_count }} item{{ cart_item_count|pluralize }}){% endif %}"
+>
+  <span class="bgm-cart-fab__icon">
+    <svg viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
+      <path
+        d="M7 18.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm10 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM4 3.75h2.2l.9 3.45a1 1 0 0 0 .97.75h9.6a1 1 0 0 1 .96 1.28l-1.5 5.25a1 1 0 0 1-.96.72H8.4a1 1 0 0 1-.97-.76L5.1 5.75H4a1 1 0 0 1 0-2Z"
+        fill="currentColor"
+      />
+      <path
+        d="M9.2 12.5h7.25l1.07-3.75H8.25l.95 3.75Z"
+        fill="currentColor"
+        opacity=".35"
+      />
+    </svg>
+    {% if cart_item_count %}
+      <span class="bgm-cart-fab__count" aria-live="polite" aria-atomic="true">{{ cart_item_count }}</span>
+    {% endif %}
+  </span>
+  <span class="bgm-cart-fab__label">Cart</span>
+</a>
 {% endwith %}
 {% endwith %}
