@@ -142,28 +142,35 @@
 
     <details class="categories-collapse" id="categoriesCollapse" open>
       <summary class="categories-toggle">Show categories</summary>
-      <div class="grid grid--cards categories-grid">
-        {% for c in categories %}
-          <a class="card cat" href="{% url 'store-category' slug=c.slug %}" title="{{ c.name }}">
-            <div class="card__img cat__img">
-              {% if c.image %}
-                <img src="{{ c.image.url }}" alt="{{ c.display_name }}" loading="lazy">
-              {% else %}
-                <div class="ph" aria-hidden="true"></div>
-              {% endif %}
-              <div class="cat__overlay">
-                <span class="cat__title">{{ c.display_name }}</span>
-                <span class="cat__arrow" aria-hidden="true">→</span>
+      <div class="categories-preview" data-categories-preview>
+        <div class="grid grid--cards categories-grid">
+          {% for c in categories %}
+            <a class="card cat" href="{% url 'store-category' slug=c.slug %}" title="{{ c.name }}">
+              <div class="card__img cat__img">
+                {% if c.image %}
+                  <img src="{{ c.image.url }}" alt="{{ c.display_name }}" loading="lazy">
+                {% else %}
+                  <div class="ph" aria-hidden="true"></div>
+                {% endif %}
+                <div class="cat__overlay">
+                  <span class="cat__title">{{ c.display_name }}</span>
+                  <span class="cat__arrow" aria-hidden="true">→</span>
+                </div>
               </div>
-            </div>
-            {% if c.description %}
-              <p class="section__desc cat__desc">{{ c.description|truncatewords:18 }}</p>
-            {% endif %}
-          </a>
-        {% empty %}
-          <p class="section__desc">{{ store_copy.categories_empty_label }}</p>
-        {% endfor %}
+              {% if c.description %}
+                <p class="section__desc cat__desc">{{ c.description|truncatewords:18 }}</p>
+              {% endif %}
+            </a>
+          {% empty %}
+            <p class="section__desc">{{ store_copy.categories_empty_label }}</p>
+          {% endfor %}
+        </div>
       </div>
+      <button class="btn btn--ghost categories-expand" type="button" data-categories-toggle
+              data-label-expand="{{ store_copy.categories_view_all_label|default:'View all categories' }}"
+              data-label-collapse="{{ store_copy.categories_view_less_label|default:'Show fewer' }}">
+        {{ store_copy.categories_view_all_label|default:"View all categories" }}
+      </button>
     </details>
 
     {# ================== RESULTS (visible when filters are active) ================== #}
@@ -454,6 +461,62 @@
     }
   })();
 </script>
+<script>
+  (function(){
+    const root = document.getElementById('categoriesCollapse');
+    if (!root) return;
+    const btn = root.querySelector('[data-categories-toggle]');
+    const preview = root.querySelector('[data-categories-preview]');
+    const grid = root.querySelector('.categories-grid');
+    if (!btn || !preview || !grid) return;
+
+    const labelExpand = btn.dataset.labelExpand || 'View all categories';
+    const labelCollapse = btn.dataset.labelCollapse || 'Show fewer';
+    const setLabel = (expanded) => {
+      btn.textContent = expanded ? labelCollapse : labelExpand;
+    };
+
+    const calcHeight = () => {
+      const card = grid.querySelector('.cat');
+      if (!card) return;
+      const styles = window.getComputedStyle(grid);
+      const gapValue = styles.rowGap || styles.gap || '0';
+      const gap = parseFloat(gapValue) || 0;
+      const row = card.getBoundingClientRect().height;
+      if (row) {
+        const target = Math.round(row * 1.5 + gap);
+        preview.style.setProperty('--categories-preview-height', target + 'px');
+      }
+    };
+
+    const updateOverflow = () => {
+      const hasOverflow = preview.scrollHeight > preview.clientHeight + 2;
+      btn.hidden = !hasOverflow;
+      if (!hasOverflow) {
+        root.classList.remove('categories-collapse--expanded');
+      }
+      setLabel(root.classList.contains('categories-collapse--expanded'));
+    };
+
+    const refresh = () => {
+      calcHeight();
+      updateOverflow();
+    };
+
+    btn.addEventListener('click', function(){
+      root.classList.toggle('categories-collapse--expanded');
+      setLabel(root.classList.contains('categories-collapse--expanded'));
+      updateOverflow();
+    });
+
+    setLabel(false);
+    refresh();
+    window.addEventListener('resize', function(){
+      window.requestAnimationFrame(refresh);
+    });
+    window.addEventListener('load', refresh);
+  })();
+</script>
 
   </div>
 </section>
@@ -617,6 +680,34 @@
       background:var(--card-bg);
     }
     .categories-collapse[open]{padding-bottom:1rem}
+  }
+  .categories-preview{position:relative}
+  .categories-expand{display:none}
+  @media (min-width:901px){
+    .categories-preview{
+      max-height:var(--categories-preview-height, 320px);
+      overflow:hidden;
+    }
+    .categories-preview::after{
+      content:"";
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:90px;
+      background:linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.65));
+      pointer-events:none;
+    }
+    .categories-collapse--expanded .categories-preview{
+      max-height:none;
+    }
+    .categories-collapse--expanded .categories-preview::after{display:none}
+    .categories-expand{
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      margin-top:.8rem;
+    }
   }
 
   /* Product */
