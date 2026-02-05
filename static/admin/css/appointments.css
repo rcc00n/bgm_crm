@@ -46,6 +46,12 @@ body{
     overflow:hidden;
 }
 
+@media (min-width: 992px){
+    body.sidebar-mini.sidebar-collapse .content-wrapper{
+        margin-left:84px !important;
+    }
+}
+
 :focus-visible{
     outline:2px solid var(--calendar-red);
     outline-offset:2px;
