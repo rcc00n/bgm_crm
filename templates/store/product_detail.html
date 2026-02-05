@@ -263,14 +263,6 @@
           </div>
         {% endif %}
 
-{# Compatibility: free-form text shown to users; model data stays hidden #}
-{% if product.compatibility %}
-  <div class="card" style="margin-top:1rem">
-    <h3 style="font-weight:900;margin-bottom:.4rem">Compatibility</h3>
-    <div class="section__desc">{{ product.compatibility|linebreaks }}</div>
-  </div>
-{% endif %}
-
       </div>
     </div>
 

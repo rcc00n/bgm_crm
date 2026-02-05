@@ -1875,18 +1875,24 @@ class TopbarSettingsAdminForm(forms.ModelForm):
         "md": "1.05rem",
         "lg": "1.2rem",
         "xl": "1.35rem",
+        "xxl": "1.5rem",
+        "xxxl": "1.65rem",
     }
     BRAND_SIZE_PRESETS = {
         "sm": "clamp(1.1rem, 1.8vw, 1.5rem)",
         "md": "clamp(1.25rem, 2.1vw, 1.7rem)",
         "lg": "clamp(1.35rem, 2.4vw, 1.9rem)",
         "xl": "clamp(1.5rem, 2.8vw, 2.1rem)",
+        "xxl": "clamp(1.6rem, 3.1vw, 2.35rem)",
+        "xxxl": "clamp(1.75rem, 3.5vw, 2.6rem)",
     }
     TAGLINE_SIZE_PRESETS = {
         "sm": "0.85em",
         "md": "1em",
         "lg": "1.15em",
         "xl": "1.3em",
+        "xxl": "1.45em",
+        "xxxl": "1.6em",
     }
 
     SIZE_CHOICES = (
@@ -1894,6 +1900,8 @@ class TopbarSettingsAdminForm(forms.ModelForm):
         ("md", "Medium (default)"),
         ("lg", "Large"),
         ("xl", "Extra large"),
+        ("xxl", "2x large"),
+        ("xxxl", "3x large"),
         ("custom", "Custom (leave as-is)"),
     )
 
