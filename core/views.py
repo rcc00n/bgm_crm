@@ -852,15 +852,15 @@ def admin_web_analytics_insights(request):
 def _summarize_email_logs(queryset):
     summary = queryset.aggregate(
         total=models.Count("id"),
-        success=models.Count("id", filter=Q(success=True)),
-        failed=models.Count("id", filter=Q(success=False)),
+        success_count=models.Count("id", filter=Q(success=True)),
+        failed_count=models.Count("id", filter=Q(success=False)),
         recipients=models.Sum("recipient_count"),
         last_sent=models.Max("sent_at"),
     )
     total = summary.get("total") or 0
     recipients = summary.get("recipients") or 0
-    success = summary.get("success") or 0
-    failed = summary.get("failed") or 0
+    success = summary.get("success_count") or 0
+    failed = summary.get("failed_count") or 0
     return {
         "total": total,
         "success": success,
@@ -899,8 +899,8 @@ def admin_email_overview(request):
         .values("email_type")
         .annotate(
             total=models.Count("id"),
-            success=models.Count("id", filter=Q(success=True)),
-            failed=models.Count("id", filter=Q(success=False)),
+            success_count=models.Count("id", filter=Q(success=True)),
+            failed_count=models.Count("id", filter=Q(success=False)),
             recipients=models.Sum("recipient_count"),
             last_sent=models.Max("sent_at"),
         )
@@ -959,14 +959,14 @@ def admin_email_overview(request):
     top_types = []
     for row in top_rows:
         total = row.get("total") or 0
-        success = row.get("success") or 0
+        success = row.get("success_count") or 0
         recipients = row.get("recipients") or 0
         top_types.append(
             {
                 "email_type": row.get("email_type"),
                 "total": total,
                 "success": success,
-                "failed": row.get("failed") or 0,
+                "failed": row.get("failed_count") or 0,
                 "recipients": recipients,
                 "avg_recipients": round(recipients / total, 1) if total else 0,
                 "success_rate": round(success / total * 100, 1) if total else 0,
@@ -1041,12 +1041,12 @@ def admin_email_logs(request):
     qs = qs.order_by("-sent_at")
     stats = qs.aggregate(
         total=models.Count("id"),
-        success=models.Count("id", filter=Q(success=True)),
-        failed=models.Count("id", filter=Q(success=False)),
+        success_count=models.Count("id", filter=Q(success=True)),
+        failed_count=models.Count("id", filter=Q(success=False)),
     )
     total = stats.get("total") or 0
-    success = stats.get("success") or 0
-    failed = stats.get("failed") or 0
+    success = stats.get("success_count") or 0
+    failed = stats.get("failed_count") or 0
 
     per_page_raw = request.GET.get("per_page")
     page_raw = request.GET.get("page")
@@ -1157,8 +1157,8 @@ def admin_email_history(request):
         qs.values("email_type")
         .annotate(
             total=models.Count("id"),
-            success=models.Count("id", filter=Q(success=True)),
-            failed=models.Count("id", filter=Q(success=False)),
+            success_count=models.Count("id", filter=Q(success=True)),
+            failed_count=models.Count("id", filter=Q(success=False)),
             recipients=models.Sum("recipient_count"),
             last_sent=models.Max("sent_at"),
         )
@@ -1170,14 +1170,14 @@ def admin_email_history(request):
     history_rows = []
     for row in summary_rows:
         total = row.get("total") or 0
-        success = row.get("success") or 0
+        success = row.get("success_count") or 0
         recipients = row.get("recipients") or 0
         history_rows.append(
             {
                 "email_type": row.get("email_type"),
                 "total": total,
                 "success": success,
-                "failed": row.get("failed") or 0,
+                "failed": row.get("failed_count") or 0,
                 "recipients": recipients,
                 "avg_recipients": round(recipients / total, 1) if total else 0,
                 "success_rate": round(success / total * 100, 1) if total else 0,
