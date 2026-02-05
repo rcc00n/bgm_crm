@@ -1869,14 +1869,93 @@ class PageFontSettingAdmin(admin.ModelAdmin):
         return format_html("<style>{}</style>{}", mark_safe(face_block), mark_safe(preview_block))
 
 
+class TopbarSettingsAdminForm(forms.ModelForm):
+    NAV_SIZE_PRESETS = {
+        "sm": "0.9rem",
+        "md": "1.05rem",
+        "lg": "1.2rem",
+        "xl": "1.35rem",
+    }
+    BRAND_SIZE_PRESETS = {
+        "sm": "clamp(1.1rem, 1.8vw, 1.5rem)",
+        "md": "clamp(1.25rem, 2.1vw, 1.7rem)",
+        "lg": "clamp(1.35rem, 2.4vw, 1.9rem)",
+        "xl": "clamp(1.5rem, 2.8vw, 2.1rem)",
+    }
+
+    SIZE_CHOICES = (
+        ("sm", "Маленький"),
+        ("md", "Средний (по умолчанию)"),
+        ("lg", "Крупный"),
+        ("xl", "Очень крупный"),
+        ("custom", "Свой размер (оставить как есть)"),
+    )
+
+    nav_size_desktop_preset = forms.ChoiceField(
+        label="Размер меню (компьютер)",
+        choices=SIZE_CHOICES,
+        required=True,
+        help_text="Выберите размер без CSS. «Свой размер» не меняет значение ниже.",
+    )
+    brand_size_desktop_preset = forms.ChoiceField(
+        label="Размер названия (компьютер)",
+        choices=SIZE_CHOICES,
+        required=True,
+        help_text="Удобный выбор размера для текста бренда.",
+    )
+
+    class Meta:
+        model = TopbarSettings
+        fields = "__all__"
+
+    def _preset_for_value(self, value, preset_map):
+        if not value:
+            return "custom"
+        normalized = str(value).strip()
+        for key, preset_value in preset_map.items():
+            if normalized == preset_value:
+                return key
+        return "custom"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        nav_value = getattr(self.instance, "nav_size_desktop", None)
+        brand_value = getattr(self.instance, "brand_size_desktop", None)
+        self.fields["nav_size_desktop_preset"].initial = self._preset_for_value(
+            nav_value,
+            self.NAV_SIZE_PRESETS,
+        )
+        self.fields["brand_size_desktop_preset"].initial = self._preset_for_value(
+            brand_value,
+            self.BRAND_SIZE_PRESETS,
+        )
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        nav_preset = self.cleaned_data.get("nav_size_desktop_preset")
+        brand_preset = self.cleaned_data.get("brand_size_desktop_preset")
+
+        if nav_preset in self.NAV_SIZE_PRESETS:
+            obj.nav_size_desktop = self.NAV_SIZE_PRESETS[nav_preset]
+        if brand_preset in self.BRAND_SIZE_PRESETS:
+            obj.brand_size_desktop = self.BRAND_SIZE_PRESETS[brand_preset]
+
+        if commit:
+            obj.save()
+            self.save_m2m()
+        return obj
+
+
 @admin.register(TopbarSettings)
 class TopbarSettingsAdmin(admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("preview", "created_at", "updated_at")
+    form = TopbarSettingsAdminForm
     fieldsets = (
         ("Preview", {"fields": ("preview",)}),
         ("Fonts", {"fields": ("brand_font", "brand_word_white_font", "brand_word_middle_font", "brand_word_red_font", "nav_font", "tagline_word_1_font", "tagline_word_2_font", "tagline_word_3_font")}),
-        ("Sizing", {"fields": ("brand_size_desktop", "nav_size", "nav_size_desktop", "padding_y_desktop")}),
+        ("Sizing (easy)", {"fields": ("brand_size_desktop_preset", "nav_size_desktop_preset")}),
+        ("Sizing (advanced)", {"fields": ("brand_size_desktop", "nav_size", "nav_size_desktop", "padding_y_desktop"), "classes": ("collapse",)}),
         ("Layout", {"fields": ("order_brand", "order_tagline", "order_nav")}),
         ("Brand styling", {"fields": ("brand_weight", "brand_letter_spacing", "brand_transform")}),
         ("Brand word styles", {"fields": ("brand_word_1_color", "brand_word_2_color", "brand_word_3_color", "brand_word_1_size", "brand_word_2_size", "brand_word_3_size", "brand_word_1_weight", "brand_word_2_weight", "brand_word_3_weight", "brand_word_1_style", "brand_word_2_style", "brand_word_3_style")}),
