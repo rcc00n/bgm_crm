@@ -54,60 +54,6 @@
       </div>
     </section>
 
-    {# ================== FILTERS ================== #}
-    <div class="filters-wrap" data-filters>
-      <div class="filters-toolbar">
-        <button type="button"
-                class="filters-toggle"
-                data-filters-toggle
-                aria-expanded="false"
-                aria-controls="catalogFilters">
-          <span>{{ store_copy.filters_toggle_label }}</span>
-          {% if filters_active %}
-            <span class="filters-toggle__badge">{{ store_copy.filters_active_badge }}</span>
-          {% endif %}
-        </button>
-        {% if filters_active %}
-          <a class="filters-toolbar__clear" href="{% url 'store' %}">{{ store_copy.filters_reset_label }}</a>
-        {% endif %}
-      </div>
-
-      <form id="catalogFilters"
-            method="get"
-            class="card filters"
-            tabindex="-1"
-            aria-labelledby="filtersHeading">
-        <div class="filters__drawer-head">
-          <h3 class="filters__drawer-title" id="filtersHeading">{{ store_copy.filters_heading }}</h3>
-          <button type="button" class="filters__close" data-filters-close>{{ store_copy.filters_close_label }}</button>
-        </div>
-        <div class="filters__grid">
-          <div class="filters__item">
-            <label>{{ store_copy.filters_category_label }}</label>
-            {{ filter_form.category }}
-          </div>
-          <div class="filters__item">
-            <label>{{ store_copy.filters_make_label }}</label>
-            {{ filter_form.make }}
-          </div>
-          <div class="filters__item">
-            <label>{{ store_copy.filters_model_label }}</label>
-            {{ filter_form.model }}
-          </div>
-          <div class="filters__item">
-            <label>{{ store_copy.filters_year_label }}</label>
-            {{ filter_form.year }}
-          </div>
-        </div>
-        <div class="filters__actions">
-          <button class="btn btn--primary" type="submit">{{ store_copy.filters_apply_label }}</button>
-          <a class="btn btn--ghost" href="{% url 'store' %}">{{ store_copy.filters_clear_label }}</a>
-        </div>
-      </form>
-
-      <div class="filters-backdrop" data-filters-backdrop></div>
-    </div>
-
     {# ================== CATEGORIES ================== #}
     <div class="section__head">
       <div>
@@ -173,6 +119,60 @@
         <h3 class="search-results__title">Search results</h3>
         <div class="grid grid--cards" data-search-results-grid></div>
       </div>
+    </div>
+
+    {# ================== FILTERS ================== #}
+    <div class="filters-wrap" data-filters>
+      <div class="filters-toolbar">
+        <button type="button"
+                class="filters-toggle"
+                data-filters-toggle
+                aria-expanded="false"
+                aria-controls="catalogFilters">
+          <span>{{ store_copy.filters_toggle_label }}</span>
+          {% if filters_active %}
+            <span class="filters-toggle__badge">{{ store_copy.filters_active_badge }}</span>
+          {% endif %}
+        </button>
+        {% if filters_active %}
+          <a class="filters-toolbar__clear" href="{% url 'store' %}">{{ store_copy.filters_reset_label }}</a>
+        {% endif %}
+      </div>
+
+      <form id="catalogFilters"
+            method="get"
+            class="card filters"
+            tabindex="-1"
+            aria-labelledby="filtersHeading">
+        <div class="filters__drawer-head">
+          <h3 class="filters__drawer-title" id="filtersHeading">{{ store_copy.filters_heading }}</h3>
+          <button type="button" class="filters__close" data-filters-close>{{ store_copy.filters_close_label }}</button>
+        </div>
+        <div class="filters__grid">
+          <div class="filters__item">
+            <label>{{ store_copy.filters_category_label }}</label>
+            {{ filter_form.category }}
+          </div>
+          <div class="filters__item">
+            <label>{{ store_copy.filters_make_label }}</label>
+            {{ filter_form.make }}
+          </div>
+          <div class="filters__item">
+            <label>{{ store_copy.filters_model_label }}</label>
+            {{ filter_form.model }}
+          </div>
+          <div class="filters__item">
+            <label>{{ store_copy.filters_year_label }}</label>
+            {{ filter_form.year }}
+          </div>
+        </div>
+        <div class="filters__actions">
+          <button class="btn btn--primary" type="submit">{{ store_copy.filters_apply_label }}</button>
+          <a class="btn btn--ghost" href="{% url 'store' %}">{{ store_copy.filters_clear_label }}</a>
+        </div>
+      </form>
+
+      <div class="filters-backdrop" data-filters-backdrop></div>
     </div>
 
     {# ================== RESULTS (visible when filters are active) ================== #}
@@ -587,8 +587,8 @@
   .img-fit{width:100%;height:100%;object-fit:cover;aspect-ratio:16/9;display:block}
 
   /* Filters */
-  .filters-wrap{position:relative;margin-bottom:1.2rem}
-  .search-block{margin-top:1.2rem}
+  .filters-wrap{position:relative;margin-bottom:1.6rem;display:grid;gap:.85rem}
+  .search-block{margin-top:1.2rem;margin-bottom:.7rem}
   .filters-toolbar{
     display:none;
     align-items:center;
@@ -621,13 +621,38 @@
     color:var(--muted);
   }
   .filters-backdrop{display:none;}
-  .filters{padding:1rem;background:var(--card-bg);border:1px solid var(--card-border);margin-bottom:1.2rem}
-  .filters__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}
-  .filters__item label{display:block;margin:0 0 .35rem .1rem;color:var(--muted);font-size:.9rem}
-  .filters__actions{display:flex;gap:.6rem;margin-top:.8rem}
+  .filters{
+    padding:1.1rem;
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    margin-bottom:0;
+  }
+  .filters__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.8rem}
+  .filters__item label{
+    display:block;
+    margin:0 0 .35rem .1rem;
+    color:var(--muted);
+    font-size:.82rem;
+    font-weight:700;
+    letter-spacing:.02em;
+  }
+  .filters__actions{
+    display:flex;
+    gap:.6rem;
+    margin-top:1rem;
+    justify-content:flex-end;
+    align-items:center;
+    flex-wrap:wrap;
+  }
   .filters select,.filters input{
     width:100%; background:var(--field-bg); color:var(--fg);
     border:1px solid var(--card-border); border-radius:.6rem; padding:.55rem .7rem;
+  }
+  .filters select:focus-visible,
+  .filters input:focus-visible{
+    outline:2px solid rgba(213,0,0,.55);
+    outline-offset:2px;
+    border-color:rgba(213,0,0,.55);
   }
   .filters select option,
   .filters select optgroup{
