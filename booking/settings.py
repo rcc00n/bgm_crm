@@ -623,6 +623,42 @@ ADMIN_SIDEBAR_SECTIONS = [
                 ],
             },
             {
+                "label": "Email Reporting",
+                "icon": "fas fa-inbox",
+                "items": [
+                    {
+                        "label": "Email overview",
+                        "url": "admin-email-overview",
+                        "icon": "fas fa-chart-line",
+                        "active_patterns": ["admin-email-overview"],
+                        "permissions": ["core.view_emailsendlog"],
+                    },
+                    {
+                        "label": "Send logs",
+                        "url": "admin-email-logs",
+                        "icon": "fas fa-clipboard-list",
+                        "active_patterns": ["admin-email-logs"],
+                        "permissions": ["core.view_emailsendlog"],
+                    },
+                    {
+                        "label": "Email history",
+                        "url": "admin-email-history",
+                        "icon": "fas fa-history",
+                        "active_patterns": ["admin-email-history"],
+                        "permissions": ["core.view_emailsendlog"],
+                    },
+                    {
+                        "label": "Campaign history",
+                        "url": "admin-email-campaign-history",
+                        "icon": "fas fa-paper-plane",
+                        "active_patterns": ["admin-email-campaign-history"],
+                        "permissions": ["core.view_emailcampaign"],
+                    },
+                    {"model": "core.EmailSendLog", "label": "Raw send logs"},
+                    {"model": "core.EmailCampaignRecipient", "label": "Campaign recipients"},
+                ],
+            },
+            {
                 "label": "Messaging",
                 "icon": "fas fa-bell",
                 "items": [
@@ -701,6 +737,7 @@ JAZZMIN_SETTINGS = {
         "core.EmailCampaign": "fas fa-paper-plane",
         "core.EmailSubscriber": "fas fa-user-plus",
         "core.EmailCampaignRecipient": "fas fa-envelope",
+        "core.EmailSendLog": "fas fa-mail-bulk",
         "core.LandingPageReview": "fas fa-star",
         "core.LegalPage": "fas fa-balance-scale",
         "core.MasterAvailability": "fas fa-business-time",

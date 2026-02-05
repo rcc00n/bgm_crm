@@ -345,6 +345,7 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'birth_date')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Admin Notifications', {'fields': ('admin_notification_sections',)}),
         ('Files', {'fields': ('files', 'files_overview')}),
     )
     readonly_fields = BaseUserAdmin.readonly_fields + ('files_overview',)

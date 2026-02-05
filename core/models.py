@@ -3026,6 +3026,11 @@ class UserProfile(models.Model):
     email_marketing_consented_at = models.DateTimeField(null=True, blank=True)
     email_product_updates = models.BooleanField(default=False)
     email_service_updates = models.BooleanField(default=False)
+    admin_notification_disabled_sections = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Admin notification section keys disabled for this user.",
+    )
     how_heard = models.CharField(max_length=32, choices=HowHeard.choices, blank=True)
     email_verified_at = models.DateTimeField(null=True, blank=True)
     email_verification_sent_at = models.DateTimeField(null=True, blank=True)

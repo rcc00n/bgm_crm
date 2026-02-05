@@ -14,6 +14,10 @@ from django.utils import timezone
 from django.utils.text import capfirst
 
 from core.models import AdminSidebarSeen
+from core.services.admin_notifications import (
+    get_disabled_notification_sections,
+    make_notification_group_key,
+)
 register = template.Library()
 
 
@@ -128,6 +132,8 @@ def _collect_model_labels(sidebar: List[Dict[str, Any]]) -> List[str]:
     labels: List[str] = []
     for section in sidebar:
         for group in section.get("groups", []):
+            if group.get("notifications_enabled") is False:
+                continue
             for item in group.get("items", []):
                 model_label = item.get("model_label")
                 if model_label:
@@ -138,6 +144,13 @@ def _collect_model_labels(sidebar: List[Dict[str, Any]]) -> List[str]:
 def _apply_notification_state(sidebar: List[Dict[str, Any]], user) -> None:
     model_labels = _collect_model_labels(sidebar)
     if not model_labels:
+        for section in sidebar:
+            section["has_unseen"] = False
+            for group in section.get("groups", []):
+                group["has_unseen"] = False
+                for item in group.get("items", []):
+                    item["has_unseen"] = False
+                    item["last_action"] = None
         return
 
     app_labels = {label.split(".", 1)[0] for label in model_labels}
@@ -181,6 +194,12 @@ def _apply_notification_state(sidebar: List[Dict[str, Any]], user) -> None:
         section_has_unseen = False
         for group in section.get("groups", []):
             group_has_unseen = False
+            if group.get("notifications_enabled") is False:
+                for item in group.get("items", []):
+                    item["has_unseen"] = False
+                    item["last_action"] = None
+                group["has_unseen"] = False
+                continue
             for item in group.get("items", []):
                 model_label = item.get("model_label")
                 has_unseen = False
@@ -213,6 +232,9 @@ def _apply_notification_state(sidebar: List[Dict[str, Any]], user) -> None:
                                 timezone.get_default_timezone(),
                             )
                         has_unseen = last_action > last_seen
+                    item["last_action"] = last_action
+                else:
+                    item["last_action"] = None
                 item["has_unseen"] = has_unseen
                 if has_unseen:
                     group_has_unseen = True
@@ -234,15 +256,21 @@ def build_admin_sidebar(context) -> List[Dict[str, Any]]:
     if not user or not user.is_authenticated:
         return []
 
+    cached = getattr(request, "_admin_sidebar_cache", None)
+    if cached is not None:
+        return cached
+
     config = getattr(settings, "ADMIN_SIDEBAR_SECTIONS", None) or settings.JAZZMIN_SETTINGS.get(
         "custom_sidebar", []
     )
+    disabled_sections = get_disabled_notification_sections(user)
     view_name = getattr(getattr(request, "resolver_match", None), "view_name", "") or ""
     path = request.path
 
     sidebar: List[Dict[str, Any]] = []
     for section in config:
         groups_payload = []
+        section_label = section.get("label", "") or ""
         for group in section.get("groups", []):
             items_payload = []
             for item in group.get("items", []):
@@ -250,6 +278,9 @@ def build_admin_sidebar(context) -> List[Dict[str, Any]]:
                 if rendered:
                     items_payload.append(rendered)
             if items_payload:
+                group_label = group.get("label", "") or ""
+                notification_key = make_notification_group_key(section_label, group_label)
+                notifications_enabled = notification_key not in disabled_sections
                 groups_payload.append(
                     {
                         "label": group.get("label"),
@@ -257,6 +288,8 @@ def build_admin_sidebar(context) -> List[Dict[str, Any]]:
                         "badge": group.get("badge"),
                         "items": items_payload,
                         "is_open": any(child["is_active"] for child in items_payload),
+                        "notification_key": notification_key,
+                        "notifications_enabled": notifications_enabled,
                     }
                 )
         if groups_payload:
@@ -269,4 +302,39 @@ def build_admin_sidebar(context) -> List[Dict[str, Any]]:
                 }
             )
     _apply_notification_state(sidebar, user)
+    request._admin_sidebar_cache = sidebar
     return sidebar
+
+
+@register.simple_tag(takes_context=True)
+def build_admin_notifications(context) -> Dict[str, Any]:
+    request = context.get("request")
+    if not request:
+        return {"unseen_count": 0, "groups": []}
+
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return {"unseen_count": 0, "groups": []}
+
+    sidebar = getattr(request, "_admin_sidebar_cache", None)
+    if sidebar is None:
+        sidebar = build_admin_sidebar(context)
+
+    groups: List[Dict[str, Any]] = []
+    unseen_count = 0
+    for section in sidebar:
+        for group in section.get("groups", []):
+            items = [item for item in group.get("items", []) if item.get("has_unseen")]
+            if not items:
+                continue
+            unseen_count += len(items)
+            groups.append(
+                {
+                    "section_label": section.get("label"),
+                    "group_label": group.get("label"),
+                    "icon": group.get("icon"),
+                    "items": items,
+                }
+            )
+
+    return {"unseen_count": unseen_count, "groups": groups}

@@ -69,6 +69,26 @@ urlpatterns = [
         admin.site.admin_view(core_views.admin_web_analytics_insights),
         name="admin-analytics-insights",
     ),
+    path(
+        "admin/email/overview/",
+        admin.site.admin_view(core_views.admin_email_overview),
+        name="admin-email-overview",
+    ),
+    path(
+        "admin/email/logs/",
+        admin.site.admin_view(core_views.admin_email_logs),
+        name="admin-email-logs",
+    ),
+    path(
+        "admin/email/history/",
+        admin.site.admin_view(core_views.admin_email_history),
+        name="admin-email-history",
+    ),
+    path(
+        "admin/email/campaigns/",
+        admin.site.admin_view(core_views.admin_email_campaign_history),
+        name="admin-email-campaign-history",
+    ),
     path("ckeditor/", include("ckeditor_uploader.urls")),
     # Admin
     path("admin/", admin.site.urls),

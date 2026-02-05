@@ -1,0 +1,188 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="col-12">
+  <div class="dashboard-shell">
+    <section class="dashboard-hero">
+      <div class="dashboard-hero-content">
+        <div>
+          <p class="panel-subtitle">Deliverability + engagement at a glance</p>
+          <h1>Email overview</h1>
+          <p>All outbound email activity, with campaign and automation health in one place.</p>
+          <div class="insights-window">
+            <a class="pill" href="{% url 'admin-email-logs' %}">Send logs</a>
+            <a class="pill" href="{% url 'admin-email-history' %}">Email history</a>
+            <a class="pill" href="{% url 'admin-email-campaign-history' %}">Campaign history</a>
+          </div>
+        </div>
+        <div class="hero-stat">
+          <span>Total emails logged</span>
+          <strong>{{ total_summary.total }}</strong>
+          <small>{{ total_summary.success_rate }}% success · {{ total_summary.failed }} failed</small>
+        </div>
+        <div class="hero-stat">
+          <span>Recipients delivered</span>
+          <strong>{{ total_summary.recipients }}</strong>
+          <small>Avg {{ total_summary.avg_recipients }} per send</small>
+        </div>
+        <div class="hero-stat">
+          <span>Last send</span>
+          {% if last_log %}
+            <strong>{{ last_log.sent_at|date:"M d · H:i" }}</strong>
+            <small>{{ last_reason|default:last_log.email_type }}</small>
+          {% else %}
+            <strong>—</strong>
+            <small>No sends yet</small>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <div class="kpi-grid">
+      {% for stat in window_stats %}
+        <article class="kpi-card">
+          <small>{{ stat.label }}</small>
+          <div class="kpi-value">{{ stat.total }}</div>
+          <div class="kpi-trend neutral">{{ stat.success_rate }}% success · {{ stat.failed }} failed</div>
+          <div class="kpi-trend neutral">{{ stat.recipients }} recipients</div>
+        </article>
+      {% endfor %}
+    </div>
+
+    <div class="dashboard-grid">
+      <section class="data-panel span-2">
+        <div class="panel-title">Top email reasons (last 30 days)</div>
+        <div class="panel-subtitle">Highest send volume with delivery health.</div>
+        {% if top_types %}
+          <div class="table-scroll">
+            <table class="analytics-table">
+              <thead>
+                <tr>
+                  <th>Reason</th>
+                  <th class="numeric">Sends</th>
+                  <th class="numeric">Success</th>
+                  <th class="numeric">Recipients</th>
+                  <th>Last sent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in top_types %}
+                  <tr>
+                    <td>
+                      <strong><a href="{% url 'admin-email-logs' %}?type={{ row.email_type|urlencode }}">{{ row.reason.label|default:row.email_type }}</a></strong>
+                      {% if row.reason.description %}
+                        <div class="panel-subtitle">{{ row.reason.description }}</div>
+                      {% endif %}
+                      {% if row.reason.category %}
+                        <span class="pill muted">{{ row.reason.category }}</span>
+                      {% endif %}
+                    </td>
+                    <td class="numeric">{{ row.total }}</td>
+                    <td class="numeric">{{ row.success_rate }}%</td>
+                    <td class="numeric">{{ row.recipients }}</td>
+                    <td>{% if row.last_sent %}{{ row.last_sent|date:"M d · H:i" }}{% else %}—{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state"><p>No email sends logged in the last 30 days.</p></div>
+        {% endif %}
+      </section>
+
+      <section class="data-panel">
+        <div class="panel-title">Recent failures</div>
+        <div class="panel-subtitle">Latest unsuccessful sends to troubleshoot.</div>
+        {% if recent_failures %}
+          <div class="table-scroll">
+            <table class="analytics-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Reason</th>
+                  <th>Error</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in recent_failures %}
+                  <tr>
+                    <td>{{ row.log.sent_at|date:"M d · H:i" }}</td>
+                    <td>
+                      <strong>{{ row.reason.label|default:row.log.email_type }}</strong>
+                      {% if row.reason.description %}
+                        <div class="panel-subtitle">{{ row.reason.description }}</div>
+                      {% endif %}
+                    </td>
+                    <td>{{ row.log.error_message|default:"—"|truncatechars:120 }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state"><p>No failures recorded recently.</p></div>
+        {% endif %}
+      </section>
+
+      <section class="data-panel">
+        <div class="panel-title">Campaign snapshot</div>
+        <div class="panel-subtitle">Broadcast send health across campaigns.</div>
+        <ul class="traffic-list">
+          <li>
+            <span>Total campaigns</span>
+            <div>
+              <strong>{{ campaign_summary.total }}</strong>
+              <small>{{ campaign_summary.sent }} sent · {{ campaign_summary.failed }} failed</small>
+            </div>
+          </li>
+          <li>
+            <span>Delivered emails</span>
+            <div>
+              <strong>{{ campaign_summary.sent_total }}</strong>
+              <small>{{ campaign_summary.success_rate }}% success</small>
+            </div>
+          </li>
+          <li>
+            <span>Recipients targeted</span>
+            <div>
+              <strong>{{ campaign_summary.recipients_total }}</strong>
+              <small>{{ campaign_summary.failed_total }} failed deliveries</small>
+            </div>
+          </li>
+          {% if last_campaign %}
+            <li>
+              <span>Last campaign</span>
+              <div>
+                <strong>{{ last_campaign.name }}</strong>
+                <small>{{ last_campaign.send_completed_at|date:"M d · H:i" }}</small>
+              </div>
+            </li>
+          {% endif %}
+        </ul>
+      </section>
+
+      <section class="data-panel">
+        <div class="panel-title">Subscriber snapshot</div>
+        <div class="panel-subtitle">Email list size and growth.</div>
+        <ul class="traffic-list">
+          <li>
+            <span>Total subscribers</span>
+            <div>
+              <strong>{{ subscriber_summary.total }}</strong>
+              <small>{{ subscriber_summary.active }} active · {{ subscriber_summary.inactive }} inactive</small>
+            </div>
+          </li>
+          <li>
+            <span>New (30 days)</span>
+            <div>
+              <strong>{{ subscriber_summary.new_30 }}</strong>
+              <small>Recent signups</small>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}
