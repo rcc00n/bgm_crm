@@ -75,150 +75,163 @@
             {% endif %}
 
             {% if product_options %}
-              <fieldset class="option-picker{% if options_two_column %} option-picker--split{% endif %}" id="product-options">
-                <legend>Options</legend>
-                {% if options_two_column %}
-                  <div class="option-columns">
-                    <div class="option-column">
-                      <div class="option-column__title">{{ product.option_column_1_label|default:"Options" }}</div>
-                      <div class="option-picker__grid">
-                        {% for opt in options_col_1 %}
-                          {% if opt.is_separator %}
-                            <div class="option-separator" role="presentation">
-                              <span class="option-separator__label">{{ opt.name }}</span>
-                            </div>
-                          {% else %}
-                            <label class="option-pill">
-                              <input
-                                type="radio"
-                                name="option_id"
-                                value="{{ opt.id }}"
-                                data-price-retail="{{ opt.unit_price|floatformat:2 }}"
-                                data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
-                                data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
-                                {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
-                                {% if not product.contact_for_estimate %}required{% endif %}
-                              >
-                              <span class="option-pill__inner">
-                                <span class="option-pill__top">
-                                  <span class="option-pill__meta">
-                                    <span class="option-pill__name">{{ opt.name }}</span>
-                                    {% if opt.sku %}
-                                      <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
-                                    {% endif %}
-                                  </span>
-                                  {% if not product.contact_for_estimate %}
-                                    <span class="option-pill__price">
-                                      {{ opt.unit_price|money }}
-                                      {% if dealer_portal.show_discount %}
-                                        <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+              <div class="options-collapse" data-options-collapse>
+                <div class="options-preview" data-options-preview>
+                  <fieldset class="option-picker{% if options_two_column %} option-picker--split{% endif %}" id="product-options">
+                    <legend>Options</legend>
+                    {% if options_two_column %}
+                      <div class="option-columns">
+                        <div class="option-column">
+                          <div class="option-column__title">{{ product.option_column_1_label|default:"Options" }}</div>
+                          <div class="option-picker__grid">
+                            {% for opt in options_col_1 %}
+                              {% if opt.is_separator %}
+                                <div class="option-separator" role="presentation">
+                                  <span class="option-separator__label">{{ opt.name }}</span>
+                                </div>
+                              {% else %}
+                                <label class="option-pill">
+                                  <input
+                                    type="radio"
+                                    name="option_id"
+                                    value="{{ opt.id }}"
+                                    data-price-retail="{{ opt.unit_price|floatformat:2 }}"
+                                    data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
+                                    data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
+                                    {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
+                                    {% if not product.contact_for_estimate %}required{% endif %}
+                                  >
+                                  <span class="option-pill__inner">
+                                    <span class="option-pill__top">
+                                      <span class="option-pill__meta">
+                                        <span class="option-pill__name">{{ opt.name }}</span>
+                                        {% if opt.sku %}
+                                          <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
+                                        {% endif %}
+                                      </span>
+                                      {% if not product.contact_for_estimate %}
+                                        <span class="option-pill__price">
+                                          {{ opt.unit_price|money }}
+                                          {% if dealer_portal.show_discount %}
+                                            <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+                                          {% endif %}
+                                        </span>
                                       {% endif %}
                                     </span>
-                                  {% endif %}
-                                </span>
-                                {% if opt.description %}
-                                  <span class="option-pill__desc">{{ opt.description }}</span>
-                                {% endif %}
-                              </span>
-                            </label>
-                          {% endif %}
-                        {% endfor %}
-                      </div>
-                    </div>
-
-                    <div class="option-column">
-                      <div class="option-column__title">{{ product.option_column_2_label|default:"More options" }}</div>
-                      <div class="option-picker__grid">
-                        {% for opt in options_col_2 %}
-                          {% if opt.is_separator %}
-                            <div class="option-separator" role="presentation">
-                              <span class="option-separator__label">{{ opt.name }}</span>
-                            </div>
-                          {% else %}
-                            <label class="option-pill">
-                              <input
-                                type="radio"
-                                name="option_id"
-                                value="{{ opt.id }}"
-                                data-price-retail="{{ opt.unit_price|floatformat:2 }}"
-                                data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
-                                data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
-                                {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
-                                {% if not product.contact_for_estimate %}required{% endif %}
-                              >
-                              <span class="option-pill__inner">
-                                <span class="option-pill__top">
-                                  <span class="option-pill__meta">
-                                    <span class="option-pill__name">{{ opt.name }}</span>
-                                    {% if opt.sku %}
-                                      <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
+                                    {% if opt.description %}
+                                      <span class="option-pill__desc">{{ opt.description }}</span>
                                     {% endif %}
                                   </span>
-                                  {% if not product.contact_for_estimate %}
-                                    <span class="option-pill__price">
-                                      {{ opt.unit_price|money }}
-                                      {% if dealer_portal.show_discount %}
-                                        <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
-                                      {% endif %}
-                                    </span>
-                                  {% endif %}
-                                </span>
-                                {% if opt.description %}
-                                  <span class="option-pill__desc">{{ opt.description }}</span>
-                                {% endif %}
-                              </span>
-                            </label>
-                          {% endif %}
-                        {% endfor %}
-                      </div>
-                    </div>
-                  </div>
-                {% else %}
-                  <div class="option-picker__grid">
-                    {% for opt in product_options %}
-                      {% if opt.is_separator %}
-                        <div class="option-separator" role="presentation">
-                          <span class="option-separator__label">{{ opt.name }}</span>
-                        </div>
-                      {% else %}
-                        <label class="option-pill">
-                          <input
-                            type="radio"
-                            name="option_id"
-                            value="{{ opt.id }}"
-                            data-price-retail="{{ opt.unit_price|floatformat:2 }}"
-                            data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
-                            data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
-                            {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
-                            {% if not product.contact_for_estimate %}required{% endif %}
-                          >
-                          <span class="option-pill__inner">
-                            <span class="option-pill__top">
-                              <span class="option-pill__meta">
-                                <span class="option-pill__name">{{ opt.name }}</span>
-                                {% if opt.sku %}
-                                  <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
-                                {% endif %}
-                              </span>
-                              {% if not product.contact_for_estimate %}
-                                <span class="option-pill__price">
-                                  {{ opt.unit_price|money }}
-                                  {% if dealer_portal.show_discount %}
-                                    <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
-                                  {% endif %}
-                                </span>
+                                </label>
                               {% endif %}
-                            </span>
-                            {% if opt.description %}
-                              <span class="option-pill__desc">{{ opt.description }}</span>
-                            {% endif %}
-                          </span>
-                        </label>
-                      {% endif %}
-                    {% endfor %}
-                  </div>
-                {% endif %}
-              </fieldset>
+                            {% endfor %}
+                          </div>
+                        </div>
+
+                        <div class="option-column">
+                          <div class="option-column__title">{{ product.option_column_2_label|default:"More options" }}</div>
+                          <div class="option-picker__grid">
+                            {% for opt in options_col_2 %}
+                              {% if opt.is_separator %}
+                                <div class="option-separator" role="presentation">
+                                  <span class="option-separator__label">{{ opt.name }}</span>
+                                </div>
+                              {% else %}
+                                <label class="option-pill">
+                                  <input
+                                    type="radio"
+                                    name="option_id"
+                                    value="{{ opt.id }}"
+                                    data-price-retail="{{ opt.unit_price|floatformat:2 }}"
+                                    data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
+                                    data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
+                                    {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
+                                    {% if not product.contact_for_estimate %}required{% endif %}
+                                  >
+                                  <span class="option-pill__inner">
+                                    <span class="option-pill__top">
+                                      <span class="option-pill__meta">
+                                        <span class="option-pill__name">{{ opt.name }}</span>
+                                        {% if opt.sku %}
+                                          <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
+                                        {% endif %}
+                                      </span>
+                                      {% if not product.contact_for_estimate %}
+                                        <span class="option-pill__price">
+                                          {{ opt.unit_price|money }}
+                                          {% if dealer_portal.show_discount %}
+                                            <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+                                          {% endif %}
+                                        </span>
+                                      {% endif %}
+                                    </span>
+                                    {% if opt.description %}
+                                      <span class="option-pill__desc">{{ opt.description }}</span>
+                                    {% endif %}
+                                  </span>
+                                </label>
+                              {% endif %}
+                            {% endfor %}
+                          </div>
+                        </div>
+                      </div>
+                    {% else %}
+                      <div class="option-picker__grid">
+                        {% for opt in product_options %}
+                          {% if opt.is_separator %}
+                            <div class="option-separator" role="presentation">
+                              <span class="option-separator__label">{{ opt.name }}</span>
+                            </div>
+                          {% else %}
+                            <label class="option-pill">
+                              <input
+                                type="radio"
+                                name="option_id"
+                                value="{{ opt.id }}"
+                                data-price-retail="{{ opt.unit_price|floatformat:2 }}"
+                                data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
+                                data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
+                                {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
+                                {% if not product.contact_for_estimate %}required{% endif %}
+                              >
+                              <span class="option-pill__inner">
+                                <span class="option-pill__top">
+                                  <span class="option-pill__meta">
+                                    <span class="option-pill__name">{{ opt.name }}</span>
+                                    {% if opt.sku %}
+                                      <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
+                                    {% endif %}
+                                  </span>
+                                  {% if not product.contact_for_estimate %}
+                                    <span class="option-pill__price">
+                                      {{ opt.unit_price|money }}
+                                      {% if dealer_portal.show_discount %}
+                                        <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+                                      {% endif %}
+                                    </span>
+                                  {% endif %}
+                                </span>
+                                {% if opt.description %}
+                                  <span class="option-pill__desc">{{ opt.description }}</span>
+                                {% endif %}
+                              </span>
+                            </label>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </fieldset>
+                </div>
+                <button
+                  class="btn btn--ghost options-expand"
+                  type="button"
+                  data-options-toggle
+                  data-label-expand="View all options"
+                  data-label-collapse="Show fewer"
+                >
+                  View all options
+                </button>
+              </div>
             {% endif %}
 
             {% if not product.contact_for_estimate %}
@@ -513,6 +526,59 @@
         });
       })();
     </script>
+    <script>
+      (function () {
+        var blocks = document.querySelectorAll('[data-options-collapse]');
+        if (!blocks.length) return;
+
+        blocks.forEach(function (root) {
+          var preview = root.querySelector('[data-options-preview]');
+          var toggle = root.querySelector('[data-options-toggle]');
+          var card = root.closest('.product-detail__options-card');
+          if (!preview || !toggle || !card) return;
+
+          var labelExpand = toggle.dataset.labelExpand || 'View all options';
+          var labelCollapse = toggle.dataset.labelCollapse || 'Show fewer';
+
+          var setExpanded = function (expanded) {
+            root.classList.toggle('options-collapse--expanded', expanded);
+            card.classList.toggle('product-detail__options-card--expanded', expanded);
+            toggle.textContent = expanded ? labelCollapse : labelExpand;
+          };
+
+          var checkOverflow = function () {
+            if (root.classList.contains('options-collapse--expanded')) return;
+            var hasOverflow = preview.scrollHeight > preview.clientHeight + 2;
+            root.classList.toggle('options-collapse--active', hasOverflow);
+            toggle.hidden = !hasOverflow;
+            if (!hasOverflow) {
+              setExpanded(false);
+            } else {
+              toggle.textContent = labelExpand;
+            }
+          };
+
+          toggle.addEventListener('click', function () {
+            var expanded = root.classList.contains('options-collapse--expanded');
+            setExpanded(!expanded);
+            if (!expanded) {
+              root.classList.add('options-collapse--active');
+              toggle.hidden = false;
+            } else {
+              checkOverflow();
+            }
+          });
+
+          setExpanded(false);
+          checkOverflow();
+          window.addEventListener('resize', function () {
+            if (root.classList.contains('options-collapse--expanded')) return;
+            window.requestAnimationFrame(checkOverflow);
+          });
+          window.addEventListener('load', checkOverflow);
+        });
+      })();
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
@@ -533,15 +599,62 @@
     display:flex;
     flex-direction:column;
   }
+  .product-detail__options-card--expanded{
+    height:auto;
+    min-height:var(--product-main-height);
+  }
   .product-detail__options-card .product-form{
     flex:1;
     min-height:0;
   }
-  .product-detail__options-card .option-picker{
+  .product-detail__options-card--expanded .product-form{
+    min-height:auto;
+  }
+  .options-collapse{
+    display:flex;
+    flex-direction:column;
+    gap:.6rem;
     flex:1;
     min-height:0;
-    overflow:auto;
-    padding-right:.2rem;
+  }
+  .options-preview{
+    position:relative;
+    flex:1;
+    min-height:0;
+    overflow:hidden;
+  }
+  .options-collapse--active .options-preview::after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
+    height:84px;
+    background:linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.35) 35%, rgba(0,0,0,.75));
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    pointer-events:none;
+  }
+  .options-expand{
+    display:none;
+    align-self:center;
+  }
+  .options-collapse--active .options-expand{
+    display:inline-flex;
+  }
+  .options-collapse--expanded .options-preview{
+    overflow:visible;
+  }
+  .options-collapse--expanded .options-preview::after{
+    display:none;
+  }
+  .product-detail__options-card--expanded .options-collapse{
+    flex:initial;
+    min-height:auto;
+  }
+  .product-detail__options-card--expanded .options-preview{
+    flex:initial;
+    min-height:auto;
   }
   .product-main__img{
     width:100%;
@@ -686,7 +799,10 @@
     .product-detail__grid > div{width:100%;}
     .product-detail__options-card{height:auto;}
     .product-detail__options-card .product-form{flex:initial;min-height:auto;}
-    .product-detail__options-card .option-picker{overflow:visible;padding-right:0;}
+    .options-collapse{flex:initial;min-height:auto;}
+    .options-preview{overflow:visible;}
+    .options-preview::after{display:none;}
+    .options-expand{display:none;}
     .qty-row{flex-direction:column;align-items:stretch;}
     .qty-row .field{width:100% !important;}
     .btn-pair{flex-direction:column;align-items:stretch;}
