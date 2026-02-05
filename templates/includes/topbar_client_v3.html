@@ -1,0 +1,52 @@
+{% load topbar_extras %}
+{% firstof header_copy home_copy services_copy store_copy merch_copy financing_copy about_copy dealer_copy as topbar_copy %}
+{% with brand_words=topbar_copy.brand_word_white|default:"BAD GUY"|split_words %}
+{% with tagline_words=topbar_copy.brand_tagline|default:"CUSTOM BUILDS • INSTALLS • UPGRADES"|split_bullets %}
+<header class="bgm-topbar" role="banner">
+  <div class="bgm-topbar__inner">
+    <div class="bgm-topbar__slot bgm-topbar__slot--brand">
+      <a class="bgm-topbar__brand" href="{% url 'home' %}">
+        <span class="bgm-topbar__brand-word bgm-topbar__brand-word--1">{{ brand_words.0|default:"BAD" }}</span>
+        {% if brand_words.1 %}
+          <span class="bgm-topbar__brand-word bgm-topbar__brand-word--2">{{ brand_words.1 }}</span>
+        {% endif %}
+        <span class="bgm-topbar__brand-word bgm-topbar__brand-word--3">{{ topbar_copy.brand_word_red|default:"MOTORS" }}</span>
+      </a>
+      {% if topbar_badge_label %}
+        <span class="bgm-topbar__badge">{{ topbar_badge_label }}</span>
+      {% endif %}
+    </div>
+
+    <div class="bgm-topbar__slot bgm-topbar__slot--tagline">
+      <span class="bgm-topbar__tagline">
+        <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--1">{{ tagline_words.0|default:"CUSTOM BUILDS" }}</span>
+        {% if tagline_words.1 %}
+          <span class="bgm-topbar__tagline-sep">•</span>
+          <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--2">{{ tagline_words.1 }}</span>
+        {% endif %}
+        {% if tagline_words.2 %}
+          <span class="bgm-topbar__tagline-sep">•</span>
+          <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--3">{{ tagline_words.2 }}</span>
+        {% endif %}
+      </span>
+    </div>
+
+    <button class="bgm-topbar__toggle" type="button" aria-expanded="false" aria-controls="bgmSiteNav">
+      <span class="bgm-topbar__toggle-box" aria-hidden="true">
+        <span class="bgm-topbar__toggle-lines"></span>
+      </span>
+      <span class="visually-hidden">{{ topbar_copy.nav_toggle_label|default:"Toggle navigation" }}</span>
+    </button>
+
+    <div id="bgmSiteNav" class="bgm-topbar__nav bgm-topbar__slot bgm-topbar__slot--nav" role="navigation" aria-label="Main navigation">
+      <ul class="bgm-topbar__nav-list">
+        {% with nav_template=topbar_nav_template|default:"includes/topbar_nav_default.html" %}
+          {% include nav_template %}
+        {% endwith %}
+      </ul>
+    </div>
+  </div>
+</header>
+<div class="bgm-topbar__spacer" aria-hidden="true"></div>
+{% endwith %}
+{% endwith %}

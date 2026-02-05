@@ -94,7 +94,16 @@ def _build_item(
         item["model_name"] = meta["model_lower"]
 
     if perms and not user.has_perms(perms):
-        return None
+        if model_label:
+            alt_perms = [
+                f"{meta['app']}.change_{meta['model_lower']}",
+                f"{meta['app']}.add_{meta['model_lower']}",
+                f"{meta['app']}.delete_{meta['model_lower']}",
+            ]
+            if not any(user.has_perm(perm) for perm in alt_perms):
+                return None
+        else:
+            return None
 
     url = href or "#"
     if url_name:
