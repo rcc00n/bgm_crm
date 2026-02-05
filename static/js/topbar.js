@@ -1,6 +1,10 @@
 /* static/js/topbar.js
    Mobile overlay nav: accessible, focus-trapped, robust, desktop-safe. */
 (() => {
+  if (document.querySelector('.contact-fab')) {
+    document.body.classList.add('has-contact-fab');
+  }
+
   const header = document.querySelector('.bgm-topbar');
   const toggle = document.querySelector('.bgm-topbar__toggle');
   const nav = document.getElementById('bgmSiteNav');

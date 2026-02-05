@@ -45,6 +45,7 @@ function onDateChange(value) {
         .then(data => {
             document.getElementById("calendar-container").innerHTML = data.html;
             attachTooltipHandlers();
+            syncCalendarScrollHeight();
         });
 }
 
@@ -94,12 +95,26 @@ filterForm.addEventListener("submit", function (e) {
         .then(data => {
             document.getElementById("calendar-container").innerHTML = data.html;
             attachTooltipHandlers();
+            syncCalendarScrollHeight();
             closeSidebar();
         })
         .catch(err => {
             console.error("Error loading appointments:", err);
         });
 });
+function syncCalendarScrollHeight() {
+    const scrollable = document.querySelector(".scrollable");
+    if (!scrollable) {
+        return;
+    }
+    const rect = scrollable.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const bottomPadding = 12;
+    const available = viewportHeight - rect.top - bottomPadding;
+    const height = Math.max(240, Math.floor(available));
+    scrollable.style.height = `${height}px`;
+    scrollable.style.maxHeight = `${height}px`;
+}
 let popup = document.getElementById("addPopup");
 let popupTime = document.getElementById("popupTime");
 
@@ -183,6 +198,9 @@ function attachTooltipHandlers() {
 }
 
 attachTooltipHandlers();
+syncCalendarScrollHeight();
+
+window.addEventListener("resize", syncCalendarScrollHeight);
 
 function showTooltip(box) {
     const rect = box.getBoundingClientRect();
