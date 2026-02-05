@@ -292,7 +292,8 @@
 
 .bgm-topbar__nav a,
 .bgm-topbar__nav .btn,
-.bgm-topbar__nav .btn--ghost{
+.bgm-topbar__nav .btn--ghost,
+.bgm-topbar__nav .bgm-topbar__nav-trigger{
   display: inline-flex !important;
   align-items: center !important;
   gap: .4rem !important;
@@ -309,12 +310,15 @@
   border: 0 !important;
   text-decoration: none !important;
   transition: color .18s ease, background .18s ease, transform .18s ease;
+  cursor: pointer;
 }
 
 .bgm-topbar__nav a:hover,
 .bgm-topbar__nav a[aria-current="page"],
 .bgm-topbar__nav .btn:hover,
-.bgm-topbar__nav .btn--ghost:hover{
+.bgm-topbar__nav .btn--ghost:hover,
+.bgm-topbar__nav .bgm-topbar__nav-trigger:hover,
+.bgm-topbar__nav .bgm-topbar__nav-trigger:focus-visible{
   color: #fff !important;
   background: rgba(255,255,255,.08) !important;
 }
@@ -434,7 +438,8 @@
 
   .bgm-topbar__nav a,
   .bgm-topbar__nav .btn,
-  .bgm-topbar__nav .btn--ghost{
+  .bgm-topbar__nav .btn--ghost,
+  .bgm-topbar__nav .bgm-topbar__nav-trigger{
     width: 100% !important;
     min-height: 56px !important;
     padding: 1.05rem 1.15rem !important;
@@ -449,7 +454,9 @@
 
   .bgm-topbar__nav a:hover,
   .bgm-topbar__nav a[aria-current="page"],
-  .bgm-topbar__nav .btn:hover{
+  .bgm-topbar__nav .btn:hover,
+  .bgm-topbar__nav .bgm-topbar__nav-trigger:hover,
+  .bgm-topbar__nav .bgm-topbar__nav-trigger:focus-visible{
     background: rgba(255,255,255,.10) !important;
     border-color: rgba(255,255,255,.22) !important;
     color: #fff !important;
