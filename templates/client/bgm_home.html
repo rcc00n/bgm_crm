@@ -479,13 +479,19 @@
 
     /* Headings and UI (keep Ford where appropriate, not in top bar) */
     h1,h2,h3,h4,h5,h6,.hero__title{font-family:var(--font-head)!important;letter-spacing:.01em;font-style:normal}
-    .section__title{font-family:var(--font-body)!important;font-weight:900!important;font-size:clamp(1.9rem,2.8vw,2.25rem)!important;letter-spacing:.005em!important;line-height:1.2!important}
+    .section__title{font-family:var(--font-head)!important;font-weight:900!important;font-size:clamp(1.9rem,2.8vw,2.25rem)!important;letter-spacing:.005em!important;line-height:1.2!important}
     .section__title--compact{font-size:clamp(1.5rem,2.1vw,1.85rem)!important}
     .section__title,.hero__title{letter-spacing:.01em}
     .section__desc{font-size:clamp(1rem,1.4vw,1.06rem)!important;color:rgba(255,255,255,.86)!important}
     .kicker{
       color:rgba(255,255,255,.78)!important;
-      font-family:var(--font-ui)!important;
+      font-family:var(--font-head)!important;
+    }
+    .gallery-card__title,
+    .tile b,
+    .stat b,
+    .mobi-action b{
+      font-family:var(--font-head)!important;
     }
     .footer__nav a{
       font-family:var(--font-ui)!important;
@@ -497,7 +503,7 @@
     .footer__nav a:hover{color:#fff!important}
 
     /* Card text readability */
-    .card h3{font-family:var(--font-body)!important;font-weight:900!important;font-size:1.08rem!important;letter-spacing:.01em!important;line-height:1.25!important;color:#fff!important}
+    .card h3{font-family:var(--font-head)!important;font-weight:900!important;font-size:1.08rem!important;letter-spacing:.01em!important;line-height:1.25!important;color:#fff!important}
     .card .muted,.card .dur{font-family:var(--font-body)!important;font-weight:400!important;font-size:.98rem!important;line-height:1.4!important;color:rgba(255,255,255,.86)!important}
     .price strong{font-family:var(--font-body)!important;font-weight:800!important}
     .card__badge,.badge{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important}
