@@ -393,10 +393,10 @@ CKEDITOR_CONFIGS = {
     }
 }
 
-# STORAGES = {
-#     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
-#     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-# }
+STORAGES = {
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+}
 
 # S3 для медиа включается переменной USE_S3_MEDIA=1
 if os.getenv("USE_S3_MEDIA") == "1":
