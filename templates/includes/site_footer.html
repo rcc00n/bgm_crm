@@ -39,14 +39,38 @@
     justify-content:center;
     border-radius:999px;
     border:1px solid rgba(255,255,255,.18);
-    color:inherit;
+    background:rgba(255,255,255,.06);
+    color:#cfd4dc;
     text-decoration:none;
-    transition:color .2s ease, border-color .2s ease, transform .2s ease;
+    transition:color .2s ease, border-color .2s ease, background-color .2s ease, transform .2s ease, box-shadow .2s ease;
   }
-  .site-footer__social-link:hover{
+  .site-footer__social-link:hover,
+  .site-footer__social-link:focus-visible{
     color:#fff;
     border-color:rgba(255,255,255,.55);
+    background:rgba(255,255,255,.12);
+    box-shadow:0 6px 16px rgba(0,0,0,.25);
     transform:translateY(-1px);
+  }
+  .site-footer__social-link[data-brand="instagram"]{
+    border-color:rgba(225,48,108,.45);
+    background:rgba(225,48,108,.12);
+    color:#f2b3c8;
+  }
+  .site-footer__social-link[data-brand="facebook"]{
+    border-color:rgba(24,119,242,.45);
+    background:rgba(24,119,242,.12);
+    color:#c1d8ff;
+  }
+  .site-footer__social-link[data-brand="youtube"]{
+    border-color:rgba(255,0,0,.45);
+    background:rgba(255,0,0,.12);
+    color:#ffb3b3;
+  }
+  .site-footer__social-link[data-brand="tiktok"]{
+    border-color:rgba(37,244,238,.35);
+    background:rgba(37,244,238,.1);
+    color:#bff6f3;
   }
   .site-footer__icon{
     width:18px;
@@ -89,7 +113,7 @@
       <div>
         <div class="site-footer__label">Follow us</div>
         <div class="site-footer__nav" aria-label="Social media">
-          <a class="site-footer__social-link" href="https://www.instagram.com/badguymotors?igsh=N2QwZnVybTJrZW8=" target="_blank" rel="noopener">
+          <a class="site-footer__social-link" data-brand="instagram" href="https://www.instagram.com/badguymotors?igsh=N2QwZnVybTJrZW8=" target="_blank" rel="noopener">
             <svg class="site-footer__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="2"/>
               <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -97,20 +121,20 @@
             </svg>
             <span class="sr-only">Instagram</span>
           </a>
-          <a class="site-footer__social-link" href="https://www.facebook.com/share/1Gsej2u5X4/?mibextid=wwXIfr" target="_blank" rel="noopener">
+          <a class="site-footer__social-link" data-brand="facebook" href="https://www.facebook.com/share/1Gsej2u5X4/?mibextid=wwXIfr" target="_blank" rel="noopener">
             <svg class="site-footer__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M14 8h3V5h-3c-2.2 0-4 1.8-4 4v3H7v3h3v7h3v-7h3l1-3h-4V9c0-.6.4-1 1-1z" fill="currentColor"/>
             </svg>
             <span class="sr-only">Facebook</span>
           </a>
-          <a class="site-footer__social-link" href="https://youtube.com/@badguymotors?si=PObKEe6vNMEr3Z2b" target="_blank" rel="noopener">
+          <a class="site-footer__social-link" data-brand="youtube" href="https://youtube.com/@badguymotors?si=PObKEe6vNMEr3Z2b" target="_blank" rel="noopener">
             <svg class="site-footer__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <rect x="3" y="6.5" width="18" height="11" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2"/>
               <polygon points="11,9.5 16,12 11,14.5" fill="currentColor"/>
             </svg>
             <span class="sr-only">YouTube</span>
           </a>
-          <a class="site-footer__social-link" href="https://www.tiktok.com/@savoies0?_r=1&_t=ZS-93JwAHrfF5k" target="_blank" rel="noopener">
+          <a class="site-footer__social-link" data-brand="tiktok" href="https://www.tiktok.com/@savoies0?_r=1&_t=ZS-93JwAHrfF5k" target="_blank" rel="noopener">
             <svg class="site-footer__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <circle cx="9" cy="17" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/>
               <rect x="12" y="4" width="2.2" height="11" fill="currentColor"/>
