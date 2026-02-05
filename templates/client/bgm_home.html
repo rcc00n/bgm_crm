@@ -779,7 +779,7 @@
           <a class="mobi-action" href="{% url 'store' %}">
             <b>{{ home_copy.hero_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_2_subtitle }}</span>
           </a>
-          <a class="mobi-action" href="#contact">
+          <a class="mobi-action" href="#contact" data-contact-open aria-haspopup="dialog" aria-controls="contactModal">
             <b>{{ home_copy.hero_mobile_action_3_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_3_subtitle }}</span>
           </a>
           <a class="mobi-action" href="{% url 'our-story' %}">
@@ -1501,11 +1501,13 @@
   (function(){
     const fab   = document.getElementById('contactFab');
     const modal = document.getElementById('contactModal');
+    if (!fab || !modal) return;
     const closeBtn = modal.querySelector('.contact-close');
     const copyLabel = "{{ home_copy.contact_copy_label|escapejs }}";
     const copySuccess = "{{ home_copy.contact_copy_success_label|escapejs }}";
     const copyFailed = "{{ home_copy.contact_copy_failed_label|escapejs }}";
     let lastFocus = null;
+    const openers = Array.from(document.querySelectorAll('[data-contact-open]'));
 
     function openModal(){
       lastFocus = document.activeElement;
@@ -1533,6 +1535,12 @@
     }
 
     fab.addEventListener('click', openModal);
+    openers.forEach((opener)=>{
+      opener.addEventListener('click', (e)=>{
+        if (opener.tagName === 'A') e.preventDefault();
+        openModal();
+      });
+    });
     closeBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
 
