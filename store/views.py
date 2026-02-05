@@ -599,6 +599,9 @@ def product_detail(request, slug: str):
         messages.info(request, "This product is no longer available. Explore other parts below.")
         return redirect("store:store")
     options = product.get_active_options()
+    options_col_1 = [opt for opt in options if getattr(opt, "option_column", 1) == 1]
+    options_col_2 = [opt for opt in options if getattr(opt, "option_column", 1) == 2]
+    options_two_column = bool(options_col_1) and bool(options_col_2)
     default_option = next((opt for opt in options if not getattr(opt, "is_separator", False)), None)
     related = (
         Product.objects.filter(is_active=True, category=product.category)
@@ -639,6 +642,9 @@ def product_detail(request, slug: str):
             "product": product,
             "related": related,
             "product_options": options,
+            "options_col_1": options_col_1,
+            "options_col_2": options_col_2,
+            "options_two_column": options_two_column,
             "default_option_id": default_option.id if default_option else None,
             "go_along": go_along,
             "quote_form": quote_form,

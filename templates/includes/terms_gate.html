@@ -75,7 +75,7 @@
   }
 </style>
 
-<div id="termsGate" class="terms-gate" role="dialog" aria-modal="true" aria-labelledby="termsGateTitle" aria-describedby="termsGateDesc" hidden>
+<div id="termsGate" class="terms-gate" role="dialog" aria-modal="true" aria-labelledby="termsGateTitle" aria-describedby="termsGateDesc" {% if terms_gate_autostart %}data-terms-autostart="1"{% endif %} hidden>
   <div class="terms-gate__card" role="document">
     <p class="terms-gate__eyebrow">Before you continue</p>
     <h2 id="termsGateTitle" class="terms-gate__title">Accept Terms &amp; Conditions</h2>
@@ -104,6 +104,7 @@
   const storageKey = 'bgm:terms-accept:v1';
   const cookieKey = 'bgm_terms_accept_v1';
   const cookiePattern = new RegExp('(?:^|; )' + cookieKey.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&') + '=([^;]+)');
+  const shouldAutostart = gate.hasAttribute('data-terms-autostart');
 
   const hasAccepted = () => {
     try { if (window.localStorage.getItem(storageKey) === 'accepted') return true; } catch (_) {}
@@ -129,6 +130,16 @@
     gate.classList.remove('terms-gate--visible');
     document.body.classList.remove('terms-gate-open');
     setTimeout(() => gate.setAttribute('hidden', ''), 220);
+  };
+
+  const safeOpen = () => {
+    if (hasAccepted()) return;
+    openGate();
+  };
+
+  window.__bgmTermsGate = {
+    open: safeOpen,
+    hasAccepted
   };
 
   if (hasAccepted()) return;
@@ -159,10 +170,13 @@
     acceptBtn.addEventListener('click', () => {
       if (checkbox && !checkbox.checked) return;
       persist();
+      document.dispatchEvent(new CustomEvent('bgm:terms-accepted'));
       closeGate();
     });
   }
 
-  openGate();
+  if (shouldAutostart) {
+    openGate();
+  }
 })();
 </script>

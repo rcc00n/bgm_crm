@@ -2642,6 +2642,16 @@ class ProjectJournalEntry(models.Model):
     )
     body = models.TextField()
     cover_image = models.ImageField(upload_to="project-journal/", blank=True, null=True)
+    before_gallery = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of before photos as JSON (e.g. [{\"url\":\"...\",\"alt\":\"...\"}] or [\"url1\",\"url2\"]).",
+    )
+    after_gallery = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of after photos as JSON (e.g. [{\"url\":\"...\",\"alt\":\"...\"}] or [\"url1\",\"url2\"]).",
+    )
     tags = models.CharField(
         max_length=160,
         blank=True,
@@ -2731,6 +2741,34 @@ class ProjectJournalEntry(models.Model):
             self.published_at = None
 
         super().save(*args, **kwargs)
+
+class ProjectJournalPhoto(models.Model):
+    class Kind(models.TextChoices):
+        BEFORE = "before", "Before"
+        AFTER = "after", "After"
+
+    entry = models.ForeignKey(
+        ProjectJournalEntry,
+        on_delete=models.CASCADE,
+        related_name="photos",
+    )
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    image = models.ImageField(upload_to="project-journal/photos/")
+    alt_text = models.CharField(max_length=140, blank=True)
+    sort_order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Lower numbers show first.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Project journal photo"
+        verbose_name_plural = "Project journal photos"
+        ordering = ("sort_order", "created_at")
+
+    def __str__(self) -> str:
+        title = self.entry.title if self.entry_id else "Project journal photo"
+        return f"{title} ({self.get_kind_display()})"
 
 class HeroImage(models.Model):
     """

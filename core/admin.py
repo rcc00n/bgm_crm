@@ -2234,6 +2234,18 @@ class PageCopyAdminMixin(admin.ModelAdmin):
                 obj = None
         extra_context["pagecopy_preview_url"] = preview_url
         extra_context["pagecopy_draft_data"] = self._get_draft_data(obj)
+        extra_context["pagecopy_meta"] = {
+            "model": f"{opts.app_label}.{opts.model_name}",
+            "object_id": getattr(obj, "pk", None),
+        }
+        extra_context["pagecopy_text_fields"] = [
+            {
+                "name": field.name,
+                "type": "rich" if isinstance(field, models.TextField) else "plain",
+            }
+            for field in self.model._meta.get_fields()
+            if isinstance(field, (models.CharField, models.TextField)) and getattr(field, "editable", True)
+        ]
         try:
             extra_context["page_section_layout_save_url"] = reverse("admin-pagecopy-save-section-layout")
             extra_context["page_section_order_save_url"] = reverse("admin-pagecopy-save-section-order")
@@ -2258,6 +2270,10 @@ class PageCopyAdminMixin(admin.ModelAdmin):
                 extra_context["page_font_save_url"] = None
                 extra_context["page_font_upload_url"] = None
                 extra_context["page_font_style_save_url"] = None
+        try:
+            extra_context["pagecopy_save_draft_url"] = reverse("admin-pagecopy-save-draft")
+        except Exception:
+            extra_context["pagecopy_save_draft_url"] = None
         return super().changeform_view(
             request,
             object_id=object_id,
@@ -2266,9 +2282,25 @@ class PageCopyAdminMixin(admin.ModelAdmin):
         )
 
     def save_model(self, request, obj, form, change):
+        content_type = None
+        draft = None
+        if change and getattr(obj, "pk", None):
+            content_type = ContentType.objects.get_for_model(obj.__class__)
+            draft = PageCopyDraft.objects.filter(content_type=content_type, object_id=obj.pk).first()
+            if draft and draft.data:
+                changed = set(getattr(form, "changed_data", []) or [])
+                for field_name, value in (draft.data or {}).items():
+                    if field_name in changed:
+                        continue
+                    try:
+                        field_obj = obj._meta.get_field(field_name)
+                    except Exception:
+                        continue
+                    if isinstance(field_obj, (models.CharField, models.TextField)):
+                        setattr(obj, field_name, value)
         super().save_model(request, obj, form, change)
-        content_type = ContentType.objects.get_for_model(obj.__class__)
-        PageCopyDraft.objects.filter(content_type=content_type, object_id=obj.pk).delete()
+        if content_type and getattr(obj, "pk", None):
+            PageCopyDraft.objects.filter(content_type=content_type, object_id=obj.pk).delete()
 
 
 HOME_HERO_CAROUSEL_SLOTS = (
@@ -3166,10 +3198,71 @@ class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
         return "Client portal"
 
 
+class MerchPageCopyAdminForm(forms.ModelForm):
+    hero_image = forms.ImageField(
+        required=False,
+        label="Hero image",
+        help_text="Upload a 16:9 hero image (webp/jpg recommended).",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_image_alt_text = forms.CharField(
+        required=False,
+        label="Hero image alt text",
+        max_length=160,
+    )
+    hero_image_caption = forms.CharField(
+        required=False,
+        label="Hero image caption",
+        max_length=160,
+    )
+
+    class Meta:
+        model = MerchPageCopy
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            asset = HeroImage.objects.filter(location=HeroImage.Location.MERCH).first()
+        except Exception:
+            asset = None
+        if asset and getattr(asset, "image", None):
+            self.fields["hero_image"].initial = asset.image
+        if asset:
+            self.fields["hero_image_alt_text"].initial = asset.alt_text
+            self.fields["hero_image_caption"].initial = asset.caption
+
+    def save_hero_asset(self):
+        image_value = self.cleaned_data.get("hero_image")
+        alt_text = (self.cleaned_data.get("hero_image_alt_text") or "").strip()
+        caption = (self.cleaned_data.get("hero_image_caption") or "").strip()
+
+        has_new_image = image_value not in (None, False)
+        has_any_value = has_new_image or alt_text or caption
+        asset = HeroImage.objects.filter(location=HeroImage.Location.MERCH).first()
+        if not asset and not has_any_value:
+            return
+        if not asset:
+            asset = HeroImage(location=HeroImage.Location.MERCH)
+
+        if image_value is False:
+            asset.image = None
+        elif image_value:
+            asset.image = image_value
+
+        asset.alt_text = alt_text
+        asset.caption = caption
+        if not asset.title:
+            asset.title = "Merch hero"
+        asset.is_active = bool(asset.image)
+        asset.save()
+
+
 @admin.register(MerchPageCopy)
 class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
+    form = MerchPageCopyAdminForm
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
@@ -3202,6 +3295,14 @@ class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "hero_secondary_cta_label",
                 "hero_disclaimer_fallback",
             )
+        }),
+        ("Hero image", {
+            "fields": (
+                "hero_image",
+                "hero_image_alt_text",
+                "hero_image_caption",
+            ),
+            "description": "Controls the merch hero image displayed above the intro copy.",
         }),
         ("First drop section", {
             "fields": (
@@ -3295,6 +3396,11 @@ class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     @admin.display(description="Page")
     def label(self, obj):
         return "Merch page"
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if hasattr(form, "save_hero_asset"):
+            form.save_hero_asset()
 
 
 @admin.register(FinancingPageCopy)
@@ -4315,6 +4421,13 @@ class EmailSendLogAdmin(admin.ModelAdmin):
         "sent_at",
     )
 
+class ProjectJournalPhotoInline(admin.TabularInline):
+    model = ProjectJournalPhoto
+    extra = 1
+    fields = ("kind", "image", "alt_text", "sort_order")
+    ordering = ("sort_order", "created_at")
+
+
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
@@ -4335,6 +4448,7 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
     ordering = ("-published_at", "-updated_at")
     readonly_fields = ("created_at", "updated_at", "published_at", "preview_link")
     prepopulated_fields = {"slug": ("title",)}
+    inlines = (ProjectJournalPhotoInline,)
     fieldsets = (
         ("Story", {
             "fields": (
@@ -4345,6 +4459,13 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
                 "cover_image",
                 "result_highlight",
             )
+        }),
+        ("Photo comparison (manual URLs)", {
+            "fields": (
+                "before_gallery",
+                "after_gallery",
+            ),
+            "classes": ("collapse",),
         }),
         ("Build breakdown", {
             "fields": (

@@ -30,6 +30,11 @@ urlpatterns = [
         name="admin-pagecopy-save-field",
     ),
     path(
+        "admin/pagecopy/save-draft/",
+        admin.site.admin_view(core_views.admin_pagecopy_save_draft),
+        name="admin-pagecopy-save-draft",
+    ),
+    path(
         "admin/pagecopy/save-fonts/",
         admin.site.admin_view(core_views.admin_pagecopy_save_fonts),
         name="admin-pagecopy-save-fonts",

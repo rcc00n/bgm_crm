@@ -72,7 +72,16 @@ class CleanupStatusFilter(admin.SimpleListFilter):
 class ProductOptionInline(admin.TabularInline):
     model = ProductOption
     extra = 1
-    fields = ("name", "sku", "description", "is_separator", "price", "is_active", "sort_order")
+    fields = (
+        "name",
+        "sku",
+        "description",
+        "is_separator",
+        "option_column",
+        "price",
+        "is_active",
+        "sort_order",
+    )
     ordering = ("sort_order", "id")
 
 
@@ -172,6 +181,7 @@ class ProductAdmin(admin.ModelAdmin):
         ("price", "contact_for_estimate"),
         "is_in_house",
         "estimate_from_price",
+        ("option_column_1_label", "option_column_2_label"),
         "currency", "inventory", "is_active",
         "main_image",
         "short_description", "description",
@@ -1190,8 +1200,8 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductOption)
 class ProductOptionAdmin(admin.ModelAdmin):
-    list_display = ("name", "sku", "product", "price", "is_separator", "is_active", "sort_order")
-    list_filter = ("is_active", "is_separator")
+    list_display = ("name", "sku", "product", "price", "is_separator", "option_column", "is_active", "sort_order")
+    list_filter = ("is_active", "is_separator", "option_column")
     search_fields = ("name", "sku", "product__name", "product__sku")
     autocomplete_fields = ("product",)
     ordering = ("product__name", "sort_order", "id")

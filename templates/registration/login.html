@@ -9,447 +9,538 @@
   {% include "includes/marketing_head.html" %}
 {% endwith %}
 <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="{% static 'fonts/Ford.ttf' %}" as="font" type="font/ttf" crossorigin>
 
 <!-- ===== S T Y L E S ===== -->
 <style>
-/* === Diesel font === */
 @font-face{
   font-family:"Diesel";
   src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
-  font-weight:100 900; 
-  font-style:normal; 
+  font-weight:100 900;
+  font-style:normal;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Ford";
+  src:url("{% static 'fonts/Ford.ttf' %}") format("truetype");
+  font-weight:300 900;
+  font-style:normal;
   font-display:swap;
 }
 
-/* единая переменная семейства */
 :root{
-  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-credentials: "Inter", "Segoe UI", -apple-system, system-ui, Roboto, Arial, sans-serif;
-}
+  --font-display:"Diesel", "Ford", sans-serif;
+  --font-body:"Ford", "Diesel", sans-serif;
 
-/* применяем Diesel ВЕЗДЕ + аккуратный кернинг */
-html, body,
-button, input, select, textarea,
-label, .btn, .errorlist, .messages, .modal__dialog,
-.field, .reg-form, .wrapper, .card,
-h1.title, .modal h2 {
-  font-family: var(--font-body) !important;
-  font-style: normal !important;
-  letter-spacing: .01em;        /* чуть больше читабельности */
-}
-
-/* заголовки — по-жирнее, без капса */
-h1.title{
-  font-weight: 900;
-  letter-spacing: .01em;
-  text-transform: none;
-}
-.modal h2{
-  font-weight: 800;
-  letter-spacing: .01em;
-  text-transform: none;
-}
-
-/* кнопки — Diesel, без капса и с умеренным трекингом */
-.btn{ 
-  font-weight: 800;
-  letter-spacing: .03em;
-  text-transform: none;
-}
-
-/* поля/лейблы — Diesel */
-.field input,
-.field label,
-.reg-form .field input,
-.reg-form .field textarea,
-.reg-form .field select{
-  font-family: var(--font-body) !important;
-  letter-spacing: .01em;
-}
-
-/* Credential inputs stay readable (Diesel renders uppercase only) */
-.login-form input[name="username"],
-.login-form input[name="password"],
-.reg-form input[name="username"],
-.reg-form input[name="password1"],
-.reg-form input[name="password2"]{
-  font-family: var(--font-credentials) !important;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-/* ===== BGM palette (dark + red) ===== */
-:root{
-  --bg:#0a0a0a;            /* page bg */
-  --ink:#eaeaea;           /* base text on dark */
-  --muted:#bdbdbd;
-
-  --red:#d50000;           /* accent red */
-  --red-dark:#b60000;
-
-  --card-bg:rgba(18,18,18,.75);
-  --card-border:rgba(255,255,255,.08);
-
-  --field-bg:rgba(255,255,255,.06);
-
+  --bg:#050505;
+  --surface:#0c0d10;
+  --surface-2:#15171c;
+  --surface-3:#1b1e24;
+  --ink:#f3f3f6;
+  --muted:#a4a7b0;
+  --red:#e10600;
+  --red-dark:#9c0000;
+  --border:rgba(255,255,255,.08);
+  --shadow:0 30px 80px rgba(0,0,0,.55);
+  --glow:rgba(225,6,0,.22);
+  --info-bg:#0b2433;
+  --info-text:#9ad4ff;
+  --success-bg:#0b2f1c;
+  --success-text:#b6ffd4;
+  --warning-bg:#3a2a00;
+  --warning-text:#ffd084;
   --error-bg:#3b0000;
-  --error-text:#ff8a80;
-
-  --info-bg:#0b2638;
-  --info-text:#8fd8ff;
-  --success-bg:#08321c;
-  --success-text:#9fffc3;
-  --warning-bg:#3b2a00;
-  --warning-text:#ffd47a;
+  --error-text:#ff9b9b;
 }
 
-/* ===== Background ===== */
+*,
+*::before,
+*::after{
+  box-sizing:border-box;
+}
+
 html,body{
   height:100%;
+}
+
+body{
   margin:0;
-  font-family:"Poppins",sans-serif;
+  font-family:var(--font-body);
   color:var(--ink);
-  background:#000;            /* ← вместо старых градиентов */
+  background:
+    radial-gradient(1200px 800px at 10% -20%, rgba(225,6,0,.22), transparent 60%),
+    radial-gradient(900px 700px at 100% 0%, rgba(255,115,0,.16), transparent 60%),
+    #050505;
+  overflow-x:hidden;
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,0) 40%),
+    radial-gradient(500px 300px at 80% 120%, rgba(255,255,255,.06), transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+
+#bg{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  opacity:.35;
+}
+#bg canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.wrapper{
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  padding:4rem 1.5rem 5rem;
+  position:relative;
+  z-index:1;
+}
+
+.card{
+  width:min(640px, 92vw);
+  background:linear-gradient(180deg, rgba(18,18,20,.92), rgba(10,10,12,.92));
+  border:1px solid var(--border);
+  border-radius:28px;
+  padding:clamp(32px, 4vw, 64px);
+  box-shadow:var(--shadow);
+  position:relative;
   overflow:hidden;
 }
 
-/* слой с дымом */
-#bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
-#bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block; pointer-events:none;}
-/* чтобы карточка лежала поверх дыма */
-.wrapper{position:relative; z-index:1;}
-
-
-/* ===== Layout & responsive scale ===== */
-.wrapper{
-  --card-scale:1;
-  position:relative;z-index:1;min-height:100%;
-  display:flex;align-items:flex-start;justify-content:center;
-  padding:2rem;perspective:1200px;transform-origin:top center;
-  transform:scale(var(--card-scale));transition:transform .25s ease;
-}
-
-/* ===== Card ===== */
-.card{
-  width:100%;max-width:460px;background:var(--card-bg);
-  border:1px solid var(--card-border);
-  border-radius:28px;padding:64px 56px 52px;
-  backdrop-filter:blur(28px) saturate(140%);-webkit-backdrop-filter:blur(28px) saturate(140%);
-  box-shadow:0 28px 60px rgba(0,0,0,.45);
-  transform-style:preserve-3d;transition:transform .35s cubic-bezier(.03,.98,.52,.99);
-}
 .card::before{
-  content:"";position:absolute;inset:-2px;border-radius:inherit;
-  background:linear-gradient(135deg,#ff5555 0%, #d50000 45%, #b60000 55%, #630000 100%);
-  z-index:-1;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;
+  content:"";
+  position:absolute;
+  inset:-20% -10% auto -10%;
+  height:55%;
+  background:radial-gradient(circle at 30% 30%, var(--glow), transparent 70%);
+  pointer-events:none;
+  z-index:0;
 }
-h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;letter-spacing:-.02em;color:#fff}
 
-/* ===== Form ===== */
-.login-form{display:flex;flex-direction:column;gap:1.1rem;}
-.field{position:relative;}
-.field svg{position:absolute;left:22px;top:50%;transform:translateY(-50%);
-  width:22px;height:22px;fill:var(--red);opacity:.95;}
-.field input:not([type="checkbox"]):not([type="radio"]){
-  width:100%;box-sizing:border-box;height:62px;padding:0 22px 0 64px;line-height:62px;
-  font-size:16px;font-weight:500;border:none;border-radius:18px;background:var(--field-bg);color:var(--ink);
-  box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);transition:box-shadow .3s,background .3s;
+.card > *{
+  position:relative;
+  z-index:1;
 }
-.field input:not([type="checkbox"]):not([type="radio"]):focus{outline:none;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 3px var(--red);}
-.field input:not([type="checkbox"]):not([type="radio"])::placeholder{color:transparent;}
-.field label{
-  position:absolute;left:64px;top:50%;transform:translateY(-50%);pointer-events:none;
-  font-size:16px;font-weight:500;opacity:.6;color:var(--muted);transition:all .25s;
-}
-.field input:not([type="checkbox"]):not([type="radio"]):focus+label,
-.field input:not([type="checkbox"]):not([type="radio"]):not(:placeholder-shown)+label{ top:10px;transform:none;font-size:12px;opacity:.95; color:#fff; }
 
-/* Autofill keeps dark theme + floating labels */
-.field input:-webkit-autofill,
-.field input:-webkit-autofill:hover,
-.field input:-webkit-autofill:focus{
-  -webkit-text-fill-color: var(--ink) !important;
-  caret-color: var(--ink);
-  box-shadow: 0 0 0 1000px var(--field-bg) inset !important;
-  transition: background-color 9999s ease-in-out 0s;
-}
-.field input:-webkit-autofill + label{
-  top:10px;
-  transform:none;
-  font-size:12px;
-  opacity:.95;
+h1.title{
+  margin:0 0 1.8rem;
+  text-align:center;
+  font-family:var(--font-display);
+  font-size:clamp(2rem, 3.2vw, 2.8rem);
+  letter-spacing:.12em;
+  text-transform:uppercase;
   color:#fff;
 }
 
-/* ===== Buttons ===== */
-.btn{
-  position:relative;overflow:hidden;width:100%;padding:16px;border:none;border-radius:999px;
-  font-size:16px;font-weight:700;letter-spacing:.05em;color:#fff;
-  background:linear-gradient(135deg,var(--red) 0%,var(--red-dark) 100%);
-  cursor:pointer;transition:transform .2s,box-shadow .25s,filter .2s;
-}
-.btn:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(213,0,0,.35);filter:saturate(1.05);}
-.btn:active{transform:translateY(0);box-shadow:0 8px 16px rgba(213,0,0,.35);}
-.btn::after{content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(255,255,255,.18);
-  opacity:0;transform:scale(0);transition:opacity .6s,transform .6s;}
-.btn:active::after{opacity:1;transform:scale(2);transition:0s;}
-.btn--ghost{background:transparent;color:#fff;box-shadow:inset 0 0 0 2px var(--red);}
-.btn--ghost:hover{background:rgba(213,0,0,.08);}
-
-/* ===== Errors ===== */
-.errorlist{
-  margin:0 0 14px;padding:14px 18px;list-style:none;font-size:14px;border-radius:14px;
-  background:var(--error-bg);color:var(--error-text);
-}
-.messages{
-  margin:0 0 14px;padding:0;list-style:none;
-}
-.messages li{
-  margin:0 0 10px;padding:12px 16px;border-radius:14px;font-size:14px;
-  background:var(--info-bg);color:var(--info-text);
-}
-.messages li.success{background:var(--success-bg);color:var(--success-text);}
-.messages li.error{background:var(--error-bg);color:var(--error-text);}
-.messages li.warning{background:var(--warning-bg);color:var(--warning-text);}
-.login-links{
-  display:flex;justify-content:flex-end;align-items:center;
-  margin:8px 0 16px;
-}
-.login-links a{
-  color:var(--muted);font-size:14px;text-decoration:none;
-}
-.login-links a:hover{color:#fff;text-decoration:underline;}
-.login-note{
-  margin:12px 0 0;padding:10px 14px;border-radius:12px;
-  background:var(--info-bg);color:var(--info-text);font-size:14px;
+.login-form{
+  display:grid;
+  gap:18px;
 }
 
-/* ===== Registration modal ===== */
-.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-  background:rgba(0,0,0,.55);z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;}
-.modal.show{opacity:1;pointer-events:auto;}
-.modal__dialog{
-  width:100%;max-width:480px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:24px;
-  padding:48px 40px 40px;position:relative;color:var(--ink);
-  backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);
-}
-.modal__close{position:absolute;top:18px;right:22px;border:none;background:none;font-size:26px;font-weight:600;cursor:pointer;color:var(--muted);}
-.modal h2{margin:0 0 1.2rem;font-size:1.9rem;font-weight:700;text-align:center;color:#fff;}
-.reg-form{
+.field{
   display:flex;
   flex-direction:column;
-  gap:1.5rem;
+  gap:8px;
 }
-.reg-form__grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
-  gap:1rem 1.3rem;
+
+.field label{
+  font-size:.72rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:600;
 }
-.reg-form__grid .field{
-  margin:0;
+
+.field__control{
+  position:relative;
 }
-.reg-form__grid .field[data-span="full"]{
-  grid-column:1 / -1;
-}
-.reg-form .field input:not([type="checkbox"]):not([type="radio"]),
-.reg-form .field select,
-.reg-form .field textarea{
-  box-sizing:border-box;
+
+.field__control input:not([type="checkbox"]):not([type="radio"]),
+.field__control select,
+.field__control textarea{
   width:100%;
-  height:56px;
-  padding:22px 20px 10px;
-  font-size:15px;
-  font-weight:500;
-  background:var(--field-bg);
+  min-height:54px;
+  padding:14px 16px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:var(--surface-2);
   color:var(--ink);
-  border:none;
-  border-radius:18px;
-  box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);
-  transition:box-shadow .25s ease,background .25s ease;
+  font-size:1rem;
+  font-family:var(--font-body);
+  transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  appearance:none;
+  -webkit-appearance:none;
 }
-.reg-form .field input:not([type="checkbox"]):not([type="radio"]){
-  line-height:1.25;
-}
-.reg-form .field textarea{
-  min-height:72px;
-  padding-top:24px;
+
+.field__control textarea{
+  min-height:96px;
+  padding-top:12px;
   line-height:1.4;
   resize:vertical;
 }
-.reg-form .field select{
-  padding:22px 48px 10px 20px;
-  appearance:none;
-  -webkit-appearance:none;
-  -moz-appearance:none;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23bdbdbd' d='M7 10l5 5 5-5z'/></svg>");
+
+.field__control select{
+  padding-right:46px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'><path fill='%23a4a7b0' d='M7 10l5 5 5-5z'/></svg>");
   background-repeat:no-repeat;
-  background-position:right 18px center;
-  background-size:18px;
+  background-position:right 16px center;
   cursor:pointer;
 }
-.reg-form .field select option{
-  background:#0f0f0f;
+
+.field__control select option{
+  background:#0c0d12;
   color:var(--ink);
 }
-.reg-form .field select:focus,
-.reg-form .field textarea:focus,
-.reg-form .field input:not([type="checkbox"]):not([type="radio"]):focus{
+
+.field__control input:focus,
+.field__control select:focus,
+.field__control textarea:focus{
   outline:none;
-  box-shadow:inset 0 0 0 3px var(--red);
-  background:rgba(255,255,255,.08);
+  border-color:var(--red);
+  box-shadow:0 0 0 3px rgba(225,6,0,.25);
+  background:var(--surface-3);
 }
-.reg-form .field label{
-  left:20px;
+
+.field__control input::placeholder,
+.field__control textarea::placeholder{
+  color:#7b7f8a;
+}
+
+.field__control input.has-eye{
+  padding-right:54px;
+}
+
+.field__control input:-webkit-autofill,
+.field__control input:-webkit-autofill:hover,
+.field__control input:-webkit-autofill:focus{
+  -webkit-text-fill-color: var(--ink) !important;
+  caret-color: var(--ink);
+  box-shadow:0 0 0 1000px var(--surface-2) inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.toggle-eye{
+  position:absolute;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  border:none;
+  background:transparent;
+  padding:6px;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+.toggle-eye:focus{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(225,6,0,.35);
+}
+
+.toggle-eye svg{
+  width:22px;
+  height:22px;
+  fill:var(--muted);
+}
+
+.login-links{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:-6px;
+}
+
+.login-links a{
   color:var(--muted);
+  font-size:.85rem;
+  text-decoration:none;
 }
-.reg-form .field textarea + label{
+
+.login-links a:hover{
+  color:#fff;
+  text-decoration:underline;
+}
+
+.btn{
+  width:100%;
+  padding:16px 18px;
+  border:none;
+  border-radius:999px;
+  font-family:var(--font-display);
+  font-size:.95rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#fff;
+  background:linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
+  cursor:pointer;
+  transition:transform .2s ease, box-shadow .25s ease, filter .2s ease;
+}
+
+.btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 18px 30px rgba(225,6,0,.35);
+  filter:saturate(1.05);
+}
+
+.btn:active{
+  transform:translateY(0);
+  box-shadow:0 10px 18px rgba(225,6,0,.35);
+}
+
+.btn--ghost{
+  background:transparent;
+  color:#fff;
+  border:1px solid rgba(225,6,0,.6);
+}
+
+.btn--ghost:hover{
+  background:rgba(225,6,0,.1);
+}
+
+.login-form .btn + .btn{
+  margin-top:8px;
+}
+
+.login-note{
+  margin:10px 0 0;
+  padding:12px 14px;
+  border-radius:12px;
+  background:var(--info-bg);
+  color:var(--info-text);
+  font-size:.9rem;
+}
+
+.errorlist{
+  margin:0 0 12px;
+  padding:12px 14px;
+  list-style:none;
+  font-size:.9rem;
+  border-radius:12px;
+  background:var(--error-bg);
+  color:var(--error-text);
+}
+
+.messages{
+  margin:0 0 12px;
+  padding:0;
+  list-style:none;
+}
+
+.messages li{
+  margin:0 0 10px;
+  padding:12px 14px;
+  border-radius:12px;
+  font-size:.9rem;
+  background:var(--info-bg);
+  color:var(--info-text);
+}
+
+.messages li.success{ background:var(--success-bg); color:var(--success-text); }
+.messages li.error{ background:var(--error-bg); color:var(--error-text); }
+.messages li.warning{ background:var(--warning-bg); color:var(--warning-text); }
+
+.modal{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:2rem 1.25rem;
+  background:rgba(5,5,8,.7);
+  z-index:100;
+  opacity:0;
   pointer-events:none;
+  transition:opacity .25s ease;
 }
-.reg-form .field select + label{
-  top:8px;
-  transform:none;
-  font-size:12px;
-  opacity:.95;
+
+.modal.show{
+  opacity:1;
+  pointer-events:auto;
+}
+
+.modal__dialog{
+  width:min(720px, 92vw);
+  max-height:90vh;
+  overflow:auto;
+  background:linear-gradient(180deg, rgba(16,17,22,.95), rgba(9,10,14,.95));
+  border:1px solid var(--border);
+  border-radius:26px;
+  padding:clamp(28px, 3.5vw, 44px);
+  box-shadow:var(--shadow);
+  position:relative;
+}
+
+.modal__close{
+  position:absolute;
+  top:16px;
+  right:18px;
+  border:none;
+  background:transparent;
+  font-size:28px;
+  font-weight:700;
+  color:var(--muted);
+  cursor:pointer;
+}
+
+.modal h2{
+  margin:0 0 1.4rem;
+  text-align:center;
+  font-family:var(--font-display);
+  font-size:clamp(1.7rem, 2.6vw, 2.2rem);
+  letter-spacing:.1em;
+  text-transform:uppercase;
   color:#fff;
 }
+
+.reg-form{
+  display:grid;
+  gap:22px;
+}
+
+.reg-form__grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+  gap:18px;
+}
+
+.reg-form__grid .field[data-span="full"]{
+  grid-column:1 / -1;
+}
+
 .reg-form__agreements{
-  display:flex;
-  flex-direction:column;
-  gap:.9rem;
+  display:grid;
+  gap:12px;
 }
+
 .field--agree{
-  background:rgba(255,255,255,.02);
-  border:1px solid rgba(255,255,255,.14);
-  border-radius:20px;
-  padding:1rem 1.2rem;
   display:flex;
+  flex-direction:row;
+  gap:12px;
   align-items:flex-start;
-  gap:.85rem;
+  padding:14px 16px;
+  border-radius:16px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.12);
 }
+
 .field--agree input{
   appearance:none;
   -webkit-appearance:none;
-  -moz-appearance:none;
-  width:26px;
-  height:26px;
-  margin-top:.2rem;
-  border-radius:9px;
+  width:22px;
+  height:22px;
+  border-radius:6px;
   border:2px solid rgba(255,255,255,.35);
-  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0));
+  background:transparent;
   display:grid;
   place-items:center;
+  margin-top:2px;
   cursor:pointer;
-  flex-shrink:0;
   position:relative;
-  transition:border-color .2s ease,background .2s ease,box-shadow .2s ease;
+  flex-shrink:0;
 }
+
 .field--agree input::after{
   content:"";
   width:10px;
-  height:16px;
-  border-right:2px solid #fff;
+  height:6px;
+  border-left:2px solid #fff;
   border-bottom:2px solid #fff;
-  transform-origin:bottom left;
-  transform:scale(0) rotate(45deg);
+  transform:rotate(-45deg) scale(0);
   transition:transform .15s ease;
 }
+
 .field--agree input:checked{
-  background:linear-gradient(135deg,var(--red) 0%,var(--red-dark) 100%);
+  background:linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
   border-color:var(--red);
-  box-shadow:0 10px 24px rgba(213,0,0,.35);
+  box-shadow:0 8px 18px rgba(225,6,0,.35);
 }
+
 .field--agree input:checked::after{
-  transform:scale(1) rotate(45deg);
+  transform:rotate(-45deg) scale(1);
 }
+
 .field--agree input:focus-visible{
   outline:none;
-  box-shadow:0 0 0 3px rgba(213,0,0,.4);
+  box-shadow:0 0 0 3px rgba(225,6,0,.35);
 }
+
 .field--agree label{
   position:static;
   transform:none;
   opacity:1;
   font-size:.95rem;
-  line-height:1.45;
   color:var(--ink);
+  letter-spacing:0;
+  text-transform:none;
+  font-weight:500;
 }
+
 .field--agree .agree-label{
   display:block;
-  font-weight:800;
-  letter-spacing:.18em;
+  font-family:var(--font-display);
+  font-size:.8rem;
+  letter-spacing:.24em;
   text-transform:uppercase;
-  margin-bottom:.2rem;
+  margin-bottom:6px;
 }
+
 .field--agree .agree-meta{
   color:var(--muted);
   font-size:.85rem;
 }
+
 .field--agree a{
-  color:#ff5a5a;
+  color:#ff6a6a;
   font-weight:600;
   text-decoration:none;
 }
+
 .field--agree a:hover{
   text-decoration:underline;
 }
+
 @supports not (appearance:none){
   .field--agree input{
     appearance:auto;
     -webkit-appearance:auto;
-    -moz-appearance:auto;
-    border-radius:4px;
-    background:#0a0a0a;
   }
-  .field--agree input::after{display:none;}
+  .field--agree input::after{
+    display:none;
+  }
 }
 
-/* ===== Responsive ===== */
-@media(max-width:500px){
-  .card{padding:52px 34px 46px;}
-  h1.title{font-size:2.1rem;}
+@media (max-width:640px){
+  .card{ padding:32px 24px; }
+  .wrapper{ padding:3rem 1rem 4rem; }
 }
 
-/* === Password toggle (eye) === */
-.field .toggle-eye{
-  position:absolute; right:12px; top:50%; transform:translateY(-50%);
-  border:none; background:transparent; cursor:pointer; padding:6px; border-radius:10px;
-  display:flex; align-items:center; justify-content:center;
-}
-.field .toggle-eye:focus{ outline: none; box-shadow:0 0 0 3px rgba(213,0,0,.35); }
-.field input.has-eye{ padding-right:70px; }
-.field .toggle-eye svg{ width:22px; height:22px; fill:var(--red); opacity:.95; }
-
-/* Modal: scroll & sizing */
-.modal__dialog{ max-height:92vh; overflow:auto; -webkit-overflow-scrolling: touch; }
-@media (max-height:680px){ .modal__dialog{ max-height:96vh; } }
-
-/* Floating labels inside modal */
-.reg-form .field input:not([type="checkbox"]):not([type="radio"]):focus + label,
-.reg-form .field input:not([type="checkbox"]):not([type="radio"]):not(:placeholder-shown) + label,
-.reg-form .field textarea:focus + label,
-.reg-form .field textarea:not(:placeholder-shown) + label{
-  top:10px; transform:none; font-size:12px; opacity:.95; color:#fff;
-}
-
-/* Dark dropdown where supported */
 .modal__dialog,
-.reg-form .field select,
-.reg-form .field textarea,
-.reg-form .field input:not([type="checkbox"]):not([type="radio"]){
+.field__control select,
+.field__control textarea,
+.field__control input:not([type="checkbox"]):not([type="radio"]){
   color-scheme:dark;
 }
-
-
 </style>
 </head>
 
 <body>
 {% include "includes/marketing_body.html" %}
+{% include "includes/terms_gate.html" %}
 <div id="bg"></div>
 
 <div class="wrapper">
-  <div class="card" data-tilt>
+  <div class="card">
     <h1 class="title">Sign in to Bad Guy Motors</h1>
 
     <form method="post" class="login-form">
@@ -464,21 +555,21 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
       {{ form.non_field_errors }}
 
       <div class="field">
-        {{ form.username }}
         <label for="{{ form.username.id_for_label }}">Username</label>
-        <svg viewBox="0 0 24 24"><path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5zm0 2c-3.859 0-7 3.141-7 7 0 .552.448 1 1 1h12c.552 0 1-.448 1-1 0-3.859-3.141-7-7-7z"/></svg>
+        <div class="field__control">
+          {{ form.username }}
+        </div>
       </div>
 
       <div class="field">
-        {{ form.password }}
         <label for="{{ form.password.id_for_label }}">Password</label>
-        <svg viewBox="0 0 24 24"><path d="M17 9h-1V6a4 4 0 00-8 0v3H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2v-9a2 2 0 00-2-2zm-6 7.73V18a1 1 0 002 0v-1.27a2 2 0 10-2 0zM9 6a3 3 0 016 0v3H9V6z"/></svg>
-
-        <!-- eye -->
-        <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
-          <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-          <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
-        </button>
+        <div class="field__control">
+          {{ form.password }}
+          <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+            <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+            <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+          </button>
+        </div>
       </div>
 
       <div class="login-links">
@@ -486,7 +577,7 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
       </div>
 
       <button type="submit" class="btn">Sign in</button>
-      <button type="button" id="openReg" class="btn btn--ghost" style="margin-top:12px;">Create account</button>
+      <button type="button" id="openReg" class="btn btn--ghost">Create account</button>
       <p class="login-note" id="regNotice" style="display:none;">Check your email to verify your account.</p>
     </form>
   </div>
@@ -501,57 +592,71 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
       {% csrf_token %}
       <div class="reg-form__grid">
         <div class="field">
-          <input type="text" name="username" placeholder=" " required>
-          <label>Username</label>
+          <label for="regUsername">Username</label>
+          <div class="field__control">
+            <input id="regUsername" type="text" name="username" autocomplete="username" required>
+          </div>
         </div>
         <div class="field">
-          <input type="email" name="email" placeholder=" " required>
-          <label>E-mail</label>
+          <label for="regEmail">E-mail</label>
+          <div class="field__control">
+            <input id="regEmail" type="email" name="email" autocomplete="email" required>
+          </div>
         </div>
         <div class="field">
-          <input
-            type="tel"
-            id="regPhone"
-            name="phone"
-            placeholder="(555) 123‑4567"
-            value="+1 "
-            required
-            inputmode="tel"
-            autocomplete="tel"
-          />
           <label for="regPhone">Phone</label>
+          <div class="field__control">
+            <input
+              type="tel"
+              id="regPhone"
+              name="phone"
+              placeholder="(555) 123‑4567"
+              value="+1 "
+              required
+              inputmode="tel"
+              autocomplete="tel"
+            />
+          </div>
         </div>
         <div class="field">
-          <input type="password" name="password1" placeholder=" " required>
-          <label>Password</label>
-          <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
-            <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-            <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
-          </button>
+          <label for="regPassword1">Password</label>
+          <div class="field__control">
+            <input id="regPassword1" type="password" name="password1" autocomplete="new-password" required>
+            <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+              <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+              <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+            </button>
+          </div>
         </div>
         <div class="field">
-          <input type="password" name="password2" placeholder=" " required>
-          <label>Confirm password</label>
-          <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
-            <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-            <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
-          </button>
+          <label for="regPassword2">Confirm password</label>
+          <div class="field__control">
+            <input id="regPassword2" type="password" name="password2" autocomplete="new-password" required>
+            <button type="button" class="toggle-eye" aria-label="Show password" title="Show password">
+              <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
+              <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M2 3.27L3.28 2 22 20.72 20.73 22l-3.1-3.1A10.86 10.86 0 0112 19c-7 0-10-7-10-7a18.2 18.2 0 014.4-5.38L2 3.27zM12 7a5 5 0 015 5 5 5 0 01-.39 1.94l-6.55-6.55A4.9 4.9 0 0112 7zm0 10a8.86 8.86 0 005.22-1.72l-2.15-2.15A5 5 0 017 12a5 5 0 01.28-1.65L5.18 8.25A17.2 17.2 0 002 12s3 5 10 5z"/></svg>
+            </button>
+          </div>
         </div>
         <div class="field" data-span="full">
-          <textarea name="address" placeholder=" " rows="2"></textarea>
-          <label>Address</label>
+          <label for="regAddress">Address</label>
+          <div class="field__control">
+            <textarea id="regAddress" name="address" rows="2" autocomplete="street-address"></textarea>
+          </div>
         </div>
         <div class="field" data-span="full">
-          <select name="how_heard" placeholder=" ">
-            <option value="">— Select —</option>
-            <option value="google">Google search</option>
-            <option value="instagram">Instagram</option>
-            <option value="facebook">Facebook</option>
-            <option value="tiktok">TikTok</option>
-            <option value="friend">Friends/Family</option>
-            <option value="other">Other</option>
-          </select>
-          <label>How did you hear about us?</label>
+          <label for="regHowHeard">How did you hear about us?</label>
+          <div class="field__control">
+            <select id="regHowHeard" name="how_heard">
+              <option value="">-- Select --</option>
+              <option value="google">Google search</option>
+              <option value="instagram">Instagram</option>
+              <option value="facebook">Facebook</option>
+              <option value="tiktok">TikTok</option>
+              <option value="friend">Friends/Family</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -602,29 +707,24 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
 <!-- ===== S C R I P T S ===== -->
 <script>
 
-/* 3D tilt */
-(function(){
-  const card=document.querySelector('.card[data-tilt]'),d=20;
-  card.addEventListener('mousemove',e=>{
-    const r=card.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2;
-    card.style.transform=`rotateX(${(-y/d)}deg) rotateY(${(x/d)}deg)`;
-  });
-  card.addEventListener('mouseleave',()=>card.style.transform='rotateX(0) rotateY(0)');
-})();
-
 /* modal toggle */
 const modal=document.getElementById('regModal');
-document.getElementById('openReg').onclick=()=>modal.classList.add('show');
-document.getElementById('regClose').onclick=()=>modal.classList.remove('show');
-addEventListener('keydown',e=>e.key==='Escape'&&modal.classList.remove('show'));
+const openReg=document.getElementById('openReg');
+const closeReg=document.getElementById('regClose');
+const showReg=()=>modal.classList.add('show');
 
-/* add placeholders to Django auth inputs so floating labels work */
-(function(){
-  const u=document.querySelector('input[name="username"]');
-  const p=document.querySelector('input[name="password"]');
-  if(u && !u.placeholder) u.placeholder=' ';
-  if(p && !p.placeholder) p.placeholder=' ';
-})();
+if (openReg) {
+  openReg.onclick=()=>{
+    if (window.__bgmTermsGate && !window.__bgmTermsGate.hasAccepted()) {
+      document.addEventListener('bgm:terms-accepted', showReg, { once: true });
+      window.__bgmTermsGate.open();
+      return;
+    }
+    showReg();
+  };
+}
+if (closeReg) closeReg.onclick=()=>modal.classList.remove('show');
+addEventListener('keydown',e=>e.key==='Escape'&&modal.classList.remove('show'));
 
 /* AJAX registration (без изменений API) */
 document.getElementById('regForm').addEventListener('submit',async e=>{
@@ -688,18 +788,6 @@ function showErrors(obj){
     });
   });
 })();
-
-/* auto scale card to viewport height */
-function fitCard(){
-  const wrapper=document.querySelector('.wrapper');
-  const card=wrapper.querySelector('.card');
-  const gap=40; const avail=window.innerHeight-gap;
-  const scale=Math.min(1, avail/card.offsetHeight);
-  wrapper.style.setProperty('--card-scale',scale.toFixed(3));
-}
-addEventListener('load',fitCard);
-addEventListener('resize',fitCard);
-setTimeout(fitCard,0);
 
 /* Password eyes: login + registration */
 (function(){

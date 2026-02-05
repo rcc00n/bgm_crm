@@ -18,9 +18,9 @@
     <div class="grid product-detail__grid" style="grid-template-columns:1fr 1fr;gap:1.25rem">
       <div>
         {% if product.main_image %}
-          <img class="card__img" style="aspect-ratio:auto;border-radius:1rem" src="{{ product.main_image_url }}" alt="{{ product.name }}">
+          <img class="card__img product-main__img" src="{{ product.main_image_url }}" alt="{{ product.name }}">
         {% else %}
-          <div class="card__img" style="aspect-ratio:16/9;border-radius:1rem"></div>
+          <div class="card__img product-main__img product-main__img--placeholder"></div>
         {% endif %}
 
         {# галерея; если есть свой related_name=gallery — он сработает; иначе просто не отрисуется #}
@@ -75,51 +75,149 @@
             {% endif %}
 
             {% if product_options %}
-              <fieldset class="option-picker" id="product-options">
+              <fieldset class="option-picker{% if options_two_column %} option-picker--split{% endif %}" id="product-options">
                 <legend>Options</legend>
-                <div class="option-picker__grid">
-                  {% for opt in product_options %}
-                    {% if opt.is_separator %}
-                      <div class="option-separator" role="presentation">
-                        <span class="option-separator__label">{{ opt.name }}</span>
-                      </div>
-                    {% else %}
-                      <label class="option-pill">
-                        <input
-                          type="radio"
-                          name="option_id"
-                          value="{{ opt.id }}"
-                          data-price-retail="{{ opt.unit_price|floatformat:2 }}"
-                          data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
-                          data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
-                          {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
-                          {% if not product.contact_for_estimate %}required{% endif %}
-                        >
-                        <span class="option-pill__inner">
-                          <span class="option-pill__top">
-                            <span class="option-pill__meta">
-                              <span class="option-pill__name">{{ opt.name }}</span>
-                              {% if opt.sku %}
-                                <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
-                              {% endif %}
-                            </span>
-                            {% if not product.contact_for_estimate %}
-                              <span class="option-pill__price">
-                                {{ opt.unit_price|money }}
-                                {% if dealer_portal.show_discount %}
-                                  <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+                {% if options_two_column %}
+                  <div class="option-columns">
+                    <div class="option-column">
+                      <div class="option-column__title">{{ product.option_column_1_label|default:"Options" }}</div>
+                      <div class="option-picker__grid">
+                        {% for opt in options_col_1 %}
+                          {% if opt.is_separator %}
+                            <div class="option-separator" role="presentation">
+                              <span class="option-separator__label">{{ opt.name }}</span>
+                            </div>
+                          {% else %}
+                            <label class="option-pill">
+                              <input
+                                type="radio"
+                                name="option_id"
+                                value="{{ opt.id }}"
+                                data-price-retail="{{ opt.unit_price|floatformat:2 }}"
+                                data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
+                                data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
+                                {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
+                                {% if not product.contact_for_estimate %}required{% endif %}
+                              >
+                              <span class="option-pill__inner">
+                                <span class="option-pill__top">
+                                  <span class="option-pill__meta">
+                                    <span class="option-pill__name">{{ opt.name }}</span>
+                                    {% if opt.sku %}
+                                      <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
+                                    {% endif %}
+                                  </span>
+                                  {% if not product.contact_for_estimate %}
+                                    <span class="option-pill__price">
+                                      {{ opt.unit_price|money }}
+                                      {% if dealer_portal.show_discount %}
+                                        <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+                                      {% endif %}
+                                    </span>
+                                  {% endif %}
+                                </span>
+                                {% if opt.description %}
+                                  <span class="option-pill__desc">{{ opt.description }}</span>
                                 {% endif %}
                               </span>
+                            </label>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+
+                    <div class="option-column">
+                      <div class="option-column__title">{{ product.option_column_2_label|default:"More options" }}</div>
+                      <div class="option-picker__grid">
+                        {% for opt in options_col_2 %}
+                          {% if opt.is_separator %}
+                            <div class="option-separator" role="presentation">
+                              <span class="option-separator__label">{{ opt.name }}</span>
+                            </div>
+                          {% else %}
+                            <label class="option-pill">
+                              <input
+                                type="radio"
+                                name="option_id"
+                                value="{{ opt.id }}"
+                                data-price-retail="{{ opt.unit_price|floatformat:2 }}"
+                                data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
+                                data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
+                                {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
+                                {% if not product.contact_for_estimate %}required{% endif %}
+                              >
+                              <span class="option-pill__inner">
+                                <span class="option-pill__top">
+                                  <span class="option-pill__meta">
+                                    <span class="option-pill__name">{{ opt.name }}</span>
+                                    {% if opt.sku %}
+                                      <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
+                                    {% endif %}
+                                  </span>
+                                  {% if not product.contact_for_estimate %}
+                                    <span class="option-pill__price">
+                                      {{ opt.unit_price|money }}
+                                      {% if dealer_portal.show_discount %}
+                                        <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+                                      {% endif %}
+                                    </span>
+                                  {% endif %}
+                                </span>
+                                {% if opt.description %}
+                                  <span class="option-pill__desc">{{ opt.description }}</span>
+                                {% endif %}
+                              </span>
+                            </label>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="option-picker__grid">
+                    {% for opt in product_options %}
+                      {% if opt.is_separator %}
+                        <div class="option-separator" role="presentation">
+                          <span class="option-separator__label">{{ opt.name }}</span>
+                        </div>
+                      {% else %}
+                        <label class="option-pill">
+                          <input
+                            type="radio"
+                            name="option_id"
+                            value="{{ opt.id }}"
+                            data-price-retail="{{ opt.unit_price|floatformat:2 }}"
+                            data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
+                            data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
+                            {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
+                            {% if not product.contact_for_estimate %}required{% endif %}
+                          >
+                          <span class="option-pill__inner">
+                            <span class="option-pill__top">
+                              <span class="option-pill__meta">
+                                <span class="option-pill__name">{{ opt.name }}</span>
+                                {% if opt.sku %}
+                                  <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
+                                {% endif %}
+                              </span>
+                              {% if not product.contact_for_estimate %}
+                                <span class="option-pill__price">
+                                  {{ opt.unit_price|money }}
+                                  {% if dealer_portal.show_discount %}
+                                    <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+                                  {% endif %}
+                                </span>
+                              {% endif %}
+                            </span>
+                            {% if opt.description %}
+                              <span class="option-pill__desc">{{ opt.description }}</span>
                             {% endif %}
                           </span>
-                          {% if opt.description %}
-                            <span class="option-pill__desc">{{ opt.description }}</span>
-                          {% endif %}
-                        </span>
-                      </label>
-                    {% endif %}
-                  {% endfor %}
-                </div>
+                        </label>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                {% endif %}
               </fieldset>
             {% endif %}
 
@@ -434,12 +532,44 @@
   .product-form{display:flex; flex-direction:column; gap:1rem}
   .qty-row{display:flex; flex-wrap:wrap; gap:.6rem; align-items:center}
   .btn-pair{display:flex; gap:.5rem; flex-wrap:wrap}
+  .product-main__img{
+    width:100%;
+    height:clamp(220px, 40vw, 380px);
+    object-fit:cover;
+    border-radius:1rem;
+    display:block;
+  }
+  .product-main__img--placeholder{
+    background:rgba(255,255,255,.06);
+  }
   .option-picker{border:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.4rem}
   .option-picker legend{font-weight:800; font-size:.95rem; margin-bottom:.2rem}
   .option-picker__grid{display:flex; flex-direction:column; gap:.5rem}
   @media (min-width:600px){
     .option-picker__grid{flex-direction:row; flex-wrap:wrap}
   }
+  .option-picker--split .option-columns{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:1rem;
+  }
+  .option-picker--split .option-column{
+    display:flex;
+    flex-direction:column;
+    gap:.6rem;
+  }
+  .option-column__title{
+    font-weight:800;
+    font-size:.8rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .option-picker--split .option-picker__grid{
+    flex-direction:column;
+    flex-wrap:nowrap;
+  }
+  .option-picker--split .option-pill__inner{width:100%;}
   .option-separator{
     display:flex;
     align-items:center;
@@ -547,6 +677,7 @@
     .qty-row .field{width:100% !important;}
     .btn-pair{flex-direction:column;align-items:stretch;}
     .btn-pair .btn{width:100%;justify-content:center;}
+    .option-picker--split .option-columns{grid-template-columns:1fr;}
     .option-pill__inner{min-width:0;}
     .option-pill__top{flex-direction:column;align-items:flex-start;}
     .option-pill__price{align-items:flex-start;}

@@ -175,6 +175,75 @@ def admin_pagecopy_save_field(request):
 @staff_member_required
 @require_POST
 @csrf_protect
+def admin_pagecopy_save_draft(request):
+    payload = {}
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            payload = {}
+    if not payload:
+        payload = request.POST.dict()
+
+    model_label = (payload.get("model") or "").strip()
+    object_id = payload.get("object_id") or payload.get("objectId")
+    data = payload.get("data") or payload.get("fields") or payload.get("values") or {}
+
+    if not model_label:
+        return JsonResponse({"ok": False, "error": "Missing model."}, status=400)
+
+    if not isinstance(data, dict):
+        return JsonResponse({"ok": False, "error": "Invalid draft payload."}, status=400)
+
+    model_cls = _resolve_pagecopy_model(model_label)
+    if not model_cls:
+        return JsonResponse({"ok": False, "error": "Unsupported model."}, status=400)
+
+    if not request.user.has_perm(f"{model_cls._meta.app_label}.change_{model_cls._meta.model_name}"):
+        raise PermissionDenied
+
+    try:
+        object_id = int(object_id) if object_id is not None else None
+    except (TypeError, ValueError):
+        object_id = None
+
+    obj = model_cls.objects.filter(pk=object_id).first() if object_id else model_cls.objects.first()
+    if not obj:
+        return JsonResponse({"ok": False, "error": "Object not found."}, status=404)
+
+    allowed = {
+        field.name: field
+        for field in model_cls._meta.get_fields()
+        if isinstance(field, (models.CharField, models.TextField))
+    }
+
+    updated = {}
+    draft = PageCopyDraft.for_instance(obj)
+    payload_data = draft.data or {}
+    for field_name, raw_value in data.items():
+        field_obj = allowed.get(field_name)
+        if not field_obj:
+            continue
+        value = "" if raw_value is None else str(raw_value)
+        if isinstance(field_obj, models.CharField):
+            value = _normalize_plain_value(value)
+            if field_obj.max_length:
+                value = value[: field_obj.max_length]
+        payload_data[field_name] = value
+        updated[field_name] = value
+
+    if not updated:
+        return JsonResponse({"ok": False, "error": "No draft fields."}, status=400)
+
+    draft.data = payload_data
+    draft.save(update_fields=["data", "updated_at"])
+
+    return JsonResponse({"ok": True, "draft": True, "fields": list(updated.keys())})
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
 def admin_pagecopy_save_section_layout(request):
     payload = {}
     if request.body:
@@ -1564,7 +1633,7 @@ def project_journal_view(request):
     tag_filter = (request.GET.get("tag") or "").strip()
     normalized_tag = tag_filter.lower()
 
-    published_posts = list(ProjectJournalEntry.objects.published())
+    published_posts = list(ProjectJournalEntry.objects.published().prefetch_related("photos"))
     available_tags = sorted(
         {tag for post in published_posts for tag in post.tag_list},
         key=lambda tag: tag.lower(),
@@ -1595,8 +1664,30 @@ def project_journal_view(request):
             published_label = timezone.localtime(post.published_at).strftime("%b %d, %Y")
         before_images = []
         after_images = []
-        if post.cover_image:
+        photos = list(getattr(post, "photos", []).all()) if hasattr(post, "photos") else []
+        if photos:
+            before_images = [
+                {"url": photo.image.url, "alt": photo.alt_text or ""}
+                for photo in photos
+                if photo.kind == "before" and photo.image
+            ]
+            after_images = [
+                {"url": photo.image.url, "alt": photo.alt_text or ""}
+                for photo in photos
+                if photo.kind == "after" and photo.image
+            ]
+
+        if not before_images:
+            before_gallery = post.before_gallery or []
+            if isinstance(before_gallery, list):
+                before_images = list(before_gallery)
+        if not after_images:
+            after_gallery = post.after_gallery or []
+            if isinstance(after_gallery, list):
+                after_images = list(after_gallery)
+        if not before_images and post.cover_image:
             before_images = [{"url": post.cover_image.url, "alt": f"{post.title} before"}]
+        if not after_images and post.cover_image:
             after_images = [{"url": post.cover_image.url, "alt": f"{post.title} after"}]
         project_payload.append(
             {
