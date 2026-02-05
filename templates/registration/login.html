@@ -29,8 +29,8 @@
 }
 
 :root{
-  --font-display:"Diesel", "Ford", sans-serif;
-  --font-body:"Ford", "Diesel", sans-serif;
+  --font-display:"Diesel", "Ford", "Inter", sans-serif;
+  --font-body:"Inter", "Segoe UI", Roboto, Arial, sans-serif;
 
   --bg:#050505;
   --surface:#0c0d10;
@@ -66,6 +66,7 @@ html,body{
 body{
   margin:0;
   font-family:var(--font-body);
+  font-style:normal;
   color:var(--ink);
   background:
     radial-gradient(1200px 800px at 10% -20%, rgba(225,6,0,.22), transparent 60%),
@@ -143,6 +144,7 @@ h1.title{
   letter-spacing:.12em;
   text-transform:uppercase;
   color:#fff;
+  font-style:normal;
 }
 
 .login-form{
@@ -162,6 +164,7 @@ h1.title{
   text-transform:uppercase;
   color:var(--muted);
   font-weight:600;
+  font-style:normal;
 }
 
 .field__control{
@@ -180,6 +183,7 @@ h1.title{
   color:var(--ink);
   font-size:1rem;
   font-family:var(--font-body);
+  font-style:normal;
   transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
   appearance:none;
   -webkit-appearance:none;
@@ -282,6 +286,7 @@ h1.title{
   letter-spacing:.14em;
   text-transform:uppercase;
   color:#fff;
+  font-style:normal;
   background:linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
   cursor:pointer;
   transition:transform .2s ease, box-shadow .25s ease, filter .2s ease;
@@ -401,6 +406,7 @@ h1.title{
   letter-spacing:.1em;
   text-transform:uppercase;
   color:#fff;
+  font-style:normal;
 }
 
 .reg-form{
