@@ -37,12 +37,12 @@
   .terms-gate__check{
     display:flex;
     gap:.65rem;
-    align-items:flex-start;
+    align-items:center;
     font-size:.98rem;
     line-height:1.45;
     margin:0 0 1.2rem;
   }
-  .terms-gate__check input{ margin-top:.2rem; transform:scale(1.05); }
+  .terms-gate__check input{ margin-top:0; transform:scale(1.05); }
   .terms-gate__actions{ display:flex; flex-wrap:wrap; gap:.7rem; align-items:center; }
   .terms-gate__btn{
     display:inline-flex;
@@ -123,7 +123,6 @@
     gate.removeAttribute('hidden');
     document.body.classList.add('terms-gate-open');
     requestAnimationFrame(() => gate.classList.add('terms-gate--visible'));
-    if (checkbox) checkbox.focus();
   };
 
   const closeGate = () => {

@@ -1593,6 +1593,11 @@ def project_journal_view(request):
         published_label = ""
         if post.published_at:
             published_label = timezone.localtime(post.published_at).strftime("%b %d, %Y")
+        before_images = []
+        after_images = []
+        if post.cover_image:
+            before_images = [{"url": post.cover_image.url, "alt": f"{post.title} before"}]
+            after_images = [{"url": post.cover_image.url, "alt": f"{post.title} after"}]
         project_payload.append(
             {
                 "id": str(post.pk),
@@ -1610,6 +1615,8 @@ def project_journal_view(request):
                 "location": post.location or "",
                 "reading_time": post.reading_time or 0,
                 "published_label": published_label,
+                "before_images": before_images,
+                "after_images": after_images,
                 "cover_image": post.cover_image.url if post.cover_image else "",
                 "services": post.services_list,
                 "tags": post.tag_list,
