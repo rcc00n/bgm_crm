@@ -1882,40 +1882,64 @@ class TopbarSettingsAdminForm(forms.ModelForm):
         "lg": "clamp(1.35rem, 2.4vw, 1.9rem)",
         "xl": "clamp(1.5rem, 2.8vw, 2.1rem)",
     }
+    TAGLINE_SIZE_PRESETS = {
+        "sm": "0.85em",
+        "md": "1em",
+        "lg": "1.15em",
+        "xl": "1.3em",
+    }
 
     SIZE_CHOICES = (
-        ("sm", "Маленький"),
-        ("md", "Средний (по умолчанию)"),
-        ("lg", "Крупный"),
-        ("xl", "Очень крупный"),
-        ("custom", "Свой размер (оставить как есть)"),
+        ("sm", "Small"),
+        ("md", "Medium (default)"),
+        ("lg", "Large"),
+        ("xl", "Extra large"),
+        ("custom", "Custom (leave as-is)"),
     )
 
     nav_size_desktop_preset = forms.ChoiceField(
-        label="Размер меню (компьютер)",
+        label="Menu size (desktop)",
         choices=SIZE_CHOICES,
         required=True,
-        help_text="Выберите размер без CSS. «Свой размер» не меняет значение ниже.",
+        help_text="Pick a preset without CSS. Custom does not change the value below.",
     )
     brand_size_desktop_preset = forms.ChoiceField(
-        label="Размер названия (компьютер)",
+        label="Brand size (desktop)",
         choices=SIZE_CHOICES,
         required=True,
-        help_text="Удобный выбор размера для текста бренда.",
+        help_text="Quick size selection for the brand text.",
+    )
+    tagline_word_1_size_preset = forms.ChoiceField(
+        label="Tagline word 1 size (easy)",
+        choices=SIZE_CHOICES,
+        required=True,
+        help_text="Pick a preset size. Custom keeps the manual CSS value below.",
+    )
+    tagline_word_2_size_preset = forms.ChoiceField(
+        label="Tagline word 2 size (easy)",
+        choices=SIZE_CHOICES,
+        required=True,
+        help_text="Pick a preset size. Custom keeps the manual CSS value below.",
+    )
+    tagline_word_3_size_preset = forms.ChoiceField(
+        label="Tagline word 3 size (easy)",
+        choices=SIZE_CHOICES,
+        required=True,
+        help_text="Pick a preset size. Custom keeps the manual CSS value below.",
     )
 
     class Meta:
         model = TopbarSettings
         fields = "__all__"
         labels = {
-            "tagline_word_1_text": "Теглайн слово 1",
-            "tagline_word_2_text": "Теглайн слово 2",
-            "tagline_word_3_text": "Теглайн слово 3",
+            "tagline_word_1_text": "Tagline word 1",
+            "tagline_word_2_text": "Tagline word 2",
+            "tagline_word_3_text": "Tagline word 3",
         }
         help_texts = {
-            "tagline_word_1_text": "Если заполнить — заменит первое слово в теглайне.",
-            "tagline_word_2_text": "Если заполнить — заменит второе слово в теглайне.",
-            "tagline_word_3_text": "Если заполнить — заменит третье слово в теглайне.",
+            "tagline_word_1_text": "If set, replaces the first word in the tagline.",
+            "tagline_word_2_text": "If set, replaces the second word in the tagline.",
+            "tagline_word_3_text": "If set, replaces the third word in the tagline.",
         }
 
     def _preset_for_value(self, value, preset_map):
@@ -1931,6 +1955,9 @@ class TopbarSettingsAdminForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         nav_value = getattr(self.instance, "nav_size_desktop", None)
         brand_value = getattr(self.instance, "brand_size_desktop", None)
+        tag1_value = getattr(self.instance, "tagline_word_1_size", None)
+        tag2_value = getattr(self.instance, "tagline_word_2_size", None)
+        tag3_value = getattr(self.instance, "tagline_word_3_size", None)
         self.fields["nav_size_desktop_preset"].initial = self._preset_for_value(
             nav_value,
             self.NAV_SIZE_PRESETS,
@@ -1939,16 +1966,37 @@ class TopbarSettingsAdminForm(forms.ModelForm):
             brand_value,
             self.BRAND_SIZE_PRESETS,
         )
+        self.fields["tagline_word_1_size_preset"].initial = self._preset_for_value(
+            tag1_value,
+            self.TAGLINE_SIZE_PRESETS,
+        )
+        self.fields["tagline_word_2_size_preset"].initial = self._preset_for_value(
+            tag2_value,
+            self.TAGLINE_SIZE_PRESETS,
+        )
+        self.fields["tagline_word_3_size_preset"].initial = self._preset_for_value(
+            tag3_value,
+            self.TAGLINE_SIZE_PRESETS,
+        )
 
     def save(self, commit=True):
         obj = super().save(commit=False)
         nav_preset = self.cleaned_data.get("nav_size_desktop_preset")
         brand_preset = self.cleaned_data.get("brand_size_desktop_preset")
+        tag1_preset = self.cleaned_data.get("tagline_word_1_size_preset")
+        tag2_preset = self.cleaned_data.get("tagline_word_2_size_preset")
+        tag3_preset = self.cleaned_data.get("tagline_word_3_size_preset")
 
         if nav_preset in self.NAV_SIZE_PRESETS:
             obj.nav_size_desktop = self.NAV_SIZE_PRESETS[nav_preset]
         if brand_preset in self.BRAND_SIZE_PRESETS:
             obj.brand_size_desktop = self.BRAND_SIZE_PRESETS[brand_preset]
+        if tag1_preset in self.TAGLINE_SIZE_PRESETS:
+            obj.tagline_word_1_size = self.TAGLINE_SIZE_PRESETS[tag1_preset]
+        if tag2_preset in self.TAGLINE_SIZE_PRESETS:
+            obj.tagline_word_2_size = self.TAGLINE_SIZE_PRESETS[tag2_preset]
+        if tag3_preset in self.TAGLINE_SIZE_PRESETS:
+            obj.tagline_word_3_size = self.TAGLINE_SIZE_PRESETS[tag3_preset]
 
         if commit:
             obj.save()
@@ -1977,6 +2025,9 @@ class TopbarSettingsAdmin(admin.ModelAdmin):
                 "tagline_word_1_color",
                 "tagline_word_2_color",
                 "tagline_word_3_color",
+                "tagline_word_1_size_preset",
+                "tagline_word_2_size_preset",
+                "tagline_word_3_size_preset",
                 "tagline_word_1_size",
                 "tagline_word_2_size",
                 "tagline_word_3_size",
