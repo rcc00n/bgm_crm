@@ -228,6 +228,10 @@
   padding: 0 !important;
 }
 
+.bgm-topbar__nav-item--mobile-only{
+  display: none;
+}
+
 .bgm-topbar__nav-item--has-menu{
   padding-bottom: .4rem;
 }
@@ -421,6 +425,14 @@
   }
 
   .bgm-topbar__nav-list li{ width: 100% !important; }
+
+  .bgm-topbar__nav-item--mobile-only{
+    display: block !important;
+  }
+
+  .bgm-topbar__nav-item--has-menu{
+    display: none !important;
+  }
 
   .bgm-topbar__nav-item--has-menu > a::after,
   .bgm-topbar__nav-item--has-menu > .bgm-topbar__nav-trigger::after{

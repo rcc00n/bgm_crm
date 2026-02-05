@@ -7,6 +7,12 @@
     <li><a href="{% url 'store' %}">{{ topbar_copy.nav_products_label|default:"Products" }}</a></li>
   </ul>
 </li>
+<li class="bgm-topbar__nav-item bgm-topbar__nav-item--mobile-only">
+  <a href="{% url 'client-dashboard' %}">{{ topbar_copy.nav_services_label|default:"Services" }}</a>
+</li>
+<li class="bgm-topbar__nav-item bgm-topbar__nav-item--mobile-only">
+  <a href="{% url 'store' %}">{{ topbar_copy.nav_products_label|default:"Products" }}</a>
+</li>
 {% if user.is_authenticated %}
   <li class="bgm-topbar__nav-item"><a href="{% url 'dashboard' %}">{{ topbar_copy.nav_client_portal_label|default:"Client Portal" }}</a></li>
 {% else %}
