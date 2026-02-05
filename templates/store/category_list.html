@@ -66,7 +66,7 @@
 
           <div class="product__meta">
             <h3 class="product__title"><a href="{% url 'store-product' slug=p.slug %}">{{ p.name }}</a></h3>
-            {% if p.short_description %}<p class="section__desc">{{ p.short_description }}</p>{% endif %}
+            {% if p.short_description %}<p class="section__desc product__desc">{{ p.short_description }}</p>{% endif %}
             <div class="price price--stacked">
               {% if p.contact_for_estimate %}
                 <strong>Contact for estimate</strong>
@@ -122,15 +122,23 @@
   .hero__inner--tight{padding:2.2rem 0}
   .btn-row{display:flex;gap:.6rem;margin-top:.9rem;flex-wrap:wrap}
 
-  .grid--cards{--min:260px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--min),1fr));gap:1rem}
+  .grid--cards{--min:220px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--min),1fr));gap:.85rem}
   .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:transform .18s ease, box-shadow .18s ease}
   .card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.33)}
   .card__img{position:relative;overflow:hidden;border-radius:.9rem}
   .img-fit{width:100%;height:100%;object-fit:cover;aspect-ratio:16/9;display:block}
 
-  .card.product{display:flex;flex-direction:column;height:100%}
-  .product__meta{padding:.8rem;display:flex;flex-direction:column;flex:1}
-  .product__title{margin:.6rem 0 0}
+  .card.product{display:flex;flex-direction:column;height:100%;padding:.75rem}
+  .product__meta{padding:.6rem .7rem;display:flex;flex-direction:column;flex:1}
+  .product__title{margin:.45rem 0 0;font-size:1.02rem;line-height:1.25}
+  .product__desc{
+    font-size:.92rem;
+    line-height:1.45;
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
   .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
   .price--stacked{flex-direction:column;align-items:flex-start;gap:.3rem}
   .product__meta .price{margin-top:.35rem}
