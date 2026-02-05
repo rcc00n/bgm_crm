@@ -352,6 +352,7 @@
 
     .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
     .tiles--why{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+    .tiles--why .tile--link{grid-column:1/-1}
     @media (min-width: 900px){
       .tiles--why{grid-template-columns:repeat(3,minmax(0,1fr))}
     }
