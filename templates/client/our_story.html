@@ -167,6 +167,26 @@
   .grid--2{ grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); }
   .card{ display:flex; flex-direction:column; gap:.65rem; padding:1.1rem; border-radius:1rem; background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--line); box-shadow:var(--shadow); transition:transform .18s ease, box-shadow .18s ease; }
   .card:hover{ transform:translateY(-2px); box-shadow:0 16px 36px rgba(0,0,0,.55); }
+  .location-card{ display:grid; gap:1rem; align-items:stretch; }
+  .location-card__content{ display:flex; flex-direction:column; gap:.65rem; }
+  .location-card__map{
+    position:relative;
+    min-height:220px;
+    border-radius:.9rem;
+    overflow:hidden;
+    border:1px solid var(--line);
+    background:linear-gradient(180deg,#0b0b0b,#0a0a0a);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+  }
+  .location-card__map iframe{ width:100%; height:100%; border:0; display:block; filter:grayscale(.15) contrast(1.05); }
+  .location-card__map-overlay{
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle at 20% 15%, rgba(0,0,0,0), rgba(0,0,0,.35));
+    pointer-events:none;
+  }
+  .location-card__map-link{ position:absolute; right:.6rem; bottom:.6rem; z-index:2; }
+  .location-card__map-link .btn{ padding:.55rem .85rem; font-size:.85rem; }
   .story-photo{ display:grid; grid-template-columns:110px 1fr; gap:1rem; align-items:center; padding:.9rem; border:1px solid var(--line); border-radius:.9rem; background:rgba(255,255,255,.03); }
   .story-photo__frame{ width:110px; height:110px; border-radius:.9rem; overflow:hidden; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); }
   .story-photo__frame img{ width:100%; height:100%; object-fit:cover; display:block; }
@@ -231,6 +251,12 @@
     .hero__inner{ grid-template-columns:1fr; }
     .hero__media{ max-width:100%; }
     .hero__disclaimer{ position:static; margin-top:.85rem; backdrop-filter:none; }
+  }
+  @media (min-width:900px){
+    .location-card{ grid-template-columns:1.1fr .9fr; }
+  }
+  @media (max-width:600px){
+    .location-card__map{ min-height:180px; }
   }
 
   /* Contact FAB + Modal */
@@ -399,19 +425,36 @@
     <!-- Location -->
     <section class="section">
       <div class="container">
-        <article class="card">
-          <h2 class="section__title">{{ about_copy.location_title }}</h2>
-          <p>{{ about_copy.location_address|linebreaksbr }}</p>
-          <p class="muted">{{ about_copy.location_note }}</p>
-          <div class="btn-row">
-            <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ about_copy.location_primary_cta_label }}</a>
-            {% if user.is_authenticated %}
-              <a class="btn btn--ghost" href="{% url 'dashboard' %}">{{ about_copy.location_secondary_cta_label }}</a>
-            {% else %}
-              <a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dashboard' %}">{{ about_copy.location_secondary_cta_label }}</a>
-            {% endif %}
+        {% with map_query=about_copy.location_address|urlencode %}
+        <article class="card location-card">
+          <div class="location-card__content">
+            <h2 class="section__title">{{ about_copy.location_title }}</h2>
+            <p>{{ about_copy.location_address|linebreaksbr }}</p>
+            <p class="muted">{{ about_copy.location_note }}</p>
+            <div class="btn-row">
+              <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ about_copy.location_primary_cta_label }}</a>
+              {% if user.is_authenticated %}
+                <a class="btn btn--ghost" href="{% url 'dashboard' %}">{{ about_copy.location_secondary_cta_label }}</a>
+              {% else %}
+                <a class="btn btn--ghost" href="{% url 'login' %}?next={% url 'dashboard' %}">{{ about_copy.location_secondary_cta_label }}</a>
+              {% endif %}
+            </div>
+          </div>
+          <div class="location-card__map">
+            <iframe
+              title="Map to {{ about_copy.location_title }}"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              src="https://www.google.com/maps?q={{ map_query }}&output=embed"></iframe>
+            <div class="location-card__map-overlay" aria-hidden="true"></div>
+            <div class="location-card__map-link">
+              <a class="btn btn--ghost" href="https://www.google.com/maps/search/?api=1&query={{ map_query }}" target="_blank" rel="noopener">
+                Open in Google Maps
+              </a>
+            </div>
           </div>
         </article>
+        {% endwith %}
       </div>
     </section>
   </main>
