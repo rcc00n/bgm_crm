@@ -799,3 +799,5 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 # карта sourcemap .css.map по-прежнему может отсутствовать — это ок:
 WHITENOISE_IGNORE_MISSING_FILES = True
 WHITENOISE_MANIFEST_STRICT = False
+# Serve from source static directories if the file is missing from STATIC_ROOT.
+WHITENOISE_USE_FINDERS = True
