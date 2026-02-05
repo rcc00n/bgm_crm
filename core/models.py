@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db.models import Sum
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.templatetags.static import static
+from django.contrib.staticfiles import finders
 
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
@@ -2220,7 +2221,14 @@ class FontPreset(models.Model):
             except Exception:
                 pass
         if self.static_path:
-            return static(self.static_path)
+            try:
+                return static(self.static_path)
+            except Exception:
+                try:
+                    if finders.find(self.static_path):
+                        return f"{settings.STATIC_URL}{self.static_path.lstrip('/')}"
+                except Exception:
+                    pass
         return ""
 
     @property
