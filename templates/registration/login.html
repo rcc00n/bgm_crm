@@ -165,6 +165,23 @@ h1.title{margin:0 0 2.2rem;font-size:2.4rem;font-weight:800;text-align:center;le
 .field input:not([type="checkbox"]):not([type="radio"]):focus+label,
 .field input:not([type="checkbox"]):not([type="radio"]):not(:placeholder-shown)+label{ top:10px;transform:none;font-size:12px;opacity:.95; color:#fff; }
 
+/* Autofill keeps dark theme + floating labels */
+.field input:-webkit-autofill,
+.field input:-webkit-autofill:hover,
+.field input:-webkit-autofill:focus{
+  -webkit-text-fill-color: var(--ink) !important;
+  caret-color: var(--ink);
+  box-shadow: 0 0 0 1000px var(--field-bg) inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+.field input:-webkit-autofill + label{
+  top:10px;
+  transform:none;
+  font-size:12px;
+  opacity:.95;
+  color:#fff;
+}
+
 /* ===== Buttons ===== */
 .btn{
   position:relative;overflow:hidden;width:100%;padding:16px;border:none;border-radius:999px;
