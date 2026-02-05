@@ -731,45 +731,7 @@
 
   <a href="#main" class="visually-hidden">{{ home_copy.skip_to_main_label }}</a>
 
-  <header class="site-header" role="banner">
-    <div class="container site-header__inner">
-      <a class="brand" href="/">
-        <span class="brand__logo">
-        <span class="brand__word brand__word--white">{{ home_copy.brand_word_white }}</span>
-        <span class="brand__word brand__word--red">{{ home_copy.brand_word_red }}</span>
-      </span>
-      <span class="brand__tagline">{{ home_copy.brand_tagline }}</span>
-    </a>
-
-      <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
-        <span class="site-header__toggle-box" aria-hidden="true">
-          <span class="site-header__toggle-lines"></span>
-        </span>
-        <span class="sr-only">{{ home_copy.nav_toggle_label }}</span>
-      </button>
-
-      <nav id="siteNav" aria-label="Main navigation">
-        <ul>
-          <li><a href="{% url 'client-dashboard' %}" title="Services catalog">{{ home_copy.nav_services_label }}</a></li>
-          {% if user.is_authenticated %}
-            <li><a href="{% url 'dashboard' %}">{{ home_copy.nav_client_portal_label }}</a></li>
-          {% else %}
-            <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">{{ home_copy.nav_login_label }}</a></li>
-          {% endif %}
-          <li><a href="{% url 'store' %}">{{ home_copy.nav_products_label }}</a></li>
-          <li>
-            <a href="{% url 'merch' %}">
-              {{ home_copy.nav_merch_label }}
-              {% if home_copy.nav_merch_badge %}<span class="badge">{{ home_copy.nav_merch_badge }}</span>{% endif %}
-            </a>
-          </li>
-          <li><a href="{% url 'dealer-status' %}">{{ home_copy.nav_dealers_label }}</a></li>
-          <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>{{ home_copy.nav_financing_label }}</a></li>
-          <li><a href="{% url 'our-story' %}">{{ home_copy.nav_about_label }}</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
+  {% include "includes/topbar_client.html" %}
 
   <section class="hero" id="top">
     {% if home_copy.hero_logo or home_copy.hero_logo_backdrop %}

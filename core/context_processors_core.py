@@ -232,10 +232,12 @@ def currency(request):
 def topbar_style(request):
     settings_obj = TopbarSettings.get_solo()
     brand_font = settings_obj.brand_font
+    brand_word_white_font = settings_obj.brand_word_white_font
+    brand_word_red_font = settings_obj.brand_word_red_font
     nav_font = settings_obj.nav_font
 
     fonts = []
-    for font in (brand_font, nav_font):
+    for font in (brand_font, brand_word_white_font, brand_word_red_font, nav_font):
         if not font or not font.url:
             continue
         serialized = serialize_font_preset(font)
@@ -245,6 +247,8 @@ def topbar_style(request):
     return {
         "topbar_settings": {
             "brand": serialize_font_preset(brand_font),
+            "brand_word_white": serialize_font_preset(brand_word_white_font),
+            "brand_word_red": serialize_font_preset(brand_word_red_font),
             "nav": serialize_font_preset(nav_font),
             "brand_size": settings_obj.brand_size_desktop,
             "brand_weight": settings_obj.brand_weight,
@@ -253,6 +257,9 @@ def topbar_style(request):
             "nav_size": settings_obj.nav_size,
             "nav_size_desktop": settings_obj.nav_size_desktop,
             "padding_y_desktop": settings_obj.padding_y_desktop,
+            "order_brand": settings_obj.order_brand,
+            "order_tagline": settings_obj.order_tagline,
+            "order_nav": settings_obj.order_nav,
             "fonts": fonts,
         }
     }

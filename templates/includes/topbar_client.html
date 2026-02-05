@@ -1,0 +1,33 @@
+{% firstof header_copy home_copy services_copy store_copy merch_copy financing_copy about_copy dealer_copy as topbar_copy %}
+<header class="site-header site-header--v2" role="banner">
+  <div class="container site-header__inner">
+    <div class="topbar__slot topbar__slot--brand">
+      <a class="topbar-brand" href="{% url 'home' %}">
+        <span class="topbar-brand__word topbar-brand__word--white">{{ topbar_copy.brand_word_white|default:"BAD GUY" }}</span>
+        <span class="topbar-brand__word topbar-brand__word--red">{{ topbar_copy.brand_word_red|default:"MOTORS" }}</span>
+      </a>
+      {% if topbar_badge_label %}
+        <span class="topbar-badge">{{ topbar_badge_label }}</span>
+      {% endif %}
+    </div>
+
+    <div class="topbar__slot topbar__slot--tagline">
+      <span class="topbar-tagline">{{ topbar_copy.brand_tagline|default:"CUSTOM BUILDS • INSTALLS • UPGRADES" }}</span>
+    </div>
+
+    <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
+      <span class="site-header__toggle-box" aria-hidden="true">
+        <span class="site-header__toggle-lines"></span>
+      </span>
+      <span class="visually-hidden">{{ topbar_copy.nav_toggle_label|default:"Toggle navigation" }}</span>
+    </button>
+
+    <nav id="siteNav" class="topbar-nav topbar__slot topbar__slot--nav" aria-label="Main navigation">
+      <ul>
+        {% with nav_template=topbar_nav_template|default:"includes/topbar_nav_default.html" %}
+          {% include nav_template %}
+        {% endwith %}
+      </ul>
+    </nav>
+  </div>
+</header>

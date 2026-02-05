@@ -143,23 +143,7 @@
 <body>
   {% include "includes/marketing_body.html" %}
   <div id="bg"></div>
-  <header class="site-header">
-    <div class="container site-header__inner">
-      <a class="brand" href="{% url 'home' %}">
-        <span class="brand__word">{{ dealer_copy.brand_word_white }}</span>
-        <span class="brand__word brand__word--red">{{ dealer_copy.brand_word_red }}</span>
-      </a>
-      <div class="badge">{{ dealer_copy.header_badge_label }}</div>
-      <nav aria-label="Main navigation">
-        <ul>
-          <li><a href="{% url 'store' %}">{{ dealer_copy.nav_store_label }}</a></li>
-          <li><a href="{% url 'store-cart' %}">{{ dealer_copy.nav_cart_label }}</a></li>
-          <li><a href="{% url 'dealer-status' %}" aria-current="page">{{ dealer_copy.nav_dealers_label }}</a></li>
-          <li><a href="{% url 'client-dashboard' %}">{{ dealer_copy.nav_services_label }}</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
+  {% include "includes/topbar_client.html" with topbar_nav_template="includes/topbar_nav_dealer.html" topbar_badge_label=dealer_copy.header_badge_label %}
 
   <main class="container">
     <section class="hero">
@@ -410,5 +394,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+  <script src="{% static 'js/topbar.js' %}"></script>
 </body>
 </html>

@@ -1699,8 +1699,9 @@ class TopbarSettingsAdmin(admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
-        ("Fonts", {"fields": ("brand_font", "nav_font")}),
+        ("Fonts", {"fields": ("brand_font", "brand_word_white_font", "brand_word_red_font", "nav_font")}),
         ("Sizing", {"fields": ("brand_size_desktop", "nav_size", "nav_size_desktop", "padding_y_desktop")}),
+        ("Layout", {"fields": ("order_brand", "order_tagline", "order_nav")}),
         ("Brand styling", {"fields": ("brand_weight", "brand_letter_spacing", "brand_transform")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )

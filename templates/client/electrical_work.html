@@ -643,31 +643,7 @@
 
   <a href="#main" class="visually-hidden">Skip to main content</a>
 
-  <!-- HEADER -->
-  <header class="site-header" role="banner">
-    <div class="container site-header__inner">
-      <div class="brand">
-        <span class="brand__logo">
-          <span class="brand__word brand__word--white">BAD GUY</span>
-          <span class="brand__word brand__word--red">MOTORS</span>
-        </span>
-        <span class="brand__tagline">CUSTOM BUILDS • INSTALLS • UPGRADES</span>
-      </div>
-
-      <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
-        <span class="site-header__toggle-box" aria-hidden="true">
-          <span class="site-header__toggle-lines"></span>
-        </span>
-        <span class="sr-only">Toggle navigation</span>
-      </button>
-
-      <nav id="siteNav" aria-label="Main navigation">
-        <ul>
-          <!-- Intentionally left empty for focused landing page funnel -->
-        </ul>
-      </nav>
-    </div>
-  </header>
+  {% include "includes/topbar_client.html" %}
 
   <!-- HERO + FORM -->
   <section class="hero" id="top">

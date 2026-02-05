@@ -2318,6 +2318,22 @@ class TopbarSettings(models.Model):
         related_name="topbar_brand_settings",
         help_text="Font used for the business name in the top bar.",
     )
+    brand_word_white_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_brand_word_white_settings",
+        help_text="Optional font override for the first brand word.",
+    )
+    brand_word_red_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_brand_word_red_settings",
+        help_text="Optional font override for the second brand word.",
+    )
     nav_font = models.ForeignKey(
         FontPreset,
         on_delete=models.SET_NULL,
@@ -2362,6 +2378,21 @@ class TopbarSettings(models.Model):
         max_length=16,
         default="0.95rem",
         help_text="CSS padding-block for the top bar (desktop).",
+    )
+    order_brand = models.CharField(
+        max_length=8,
+        default="1",
+        help_text="CSS order for the brand block.",
+    )
+    order_tagline = models.CharField(
+        max_length=8,
+        default="2",
+        help_text="CSS order for the tagline block.",
+    )
+    order_nav = models.CharField(
+        max_length=8,
+        default="3",
+        help_text="CSS order for the navigation block.",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
