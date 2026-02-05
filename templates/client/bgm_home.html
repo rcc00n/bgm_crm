@@ -313,6 +313,29 @@
       #services .grid--services--limit2 > :nth-child(n+9){display:none}
     }
 
+    @media (min-width: 861px){
+      #products .grid--products{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:.9rem;
+      }
+      #products .grid--products .card{
+        padding:.85rem;
+        gap:.6rem;
+      }
+      #products .grid--products .card__img{border-radius:.7rem}
+      #products .grid--products .card h3{font-size:1rem!important}
+      #products .grid--products .price__hint{font-size:.72rem}
+      #products .grid--products .old{font-size:.85rem}
+      #products .grid--products .btn{padding:.6rem .95rem;font-size:.85rem!important}
+      #products .grid--products .card__badge{font-size:.68rem}
+      #products .grid--products--limit2 > :nth-child(n+7){display:none}
+    }
+
+    @media (min-width: 1100px){
+      #products .grid--products{grid-template-columns:repeat(4,minmax(0,1fr))}
+      #products .grid--products--limit2 > :nth-child(n+9){display:none}
+    }
+
     .home-card-actions{
       display:flex;
       gap:.5rem;
@@ -425,6 +448,7 @@
     /* Headings and UI (keep Ford where appropriate, not in top bar) */
     h1,h2,h3,h4,h5,h6,.hero__title{font-family:var(--font-head)!important;letter-spacing:.01em;font-style:normal}
     .section__title{font-family:var(--font-body)!important;font-weight:900!important;font-size:clamp(1.9rem,2.8vw,2.25rem)!important;letter-spacing:.005em!important;line-height:1.2!important}
+    .section__title--compact{font-size:clamp(1.5rem,2.1vw,1.85rem)!important}
     .section__title,.hero__title{letter-spacing:.01em}
     .section__desc{font-size:clamp(1rem,1.4vw,1.06rem)!important;color:rgba(255,255,255,.86)!important}
     .kicker{
@@ -879,7 +903,7 @@
         <div class="home-gallery" aria-label="{{ home_copy.gallery_title }}">
           <div class="section__head home-gallery__head">
             <div>
-              <h3 class="section__title">{{ home_copy.gallery_title }}</h3>
+              <h3 class="section__title section__title--compact">{{ home_copy.gallery_title }}</h3>
               <p class="section__desc">{{ home_copy.gallery_desc|safe }}</p>
             </div>
             <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
@@ -1068,7 +1092,7 @@
         </div>
 
         {% if home_products %}
-          <div class="grid grid--products">
+          <div class="grid grid--products grid--products--limit2">
             {% for p in home_products|slice:":8" %}
               <article class="card">
                 <a href="{% url 'store-product' slug=p.slug %}">
