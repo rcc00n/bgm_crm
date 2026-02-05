@@ -2,6 +2,7 @@
 {% firstof header_copy home_copy services_copy store_copy merch_copy financing_copy about_copy dealer_copy as topbar_copy %}
 {% with brand_words=topbar_copy.brand_word_white|default:"Bad Guy"|split_words %}
 {% with tagline_words=topbar_copy.brand_tagline|default:"CUSTOM BUILDS • INSTALLS • UPGRADES"|split_bullets %}
+{% with tagline_override_1=topbar_settings.tagline_word_1_text|default:"" tagline_override_2=topbar_settings.tagline_word_2_text|default:"" tagline_override_3=topbar_settings.tagline_word_3_text|default:"" %}
 <header class="bgm-topbar" role="banner">
   <div class="bgm-topbar__inner">
     <div class="bgm-topbar__slot bgm-topbar__slot--brand">
@@ -19,14 +20,32 @@
 
     <div class="bgm-topbar__slot bgm-topbar__slot--tagline">
       <span class="bgm-topbar__tagline">
-        <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--1">{{ tagline_words.0|default:"CUSTOM BUILDS" }}</span>
-        {% if tagline_words.1 %}
-          <span class="bgm-topbar__tagline-sep">•</span>
-          <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--2">{{ tagline_words.1 }}</span>
-        {% endif %}
-        {% if tagline_words.2 %}
-          <span class="bgm-topbar__tagline-sep">•</span>
-          <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--3">{{ tagline_words.2 }}</span>
+        {% if tagline_override_1 or tagline_override_2 or tagline_override_3 %}
+          {% if tagline_override_1 %}
+            <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--1">{{ tagline_override_1 }}</span>
+          {% endif %}
+          {% if tagline_override_1 and tagline_override_2 %}
+            <span class="bgm-topbar__tagline-sep">•</span>
+          {% endif %}
+          {% if tagline_override_2 %}
+            <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--2">{{ tagline_override_2 }}</span>
+          {% endif %}
+          {% if (tagline_override_1 or tagline_override_2) and tagline_override_3 %}
+            <span class="bgm-topbar__tagline-sep">•</span>
+          {% endif %}
+          {% if tagline_override_3 %}
+            <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--3">{{ tagline_override_3 }}</span>
+          {% endif %}
+        {% else %}
+          <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--1">{{ tagline_words.0|default:"CUSTOM BUILDS" }}</span>
+          {% if tagline_words.1 %}
+            <span class="bgm-topbar__tagline-sep">•</span>
+            <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--2">{{ tagline_words.1 }}</span>
+          {% endif %}
+          {% if tagline_words.2 %}
+            <span class="bgm-topbar__tagline-sep">•</span>
+            <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--3">{{ tagline_words.2 }}</span>
+          {% endif %}
         {% endif %}
       </span>
     </div>
@@ -72,5 +91,6 @@
   </span>
   <span class="bgm-cart-fab__label">Cart</span>
 </a>
+{% endwith %}
 {% endwith %}
 {% endwith %}

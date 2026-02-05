@@ -2383,6 +2383,25 @@ class TopbarSettings(models.Model):
         help_text="Optional font override for the third tagline word.",
     )
 
+    tagline_word_1_text = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        help_text="Optional override for the first tagline word.",
+    )
+    tagline_word_2_text = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        help_text="Optional override for the second tagline word.",
+    )
+    tagline_word_3_text = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        help_text="Optional override for the third tagline word.",
+    )
+
     brand_size_desktop = models.CharField(
         max_length=32,
         default="clamp(1.25rem, 2.1vw, 1.7rem)",

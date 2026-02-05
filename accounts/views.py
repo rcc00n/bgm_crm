@@ -531,13 +531,13 @@ def _select_home_products(
     return selected
 
 
-def _build_home_reviews(*, limit: int = 6):
-    landing_reviews = list(
-        LandingPageReview.objects.filter(
-            page=LandingPageReview.Page.HOME,
-            is_published=True,
-        ).order_by("display_order", "-created_at")[:limit]
-    )
+def _build_home_reviews(*, limit: int | None = None):
+    landing_qs = LandingPageReview.objects.filter(
+        is_published=True,
+    ).order_by("page", "display_order", "-created_at")
+    if limit:
+        landing_qs = landing_qs[:limit]
+    landing_reviews = list(landing_qs)
     if landing_reviews:
         return landing_reviews
 

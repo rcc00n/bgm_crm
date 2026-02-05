@@ -1907,6 +1907,16 @@ class TopbarSettingsAdminForm(forms.ModelForm):
     class Meta:
         model = TopbarSettings
         fields = "__all__"
+        labels = {
+            "tagline_word_1_text": "Теглайн слово 1",
+            "tagline_word_2_text": "Теглайн слово 2",
+            "tagline_word_3_text": "Теглайн слово 3",
+        }
+        help_texts = {
+            "tagline_word_1_text": "Если заполнить — заменит первое слово в теглайне.",
+            "tagline_word_2_text": "Если заполнить — заменит второе слово в теглайне.",
+            "tagline_word_3_text": "Если заполнить — заменит третье слово в теглайне.",
+        }
 
     def _preset_for_value(self, value, preset_map):
         if not value:
@@ -1959,7 +1969,25 @@ class TopbarSettingsAdmin(admin.ModelAdmin):
         ("Layout", {"fields": ("order_brand", "order_tagline", "order_nav")}),
         ("Brand styling", {"fields": ("brand_weight", "brand_letter_spacing", "brand_transform")}),
         ("Brand word styles", {"fields": ("brand_word_1_color", "brand_word_2_color", "brand_word_3_color", "brand_word_1_size", "brand_word_2_size", "brand_word_3_size", "brand_word_1_weight", "brand_word_2_weight", "brand_word_3_weight", "brand_word_1_style", "brand_word_2_style", "brand_word_3_style")}),
-        ("Tagline word styles", {"fields": ("tagline_word_1_color", "tagline_word_2_color", "tagline_word_3_color", "tagline_word_1_size", "tagline_word_2_size", "tagline_word_3_size", "tagline_word_1_weight", "tagline_word_2_weight", "tagline_word_3_weight", "tagline_word_1_style", "tagline_word_2_style", "tagline_word_3_style")}),
+        ("Tagline (words + styles)", {
+            "fields": (
+                "tagline_word_1_text",
+                "tagline_word_2_text",
+                "tagline_word_3_text",
+                "tagline_word_1_color",
+                "tagline_word_2_color",
+                "tagline_word_3_color",
+                "tagline_word_1_size",
+                "tagline_word_2_size",
+                "tagline_word_3_size",
+                "tagline_word_1_weight",
+                "tagline_word_2_weight",
+                "tagline_word_3_weight",
+                "tagline_word_1_style",
+                "tagline_word_2_style",
+                "tagline_word_3_style",
+            )
+        }),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
 
@@ -2101,7 +2129,30 @@ class TopbarSettingsAdmin(admin.ModelAdmin):
         .topbar-preview__nav span{{padding:.2rem .4rem;border-radius:.5rem;}}
         """
 
-        preview_markup = """
+        tag1_text = (obj.tagline_word_1_text or "").strip()
+        tag2_text = (obj.tagline_word_2_text or "").strip()
+        tag3_text = (obj.tagline_word_3_text or "").strip()
+        if not (tag1_text or tag2_text or tag3_text):
+            tag1_text = "CUSTOM BUILDS"
+            tag2_text = "INSTALLS"
+            tag3_text = "UPGRADES"
+
+        def _tag_span(cls_name: str, text: str) -> str:
+            return f'<span class="{cls_name}">{escape(text)}</span>'
+
+        tagline_parts = []
+        if tag1_text:
+            tagline_parts.append(_tag_span("tag-1", tag1_text))
+        if tag1_text and tag2_text:
+            tagline_parts.append("<span>•</span>")
+        if tag2_text:
+            tagline_parts.append(_tag_span("tag-2", tag2_text))
+        if (tag1_text or tag2_text) and tag3_text:
+            tagline_parts.append("<span>•</span>")
+        if tag3_text:
+            tagline_parts.append(_tag_span("tag-3", tag3_text))
+
+        preview_markup = f"""
         <div class="topbar-preview">
           <div class="topbar-preview__brand">
             <span class="word-1">BAD</span>
@@ -2109,11 +2160,7 @@ class TopbarSettingsAdmin(admin.ModelAdmin):
             <span class="word-3">MOTORS</span>
           </div>
           <div class="topbar-preview__tagline">
-            <span class="tag-1">CUSTOM BUILDS</span>
-            <span>•</span>
-            <span class="tag-2">INSTALLS</span>
-            <span>•</span>
-            <span class="tag-3">UPGRADES</span>
+            {''.join(tagline_parts)}
           </div>
           <div class="topbar-preview__nav">
             <span>Services</span>

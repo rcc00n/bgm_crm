@@ -24,9 +24,9 @@ body {
     --radius-lg: 1.05rem !important;
     --radius-md: 0.75rem !important;
     --radius-sm: 0.5rem !important;
-    --topbar-padding-y-desktop: 0.65rem !important;
-    --topbar-nav-size-desktop: 0.95rem !important;
-    --topbar-brand-size: clamp(1.05rem, 1.5vw, 1.35rem) !important;
+    --topbar-padding-y-desktop: 0.65rem;
+    --topbar-nav-size-desktop: 0.95rem;
+    --topbar-brand-size: clamp(1.05rem, 1.5vw, 1.35rem);
   }
 
   h1 {
