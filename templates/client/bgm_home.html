@@ -345,15 +345,40 @@
     }
 
     .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+    .tiles--why{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+    @media (min-width: 900px){
+      .tiles--why{grid-template-columns:repeat(3,minmax(0,1fr))}
+    }
     .tile{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:1rem;padding:1rem}
     .tile__icon{font-size:1.4rem;color:var(--accent);margin-bottom:.25rem}
     .tile--link{display:flex;flex-direction:column;gap:.4rem;min-height:100%;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
     .tile--link .tile__cta{margin-top:.1rem;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--muted);display:inline-flex;align-items:center;gap:.35rem}
     .tile--link:hover,.tile--link:focus-visible{border-color:rgba(213,0,0,.65);box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 20px rgba(213,0,0,.2);transform:translateY(-2px);outline:none}
     .tile--link:hover .tile__cta,.tile--link:focus-visible .tile__cta{color:var(--accent)}
-    .reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1.1rem}
-    .review-card{display:flex;flex-direction:column;gap:.6rem}
-    .review-stars{font-size:.9rem;color:var(--accent-2);letter-spacing:.14em}
+    .review-carousel{position:relative;margin-top:1.2rem}
+    .review-carousel[data-review-count="1"] .review-carousel__nav{display:none}
+    .review-carousel__nav{display:flex;gap:.4rem;justify-content:flex-end;margin-bottom:.45rem}
+    .review-carousel__btn{
+      width:38px;height:38px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(0,0,0,.45);color:#fff;display:grid;place-items:center;cursor:pointer;
+      transition:.2s ease;
+    }
+    .review-carousel__btn:hover{border-color:rgba(213,0,0,.6);transform:translateY(-1px)}
+    .review-carousel__btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    .review-carousel__btn svg{width:20px;height:20px;display:block}
+    .review-carousel__track{
+      display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+      padding:.1rem 0 .65rem;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(255,255,255,.2) rgba(255,255,255,.06);
+    }
+    .review-carousel__track::-webkit-scrollbar{height:6px}
+    .review-carousel__track::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:999px}
+    .review-carousel__track::-webkit-scrollbar-track{background:rgba(255,255,255,.06)}
+    .review-slide{flex:0 0 100%;max-width:100%;scroll-snap-align:start}
+    .review-card{display:flex;flex-direction:column;gap:.6rem;padding:1.1rem 1.35rem;min-height:140px}
+    .review-stars{font-size:.92rem;color:var(--accent-2);letter-spacing:.18em}
+    .review-quote{font-size:1.02rem;color:var(--muted)}
     .review-author{font-weight:800;color:rgba(255,255,255,.9);font-size:.95rem}
 
     details{background:var(--panel);border:1px solid var(--line);border-radius:.8rem;padding:.8rem}
@@ -1173,7 +1198,7 @@
           <h2 class="section__title">{{ home_copy.why_title }}</h2>
           <p class="section__desc">{{ home_copy.why_desc }}</p>
         </div>
-        <div class="tiles">
+        <div class="tiles tiles--why">
           <div class="tile"><div class="tile__icon">★</div><b>{{ home_copy.why_tile_1_title }}</b><p class="muted">{{ home_copy.why_tile_1_desc }}</p></div>
           <div class="tile"><div class="tile__icon">⏱</div><b>{{ home_copy.why_tile_2_title }}</b><p class="muted">{{ home_copy.why_tile_2_desc }}</p></div>
           <div class="tile"><div class="tile__icon">🔒</div><b>{{ home_copy.why_tile_3_title }}</b><p class="muted">{{ home_copy.why_tile_3_desc }}</p></div>
@@ -1185,19 +1210,29 @@
           </a>
         </div>
         {% if home_reviews %}
-          <div class="reviews-grid" aria-label="Testimonials">
-            {% for review in home_reviews %}
-              <article class="tile review-card">
-                <div class="review-stars" aria-hidden="true">
-                  {% for _ in review.star_range %}★{% endfor %}
-                </div>
-                <p class="muted">&ldquo;{{ review.quote }}&rdquo;</p>
-                <p class="review-author">
-                  {{ review.reviewer_name }}{% if review.reviewer_title %} &mdash; {{ review.reviewer_title }}{% endif %}
-                </p>
-                <span class="sr-only">{{ review.rating }} star review</span>
-              </article>
-            {% endfor %}
+          <div class="review-carousel" data-review-carousel data-review-count="{{ home_reviews|length }}">
+            <div class="review-carousel__nav">
+              <button class="review-carousel__btn" type="button" data-review-prev aria-label="Previous review">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 5.5 9 12l6.5 6.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="review-carousel__btn" type="button" data-review-next aria-label="Next review">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5 15 12l-6.5 6.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="review-carousel__track" data-review-track aria-label="Testimonials" role="list">
+              {% for review in home_reviews %}
+                <article class="tile review-card review-slide" role="listitem">
+                  <div class="review-stars" aria-hidden="true">
+                    {% for _ in review.star_range %}★{% endfor %}
+                  </div>
+                  <p class="review-quote">&ldquo;{{ review.quote }}&rdquo;</p>
+                  <p class="review-author">
+                    {{ review.reviewer_name }}{% if review.reviewer_title %} &mdash; {{ review.reviewer_title }}{% endif %}
+                  </p>
+                  <span class="sr-only">{{ review.rating }} star review</span>
+                </article>
+              {% endfor %}
+            </div>
           </div>
         {% endif %}
       </div>
@@ -1545,6 +1580,54 @@
 
       setCaption(slides[index]);
       startTimer();
+    });
+  })();
+  </script>
+
+  <!-- Review carousel -->
+  <script id="review-carousel-js">
+  (function(){
+    const carousels = document.querySelectorAll('[data-review-carousel]');
+    if (!carousels.length) return;
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    carousels.forEach((carousel) => {
+      const track = carousel.querySelector('[data-review-track]');
+      if (!track) return;
+      const prevBtn = carousel.querySelector('[data-review-prev]');
+      const nextBtn = carousel.querySelector('[data-review-next]');
+
+      const updateButtons = () => {
+        if (!prevBtn || !nextBtn) return;
+        const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth - 2);
+        const hasOverflow = track.scrollWidth > track.clientWidth + 2;
+        prevBtn.style.display = hasOverflow ? '' : 'none';
+        nextBtn.style.display = hasOverflow ? '' : 'none';
+        prevBtn.disabled = track.scrollLeft <= 2;
+        nextBtn.disabled = track.scrollLeft >= maxScroll;
+      };
+
+      const scrollStep = () => track.clientWidth || 0;
+      const scrollByStep = (dir) => {
+        if (!track) return;
+        const delta = scrollStep() * dir;
+        track.scrollBy({ left: delta, behavior: prefersReduced ? 'auto' : 'smooth' });
+      };
+
+      if (prevBtn) prevBtn.addEventListener('click', () => scrollByStep(-1));
+      if (nextBtn) nextBtn.addEventListener('click', () => scrollByStep(1));
+
+      let raf = null;
+      track.addEventListener('scroll', () => {
+        if (raf) return;
+        raf = window.requestAnimationFrame(() => {
+          updateButtons();
+          raf = null;
+        });
+      }, { passive: true });
+
+      window.addEventListener('resize', updateButtons);
+      updateButtons();
     });
   })();
   </script>
