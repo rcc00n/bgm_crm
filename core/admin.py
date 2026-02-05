@@ -4795,6 +4795,7 @@ class LeadSubmissionEventAdmin(admin.ModelAdmin):
         "success",
         "suspicion_score",
         "ip_address",
+        "ip_location",
         "cf_country",
         "cf_asn",
     )
@@ -4814,7 +4815,7 @@ class LeadSubmissionEventAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("form_type", "outcome", "success", "suspicion_score")}),
         ("Request", {"fields": ("path", "referer", "origin", "accept_language", "user_agent")}),
-        ("Network", {"fields": ("ip_address", "cf_country", "cf_asn", "cf_asn_org")}),
+        ("Network", {"fields": ("ip_address", "ip_location", "cf_country", "cf_asn", "cf_asn_org")}),
         ("Session", {"fields": ("session_key_hash", "session_first_seen_at", "time_on_page_ms")}),
         ("Diagnostics", {"fields": ("validation_errors", "flags", "created_at")}),
     )
@@ -4826,6 +4827,7 @@ class VisitorSessionAdmin(admin.ModelAdmin):
         "session_key",
         "user_display",
         "ip_address",
+        "ip_location",
         "landing_path",
         "created_at",
         "last_seen_at",
@@ -4836,6 +4838,7 @@ class VisitorSessionAdmin(admin.ModelAdmin):
         "user_email_snapshot",
         "user_name_snapshot",
         "ip_address",
+        "ip_location",
     )
     list_filter = ("created_at", "last_seen_at")
     readonly_fields = ("created_at", "last_seen_at")

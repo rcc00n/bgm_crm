@@ -76,6 +76,7 @@ from core.services.analytics import (
     summarize_staff_action_history,
     summarize_web_analytics_insights,
 )
+from core.services.ip_location import format_ip_location, get_client_ip
 from core.services.email_reporting import describe_email_types
 from notifications.services import (
     notify_about_service_lead,
@@ -2282,7 +2283,8 @@ def analytics_collect(request):
         visitor_session, _ = VisitorSession.objects.get_or_create(
             session_key=session_key,
             defaults={
-                "ip_address": request.META.get("REMOTE_ADDR"),
+                "ip_address": get_client_ip(request.META),
+                "ip_location": format_ip_location(request.META),
                 "user_agent": (request.META.get("HTTP_USER_AGENT") or "")[:1024],
                 "landing_path": (request.path or "")[:512],
             },

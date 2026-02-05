@@ -13,6 +13,8 @@ from django.core import signing
 from django.core.cache import cache
 from django.utils import timezone
 
+from core.services.ip_location import format_ip_location, get_client_ip
+
 logger = logging.getLogger(__name__)
 HONEYPOT_FIELD = getattr(settings, "LEAD_FORM_HONEYPOT_FIELD", "company")
 TOKEN_SALT = "lead-form-token"
@@ -97,6 +99,7 @@ class LeadEvaluation:
     time_on_page_ms: int | None
     session_first_seen_at: timezone.datetime | None
     ip_address: str | None
+    ip_location: str
     subnet: str | None
     user_agent: str
     accept_language: str
@@ -137,16 +140,6 @@ def _safe_str(value: str | None, limit: int = 512) -> str:
     if not value:
         return ""
     return value[:limit]
-
-
-def get_client_ip(request) -> str | None:
-    cf_ip = request.META.get("HTTP_CF_CONNECTING_IP")
-    if cf_ip:
-        return cf_ip
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR")
 
 
 def get_ip_subnet(ip: str | None) -> str | None:
@@ -344,7 +337,8 @@ def is_disposable_email(email: str | None) -> bool:
 
 
 def evaluate_lead_submission(request, *, purpose: str, email: str | None = None) -> LeadEvaluation:
-    ip_address = get_client_ip(request)
+    ip_address = get_client_ip(request.META)
+    ip_location = format_ip_location(request.META)
     subnet = get_ip_subnet(ip_address)
     session_key = request.session.session_key
     has_session_cookie = settings.SESSION_COOKIE_NAME in request.COOKIES
@@ -432,6 +426,7 @@ def evaluate_lead_submission(request, *, purpose: str, email: str | None = None)
         time_on_page_ms=time_on_page_ms,
         session_first_seen_at=session_first_seen_at,
         ip_address=ip_address,
+        ip_location=ip_location,
         subnet=subnet,
         user_agent=user_agent,
         accept_language=accept_language,
@@ -480,6 +475,7 @@ def log_lead_submission(
             suspicion_score=evaluation.score,
             validation_errors=_safe_str(validation_errors, 500),
             ip_address=evaluation.ip_address,
+            ip_location=_safe_str(evaluation.ip_location, 255),
             user_agent=_safe_str(evaluation.user_agent, 1024),
             accept_language=_safe_str(evaluation.accept_language, 512),
             referer=_safe_str(evaluation.referer, 600),
