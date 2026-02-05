@@ -30,10 +30,10 @@
           {% if tagline_override_2 %}
             <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--2">{{ tagline_override_2 }}</span>
           {% endif %}
-          {% if (tagline_override_1 or tagline_override_2) and tagline_override_3 %}
-            <span class="bgm-topbar__tagline-sep">•</span>
-          {% endif %}
           {% if tagline_override_3 %}
+            {% if tagline_override_1 or tagline_override_2 %}
+              <span class="bgm-topbar__tagline-sep">•</span>
+            {% endif %}
             <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--3">{{ tagline_override_3 }}</span>
           {% endif %}
         {% else %}
