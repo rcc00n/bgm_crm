@@ -34,10 +34,10 @@
       </div>
 
       <div class="product-detail__panel">
-        <div class="card product-detail__options-card" style="padding:1.2rem">
+        <div class="card product-detail__options-card{% if not product_options %} product-detail__options-card--simple{% endif %}" style="padding:1.2rem">
           <form class="product-form" method="post" action="{% url 'store-cart-add' slug=product.slug %}">
             {% csrf_token %}
-            <div class="price price--detail">
+            <div class="price price--detail{% if not product_options %} price--hero{% endif %}">
               {% if product.contact_for_estimate %}
                 <strong>Contact for estimate</strong>
                 {% if product.estimate_from_price %}<span class="price__hint">From {{ product.estimate_from_price|money }}</span>{% endif %}
@@ -70,6 +70,24 @@
                 {% endif %}
               {% endif %}
             </div>
+            {% if not product_options %}
+              {% if product.sku or product.category %}
+                <div class="product-simple__meta">
+                  {% if product.sku %}
+                    <div class="product-simple__item">
+                      <span>SKU</span>
+                      <strong>{{ product.sku }}</strong>
+                    </div>
+                  {% endif %}
+                  {% if product.category %}
+                    <div class="product-simple__item">
+                      <span>Category</span>
+                      <strong>{{ product.category.display_name }}</strong>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endif %}
             {% if product.contact_for_estimate %}
               <div class="quote-note">Custom builds are quoted individually. Tell us what you’re building — we’ll take it from there.</div>
             {% endif %}
@@ -662,6 +680,50 @@
     flex:initial;
     min-height:auto;
   }
+  .product-detail__options-card--simple{
+    justify-content:space-between;
+  }
+  .product-detail__options-card--simple .product-form{
+    justify-content:space-between;
+  }
+  .price--hero{
+    padding:.9rem 1rem;
+    border-radius:.95rem;
+    border:1px solid var(--card-border);
+    background:linear-gradient(135deg, rgba(213,0,0,.08), rgba(0,0,0,.6));
+    align-items:center;
+    text-align:center;
+  }
+  .price--hero .price__retail-row{justify-content:center;flex-wrap:wrap;}
+  .price--hero .price__dealer-row{align-self:center;justify-content:center;}
+  .price--hero .price__value{font-size:1.7rem !important;}
+  .product-simple__meta{
+    display:flex;
+    gap:.6rem;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .product-simple__item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:.15rem;
+    padding:.45rem .7rem;
+    border-radius:.7rem;
+    border:1px solid var(--card-border);
+    background:rgba(255,255,255,.04);
+    min-width:120px;
+  }
+  .product-simple__item span{
+    font-size:.7rem;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    font-weight:800;
+  }
+  .product-simple__item strong{font-size:.95rem;}
+  .product-detail__options-card--simple .qty-row{justify-content:space-between;}
+  .product-detail__options-card--simple .btn-pair{margin-left:auto;}
   .product-main__img{
     width:100%;
     height:var(--product-main-height);
@@ -809,6 +871,7 @@
     .options-preview{overflow:visible;}
     .options-preview::after{display:none;}
     .options-expand{display:none;}
+    .product-detail__options-card--simple .btn-pair{margin-left:0;}
     .qty-row{flex-direction:column;align-items:stretch;}
     .qty-row .field{width:100% !important;}
     .btn-pair{flex-direction:column;align-items:stretch;}
