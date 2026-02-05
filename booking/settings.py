@@ -797,3 +797,4 @@ LOGGING = {
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # карта sourcemap .css.map по-прежнему может отсутствовать — это ок:
 WHITENOISE_IGNORE_MISSING_FILES = True
+WHITENOISE_MANIFEST_STRICT = False
