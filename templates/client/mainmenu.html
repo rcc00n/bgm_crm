@@ -691,17 +691,17 @@ main h3{
 
 </head>
 <body data-template-version="mainmenu-mobile-v2-2026-01-26">
+  {% include "includes/marketing_body.html" %}
+  {% with current='services' %}
+    {% include "includes/topbar_client_v3.html" %}
+  {% endwith %}
+
   {% if page_sections %}
     {% include "sections/render_sections.html" %}
   {% else %}
 
-  {% include "includes/marketing_body.html" %}
 <div id="bg"></div>
 <a href="#services" class="visually-hidden">{{ services_copy.skip_to_main_label }}</a>
-
-{% with current='services' %}
-  {% include "includes/topbar_client_v3.html" %}
-{% endwith %}
 
 
 <section class="hero">
