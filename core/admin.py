@@ -1,4 +1,5 @@
 from bisect import bisect_left
+from calendar import monthrange
 from decimal import Decimal
 
 from django.contrib.admin import DateFieldListFilter
@@ -625,9 +626,12 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
 
         if selected_date:
             selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
-
         else:
             selected_date = timezone.localdate()
+
+        calendar_view = request.GET.get("view", "day")
+        if calendar_view not in {"day", "week", "month"}:
+            calendar_view = "day"
 
         services = Service.objects.all()
         appointment_statuses = AppointmentStatus.objects.all()
@@ -657,14 +661,26 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         else:
             masters_qs = get_staff_queryset(active_only=True)
         masters = list(masters_qs.select_related("master_profile"))
-        start_of_day = make_aware(datetime.combine(selected_date, datetime.min.time()))
-        end_of_day = make_aware(datetime.combine(selected_date, datetime.max.time()))
+        if calendar_view == "week":
+            range_start_date = selected_date - timedelta(days=selected_date.weekday())
+            range_end_date = range_start_date + timedelta(days=6)
+        elif calendar_view == "month":
+            month_start = selected_date.replace(day=1)
+            month_last = selected_date.replace(day=monthrange(selected_date.year, selected_date.month)[1])
+            range_start_date = month_start - timedelta(days=month_start.weekday())
+            range_end_date = month_last + timedelta(days=(6 - month_last.weekday()))
+        else:
+            range_start_date = selected_date
+            range_end_date = selected_date
+
+        range_start = make_aware(datetime.combine(range_start_date, datetime.min.time()))
+        range_end = make_aware(datetime.combine(range_end_date, datetime.max.time()))
 
         availabilities = MasterAvailability.objects.filter(
-            start_time__lte=end_of_day,
-            end_time__gte=start_of_day
+            start_time__lte=range_end,
+            end_time__gte=range_start
         )
-        appointments = appointments.filter(start_time__gte=start_of_day, start_time__lte=end_of_day)
+        appointments = appointments.filter(start_time__gte=range_start, start_time__lte=range_end)
         if request.GET.get("service"):
             appointments = appointments.filter(service_id=request.GET["service"])
         if request.GET.get("status"):
@@ -672,10 +688,37 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         if request.GET.get("payment_status"):
             appointments = appointments.filter(payment_status_id__in=request.GET.getlist("payment_status"))
 
-        appointments_for_day = list(appointments)
-        slot_times = []
-        grid_start, grid_end = determine_calendar_window(masters, appointments_for_day)
-        calendar_table = createTable(selected_date, grid_start, grid_end, slot_times, appointments_for_day, masters, availabilities)
+        appointments_for_range = list(appointments)
+        availabilities_for_range = list(availabilities)
+
+        calendar_table = []
+        week_table = []
+        week_dates = []
+        month_grid = []
+        month_day_names = []
+
+        if calendar_view == "day":
+            slot_times = []
+            grid_start, grid_end = determine_calendar_window(masters, appointments_for_range)
+            calendar_table = createTable(selected_date, grid_start, grid_end, slot_times, appointments_for_range, masters, availabilities_for_range)
+        elif calendar_view == "week":
+            grid_start, grid_end = determine_calendar_window(masters, appointments_for_range)
+            slot_times = build_slot_times(grid_start, grid_end)
+            week_dates = [range_start_date + timedelta(days=i) for i in range(7)]
+            week_table = build_week_table(week_dates, slot_times, appointments_for_range, masters)
+        else:
+            month_day_names = [datetime(2020, 1, 6) + timedelta(days=i) for i in range(7)]
+            month_grid = build_month_grid(range_start_date, range_end_date, selected_date.month, appointments_for_range, masters)
+
+        calendar_context = {
+            "calendar_view": calendar_view,
+            "masters": masters,
+            "calendar_table": calendar_table,
+            "week_dates": week_dates,
+            "week_table": week_table,
+            "month_grid": month_grid,
+            "month_day_names": month_day_names,
+        }
 
 
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -683,18 +726,12 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
 
             if action == "filter":  # Фильтрация по форме
 
-                html = render_to_string('admin/appointments_calendar_partial.html', {
-                    "calendar_table": calendar_table,
-                    'masters': masters,
-                })
+                html = render_to_string('admin/appointments_calendar_partial.html', calendar_context)
                 return JsonResponse({"html": html})
 
             elif action == "calendar":  # Подгрузка календаря (твоя текущая логика)
 
-                html = render_to_string('admin/appointments_calendar_partial.html', {
-                    'calendar_table': calendar_table,
-                    'masters': masters,
-                }, request=request)
+                html = render_to_string('admin/appointments_calendar_partial.html', calendar_context, request=request)
 
                 return JsonResponse({'html': html})
 
@@ -703,7 +740,12 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         if hasattr(response, "context_data"):
             context = response.context_data
             context.update({
+                "calendar_view": calendar_view,
                 "calendar_table": calendar_table,
+                "week_dates": week_dates,
+                "week_table": week_table,
+                "month_grid": month_grid,
+                "month_day_names": month_day_names,
                 "masters": masters,
                 "selected_date": selected_date,
                 "prev_date": (selected_date - timedelta(days=1)).strftime("%Y-%m-%d"),
@@ -1192,6 +1234,140 @@ GRID_STEP_MINUTES = 15
 DEFAULT_START_MINUTES = 6 * 60
 DEFAULT_END_MINUTES = 23 * 60
 MAX_CALENDAR_MINUTES = (24 * 60) - GRID_STEP_MINUTES
+CALENDAR_COLOR_PALETTE = ["#E4D08A", "#EDC2A2", "#CEAEC6", "#A3C1C9", "#C3CEA3", "#E7B3C3"]
+
+
+def build_slot_times(time_pointer, end_time):
+    slot_times = []
+    pointer = time_pointer
+    while pointer <= end_time:
+        slot_times.append(pointer.strftime('%H:%M'))
+        pointer += timedelta(minutes=GRID_STEP_MINUTES)
+    return slot_times
+
+
+def _get_master_colors(masters):
+    master_ids = [m.id for m in masters]
+    return dict(zip(master_ids, cycle(CALENDAR_COLOR_PALETTE)))
+
+
+def _build_appointment_display(appt, master_color):
+    local_start = localtime(appt.start_time)
+    service = appt.service
+    base_duration = int(getattr(service, "duration_min", 0) or 0)
+    extra_duration = int(getattr(service, "extra_time_min", 0) or 0)
+    total_minutes = base_duration + extra_duration
+    if total_minutes <= 0:
+        total_minutes = GRID_STEP_MINUTES
+    local_end = local_start + timedelta(minutes=total_minutes)
+    last_status = appt.appointmentstatushistory_set.order_by('-set_at').first()
+    status_name = last_status.status.name if last_status else "Unknown"
+
+    if service.contact_for_estimate:
+        price_value = "Contact for estimate"
+        price_discounted = price_value
+    else:
+        price_discounted = f"${service.get_discounted_price():.2f}"
+        price_value = f"${service.base_price_amount():.2f}"
+
+    try:
+        appt_promocode = appt.appointmentpromocode
+    except AppointmentPromoCode.DoesNotExist:
+        appt_promocode = None
+
+    client_name = appt.contact_name or ""
+    if not client_name and appt.client_id:
+        client_name = appt.client.get_full_name() or appt.client.username or appt.client.email
+    client_name = client_name or "Guest"
+
+    phone_value = appt.contact_phone or ""
+    if not phone_value and appt.client_id:
+        profile = getattr(appt.client, "userprofile", None)
+        phone_value = getattr(profile, "phone", "") if profile else ""
+
+    master_name = ""
+    if appt.master_id:
+        master_name = appt.master.get_full_name()
+
+    return {
+        "id": appt.id,
+        "url": f"/admin/core/appointment/{appt.id}/change/",
+        "client": escape(client_name),
+        "phone": escape(phone_value or ""),
+        "service": escape(service.name),
+        "status": status_name,
+        "master": escape(master_name),
+        "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
+        "time_start": local_start.strftime('%I:%M%p').lstrip('0'),
+        "duration": f"{base_duration}min",
+        "discount": f"-{appt_promocode.promocode.discount_percent}" if appt_promocode else "",
+        "price_discounted": price_discounted,
+        "price": price_value,
+        "background": master_color or CALENDAR_COLOR_PALETTE[0],
+        "start_minutes": _time_to_minutes(local_start.time()),
+    }
+
+
+def build_week_table(week_dates, slot_times, appointments, masters):
+    master_colors = _get_master_colors(masters)
+    appointments_by_slot = {}
+
+    week_set = set(week_dates)
+    for appt in appointments:
+        local_start = localtime(appt.start_time)
+        appt_date = local_start.date()
+        if appt_date not in week_set:
+            continue
+        time_key = local_start.strftime('%H:%M')
+        appt_display = _build_appointment_display(appt, master_colors.get(appt.master_id))
+        appointments_by_slot.setdefault(appt_date, {}).setdefault(time_key, []).append(appt_display)
+
+    for day_map in appointments_by_slot.values():
+        for time_key in day_map:
+            day_map[time_key].sort(key=lambda item: item["start_minutes"])
+
+    week_table = []
+    for time_str in slot_times:
+        row = {"time": time_str, "cells": []}
+        for day in week_dates:
+            row["cells"].append({
+                "date": day,
+                "appointments": appointments_by_slot.get(day, {}).get(time_str, []),
+            })
+        week_table.append(row)
+    return week_table
+
+
+def build_month_grid(range_start_date, range_end_date, focus_month, appointments, masters):
+    master_colors = _get_master_colors(masters)
+    appointments_by_day = {}
+
+    for appt in appointments:
+        local_start = localtime(appt.start_time)
+        appt_date = local_start.date()
+        if appt_date < range_start_date or appt_date > range_end_date:
+            continue
+        appt_display = _build_appointment_display(appt, master_colors.get(appt.master_id))
+        appointments_by_day.setdefault(appt_date, []).append(appt_display)
+
+    for day, items in appointments_by_day.items():
+        items.sort(key=lambda item: item["start_minutes"])
+
+    month_grid = []
+    pointer = range_start_date
+    while pointer <= range_end_date:
+        week = []
+        for _ in range(7):
+            items = appointments_by_day.get(pointer, [])
+            week.append({
+                "date": pointer,
+                "in_month": pointer.month == focus_month,
+                "appointments": items[:3],
+                "overflow": max(0, len(items) - 3),
+            })
+            pointer += timedelta(days=1)
+        month_grid.append(week)
+    return month_grid
 
 
 def _time_to_minutes(value):
@@ -1257,9 +1433,7 @@ def determine_calendar_window(masters, appointments):
 
 
 def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities):
-    COLOR_PALETTE = ["#E4D08A", "#EDC2A2", "#CEAEC6", "#A3C1C9", "#C3CEA3", "#E7B3C3"]
-    master_ids = [m.id for m in masters]
-    MASTER_COLORS = dict(zip(master_ids, cycle(COLOR_PALETTE)))
+    MASTER_COLORS = _get_master_colors(masters)
 
 
     grid_start_dt = time_pointer
@@ -1402,11 +1576,11 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                 row["cells"].append({
                     "html": f"""
                                         <div>
-                                            <div style="font-size:1.8vh;">
+                                            <div style="font-size:0.75rem;">
                                                 {local_start.strftime('%I:%M').lstrip('0')} – {local_end.strftime('%I:%M').lstrip('0')}
                                                 <strong>{escape(client_name)}</strong>
                                             </div>
-                                            <div style="font-size:1.8vh;">
+                                            <div style="font-size:0.75rem;">
                                                 {escape(appt.service.name)}
                                             </div>
                                         </div>

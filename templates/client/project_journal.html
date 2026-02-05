@@ -88,7 +88,7 @@
       margin: 0 auto;
       padding: 2.75rem 1.5rem 4rem;
       display: grid;
-      gap: 2.5rem;
+      gap: 2rem;
     }
     .eyebrow {
       text-transform: uppercase;
@@ -177,24 +177,24 @@
     }
     .stage {
       display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-      gap: 2rem;
+      grid-template-columns: 1fr;
+      gap: 1.4rem;
       background: var(--panel);
       border-radius: var(--radius-lg);
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
-      padding: 2.2rem;
+      padding: 1.8rem;
     }
     .stage__summary {
       display: grid;
-      gap: 1.2rem;
+      gap: 1rem;
       align-content: start;
     }
     .stage-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.6rem 1.1rem;
-      font-size: 0.85rem;
+      gap: 0.45rem 1rem;
+      font-size: 0.8rem;
       color: var(--muted);
     }
     .stage-title {
@@ -259,34 +259,89 @@
       font-size: 0.92rem;
       line-height: 1.6;
     }
-    .stage-report {
+    .stage-toggle {
       border-top: 1px solid var(--line);
       padding-top: 1rem;
     }
-    details summary {
+    .stage-toggle summary {
       cursor: pointer;
       list-style: none;
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 0.45rem;
-      color: var(--accent);
+      justify-content: space-between;
+      gap: 1rem;
+      color: var(--ink);
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 0.65rem 1rem;
+      background: rgba(255, 255, 255, 0.02);
     }
-    details summary::-webkit-details-marker { display: none; }
-    details summary svg {
+    .stage-toggle summary:hover {
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+    .stage-toggle summary:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.5);
+      outline-offset: 3px;
+    }
+    .stage-toggle summary::-webkit-details-marker { display: none; }
+    .stage-toggle .toggle-text {
+      display: grid;
+      gap: 0.2rem;
+    }
+    .stage-toggle .toggle-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
+    }
+    .stage-toggle .toggle-hint {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .stage-toggle .label-open { display: none; }
+    .stage-toggle[open] .label-open { display: inline; }
+    .stage-toggle[open] .label-closed { display: none; }
+    .stage-toggle .toggle-icon {
       width: 14px;
       height: 14px;
       transition: transform 0.2s ease;
+      flex-shrink: 0;
     }
-    details[open] summary svg { transform: rotate(90deg); }
-    details .body-copy {
-      margin-top: 0.75rem;
+    .stage-toggle[open] .toggle-icon { transform: rotate(90deg); }
+    .stage-toggle[open] summary {
+      border-color: rgba(255, 59, 48, 0.5);
+      box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.15);
+    }
+    .stage__expanded {
+      margin-top: 1.2rem;
+      display: grid;
+      gap: 1.6rem;
+    }
+    .report-block {
+      border-top: 1px solid var(--line);
+      padding-top: 1rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+    .report-block h3 {
+      margin: 0;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+    }
+    .report-block .body-copy {
       color: var(--muted);
       line-height: 1.65;
+      margin: 0;
     }
     .stage-compare {
       display: grid;
-      gap: 1.5rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.2rem;
       align-content: start;
     }
     .carousel {
@@ -337,7 +392,7 @@
       border-radius: var(--radius-sm);
       overflow: hidden;
       background: radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 55%);
-      min-height: 220px;
+      min-height: 200px;
     }
     .carousel__image {
       width: 100%;
@@ -379,7 +434,7 @@
     }
     .build-list {
       display: grid;
-      gap: 1.25rem;
+      gap: 1rem;
     }
     .build-list__head {
       display: flex;
@@ -401,7 +456,7 @@
     .project-strip {
       display: grid;
       grid-auto-flow: column;
-      grid-auto-columns: minmax(240px, 1fr);
+      grid-auto-columns: minmax(220px, 1fr);
       gap: 1rem;
       overflow-x: auto;
       padding-bottom: 0.75rem;
@@ -411,7 +466,7 @@
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: var(--radius-md);
-      padding: 1.1rem;
+      padding: 0.95rem;
       display: grid;
       gap: 0.8rem;
       cursor: pointer;
@@ -430,7 +485,7 @@
       border-radius: var(--radius-sm);
       overflow: hidden;
       background: #0d0f15;
-      height: 160px;
+      height: 130px;
     }
     .post-card__media img {
       width: 100%;
@@ -453,6 +508,14 @@
       margin: 0;
       font-size: 1.08rem;
     }
+    .post-card p {
+      margin: 0;
+      color: var(--muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
     .meta-line {
       display: flex;
       flex-wrap: wrap;
@@ -470,7 +533,7 @@
     }
     @media (max-width: 960px) {
       .page { padding: 2.2rem 1.1rem 3rem; }
-      .stage { grid-template-columns: 1fr; padding: 1.6rem; }
+      .stage { padding: 1.4rem; }
       .stage-compare { grid-template-columns: 1fr; }
       .project-strip { grid-auto-columns: minmax(220px, 78vw); }
     }
@@ -494,7 +557,7 @@
       </div>
       <p class="lead">
         Before-and-after build stories with photo comparisons, written for clients who want the straight story.
-        Tap a project to update the comparison below.
+        Tap a project, then open the report when you want the full breakdown.
       </p>
       {% if available_tags %}
       <div class="tag-filter" aria-label="Filter by tag">
@@ -551,82 +614,93 @@
           {% else %}
             <div class="chip-row" id="projectTags" aria-label="Tags" hidden></div>
           {% endif %}
-          <div class="info-grid">
-            <article class="info-card" data-section="overview" {% if not featured_post.overview and not featured_post.excerpt %}hidden{% endif %}>
-              <h3>Overview</h3>
-              <div class="body-copy" data-field="overview">
-                {{ featured_post.overview|default:featured_post.excerpt|linebreaks }}
-              </div>
-            </article>
-            <article class="info-card" data-section="parts" {% if not featured_post.parts %}hidden{% endif %}>
-              <h3>Parts</h3>
-              <div class="body-copy" data-field="parts">{{ featured_post.parts|linebreaks }}</div>
-            </article>
-            <article class="info-card" data-section="customizations" {% if not featured_post.customizations %}hidden{% endif %}>
-              <h3>Customizations</h3>
-              <div class="body-copy" data-field="customizations">{{ featured_post.customizations|linebreaks }}</div>
-            </article>
-            <article class="info-card" data-section="backstory" {% if not featured_post.backstory %}hidden{% endif %}>
-              <h3>Backstory</h3>
-              <div class="body-copy" data-field="backstory">{{ featured_post.backstory|linebreaks }}</div>
-            </article>
-          </div>
-          <details class="stage-report" id="projectReport" {% if not featured_post.body %}hidden{% endif %}>
+          <details class="stage-toggle" id="stageToggle">
             <summary>
-              Read the full report
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <span class="toggle-text">
+                <span class="toggle-title">
+                  <span class="label-closed">Open full report</span>
+                  <span class="label-open">Close report</span>
+                </span>
+                <span class="toggle-hint">Before/after + full breakdown</span>
+              </span>
+              <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </summary>
-            <div class="body-copy" data-field="body">
-              {{ featured_post.body|linebreaks }}
+            <div class="stage__expanded">
+              <div class="stage-compare">
+                <div class="carousel" data-carousel="before">
+                  <div class="carousel__head">
+                    <div>
+                      <p class="eyebrow">Before</p>
+                      <p class="carousel__title">Original condition</p>
+                    </div>
+                    <div class="carousel__controls">
+                      <button class="icon-btn" type="button" data-carousel-prev aria-label="Previous before photo">&#9664;</button>
+                      <span data-carousel-count>0 / 0</span>
+                      <button class="icon-btn" type="button" data-carousel-next aria-label="Next before photo">&#9654;</button>
+                    </div>
+                  </div>
+                  <div class="carousel__frame" data-carousel-frame>
+                    <img class="carousel__image" data-carousel-image alt="" hidden>
+                    <div class="carousel__placeholder" data-carousel-placeholder>Before photos coming soon.</div>
+                  </div>
+                  <div class="carousel__thumbs" data-carousel-thumbs></div>
+                </div>
+                <div class="carousel" data-carousel="after">
+                  <div class="carousel__head">
+                    <div>
+                      <p class="eyebrow">After</p>
+                      <p class="carousel__title">Delivered result</p>
+                    </div>
+                    <div class="carousel__controls">
+                      <button class="icon-btn" type="button" data-carousel-prev aria-label="Previous after photo">&#9664;</button>
+                      <span data-carousel-count>0 / 0</span>
+                      <button class="icon-btn" type="button" data-carousel-next aria-label="Next after photo">&#9654;</button>
+                    </div>
+                  </div>
+                  <div class="carousel__frame" data-carousel-frame>
+                    <img class="carousel__image" data-carousel-image alt="" hidden>
+                    <div class="carousel__placeholder" data-carousel-placeholder>After photos coming soon.</div>
+                  </div>
+                  <div class="carousel__thumbs" data-carousel-thumbs></div>
+                </div>
+              </div>
+              <div class="info-grid">
+                <article class="info-card" data-section="overview" {% if not featured_post.overview and not featured_post.excerpt %}hidden{% endif %}>
+                  <h3>Overview</h3>
+                  <div class="body-copy" data-field="overview">
+                    {{ featured_post.overview|default:featured_post.excerpt|linebreaks }}
+                  </div>
+                </article>
+                <article class="info-card" data-section="parts" {% if not featured_post.parts %}hidden{% endif %}>
+                  <h3>Parts</h3>
+                  <div class="body-copy" data-field="parts">{{ featured_post.parts|linebreaks }}</div>
+                </article>
+                <article class="info-card" data-section="customizations" {% if not featured_post.customizations %}hidden{% endif %}>
+                  <h3>Customizations</h3>
+                  <div class="body-copy" data-field="customizations">{{ featured_post.customizations|linebreaks }}</div>
+                </article>
+                <article class="info-card" data-section="backstory" {% if not featured_post.backstory %}hidden{% endif %}>
+                  <h3>Backstory</h3>
+                  <div class="body-copy" data-field="backstory">{{ featured_post.backstory|linebreaks }}</div>
+                </article>
+              </div>
+              <div class="report-block" id="projectReport" {% if not featured_post.body %}hidden{% endif %}>
+                <h3>Full report</h3>
+                <div class="body-copy" data-field="body">
+                  {{ featured_post.body|linebreaks }}
+                </div>
+              </div>
             </div>
           </details>
-        </div>
-        <div class="stage-compare">
-          <div class="carousel" data-carousel="before">
-            <div class="carousel__head">
-              <div>
-                <p class="eyebrow">Before</p>
-                <p class="carousel__title">Original condition</p>
-              </div>
-              <div class="carousel__controls">
-                <button class="icon-btn" type="button" data-carousel-prev aria-label="Previous before photo">&#9664;</button>
-                <span data-carousel-count>0 / 0</span>
-                <button class="icon-btn" type="button" data-carousel-next aria-label="Next before photo">&#9654;</button>
-              </div>
-            </div>
-            <div class="carousel__frame" data-carousel-frame>
-              <img class="carousel__image" data-carousel-image alt="" hidden>
-              <div class="carousel__placeholder" data-carousel-placeholder>Before photos coming soon.</div>
-            </div>
-            <div class="carousel__thumbs" data-carousel-thumbs></div>
-          </div>
-          <div class="carousel" data-carousel="after">
-            <div class="carousel__head">
-              <div>
-                <p class="eyebrow">After</p>
-                <p class="carousel__title">Delivered result</p>
-              </div>
-              <div class="carousel__controls">
-                <button class="icon-btn" type="button" data-carousel-prev aria-label="Previous after photo">&#9664;</button>
-                <span data-carousel-count>0 / 0</span>
-                <button class="icon-btn" type="button" data-carousel-next aria-label="Next after photo">&#9654;</button>
-              </div>
-            </div>
-            <div class="carousel__frame" data-carousel-frame>
-              <img class="carousel__image" data-carousel-image alt="" hidden>
-              <div class="carousel__placeholder" data-carousel-placeholder>After photos coming soon.</div>
-            </div>
-            <div class="carousel__thumbs" data-carousel-thumbs></div>
-          </div>
         </div>
       </section>
 
       <section class="build-list">
         <div class="build-list__head">
           <h2>All builds</h2>
-          <p>Tap a card to refresh the comparison carousel.</p>
+          <p>Tap a card, then open the report to compare before and after.</p>
         </div>
         <div class="project-strip" role="list">
           {% for post in gallery_posts %}
@@ -933,7 +1007,6 @@
               reportEl.hidden = true;
             } else {
               reportEl.hidden = false;
-              reportEl.removeAttribute('open');
               renderText(reportBodyEl, bodyText);
             }
           }

@@ -5,11 +5,13 @@
 {% block object-tools %}{% endblock %}
 {% block title %}Daily Calendar{% endblock %}
 {% block extrahead %}
+    {{ block.super }}
     <script defer src="{% static 'admin/js/appointments.js' %}"></script>
     <!-- <link rel="stylesheet" href="{% static 'admin/css/custom_sidebar.css' %}">
     <script defer src="{% static 'admin/js/custom_sidebar.js' %}"></script> -->
 {% endblock %}
 {% block extrastyle %}
+    {{ block.super }}
     <link rel="stylesheet" href="{% static 'admin/css/appointments.css' %}">
 {% endblock %}
 {% block content %}
@@ -30,6 +32,12 @@
                         />
                     </div>
                     <button class="nav-icon2" onclick="changeDateByDays(1)">&gt;</button>
+                </div>
+
+                <div class="view-toggle" role="tablist" aria-label="Calendar view">
+                    <button type="button" class="view-btn {% if calendar_view == 'day' %}active{% endif %}" data-view="day" onclick="setCalendarView('day')">Day</button>
+                    <button type="button" class="view-btn {% if calendar_view == 'week' %}active{% endif %}" data-view="week" onclick="setCalendarView('week')">Week</button>
+                    <button type="button" class="view-btn {% if calendar_view == 'month' %}active{% endif %}" data-view="month" onclick="setCalendarView('month')">Month</button>
                 </div>
 
                 <button class="nav-icon2" id="nav-icon2" style="border-radius: 10px;">
@@ -111,6 +119,7 @@
     <div id="calendar-container">
         {% include "admin/appointments_calendar_partial.html" %}
     </div>
+    <input type="hidden" id="calendarView" value="{{ calendar_view|default:'day' }}">
     <div id="addPopup" class="popup hidden">
         <div class="popup-header">
             <span id="popupTime">Time</span>

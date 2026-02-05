@@ -5,6 +5,69 @@ function getLocalDateString(date = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
+function getCalendarView() {
+    const viewInput = document.getElementById("calendarView");
+    return viewInput ? viewInput.value : "day";
+}
+
+function setCalendarView(view) {
+    const viewInput = document.getElementById("calendarView");
+    if (viewInput) {
+        viewInput.value = view;
+    }
+    document.querySelectorAll(".view-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.view === view);
+    });
+    updateDisplayDateLabel();
+    const selectedDate = document.getElementById("realDateInput")?.value;
+    if (selectedDate) {
+        onDateChange(selectedDate);
+    }
+}
+
+function getWeekStart(date) {
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const start = new Date(date);
+    start.setDate(date.getDate() + diff);
+    return start;
+}
+
+function formatRangeDate(date, includeYear = false) {
+    const options = {
+        month: "short",
+        day: "numeric"
+    };
+    if (includeYear) {
+        options.year = "numeric";
+    }
+    return date.toLocaleDateString("en-US", options).replace(/,/, "");
+}
+
+function updateDisplayDateLabel() {
+    const display = document.getElementById("displayDate");
+    const input = document.getElementById("realDateInput");
+    if (!display || !input || !input.value) {
+        return;
+    }
+    const view = getCalendarView();
+    const currentDate = new Date(`${input.value}T12:00:00`);
+
+    if (view === "month") {
+        display.textContent = currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+        return;
+    }
+    if (view === "week") {
+        const start = getWeekStart(currentDate);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        const includeYear = start.getFullYear() !== end.getFullYear();
+        display.textContent = `${formatRangeDate(start, includeYear)} - ${formatRangeDate(end, true)}`;
+        return;
+    }
+    display.textContent = input.value;
+}
+
 function changeDateToToday() {
     const today = getLocalDateString();
     document.getElementById('realDateInput').value = today;
@@ -20,7 +83,18 @@ function changeDateByDays(days) {
     currentDate.setHours(12);  // 👈 Устанавливаем безопасное время (чтобы избежать смещений при DST)
 
     // Меняем дату
-    currentDate.setDate(currentDate.getDate() + days);
+    const view = getCalendarView();
+    if (view === "week") {
+        currentDate.setDate(currentDate.getDate() + (days * 7));
+    } else if (view === "month") {
+        const currentDay = currentDate.getDate();
+        currentDate.setDate(1);
+        currentDate.setMonth(currentDate.getMonth() + days);
+        const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+        currentDate.setDate(Math.min(currentDay, lastDay));
+    } else {
+        currentDate.setDate(currentDate.getDate() + days);
+    }
 
     const newDate = getLocalDateString(currentDate);
     input.value = newDate;
@@ -29,12 +103,12 @@ function changeDateByDays(days) {
 }
 
 function onDateChange(value) {
-    const display = document.getElementById("displayDate");
-    display.textContent = value;
+    updateDisplayDateLabel();
 
     const formData = new FormData(document.getElementById("filterForm"));
     formData.append("action", "calendar");
     formData.set("date", value);  // заменяем дату
+    formData.set("view", getCalendarView());
 
     const params = new URLSearchParams(formData).toString();
 
@@ -84,6 +158,7 @@ filterForm.addEventListener("submit", function (e) {
     formData.append("action", "filter");
     const selectedDate = document.getElementById("realDateInput").value;
     formData.append("date", selectedDate);
+    formData.set("view", getCalendarView());
     const params = new URLSearchParams(formData).toString();
 
     fetch(`?${params}`, {
@@ -175,7 +250,7 @@ document.addEventListener("click", function (e) {
 const tooltip = document.getElementById("apptTooltip");
 
 function attachTooltipHandlers() {
-    document.querySelectorAll(".event").forEach(box => {
+    document.querySelectorAll(".event, .event-card").forEach(box => {
         box.addEventListener("mouseenter", function () {
             showTooltip(box);
         });
@@ -199,6 +274,7 @@ function attachTooltipHandlers() {
 
 attachTooltipHandlers();
 syncCalendarScrollHeight();
+updateDisplayDateLabel();
 
 window.addEventListener("resize", syncCalendarScrollHeight);
 
