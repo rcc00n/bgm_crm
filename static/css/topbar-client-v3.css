@@ -200,10 +200,8 @@
 
 .bgm-topbar__nav{
   min-width: 0;
-  max-width: min(60vw, 60%);
-  overflow-x: auto;
-  overflow-y: visible;
-  scrollbar-width: none;
+  max-width: none;
+  overflow: visible;
   display: flex;
   justify-content: flex-end;
   white-space: nowrap;
