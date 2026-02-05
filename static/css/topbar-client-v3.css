@@ -202,10 +202,12 @@
   min-width: 0;
   max-width: min(60vw, 60%);
   overflow-x: auto;
+  overflow-y: visible;
   scrollbar-width: none;
   display: flex;
   justify-content: flex-end;
   white-space: nowrap;
+  position: relative;
 }
 
 .bgm-topbar__nav::-webkit-scrollbar{ display: none; }
@@ -219,11 +221,59 @@
   padding: 0 !important;
   white-space: nowrap !important;
   flex-wrap: nowrap !important;
+  overflow: visible !important;
 }
 
 .bgm-topbar__nav-list li{
+  position: relative;
   margin: 0 !important;
   padding: 0 !important;
+}
+
+.bgm-topbar__nav-item--has-menu > a::after{
+  content: "▾";
+  margin-left: .4rem;
+  font-size: .7em;
+  opacity: .7;
+}
+
+.bgm-topbar__dropdown{
+  position: absolute;
+  top: calc(100% + .55rem);
+  right: 0;
+  min-width: 200px;
+  padding: .55rem;
+  border-radius: .9rem;
+  background: rgba(6,6,6,.98);
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 16px 36px rgba(0,0,0,.45);
+  display: none;
+  z-index: 3800;
+}
+
+.bgm-topbar__nav-item--has-menu:hover .bgm-topbar__dropdown,
+.bgm-topbar__nav-item--has-menu:focus-within .bgm-topbar__dropdown{
+  display: block;
+}
+
+.bgm-topbar__dropdown li{
+  width: 100%;
+}
+
+.bgm-topbar__dropdown a{
+  display: flex !important;
+  width: 100%;
+  padding: .55rem .7rem !important;
+  border-radius: .6rem !important;
+  font-size: .85rem !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,.82) !important;
+}
+
+.bgm-topbar__dropdown a:hover{
+  background: rgba(255,255,255,.08) !important;
+  color: #fff !important;
 }
 
 .bgm-topbar__nav a,
@@ -346,6 +396,25 @@
   }
 
   .bgm-topbar__nav-list li{ width: 100% !important; }
+
+  .bgm-topbar__nav-item--has-menu > a::after{
+    content: "";
+  }
+
+  .bgm-topbar__dropdown{
+    position: static;
+    display: block;
+    min-width: 0;
+    padding: 0;
+    margin-top: .5rem;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .bgm-topbar__dropdown a{
+    width: 100% !important;
+  }
 
   .bgm-topbar__nav a,
   .bgm-topbar__nav .btn,

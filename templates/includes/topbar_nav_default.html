@@ -1,16 +1,18 @@
-<li><a href="{% url 'client-dashboard' %}" title="Services catalog" {% if current == 'services' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_services_label|default:"Services" }}</a></li>
-{% if user.is_authenticated %}
-  <li><a href="{% url 'dashboard' %}">{{ topbar_copy.nav_client_portal_label|default:"Client Portal" }}</a></li>
-{% else %}
-  <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">{{ topbar_copy.nav_login_label|default:"Login" }}</a></li>
-{% endif %}
-<li><a href="{% url 'store' %}">{{ topbar_copy.nav_products_label|default:"Products" }}</a></li>
-<li>
-  <a href="{% url 'merch' %}" {% if current == 'merch' %}aria-current="page"{% endif %}>
-    {{ topbar_copy.nav_merch_label|default:"Merch" }}
-    {% if topbar_copy.nav_merch_badge|default:"Soon" %}<span class="badge">{{ topbar_copy.nav_merch_badge|default:"Soon" }}</span>{% endif %}
+<li class="bgm-topbar__nav-item bgm-topbar__nav-item--has-menu">
+  <a href="{% url 'client-dashboard' %}" title="Services catalog" {% if current == 'services' %}aria-current="page"{% endif %}>
+    {{ topbar_copy.nav_services_label|default:"Services" }}
   </a>
+  <ul class="bgm-topbar__dropdown" aria-label="Services and Products">
+    <li><a href="{% url 'client-dashboard' %}">{{ topbar_copy.nav_services_label|default:"Services" }}</a></li>
+    <li><a href="{% url 'store' %}">{{ topbar_copy.nav_products_label|default:"Products" }}</a></li>
+  </ul>
 </li>
-<li><a href="{% url 'dealer-status' %}" {% if current == 'dealer' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_dealers_label|default:"Dealers" }}</a></li>
-<li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_financing_label|default:"Financing" }}</a></li>
-<li><a href="{% url 'our-story' %}" {% if current == 'about' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_about_label|default:"About" }}</a></li>
+{% if user.is_authenticated %}
+  <li class="bgm-topbar__nav-item"><a href="{% url 'dashboard' %}">{{ topbar_copy.nav_client_portal_label|default:"Client Portal" }}</a></li>
+{% else %}
+  <li class="bgm-topbar__nav-item"><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">{{ topbar_copy.nav_login_label|default:"Login" }}</a></li>
+{% endif %}
+<li class="bgm-topbar__nav-item"><a href="{% url 'merch' %}" {% if current == 'merch' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_merch_label|default:"Merch" }}</a></li>
+<li class="bgm-topbar__nav-item"><a href="{% url 'dealer-status' %}" {% if current == 'dealer' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_dealers_label|default:"Dealers" }}</a></li>
+<li class="bgm-topbar__nav-item"><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_financing_label|default:"Financing" }}</a></li>
+<li class="bgm-topbar__nav-item"><a href="{% url 'our-story' %}" {% if current == 'about' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_about_label|default:"About" }}</a></li>

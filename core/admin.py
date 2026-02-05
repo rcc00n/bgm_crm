@@ -1697,8 +1697,9 @@ class PageFontSettingAdmin(admin.ModelAdmin):
 @admin.register(TopbarSettings)
 class TopbarSettingsAdmin(admin.ModelAdmin):
     list_display = ("label", "updated_at")
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("preview", "created_at", "updated_at")
     fieldsets = (
+        ("Preview", {"fields": ("preview",)}),
         ("Fonts", {"fields": ("brand_font", "brand_word_white_font", "brand_word_middle_font", "brand_word_red_font", "nav_font", "tagline_word_1_font", "tagline_word_2_font", "tagline_word_3_font")}),
         ("Sizing", {"fields": ("brand_size_desktop", "nav_size", "nav_size_desktop", "padding_y_desktop")}),
         ("Layout", {"fields": ("order_brand", "order_tagline", "order_nav")}),
@@ -1711,6 +1712,163 @@ class TopbarSettingsAdmin(admin.ModelAdmin):
     @admin.display(description="Topbar settings")
     def label(self, obj):
         return "Topbar settings"
+
+    @admin.display(description="Topbar preview")
+    def preview(self, obj):
+        if not obj:
+            return ""
+
+        def stack(font, fallback):
+            return font.font_stack if font else fallback
+
+        brand_stack = stack(obj.brand_font, '"Inter", system-ui, sans-serif')
+        word1_stack = stack(obj.brand_word_white_font, brand_stack)
+        word2_stack = stack(obj.brand_word_middle_font, brand_stack)
+        word3_stack = stack(obj.brand_word_red_font, brand_stack)
+        nav_stack = stack(obj.nav_font, '"Inter", system-ui, sans-serif')
+        tag1_stack = stack(obj.tagline_word_1_font, nav_stack)
+        tag2_stack = stack(obj.tagline_word_2_font, nav_stack)
+        tag3_stack = stack(obj.tagline_word_3_font, nav_stack)
+
+        def face_block(font):
+            if not font or not font.url:
+                return ""
+            return (
+                "@font-face{"
+                f"font-family:\"{font.font_family}\";"
+                f"src:url(\"{font.url}\") format(\"{font.format_hint}\");"
+                f"font-weight:{font.font_weight};"
+                f"font-style:{font.font_style};"
+                f"font-display:{font.font_display};"
+                "}"
+            )
+
+        faces = "".join(
+            face_block(font)
+            for font in (
+                obj.brand_font,
+                obj.brand_word_white_font,
+                obj.brand_word_middle_font,
+                obj.brand_word_red_font,
+                obj.nav_font,
+                obj.tagline_word_1_font,
+                obj.tagline_word_2_font,
+                obj.tagline_word_3_font,
+            )
+        )
+
+        preview_style = f"""
+        {faces}
+        .topbar-preview{{
+          display:flex;
+          align-items:center;
+          gap:20px;
+          padding:12px 16px;
+          background:#050505;
+          border:1px solid rgba(255,255,255,.12);
+          border-radius:12px;
+          color:#fff;
+        }}
+        .topbar-preview__brand{{
+          display:flex;
+          align-items:baseline;
+          gap:.45rem;
+          font-family:{brand_stack};
+          font-size:{obj.brand_size_desktop or "1.35rem"};
+          font-weight:{obj.brand_weight or "800"};
+          letter-spacing:{obj.brand_letter_spacing or ".06em"};
+          text-transform:{obj.brand_transform or "uppercase"};
+        }}
+        .topbar-preview__brand span{{line-height:1;}}
+        .topbar-preview__brand .word-1{{
+          color:{obj.brand_word_1_color or "#fff"};
+          font-family:{word1_stack};
+          font-size:{obj.brand_word_1_size or "inherit"};
+          font-weight:{obj.brand_word_1_weight or "inherit"};
+          font-style:{obj.brand_word_1_style or "normal"};
+        }}
+        .topbar-preview__brand .word-2{{
+          color:{obj.brand_word_2_color or "#fff"};
+          font-family:{word2_stack};
+          font-size:{obj.brand_word_2_size or "inherit"};
+          font-weight:{obj.brand_word_2_weight or "inherit"};
+          font-style:{obj.brand_word_2_style or "normal"};
+        }}
+        .topbar-preview__brand .word-3{{
+          color:{obj.brand_word_3_color or "#d50000"};
+          font-family:{word3_stack};
+          font-size:{obj.brand_word_3_size or "inherit"};
+          font-weight:{obj.brand_word_3_weight or "inherit"};
+          font-style:{obj.brand_word_3_style or "normal"};
+        }}
+        .topbar-preview__tagline{{
+          display:flex;
+          align-items:center;
+          gap:.5rem;
+          font-family:{nav_stack};
+          font-size:.85rem;
+          letter-spacing:.2em;
+          text-transform:uppercase;
+          color:rgba(255,255,255,.7);
+          white-space:nowrap;
+        }}
+        .topbar-preview__tagline .tag-1{{
+          color:{obj.tagline_word_1_color or "rgba(255,255,255,.7)"};
+          font-family:{tag1_stack};
+          font-size:{obj.tagline_word_1_size or "inherit"};
+          font-weight:{obj.tagline_word_1_weight or "800"};
+          font-style:{obj.tagline_word_1_style or "normal"};
+        }}
+        .topbar-preview__tagline .tag-2{{
+          color:{obj.tagline_word_2_color or "rgba(255,255,255,.7)"};
+          font-family:{tag2_stack};
+          font-size:{obj.tagline_word_2_size or "inherit"};
+          font-weight:{obj.tagline_word_2_weight or "800"};
+          font-style:{obj.tagline_word_2_style or "normal"};
+        }}
+        .topbar-preview__tagline .tag-3{{
+          color:{obj.tagline_word_3_color or "rgba(255,255,255,.7)"};
+          font-family:{tag3_stack};
+          font-size:{obj.tagline_word_3_size or "inherit"};
+          font-weight:{obj.tagline_word_3_weight or "800"};
+          font-style:{obj.tagline_word_3_style or "normal"};
+        }}
+        .topbar-preview__nav{{
+          margin-left:auto;
+          display:flex;
+          align-items:center;
+          gap:1rem;
+          font-family:{nav_stack};
+          font-size:{obj.nav_size_desktop or ".95rem"};
+          text-transform:uppercase;
+          letter-spacing:.08em;
+          color:rgba(255,255,255,.78);
+        }}
+        .topbar-preview__nav span{{padding:.2rem .4rem;border-radius:.5rem;}}
+        """
+
+        preview_markup = """
+        <div class="topbar-preview">
+          <div class="topbar-preview__brand">
+            <span class="word-1">BAD</span>
+            <span class="word-2">GUY</span>
+            <span class="word-3">MOTORS</span>
+          </div>
+          <div class="topbar-preview__tagline">
+            <span class="tag-1">CUSTOM BUILDS</span>
+            <span>•</span>
+            <span class="tag-2">INSTALLS</span>
+            <span>•</span>
+            <span class="tag-3">UPGRADES</span>
+          </div>
+          <div class="topbar-preview__nav">
+            <span>Services</span>
+            <span>Products</span>
+            <span>Merch</span>
+          </div>
+        </div>
+        """
+        return format_html("<style>{}</style>{}", mark_safe(preview_style), mark_safe(preview_markup))
 
     def has_add_permission(self, request):
         if TopbarSettings.objects.exists():
