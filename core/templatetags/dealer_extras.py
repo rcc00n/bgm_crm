@@ -44,3 +44,12 @@ def money(value, arg=None):
         if normalized in {"no", "nocode", "symbol", "short"}:
             include_code = False
     return format_currency(value, include_code=include_code)
+
+
+@register.filter
+def split_lines(value):
+    if value is None:
+        return []
+    text = str(value)
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return lines

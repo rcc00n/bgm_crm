@@ -1635,6 +1635,14 @@ class AboutPageCopy(models.Model):
     rates_shop_value = models.CharField(max_length=40, default="130/hr")
     rates_cad_label = models.CharField(max_length=60, default="Design/CAD rate")
     rates_cad_value = models.CharField(max_length=40, default="150/hr")
+    rates_policies = models.TextField(
+        default=(
+            "Deposits secure your slot; balance due on delivery.\n"
+            "Storage fees may apply for completed items not picked up promptly.\n"
+            "Warranty & support — if it isn’t right, we make it right."
+        ),
+        help_text="One policy per line.",
+    )
     rates_policy_1 = models.CharField(
         max_length=160,
         default="Deposits secure your slot; balance due on delivery.",

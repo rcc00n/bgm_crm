@@ -3920,9 +3920,7 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "rates_shop_value",
                 "rates_cad_label",
                 "rates_cad_value",
-                "rates_policy_1",
-                "rates_policy_2",
-                "rates_policy_3",
+                "rates_policies",
             )
         }),
         ("Location", {
@@ -3957,6 +3955,11 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
         }),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "rates_policies":
+            kwargs["widget"] = forms.Textarea(attrs={"rows": 5})
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     def has_add_permission(self, request):
         if AboutPageCopy.objects.exists():

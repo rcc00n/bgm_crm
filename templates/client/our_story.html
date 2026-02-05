@@ -1,4 +1,4 @@
-{% load static %}
+{% load static dealer_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -388,9 +388,9 @@
           <ul class="list">
             <li>{{ about_copy.rates_shop_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_shop_value }}</strong></li>
             <li>{{ about_copy.rates_cad_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_cad_value }}</strong></li>
-            <li>{{ about_copy.rates_policy_1 }}</li>
-            <li>{{ about_copy.rates_policy_2 }}</li>
-            <li>{{ about_copy.rates_policy_3 }}</li>
+            {% for policy in about_copy.rates_policies|split_lines %}
+              <li>{{ policy }}</li>
+            {% endfor %}
           </ul>
         </article>
       </div>
