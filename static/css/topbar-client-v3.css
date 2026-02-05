@@ -102,7 +102,7 @@
   font-weight: var(--topbar-brand-weight, 900) !important;
   letter-spacing: var(--topbar-brand-letter-spacing, .06em) !important;
   font-size: var(--topbar-brand-size, clamp(1.1rem, 1.8vw, 1.6rem)) !important;
-  text-transform: var(--topbar-brand-transform, uppercase) !important;
+  text-transform: var(--topbar-brand-transform, none) !important;
   font-family: var(--topbar-brand-font, var(--font-head, inherit)) !important;
 }
 

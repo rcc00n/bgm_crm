@@ -1,16 +1,16 @@
 {% load topbar_extras %}
 {% firstof header_copy home_copy services_copy store_copy merch_copy financing_copy about_copy dealer_copy as topbar_copy %}
-{% with brand_words=topbar_copy.brand_word_white|default:"BAD GUY"|split_words %}
+{% with brand_words=topbar_copy.brand_word_white|default:"Bad Guy"|split_words %}
 {% with tagline_words=topbar_copy.brand_tagline|default:"CUSTOM BUILDS • INSTALLS • UPGRADES"|split_bullets %}
 <header class="bgm-topbar" role="banner">
   <div class="bgm-topbar__inner">
     <div class="bgm-topbar__slot bgm-topbar__slot--brand">
       <a class="bgm-topbar__brand" href="{% url 'home' %}">
-        <span class="bgm-topbar__brand-word bgm-topbar__brand-word--1">{{ brand_words.0|default:"BAD" }}</span>
+        <span class="bgm-topbar__brand-word bgm-topbar__brand-word--1">{{ brand_words.0|default:"Bad" }}</span>
         {% if brand_words.1 %}
           <span class="bgm-topbar__brand-word bgm-topbar__brand-word--2">{{ brand_words.1 }}</span>
         {% endif %}
-        <span class="bgm-topbar__brand-word bgm-topbar__brand-word--3">{{ topbar_copy.brand_word_red|default:"MOTORS" }}</span>
+        <span class="bgm-topbar__brand-word bgm-topbar__brand-word--3">{{ topbar_copy.brand_word_red|default:"Motors" }}</span>
       </a>
       {% if topbar_badge_label %}
         <span class="bgm-topbar__badge">{{ topbar_badge_label }}</span>
