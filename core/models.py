@@ -2332,7 +2332,15 @@ class TopbarSettings(models.Model):
         null=True,
         blank=True,
         related_name="topbar_brand_word_red_settings",
-        help_text="Optional font override for the second brand word.",
+        help_text="Optional font override for the third brand word.",
+    )
+    brand_word_middle_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_brand_word_middle_settings",
+        help_text="Optional font override for the middle brand word.",
     )
     nav_font = models.ForeignKey(
         FontPreset,
@@ -2341,6 +2349,30 @@ class TopbarSettings(models.Model):
         blank=True,
         related_name="topbar_nav_settings",
         help_text="Font used for navigation links and badges.",
+    )
+    tagline_word_1_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_tagline_word_1_settings",
+        help_text="Optional font override for the first tagline word.",
+    )
+    tagline_word_2_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_tagline_word_2_settings",
+        help_text="Optional font override for the second tagline word.",
+    )
+    tagline_word_3_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_tagline_word_3_settings",
+        help_text="Optional font override for the third tagline word.",
     )
 
     brand_size_desktop = models.CharField(
@@ -2393,6 +2425,150 @@ class TopbarSettings(models.Model):
         max_length=8,
         default="3",
         help_text="CSS order for the navigation block.",
+    )
+    brand_word_1_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the first brand word.",
+    )
+    brand_word_2_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the second brand word.",
+    )
+    brand_word_3_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the third brand word.",
+    )
+    brand_word_1_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the first brand word.",
+    )
+    brand_word_2_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the second brand word.",
+    )
+    brand_word_3_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the third brand word.",
+    )
+    brand_word_1_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the first brand word.",
+    )
+    brand_word_2_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the second brand word.",
+    )
+    brand_word_3_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the third brand word.",
+    )
+    brand_word_1_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the first brand word (normal/italic).",
+    )
+    brand_word_2_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the second brand word (normal/italic).",
+    )
+    brand_word_3_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the third brand word (normal/italic).",
+    )
+    tagline_word_1_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the first tagline word.",
+    )
+    tagline_word_2_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the second tagline word.",
+    )
+    tagline_word_3_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the third tagline word.",
+    )
+    tagline_word_1_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the first tagline word.",
+    )
+    tagline_word_2_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the second tagline word.",
+    )
+    tagline_word_3_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the third tagline word.",
+    )
+    tagline_word_1_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the first tagline word.",
+    )
+    tagline_word_2_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the second tagline word.",
+    )
+    tagline_word_3_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the third tagline word.",
+    )
+    tagline_word_1_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the first tagline word (normal/italic).",
+    )
+    tagline_word_2_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the second tagline word (normal/italic).",
+    )
+    tagline_word_3_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the third tagline word (normal/italic).",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

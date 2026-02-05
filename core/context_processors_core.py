@@ -234,10 +234,23 @@ def topbar_style(request):
     brand_font = settings_obj.brand_font
     brand_word_white_font = settings_obj.brand_word_white_font
     brand_word_red_font = settings_obj.brand_word_red_font
+    brand_word_middle_font = settings_obj.brand_word_middle_font
     nav_font = settings_obj.nav_font
+    tagline_word_1_font = settings_obj.tagline_word_1_font
+    tagline_word_2_font = settings_obj.tagline_word_2_font
+    tagline_word_3_font = settings_obj.tagline_word_3_font
 
     fonts = []
-    for font in (brand_font, brand_word_white_font, brand_word_red_font, nav_font):
+    for font in (
+        brand_font,
+        brand_word_white_font,
+        brand_word_middle_font,
+        brand_word_red_font,
+        nav_font,
+        tagline_word_1_font,
+        tagline_word_2_font,
+        tagline_word_3_font,
+    ):
         if not font or not font.url:
             continue
         serialized = serialize_font_preset(font)
@@ -247,9 +260,13 @@ def topbar_style(request):
     return {
         "topbar_settings": {
             "brand": serialize_font_preset(brand_font),
-            "brand_word_white": serialize_font_preset(brand_word_white_font),
-            "brand_word_red": serialize_font_preset(brand_word_red_font),
+            "brand_word_1": serialize_font_preset(brand_word_white_font),
+            "brand_word_2": serialize_font_preset(brand_word_middle_font),
+            "brand_word_3": serialize_font_preset(brand_word_red_font),
             "nav": serialize_font_preset(nav_font),
+            "tagline_word_1": serialize_font_preset(tagline_word_1_font),
+            "tagline_word_2": serialize_font_preset(tagline_word_2_font),
+            "tagline_word_3": serialize_font_preset(tagline_word_3_font),
             "brand_size": settings_obj.brand_size_desktop,
             "brand_weight": settings_obj.brand_weight,
             "brand_letter_spacing": settings_obj.brand_letter_spacing,
@@ -260,6 +277,30 @@ def topbar_style(request):
             "order_brand": settings_obj.order_brand,
             "order_tagline": settings_obj.order_tagline,
             "order_nav": settings_obj.order_nav,
+            "brand_word_1_color": settings_obj.brand_word_1_color,
+            "brand_word_2_color": settings_obj.brand_word_2_color,
+            "brand_word_3_color": settings_obj.brand_word_3_color,
+            "brand_word_1_size": settings_obj.brand_word_1_size,
+            "brand_word_2_size": settings_obj.brand_word_2_size,
+            "brand_word_3_size": settings_obj.brand_word_3_size,
+            "brand_word_1_weight": settings_obj.brand_word_1_weight,
+            "brand_word_2_weight": settings_obj.brand_word_2_weight,
+            "brand_word_3_weight": settings_obj.brand_word_3_weight,
+            "brand_word_1_style": settings_obj.brand_word_1_style,
+            "brand_word_2_style": settings_obj.brand_word_2_style,
+            "brand_word_3_style": settings_obj.brand_word_3_style,
+            "tagline_word_1_color": settings_obj.tagline_word_1_color,
+            "tagline_word_2_color": settings_obj.tagline_word_2_color,
+            "tagline_word_3_color": settings_obj.tagline_word_3_color,
+            "tagline_word_1_size": settings_obj.tagline_word_1_size,
+            "tagline_word_2_size": settings_obj.tagline_word_2_size,
+            "tagline_word_3_size": settings_obj.tagline_word_3_size,
+            "tagline_word_1_weight": settings_obj.tagline_word_1_weight,
+            "tagline_word_2_weight": settings_obj.tagline_word_2_weight,
+            "tagline_word_3_weight": settings_obj.tagline_word_3_weight,
+            "tagline_word_1_style": settings_obj.tagline_word_1_style,
+            "tagline_word_2_style": settings_obj.tagline_word_2_style,
+            "tagline_word_3_style": settings_obj.tagline_word_3_style,
             "fonts": fonts,
         }
     }

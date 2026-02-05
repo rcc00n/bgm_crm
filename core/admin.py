@@ -1699,10 +1699,12 @@ class TopbarSettingsAdmin(admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
-        ("Fonts", {"fields": ("brand_font", "brand_word_white_font", "brand_word_red_font", "nav_font")}),
+        ("Fonts", {"fields": ("brand_font", "brand_word_white_font", "brand_word_middle_font", "brand_word_red_font", "nav_font", "tagline_word_1_font", "tagline_word_2_font", "tagline_word_3_font")}),
         ("Sizing", {"fields": ("brand_size_desktop", "nav_size", "nav_size_desktop", "padding_y_desktop")}),
         ("Layout", {"fields": ("order_brand", "order_tagline", "order_nav")}),
         ("Brand styling", {"fields": ("brand_weight", "brand_letter_spacing", "brand_transform")}),
+        ("Brand word styles", {"fields": ("brand_word_1_color", "brand_word_2_color", "brand_word_3_color", "brand_word_1_size", "brand_word_2_size", "brand_word_3_size", "brand_word_1_weight", "brand_word_2_weight", "brand_word_3_weight", "brand_word_1_style", "brand_word_2_style", "brand_word_3_style")}),
+        ("Tagline word styles", {"fields": ("tagline_word_1_color", "tagline_word_2_color", "tagline_word_3_color", "tagline_word_1_size", "tagline_word_2_size", "tagline_word_3_size", "tagline_word_1_weight", "tagline_word_2_weight", "tagline_word_3_weight", "tagline_word_1_style", "tagline_word_2_style", "tagline_word_3_style")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
 

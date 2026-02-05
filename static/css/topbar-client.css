@@ -24,6 +24,10 @@
   --topbar-order-nav: 3;
   --topbar-brand-word-1-font: var(--topbar-brand-font, "Diesel", "Inter", system-ui, sans-serif);
   --topbar-brand-word-2-font: var(--topbar-brand-font, "Diesel", "Inter", system-ui, sans-serif);
+  --topbar-brand-word-3-font: var(--topbar-brand-font, "Diesel", "Inter", system-ui, sans-serif);
+  --topbar-tagline-word-1-font: var(--topbar-nav-font, "Inter", system-ui, sans-serif);
+  --topbar-tagline-word-2-font: var(--topbar-nav-font, "Inter", system-ui, sans-serif);
+  --topbar-tagline-word-3-font: var(--topbar-nav-font, "Inter", system-ui, sans-serif);
 }
 
 .visually-hidden{
@@ -50,6 +54,7 @@
   gap: var(--topbar-gap) !important;
   min-height: var(--site-header-height, 72px) !important;
   padding-block: var(--topbar-padding-y-desktop, .85rem) !important;
+  flex-wrap: nowrap !important;
 }
 
 .site-header--v2 .topbar__slot{
@@ -59,8 +64,17 @@
 }
 
 .site-header--v2 .topbar__slot--brand{ order: var(--topbar-order-brand); }
-.site-header--v2 .topbar__slot--tagline{ order: var(--topbar-order-tagline); flex: 1 1 auto; }
-.site-header--v2 .topbar__slot--nav{ order: var(--topbar-order-nav); }
+.site-header--v2 .topbar__slot--tagline{
+  order: var(--topbar-order-tagline);
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+  text-align: center;
+}
+.site-header--v2 .topbar__slot--nav{
+  order: var(--topbar-order-nav);
+  min-width: 0;
+}
 
 .site-header--v2 .topbar-brand{
   display: inline-flex !important;
@@ -77,16 +91,31 @@
 
 .site-header--v2 .topbar-brand__word{
   line-height: 1 !important;
+  display: inline-block;
 }
 
-.site-header--v2 .topbar-brand__word--white{
-  color: #fff !important;
+.site-header--v2 .topbar-brand__word--1{
+  color: var(--topbar-brand-word-1-color, #fff) !important;
   font-family: var(--topbar-brand-word-1-font, var(--topbar-brand-font, var(--font-head, inherit))) !important;
+  font-size: var(--topbar-brand-word-1-size, inherit) !important;
+  font-weight: var(--topbar-brand-word-1-weight, inherit) !important;
+  font-style: var(--topbar-brand-word-1-style, normal) !important;
 }
 
-.site-header--v2 .topbar-brand__word--red{
-  color: var(--topbar-red) !important;
+.site-header--v2 .topbar-brand__word--2{
+  color: var(--topbar-brand-word-2-color, #fff) !important;
   font-family: var(--topbar-brand-word-2-font, var(--topbar-brand-font, var(--font-head, inherit))) !important;
+  font-size: var(--topbar-brand-word-2-size, inherit) !important;
+  font-weight: var(--topbar-brand-word-2-weight, inherit) !important;
+  font-style: var(--topbar-brand-word-2-style, normal) !important;
+}
+
+.site-header--v2 .topbar-brand__word--3{
+  color: var(--topbar-brand-word-3-color, var(--topbar-red)) !important;
+  font-family: var(--topbar-brand-word-3-font, var(--topbar-brand-font, var(--font-head, inherit))) !important;
+  font-size: var(--topbar-brand-word-3-size, inherit) !important;
+  font-weight: var(--topbar-brand-word-3-weight, inherit) !important;
+  font-style: var(--topbar-brand-word-3-style, normal) !important;
 }
 
 .site-header--v2 .topbar-tagline{
@@ -98,6 +127,44 @@
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: .6rem !important;
+}
+
+.site-header--v2 .topbar-tagline__word{
+  display: inline-block;
+  line-height: 1 !important;
+}
+
+.site-header--v2 .topbar-tagline__word--1{
+  color: var(--topbar-tagline-word-1-color, rgba(255,255,255,.7)) !important;
+  font-family: var(--topbar-tagline-word-1-font, var(--topbar-nav-font, var(--font-ui, var(--font-body)))) !important;
+  font-size: var(--topbar-tagline-word-1-size, inherit) !important;
+  font-weight: var(--topbar-tagline-word-1-weight, 800) !important;
+  font-style: var(--topbar-tagline-word-1-style, normal) !important;
+}
+
+.site-header--v2 .topbar-tagline__word--2{
+  color: var(--topbar-tagline-word-2-color, rgba(255,255,255,.7)) !important;
+  font-family: var(--topbar-tagline-word-2-font, var(--topbar-nav-font, var(--font-ui, var(--font-body)))) !important;
+  font-size: var(--topbar-tagline-word-2-size, inherit) !important;
+  font-weight: var(--topbar-tagline-word-2-weight, 800) !important;
+  font-style: var(--topbar-tagline-word-2-style, normal) !important;
+}
+
+.site-header--v2 .topbar-tagline__word--3{
+  color: var(--topbar-tagline-word-3-color, rgba(255,255,255,.7)) !important;
+  font-family: var(--topbar-tagline-word-3-font, var(--topbar-nav-font, var(--font-ui, var(--font-body)))) !important;
+  font-size: var(--topbar-tagline-word-3-size, inherit) !important;
+  font-weight: var(--topbar-tagline-word-3-weight, 800) !important;
+  font-style: var(--topbar-tagline-word-3-style, normal) !important;
+}
+
+.site-header--v2 .topbar-tagline__sep{
+  color: var(--topbar-tagline-sep-color, rgba(255,255,255,.55)) !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
 }
 
 .site-header--v2 .topbar-badge{
@@ -118,6 +185,7 @@
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  white-space: nowrap;
 }
 
 .site-header--v2 .topbar-nav::-webkit-scrollbar{ display: none; }

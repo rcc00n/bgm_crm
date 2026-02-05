@@ -52,8 +52,12 @@
       :root{
         {% if topbar_settings.brand.stack %}--topbar-brand-font: {{ topbar_settings.brand.stack|safe }};{% endif %}
         {% if topbar_settings.nav.stack %}--topbar-nav-font: {{ topbar_settings.nav.stack|safe }};{% endif %}
-        {% if topbar_settings.brand_word_white.stack %}--topbar-brand-word-1-font: {{ topbar_settings.brand_word_white.stack|safe }};{% endif %}
-        {% if topbar_settings.brand_word_red.stack %}--topbar-brand-word-2-font: {{ topbar_settings.brand_word_red.stack|safe }};{% endif %}
+        {% if topbar_settings.brand_word_1.stack %}--topbar-brand-word-1-font: {{ topbar_settings.brand_word_1.stack|safe }};{% endif %}
+        {% if topbar_settings.brand_word_2.stack %}--topbar-brand-word-2-font: {{ topbar_settings.brand_word_2.stack|safe }};{% endif %}
+        {% if topbar_settings.brand_word_3.stack %}--topbar-brand-word-3-font: {{ topbar_settings.brand_word_3.stack|safe }};{% endif %}
+        {% if topbar_settings.tagline_word_1.stack %}--topbar-tagline-word-1-font: {{ topbar_settings.tagline_word_1.stack|safe }};{% endif %}
+        {% if topbar_settings.tagline_word_2.stack %}--topbar-tagline-word-2-font: {{ topbar_settings.tagline_word_2.stack|safe }};{% endif %}
+        {% if topbar_settings.tagline_word_3.stack %}--topbar-tagline-word-3-font: {{ topbar_settings.tagline_word_3.stack|safe }};{% endif %}
         {% if topbar_settings.brand_size %}--topbar-brand-size: {{ topbar_settings.brand_size }};{% endif %}
         {% if topbar_settings.brand_weight %}--topbar-brand-weight: {{ topbar_settings.brand_weight }};{% endif %}
         {% if topbar_settings.brand_letter_spacing %}--topbar-brand-letter-spacing: {{ topbar_settings.brand_letter_spacing }};{% endif %}
@@ -64,6 +68,30 @@
         {% if topbar_settings.order_brand %}--topbar-order-brand: {{ topbar_settings.order_brand }};{% endif %}
         {% if topbar_settings.order_tagline %}--topbar-order-tagline: {{ topbar_settings.order_tagline }};{% endif %}
         {% if topbar_settings.order_nav %}--topbar-order-nav: {{ topbar_settings.order_nav }};{% endif %}
+        {% if topbar_settings.brand_word_1_color %}--topbar-brand-word-1-color: {{ topbar_settings.brand_word_1_color|escape }};{% endif %}
+        {% if topbar_settings.brand_word_2_color %}--topbar-brand-word-2-color: {{ topbar_settings.brand_word_2_color|escape }};{% endif %}
+        {% if topbar_settings.brand_word_3_color %}--topbar-brand-word-3-color: {{ topbar_settings.brand_word_3_color|escape }};{% endif %}
+        {% if topbar_settings.brand_word_1_size %}--topbar-brand-word-1-size: {{ topbar_settings.brand_word_1_size|escape }};{% endif %}
+        {% if topbar_settings.brand_word_2_size %}--topbar-brand-word-2-size: {{ topbar_settings.brand_word_2_size|escape }};{% endif %}
+        {% if topbar_settings.brand_word_3_size %}--topbar-brand-word-3-size: {{ topbar_settings.brand_word_3_size|escape }};{% endif %}
+        {% if topbar_settings.brand_word_1_weight %}--topbar-brand-word-1-weight: {{ topbar_settings.brand_word_1_weight|escape }};{% endif %}
+        {% if topbar_settings.brand_word_2_weight %}--topbar-brand-word-2-weight: {{ topbar_settings.brand_word_2_weight|escape }};{% endif %}
+        {% if topbar_settings.brand_word_3_weight %}--topbar-brand-word-3-weight: {{ topbar_settings.brand_word_3_weight|escape }};{% endif %}
+        {% if topbar_settings.brand_word_1_style %}--topbar-brand-word-1-style: {{ topbar_settings.brand_word_1_style|escape }};{% endif %}
+        {% if topbar_settings.brand_word_2_style %}--topbar-brand-word-2-style: {{ topbar_settings.brand_word_2_style|escape }};{% endif %}
+        {% if topbar_settings.brand_word_3_style %}--topbar-brand-word-3-style: {{ topbar_settings.brand_word_3_style|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_1_color %}--topbar-tagline-word-1-color: {{ topbar_settings.tagline_word_1_color|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_2_color %}--topbar-tagline-word-2-color: {{ topbar_settings.tagline_word_2_color|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_3_color %}--topbar-tagline-word-3-color: {{ topbar_settings.tagline_word_3_color|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_1_size %}--topbar-tagline-word-1-size: {{ topbar_settings.tagline_word_1_size|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_2_size %}--topbar-tagline-word-2-size: {{ topbar_settings.tagline_word_2_size|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_3_size %}--topbar-tagline-word-3-size: {{ topbar_settings.tagline_word_3_size|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_1_weight %}--topbar-tagline-word-1-weight: {{ topbar_settings.tagline_word_1_weight|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_2_weight %}--topbar-tagline-word-2-weight: {{ topbar_settings.tagline_word_2_weight|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_3_weight %}--topbar-tagline-word-3-weight: {{ topbar_settings.tagline_word_3_weight|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_1_style %}--topbar-tagline-word-1-style: {{ topbar_settings.tagline_word_1_style|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_2_style %}--topbar-tagline-word-2-style: {{ topbar_settings.tagline_word_2_style|escape }};{% endif %}
+        {% if topbar_settings.tagline_word_3_style %}--topbar-tagline-word-3-style: {{ topbar_settings.tagline_word_3_style|escape }};{% endif %}
       }
     </style>
   {% endif %}
