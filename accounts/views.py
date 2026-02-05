@@ -30,6 +30,7 @@ from core.models import (
     Service,
     Appointment,
     AppointmentStatusHistory,
+    ClientReview,
     ClientFile,
     ClientPortalPageCopy,
     MerchPageCopy,
@@ -529,6 +530,51 @@ def _select_home_products(
 
     return selected
 
+
+def _build_home_reviews(*, limit: int = 6):
+    landing_reviews = list(
+        LandingPageReview.objects.filter(
+            page=LandingPageReview.Page.HOME,
+            is_published=True,
+        ).order_by("display_order", "-created_at")[:limit]
+    )
+    if landing_reviews:
+        return landing_reviews
+
+    reviews = []
+    client_reviews = (
+        ClientReview.objects.select_related(
+            "appointment",
+            "appointment__client",
+            "appointment__service",
+        )
+        .exclude(comment__isnull=True)
+        .exclude(comment__exact="")
+        .order_by("-created_at")
+    )
+    for review in client_reviews:
+        comment = (review.comment or "").strip()
+        if not comment:
+            continue
+        appt = review.appointment
+        reviewer_name = appt.contact_name
+        if not reviewer_name and appt.client_id:
+            reviewer_name = appt.client.get_full_name() or appt.client.username
+        reviewer_name = reviewer_name or "BGM Client"
+        reviewer_title = appt.service.name if getattr(appt, "service_id", None) else ""
+        reviews.append(
+            {
+                "rating": review.rating,
+                "quote": comment,
+                "reviewer_name": reviewer_name,
+                "reviewer_title": reviewer_title,
+                "star_range": range(review.rating or 0),
+            }
+        )
+        if len(reviews) >= limit:
+            break
+    return reviews
+
 class HomeView(TemplateView):
     template_name = "client/bgm_home.html"
 
@@ -539,13 +585,7 @@ class HomeView(TemplateView):
         ctx["home_copy"] = home_copy
         ctx["page_sections"] = get_page_sections(home_copy)
         ctx["layout_styles"] = build_layout_styles(HomePageCopy, home_copy.layout_overrides)
-        ctx["home_reviews"] = (
-            LandingPageReview.objects.filter(
-                page=LandingPageReview.Page.HOME,
-                is_published=True,
-            )
-            .order_by("display_order", "-created_at")
-        )
+        ctx["home_reviews"] = _build_home_reviews()
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]
