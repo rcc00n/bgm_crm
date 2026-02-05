@@ -1198,17 +1198,6 @@
           <h2 class="section__title">{{ home_copy.why_title }}</h2>
           <p class="section__desc">{{ home_copy.why_desc }}</p>
         </div>
-        <div class="tiles tiles--why">
-          <div class="tile"><div class="tile__icon">★</div><b>{{ home_copy.why_tile_1_title }}</b><p class="muted">{{ home_copy.why_tile_1_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">⏱</div><b>{{ home_copy.why_tile_2_title }}</b><p class="muted">{{ home_copy.why_tile_2_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">🔒</div><b>{{ home_copy.why_tile_3_title }}</b><p class="muted">{{ home_copy.why_tile_3_desc }}</p></div>
-          <a class="tile tile--link" href="{% url 'legal-terms' %}" aria-label="{{ home_copy.why_warranty_aria_label }}" title="{{ home_copy.why_warranty_title_attr }}">
-            <div class="tile__icon">💬</div>
-            <b>{{ home_copy.why_warranty_title }}</b>
-            <p class="muted">{{ home_copy.why_warranty_desc }}</p>
-            <span class="tile__cta">{{ home_copy.why_warranty_cta }}</span>
-          </a>
-        </div>
         {% if home_reviews %}
           <div class="review-carousel" data-review-carousel data-review-count="{{ home_reviews|length }}">
             <div class="review-carousel__nav">
@@ -1235,6 +1224,17 @@
             </div>
           </div>
         {% endif %}
+        <div class="tiles tiles--why">
+          <div class="tile"><div class="tile__icon">★</div><b>{{ home_copy.why_tile_1_title }}</b><p class="muted">{{ home_copy.why_tile_1_desc }}</p></div>
+          <div class="tile"><div class="tile__icon">⏱</div><b>{{ home_copy.why_tile_2_title }}</b><p class="muted">{{ home_copy.why_tile_2_desc }}</p></div>
+          <div class="tile"><div class="tile__icon">🔒</div><b>{{ home_copy.why_tile_3_title }}</b><p class="muted">{{ home_copy.why_tile_3_desc }}</p></div>
+          <a class="tile tile--link" href="{% url 'legal-terms' %}" aria-label="{{ home_copy.why_warranty_aria_label }}" title="{{ home_copy.why_warranty_title_attr }}">
+            <div class="tile__icon">💬</div>
+            <b>{{ home_copy.why_warranty_title }}</b>
+            <p class="muted">{{ home_copy.why_warranty_desc }}</p>
+            <span class="tile__cta">{{ home_copy.why_warranty_cta }}</span>
+          </a>
+        </div>
       </div>
     </section>
 
