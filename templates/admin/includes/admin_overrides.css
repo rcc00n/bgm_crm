@@ -38,6 +38,10 @@ body {
   margin: 0 0 20px;
 }
 
+body.admin-dashboard .content.border-bottom.mb-2 {
+  display: none;
+}
+
 .content.border-bottom.mb-2 > .container-fluid {
   background: var(--admin-surface);
   border-radius: var(--admin-radius-lg);

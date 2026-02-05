@@ -163,12 +163,11 @@ def _apply_notification_state(sidebar: List[Dict[str, Any]], user) -> None:
 
         latest_by_label: Dict[str, Any] = {}
         if ct_ids:
-            latest_rows = (
-                LogEntry.objects.filter(content_type_id__in=ct_ids)
-                .exclude(user_id=getattr(user, "id", None))
-                .values("content_type_id")
-                .annotate(last_action=Max("action_time"))
-            )
+            include_self = getattr(settings, "ADMIN_SIDEBAR_INCLUDE_SELF_ACTIVITY", False)
+            log_entries = LogEntry.objects.filter(content_type_id__in=ct_ids)
+            if not include_self:
+                log_entries = log_entries.exclude(user_id=getattr(user, "id", None))
+            latest_rows = log_entries.values("content_type_id").annotate(last_action=Max("action_time"))
             latest_by_label = {
                 ct_id_to_label[row["content_type_id"]]: row["last_action"]
                 for row in latest_rows

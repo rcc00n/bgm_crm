@@ -696,6 +696,9 @@ ADMIN_SIDEBAR_SECTIONS = [
     },
 ]
 
+# Include the current user's own admin edits in sidebar/notification activity.
+ADMIN_SIDEBAR_INCLUDE_SELF_ACTIVITY = True
+
 JAZZMIN_SETTINGS = {
     "site_title": "BGM Admin",
     "site_header": "BGM",
