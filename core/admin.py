@@ -3420,19 +3420,21 @@ class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "table_amount_label",
             )
         }),
-        ("Rates & facts", {
-            "fields": (
-                "rates_title",
-                "rates_shop_label",
-                "rates_shop_value",
-                "rates_cad_label",
-                "rates_cad_value",
-                "quick_facts_title",
-                "quick_fact_1",
-                "quick_fact_2",
-                "quick_fact_3",
-            )
-        }),
+	        ("Rates & facts", {
+	            "fields": (
+	                "rates_title",
+	                "rates_shop_label",
+	                "rates_shop_value",
+	                "rates_cad_label",
+	                "rates_cad_value",
+	                "rates_customer_parts_label",
+	                "rates_customer_parts_value",
+	                "quick_facts_title",
+	                "quick_fact_1",
+	                "quick_fact_2",
+	                "quick_fact_3",
+	            )
+	        }),
         ("Policies & care", {
             "fields": (
                 "policies_title",

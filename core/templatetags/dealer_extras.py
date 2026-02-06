@@ -1,6 +1,10 @@
 from decimal import Decimal
 
+import html
+import re
+
 from django import template
+from django.utils.html import strip_tags
 
 from core.utils import apply_dealer_discount, dealer_discount_savings, format_currency
 
@@ -51,5 +55,17 @@ def split_lines(value):
     if value is None:
         return []
     text = str(value)
+
+    # Page copy often comes from CKEditor (HTML). Normalize common block/line break
+    # markup into newline-delimited plain text before splitting.
+    # This prevents users from seeing raw <p> tags or entities like &mdash;.
+    text = re.sub(r"(?i)<\s*br\s*/?\s*>", "\n", text)
+    text = re.sub(r"(?i)</\s*(p|li|div|h[1-6])\s*>", "\n", text)
+    text = strip_tags(text)
+
+    # Decode entities (twice to handle double-encoded input like &amp;mdash;).
+    text = html.unescape(text)
+    text = html.unescape(text)
+
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     return lines

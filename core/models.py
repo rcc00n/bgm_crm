@@ -1082,6 +1082,11 @@ class ClientPortalPageCopy(models.Model):
     rates_shop_value = models.CharField(max_length=40, default="130/hr")
     rates_cad_label = models.CharField(max_length=60, default="Design/CAD rate")
     rates_cad_value = models.CharField(max_length=40, default="150/hr")
+    rates_customer_parts_label = models.CharField(
+        max_length=80,
+        default="Customer supplied parts",
+    )
+    rates_customer_parts_value = models.CharField(max_length=40, default="145/hr")
     quick_facts_title = models.CharField(max_length=60, default="Quick facts")
     quick_fact_1 = models.CharField(max_length=160, default="Alberta-made parts, built in Medicine Hat")
     quick_fact_2 = models.CharField(max_length=160, default="Custom fabrication, diesel performance, coatings")
