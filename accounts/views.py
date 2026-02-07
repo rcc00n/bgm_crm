@@ -467,7 +467,7 @@ from core.models import ServiceCategory, Service
 from django.views.generic import TemplateView
 from core.models import Service, ServiceCategory, HomePageCopy, HomePageFAQItem, ProjectJournalEntry   # ваши модели услуг
 from core.services.page_layout import build_layout_styles
-from store.models import Product                    # товары
+from store.models import Product, Category as StoreCategory  # товары
 
 
 def _select_home_products(
@@ -601,6 +601,9 @@ class HomeView(TemplateView):
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]
+        ctx["product_filter_categories"] = (
+            StoreCategory.objects.filter(products__is_active=True).distinct().order_by("name")
+        )
         ctx["uncategorized"] = Service.objects.filter(category__isnull=True)
         ctx["has_any_services"] = Service.objects.exists()
 

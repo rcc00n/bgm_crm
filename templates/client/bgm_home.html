@@ -247,6 +247,7 @@
 
 	    .home-gallery{margin:1rem 0 1.6rem}
 	    .home-gallery__head{margin-bottom:1rem}
+	    .home-services-under-builds{display:none;}
 	    .home-divider{
 	      display:none;
 	      border:0;
@@ -306,6 +307,8 @@
 
 	    @media (min-width: 861px){
 	      /* Home (desktop): requested typography tweaks */
+	      #services .home-services-intro{display:none !important;}
+	      #services .home-services-under-builds{display:flex;}
 	      #services .home-services-title{display:none !important;}
 	      #services .home-builds-title,
 	      #services .home-featured-title{
@@ -323,54 +326,61 @@
 	        font-size:clamp(2.05rem, 2.9vw, 2.7rem) !important;
 	        line-height:1.08 !important;
 	        margin:.25rem 0 1rem !important;
-	      }
+		      }
 
-	      /* Home (desktop): make the search controls stand out more */
-	      #services .home-search{
-	        padding:1rem 1.05rem;
-	        border-radius:1.1rem;
-	        border:1px solid rgba(255,255,255,.16);
-	        background:
-	          radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.15), transparent 58%),
-	          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
-	          linear-gradient(180deg, var(--panel), var(--panel-2));
-	        box-shadow:0 18px 34px rgba(0,0,0,.42);
-	      }
-	      #services .home-search .input,
-	      #services .home-search .select{
-	        min-height:54px;
-	        padding:.85rem 1rem;
-	        border-color:rgba(255,255,255,.22);
-	        background:rgba(0,0,0,.22);
-	        font-family:var(--font-head) !important;
-	        font-weight:900 !important;
-	        letter-spacing:.06em !important;
-	        text-transform:uppercase !important;
-	      }
-	      #services .home-search .input::placeholder{
-	        color:rgba(255,255,255,.65);
-	        font-weight:900;
-	      }
-	      #services .home-search button[type="submit"]{
-	        min-height:54px;
-	        padding:.9rem 1.25rem;
-	        border-radius:.85rem;
-	        background:linear-gradient(180deg, var(--accent-2), var(--accent));
+		      /* Home (desktop): make the search controls stand out more */
+		      #services .home-search,
+		      #products .home-search{
+		        padding:1rem 1.05rem;
+		        border-radius:1.1rem;
+		        border:1px solid rgba(255,255,255,.16);
+		        background:
+		          radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.15), transparent 58%),
+		          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+		          linear-gradient(180deg, var(--panel), var(--panel-2));
+		        box-shadow:0 18px 34px rgba(0,0,0,.42);
+		      }
+		      #services .home-search .input,
+		      #services .home-search .select,
+		      #products .home-search .input,
+		      #products .home-search .select{
+		        min-height:54px;
+		        padding:.85rem 1rem;
+		        border-color:rgba(255,255,255,.22);
+		        background:rgba(0,0,0,.22);
+		        font-family:var(--font-head) !important;
+		        font-weight:900 !important;
+		        letter-spacing:.06em !important;
+		        text-transform:uppercase !important;
+		      }
+		      #services .home-search .input::placeholder,
+		      #products .home-search .input::placeholder{
+		        color:rgba(255,255,255,.65);
+		        font-weight:900;
+		      }
+		      #services .home-search button[type="submit"],
+		      #products .home-search button[type="submit"]{
+		        min-height:54px;
+		        padding:.9rem 1.25rem;
+		        border-radius:.85rem;
+		        background:linear-gradient(180deg, var(--accent-2), var(--accent));
 	        border:1px solid rgba(213,0,0,.65);
 	        color:#fff;
 	        box-shadow:0 14px 24px rgba(213,0,0,.22);
 	        font-family:var(--font-head) !important;
 	        font-weight:900 !important;
-	        letter-spacing:.08em !important;
-	        text-transform:uppercase !important;
-	      }
-	      #services .home-search button[type="submit"]:hover{
-	        transform:translateY(-2px);
-	        color:#fff;
-	        border-color:rgba(213,0,0,.75);
-	        box-shadow:0 18px 32px rgba(213,0,0,.26);
-	      }
-	      #services .home-divider{display:block;}
+		        letter-spacing:.08em !important;
+		        text-transform:uppercase !important;
+		      }
+		      #services .home-search button[type="submit"]:hover,
+		      #products .home-search button[type="submit"]:hover{
+		        transform:translateY(-2px);
+		        color:#fff;
+		        border-color:rgba(213,0,0,.75);
+		        box-shadow:0 18px 32px rgba(213,0,0,.26);
+		      }
+		      #services .home-divider,
+		      #products .home-divider{display:block;}
 
 	      #services .grid--services{
 	        grid-template-columns:repeat(3,minmax(0,1fr));
@@ -777,12 +787,17 @@
     .mobi-action b{ font-weight:900; }
     .mobi-sub{ color:var(--muted-2); font-size:.95rem; }
 
-    @media (max-width: 860px){
-      #services .filters,
-      #services #liveTitle, #services #liveGrid,
-      #services #serverContent{ display:none !important; }
-      #products .grid.grid--products{ display:none !important; }
-    }
+	    @media (max-width: 860px){
+	      #services .filters,
+	      #services #liveTitle, #services #liveGrid,
+	      #services #serverContent{ display:none !important; }
+	      #products .grid.grid--products{ display:none !important; }
+	      #products .home-divider,
+	      #products #productsSearchForm,
+	      #products #productsLiveTitle,
+	      #products #productsLiveGrid,
+	      #products #productsServerContent{ display:none !important; }
+	    }
     @media (max-width: 640px){
       .mobi-photo-break.frame{ aspect-ratio:4/3; }
     }
@@ -1134,10 +1149,10 @@
         <p class="kicker">{{ home_copy.hero_kicker }}</p>
         <h1 class="hero__title">{{ home_copy.hero_title }}</h1>
         <p class="hero__lead">{{ home_copy.hero_lead|safe }}</p>
-        <div class="hero__cta">
-          <a class="btn btn--primary" href="#services">{{ home_copy.hero_primary_cta_label }}</a>
-          <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">{{ home_copy.hero_secondary_cta_label }}</a>
-        </div>
+	        <div class="hero__cta">
+	          <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.hero_primary_cta_label }}</a>
+	          <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">{{ home_copy.hero_secondary_cta_label }}</a>
+	        </div>
 
         <div class="hero__stats" style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
           <a class="stat stat--link" href="#services"><b>{{ home_copy.hero_stat_1_title }}</b><br><span class="muted">{{ home_copy.hero_stat_1_subtitle }}</span></a>
@@ -1213,13 +1228,13 @@
       </div>
     </div>
     <!-- ========================= SERVICES on Home (limit 8) ========================= -->
-    <section id="services" class="section">
-      <div class="container">
-	        <div class="section__head">
-	          <div>
-	            <h2 class="section__title home-services-title">{{ home_copy.services_title }}</h2>
-	            <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
-	          </div>
+	    <section id="services" class="section">
+	      <div class="container">
+		        <div class="section__head home-services-intro">
+		          <div>
+		            <h2 class="section__title home-services-title">{{ home_copy.services_title }}</h2>
+		            <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
+		          </div>
 	          <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
 	        </div>
 
@@ -1230,6 +1245,12 @@
 	              <p class="section__desc">{{ home_copy.gallery_desc|safe }}</p>
 	            </div>
 	            <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
+	          </div>
+	          <div class="section__head home-services-under-builds">
+	            <div>
+	              <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
+	            </div>
+	            <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
 	          </div>
 	          <div class="grid grid--gallery">
 	            {% for item in home_gallery_items %}
@@ -1273,22 +1294,26 @@
           </form>
         </div>
 
-	        <!-- Filters -->
-	        <form class="filters home-search" role="search" method="get" action="{% url 'client-dashboard' %}">
-	          <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
-	          <select class="select" name="cat" aria-label="Category">
-	            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
-	            {% for c in filter_categories %}
-	              <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
-	            {% endfor %}
-	          </select>
-	          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
-	          {% if q or active_category %}
-	            <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_reset_filters_label }}</a>
-	          {% endif %}
-	        </form>
+		        <div class="only-desktop">
+		          {% if home_services %}
+		            <h3 id="servicesFeaturedTitle" class="kicker home-featured-title">{{ home_copy.services_featured_label }}</h3>
+		          {% endif %}
 
-	        <hr class="home-divider" aria-hidden="true">
+		          <!-- Filters -->
+		          <form id="servicesSearchForm" class="filters home-search" role="search" method="get" action="{% url 'client-dashboard' %}">
+		            <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
+		            <select class="select" name="cat" aria-label="Category">
+		              <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
+		              {% for c in filter_categories %}
+		                <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+		              {% endfor %}
+		            </select>
+		            <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+		            {% if q or active_category %}
+		              <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_reset_filters_label }}</a>
+		            {% endif %}
+		          </form>
+		        </div>
 
 	        <!-- Live search -->
 	        <h3 id="liveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
@@ -1341,13 +1366,12 @@
             <hr style="margin:1.5rem 0;border:0;border-top:1px solid var(--line)">
           {% endif %}
 
-	          {% if home_services %}
-	            <h3 class="kicker home-featured-title">{{ home_copy.services_featured_label }}</h3>
-	            <div class="grid grid--services grid--services--limit2">
-	              {% for s in home_services|slice:":8" %}
-	                <article class="card">
-	                  <div class="card__img">
-                    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+		          {% if home_services %}
+		            <div class="grid grid--services grid--services--limit2">
+		              {% for s in home_services|slice:":8" %}
+		                <article class="card">
+		                  <div class="card__img">
+	                    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
                     {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
                   <div class="card__head">
@@ -1389,87 +1413,108 @@
     </section>
 
     <!-- ========================= PRODUCTS ========================= -->
-    <section id="products" class="section">
-      <div class="container">
-        <div class="section__head">
-          <div>
-            <h2 class="section__title">{{ home_copy.products_title }}</h2>
-            <p class="section__desc">{{ home_copy.products_desc }}</p>
-          </div>
-          <div><a class="btn btn--primary" href="{% url 'store' %}">{{ home_copy.products_cta_label }}</a></div>
-        </div>
+	    <section id="products" class="section">
+	      <div class="container">
+	        <div class="section__head">
+	          <div>
+	            <h2 class="section__title">{{ home_copy.products_title }}</h2>
+	            <p class="section__desc">{{ home_copy.products_desc }}</p>
+	          </div>
+	          <div><a class="btn btn--primary" href="{% url 'store' %}">{{ home_copy.products_cta_label }}</a></div>
+	        </div>
 
-        <!-- Mobile products lite -->
-        <div id="mobileProducts" class="only-mobile" aria-labelledby="productsMobileTitle">
-          <h3 id="productsMobileTitle" class="kicker">{{ home_copy.products_mobile_kicker }}</h3>
-          <div class="mobi-actions">
-            <a class="mobi-action" href="{% url 'store' %}">
-              <b>{{ home_copy.products_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_1_subtitle }}</span>
-            </a>
-            <a class="mobi-action" href="{% url 'merch' %}">
-              <b>{{ home_copy.products_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_2_subtitle }}</span>
-            </a>
-          </div>
-        </div>
+	        <!-- Mobile products lite -->
+	        <div id="mobileProducts" class="only-mobile" aria-labelledby="productsMobileTitle">
+	          <h3 id="productsMobileTitle" class="kicker">{{ home_copy.products_mobile_kicker }}</h3>
+	          <div class="mobi-actions">
+	            <a class="mobi-action" href="{% url 'store' %}">
+	              <b>{{ home_copy.products_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_1_subtitle }}</span>
+	            </a>
+	            <a class="mobi-action" href="{% url 'merch' %}">
+	              <b>{{ home_copy.products_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_2_subtitle }}</span>
+	            </a>
+	          </div>
+	        </div>
 
-        {% if home_products %}
-          <div class="grid grid--products grid--products--limit2">
-            {% for p in home_products|slice:":8" %}
-              <article class="card">
-                <a href="{% url 'store-product' slug=p.slug %}">
-                  <div class="card__img">
-                    {% if p.main_image %}<img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
-                    {% elif p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
-                    {% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
-                    {% if p.category %}<span class="card__badge">{{ p.category.display_name }}</span>{% endif %}
-                  </div>
-                  <div class="card__head" style="margin-top:.35rem">
-                    <h3 style="font-weight:900">{{ p.name }}</h3>
-                    <div class="price price--stacked">
-                      {% if p.contact_for_estimate %}
-                        <strong>{{ home_copy.contact_for_estimate_label }}</strong>
-                        {% if p.estimate_from_price %}<span class="price__hint">{{ home_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
-                      {% else %}
-                        <div class="price__retail-row">
-                          {% if p.has_option_price_overrides %}<span class="price__hint">{{ home_copy.from_label }}</span>{% endif %}
-                          <strong>{{ p.display_price|money }}</strong>
-                          {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
-                        </div>
-                        {% if dealer_portal.show_discount %}
-                          <div class="price__dealer-row">
-                            <span class="price__hint">{{ home_copy.products_dealer_label }} {{ dealer_portal.discount_percent }}%</span>
-                            <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                            <span class="price__save">{{ home_copy.products_save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
-                          </div>
-                        {% endif %}
-                      {% endif %}
-                    </div>
-                  </div>
-                </a>
-                <div class="home-card-actions">
-                  {% if p.contact_for_estimate %}
-                    <a class="btn btn--primary" href="{% url 'home' %}#contact">{{ home_copy.products_contact_us_label }}</a>
-                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
-                  {% elif p.has_active_options %}
-                    <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">{{ home_copy.products_select_options_label }}</a>
-                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
-                  {% else %}
-                    <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
-                      <button class="btn btn--primary" type="submit">{{ home_copy.products_add_to_cart_label }}</button>
-                    </form>
-                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
-                  {% endif %}
-                </div>
-              </article>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="empty">
-            {{ home_copy.products_empty_label }} <a class="btn btn--link" href="{% url 'store' %}">{{ home_copy.products_empty_cta_label }}</a>
-          </div>
-        {% endif %}
-      </div>
-    </section>
+	        <hr class="home-divider" aria-hidden="true">
+
+	        <form id="productsSearchForm" class="filters home-search" role="search" method="get" action="{% url 'store' %}">
+	          <input class="input" type="search" name="q" placeholder="Search a product…" value="">
+	          <select class="select" name="cat" aria-label="Category">
+	            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
+	            {% for c in product_filter_categories %}
+	              <option value="{{ c.id }}">{{ c.display_name }}</option>
+	            {% endfor %}
+	          </select>
+	          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+	        </form>
+
+	        <hr class="home-divider" aria-hidden="true">
+
+	        <!-- Live product search -->
+	        <h3 id="productsLiveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
+	        <div id="productsLiveGrid" class="grid grid--products" style="display:none"></div>
+
+	        <div id="productsServerContent">
+	          {% if home_products %}
+	            <div class="grid grid--products grid--products--limit2">
+	              {% for p in home_products|slice:":8" %}
+	                <article class="card">
+	                  <a href="{% url 'store-product' slug=p.slug %}">
+	                    <div class="card__img">
+	                      {% if p.main_image %}<img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	                      {% elif p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	                      {% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+	                      {% if p.category %}<span class="card__badge">{{ p.category.display_name }}</span>{% endif %}
+	                    </div>
+	                    <div class="card__head" style="margin-top:.35rem">
+	                      <h3 style="font-weight:900">{{ p.name }}</h3>
+	                      <div class="price price--stacked">
+	                        {% if p.contact_for_estimate %}
+	                          <strong>{{ home_copy.contact_for_estimate_label }}</strong>
+	                          {% if p.estimate_from_price %}<span class="price__hint">{{ home_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
+	                        {% else %}
+	                          <div class="price__retail-row">
+	                            {% if p.has_option_price_overrides %}<span class="price__hint">{{ home_copy.from_label }}</span>{% endif %}
+	                            <strong>{{ p.display_price|money }}</strong>
+	                            {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
+	                          </div>
+	                          {% if dealer_portal.show_discount %}
+	                            <div class="price__dealer-row">
+	                              <span class="price__hint">{{ home_copy.products_dealer_label }} {{ dealer_portal.discount_percent }}%</span>
+	                              <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+	                              <span class="price__save">{{ home_copy.products_save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+	                            </div>
+	                          {% endif %}
+	                        {% endif %}
+	                      </div>
+	                    </div>
+	                  </a>
+	                  <div class="home-card-actions">
+	                    {% if p.contact_for_estimate %}
+	                      <a class="btn btn--primary" href="{% url 'home' %}#contact">{{ home_copy.products_contact_us_label }}</a>
+	                      <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
+	                    {% elif p.has_active_options %}
+	                      <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">{{ home_copy.products_select_options_label }}</a>
+	                      <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
+	                    {% else %}
+	                      <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
+	                        <button class="btn btn--primary" type="submit">{{ home_copy.products_add_to_cart_label }}</button>
+	                      </form>
+	                      <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
+	                    {% endif %}
+	                  </div>
+	                </article>
+	              {% endfor %}
+	            </div>
+	          {% else %}
+	            <div class="empty">
+	              {{ home_copy.products_empty_label }} <a class="btn btn--link" href="{% url 'store' %}">{{ home_copy.products_empty_cta_label }}</a>
+	            </div>
+	          {% endif %}
+	        </div>
+	      </div>
+	    </section>
 
     <!-- ========================= WHY BGM ========================= -->
     <section class="section">
@@ -1590,14 +1635,17 @@
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 
   <!-- Live search -->
-  <script>
-  (function(){
-    const qInput = document.querySelector('input[name="q"]');
-    const catSel = document.querySelector('select[name="cat"]');
-    const liveTitle = document.getElementById('liveTitle');
-    const liveGrid  = document.getElementById('liveGrid');
-    const server    = document.getElementById('serverContent');
-    if(!qInput || !catSel) return;
+	  <script>
+	  (function(){
+	    const form = document.getElementById('servicesSearchForm');
+	    if(!form) return;
+	    const qInput = form.querySelector('input[name="q"]');
+	    const catSel = form.querySelector('select[name="cat"]');
+		    const liveTitle = document.getElementById('liveTitle');
+		    const liveGrid  = document.getElementById('liveGrid');
+		    const server    = document.getElementById('serverContent');
+		    const featuredTitle = document.getElementById('servicesFeaturedTitle');
+		    if(!qInput || !catSel || !liveTitle || !liveGrid || !server) return;
 
     const currencyCode = "{{ currency.code }}";
     const currencySymbol = "{{ currency.symbol }}";
@@ -1611,7 +1659,7 @@
       failedLoadLabel: "{{ home_copy.services_failed_load_label|escapejs }}",
     };
     const bookingBaseUrl = "{% url 'client-dashboard' %}";
-    const toBookingUrl = (serviceId) => {
+	    const toBookingUrl = (serviceId) => {
       if (serviceId) {
         return `${bookingBaseUrl}?book=${encodeURIComponent(serviceId)}#services`;
       }
@@ -1701,13 +1749,121 @@
 
     qInput.addEventListener('input', run);
     catSel.addEventListener('change', run);
-  })();
-  </script>
+	  })();
+	  </script>
 
-  <!-- Contact FAB + Modal -->
-  <style id="contact-fab-css">
-    :root{ --ink:#eaeaea; --line:rgba(255,255,255,.12); --red:var(--accent,#d50000); --red-dark:#b60000; --contact-font:var(--font-ui,var(--font-body)); }
-    .contact-fab{
+	  <script>
+	  /* Live product search (Home) */
+	  (function(){
+	    const form = document.getElementById('productsSearchForm');
+	    if(!form) return;
+	    const qInput = form.querySelector('input[name="q"]');
+	    const catSel = form.querySelector('select[name="cat"]');
+	    const liveTitle = document.getElementById('productsLiveTitle');
+	    const liveGrid  = document.getElementById('productsLiveGrid');
+	    const server    = document.getElementById('productsServerContent');
+	    if(!qInput || !catSel || !liveTitle || !liveGrid || !server) return;
+
+	    const currencyCode = "{{ currency.code }}";
+	    const currencySymbol = "{{ currency.symbol }}";
+	    const copy = {
+	      contactForEstimate: "{{ home_copy.contact_for_estimate_label|escapejs }}",
+	      fromLabel: "{{ home_copy.from_label|escapejs }}",
+	      viewLabel: "{{ home_copy.products_view_label|escapejs }}",
+	      nothingFoundLabel: "{{ home_copy.services_nothing_found_label|escapejs }}",
+	      failedLoadLabel: "{{ home_copy.services_failed_load_label|escapejs }}",
+	    };
+
+	    const skel = (n=8)=> Array.from({length:n}).map(()=>'<div class="sk"></div>').join('');
+	    const showLive = ()=>{
+	      liveTitle.style.display='block';
+	      liveGrid.style.display='grid';
+	      server.style.display='none';
+	      if (featuredTitle) featuredTitle.hidden = true;
+	    }
+	    const hideLive = ()=>{
+	      liveTitle.style.display='none';
+	      liveGrid.style.display='none';
+	      server.style.display='block';
+	      if (featuredTitle) featuredTitle.hidden = false;
+	    }
+	    const esc = s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+	    const formatMoney = (val) => {
+	      const num = Number(val);
+	      let normalized = "";
+	      if (Number.isFinite(num)) {
+	        normalized = num.toFixed(2);
+	      } else if (typeof val === "string" && val.trim()) {
+	        normalized = val.trim();
+	      }
+	      if (!normalized) return "";
+	      const symbol = currencySymbol || "$";
+	      return currencyCode ? `${currencyCode} ${symbol}${normalized}` : `${symbol}${normalized}`;
+	    };
+
+	    function cardHTML(p){
+	      const href = p.url || "#";
+	      const media = p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
+	      const cat   = p.category ? `<span class="card__badge">${esc(p.category)}</span>` : '';
+	      const desc  = p.short_description ? `<p class="muted">${esc(p.short_description)}</p>` : '';
+
+	      let price;
+	      if (p.contact_for_estimate){
+	        const fromVal = p.estimate_from_price ? formatMoney(p.estimate_from_price) : "";
+	        const hint = fromVal ? `<span class="price__hint">${esc(copy.fromLabel)} ${esc(fromVal)}</span>` : "";
+	        price = `<strong>${esc(copy.contactForEstimate)}</strong>${hint ? " " + hint : ""}`;
+	      } else {
+	        const fromHint = p.has_option_price_overrides ? `<span class="price__hint">${esc(copy.fromLabel)}</span>` : "";
+	        const main = `<strong>${esc(formatMoney(p.display_price))}</strong>`;
+	        price = `<div class="price__retail-row">${fromHint}${main}</div>`;
+	      }
+
+	      return `
+	        <article class="card">
+	          <a href="${esc(href)}">
+	            <div class="card__img">${media}${cat}</div>
+	            <div class="card__head" style="margin-top:.35rem">
+	              <h3 style="font-weight:900">${esc(p.name)}</h3>
+	              <div class="price price--stacked">${price}</div>
+	            </div>
+	            ${desc}
+	          </a>
+	          <div class="home-card-actions">
+	            <a class="btn btn--primary" href="${esc(href)}">${esc(copy.viewLabel)}</a>
+	          </div>
+	        </article>`;
+	    }
+
+	    function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+	    let aborter=null;
+	    async function fetchProducts(q,cat){
+	      if(aborter) aborter.abort();
+	      aborter = new AbortController();
+	      const p=new URLSearchParams(); if(q) p.set('q',q); if(cat) p.set('cat',cat);
+	      const r=await fetch(`/store/api/products/search/?${p.toString()}`,{signal:aborter.signal,credentials:'same-origin'});
+	      if(!r.ok) throw new Error('Load error'); return r.json();
+	    }
+
+	    const run = debounce(async ()=>{
+	      const q=qInput.value.trim(), cat=catSel.value;
+	      if(!q && !cat){ hideLive(); return; }
+	      showLive(); liveGrid.innerHTML = skel(8);
+	      try{
+	        const data=await fetchProducts(q,cat);
+	        const items=(data&&data.results)||[];
+	        liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="empty">${esc(copy.nothingFoundLabel)}</div>`;
+	      }catch{ liveGrid.innerHTML = `<div class="empty">${esc(copy.failedLoadLabel)}</div>`; }
+	    },300);
+
+	    qInput.addEventListener('input', run);
+	    catSel.addEventListener('change', run);
+	  })();
+	  </script>
+
+	  <!-- Contact FAB + Modal -->
+	  <style id="contact-fab-css">
+	    :root{ --ink:#eaeaea; --line:rgba(255,255,255,.12); --red:var(--accent,#d50000); --red-dark:#b60000; --contact-font:var(--font-ui,var(--font-body)); }
+	    .contact-fab{
       position:fixed; right:22px; bottom:22px; z-index:2100;
       display:inline-flex; align-items:center; gap:.6em;
       padding:.9rem 1.15rem; border-radius:999px;
