@@ -152,7 +152,7 @@
       display:block;
       object-fit:cover;
     }
-    .stat{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow)}
+    .stat{display:block;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow)}
     .stat b{font-size:1.35rem}
     .frame{border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02),0 14px 28px rgba(0,0,0,.45);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted-2)}
     .hero__media.frame{aspect-ratio:var(--hero-media-aspect, 18/9);height:var(--hero-media-height, auto);}
@@ -718,23 +718,29 @@
         box-shadow:0 16px 30px rgba(0,0,0,.38);
       }
       .stat b{
-        font-size:.95rem;
+        font-size:1.08rem;
         letter-spacing:.16em;
         text-transform:uppercase;
         color:rgba(255,255,255,.92);
         margin:0;
       }
       .stat span{
-        font-size:1.08rem;
+        font-size:1.25rem;
         color:rgba(255,255,255,.92);
         letter-spacing:.01em;
       }
       .stat .muted{ color:rgba(255,255,255,.92) !important; }
+      .hero__stats .stat b,
+      .hero__stats .stat span{
+        font-family:var(--font-head) !important;
+      }
+      .hero__stats .stat--link:active{ transform:translateY(1px); }
+      .hero__stats .stat--link:focus-visible{ outline:2px solid rgba(213,0,0,.55); outline-offset:3px; }
       .mobi-actions{ grid-template-columns:1fr; }
       /* Hero quick actions: 2x2 grid on mobile (Book/Shop/Contact/About). */
       .mobi-quick .mobi-actions{ grid-template-columns:repeat(2,minmax(0,1fr)); }
       .mobi-quick .mobi-action{
-        min-height:120px;
+        min-height:136px;
         border-color:rgba(255,255,255,.18);
         background:
           radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.14), transparent 62%),
@@ -742,14 +748,14 @@
           linear-gradient(180deg, var(--panel), var(--panel-2));
         box-shadow:0 16px 30px rgba(0,0,0,.36);
       }
-      .mobi-quick .mobi-action b{ font-size:1.12rem; letter-spacing:.012em; line-height:1.1; }
-      .mobi-quick .mobi-sub{ font-size:.98rem; color:rgba(255,255,255,.84); }
+      .mobi-quick .mobi-action b{ font-size:1.22rem; letter-spacing:.012em; line-height:1.1; }
+      .mobi-quick .mobi-sub{ font-size:1.07rem; color:rgba(255,255,255,.86); }
       .mobi-quick .mobi-action:active{ transform:translateY(1px); }
       /* Services "Quick Picks": keep these as a 2x2 grid on mobile. */
       #mobileServices .mobi-actions{ grid-template-columns:repeat(2,minmax(0,1fr)); }
       #mobileServices .mobi-action{
         padding:1rem;
-        min-height:128px;
+        min-height:140px;
         border-color:rgba(255,255,255,.18);
         background:
           radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.12), transparent 66%),
@@ -757,10 +763,10 @@
           linear-gradient(180deg, var(--panel), var(--panel-2));
         box-shadow:0 16px 30px rgba(0,0,0,.34);
       }
-      #mobileServices .mobi-action b{ font-size:1.12rem; letter-spacing:.012em; line-height:1.1; }
+      #mobileServices .mobi-action b{ font-size:1.22rem; letter-spacing:.012em; line-height:1.1; }
       #mobileServices .mobi-sub{
-        font-size:.98rem;
-        color:rgba(255,255,255,.84);
+        font-size:1.07rem;
+        color:rgba(255,255,255,.86);
         display:-webkit-box;
         -webkit-line-clamp:2;
         -webkit-box-orient:vertical;
@@ -1015,9 +1021,9 @@
         </div>
 
         <div class="hero__stats" style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
-          <div class="stat"><b>{{ home_copy.hero_stat_1_title }}</b><br><span class="muted">{{ home_copy.hero_stat_1_subtitle }}</span></div>
-          <div class="stat"><b>{{ home_copy.hero_stat_2_title }}</b><br><span class="muted">{{ home_copy.hero_stat_2_subtitle }}</span></div>
-          <div class="stat"><b>{{ home_copy.hero_stat_3_title }}</b><br><span class="muted">{{ home_copy.hero_stat_3_subtitle }}</span></div>
+          <a class="stat stat--link" href="#services"><b>{{ home_copy.hero_stat_1_title }}</b><br><span class="muted">{{ home_copy.hero_stat_1_subtitle }}</span></a>
+          <a class="stat stat--link" href="#services"><b>{{ home_copy.hero_stat_2_title }}</b><br><span class="muted">{{ home_copy.hero_stat_2_subtitle }}</span></a>
+          <a class="stat stat--link" href="#services"><b>{{ home_copy.hero_stat_3_title }}</b><br><span class="muted">{{ home_copy.hero_stat_3_subtitle }}</span></a>
         </div>
       </div>
 
