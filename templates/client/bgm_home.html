@@ -15,7 +15,7 @@
     {% endfor %}
   {% endif %}
 
-  <style>
+ <style>
     :root{
       --bg:#000; --fg:#fff; --muted:rgba(255,255,255,.72); --muted-2:rgba(255,255,255,.55);
       --line:rgba(255,255,255,.12); --panel:#0E0E0E; --panel-2:#131313;
@@ -243,15 +243,21 @@
       gap:.5rem;
       flex:1;
     }
-    .grid--gallery{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+	    .grid--gallery{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 
-    .home-gallery{margin:1rem 0 1.6rem}
-    .home-gallery__head{margin-bottom:1rem}
-    .gallery-card{
-      position:relative;
-      display:block;
-      border-radius:1rem;
-      overflow:hidden;
+	    .home-gallery{margin:1rem 0 1.6rem}
+	    .home-gallery__head{margin-bottom:1rem}
+	    .home-divider{
+	      display:none;
+	      border:0;
+	      border-top:1px solid rgba(255,255,255,.14);
+	      margin:1.35rem 0;
+	    }
+	    .gallery-card{
+	      position:relative;
+	      display:block;
+	      border-radius:1rem;
+	      overflow:hidden;
       border:1px solid var(--line);
       background:linear-gradient(180deg,var(--panel),var(--panel-2));
       box-shadow:var(--shadow);
@@ -298,11 +304,78 @@
     .grid--services .card__cta{margin-top:auto}
     .empty{color:var(--muted-2);font-style:italic;padding:1rem}
 
-    @media (min-width: 861px){
-      #services .grid--services{
-        grid-template-columns:repeat(3,minmax(0,1fr));
-        gap:.9rem;
-      }
+	    @media (min-width: 861px){
+	      /* Home (desktop): requested typography tweaks */
+	      #services .home-services-title{display:none !important;}
+	      #services .home-builds-title,
+	      #services .home-featured-title{
+	        font-family:var(--font-head) !important;
+	        font-weight:900 !important;
+	        color:#fff !important;
+	        text-transform:uppercase !important;
+	        letter-spacing:.12em !important;
+	      }
+	      #services .home-builds-title{
+	        font-size:clamp(2.35rem, 3.4vw, 3.15rem) !important;
+	        line-height:1.05 !important;
+	      }
+	      #services .home-featured-title{
+	        font-size:clamp(2.05rem, 2.9vw, 2.7rem) !important;
+	        line-height:1.08 !important;
+	        margin:.25rem 0 1rem !important;
+	      }
+
+	      /* Home (desktop): make the search controls stand out more */
+	      #services .home-search{
+	        padding:1rem 1.05rem;
+	        border-radius:1.1rem;
+	        border:1px solid rgba(255,255,255,.16);
+	        background:
+	          radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.15), transparent 58%),
+	          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+	          linear-gradient(180deg, var(--panel), var(--panel-2));
+	        box-shadow:0 18px 34px rgba(0,0,0,.42);
+	      }
+	      #services .home-search .input,
+	      #services .home-search .select{
+	        min-height:54px;
+	        padding:.85rem 1rem;
+	        border-color:rgba(255,255,255,.22);
+	        background:rgba(0,0,0,.22);
+	        font-family:var(--font-head) !important;
+	        font-weight:900 !important;
+	        letter-spacing:.06em !important;
+	        text-transform:uppercase !important;
+	      }
+	      #services .home-search .input::placeholder{
+	        color:rgba(255,255,255,.65);
+	        font-weight:900;
+	      }
+	      #services .home-search button[type="submit"]{
+	        min-height:54px;
+	        padding:.9rem 1.25rem;
+	        border-radius:.85rem;
+	        background:linear-gradient(180deg, var(--accent-2), var(--accent));
+	        border:1px solid rgba(213,0,0,.65);
+	        color:#fff;
+	        box-shadow:0 14px 24px rgba(213,0,0,.22);
+	        font-family:var(--font-head) !important;
+	        font-weight:900 !important;
+	        letter-spacing:.08em !important;
+	        text-transform:uppercase !important;
+	      }
+	      #services .home-search button[type="submit"]:hover{
+	        transform:translateY(-2px);
+	        color:#fff;
+	        border-color:rgba(213,0,0,.75);
+	        box-shadow:0 18px 32px rgba(213,0,0,.26);
+	      }
+	      #services .home-divider{display:block;}
+
+	      #services .grid--services{
+	        grid-template-columns:repeat(3,minmax(0,1fr));
+	        gap:.9rem;
+	      }
       #services .grid--services .card{
         padding:.85rem;
         gap:.6rem;
@@ -1142,42 +1215,44 @@
     <!-- ========================= SERVICES on Home (limit 8) ========================= -->
     <section id="services" class="section">
       <div class="container">
-        <div class="section__head">
-          <div>
-            <h2 class="section__title">{{ home_copy.services_title }}</h2>
-            <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
-          </div>
-          <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
-        </div>
+	        <div class="section__head">
+	          <div>
+	            <h2 class="section__title home-services-title">{{ home_copy.services_title }}</h2>
+	            <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
+	          </div>
+	          <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
+	        </div>
 
-        <div class="home-gallery" aria-label="{{ home_copy.gallery_title }}">
-          <div class="section__head home-gallery__head">
-            <div>
-              <h3 class="section__title section__title--compact">{{ home_copy.gallery_title }}</h3>
-              <p class="section__desc">{{ home_copy.gallery_desc|safe }}</p>
-            </div>
-            <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
-          </div>
-          <div class="grid grid--gallery">
-            {% for item in home_gallery_items %}
-              <a class="gallery-card" href="{{ item.url }}" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
-                <div class="frame frame--media">
-                  <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy" decoding="async">
-                </div>
-                {% if item.title or item.caption %}
-                  <div class="gallery-card__meta">
+	        <div class="home-gallery" aria-label="{{ home_copy.gallery_title }}">
+	          <div class="section__head home-gallery__head">
+	            <div>
+	              <h3 class="section__title section__title--compact home-builds-title">{{ home_copy.gallery_title }}</h3>
+	              <p class="section__desc">{{ home_copy.gallery_desc|safe }}</p>
+	            </div>
+	            <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
+	          </div>
+	          <div class="grid grid--gallery">
+	            {% for item in home_gallery_items %}
+	              <a class="gallery-card" href="{% url 'client-dashboard' %}#services" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
+	                <div class="frame frame--media">
+	                  <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy" decoding="async">
+	                </div>
+	                {% if item.title or item.caption %}
+	                  <div class="gallery-card__meta">
                     {% if item.title %}<span class="gallery-card__title">{{ item.title }}</span>{% endif %}
                     {% if item.caption %}<span class="gallery-card__caption">{{ item.caption|truncatewords:10 }}</span>{% endif %}
                   </div>
                 {% endif %}
               </a>
-            {% endfor %}
-          </div>
-        </div>
+	            {% endfor %}
+	          </div>
+	        </div>
 
-        <!-- Mobile services lite -->
-        <div id="mobileServices" class="only-mobile" aria-labelledby="servicesMobileTitle">
-          <h3 id="servicesMobileTitle" class="kicker">{{ home_copy.services_mobile_kicker }}</h3>
+	        <hr class="home-divider" aria-hidden="true">
+
+	        <!-- Mobile services lite -->
+	        <div id="mobileServices" class="only-mobile" aria-labelledby="servicesMobileTitle">
+	          <h3 id="servicesMobileTitle" class="kicker">{{ home_copy.services_mobile_kicker }}</h3>
           <div class="mobi-actions" style="margin-bottom:.6rem">
             <a class="mobi-action" href="{% url 'client-dashboard' %}?q=fabrication#services">
               <b>{{ home_copy.services_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_1_subtitle }}</span>
@@ -1198,24 +1273,26 @@
           </form>
         </div>
 
-        <!-- Filters -->
-        <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
-          <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
-          <select class="select" name="cat" aria-label="Category">
-            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
-            {% for c in filter_categories %}
-              <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
-            {% endfor %}
-          </select>
-          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
-          {% if q or active_category %}
-            <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_reset_filters_label }}</a>
-          {% endif %}
-        </form>
+	        <!-- Filters -->
+	        <form class="filters home-search" role="search" method="get" action="{% url 'client-dashboard' %}">
+	          <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
+	          <select class="select" name="cat" aria-label="Category">
+	            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
+	            {% for c in filter_categories %}
+	              <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+	            {% endfor %}
+	          </select>
+	          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+	          {% if q or active_category %}
+	            <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_reset_filters_label }}</a>
+	          {% endif %}
+	        </form>
 
-        <!-- Live search -->
-        <h3 id="liveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
-        <div id="liveGrid" class="grid grid--services" style="display:none"></div>
+	        <hr class="home-divider" aria-hidden="true">
+
+	        <!-- Live search -->
+	        <h3 id="liveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
+	        <div id="liveGrid" class="grid grid--services" style="display:none"></div>
 
         <!-- Server-rendered -->
         <div id="serverContent">
@@ -1264,12 +1341,12 @@
             <hr style="margin:1.5rem 0;border:0;border-top:1px solid var(--line)">
           {% endif %}
 
-          {% if home_services %}
-            <h3 class="kicker" style="margin:.5rem 0 1rem">{{ home_copy.services_featured_label }}</h3>
-            <div class="grid grid--services grid--services--limit2">
-              {% for s in home_services|slice:":8" %}
-                <article class="card">
-                  <div class="card__img">
+	          {% if home_services %}
+	            <h3 class="kicker home-featured-title">{{ home_copy.services_featured_label }}</h3>
+	            <div class="grid grid--services grid--services--limit2">
+	              {% for s in home_services|slice:":8" %}
+	                <article class="card">
+	                  <div class="card__img">
                     {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
                     {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
