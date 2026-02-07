@@ -66,6 +66,14 @@
     .hero__title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15}
     .hero__lead{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);max-width:54ch;margin-top:1rem}
     .hero__cta{display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap}
+    /* Desktop: make the two hero CTAs feel more "primary" (bigger tap/click targets). */
+    @media (min-width: 861px){
+      .hero__cta .btn{
+        min-height:52px;
+        padding:.95rem 1.55rem;
+        font-size:1.05rem !important;
+      }
+    }
     .hero__logo-block{
       display:flex;
       flex-direction:column;
