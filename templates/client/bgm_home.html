@@ -368,7 +368,8 @@
     .tile--link .tile__cta{margin-top:.1rem;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--muted);display:inline-flex;align-items:center;gap:.35rem}
     .tile--link:hover,.tile--link:focus-visible{border-color:rgba(213,0,0,.65);box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 20px rgba(213,0,0,.2);transform:translateY(-2px);outline:none}
     .tile--link:hover .tile__cta,.tile--link:focus-visible .tile__cta{color:var(--accent)}
-    .review-carousel{position:relative;margin-top:1.2rem}
+    /* Prevent the horizontally scrollable review track from expanding page width (Android Chrome). */
+    .review-carousel{position:relative;margin-top:1.2rem;overflow-x:hidden}
     .review-carousel[data-review-count="1"] .review-carousel__nav{display:none}
     .review-carousel__nav{display:flex;gap:.4rem;justify-content:flex-end;margin-bottom:.45rem}
     .review-carousel__btn{
