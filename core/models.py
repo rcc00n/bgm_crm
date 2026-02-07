@@ -751,6 +751,46 @@ class HomePageCopy(models.Model):
         return obj
 
 
+class HomePageFAQItem(models.Model):
+    home_page_copy = models.ForeignKey(
+        HomePageCopy,
+        on_delete=models.CASCADE,
+        related_name="faq_items",
+    )
+    order = models.PositiveIntegerField(default=0)
+    question = models.CharField(max_length=160)
+    answer = models.TextField()
+    is_published = models.BooleanField(
+        default=True,
+        help_text="If unchecked, this FAQ is saved as a draft and will not be shown on the website.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Home page FAQ"
+        verbose_name_plural = "Home page FAQs"
+        ordering = ("order", "id")
+
+    def save(self, *args, **kwargs):
+        # Default new items to the end of the list for this page copy.
+        if self.home_page_copy_id and (self.order or 0) == 0:
+            max_order = (
+                HomePageFAQItem.objects.filter(home_page_copy_id=self.home_page_copy_id)
+                .exclude(pk=self.pk)
+                .aggregate(max=models.Max("order"))
+                .get("max")
+            )
+            self.order = (max_order or 0) + 1
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        question = (self.question or "").strip()
+        if question:
+            return question[:60]
+        return f"FAQ #{self.pk}"
+
+
 class ServicesPageCopy(models.Model):
     """
     Editable static text for the services catalog page.

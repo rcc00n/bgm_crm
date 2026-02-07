@@ -9,6 +9,7 @@
     <li><a href="{% url 'dealer-status' %}" {% if current == 'dealer' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_dealers_label|default:"Dealers" }}</a></li>
     <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_financing_label|default:"Financing" }}</a></li>
     <li><a href="{% url 'our-story' %}" {% if current == 'about' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_about_label|default:"About" }}</a></li>
+    <li><a href="{% url 'project-journal' %}" {% if current == 'gallery' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_gallery_label|default:"Gallery" }}</a></li>
   </ul>
 </li>
 <li class="bgm-topbar__nav-item bgm-topbar__nav-item--mobile-only">
@@ -28,6 +29,9 @@
 </li>
 <li class="bgm-topbar__nav-item bgm-topbar__nav-item--mobile-only">
   <a href="{% url 'our-story' %}" {% if current == 'about' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_about_label|default:"About" }}</a>
+</li>
+<li class="bgm-topbar__nav-item bgm-topbar__nav-item--mobile-only">
+  <a href="{% url 'project-journal' %}" {% if current == 'gallery' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_gallery_label|default:"Gallery" }}</a>
 </li>
 {% if user.is_authenticated %}
   <li class="bgm-topbar__nav-item"><a href="{% url 'dashboard' %}">{{ topbar_copy.nav_client_portal_label|default:"Client Portal" }}</a></li>

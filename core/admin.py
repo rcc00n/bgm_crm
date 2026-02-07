@@ -2847,10 +2847,21 @@ class HomePageCopyAdminForm(forms.ModelForm):
             asset.save()
 
 
+class HomePageFAQItemInline(admin.StackedInline):
+    model = HomePageFAQItem
+    extra = 1
+    fields = ("order", "is_published", "question", "answer")
+    ordering = ("order", "id")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+
+
 @admin.register(HomePageCopy)
 class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
+    inlines = [PageSectionInline, HomePageFAQItemInline]
     form = HomePageCopyAdminForm
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
@@ -3055,13 +3066,8 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
             "fields": (
                 "faq_title",
                 "faq_desc",
-                "faq_1_question",
-                "faq_1_answer",
-                "faq_2_question",
-                "faq_2_answer",
-                "faq_3_question",
-                "faq_3_answer",
-            )
+            ),
+            "description": "FAQ entries are managed below in “Home page FAQs”. Unpublished items are saved as drafts and won’t display on the site.",
         }),
         ("Final CTA", {
             "fields": (

@@ -465,7 +465,7 @@ from core.models import ServiceCategory, Service
 
 # accounts/views.py (или где у вас HomeView)
 from django.views.generic import TemplateView
-from core.models import Service, ServiceCategory, HomePageCopy, ProjectJournalEntry   # ваши модели услуг
+from core.models import Service, ServiceCategory, HomePageCopy, HomePageFAQItem, ProjectJournalEntry   # ваши модели услуг
 from core.services.page_layout import build_layout_styles
 from store.models import Product                    # товары
 
@@ -583,6 +583,18 @@ class HomeView(TemplateView):
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
         home_copy = HomePageCopy.get_solo()
         ctx["home_copy"] = home_copy
+        from django.db.utils import OperationalError, ProgrammingError
+        try:
+            all_faq_items = list(
+                HomePageFAQItem.objects.filter(home_page_copy=home_copy).order_by("order", "id")
+            )
+        except (OperationalError, ProgrammingError):
+            # Backwards compatible: if the FAQ table isn't migrated yet, fall back to legacy fields.
+            ctx["home_faq_legacy"] = True
+            ctx["home_faq_items"] = []
+        else:
+            ctx["home_faq_legacy"] = False
+            ctx["home_faq_items"] = [item for item in all_faq_items if item.is_published]
         ctx["page_sections"] = get_page_sections(home_copy)
         ctx["layout_styles"] = build_layout_styles(HomePageCopy, home_copy.layout_overrides)
         ctx["home_reviews"] = _build_home_reviews()
