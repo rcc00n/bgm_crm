@@ -424,6 +424,7 @@ body{
 
 .week-cell{
     vertical-align:top;
+    position:relative;
 }
 
 .week-event,
@@ -439,6 +440,29 @@ body{
     font-size:.75rem;
     box-shadow:0 6px 12px rgba(0,0,0,.12);
     margin-bottom:.2rem;
+    position:relative;
+    z-index:1;
+}
+
+.event[draggable="true"],
+.event-card[draggable="true"]{
+    cursor:grab;
+}
+
+.week-slot{
+    position:absolute;
+    inset:0;
+    z-index:0;
+}
+
+.drop-hover{
+    outline:2px dashed rgba(213,0,0,.35);
+    outline-offset:-2px;
+}
+
+.dragging{
+    opacity:.65;
+    cursor:grabbing;
 }
 
 .week-event-time{
@@ -480,10 +504,15 @@ body{
     display:flex;
     flex-direction:column;
     gap:.35rem;
+    cursor:pointer;
 }
 
 .month-day-cell.out-month{
     opacity:.5;
+}
+
+.month-day-cell:hover{
+    background:rgba(213,0,0,.04);
 }
 
 .month-day-top{

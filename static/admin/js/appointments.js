@@ -7,7 +7,7 @@ function getLocalDateString(date = new Date()) {
 
 function getCalendarView() {
     const viewInput = document.getElementById("calendarView");
-    return viewInput ? viewInput.value : "day";
+    return viewInput ? viewInput.value : "week";
 }
 
 function setCalendarView(view) {
@@ -23,6 +23,16 @@ function setCalendarView(view) {
     if (selectedDate) {
         onDateChange(selectedDate);
     }
+}
+
+function openMonthDay(dateStr) {
+    const input = document.getElementById("realDateInput");
+    if (!input || !dateStr) {
+        return;
+    }
+    input.value = dateStr;
+    closePopup();
+    setCalendarView("day");
 }
 
 function getWeekStart(date) {
@@ -270,6 +280,8 @@ function attachTooltipHandlers() {
         cell.addEventListener("mouseenter", () => showUnavailableTooltip(cell));
         cell.addEventListener("mouseleave", () => hideTooltip());
     });
+
+    attachDragAndDropHandlers();
 }
 
 attachTooltipHandlers();
@@ -277,6 +289,134 @@ syncCalendarScrollHeight();
 updateDisplayDateLabel();
 
 window.addEventListener("resize", syncCalendarScrollHeight);
+
+function getCSRFToken() {
+    const name = 'csrftoken';
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        if (cookie.trim().startsWith(name + '=')) {
+            return decodeURIComponent(cookie.trim().substring(name.length + 1));
+        }
+    }
+    return null;
+}
+
+async function moveAppointment(appointmentId, dateStr, timeStr, masterId = "") {
+    const csrfToken = getCSRFToken();
+    const payload = new URLSearchParams();
+    payload.set("appointment_id", appointmentId);
+    payload.set("date", dateStr);
+    payload.set("time", timeStr);
+    if (masterId) {
+        payload.set("master_id", masterId);
+    }
+
+    let res;
+    try {
+        res = await fetch("/admin/core/appointment/move/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": csrfToken || "",
+            },
+            body: payload.toString(),
+        });
+    } catch (err) {
+        console.error("Move appointment request failed:", err);
+        alert("Network error while moving appointment.");
+        return false;
+    }
+
+    let data = null;
+    try {
+        data = await res.json();
+    } catch {
+        data = null;
+    }
+
+    if (!res.ok || !data || !data.ok) {
+        const msg = (data && data.error) ? data.error : `Unable to move appointment (HTTP ${res.status}).`;
+        alert(msg);
+        return false;
+    }
+    return true;
+}
+
+function onApptDragStart(e) {
+    const el = e.currentTarget;
+    const apptId = el.dataset.apptId;
+    if (!apptId) {
+        return;
+    }
+    el.classList.add("dragging");
+    e.dataTransfer.setData("text/plain", apptId);
+    e.dataTransfer.effectAllowed = "move";
+}
+
+function onApptDragEnd(e) {
+    e.currentTarget.classList.remove("dragging");
+    document.querySelectorAll(".drop-hover").forEach(el => el.classList.remove("drop-hover"));
+}
+
+function onSlotDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    e.currentTarget.classList.add("drop-hover");
+}
+
+function onSlotDragLeave(e) {
+    e.currentTarget.classList.remove("drop-hover");
+}
+
+async function onSlotDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const slot = e.currentTarget;
+    slot.classList.remove("drop-hover");
+
+    const apptId = e.dataTransfer.getData("text/plain");
+    if (!apptId) {
+        return;
+    }
+
+    const dateStr = slot.dataset.date || document.getElementById("realDateInput")?.value;
+    const timeStr = slot.dataset.time24;
+    const masterId = slot.dataset.master || "";
+
+    if (!dateStr || !timeStr) {
+        alert("This slot is missing date/time information.");
+        return;
+    }
+
+    const ok = await moveAppointment(apptId, dateStr, timeStr, masterId);
+    if (ok) {
+        closePopup();
+        const focusDate = document.getElementById("realDateInput")?.value || dateStr;
+        onDateChange(focusDate);
+    }
+}
+
+function attachDragAndDropHandlers() {
+    document.querySelectorAll("[data-appt-id]").forEach(el => {
+        el.addEventListener("dragstart", onApptDragStart);
+        el.addEventListener("dragend", onApptDragEnd);
+    });
+
+    // Day view slots.
+    document.querySelectorAll(".calendar-cell[data-time24]:not(.week-slot)").forEach(slot => {
+        slot.addEventListener("dragover", onSlotDragOver);
+        slot.addEventListener("dragleave", onSlotDragLeave);
+        slot.addEventListener("drop", onSlotDrop);
+    });
+
+    // Week table cells (drop should work even when dropping over an existing card).
+    document.querySelectorAll(".week-cell[data-time24]").forEach(slot => {
+        slot.addEventListener("dragover", onSlotDragOver);
+        slot.addEventListener("dragleave", onSlotDragLeave);
+        slot.addEventListener("drop", onSlotDrop);
+    });
+}
 
 function showTooltip(box) {
     const rect = box.getBoundingClientRect();
@@ -467,20 +607,30 @@ document.addEventListener("click", (e) => {
 });
 
 function handleAdd(type) {
-    const selectedDate = document.getElementById("realDateInput").value;
-    const masterId = lastActiveCell?.dataset?.master;
-    const time = lastActiveCell?.value;
+    const fallbackDate = document.getElementById("realDateInput")?.value || "";
+    const selectedDate = lastActiveCell?.dataset?.date || fallbackDate;
+    const masterId = lastActiveCell?.dataset?.master || "";
+    const time = lastActiveCell?.value || "";
 
-    let url = "#";
-
+    let baseUrl = "";
     if (type === "appointment") {
-        url = `/admin/core/appointment/add/?date=${selectedDate}&time=${time}&master=${masterId}`;
+        baseUrl = "/admin/core/appointment/add/";
     } else if (type === "vacation") {
-        url = `/admin/core/masteravailability/add/?date=${selectedDate}&time=${time}&master=${masterId}`;
+        baseUrl = "/admin/core/masteravailability/add/";
     } else {
         alert(`"${type}" action is not implemented yet.`);
         return;
     }
 
-    window.location.href = url;
+    const params = new URLSearchParams();
+    if (selectedDate && time) {
+        params.set("date", selectedDate);
+        params.set("time", time);
+    }
+    if (masterId) {
+        params.set("master", masterId);
+    }
+
+    const qs = params.toString();
+    window.location.href = qs ? `${baseUrl}?${qs}` : baseUrl;
 }

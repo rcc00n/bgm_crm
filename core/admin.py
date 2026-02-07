@@ -22,7 +22,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.admin import GenericStackedInline
 from django.http import JsonResponse
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
@@ -630,9 +630,9 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         else:
             selected_date = timezone.localdate()
 
-        calendar_view = request.GET.get("view", "day")
+        calendar_view = request.GET.get("view", "week")
         if calendar_view not in {"day", "week", "month"}:
-            calendar_view = "day"
+            calendar_view = "week"
 
         services = Service.objects.all()
         appointment_statuses = AppointmentStatus.objects.all()
@@ -758,6 +758,73 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
             })
 
         return response
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "move/",
+                self.admin_site.admin_view(self.move_appointment_view),
+                name="core_appointment_move",
+            ),
+        ]
+        return custom_urls + urls
+
+    def move_appointment_view(self, request):
+        if request.method != "POST":
+            return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+        appointment_id = request.POST.get("appointment_id")
+        date_str = request.POST.get("date")
+        time_str = request.POST.get("time")
+        master_id = (request.POST.get("master_id") or "").strip() or None
+
+        if not appointment_id or not date_str or not time_str:
+            return JsonResponse({"ok": False, "error": "Missing appointment_id/date/time."}, status=400)
+
+        try:
+            appt = Appointment.objects.select_related("service", "master").get(pk=appointment_id)
+        except (Appointment.DoesNotExist, ValueError):
+            return JsonResponse({"ok": False, "error": "Appointment not found."}, status=404)
+
+        if not self.has_change_permission(request, appt):
+            return JsonResponse({"ok": False, "error": "Permission denied."}, status=403)
+
+        if master_id:
+            # Masters can only move their own appointments and cannot reassign to another tech.
+            if hasattr(request.user, "master_profile") and not request.user.is_superuser:
+                if str(master_id) != str(request.user.id):
+                    return JsonResponse(
+                        {"ok": False, "error": "You cannot reassign appointments to a different tech."},
+                        status=403,
+                    )
+            try:
+                appt.master = CustomUserDisplay.objects.get(pk=master_id)
+            except (CustomUserDisplay.DoesNotExist, ValueError):
+                return JsonResponse({"ok": False, "error": "Tech not found."}, status=400)
+
+        try:
+            combined = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            return JsonResponse({"ok": False, "error": "Invalid date/time format."}, status=400)
+
+        appt.start_time = make_aware(combined)
+
+        try:
+            appt.full_clean()
+        except ValidationError as exc:
+            if hasattr(exc, "message_dict"):
+                msg = "; ".join(
+                    f"{field}: {', '.join(msgs)}"
+                    for field, msgs in exc.message_dict.items()
+                )
+            else:
+                msg = str(exc)
+            return JsonResponse({"ok": False, "error": msg or "Validation failed."}, status=400)
+
+        appt.save()
+        return JsonResponse({"ok": True})
+
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         if hasattr(request.user, "master_profile") and not request.user.is_superuser:

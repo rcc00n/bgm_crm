@@ -23,10 +23,20 @@
                     {% endif %}
                 </td>
                 {% for cell in row.cells %}
-                    <td class="week-cell">
+                    <td class="week-cell"
+                        data-date="{{ cell.date|date:'Y-m-d' }}"
+                        data-time24="{{ row.time }}"
+                        data-time-label="{{ row.time|string_to_ampm }}">
+                        <div class="calendar-cell week-slot"
+                             data-date="{{ cell.date|date:'Y-m-d' }}"
+                             data-time24="{{ row.time }}"
+                             data-time-label="{{ row.time|string_to_ampm }}"
+                             onclick="showAddPopup(event, '{{ row.time }}', '{{ row.time|string_to_ampm }}')"></div>
                         {% for appt in cell.appointments %}
                             <a class="week-event event-card"
                                href="{{ appt.url }}"
+                               draggable="true"
+                               data-appt-id="{{ appt.id }}"
                                style="background-color: {{ appt.background }};"
                                data-client="{{ appt.client }}"
                                data-phone="{{ appt.phone }}"

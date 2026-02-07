@@ -364,6 +364,25 @@
     }
     .tile{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:1rem;padding:1rem}
     .tile__icon{font-size:1.4rem;color:var(--accent);margin-bottom:.25rem}
+    /* Desktop: keep the icon inline with the heading for the 3 compact "Why BGM" tiles. */
+    @media (min-width: 861px){
+      .tiles--why .tile:not(.tile--link){
+        display:grid;
+        grid-template-columns:auto 1fr;
+        grid-template-rows:auto auto;
+        column-gap:.7rem;
+        align-items:start;
+      }
+      .tiles--why .tile:not(.tile--link) .tile__icon{
+        margin-bottom:0;
+        font-size:1.35rem;
+        line-height:1;
+      }
+      .tiles--why .tile:not(.tile--link) p.muted{
+        grid-column:1 / -1;
+        margin-top:.25rem;
+      }
+    }
     .tile--link{display:flex;flex-direction:column;gap:.4rem;min-height:100%;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
     .tile--link .tile__cta{margin-top:.1rem;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--muted);display:inline-flex;align-items:center;gap:.35rem}
     .tile--link:hover,.tile--link:focus-visible{border-color:rgba(213,0,0,.65);box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 20px rgba(213,0,0,.2);transform:translateY(-2px);outline:none}

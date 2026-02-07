@@ -6,7 +6,8 @@
         {% endfor %}
         {% for week in month_grid %}
             {% for day in week %}
-                <div class="month-day-cell {% if not day.in_month %}out-month{% endif %}">
+                <div class="month-day-cell {% if not day.in_month %}out-month{% endif %}"
+                     onclick="openMonthDay('{{ day.date|date:'Y-m-d' }}')">
                     <div class="month-day-top">
                         <span class="month-day-number">{{ day.date|date:"j" }}</span>
                     </div>
@@ -14,6 +15,7 @@
                         {% for appt in day.appointments %}
                             <a class="month-event event-card"
                                href="{{ appt.url }}"
+                               onclick="event.stopPropagation();"
                                style="background-color: {{ appt.background }};"
                                data-client="{{ appt.client }}"
                                data-phone="{{ appt.phone }}"

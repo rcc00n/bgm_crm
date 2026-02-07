@@ -119,7 +119,7 @@
     <div id="calendar-container">
         {% include "admin/appointments_calendar_partial.html" %}
     </div>
-    <input type="hidden" id="calendarView" value="{{ calendar_view|default:'day' }}">
+    <input type="hidden" id="calendarView" value="{{ calendar_view|default:'week' }}">
     <div id="addPopup" class="popup hidden">
         <div class="popup-header">
             <span id="popupTime">Time</span>

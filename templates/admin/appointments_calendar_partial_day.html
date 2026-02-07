@@ -42,6 +42,8 @@
 
                     {% elif cell.appt_id %}
                         <td rowspan="{{ cell.rowspan }}" class="event"
+                            draggable="true"
+                            data-appt-id="{{ cell.appt_id }}"
                             onclick="window.location.href='/admin/core/appointment/{{cell.appt_id}}/change/'"
                             data-client="{{ cell.client }}"
                             data-phone="{{ cell.phone }}"
@@ -77,6 +79,7 @@
                         <td>
                             <div class="calendar-cell"
                                  data-time="{{ row.time|string_to_ampm }}"
+                                 data-time24="{{ row.time }}"
                                  data-time-label="{{ row.time|string_to_ampm }}"
                                  data-master="{{ cell.master_id }}"
                                  onclick="showAddPopup(event, '{{ row.time }}', '{{ row.time|string_to_ampm }}')">
