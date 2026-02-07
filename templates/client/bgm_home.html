@@ -996,6 +996,56 @@
         font-size:1.05rem !important;
       }
 
+      /* Mobile: make Services search + Products filters match the "highlight" look */
+      .home-search--mobile{
+        display:grid;
+        grid-template-columns:1fr;
+        gap:.65rem;
+        padding:1rem 1.05rem;
+        border-radius:1.1rem;
+        border:1px solid rgba(255,255,255,.16);
+        background:
+          radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.15), transparent 58%),
+          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+          linear-gradient(180deg, var(--panel), var(--panel-2));
+        box-shadow:0 18px 34px rgba(0,0,0,.42);
+      }
+      #mobileProducts .home-search--mobile{ margin-top:.85rem; }
+      .home-search--mobile .input,
+      .home-search--mobile .select{
+        width:100%;
+        min-width:0;
+        min-height:62px;
+        padding:1rem 1.05rem;
+        border-radius:.95rem;
+        border-color:rgba(255,255,255,.22);
+        background:rgba(0,0,0,.22);
+        font-family:var(--font-head) !important;
+        font-weight:900 !important;
+        letter-spacing:.06em !important;
+        text-transform:uppercase !important;
+        font-size:1.05rem !important;
+      }
+      .home-search--mobile .input::placeholder{
+        color:rgba(255,255,255,.65);
+        font-weight:900;
+      }
+      .home-search--mobile button[type="submit"]{
+        min-height:62px;
+        padding:1.02rem 1.45rem;
+        border-radius:.95rem;
+        font-size:1.02rem !important;
+        background:linear-gradient(180deg, var(--accent-2), var(--accent));
+        border:1px solid rgba(213,0,0,.65);
+        color:#fff;
+        box-shadow:0 14px 24px rgba(213,0,0,.22);
+        font-family:var(--font-head) !important;
+        font-weight:900 !important;
+        letter-spacing:.08em !important;
+        text-transform:uppercase !important;
+      }
+      .home-search--mobile button[type="submit"]:active{ transform:translateY(1px); }
+
       .filters{ flex-direction:column; align-items:stretch; }
       .input,.select{ width:100%; min-width:0; }
       .filters .btn{ width:100%; justify-content:center; }
@@ -1360,9 +1410,9 @@
               <b>{{ home_copy.services_mobile_action_4_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_4_subtitle }}</span>
             </a>
           </div>
-          <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
+          <form class="filters home-search home-search--mobile" role="search" method="get" action="{% url 'client-dashboard' %}">
             <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
-            <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+            <button class="btn btn--primary" type="submit">{{ home_copy.services_search_button_label }}</button>
           </form>
         </div>
 
@@ -1506,6 +1556,16 @@
 	              <b>{{ home_copy.products_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_2_subtitle }}</span>
 	            </a>
 	          </div>
+            <form class="filters home-search home-search--mobile" role="search" method="get" action="{% url 'store' %}">
+              <input class="input" type="search" name="q" placeholder="Search products…" value="">
+              <select class="select" name="cat" aria-label="Category">
+                <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
+                {% for c in product_filter_categories %}
+                  <option value="{{ c.id }}">{{ c.display_name }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn--primary" type="submit">{{ home_copy.services_search_button_label }}</button>
+            </form>
 	        </div>
 
 		        <form id="productsSearchForm" class="filters home-search" role="search" method="get" action="{% url 'store' %}">

@@ -73,6 +73,8 @@
       </button>
     </details>
 
+    <hr class="catalog-divider" aria-hidden="true">
+
     <div class="search-block">
       <div class="search-bar" data-product-search data-search-mode="swap">
         <label class="visually-hidden" for="productSearch">Search products</label>
@@ -122,6 +124,7 @@
             class="card filters"
             tabindex="-1"
             aria-labelledby="filtersHeading">
+        {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
         <div class="filters__drawer-head">
           <h3 class="filters__drawer-title" id="filtersHeading">{{ store_copy.filters_heading }}</h3>
           <button type="button" class="filters__close" data-filters-close>{{ store_copy.filters_close_label }}</button>
@@ -418,6 +421,40 @@
   }
 })();
 </script>
+<script>
+  /* Desktop-only: auto-apply filters on selection (no Apply button needed). */
+  (function(){
+    const form = document.getElementById('catalogFilters');
+    if (!form) return;
+    const mq = window.matchMedia('(max-width: 900px)');
+    const make = form.querySelector('select[name="make"]');
+    const model = form.querySelector('select[name="model"]');
+
+    const submit = () => {
+      if (mq.matches) return; // keep mobile "Apply" flow
+      if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+      } else {
+        form.submit();
+      }
+    };
+
+    form.querySelectorAll('select').forEach((el) => {
+      el.addEventListener('change', () => {
+        // Avoid submitting a stale model when make changes (would invalidate the form).
+        if (make && model && el === make) {
+          model.value = '';
+        }
+        submit();
+      });
+    });
+
+    const year = form.querySelector('input[name="year"]');
+    if (year) {
+      year.addEventListener('change', submit);
+    }
+  })();
+</script>
 
 <script>
   (function(){
@@ -567,6 +604,11 @@
   /* Filters */
   .filters-wrap{position:relative;margin-bottom:1.6rem;display:grid;gap:.85rem}
   .search-block{margin-top:1.2rem;margin-bottom:.7rem}
+  .catalog-divider{
+    border:0;
+    border-top:1px solid rgba(255,255,255,.14);
+    margin:1.1rem 0 1.25rem;
+  }
 
   /* Highlight search + filters like the Home page search panels. */
   [data-search-root] .search-bar,
@@ -594,6 +636,9 @@
     font-weight:900 !important;
     letter-spacing:.06em !important;
     text-transform:uppercase !important;
+  }
+  @media (min-width: 901px){
+    [data-search-root] .search-bar__input{ font-size:1.15rem; }
   }
   [data-search-root] .search-bar__input::placeholder{
     color:rgba(255,255,255,.65);
@@ -641,6 +686,10 @@
   [data-search-root] .filters__actions .btn--primary:hover{
     transform:translateY(-2px);
     box-shadow:0 18px 32px rgba(213,0,0,.26);
+  }
+  @media (min-width: 901px){
+    /* Desktop: hide Apply; filters auto-submit on change */
+    html.js [data-search-root] .filters__actions .btn--primary{ display:none; }
   }
   .filters-toolbar{
     display:none;
