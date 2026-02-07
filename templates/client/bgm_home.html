@@ -1319,12 +1319,11 @@
 	            </div>
 	            <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
 	          </div>
-	          <div class="section__head home-services-under-builds">
-	            <div>
-	              <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
-	            </div>
-	            <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
-	          </div>
+		          <div class="section__head home-services-under-builds">
+		            <div>
+		              <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
+		            </div>
+		          </div>
 	          <div class="grid grid--gallery">
 	            {% for item in home_gallery_items %}
 	              <a class="gallery-card" href="{% url 'client-dashboard' %}#services" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
@@ -1489,13 +1488,12 @@
     <!-- ========================= PRODUCTS ========================= -->
 	    <section id="products" class="section">
 	      <div class="container">
-	        <div class="section__head">
-	          <div>
-	            <h2 class="section__title">{{ home_copy.products_title }}</h2>
-	            <p class="section__desc">{{ home_copy.products_desc }}</p>
-	          </div>
-	          <div><a class="btn btn--primary" href="{% url 'store' %}">{{ home_copy.products_cta_label }}</a></div>
-	        </div>
+		        <div class="section__head">
+		          <div>
+		            <h2 class="section__title">{{ home_copy.products_title }}</h2>
+		            <p class="section__desc">{{ home_copy.products_desc }}</p>
+		          </div>
+		        </div>
 
 	        <!-- Mobile products lite -->
 	        <div id="mobileProducts" class="only-mobile" aria-labelledby="productsMobileTitle">
