@@ -1846,18 +1846,16 @@
 	    };
 
 	    const skel = (n=8)=> Array.from({length:n}).map(()=>'<div class="sk"></div>').join('');
-	    const showLive = ()=>{
-	      liveTitle.style.display='block';
-	      liveGrid.style.display='grid';
-	      server.style.display='none';
-	      if (featuredTitle) featuredTitle.hidden = true;
-	    }
-	    const hideLive = ()=>{
-	      liveTitle.style.display='none';
-	      liveGrid.style.display='none';
-	      server.style.display='block';
-	      if (featuredTitle) featuredTitle.hidden = false;
-	    }
+		    const showLive = ()=>{
+		      liveTitle.style.display='block';
+		      liveGrid.style.display='grid';
+		      server.style.display='none';
+		    }
+		    const hideLive = ()=>{
+		      liveTitle.style.display='none';
+		      liveGrid.style.display='none';
+		      server.style.display='block';
+		    }
 	    const esc = s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 	    const formatMoney = (val) => {
 	      const num = Number(val);
