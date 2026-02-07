@@ -19,6 +19,11 @@ urlpatterns = [
         name="admin-client-contact",
     ),
     path(
+        "admin/api/clients/search/",
+        core_views.admin_client_search,
+        name="admin-client-search",
+    ),
+    path(
         "admin/analytics/collect/",
         core_views.admin_analytics_collect,
         name="admin-analytics-collect",

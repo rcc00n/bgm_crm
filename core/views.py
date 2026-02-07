@@ -751,6 +751,60 @@ def admin_client_contact(request, user_id):
 
 
 @staff_member_required
+@require_GET
+def admin_client_search(request):
+    """
+    Lightweight search endpoint for the calendar "quick add" modal.
+    Returns a small list of matching clients (id + label + meta).
+    """
+    query = (request.GET.get("q") or "").strip()
+    if len(query) < 2:
+        return JsonResponse({"results": []})
+
+    # Prefer client role, but fall back to non-staff users if roles aren't configured.
+    from core.models import Role
+    client_role = Role.objects.filter(name__iexact="Client").first()
+
+    qs = CustomUserDisplay.objects.select_related("userprofile").all()
+    if client_role:
+        qs = qs.filter(Q(is_staff=False) | Q(userrole__role=client_role)).distinct()
+    else:
+        qs = qs.filter(is_staff=False)
+
+    tokens = query.split()
+    if len(tokens) >= 2:
+        a, b = tokens[0], tokens[1]
+        name_q = (
+            Q(first_name__icontains=a, last_name__icontains=b) |
+            Q(first_name__icontains=b, last_name__icontains=a)
+        )
+    else:
+        name_q = Q(first_name__icontains=query) | Q(last_name__icontains=query)
+
+    qs = (
+        qs.filter(
+            name_q |
+            Q(username__icontains=query) |
+            Q(email__icontains=query) |
+            Q(userprofile__phone__icontains=query)
+        )
+        .order_by("first_name", "last_name", "username")[:15]
+    )
+
+    results = []
+    for user in qs:
+        profile = getattr(user, "userprofile", None)
+        label = user.get_full_name() or user.username or user.email or str(user.id)
+        results.append({
+            "id": user.id,
+            "label": label,
+            "email": user.email or "",
+            "phone": getattr(profile, "phone", "") if profile else "",
+        })
+    return JsonResponse({"results": results})
+
+
+@staff_member_required
 @require_POST
 def admin_ui_check_run(request):
     from core.models import ClientUiCheckRun

@@ -767,8 +767,50 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
                 self.admin_site.admin_view(self.move_appointment_view),
                 name="core_appointment_move",
             ),
+            path(
+                "quick_add/",
+                self.admin_site.admin_view(self.quick_add_view),
+                name="core_appointment_quick_add",
+            ),
         ]
         return custom_urls + urls
+
+    def quick_add_view(self, request):
+        """
+        Lightweight endpoint used by the calendar "quick add" modal.
+        Creates an Appointment using the same validation rules as the admin form.
+        """
+        if request.method != "POST":
+            return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+        if not self.has_add_permission(request):
+            return JsonResponse({"ok": False, "error": "Permission denied."}, status=403)
+
+        date_str = (request.POST.get("date") or "").strip()
+        time_str = (request.POST.get("time") or "").strip()
+
+        if not date_str or not time_str:
+            return JsonResponse({"ok": False, "error": "Missing date/time."}, status=400)
+
+        try:
+            combined = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            return JsonResponse({"ok": False, "error": "Invalid date/time format."}, status=400)
+
+        post = request.POST.copy()
+        post["start_time"] = combined.strftime("%Y-%m-%d %H:%M")
+
+        # Masters can only create appointments for themselves.
+        if hasattr(request.user, "master_profile") and not request.user.is_superuser:
+            post["master"] = str(request.user.id)
+
+        form = AppointmentForm(data=post, user=request.user)
+        if not form.is_valid():
+            errors = {k: [str(m) for m in v] for k, v in form.errors.items()}
+            return JsonResponse({"ok": False, "errors": errors}, status=400)
+
+        appt = form.save()
+        return JsonResponse({"ok": True, "appointment_id": str(appt.pk)})
 
     def move_appointment_view(self, request):
         if request.method != "POST":

@@ -206,6 +206,280 @@ let popupTime = document.getElementById("popupTime");
 
 let lastActiveCell = null;
 
+const qaOverlay = document.getElementById("qaOverlay");
+const qaForm = document.getElementById("qaForm");
+const qaTitle = document.getElementById("qaTitle");
+const qaSub = document.getElementById("qaSub");
+const qaErrors = document.getElementById("qaErrors");
+const qaDate = document.getElementById("qaDate");
+const qaTime = document.getElementById("qaTime");
+const qaClientId = document.getElementById("qaClientId");
+const qaClientSearch = document.getElementById("qaClientSearch");
+const qaClientResults = document.getElementById("qaClientResults");
+const qaName = document.getElementById("qaName");
+const qaPhone = document.getElementById("qaPhone");
+const qaEmail = document.getElementById("qaEmail");
+const qaMaster = document.getElementById("qaMaster");
+const qaService = document.getElementById("qaService");
+const qaStatus = document.getElementById("qaStatus");
+const qaPayment = document.getElementById("qaPayment");
+const qaSubmit = document.getElementById("qaSubmit");
+
+function qaClearErrors() {
+    if (!qaErrors) {
+        return;
+    }
+    qaErrors.classList.add("hidden");
+    qaErrors.textContent = "";
+}
+
+function qaShowErrors(payload) {
+    if (!qaErrors) {
+        return;
+    }
+
+    const msgs = [];
+    if (!payload) {
+        msgs.push("Something went wrong. Please try again.");
+    } else if (typeof payload === "string") {
+        msgs.push(payload);
+    } else if (Array.isArray(payload)) {
+        payload.forEach(m => msgs.push(String(m)));
+    } else if (payload.errors && typeof payload.errors === "object") {
+        Object.entries(payload.errors).forEach(([field, list]) => {
+            (Array.isArray(list) ? list : [list]).forEach(msg => {
+                const prefix = field === "__all__" ? "" : `${field}: `;
+                msgs.push(prefix + String(msg));
+            });
+        });
+    } else if (payload.error) {
+        msgs.push(String(payload.error));
+    } else if (typeof payload === "object") {
+        Object.entries(payload).forEach(([field, list]) => {
+            (Array.isArray(list) ? list : [list]).forEach(msg => {
+                const prefix = field === "__all__" ? "" : `${field}: `;
+                msgs.push(prefix + String(msg));
+            });
+        });
+    }
+
+    qaErrors.textContent = msgs.filter(Boolean).join(" • ") || "Something went wrong. Please try again.";
+    qaErrors.classList.remove("hidden");
+}
+
+function getQuickAddContext() {
+    const fallbackDate = document.getElementById("realDateInput")?.value || "";
+    const date = lastActiveCell?.dataset?.date || fallbackDate;
+    const time = lastActiveCell?.value || lastActiveCell?.dataset?.time24 || "";
+    const timeLabel =
+        lastActiveCell?.dataset?.timeLabel ||
+        document.getElementById("popupTime")?.textContent ||
+        time;
+    const masterId = lastActiveCell?.dataset?.master || "";
+    return { date, time, timeLabel, masterId };
+}
+
+function openQuickAdd() {
+    if (!qaOverlay || !qaForm) {
+        handleAdd("appointment");
+        return;
+    }
+
+    const ctx = getQuickAddContext();
+    closePopup();
+
+    qaClearErrors();
+
+    if (!ctx.date || !ctx.time) {
+        qaShowErrors("Pick a time slot first.");
+        qaOverlay.classList.remove("hidden");
+        return;
+    }
+
+    if (qaDate) {
+        qaDate.value = ctx.date;
+    }
+    if (qaTime) {
+        qaTime.value = ctx.time;
+    }
+
+    if (qaTitle) {
+        qaTitle.textContent = `${ctx.date} • ${ctx.timeLabel}`;
+    }
+    if (qaSub) {
+        qaSub.textContent = "Fast add without leaving the calendar";
+    }
+
+    if (qaClientId) {
+        qaClientId.value = "";
+    }
+    if (qaClientSearch) {
+        qaClientSearch.value = "";
+    }
+    if (qaClientResults) {
+        qaClientResults.innerHTML = "";
+        qaClientResults.classList.add("hidden");
+    }
+
+    if (qaName) {
+        qaName.value = "";
+    }
+    if (qaPhone) {
+        qaPhone.value = "";
+    }
+    if (qaEmail) {
+        qaEmail.value = "";
+    }
+
+    if (qaMaster) {
+        if (ctx.masterId) {
+            qaMaster.value = ctx.masterId;
+        }
+        // Auto-select if there is only one tech option.
+        const options = Array.from(qaMaster.options || []).filter(opt => (opt.value || "").trim());
+        if (!qaMaster.value && options.length === 1) {
+            qaMaster.value = options[0].value;
+        }
+        if (qaSub && qaMaster.value) {
+            const selected = qaMaster.options[qaMaster.selectedIndex];
+            const label = (selected?.textContent || "").trim();
+            if (label) {
+                qaSub.textContent = `Tech: ${label}`;
+            }
+        }
+    }
+
+    qaOverlay.classList.remove("hidden");
+    setTimeout(() => {
+        (qaClientSearch || qaName || qaService || qaMaster)?.focus?.();
+    }, 0);
+}
+
+function closeQuickAdd() {
+    if (!qaOverlay) {
+        return;
+    }
+    qaOverlay.classList.add("hidden");
+    qaClearErrors();
+}
+
+async function submitQuickAdd(event) {
+    event.preventDefault();
+    qaClearErrors();
+
+    if (!qaForm) {
+        qaShowErrors("Quick add is not available on this page.");
+        return;
+    }
+
+    const formData = new FormData(qaForm);
+    const date = (formData.get("date") || "").toString().trim();
+    const time = (formData.get("time") || "").toString().trim();
+    const client = (formData.get("client") || "").toString().trim();
+    const name = (formData.get("contact_name") || "").toString().trim();
+    const email = (formData.get("contact_email") || "").toString().trim();
+    const phone = (formData.get("contact_phone") || "").toString().trim();
+    const master = (formData.get("master") || "").toString().trim();
+    const service = (formData.get("service") || "").toString().trim();
+    const status = (formData.get("status") || "").toString().trim();
+    const paymentStatus = (formData.get("payment_status") || "").toString().trim();
+
+    const localErrors = {};
+    if (!date || !time) {
+        localErrors.__all__ = ["Pick a date and time slot."];
+    }
+    if (!master) {
+        localErrors.master = ["Tech is required."];
+    }
+    if (!service) {
+        localErrors.service = ["Service is required."];
+    }
+    if (!status) {
+        localErrors.status = ["Status is required."];
+    }
+    if (!paymentStatus) {
+        localErrors.payment_status = ["Payment status is required."];
+    }
+    if (!client) {
+        if (!name) {
+            localErrors.contact_name = ["Name is required for guest bookings."];
+        }
+        if (!email) {
+            localErrors.contact_email = ["Email is required for guest bookings."];
+        }
+        if (!phone) {
+            localErrors.contact_phone = ["Phone is required for guest bookings."];
+        }
+    }
+    if (Object.keys(localErrors).length) {
+        qaShowErrors(localErrors);
+        return;
+    }
+
+    const csrfToken = getCSRFToken();
+    if (!csrfToken) {
+        qaShowErrors("Missing CSRF token. Reload the page and try again.");
+        return;
+    }
+
+    const payload = new URLSearchParams();
+    formData.forEach((value, key) => {
+        payload.set(key, value);
+    });
+
+    const prevLabel = qaSubmit?.textContent || "";
+    if (qaSubmit) {
+        qaSubmit.disabled = true;
+        qaSubmit.textContent = "Creating…";
+    }
+
+    let resp;
+    try {
+        resp = await fetch("/admin/core/appointment/quick_add/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": csrfToken,
+            },
+            body: payload.toString(),
+            credentials: "same-origin",
+        });
+    } catch (err) {
+        console.error(err);
+        qaShowErrors("Network error while creating appointment.");
+        if (qaSubmit) {
+            qaSubmit.disabled = false;
+            qaSubmit.textContent = prevLabel;
+        }
+        return;
+    }
+
+    let data = null;
+    try {
+        data = await resp.json();
+    } catch (err) {
+        data = null;
+    }
+
+    if (!resp.ok || !data || !data.ok) {
+        qaShowErrors(data || "Failed to create appointment.");
+        if (qaSubmit) {
+            qaSubmit.disabled = false;
+            qaSubmit.textContent = prevLabel;
+        }
+        return;
+    }
+
+    closeQuickAdd();
+    onDateChange(date);
+
+    if (qaSubmit) {
+        qaSubmit.disabled = false;
+        qaSubmit.textContent = prevLabel;
+    }
+}
+
 function showAddPopup(event, time, label) {
     closePopup();
 
@@ -224,8 +498,20 @@ function showAddPopup(event, time, label) {
     // Заполняем тело popup-а новыми действиями
     const popupBody = popup.querySelector(".popup-body");
     popupBody.innerHTML = `
-        <div class="popup-action" onclick="handleAdd('appointment', '${time}', '${masterId}')">📅 Add appointment</div>
-        <div class="popup-action" onclick="handleAdd('vacation', '${time}', '${masterId}')">🗓️ Add time off</div>
+        <button type="button" class="popup-action popup-action--rich popup-action--primary" onclick="openQuickAdd()">
+            <span class="popup-action__icon" aria-hidden="true">+</span>
+            <span class="popup-action__content">
+                <span class="popup-action__title">New appointment</span>
+                <span class="popup-action__desc">Fast add, stays in calendar</span>
+            </span>
+        </button>
+        <button type="button" class="popup-action popup-action--rich" onclick="handleAdd('vacation')">
+            <span class="popup-action__icon" aria-hidden="true">X</span>
+            <span class="popup-action__content">
+                <span class="popup-action__title">Blocked time</span>
+                <span class="popup-action__desc">Vacation, lunch, time off</span>
+            </span>
+        </button>
     `;
 
     if ((rect.left + window.scrollX - 230) < 0 || rect.width < 100) {
@@ -257,6 +543,137 @@ document.addEventListener("click", function (e) {
     }
 });
 
+function initQuickAdd() {
+    if (!qaOverlay) {
+        return;
+    }
+    qaOverlay.addEventListener("click", (e) => {
+        if (e.target === qaOverlay) {
+            closeQuickAdd();
+        }
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !qaOverlay.classList.contains("hidden")) {
+            closeQuickAdd();
+        }
+    });
+
+    if (!qaClientSearch || !qaClientResults || !qaClientId) {
+        return;
+    }
+
+    let timer = null;
+    let abortController = null;
+
+    function hideResults() {
+        qaClientResults.classList.add("hidden");
+    }
+
+    function showResults() {
+        if (qaClientResults.childElementCount) {
+            qaClientResults.classList.remove("hidden");
+        }
+    }
+
+    function renderResults(results) {
+        qaClientResults.innerHTML = "";
+        (results || []).forEach((item) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "qa-result";
+            btn.setAttribute("role", "option");
+            btn.dataset.id = item.id;
+
+            const title = document.createElement("div");
+            title.className = "qa-result__title";
+            title.textContent = item.label || `#${item.id}`;
+
+            const meta = document.createElement("div");
+            meta.className = "qa-result__meta";
+            const metaBits = [];
+            if (item.email) {
+                metaBits.push(item.email);
+            }
+            if (item.phone) {
+                metaBits.push(item.phone);
+            }
+            meta.textContent = metaBits.join(" · ");
+
+            btn.appendChild(title);
+            if (meta.textContent) {
+                btn.appendChild(meta);
+            }
+
+            btn.addEventListener("click", () => {
+                qaClientId.value = String(item.id || "");
+                qaClientSearch.value = item.label || "";
+                hideResults();
+                if (!qaClientId.value) {
+                    return;
+                }
+                fetch(`/admin/api/clients/${encodeURIComponent(qaClientId.value)}/contact/`, { credentials: "same-origin" })
+                    .then(r => r.ok ? r.json() : null)
+                    .then((payload) => {
+                        if (!payload) {
+                            return;
+                        }
+                        if (qaName && !qaName.value.trim()) {
+                            qaName.value = payload.name || "";
+                        }
+                        if (qaEmail && !qaEmail.value.trim()) {
+                            qaEmail.value = payload.email || "";
+                        }
+                        if (qaPhone && !qaPhone.value.trim()) {
+                            qaPhone.value = payload.phone || "";
+                        }
+                    })
+                    .catch(() => { /* ignore */ });
+            });
+
+            qaClientResults.appendChild(btn);
+        });
+        showResults();
+        if (!qaClientResults.childElementCount) {
+            hideResults();
+        }
+    }
+
+    qaClientSearch.addEventListener("input", () => {
+        qaClientId.value = "";
+        const q = (qaClientSearch.value || "").trim();
+        if (timer) {
+            clearTimeout(timer);
+        }
+        if (abortController) {
+            abortController.abort();
+            abortController = null;
+        }
+        if (q.length < 2) {
+            qaClientResults.innerHTML = "";
+            hideResults();
+            return;
+        }
+        timer = setTimeout(() => {
+            abortController = new AbortController();
+            fetch(`/admin/api/clients/search/?q=${encodeURIComponent(q)}`, {
+                credentials: "same-origin",
+                signal: abortController.signal,
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+                .then(r => r.ok ? r.json() : null)
+                .then(data => renderResults(data?.results || []))
+                .catch(() => { /* ignore */ });
+        }, 180);
+    });
+
+    qaClientSearch.addEventListener("focus", () => {
+        showResults();
+    });
+    qaClientSearch.addEventListener("blur", () => {
+        setTimeout(() => hideResults(), 140);
+    });
+}
+
 const tooltip = document.getElementById("apptTooltip");
 
 function attachTooltipHandlers() {
@@ -285,6 +702,7 @@ function attachTooltipHandlers() {
 }
 
 attachTooltipHandlers();
+initQuickAdd();
 syncCalendarScrollHeight();
 updateDisplayDateLabel();
 
