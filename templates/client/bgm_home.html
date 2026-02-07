@@ -232,6 +232,12 @@
       background:#121212;
       color:#f2f2f2;
     }
+    #products .filters select{color-scheme:dark;}
+    #products .filters select option,
+    #products .filters select optgroup{
+      background:#121212;
+      color:#f2f2f2;
+    }
 
     .grid{display:grid;gap:1rem}
     .grid--services{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
@@ -331,6 +337,10 @@
 		      /* Home (desktop): make the search controls stand out more */
 		      #services .home-search,
 		      #products .home-search{
+		        display:grid;
+		        grid-template-columns:minmax(0,1.75fr) minmax(0,1.05fr) max-content max-content;
+		        align-items:stretch;
+		        gap:.75rem;
 		        padding:1rem 1.05rem;
 		        border-radius:1.1rem;
 		        border:1px solid rgba(255,255,255,.16);
@@ -340,12 +350,28 @@
 		          linear-gradient(180deg, var(--panel), var(--panel-2));
 		        box-shadow:0 18px 34px rgba(0,0,0,.42);
 		      }
+		      @media (min-width: 861px) and (max-width: 1099px){
+		        #services .home-search,
+		        #products .home-search{
+		          grid-template-columns:1fr 1fr;
+		        }
+		        #services .home-search button[type="submit"],
+		        #services .home-search .home-search__open,
+		        #products .home-search button[type="submit"],
+		        #products .home-search .home-search__open{
+		          width:100%;
+		          justify-content:center;
+		        }
+		      }
+
 		      #services .home-search .input,
 		      #services .home-search .select,
 		      #products .home-search .input,
 		      #products .home-search .select{
-		        min-height:54px;
-		        padding:.85rem 1rem;
+		        width:100%;
+		        min-width:0;
+		        min-height:62px;
+		        padding:1rem 1.05rem;
 		        border-color:rgba(255,255,255,.22);
 		        background:rgba(0,0,0,.22);
 		        font-family:var(--font-head) !important;
@@ -360,24 +386,48 @@
 		      }
 		      #services .home-search button[type="submit"],
 		      #products .home-search button[type="submit"]{
-		        min-height:54px;
-		        padding:.9rem 1.25rem;
-		        border-radius:.85rem;
+		        min-height:62px;
+		        padding:1.02rem 1.45rem;
+		        border-radius:.95rem;
+		        font-size:1.02rem !important;
 		        background:linear-gradient(180deg, var(--accent-2), var(--accent));
-	        border:1px solid rgba(213,0,0,.65);
-	        color:#fff;
-	        box-shadow:0 14px 24px rgba(213,0,0,.22);
-	        font-family:var(--font-head) !important;
-	        font-weight:900 !important;
+		        border:1px solid rgba(213,0,0,.65);
+		        color:#fff;
+		        box-shadow:0 14px 24px rgba(213,0,0,.22);
+		        font-family:var(--font-head) !important;
+		        font-weight:900 !important;
+		        letter-spacing:.08em !important;
+		        text-transform:uppercase !important;
+		      }
+		      #services .home-search .home-search__open,
+		      #products .home-search .home-search__open{
+		        min-height:62px;
+		        padding:1.02rem 1.45rem;
+		        border-radius:.95rem;
+		        font-size:1.02rem !important;
+		        background:linear-gradient(180deg, var(--accent-2), var(--accent));
+		        border:1px solid rgba(213,0,0,.65);
+		        color:#fff;
+		        box-shadow:0 14px 24px rgba(213,0,0,.22);
+		        font-family:var(--font-head) !important;
+		        font-weight:900 !important;
 		        letter-spacing:.08em !important;
 		        text-transform:uppercase !important;
 		      }
 		      #services .home-search button[type="submit"]:hover,
-		      #products .home-search button[type="submit"]:hover{
+		      #products .home-search button[type="submit"]:hover,
+		      #services .home-search .home-search__open:hover,
+		      #products .home-search .home-search__open:hover{
 		        transform:translateY(-2px);
 		        color:#fff;
 		        border-color:rgba(213,0,0,.75);
 		        box-shadow:0 18px 32px rgba(213,0,0,.26);
+		      }
+		      #services .home-search .btn--link,
+		      #products .home-search .btn--link{
+		        grid-column:1 / -1;
+		        justify-self:start;
+		        margin-top:-.15rem;
 		      }
 		      #services .home-divider,
 		      #products .home-divider{display:block;}
@@ -455,25 +505,48 @@
     }
     .tile{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:1rem;padding:1rem}
     .tile__icon{font-size:1.4rem;color:var(--accent);margin-bottom:.25rem}
-    /* Desktop: keep the icon inline with the heading for the 3 compact "Why BGM" tiles. */
-    @media (min-width: 861px){
-      .tiles--why .tile:not(.tile--link){
-        display:grid;
-        grid-template-columns:auto 1fr;
-        grid-template-rows:auto auto;
-        column-gap:.7rem;
-        align-items:start;
-      }
-      .tiles--why .tile:not(.tile--link) .tile__icon{
-        margin-bottom:0;
-        font-size:1.35rem;
-        line-height:1;
-      }
-      .tiles--why .tile:not(.tile--link) p.muted{
-        grid-column:1 / -1;
-        margin-top:.25rem;
-      }
-    }
+	    /* Desktop: keep the icon inline with the heading for the 3 compact "Why BGM" tiles. */
+	    @media (min-width: 861px){
+	      .tiles--why .tile:not(.tile--link){
+	        display:grid;
+	        grid-template-columns:auto 1fr;
+	        grid-template-rows:auto auto;
+	        column-gap:.7rem;
+	        align-items:start;
+	      }
+	      .tiles--why .tile:not(.tile--link) .tile__icon{
+	        margin-bottom:0;
+	        font-size:1.35rem;
+	        line-height:1;
+	      }
+	      .tiles--why .tile:not(.tile--link) p.muted{
+	        grid-column:1 / -1;
+	        margin-top:.25rem;
+	      }
+
+	      /* Desktop: align the "Warranty & Support" title with its icon (link tile). */
+	      .tiles--why .tile--link{
+	        display:grid;
+	        grid-template-columns:auto 1fr;
+	        grid-template-rows:auto auto auto;
+	        column-gap:.7rem;
+	        row-gap:.35rem;
+	        align-items:start;
+	      }
+	      .tiles--why .tile--link .tile__icon{
+	        margin-bottom:0;
+	        font-size:1.35rem;
+	        line-height:1;
+	        align-self:center;
+	      }
+	      .tiles--why .tile--link > b{
+	        align-self:center;
+	      }
+	      .tiles--why .tile--link > p.muted,
+	      .tiles--why .tile--link > .tile__cta{
+	        grid-column:1 / -1;
+	      }
+	    }
     /* Desktop: keep the step number inline with the title in "Our Process". */
     @media (min-width: 861px){
       .tiles--process .tile{
@@ -1309,6 +1382,7 @@
 		              {% endfor %}
 		            </select>
 		            <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+		            <a class="btn btn--primary home-search__open" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a>
 		            {% if q or active_category %}
 		              <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_reset_filters_label }}</a>
 		            {% endif %}
@@ -1436,24 +1510,21 @@
 	          </div>
 	        </div>
 
-	        <hr class="home-divider" aria-hidden="true">
+		        <form id="productsSearchForm" class="filters home-search" role="search" method="get" action="{% url 'store' %}">
+		          <input class="input" type="search" name="q" placeholder="Search a product…" value="">
+		          <select class="select" name="cat" aria-label="Category">
+		            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
+		            {% for c in product_filter_categories %}
+		              <option value="{{ c.id }}">{{ c.display_name }}</option>
+		            {% endfor %}
+		          </select>
+			          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+			          <a class="btn btn--primary home-search__open" href="{% url 'store' %}">{{ home_copy.products_cta_label }}</a>
+			        </form>
 
-	        <form id="productsSearchForm" class="filters home-search" role="search" method="get" action="{% url 'store' %}">
-	          <input class="input" type="search" name="q" placeholder="Search a product…" value="">
-	          <select class="select" name="cat" aria-label="Category">
-	            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
-	            {% for c in product_filter_categories %}
-	              <option value="{{ c.id }}">{{ c.display_name }}</option>
-	            {% endfor %}
-	          </select>
-	          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
-	        </form>
-
-	        <hr class="home-divider" aria-hidden="true">
-
-	        <!-- Live product search -->
-	        <h3 id="productsLiveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
-	        <div id="productsLiveGrid" class="grid grid--products" style="display:none"></div>
+		        <!-- Live product search -->
+		        <h3 id="productsLiveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
+		        <div id="productsLiveGrid" class="grid grid--products" style="display:none"></div>
 
 	        <div id="productsServerContent">
 	          {% if home_products %}
