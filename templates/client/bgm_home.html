@@ -15,7 +15,7 @@
     {% endfor %}
   {% endif %}
 
-  <style>
+ <style>
     :root{
       --bg:#000; --fg:#fff; --muted:rgba(255,255,255,.72); --muted-2:rgba(255,255,255,.55);
       --line:rgba(255,255,255,.12); --panel:#0E0E0E; --panel-2:#131313;
@@ -27,7 +27,7 @@
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
-    body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-height:1.55;}
+    body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-height:1.55;overflow-x:hidden;}
     img{max-width:100%;display:block}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
     a{color:inherit;text-decoration:none}
@@ -66,6 +66,14 @@
     .hero__title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15}
     .hero__lead{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);max-width:54ch;margin-top:1rem}
     .hero__cta{display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap}
+    /* Desktop: make the two hero CTAs feel more "primary" (bigger tap/click targets). */
+    @media (min-width: 861px){
+      .hero__cta .btn{
+        min-height:52px;
+        padding:.95rem 1.55rem;
+        font-size:1.05rem !important;
+      }
+    }
     .hero__logo-block{
       display:flex;
       flex-direction:column;
@@ -152,7 +160,7 @@
       display:block;
       object-fit:cover;
     }
-    .stat{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow)}
+    .stat{display:block;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow)}
     .stat b{font-size:1.35rem}
     .frame{border-radius:1.2rem;border:1px solid var(--line);background:linear-gradient(180deg,#0b0b0b,#0a0a0a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02),0 14px 28px rgba(0,0,0,.45);aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;color:var(--muted-2)}
     .hero__media.frame{aspect-ratio:var(--hero-media-aspect, 18/9);height:var(--hero-media-height, auto);}
@@ -218,6 +226,12 @@
 
     .filters{display:flex;flex-wrap:wrap;gap:.65rem;margin:1rem 0 1.25rem}
     .input,.select{background:var(--panel);border:1px solid var(--line);color:var(--fg);padding:.65rem .85rem;border-radius:.55rem;font:inherit;min-width:210px}
+    #services .filters select{color-scheme:dark;}
+    #services .filters select option,
+    #services .filters select optgroup{
+      background:#121212;
+      color:#f2f2f2;
+    }
 
     .grid{display:grid;gap:1rem}
     .grid--services{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
@@ -229,15 +243,22 @@
       gap:.5rem;
       flex:1;
     }
-    .grid--gallery{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+	    .grid--gallery{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 
-    .home-gallery{margin:1rem 0 1.6rem}
-    .home-gallery__head{margin-bottom:1rem}
-    .gallery-card{
-      position:relative;
-      display:block;
-      border-radius:1rem;
-      overflow:hidden;
+	    .home-gallery{margin:1rem 0 1.6rem}
+	    .home-gallery__head{margin-bottom:1rem}
+	    .home-services-under-builds{display:none;}
+	    .home-divider{
+	      display:none;
+	      border:0;
+	      border-top:1px solid rgba(255,255,255,.14);
+	      margin:1.35rem 0;
+	    }
+	    .gallery-card{
+	      position:relative;
+	      display:block;
+	      border-radius:1rem;
+	      overflow:hidden;
       border:1px solid var(--line);
       background:linear-gradient(180deg,var(--panel),var(--panel-2));
       box-shadow:var(--shadow);
@@ -284,6 +305,140 @@
     .grid--services .card__cta{margin-top:auto}
     .empty{color:var(--muted-2);font-style:italic;padding:1rem}
 
+	    @media (min-width: 861px){
+	      /* Home (desktop): requested typography tweaks */
+	      #services .home-services-intro{display:none !important;}
+	      #services .home-services-under-builds{display:flex;}
+	      #services .home-services-title{display:none !important;}
+	      #services .home-builds-title,
+	      #services .home-featured-title{
+	        font-family:var(--font-head) !important;
+	        font-weight:900 !important;
+	        color:#fff !important;
+	        text-transform:uppercase !important;
+	        letter-spacing:.12em !important;
+	      }
+	      #services .home-builds-title{
+	        font-size:clamp(2.35rem, 3.4vw, 3.15rem) !important;
+	        line-height:1.05 !important;
+	      }
+	      #services .home-featured-title{
+	        font-size:clamp(2.05rem, 2.9vw, 2.7rem) !important;
+	        line-height:1.08 !important;
+	        margin:.25rem 0 1rem !important;
+		      }
+
+		      /* Home (desktop): make the search controls stand out more */
+		      #services .home-search,
+		      #products .home-search{
+		        padding:1rem 1.05rem;
+		        border-radius:1.1rem;
+		        border:1px solid rgba(255,255,255,.16);
+		        background:
+		          radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.15), transparent 58%),
+		          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+		          linear-gradient(180deg, var(--panel), var(--panel-2));
+		        box-shadow:0 18px 34px rgba(0,0,0,.42);
+		      }
+		      #services .home-search .input,
+		      #services .home-search .select,
+		      #products .home-search .input,
+		      #products .home-search .select{
+		        min-height:54px;
+		        padding:.85rem 1rem;
+		        border-color:rgba(255,255,255,.22);
+		        background:rgba(0,0,0,.22);
+		        font-family:var(--font-head) !important;
+		        font-weight:900 !important;
+		        letter-spacing:.06em !important;
+		        text-transform:uppercase !important;
+		      }
+		      #services .home-search .input::placeholder,
+		      #products .home-search .input::placeholder{
+		        color:rgba(255,255,255,.65);
+		        font-weight:900;
+		      }
+		      #services .home-search button[type="submit"],
+		      #products .home-search button[type="submit"]{
+		        min-height:54px;
+		        padding:.9rem 1.25rem;
+		        border-radius:.85rem;
+		        background:linear-gradient(180deg, var(--accent-2), var(--accent));
+	        border:1px solid rgba(213,0,0,.65);
+	        color:#fff;
+	        box-shadow:0 14px 24px rgba(213,0,0,.22);
+	        font-family:var(--font-head) !important;
+	        font-weight:900 !important;
+		        letter-spacing:.08em !important;
+		        text-transform:uppercase !important;
+		      }
+		      #services .home-search button[type="submit"]:hover,
+		      #products .home-search button[type="submit"]:hover{
+		        transform:translateY(-2px);
+		        color:#fff;
+		        border-color:rgba(213,0,0,.75);
+		        box-shadow:0 18px 32px rgba(213,0,0,.26);
+		      }
+		      #services .home-divider,
+		      #products .home-divider{display:block;}
+
+	      #services .grid--services{
+	        grid-template-columns:repeat(3,minmax(0,1fr));
+	        gap:.9rem;
+	      }
+      #services .grid--services .card{
+        padding:.85rem;
+        gap:.6rem;
+      }
+      #services .grid--services .card__img{border-radius:.7rem}
+      #services .grid--services .card h3{font-size:1rem!important}
+      #services .grid--services .card .muted{
+        font-size:.9rem!important;
+        display:-webkit-box;
+        -webkit-line-clamp:2;
+        -webkit-box-orient:vertical;
+        overflow:hidden;
+      }
+      #services .grid--services .card .dur{font-size:.86rem!important}
+      #services .grid--services .btn{padding:.6rem .95rem;font-size:.85rem!important}
+      #services .grid--services .card__badge{font-size:.68rem}
+    }
+
+    @media (min-width: 861px) and (max-width: 1099px){
+      #services .grid--services--limit2 > :nth-child(n+7){display:none}
+    }
+
+    @media (min-width: 1100px){
+      #services .grid--services{grid-template-columns:repeat(4,minmax(0,1fr))}
+      #services .grid--services--limit2 > :nth-child(n+9){display:none}
+    }
+
+    @media (min-width: 861px){
+      #products .grid--products{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:.9rem;
+      }
+      #products .grid--products .card{
+        padding:.85rem;
+        gap:.6rem;
+      }
+      #products .grid--products .card__img{border-radius:.7rem}
+      #products .grid--products .card h3{font-size:1rem!important}
+      #products .grid--products .price__hint{font-size:.72rem}
+      #products .grid--products .old{font-size:.85rem}
+      #products .grid--products .btn{padding:.6rem .95rem;font-size:.85rem!important}
+      #products .grid--products .card__badge{font-size:.68rem}
+    }
+
+    @media (min-width: 861px) and (max-width: 1099px){
+      #products .grid--products--limit2 > :nth-child(n+7){display:none}
+    }
+
+    @media (min-width: 1100px){
+      #products .grid--products{grid-template-columns:repeat(4,minmax(0,1fr))}
+      #products .grid--products--limit2 > :nth-child(n+9){display:none}
+    }
+
     .home-card-actions{
       display:flex;
       gap:.5rem;
@@ -293,15 +448,80 @@
     }
 
     .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+    .tiles--why{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+    .tiles--why .tile--link{grid-column:1/-1}
+    @media (min-width: 900px){
+      .tiles--why{grid-template-columns:repeat(3,minmax(0,1fr))}
+    }
     .tile{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:1rem;padding:1rem}
     .tile__icon{font-size:1.4rem;color:var(--accent);margin-bottom:.25rem}
+    /* Desktop: keep the icon inline with the heading for the 3 compact "Why BGM" tiles. */
+    @media (min-width: 861px){
+      .tiles--why .tile:not(.tile--link){
+        display:grid;
+        grid-template-columns:auto 1fr;
+        grid-template-rows:auto auto;
+        column-gap:.7rem;
+        align-items:start;
+      }
+      .tiles--why .tile:not(.tile--link) .tile__icon{
+        margin-bottom:0;
+        font-size:1.35rem;
+        line-height:1;
+      }
+      .tiles--why .tile:not(.tile--link) p.muted{
+        grid-column:1 / -1;
+        margin-top:.25rem;
+      }
+    }
+    /* Desktop: keep the step number inline with the title in "Our Process". */
+    @media (min-width: 861px){
+      .tiles--process .tile{
+        display:grid;
+        grid-template-columns:auto 1fr;
+        grid-template-rows:auto auto;
+        column-gap:.7rem;
+        align-items:start;
+      }
+      .tiles--process .tile .tile__icon{
+        margin-bottom:0;
+        font-size:1.35rem;
+        line-height:1;
+      }
+      .tiles--process .tile p.muted{
+        grid-column:1 / -1;
+        margin-top:.35rem;
+      }
+    }
     .tile--link{display:flex;flex-direction:column;gap:.4rem;min-height:100%;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
     .tile--link .tile__cta{margin-top:.1rem;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--muted);display:inline-flex;align-items:center;gap:.35rem}
     .tile--link:hover,.tile--link:focus-visible{border-color:rgba(213,0,0,.65);box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 20px rgba(213,0,0,.2);transform:translateY(-2px);outline:none}
     .tile--link:hover .tile__cta,.tile--link:focus-visible .tile__cta{color:var(--accent)}
-    .reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1.1rem}
-    .review-card{display:flex;flex-direction:column;gap:.6rem}
-    .review-stars{font-size:.9rem;color:var(--accent-2);letter-spacing:.14em}
+    /* Prevent the horizontally scrollable review track from expanding page width (Android Chrome). */
+    .review-carousel{position:relative;margin-top:1.2rem;overflow-x:hidden}
+    .review-carousel[data-review-count="1"] .review-carousel__nav{display:none}
+    .review-carousel__nav{display:flex;gap:.4rem;justify-content:flex-end;margin-bottom:.45rem}
+    .review-carousel__btn{
+      width:38px;height:38px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(0,0,0,.45);color:#fff;display:grid;place-items:center;cursor:pointer;
+      transition:.2s ease;
+    }
+    .review-carousel__btn:hover{border-color:rgba(213,0,0,.6);transform:translateY(-1px)}
+    .review-carousel__btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    .review-carousel__btn svg{width:20px;height:20px;display:block}
+    .review-carousel__track{
+      display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+      padding:.1rem 0 .65rem;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(255,255,255,.2) rgba(255,255,255,.06);
+    }
+    .review-carousel__track::-webkit-scrollbar{height:6px}
+    .review-carousel__track::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:999px}
+    .review-carousel__track::-webkit-scrollbar-track{background:rgba(255,255,255,.06)}
+    .review-slide{flex:0 0 100%;max-width:100%;scroll-snap-align:start}
+    .review-card{display:flex;flex-direction:column;gap:.6rem;padding:1.1rem 1.35rem;min-height:140px}
+    .review-stars{font-size:.92rem;color:var(--accent-2);letter-spacing:.18em}
+    .review-quote{font-size:1.02rem;color:var(--muted)}
     .review-author{font-weight:800;color:rgba(255,255,255,.9);font-size:.95rem}
 
     details{background:var(--panel);border:1px solid var(--line);border-radius:.8rem;padding:.8rem}
@@ -395,12 +615,19 @@
 
     /* Headings and UI (keep Ford where appropriate, not in top bar) */
     h1,h2,h3,h4,h5,h6,.hero__title{font-family:var(--font-head)!important;letter-spacing:.01em;font-style:normal}
-    .section__title{font-family:var(--font-body)!important;font-weight:900!important;font-size:clamp(1.9rem,2.8vw,2.25rem)!important;letter-spacing:.005em!important;line-height:1.2!important}
+    .section__title{font-family:var(--font-head)!important;font-weight:900!important;font-size:clamp(1.9rem,2.8vw,2.25rem)!important;letter-spacing:.005em!important;line-height:1.2!important}
+    .section__title--compact{font-size:clamp(1.5rem,2.1vw,1.85rem)!important}
     .section__title,.hero__title{letter-spacing:.01em}
     .section__desc{font-size:clamp(1rem,1.4vw,1.06rem)!important;color:rgba(255,255,255,.86)!important}
     .kicker{
       color:rgba(255,255,255,.78)!important;
-      font-family:var(--font-ui)!important;
+      font-family:var(--font-head)!important;
+    }
+    .gallery-card__title,
+    .tile b,
+    .stat b,
+    .mobi-action b{
+      font-family:var(--font-head)!important;
     }
     .footer__nav a{
       font-family:var(--font-ui)!important;
@@ -412,7 +639,7 @@
     .footer__nav a:hover{color:#fff!important}
 
     /* Card text readability */
-    .card h3{font-family:var(--font-body)!important;font-weight:900!important;font-size:1.08rem!important;letter-spacing:.01em!important;line-height:1.25!important;color:#fff!important}
+    .card h3{font-family:var(--font-head)!important;font-weight:900!important;font-size:1.08rem!important;letter-spacing:.01em!important;line-height:1.25!important;color:#fff!important}
     .card .muted,.card .dur{font-family:var(--font-body)!important;font-weight:400!important;font-size:.98rem!important;line-height:1.4!important;color:rgba(255,255,255,.86)!important}
     .price strong{font-family:var(--font-body)!important;font-weight:800!important}
     .card__badge,.badge{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important}
@@ -560,12 +787,17 @@
     .mobi-action b{ font-weight:900; }
     .mobi-sub{ color:var(--muted-2); font-size:.95rem; }
 
-    @media (max-width: 860px){
-      #services .filters,
-      #services #liveTitle, #services #liveGrid,
-      #services #serverContent{ display:none !important; }
-      #products .grid.grid--products{ display:none !important; }
-    }
+	    @media (max-width: 860px){
+	      #services .filters,
+	      #services #liveTitle, #services #liveGrid,
+	      #services #serverContent{ display:none !important; }
+	      #products .grid.grid--products{ display:none !important; }
+	      #products .home-divider,
+	      #products #productsSearchForm,
+	      #products #productsLiveTitle,
+	      #products #productsLiveGrid,
+	      #products #productsServerContent{ display:none !important; }
+	    }
     @media (max-width: 640px){
       .mobi-photo-break.frame{ aspect-ratio:4/3; }
     }
@@ -603,19 +835,93 @@
       .hero__stats br{ display:none; }
       .stat{
         width:100%;
-        padding:.35rem 0;
-        background:transparent;
-        border:none;
-        box-shadow:none;
-        line-height:1.35;
+        padding:.85rem .95rem;
+        line-height:1.25;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        text-align:center;
+        gap:.25rem;
+        border-radius:1rem;
+        border:1px solid rgba(255,255,255,.16);
+        background:
+          radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.16), transparent 58%),
+          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+          linear-gradient(180deg, var(--panel), var(--panel-2));
+        box-shadow:0 16px 30px rgba(0,0,0,.38);
       }
-      .stat b{ display:inline; font-size:1rem; margin-right:.45rem; }
-      .stat span{ display:inline; font-size:.95rem; }
+      .stat b{
+        font-size:1.08rem;
+        letter-spacing:.16em;
+        text-transform:uppercase;
+        color:rgba(255,255,255,.92);
+        margin:0;
+      }
+      .stat span{
+        font-size:1.25rem;
+        color:rgba(255,255,255,.92);
+        letter-spacing:.01em;
+      }
+      .stat .muted{ color:rgba(255,255,255,.92) !important; }
+      .hero__stats .stat b,
+      .hero__stats .stat span{
+        font-family:var(--font-head) !important;
+      }
+      .hero__stats .stat--link:active{ transform:translateY(1px); }
+      .hero__stats .stat--link:focus-visible{ outline:2px solid rgba(213,0,0,.55); outline-offset:3px; }
       .mobi-actions{ grid-template-columns:1fr; }
+      /* Hero quick actions: 2x2 grid on mobile (Book/Shop/Contact/About). */
+      .mobi-quick .mobi-actions{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .mobi-quick .mobi-action{
+        min-height:136px;
+        border-color:rgba(255,255,255,.18);
+        background:
+          radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.14), transparent 62%),
+          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+          linear-gradient(180deg, var(--panel), var(--panel-2));
+        box-shadow:0 16px 30px rgba(0,0,0,.36);
+      }
+      .mobi-quick .mobi-action b{ font-size:1.22rem; letter-spacing:.012em; line-height:1.1; }
+      .mobi-quick .mobi-sub{ font-size:1.07rem; color:rgba(255,255,255,.86); }
+      .mobi-quick .mobi-action:active{ transform:translateY(1px); }
+      /* Services "Quick Picks": keep these as a 2x2 grid on mobile. */
+      #mobileServices .mobi-actions{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+      #mobileServices .mobi-action{
+        padding:1rem;
+        min-height:140px;
+        border-color:rgba(255,255,255,.18);
+        background:
+          radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.12), transparent 66%),
+          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+          linear-gradient(180deg, var(--panel), var(--panel-2));
+        box-shadow:0 16px 30px rgba(0,0,0,.34);
+      }
+      #mobileServices .mobi-action b{ font-size:1.22rem; letter-spacing:.012em; line-height:1.1; }
+      #mobileServices .mobi-sub{
+        font-size:1.07rem;
+        color:rgba(255,255,255,.86);
+        display:-webkit-box;
+        -webkit-line-clamp:2;
+        -webkit-box-orient:vertical;
+        overflow:hidden;
+      }
+      #mobileServices .mobi-action:active{ transform:translateY(1px); }
 
       .section{ padding:2.2rem 0; }
       .section__head{ flex-direction:column; align-items:flex-start; gap:.6rem; }
       .section__head .btn{ width:100%; justify-content:center; }
+      /* Make the primary "Open Services/Products" CTAs truly full-width on mobile. */
+      #services .section__head > div:last-child,
+      #products .section__head > div:last-child{
+        width:100%;
+      }
+      /* Slightly larger tap targets for those two primary CTAs on mobile. */
+      #services .section__head .btn--primary,
+      #products .section__head .btn--primary{
+        padding:1.05rem 1.25rem;
+        font-size:1.05rem !important;
+      }
 
       .filters{ flex-direction:column; align-items:stretch; }
       .input,.select{ width:100%; min-width:0; }
@@ -625,6 +931,91 @@
       .grid--products,
       .grid--gallery,
       .tiles{ grid-template-columns:1fr; }
+      /* Home builds/gallery: keep only 2 of the 4 images on mobile to reduce scroll. */
+      .home-gallery .grid--gallery > :nth-child(n+3){ display:none; }
+
+      /* Products "Quick shop": make the two actions more obvious and readable on mobile. */
+      #mobileProducts .mobi-action{
+        position:relative;
+        padding:1.1rem 3.6rem 1.1rem 1.1rem;
+        border-color:rgba(255,255,255,.18);
+        background:
+          radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.22), transparent 52%),
+          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+          linear-gradient(180deg, var(--panel), var(--panel-2));
+        box-shadow:0 16px 30px rgba(0,0,0,.42);
+      }
+      #mobileProducts .mobi-action::after{
+        /* CSS escapes are hex-only (no \u prefix). */
+        content:"\203A";
+        position:absolute;
+        right:1rem;
+        top:50%;
+        transform:translateY(-50%);
+        width:38px;
+        height:38px;
+        border-radius:999px;
+        display:grid;
+        place-items:center;
+        border:1px solid rgba(255,255,255,.14);
+        background:rgba(0,0,0,.38);
+        color:#fff;
+        font-size:1.6rem;
+        line-height:1;
+        opacity:.92;
+      }
+      #mobileProducts .mobi-action:active{ transform:translateY(1px); }
+      #mobileProducts .mobi-action:focus-visible{ outline:2px solid rgba(213,0,0,.55); outline-offset:3px; }
+      #mobileProducts .mobi-action b{ font-size:1.25rem; letter-spacing:.012em; }
+      #mobileProducts .mobi-sub{ font-size:1rem; color:rgba(255,255,255,.84); }
+
+      /* Review carousel: put arrows on the sides of the review card on mobile. */
+      .review-carousel{ padding-inline:0; }
+      .review-carousel__track{
+        gap:0;
+        scroll-snap-stop:always;
+        overscroll-behavior-x:contain;
+      }
+      .review-carousel__nav{
+        position:absolute;
+        inset:50% 0 auto 0;
+        transform:translateY(-50%);
+        justify-content:space-between;
+        margin:0;
+        pointer-events:none;
+      }
+      .review-carousel__btn{
+        pointer-events:auto;
+        width:42px;
+        height:42px;
+      }
+
+      /* Tile headers: make emoji + heading inline and larger on mobile. */
+      .tiles .tile{
+        display:grid;
+        grid-template-columns:auto 1fr;
+        grid-template-rows:auto auto;
+        column-gap:.6rem;
+        align-items:center;
+      }
+      .tiles .tile .tile__icon{
+        margin-bottom:0;
+        font-size:1.4rem;
+        line-height:1;
+      }
+      .tiles .tile b{
+        font-size:1.15rem;
+        font-weight:900;
+        letter-spacing:.012em;
+        line-height:1.1;
+      }
+      .tiles .tile p.muted{
+        grid-column:1 / -1;
+        margin-top:.35rem;
+      }
+      .tiles .tile .tile__cta{
+        grid-column:1 / -1;
+      }
 
       .card{ padding:1rem; gap:.6rem; }
       .card__img{ aspect-ratio:4/3; }
@@ -720,56 +1111,17 @@
 </head>
 
 <body>
+  {% include "includes/marketing_body.html" %}
+  {% include "includes/site_notice_markup.html" with site_notice_version="offer-v1" %}
+  {% include "includes/topbar_client_v3.html" %}
+
   {% if page_sections %}
     {% include "sections/render_sections.html" %}
   {% else %}
 
-  {% include "includes/marketing_body.html" %}
-  {% include "includes/site_notice_markup.html" with site_notice_version="offer-v1" %}
-
   <div id="bg"></div>
 
   <a href="#main" class="visually-hidden">{{ home_copy.skip_to_main_label }}</a>
-
-  <header class="site-header" role="banner">
-    <div class="container site-header__inner">
-      <a class="brand" href="/">
-        <span class="brand__logo">
-        <span class="brand__word brand__word--white">{{ home_copy.brand_word_white }}</span>
-        <span class="brand__word brand__word--red">{{ home_copy.brand_word_red }}</span>
-      </span>
-      <span class="brand__tagline">{{ home_copy.brand_tagline }}</span>
-    </a>
-
-      <button class="site-header__toggle" type="button" aria-expanded="false" aria-controls="siteNav">
-        <span class="site-header__toggle-box" aria-hidden="true">
-          <span class="site-header__toggle-lines"></span>
-        </span>
-        <span class="sr-only">{{ home_copy.nav_toggle_label }}</span>
-      </button>
-
-      <nav id="siteNav" aria-label="Main navigation">
-        <ul>
-          <li><a href="{% url 'client-dashboard' %}" title="Services catalog">{{ home_copy.nav_services_label }}</a></li>
-          {% if user.is_authenticated %}
-            <li><a href="{% url 'dashboard' %}">{{ home_copy.nav_client_portal_label }}</a></li>
-          {% else %}
-            <li><a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost">{{ home_copy.nav_login_label }}</a></li>
-          {% endif %}
-          <li><a href="{% url 'store' %}">{{ home_copy.nav_products_label }}</a></li>
-          <li>
-            <a href="{% url 'merch' %}">
-              {{ home_copy.nav_merch_label }}
-              {% if home_copy.nav_merch_badge %}<span class="badge">{{ home_copy.nav_merch_badge }}</span>{% endif %}
-            </a>
-          </li>
-          <li><a href="{% url 'dealer-status' %}">{{ home_copy.nav_dealers_label }}</a></li>
-          <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>{{ home_copy.nav_financing_label }}</a></li>
-          <li><a href="{% url 'our-story' %}">{{ home_copy.nav_about_label }}</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
 
   <section class="hero" id="top">
     {% if home_copy.hero_logo or home_copy.hero_logo_backdrop %}
@@ -797,15 +1149,15 @@
         <p class="kicker">{{ home_copy.hero_kicker }}</p>
         <h1 class="hero__title">{{ home_copy.hero_title }}</h1>
         <p class="hero__lead">{{ home_copy.hero_lead|safe }}</p>
-        <div class="hero__cta">
-          <a class="btn btn--primary" href="#services">{{ home_copy.hero_primary_cta_label }}</a>
-          <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">{{ home_copy.hero_secondary_cta_label }}</a>
-        </div>
+	        <div class="hero__cta">
+	          <a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.hero_primary_cta_label }}</a>
+	          <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">{{ home_copy.hero_secondary_cta_label }}</a>
+	        </div>
 
         <div class="hero__stats" style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
-          <div class="stat"><b>{{ home_copy.hero_stat_1_title }}</b><br><span class="muted">{{ home_copy.hero_stat_1_subtitle }}</span></div>
-          <div class="stat"><b>{{ home_copy.hero_stat_2_title }}</b><br><span class="muted">{{ home_copy.hero_stat_2_subtitle }}</span></div>
-          <div class="stat"><b>{{ home_copy.hero_stat_3_title }}</b><br><span class="muted">{{ home_copy.hero_stat_3_subtitle }}</span></div>
+          <a class="stat stat--link" href="#services"><b>{{ home_copy.hero_stat_1_title }}</b><br><span class="muted">{{ home_copy.hero_stat_1_subtitle }}</span></a>
+          <a class="stat stat--link" href="#services"><b>{{ home_copy.hero_stat_2_title }}</b><br><span class="muted">{{ home_copy.hero_stat_2_subtitle }}</span></a>
+          <a class="stat stat--link" href="#services"><b>{{ home_copy.hero_stat_3_title }}</b><br><span class="muted">{{ home_copy.hero_stat_3_subtitle }}</span></a>
         </div>
       </div>
 
@@ -818,7 +1170,7 @@
           <a class="mobi-action" href="{% url 'store' %}">
             <b>{{ home_copy.hero_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_2_subtitle }}</span>
           </a>
-          <a class="mobi-action" href="#contact">
+          <a class="mobi-action" href="#contact" data-contact-open aria-haspopup="dialog" aria-controls="contactModal">
             <b>{{ home_copy.hero_mobile_action_3_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_3_subtitle }}</span>
           </a>
           <a class="mobi-action" href="{% url 'our-story' %}">
@@ -876,44 +1228,52 @@
       </div>
     </div>
     <!-- ========================= SERVICES on Home (limit 8) ========================= -->
-    <section id="services" class="section">
-      <div class="container">
-        <div class="section__head">
-          <div>
-            <h2 class="section__title">{{ home_copy.services_title }}</h2>
-            <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
-          </div>
-          <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
-        </div>
+	    <section id="services" class="section">
+	      <div class="container">
+		        <div class="section__head home-services-intro">
+		          <div>
+		            <h2 class="section__title home-services-title">{{ home_copy.services_title }}</h2>
+		            <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
+		          </div>
+	          <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
+	        </div>
 
-        <div class="home-gallery" aria-label="{{ home_copy.gallery_title }}">
-          <div class="section__head home-gallery__head">
-            <div>
-              <h3 class="section__title">{{ home_copy.gallery_title }}</h3>
-              <p class="section__desc">{{ home_copy.gallery_desc|safe }}</p>
-            </div>
-            <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
-          </div>
-          <div class="grid grid--gallery">
-            {% for item in home_gallery_items %}
-              <a class="gallery-card" href="{{ item.url }}" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
-                <div class="frame frame--media">
-                  <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy" decoding="async">
-                </div>
-                {% if item.title or item.caption %}
-                  <div class="gallery-card__meta">
+	        <div class="home-gallery" aria-label="{{ home_copy.gallery_title }}">
+	          <div class="section__head home-gallery__head">
+	            <div>
+	              <h3 class="section__title section__title--compact home-builds-title">{{ home_copy.gallery_title }}</h3>
+	              <p class="section__desc">{{ home_copy.gallery_desc|safe }}</p>
+	            </div>
+	            <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
+	          </div>
+	          <div class="section__head home-services-under-builds">
+	            <div>
+	              <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
+	            </div>
+	            <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
+	          </div>
+	          <div class="grid grid--gallery">
+	            {% for item in home_gallery_items %}
+	              <a class="gallery-card" href="{% url 'client-dashboard' %}#services" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
+	                <div class="frame frame--media">
+	                  <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy" decoding="async">
+	                </div>
+	                {% if item.title or item.caption %}
+	                  <div class="gallery-card__meta">
                     {% if item.title %}<span class="gallery-card__title">{{ item.title }}</span>{% endif %}
                     {% if item.caption %}<span class="gallery-card__caption">{{ item.caption|truncatewords:10 }}</span>{% endif %}
                   </div>
                 {% endif %}
               </a>
-            {% endfor %}
-          </div>
-        </div>
+	            {% endfor %}
+	          </div>
+	        </div>
 
-        <!-- Mobile services lite -->
-        <div id="mobileServices" class="only-mobile" aria-labelledby="servicesMobileTitle">
-          <h3 id="servicesMobileTitle" class="kicker">{{ home_copy.services_mobile_kicker }}</h3>
+	        <hr class="home-divider" aria-hidden="true">
+
+	        <!-- Mobile services lite -->
+	        <div id="mobileServices" class="only-mobile" aria-labelledby="servicesMobileTitle">
+	          <h3 id="servicesMobileTitle" class="kicker">{{ home_copy.services_mobile_kicker }}</h3>
           <div class="mobi-actions" style="margin-bottom:.6rem">
             <a class="mobi-action" href="{% url 'client-dashboard' %}?q=fabrication#services">
               <b>{{ home_copy.services_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_1_subtitle }}</span>
@@ -934,24 +1294,30 @@
           </form>
         </div>
 
-        <!-- Filters -->
-        <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
-          <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
-          <select class="select" name="cat" aria-label="Category">
-            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
-            {% for c in filter_categories %}
-              <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
-            {% endfor %}
-          </select>
-          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
-          {% if q or active_category %}
-            <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_reset_filters_label }}</a>
-          {% endif %}
-        </form>
+		        <div class="only-desktop">
+		          {% if home_services %}
+		            <h3 id="servicesFeaturedTitle" class="kicker home-featured-title">{{ home_copy.services_featured_label }}</h3>
+		          {% endif %}
 
-        <!-- Live search -->
-        <h3 id="liveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
-        <div id="liveGrid" class="grid grid--services" style="display:none"></div>
+		          <!-- Filters -->
+		          <form id="servicesSearchForm" class="filters home-search" role="search" method="get" action="{% url 'client-dashboard' %}">
+		            <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
+		            <select class="select" name="cat" aria-label="Category">
+		              <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
+		              {% for c in filter_categories %}
+		                <option value="{{ c.id }}" {% if active_category == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+		              {% endfor %}
+		            </select>
+		            <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+		            {% if q or active_category %}
+		              <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_reset_filters_label }}</a>
+		            {% endif %}
+		          </form>
+		        </div>
+
+	        <!-- Live search -->
+	        <h3 id="liveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
+	        <div id="liveGrid" class="grid grid--services" style="display:none"></div>
 
         <!-- Server-rendered -->
         <div id="serverContent">
@@ -1000,13 +1366,12 @@
             <hr style="margin:1.5rem 0;border:0;border-top:1px solid var(--line)">
           {% endif %}
 
-          {% if home_services %}
-            <h3 class="kicker" style="margin:.5rem 0 1rem">{{ home_copy.services_featured_label }}</h3>
-            <div class="grid grid--services">
-              {% for s in home_services|slice:":8" %}
-                <article class="card">
-                  <div class="card__img">
-                    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+		          {% if home_services %}
+		            <div class="grid grid--services grid--services--limit2">
+		              {% for s in home_services|slice:":8" %}
+		                <article class="card">
+		                  <div class="card__img">
+	                    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
                     {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
                   <div class="card__head">
@@ -1047,111 +1412,109 @@
       </div>
     </section>
 
-    <div class="container only-mobile" aria-label="Featured parts">
-      <div class="frame frame--media mobi-photo-break">
-        <img src="{% static 'img/hero-products.jpg' %}" alt="Performance parts display" loading="lazy" decoding="async">
-      </div>
-    </div>
-
     <!-- ========================= PRODUCTS ========================= -->
-    <section id="products" class="section">
-      <div class="container">
-        <div class="section__head">
-          <div>
-            <h2 class="section__title">{{ home_copy.products_title }}</h2>
-            <p class="section__desc">{{ home_copy.products_desc }}</p>
-          </div>
-          <div><a class="btn btn--primary" href="{% url 'store' %}">{{ home_copy.products_cta_label }}</a></div>
-        </div>
+	    <section id="products" class="section">
+	      <div class="container">
+	        <div class="section__head">
+	          <div>
+	            <h2 class="section__title">{{ home_copy.products_title }}</h2>
+	            <p class="section__desc">{{ home_copy.products_desc }}</p>
+	          </div>
+	          <div><a class="btn btn--primary" href="{% url 'store' %}">{{ home_copy.products_cta_label }}</a></div>
+	        </div>
 
-        <!-- Mobile products lite -->
-        <div id="mobileProducts" class="only-mobile" aria-labelledby="productsMobileTitle">
-          <h3 id="productsMobileTitle" class="kicker">{{ home_copy.products_mobile_kicker }}</h3>
-          <div class="mobi-actions">
-            <a class="mobi-action" href="{% url 'store' %}">
-              <b>{{ home_copy.products_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_1_subtitle }}</span>
-            </a>
-            <a class="mobi-action" href="{% url 'merch' %}">
-              <b>{{ home_copy.products_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_2_subtitle }}</span>
-            </a>
-          </div>
-        </div>
+	        <!-- Mobile products lite -->
+	        <div id="mobileProducts" class="only-mobile" aria-labelledby="productsMobileTitle">
+	          <h3 id="productsMobileTitle" class="kicker">{{ home_copy.products_mobile_kicker }}</h3>
+	          <div class="mobi-actions">
+	            <a class="mobi-action" href="{% url 'store' %}">
+	              <b>{{ home_copy.products_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_1_subtitle }}</span>
+	            </a>
+	            <a class="mobi-action" href="{% url 'merch' %}">
+	              <b>{{ home_copy.products_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_2_subtitle }}</span>
+	            </a>
+	          </div>
+	        </div>
 
-        {% if home_products %}
-          <div class="grid grid--products">
-            {% for p in home_products|slice:":8" %}
-              <article class="card">
-                <a href="{% url 'store-product' slug=p.slug %}">
-                  <div class="card__img">
-                    {% if p.main_image %}<img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
-                    {% elif p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
-                    {% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
-                    {% if p.category %}<span class="card__badge">{{ p.category.display_name }}</span>{% endif %}
-                  </div>
-                  <div class="card__head" style="margin-top:.35rem">
-                    <h3 style="font-weight:900">{{ p.name }}</h3>
-                    <div class="price price--stacked">
-                      {% if p.contact_for_estimate %}
-                        <strong>{{ home_copy.contact_for_estimate_label }}</strong>
-                        {% if p.estimate_from_price %}<span class="price__hint">{{ home_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
-                      {% else %}
-                        <div class="price__retail-row">
-                          {% if p.has_option_price_overrides %}<span class="price__hint">{{ home_copy.from_label }}</span>{% endif %}
-                          <strong>{{ p.display_price|money }}</strong>
-                          {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
-                        </div>
-                        {% if dealer_portal.show_discount %}
-                          <div class="price__dealer-row">
-                            <span class="price__hint">{{ home_copy.products_dealer_label }} {{ dealer_portal.discount_percent }}%</span>
-                            <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                            <span class="price__save">{{ home_copy.products_save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
-                          </div>
-                        {% endif %}
-                      {% endif %}
-                    </div>
-                  </div>
-                  {% if p.short_description %}<p class="muted">{{ p.short_description|truncatewords:20 }}</p>{% endif %}
-                </a>
-                <div class="home-card-actions">
-                  {% if p.contact_for_estimate %}
-                    <a class="btn btn--primary" href="{% url 'home' %}#contact">{{ home_copy.products_contact_us_label }}</a>
-                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
-                  {% elif p.has_active_options %}
-                    <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">{{ home_copy.products_select_options_label }}</a>
-                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
-                  {% else %}
-                    <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
-                      <button class="btn btn--primary" type="submit">{{ home_copy.products_add_to_cart_label }}</button>
-                    </form>
-                    <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
-                  {% endif %}
-                </div>
-              </article>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="empty">
-            {{ home_copy.products_empty_label }} <a class="btn btn--link" href="{% url 'store' %}">{{ home_copy.products_empty_cta_label }}</a>
-          </div>
-        {% endif %}
-      </div>
-    </section>
+	        <hr class="home-divider" aria-hidden="true">
 
-    <!-- ========================= HOW IT WORKS ========================= -->
-    <section class="section">
-      <div class="container">
-        <div class="section__head">
-          <h2 class="section__title">{{ home_copy.how_title }}</h2>
-          <p class="section__desc">{{ home_copy.how_desc }}</p>
-        </div>
-        <div class="tiles">
-          <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
-        </div>
-      </div>
-    </section>
+	        <form id="productsSearchForm" class="filters home-search" role="search" method="get" action="{% url 'store' %}">
+	          <input class="input" type="search" name="q" placeholder="Search a product…" value="">
+	          <select class="select" name="cat" aria-label="Category">
+	            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
+	            {% for c in product_filter_categories %}
+	              <option value="{{ c.id }}">{{ c.display_name }}</option>
+	            {% endfor %}
+	          </select>
+	          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+	        </form>
+
+	        <hr class="home-divider" aria-hidden="true">
+
+	        <!-- Live product search -->
+	        <h3 id="productsLiveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
+	        <div id="productsLiveGrid" class="grid grid--products" style="display:none"></div>
+
+	        <div id="productsServerContent">
+	          {% if home_products %}
+	            <div class="grid grid--products grid--products--limit2">
+	              {% for p in home_products|slice:":8" %}
+	                <article class="card">
+	                  <a href="{% url 'store-product' slug=p.slug %}">
+	                    <div class="card__img">
+	                      {% if p.main_image %}<img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	                      {% elif p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	                      {% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+	                      {% if p.category %}<span class="card__badge">{{ p.category.display_name }}</span>{% endif %}
+	                    </div>
+	                    <div class="card__head" style="margin-top:.35rem">
+	                      <h3 style="font-weight:900">{{ p.name }}</h3>
+	                      <div class="price price--stacked">
+	                        {% if p.contact_for_estimate %}
+	                          <strong>{{ home_copy.contact_for_estimate_label }}</strong>
+	                          {% if p.estimate_from_price %}<span class="price__hint">{{ home_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
+	                        {% else %}
+	                          <div class="price__retail-row">
+	                            {% if p.has_option_price_overrides %}<span class="price__hint">{{ home_copy.from_label }}</span>{% endif %}
+	                            <strong>{{ p.display_price|money }}</strong>
+	                            {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
+	                          </div>
+	                          {% if dealer_portal.show_discount %}
+	                            <div class="price__dealer-row">
+	                              <span class="price__hint">{{ home_copy.products_dealer_label }} {{ dealer_portal.discount_percent }}%</span>
+	                              <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+	                              <span class="price__save">{{ home_copy.products_save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+	                            </div>
+	                          {% endif %}
+	                        {% endif %}
+	                      </div>
+	                    </div>
+	                  </a>
+	                  <div class="home-card-actions">
+	                    {% if p.contact_for_estimate %}
+	                      <a class="btn btn--primary" href="{% url 'home' %}#contact">{{ home_copy.products_contact_us_label }}</a>
+	                      <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
+	                    {% elif p.has_active_options %}
+	                      <a class="btn btn--primary" href="{% url 'store-product' slug=p.slug %}#product-options">{{ home_copy.products_select_options_label }}</a>
+	                      <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
+	                    {% else %}
+	                      <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
+	                        <button class="btn btn--primary" type="submit">{{ home_copy.products_add_to_cart_label }}</button>
+	                      </form>
+	                      <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
+	                    {% endif %}
+	                  </div>
+	                </article>
+	              {% endfor %}
+	            </div>
+	          {% else %}
+	            <div class="empty">
+	              {{ home_copy.products_empty_label }} <a class="btn btn--link" href="{% url 'store' %}">{{ home_copy.products_empty_cta_label }}</a>
+	            </div>
+	          {% endif %}
+	        </div>
+	      </div>
+	    </section>
 
     <!-- ========================= WHY BGM ========================= -->
     <section class="section">
@@ -1160,7 +1523,33 @@
           <h2 class="section__title">{{ home_copy.why_title }}</h2>
           <p class="section__desc">{{ home_copy.why_desc }}</p>
         </div>
-        <div class="tiles">
+        {% if home_reviews %}
+          <div class="review-carousel" data-review-carousel data-review-count="{{ home_reviews|length }}">
+            <div class="review-carousel__nav">
+              <button class="review-carousel__btn" type="button" data-review-prev aria-label="Previous review">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 5.5 9 12l6.5 6.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="review-carousel__btn" type="button" data-review-next aria-label="Next review">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5 15 12l-6.5 6.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="review-carousel__track" data-review-track aria-label="Testimonials" role="list">
+              {% for review in home_reviews %}
+                <article class="tile review-card review-slide" role="listitem">
+                  <div class="review-stars" aria-hidden="true">
+                    {% for _ in review.star_range %}★{% endfor %}
+                  </div>
+                  <p class="review-quote">&ldquo;{{ review.quote }}&rdquo;</p>
+                  <p class="review-author">
+                    {{ review.reviewer_name }}{% if review.reviewer_title %} &mdash; {{ review.reviewer_title }}{% endif %}
+                  </p>
+                  <span class="sr-only">{{ review.rating }} star review</span>
+                </article>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+        <div class="tiles tiles--why">
           <div class="tile"><div class="tile__icon">★</div><b>{{ home_copy.why_tile_1_title }}</b><p class="muted">{{ home_copy.why_tile_1_desc }}</p></div>
           <div class="tile"><div class="tile__icon">⏱</div><b>{{ home_copy.why_tile_2_title }}</b><p class="muted">{{ home_copy.why_tile_2_desc }}</p></div>
           <div class="tile"><div class="tile__icon">🔒</div><b>{{ home_copy.why_tile_3_title }}</b><p class="muted">{{ home_copy.why_tile_3_desc }}</p></div>
@@ -1170,37 +1559,6 @@
             <p class="muted">{{ home_copy.why_warranty_desc }}</p>
             <span class="tile__cta">{{ home_copy.why_warranty_cta }}</span>
           </a>
-        </div>
-        {% if home_reviews %}
-          <div class="reviews-grid" aria-label="Testimonials">
-            {% for review in home_reviews %}
-              <article class="tile review-card">
-                <div class="review-stars" aria-hidden="true">
-                  {% for _ in review.star_range %}★{% endfor %}
-                </div>
-                <p class="muted">&ldquo;{{ review.quote }}&rdquo;</p>
-                <p class="review-author">
-                  {{ review.reviewer_name }}{% if review.reviewer_title %} &mdash; {{ review.reviewer_title }}{% endif %}
-                </p>
-                <span class="sr-only">{{ review.rating }} star review</span>
-              </article>
-            {% endfor %}
-          </div>
-        {% endif %}
-      </div>
-    </section>
-
-    <!-- ========================= FAQ ========================= -->
-    <section class="section">
-      <div class="container">
-        <div class="section__head">
-          <h2 class="section__title">{{ home_copy.faq_title }}</h2>
-          <p class="section__desc">{{ home_copy.faq_desc }}</p>
-        </div>
-        <div class="grid">
-          <details><summary>{{ home_copy.faq_1_question }}</summary><p>{{ home_copy.faq_1_answer }}</p></details>
-          <details><summary>{{ home_copy.faq_2_question }}</summary><p>{{ home_copy.faq_2_answer }}</p></details>
-          <details><summary>{{ home_copy.faq_3_question }}</summary><p>{{ home_copy.faq_3_answer }}</p></details>
         </div>
       </div>
     </section>
@@ -1222,6 +1580,53 @@
         </div>
       </div>
     </section>
+
+    <!-- ========================= FAQ ========================= -->
+    {% if home_faq_legacy %}
+      <section class="section">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="section__title">{{ home_copy.faq_title }}</h2>
+            <p class="section__desc">{{ home_copy.faq_desc }}</p>
+          </div>
+          <div class="grid">
+            <details><summary>{{ home_copy.faq_1_question }}</summary><p>{{ home_copy.faq_1_answer }}</p></details>
+            <details><summary>{{ home_copy.faq_2_question }}</summary><p>{{ home_copy.faq_2_answer }}</p></details>
+            <details><summary>{{ home_copy.faq_3_question }}</summary><p>{{ home_copy.faq_3_answer }}</p></details>
+          </div>
+        </div>
+      </section>
+    {% elif home_faq_items %}
+      <section class="section">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="section__title">{{ home_copy.faq_title }}</h2>
+            <p class="section__desc">{{ home_copy.faq_desc }}</p>
+          </div>
+          <div class="grid">
+            {% for item in home_faq_items %}
+              <details><summary>{{ item.question }}</summary><p>{{ item.answer }}</p></details>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
+    <!-- ========================= HOW IT WORKS ========================= -->
+    <section class="section">
+      <div class="container">
+        <div class="section__head">
+          <h2 class="section__title">{{ home_copy.how_title }}</h2>
+          <p class="section__desc">{{ home_copy.how_desc }}</p>
+        </div>
+        <div class="tiles tiles--process">
+          <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
+          <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
+          <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
+          <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
+        </div>
+      </div>
+    </section>
   </main>
 
   {% include "includes/site_footer.html" %}
@@ -1230,14 +1635,17 @@
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 
   <!-- Live search -->
-  <script>
-  (function(){
-    const qInput = document.querySelector('input[name="q"]');
-    const catSel = document.querySelector('select[name="cat"]');
-    const liveTitle = document.getElementById('liveTitle');
-    const liveGrid  = document.getElementById('liveGrid');
-    const server    = document.getElementById('serverContent');
-    if(!qInput || !catSel) return;
+	  <script>
+	  (function(){
+	    const form = document.getElementById('servicesSearchForm');
+	    if(!form) return;
+	    const qInput = form.querySelector('input[name="q"]');
+	    const catSel = form.querySelector('select[name="cat"]');
+		    const liveTitle = document.getElementById('liveTitle');
+		    const liveGrid  = document.getElementById('liveGrid');
+		    const server    = document.getElementById('serverContent');
+		    const featuredTitle = document.getElementById('servicesFeaturedTitle');
+		    if(!qInput || !catSel || !liveTitle || !liveGrid || !server) return;
 
     const currencyCode = "{{ currency.code }}";
     const currencySymbol = "{{ currency.symbol }}";
@@ -1251,7 +1659,7 @@
       failedLoadLabel: "{{ home_copy.services_failed_load_label|escapejs }}",
     };
     const bookingBaseUrl = "{% url 'client-dashboard' %}";
-    const toBookingUrl = (serviceId) => {
+	    const toBookingUrl = (serviceId) => {
       if (serviceId) {
         return `${bookingBaseUrl}?book=${encodeURIComponent(serviceId)}#services`;
       }
@@ -1341,13 +1749,121 @@
 
     qInput.addEventListener('input', run);
     catSel.addEventListener('change', run);
-  })();
-  </script>
+	  })();
+	  </script>
 
-  <!-- Contact FAB + Modal -->
-  <style id="contact-fab-css">
-    :root{ --ink:#eaeaea; --line:rgba(255,255,255,.12); --red:var(--accent,#d50000); --red-dark:#b60000; --contact-font:var(--font-ui,var(--font-body)); }
-    .contact-fab{
+	  <script>
+	  /* Live product search (Home) */
+	  (function(){
+	    const form = document.getElementById('productsSearchForm');
+	    if(!form) return;
+	    const qInput = form.querySelector('input[name="q"]');
+	    const catSel = form.querySelector('select[name="cat"]');
+	    const liveTitle = document.getElementById('productsLiveTitle');
+	    const liveGrid  = document.getElementById('productsLiveGrid');
+	    const server    = document.getElementById('productsServerContent');
+	    if(!qInput || !catSel || !liveTitle || !liveGrid || !server) return;
+
+	    const currencyCode = "{{ currency.code }}";
+	    const currencySymbol = "{{ currency.symbol }}";
+	    const copy = {
+	      contactForEstimate: "{{ home_copy.contact_for_estimate_label|escapejs }}",
+	      fromLabel: "{{ home_copy.from_label|escapejs }}",
+	      viewLabel: "{{ home_copy.products_view_label|escapejs }}",
+	      nothingFoundLabel: "{{ home_copy.services_nothing_found_label|escapejs }}",
+	      failedLoadLabel: "{{ home_copy.services_failed_load_label|escapejs }}",
+	    };
+
+	    const skel = (n=8)=> Array.from({length:n}).map(()=>'<div class="sk"></div>').join('');
+	    const showLive = ()=>{
+	      liveTitle.style.display='block';
+	      liveGrid.style.display='grid';
+	      server.style.display='none';
+	      if (featuredTitle) featuredTitle.hidden = true;
+	    }
+	    const hideLive = ()=>{
+	      liveTitle.style.display='none';
+	      liveGrid.style.display='none';
+	      server.style.display='block';
+	      if (featuredTitle) featuredTitle.hidden = false;
+	    }
+	    const esc = s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+	    const formatMoney = (val) => {
+	      const num = Number(val);
+	      let normalized = "";
+	      if (Number.isFinite(num)) {
+	        normalized = num.toFixed(2);
+	      } else if (typeof val === "string" && val.trim()) {
+	        normalized = val.trim();
+	      }
+	      if (!normalized) return "";
+	      const symbol = currencySymbol || "$";
+	      return currencyCode ? `${currencyCode} ${symbol}${normalized}` : `${symbol}${normalized}`;
+	    };
+
+	    function cardHTML(p){
+	      const href = p.url || "#";
+	      const media = p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
+	      const cat   = p.category ? `<span class="card__badge">${esc(p.category)}</span>` : '';
+	      const desc  = p.short_description ? `<p class="muted">${esc(p.short_description)}</p>` : '';
+
+	      let price;
+	      if (p.contact_for_estimate){
+	        const fromVal = p.estimate_from_price ? formatMoney(p.estimate_from_price) : "";
+	        const hint = fromVal ? `<span class="price__hint">${esc(copy.fromLabel)} ${esc(fromVal)}</span>` : "";
+	        price = `<strong>${esc(copy.contactForEstimate)}</strong>${hint ? " " + hint : ""}`;
+	      } else {
+	        const fromHint = p.has_option_price_overrides ? `<span class="price__hint">${esc(copy.fromLabel)}</span>` : "";
+	        const main = `<strong>${esc(formatMoney(p.display_price))}</strong>`;
+	        price = `<div class="price__retail-row">${fromHint}${main}</div>`;
+	      }
+
+	      return `
+	        <article class="card">
+	          <a href="${esc(href)}">
+	            <div class="card__img">${media}${cat}</div>
+	            <div class="card__head" style="margin-top:.35rem">
+	              <h3 style="font-weight:900">${esc(p.name)}</h3>
+	              <div class="price price--stacked">${price}</div>
+	            </div>
+	            ${desc}
+	          </a>
+	          <div class="home-card-actions">
+	            <a class="btn btn--primary" href="${esc(href)}">${esc(copy.viewLabel)}</a>
+	          </div>
+	        </article>`;
+	    }
+
+	    function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+	    let aborter=null;
+	    async function fetchProducts(q,cat){
+	      if(aborter) aborter.abort();
+	      aborter = new AbortController();
+	      const p=new URLSearchParams(); if(q) p.set('q',q); if(cat) p.set('cat',cat);
+	      const r=await fetch(`/store/api/products/search/?${p.toString()}`,{signal:aborter.signal,credentials:'same-origin'});
+	      if(!r.ok) throw new Error('Load error'); return r.json();
+	    }
+
+	    const run = debounce(async ()=>{
+	      const q=qInput.value.trim(), cat=catSel.value;
+	      if(!q && !cat){ hideLive(); return; }
+	      showLive(); liveGrid.innerHTML = skel(8);
+	      try{
+	        const data=await fetchProducts(q,cat);
+	        const items=(data&&data.results)||[];
+	        liveGrid.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="empty">${esc(copy.nothingFoundLabel)}</div>`;
+	      }catch{ liveGrid.innerHTML = `<div class="empty">${esc(copy.failedLoadLabel)}</div>`; }
+	    },300);
+
+	    qInput.addEventListener('input', run);
+	    catSel.addEventListener('change', run);
+	  })();
+	  </script>
+
+	  <!-- Contact FAB + Modal -->
+	  <style id="contact-fab-css">
+	    :root{ --ink:#eaeaea; --line:rgba(255,255,255,.12); --red:var(--accent,#d50000); --red-dark:#b60000; --contact-font:var(--font-ui,var(--font-body)); }
+	    .contact-fab{
       position:fixed; right:22px; bottom:22px; z-index:2100;
       display:inline-flex; align-items:center; gap:.6em;
       padding:.9rem 1.15rem; border-radius:999px;
@@ -1536,16 +2052,66 @@
   })();
   </script>
 
+  <!-- Review carousel -->
+  <script id="review-carousel-js">
+  (function(){
+    const carousels = document.querySelectorAll('[data-review-carousel]');
+    if (!carousels.length) return;
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    carousels.forEach((carousel) => {
+      const track = carousel.querySelector('[data-review-track]');
+      if (!track) return;
+      const prevBtn = carousel.querySelector('[data-review-prev]');
+      const nextBtn = carousel.querySelector('[data-review-next]');
+
+      const updateButtons = () => {
+        if (!prevBtn || !nextBtn) return;
+        const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth - 2);
+        const hasOverflow = track.scrollWidth > track.clientWidth + 2;
+        prevBtn.style.display = hasOverflow ? '' : 'none';
+        nextBtn.style.display = hasOverflow ? '' : 'none';
+        prevBtn.disabled = track.scrollLeft <= 2;
+        nextBtn.disabled = track.scrollLeft >= maxScroll;
+      };
+
+      const scrollStep = () => track.clientWidth || 0;
+      const scrollByStep = (dir) => {
+        if (!track) return;
+        const delta = scrollStep() * dir;
+        track.scrollBy({ left: delta, behavior: prefersReduced ? 'auto' : 'smooth' });
+      };
+
+      if (prevBtn) prevBtn.addEventListener('click', () => scrollByStep(-1));
+      if (nextBtn) nextBtn.addEventListener('click', () => scrollByStep(1));
+
+      let raf = null;
+      track.addEventListener('scroll', () => {
+        if (raf) return;
+        raf = window.requestAnimationFrame(() => {
+          updateButtons();
+          raf = null;
+        });
+      }, { passive: true });
+
+      window.addEventListener('resize', updateButtons);
+      updateButtons();
+    });
+  })();
+  </script>
+
   <!-- Contact modal bindings -->
   <script id="contact-fab-js">
   (function(){
     const fab   = document.getElementById('contactFab');
     const modal = document.getElementById('contactModal');
+    if (!fab || !modal) return;
     const closeBtn = modal.querySelector('.contact-close');
     const copyLabel = "{{ home_copy.contact_copy_label|escapejs }}";
     const copySuccess = "{{ home_copy.contact_copy_success_label|escapejs }}";
     const copyFailed = "{{ home_copy.contact_copy_failed_label|escapejs }}";
     let lastFocus = null;
+    const openers = Array.from(document.querySelectorAll('[data-contact-open]'));
 
     function openModal(){
       lastFocus = document.activeElement;
@@ -1573,6 +2139,12 @@
     }
 
     fab.addEventListener('click', openModal);
+    openers.forEach((opener)=>{
+      opener.addEventListener('click', (e)=>{
+        if (opener.tagName === 'A') e.preventDefault();
+        openModal();
+      });
+    });
     closeBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
 

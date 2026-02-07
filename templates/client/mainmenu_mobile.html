@@ -133,6 +133,12 @@
     /* Filters */
     .filters{display:grid;grid-template-columns:1fr;gap:.6rem;margin:1rem 0 1.2rem}
     .filters input,.filters select{padding:.7rem .95rem;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:1rem;background:#0f0f0f;color:var(--ink)}
+    #services .filters select{color-scheme:dark;}
+    #services .filters select option,
+    #services .filters select optgroup{
+      background:#121212;
+      color:#f2f2f2;
+    }
     .filters ::placeholder{color:var(--muted)}
 
     /* Services list */
@@ -234,7 +240,7 @@
   <a href="#services" class="visually-hidden">{{ services_copy.skip_to_main_label }}</a>
 
   {% with current='services' %}
-    {% include "includes/site_header.html" %}
+    {% include "includes/topbar_client_v3.html" %}
   {% endwith %}
 
   <main id="services" class="container">

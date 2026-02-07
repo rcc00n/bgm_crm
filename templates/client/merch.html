@@ -504,7 +504,7 @@ body.nav-open .contact-fab,
   <a href="#main" class="visually-hidden">{{ merch_copy.skip_to_main_label }}</a>
 
   {% with current='merch' header_copy=merch_copy %}
-    {% include "includes/site_header.html" %}
+    {% include "includes/topbar_client_v3.html" %}
   {% endwith %}
 
   <section class="hero">
@@ -512,7 +512,7 @@ body.nav-open .contact-fab,
       <div class="hero__copy">
         <p class="kicker">{{ merch_copy.hero_kicker }}</p>
         <h1 class="title">{{ merch_copy.hero_title }}</h1>
-        <p class="lead">{{ merch_copy.hero_lead }}</p>
+        <p class="lead">{{ merch_copy.hero_lead|striptags|safe }}</p>
         <div class="btn-row">
           <a class="btn btn--primary" href="{% url 'home' %}">{{ merch_copy.hero_primary_cta_label }}</a>
           <a class="btn btn--ghost" href="{% url 'client-dashboard' %}">{{ merch_copy.hero_secondary_cta_label }}</a>
@@ -532,9 +532,8 @@ body.nav-open .contact-fab,
         <div class="section__head">
           <div>
             <h2 class="section__title">{{ merch_copy.section_title }}</h2>
-            <p class="section__desc">{{ merch_copy.section_desc }}</p>
+            <p class="section__desc">{{ merch_copy.section_desc|striptags|safe }}</p>
           </div>
-          <span class="badge">{{ merch_copy.section_badge_label }}</span>
         </div>
 
         {% if merch_copy.coming_soon_enabled %}
@@ -542,7 +541,7 @@ body.nav-open .contact-fab,
             <span class="badge">{{ merch_copy.coming_soon_badge }}</span>
             <div>
               <div class="coming-soon__title">{{ merch_copy.coming_soon_title }}</div>
-              <p class="section__desc">{{ merch_copy.coming_soon_desc }}</p>
+              <p class="section__desc">{{ merch_copy.coming_soon_desc|striptags|safe }}</p>
             </div>
           </div>
         {% endif %}
@@ -558,7 +557,7 @@ body.nav-open .contact-fab,
             {% endif %}
             <div class="card__body">
               <h3 class="diesel">{{ merch_copy.card_1_title }}</h3>
-              <p class="section__desc">{{ merch_copy.card_1_desc }}</p>
+              <p class="section__desc">{{ merch_copy.card_1_desc|striptags|safe }}</p>
               {% if merch_copy.card_1_colors or merch_copy.card_1_sizes %}
                 <dl class="card__meta">
                   {% if merch_copy.card_1_colors %}
@@ -588,7 +587,7 @@ body.nav-open .contact-fab,
             {% endif %}
             <div class="card__body">
               <h3 class="diesel">{{ merch_copy.card_2_title }}</h3>
-              <p class="section__desc">{{ merch_copy.card_2_desc }}</p>
+              <p class="section__desc">{{ merch_copy.card_2_desc|striptags|safe }}</p>
               {% if merch_copy.card_2_colors or merch_copy.card_2_sizes %}
                 <dl class="card__meta">
                   {% if merch_copy.card_2_colors %}
@@ -618,7 +617,7 @@ body.nav-open .contact-fab,
             {% endif %}
             <div class="card__body">
               <h3 class="diesel">{{ merch_copy.card_3_title }}</h3>
-              <p class="section__desc">{{ merch_copy.card_3_desc }}</p>
+              <p class="section__desc">{{ merch_copy.card_3_desc|striptags|safe }}</p>
               {% if merch_copy.card_3_colors or merch_copy.card_3_sizes %}
                 <dl class="card__meta">
                   {% if merch_copy.card_3_colors %}
@@ -648,7 +647,7 @@ body.nav-open .contact-fab,
             {% endif %}
             <div class="card__body">
               <h3 class="diesel">{{ merch_copy.card_4_title }}</h3>
-              <p class="section__desc">{{ merch_copy.card_4_desc }}</p>
+              <p class="section__desc">{{ merch_copy.card_4_desc|striptags|safe }}</p>
               {% if merch_copy.card_4_colors or merch_copy.card_4_sizes %}
                 <dl class="card__meta">
                   {% if merch_copy.card_4_colors %}
@@ -673,7 +672,7 @@ body.nav-open .contact-fab,
           <div class="social">
             <div>
               <div class="social__title">{{ merch_copy.social_section_title }}</div>
-              <p class="section__desc">{{ merch_copy.social_section_desc }}</p>
+              <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
             </div>
             <div class="social__links">
               {% if merch_copy.social_link_1_url %}

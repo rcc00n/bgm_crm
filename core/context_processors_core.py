@@ -232,10 +232,25 @@ def currency(request):
 def topbar_style(request):
     settings_obj = TopbarSettings.get_solo()
     brand_font = settings_obj.brand_font
+    brand_word_white_font = settings_obj.brand_word_white_font
+    brand_word_red_font = settings_obj.brand_word_red_font
+    brand_word_middle_font = settings_obj.brand_word_middle_font
     nav_font = settings_obj.nav_font
+    tagline_word_1_font = settings_obj.tagline_word_1_font
+    tagline_word_2_font = settings_obj.tagline_word_2_font
+    tagline_word_3_font = settings_obj.tagline_word_3_font
 
     fonts = []
-    for font in (brand_font, nav_font):
+    for font in (
+        brand_font,
+        brand_word_white_font,
+        brand_word_middle_font,
+        brand_word_red_font,
+        nav_font,
+        tagline_word_1_font,
+        tagline_word_2_font,
+        tagline_word_3_font,
+    ):
         if not font or not font.url:
             continue
         serialized = serialize_font_preset(font)
@@ -245,7 +260,16 @@ def topbar_style(request):
     return {
         "topbar_settings": {
             "brand": serialize_font_preset(brand_font),
+            "brand_word_1": serialize_font_preset(brand_word_white_font),
+            "brand_word_2": serialize_font_preset(brand_word_middle_font),
+            "brand_word_3": serialize_font_preset(brand_word_red_font),
             "nav": serialize_font_preset(nav_font),
+            "tagline_word_1": serialize_font_preset(tagline_word_1_font),
+            "tagline_word_2": serialize_font_preset(tagline_word_2_font),
+            "tagline_word_3": serialize_font_preset(tagline_word_3_font),
+            "tagline_word_1_text": settings_obj.tagline_word_1_text,
+            "tagline_word_2_text": settings_obj.tagline_word_2_text,
+            "tagline_word_3_text": settings_obj.tagline_word_3_text,
             "brand_size": settings_obj.brand_size_desktop,
             "brand_weight": settings_obj.brand_weight,
             "brand_letter_spacing": settings_obj.brand_letter_spacing,
@@ -253,6 +277,97 @@ def topbar_style(request):
             "nav_size": settings_obj.nav_size,
             "nav_size_desktop": settings_obj.nav_size_desktop,
             "padding_y_desktop": settings_obj.padding_y_desktop,
+            "order_brand": settings_obj.order_brand,
+            "order_tagline": settings_obj.order_tagline,
+            "order_nav": settings_obj.order_nav,
+            "brand_word_1_color": settings_obj.brand_word_1_color,
+            "brand_word_2_color": settings_obj.brand_word_2_color,
+            "brand_word_3_color": settings_obj.brand_word_3_color,
+            "brand_word_1_size": settings_obj.brand_word_1_size,
+            "brand_word_2_size": settings_obj.brand_word_2_size,
+            "brand_word_3_size": settings_obj.brand_word_3_size,
+            "brand_word_1_weight": settings_obj.brand_word_1_weight,
+            "brand_word_2_weight": settings_obj.brand_word_2_weight,
+            "brand_word_3_weight": settings_obj.brand_word_3_weight,
+            "brand_word_1_style": settings_obj.brand_word_1_style,
+            "brand_word_2_style": settings_obj.brand_word_2_style,
+            "brand_word_3_style": settings_obj.brand_word_3_style,
+            "tagline_word_1_color": settings_obj.tagline_word_1_color,
+            "tagline_word_2_color": settings_obj.tagline_word_2_color,
+            "tagline_word_3_color": settings_obj.tagline_word_3_color,
+            "tagline_word_1_size": settings_obj.tagline_word_1_size,
+            "tagline_word_2_size": settings_obj.tagline_word_2_size,
+            "tagline_word_3_size": settings_obj.tagline_word_3_size,
+            "tagline_word_1_weight": settings_obj.tagline_word_1_weight,
+            "tagline_word_2_weight": settings_obj.tagline_word_2_weight,
+            "tagline_word_3_weight": settings_obj.tagline_word_3_weight,
+            "tagline_word_1_style": settings_obj.tagline_word_1_style,
+            "tagline_word_2_style": settings_obj.tagline_word_2_style,
+            "tagline_word_3_style": settings_obj.tagline_word_3_style,
             "fonts": fonts,
         }
+    }
+
+
+def cart_summary(request):
+    """
+    Expose a lightweight cart count for global UI elements (e.g., floating cart button).
+    """
+    cart_item_count = 0
+    cart_line_count = 0
+
+    if request is None:
+        return {
+            "cart_item_count": cart_item_count,
+            "cart_line_count": cart_line_count,
+        }
+
+    session = getattr(request, "session", None)
+    if session is None:
+        return {
+            "cart_item_count": cart_item_count,
+            "cart_line_count": cart_line_count,
+        }
+
+    data = session.get("cart_items")
+    if not data:
+        return {
+            "cart_item_count": cart_item_count,
+            "cart_line_count": cart_line_count,
+        }
+
+    items = []
+    if isinstance(data, dict):
+        if isinstance(data.get("items"), list):
+            items = data.get("items") or []
+        else:
+            for qty in data.values():
+                try:
+                    qty_value = max(1, int(qty))
+                except (TypeError, ValueError):
+                    continue
+                cart_item_count += qty_value
+                cart_line_count += 1
+            return {
+                "cart_item_count": cart_item_count,
+                "cart_line_count": cart_line_count,
+            }
+    elif isinstance(data, list):
+        items = data
+
+    for entry in items:
+        if isinstance(entry, dict):
+            raw_qty = entry.get("qty", 1)
+        else:
+            raw_qty = entry
+        try:
+            qty_value = max(1, int(raw_qty))
+        except (TypeError, ValueError):
+            continue
+        cart_item_count += qty_value
+        cart_line_count += 1
+
+    return {
+        "cart_item_count": cart_item_count,
+        "cart_line_count": cart_line_count,
     }

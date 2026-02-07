@@ -158,18 +158,7 @@
   {% include "includes/marketing_body.html" %}
   <div id="bg" aria-hidden="true"></div>
   <a class="skip-link" href="#legal-content">Skip to content</a>
-  <header class="site-header" role="banner">
-    <div class="site-header__bar">
-      <a class="brand" href="{% url 'home' %}">
-        <span class="brand__logo" aria-hidden="true"></span>
-        <span>Bad Guy Motors</span>
-      </a>
-      <a class="cta" href="{% url 'home' %}">
-        Back to site
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.29 6.71a1 1 0 011.42 0L16 12l-5.29 5.29a1 1 0 01-1.42-1.42L12.17 13H4a1 1 0 010-2h8.17l-2.88-2.88a1 1 0 010-1.41z"/></svg>
-      </a>
-    </div>
-  </header>
+  {% include "includes/topbar_client_v3.html" %}
   <main id="legal-content" tabindex="-1">
     <p class="eyebrow">Last updated {{ page.updated_at|date:"F d, Y" }}</p>
     <h1>{{ page.title }}</h1>
@@ -183,6 +172,7 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+  <script src="{% static 'js/topbar.js' %}"></script>
   {% include "includes/analytics_tracker.html" %}
 </body>
 </html>

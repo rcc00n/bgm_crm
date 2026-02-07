@@ -54,24 +54,48 @@
       </div>
     </section>
 
-    {# ================== FILTERS ================== #}
-    <div class="filters-wrap" data-filters>
-      <div class="filters-toolbar">
-        <button type="button"
-                class="filters-toggle"
-                data-filters-toggle
-                aria-expanded="false"
-                aria-controls="catalogFilters">
-          <span>{{ store_copy.filters_toggle_label }}</span>
-          {% if filters_active %}
-            <span class="filters-toggle__badge">{{ store_copy.filters_active_badge }}</span>
-          {% endif %}
-        </button>
-        {% if filters_active %}
-          <a class="filters-toolbar__clear" href="{% url 'store' %}">{{ store_copy.filters_reset_label }}</a>
-        {% endif %}
+    {# ================== CATEGORIES ================== #}
+    <div class="section__head">
+      <div>
+        <h2 class="section__title">{{ store_copy.categories_title }}</h2>
+        <p class="section__desc">{{ store_copy.categories_desc }}</p>
       </div>
+    </div>
 
+    <details class="categories-collapse" id="categoriesCollapse" open>
+      <summary class="categories-toggle">Show categories</summary>
+      <div class="categories-preview" data-categories-preview>
+        <div class="grid grid--cards categories-grid">
+          {% for c in categories %}
+            <a class="card cat" href="{% url 'store-category' slug=c.slug %}" title="{{ c.name }}">
+              <div class="card__img cat__img">
+                {% if c.image %}
+                  <img src="{{ c.image.url }}" alt="{{ c.display_name }}" loading="lazy">
+                {% else %}
+                  <div class="ph" aria-hidden="true"></div>
+                {% endif %}
+                <div class="cat__overlay">
+                  <span class="cat__title">{{ c.display_name }}</span>
+                  <span class="cat__arrow" aria-hidden="true">→</span>
+                </div>
+              </div>
+              {% if c.description %}
+                <p class="section__desc cat__desc">{{ c.description|truncatewords:18 }}</p>
+              {% endif %}
+            </a>
+          {% empty %}
+            <p class="section__desc">{{ store_copy.categories_empty_label }}</p>
+          {% endfor %}
+        </div>
+      </div>
+      <button class="btn btn--ghost categories-expand" type="button" data-categories-toggle
+              data-label-expand="{{ store_copy.categories_view_all_label|default:'View all categories' }}"
+              data-label-collapse="{{ store_copy.categories_view_less_label|default:'Show fewer' }}">
+        {{ store_copy.categories_view_all_label|default:"View all categories" }}
+      </button>
+    </details>
+
+    <div class="search-block">
       <div class="search-bar" data-product-search data-search-mode="swap">
         <label class="visually-hidden" for="productSearch">Search products</label>
         <div class="search-bar__field">
@@ -94,6 +118,25 @@
       <div class="search-results" data-search-results hidden>
         <h3 class="search-results__title">Search results</h3>
         <div class="grid grid--cards" data-search-results-grid></div>
+      </div>
+    </div>
+
+    {# ================== FILTERS ================== #}
+    <div class="filters-wrap" data-filters>
+      <div class="filters-toolbar">
+        <button type="button"
+                class="filters-toggle"
+                data-filters-toggle
+                aria-expanded="false"
+                aria-controls="catalogFilters">
+          <span>{{ store_copy.filters_toggle_label }}</span>
+          {% if filters_active %}
+            <span class="filters-toggle__badge">{{ store_copy.filters_active_badge }}</span>
+          {% endif %}
+        </button>
+        {% if filters_active %}
+          <a class="filters-toolbar__clear" href="{% url 'store' %}">{{ store_copy.filters_reset_label }}</a>
+        {% endif %}
       </div>
 
       <form id="catalogFilters"
@@ -131,40 +174,6 @@
 
       <div class="filters-backdrop" data-filters-backdrop></div>
     </div>
-
-    {# ================== CATEGORIES ================== #}
-    <div class="section__head">
-      <div>
-        <h2 class="section__title">{{ store_copy.categories_title }}</h2>
-        <p class="section__desc">{{ store_copy.categories_desc }}</p>
-      </div>
-    </div>
-
-    <details class="categories-collapse" id="categoriesCollapse" open>
-      <summary class="categories-toggle">Show categories</summary>
-      <div class="grid grid--cards categories-grid">
-        {% for c in categories %}
-          <a class="card cat" href="{% url 'store-category' slug=c.slug %}" title="{{ c.name }}">
-            <div class="card__img cat__img">
-              {% if c.image %}
-                <img src="{{ c.image.url }}" alt="{{ c.display_name }}" loading="lazy">
-              {% else %}
-                <div class="ph" aria-hidden="true"></div>
-              {% endif %}
-              <div class="cat__overlay">
-                <span class="cat__title">{{ c.display_name }}</span>
-                <span class="cat__arrow" aria-hidden="true">→</span>
-              </div>
-            </div>
-            {% if c.description %}
-              <p class="section__desc cat__desc">{{ c.description|truncatewords:18 }}</p>
-            {% endif %}
-          </a>
-        {% empty %}
-          <p class="section__desc">{{ store_copy.categories_empty_label }}</p>
-        {% endfor %}
-      </div>
-    </details>
 
     {# ================== RESULTS (visible when filters are active) ================== #}
     {% if filters_active %}
@@ -454,6 +463,70 @@
     }
   })();
 </script>
+<script>
+  (function(){
+    const root = document.getElementById('categoriesCollapse');
+    if (!root) return;
+    const btn = root.querySelector('[data-categories-toggle]');
+    const preview = root.querySelector('[data-categories-preview]');
+    const grid = root.querySelector('.categories-grid');
+    if (!btn || !preview || !grid) return;
+
+    const labelExpand = btn.dataset.labelExpand || 'View all categories';
+    const labelCollapse = btn.dataset.labelCollapse || 'Show fewer';
+    const setLabel = (expanded) => {
+      btn.textContent = expanded ? labelCollapse : labelExpand;
+    };
+
+    const calcHeight = () => {
+      const card = grid.querySelector('.cat');
+      if (!card) return;
+      const styles = window.getComputedStyle(grid);
+      const gapValue = styles.rowGap || styles.gap || '0';
+      const gap = parseFloat(gapValue) || 0;
+      const row = card.getBoundingClientRect().height;
+      if (row) {
+        const target = Math.round(row * 1.5 + gap);
+        preview.style.setProperty('--categories-preview-height', target + 'px');
+      }
+    };
+
+    const getCollapsedHeight = () => {
+      const raw = window.getComputedStyle(preview).getPropertyValue('--categories-preview-height');
+      const value = parseFloat(raw);
+      if (Number.isFinite(value) && value > 0) return value;
+      return 320;
+    };
+
+    const updateOverflow = () => {
+      const collapsedHeight = getCollapsedHeight();
+      const hasOverflow = preview.scrollHeight > collapsedHeight + 2;
+      btn.hidden = !hasOverflow;
+      if (!hasOverflow) {
+        root.classList.remove('categories-collapse--expanded');
+      }
+      setLabel(root.classList.contains('categories-collapse--expanded'));
+    };
+
+    const refresh = () => {
+      calcHeight();
+      updateOverflow();
+    };
+
+    btn.addEventListener('click', function(){
+      root.classList.toggle('categories-collapse--expanded');
+      setLabel(root.classList.contains('categories-collapse--expanded'));
+      updateOverflow();
+    });
+
+    setLabel(false);
+    refresh();
+    window.addEventListener('resize', function(){
+      window.requestAnimationFrame(refresh);
+    });
+    window.addEventListener('load', refresh);
+  })();
+</script>
 
   </div>
 </section>
@@ -507,14 +580,15 @@
     .comparison__divider{width:100%;height:1px}
   }
 
-  .grid--cards{--min:260px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--min),1fr));gap:1rem}
+  .grid--cards{--min:220px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--min),1fr));gap:.85rem}
   .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:transform .18s ease, box-shadow .18s ease}
   .card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.33)}
   .card__img{position:relative;overflow:hidden;border-radius:.9rem}
   .img-fit{width:100%;height:100%;object-fit:cover;aspect-ratio:16/9;display:block}
 
   /* Filters */
-  .filters-wrap{position:relative;margin-bottom:1.2rem}
+  .filters-wrap{position:relative;margin-bottom:1.6rem;display:grid;gap:.85rem}
+  .search-block{margin-top:1.2rem;margin-bottom:.7rem}
   .filters-toolbar{
     display:none;
     align-items:center;
@@ -547,18 +621,44 @@
     color:var(--muted);
   }
   .filters-backdrop{display:none;}
-  .filters{padding:1rem;background:var(--card-bg);border:1px solid var(--card-border);margin-bottom:1.2rem}
-  .filters__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}
-  .filters__item label{display:block;margin:0 0 .35rem .1rem;color:var(--muted);font-size:.9rem}
-  .filters__actions{display:flex;gap:.6rem;margin-top:.8rem}
+  .filters{
+    padding:1.1rem;
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    margin-bottom:0;
+  }
+  .filters__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.8rem}
+  .filters__item label{
+    display:block;
+    margin:0 0 .35rem .1rem;
+    color:var(--muted);
+    font-size:.82rem;
+    font-weight:700;
+    letter-spacing:.02em;
+  }
+  .filters__actions{
+    display:flex;
+    gap:.6rem;
+    margin-top:1rem;
+    justify-content:flex-end;
+    align-items:center;
+    flex-wrap:wrap;
+  }
   .filters select,.filters input{
     width:100%; background:var(--field-bg); color:var(--fg);
     border:1px solid var(--card-border); border-radius:.6rem; padding:.55rem .7rem;
   }
+  .filters select{color-scheme:dark;}
+  .filters select:focus-visible,
+  .filters input:focus-visible{
+    outline:2px solid rgba(213,0,0,.55);
+    outline-offset:2px;
+    border-color:rgba(213,0,0,.55);
+  }
   .filters select option,
   .filters select optgroup{
-    background:#f2f2f2;
-    color:#111;
+    background:#121212;
+    color:#f2f2f2;
   }
   .filters__drawer-head{display:none;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:1rem}
   .filters__drawer-title{font-size:1.1rem;font-weight:800}
@@ -618,12 +718,57 @@
     }
     .categories-collapse[open]{padding-bottom:1rem}
   }
+  .categories-preview{position:relative}
+  .categories-expand{display:none}
+  @media (min-width:901px){
+    .categories-collapse{
+      display:flex;
+      flex-direction:column;
+    }
+    .categories-preview{
+      max-height:var(--categories-preview-height, 320px);
+      overflow:hidden;
+    }
+  .categories-preview::after{
+      content:"";
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:90px;
+      background:linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.35) 35%, rgba(0,0,0,.75));
+      backdrop-filter:blur(7px);
+      -webkit-backdrop-filter:blur(7px);
+      pointer-events:none;
+    }
+    .categories-collapse--expanded .categories-preview{
+      max-height:none;
+    }
+    .categories-collapse--expanded .categories-preview::after{display:none}
+    .categories-expand{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:.35rem;
+      margin:.8rem auto 0;
+      width:fit-content;
+      max-width:100%;
+    }
+  }
 
   /* Product */
-  .card.product{display:flex;flex-direction:column;height:100%}
+  .card.product{display:flex;flex-direction:column;height:100%;padding:.75rem}
   .product__link{display:flex;flex-direction:column;flex:1;min-height:100%;color:inherit;text-decoration:none}
-  .product__meta{padding:.7rem .8rem;display:flex;flex-direction:column;flex:1}
-  .product__title{margin:.6rem 0 0}
+  .product__meta{padding:.6rem .7rem;display:flex;flex-direction:column;flex:1}
+  .product__title{margin:.45rem 0 0;font-size:1.02rem;line-height:1.25}
+  .product__desc{
+    font-size:.92rem;
+    line-height:1.45;
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
   .price{margin-top:.35rem;display:flex;gap:.5rem;align-items:baseline}
   .price--stacked{flex-direction:column;align-items:flex-start;gap:.3rem}
   .product__meta .price{margin-top:auto;padding-top:.35rem}

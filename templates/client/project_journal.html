@@ -11,7 +11,6 @@
     {% endwith %}
   {% endwith %}
 
-  <!-- Preload custom fonts -->
   {% if font_settings and font_settings.preload_fonts %}
     {% for font in font_settings.preload_fonts %}
       <link rel="preload" href="{{ font.url }}" as="font" type="{{ font.mime_type|default:'font/ttf' }}" crossorigin>
@@ -20,377 +19,570 @@
     <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
     <link rel="preload" href="{% static 'fonts/Inter-Variable.ttf' %}" as="font" type="font/ttf" crossorigin>
   {% endif %}
+
   <style>
     :root {
       color-scheme: dark;
-      --bg:#050505;
-      --bg-muted:#0b0b0f;
-      --ink:#f5f5f5;
-      --muted:#b7b7c7;
-      --accent:#ff2d2d;
-      --accent-dark:#b80707;
-      --card:#0f0f17;
-      --card-border:rgba(255,255,255,0.08);
-      --line:rgba(255,255,255,0.12);
-      --glow:0 20px 50px rgba(0,0,0,.6);
-      --radius-lg:22px;
-      --radius-md:16px;
-      --radius-sm:10px;
-      --font-body:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      --font-head:"Diesel",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      --body-font:var(--font-body);
-      --display-font:var(--font-head);
+      --bg: #0b0c10;
+      --bg-soft: #12131a;
+      --panel: #151724;
+      --panel-2: #1b1d2b;
+      --ink: #f7f7fb;
+      --muted: #b4b7c8;
+      --accent: #ff3b30;
+      --accent-dark: #b71c1c;
+      --line: rgba(255, 255, 255, 0.08);
+      --shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-head: "Diesel", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-ui: var(--font-body);
     }
     {% if font_settings %}
       {% for font in font_settings.fonts %}
         {% if font.has_source %}
-    @font-face{
-      font-family:"{{ font.family }}";
-      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
-      font-weight:{{ font.weight|default:"400" }};
-      font-style:{{ font.style|default:"normal" }};
-      font-display:{{ font.display|default:"swap" }};
+    @font-face {
+      font-family: "{{ font.family }}";
+      src: url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight: {{ font.weight|default:"400" }};
+      font-style: {{ font.style|default:"normal" }};
+      font-display: {{ font.display|default:"swap" }};
     }
         {% endif %}
       {% endfor %}
       {% with body_stack=font_settings.body.stack|default:'"Inter", system-ui, -apple-system, "Segoe UI", sans-serif' %}
       {% with heading_stack=font_settings.heading.stack|default:'"Diesel", system-ui, -apple-system, "Segoe UI", sans-serif' %}
       {% with ui_stack=font_settings.ui.stack|default:body_stack %}
-    :root{
+    :root {
       --font-body: {{ body_stack|safe }};
       --font-head: {{ heading_stack|safe }};
-      --font-ui:   {{ ui_stack|safe }};
+      --font-ui: {{ ui_stack|safe }};
     }
       {% endwith %}
       {% endwith %}
       {% endwith %}
     {% else %}
-    @font-face{
-      font-family:"Diesel";
-      src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
-      font-weight:100 900; font-style:normal; font-display:swap;
+    @font-face {
+      font-family: "Diesel";
+      src: url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
     }
     {% endif %}
-    *,*::before,*::after { box-sizing:border-box; }
+    *, *::before, *::after { box-sizing: border-box; }
     body {
-      margin:0;
-      font-family:var(--body-font);
-      background:linear-gradient(120deg,#020202,#070709 55%,#050505);
-      color:var(--ink);
-      min-height:100vh;
-      padding:3rem 1.25rem 4rem;
+      margin: 0;
+      font-family: var(--font-body);
+      background:
+        radial-gradient(circle at top, rgba(255, 59, 48, 0.18), transparent 45%),
+        linear-gradient(140deg, #08090d 0%, #0d0f16 50%, #0b0c10 100%);
+      color: var(--ink);
+      min-height: 100vh;
     }
+    a { color: inherit; }
     .page {
-      max-width:1200px;
-      margin:0 auto;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 2.75rem 1.5rem 4rem;
+      display: grid;
+      gap: 2rem;
     }
     .eyebrow {
-      text-transform:uppercase;
-      letter-spacing:.3em;
-      font-size:.75rem;
-      color:var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.32em;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin: 0 0 0.35rem;
     }
     .hero {
-      text-align:center;
-      margin-bottom:2.5rem;
+      display: grid;
+      gap: 1.4rem;
+    }
+    .hero__top {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
     }
     .hero h1 {
-      font-family:var(--display-font);
-      font-size:clamp(2.5rem,4vw,3.5rem);
-      letter-spacing:-1px;
-      margin:.5rem 0;
+      font-family: var(--font-head);
+      font-size: clamp(2.4rem, 4vw, 3.4rem);
+      letter-spacing: -0.02em;
+      margin: 0;
     }
-    .hero p.lead {
-      max-width:720px;
-      margin:0 auto;
-      color:var(--muted);
-      font-size:1.05rem;
-      line-height:1.6;
+    .hero .lead {
+      margin: 0;
+      max-width: 720px;
+      font-size: 1.02rem;
+      line-height: 1.7;
+      color: var(--muted);
     }
-    .tag-filter {
-      margin-top:2rem;
-      display:flex;
-      gap:.75rem;
-      flex-wrap:wrap;
-      justify-content:center;
-    }
-    .tag-filter a {
-      padding:.55rem 1.1rem;
-      border-radius:999px;
-      border:1px solid var(--line);
-      color:var(--ink);
-      font-size:.9rem;
-      transition:all .2s ease;
-      text-decoration:none;
-    }
-    .tag-filter a:hover {
-      border-color:var(--accent);
-      color:var(--accent);
-    }
-    .tag-filter a.active {
-      background:linear-gradient(120deg,var(--accent),var(--accent-dark));
-      border-color:transparent;
-      box-shadow:0 0 25px rgba(255,45,45,.35);
-    }
-    .gallery {
-      display:grid;
-      gap:2rem;
-    }
-    .gallery-stage {
-      background:linear-gradient(145deg,#101018,#040406);
-      border:1px solid var(--card-border);
-      border-radius:var(--radius-lg);
-      padding:2.25rem;
-      box-shadow:var(--glow);
-      display:grid;
-      grid-template-columns:1.1fr .9fr;
-      gap:2rem;
-    }
-    .stage-media {
-      position:relative;
-      border-radius:var(--radius-md);
-      overflow:hidden;
-      background:radial-gradient(circle at top,#ff2d2d22,#0b0b12);
-      min-height:320px;
-    }
-    .stage-media img {
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-    .stage-placeholder {
-      width:100%;
-      height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:var(--muted);
-      font-size:.95rem;
-      padding:2rem;
-      text-align:center;
-    }
-    .stage-content {
-      display:grid;
-      gap:1rem;
-      align-content:start;
-    }
-    .stage-meta {
-      display:flex;
-      flex-wrap:wrap;
-      gap:1rem;
-      font-size:.9rem;
-      color:var(--muted);
-    }
-    .stage-title {
-      font-family:var(--display-font);
-      font-size:2rem;
-      margin:.25rem 0 .2rem;
-    }
-    .stage-excerpt {
-      font-size:1rem;
-      line-height:1.7;
-      color:var(--ink);
-    }
-    .stage-sections {
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-      gap:.9rem;
-    }
-    .stage-section {
-      background:var(--bg-muted);
-      border:1px solid var(--line);
-      border-radius:var(--radius-sm);
-      padding:1rem;
-    }
-    .stage-section h3 {
-      margin:0 0 .55rem;
-      font-size:.8rem;
-      text-transform:uppercase;
-      letter-spacing:.18em;
-      color:var(--muted);
-    }
-    .stage-report {
-      margin-top:.25rem;
-    }
-    .chip {
-      padding:.4rem .9rem;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.2);
-      font-size:.85rem;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-    }
-    .chip--accent {
-      border:none;
-      background:linear-gradient(120deg,var(--accent),var(--accent-dark));
-      box-shadow:0 10px 25px rgba(255,45,45,.25);
-      color:#fff;
+    .hero__actions {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
     }
     .btn {
-      padding:.85rem 1.4rem;
-      border-radius:var(--radius-sm);
-      border:1px solid var(--line);
-      color:var(--ink);
-      font-weight:600;
-      text-transform:uppercase;
-      font-size:.85rem;
-      letter-spacing:.08em;
-      text-decoration:none;
-      display:inline-flex;
-      gap:.5rem;
-      align-items:center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.3rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      text-decoration: none;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: transparent;
+      color: var(--ink);
+      transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
     }
     .btn--primary {
-      border:none;
-      background:linear-gradient(120deg,var(--accent),var(--accent-dark));
-      box-shadow:0 15px 35px rgba(255,45,45,.35);
+      border: none;
+      background: linear-gradient(120deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 14px 30px rgba(255, 59, 48, 0.3);
     }
-    .btn svg {
-      width:16px;
-      height:16px;
+    .btn--ghost:hover {
+      border-color: rgba(255, 255, 255, 0.35);
     }
-    .gallery-strip {
-      display:grid;
-      grid-auto-flow:column;
-      grid-auto-columns:minmax(240px,1fr);
-      gap:1rem;
-      overflow-x:auto;
-      padding-bottom:.75rem;
-      scroll-snap-type:x mandatory;
+    .tag-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+    .tag-filter a {
+      padding: 0.45rem 1rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      font-size: 0.82rem;
+      text-decoration: none;
+      transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+    }
+    .tag-filter a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .tag-filter a.active {
+      background: rgba(255, 59, 48, 0.15);
+      border-color: rgba(255, 59, 48, 0.45);
+      color: #fff;
+    }
+    .stage {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.4rem;
+      background: var(--panel);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 1.8rem;
+    }
+    .stage__summary {
+      display: grid;
+      gap: 1rem;
+      align-content: start;
+    }
+    .stage-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .stage-title {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      margin: 0;
+    }
+    .stage-excerpt {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+    .highlight {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(255, 59, 48, 0.15);
+      border: 1px solid rgba(255, 59, 48, 0.35);
+    }
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .chip-row span {
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.9rem;
+    }
+    .stage-preview {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+    .preview-card {
+      position: relative;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #0d0f15;
+      height: clamp(110px, 14vw, 150px);
+    }
+    .preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .preview-label {
+      position: absolute;
+      top: 0.65rem;
+      left: 0.65rem;
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+    .preview-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--muted);
+      padding: 1rem;
+      font-size: 0.85rem;
+    }
+    .info-card {
+      background: var(--panel-2);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      padding: 0.95rem 1rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+    .info-card h3 {
+      margin: 0;
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .info-card .body-copy {
+      margin: 0;
+      color: var(--ink);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+    .stage-toggle {
+      border-top: 1px solid var(--line);
+      padding-top: 1rem;
+    }
+    .stage-toggle summary {
+      cursor: pointer;
+      list-style: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      color: var(--ink);
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 0.65rem 1rem;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .stage-toggle summary:hover {
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+    .stage-toggle summary:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.5);
+      outline-offset: 3px;
+    }
+    .stage-toggle summary::-webkit-details-marker { display: none; }
+    .stage-toggle .toggle-text {
+      display: grid;
+      gap: 0.2rem;
+    }
+    .stage-toggle .toggle-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
+    }
+    .stage-toggle .toggle-hint {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .stage-toggle .label-open { display: none; }
+    .stage-toggle[open] .label-open { display: inline; }
+    .stage-toggle[open] .label-closed { display: none; }
+    .stage-toggle .toggle-icon {
+      width: 14px;
+      height: 14px;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .stage-toggle[open] .toggle-icon { transform: rotate(90deg); }
+    .stage-toggle[open] summary {
+      border-color: rgba(255, 59, 48, 0.5);
+      box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.15);
+    }
+    .stage__expanded {
+      margin-top: 1.2rem;
+      display: grid;
+      gap: 1.6rem;
+    }
+    .report-block {
+      border-top: 1px solid var(--line);
+      padding-top: 1rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+    .report-block h3 {
+      margin: 0;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+    }
+    .report-block .body-copy {
+      color: var(--muted);
+      line-height: 1.65;
+      margin: 0;
+    }
+    .stage-compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.2rem;
+      align-content: start;
+    }
+    .carousel {
+      background: #0f1018;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      padding: 1.2rem;
+      display: grid;
+      gap: 0.85rem;
+    }
+    .carousel__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .carousel__title {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .carousel__controls {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease;
+    }
+    .icon-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .carousel__frame {
+      position: relative;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 55%);
+      min-height: 200px;
+    }
+    .carousel__image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .carousel__placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--muted);
+      padding: 1.5rem;
+      font-size: 0.9rem;
+    }
+    .carousel__thumbs {
+      display: flex;
+      gap: 0.4rem;
+      overflow-x: auto;
+      padding-bottom: 0.2rem;
+    }
+    .thumb {
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background-size: cover;
+      background-position: center;
+      background-color: #0c0d12;
+      flex: 0 0 auto;
+      cursor: pointer;
+    }
+    .thumb.is-active {
+      border-color: rgba(255, 59, 48, 0.6);
+      box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.15);
+    }
+    .build-list {
+      display: grid;
+      gap: 1rem;
+    }
+    .build-list__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .build-list__head h2 {
+      margin: 0;
+      font-size: 1.4rem;
+      font-family: var(--font-head);
+    }
+    .build-list__head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .project-strip {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(220px, 1fr);
+      gap: 1rem;
+      overflow-x: auto;
+      padding-bottom: 0.75rem;
+      scroll-snap-type: x mandatory;
     }
     .post-card {
-      background:var(--card);
-      padding:1.5rem;
-      border-radius:var(--radius-md);
-      border:1px solid var(--card-border);
-      box-shadow:var(--glow);
-      display:flex;
-      flex-direction:column;
-      gap:1rem;
-      position:relative;
-      cursor:pointer;
-      text-align:left;
-      transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
-      scroll-snap-align:start;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 0.95rem;
+      display: grid;
+      gap: 0.8rem;
+      cursor: pointer;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+      scroll-snap-align: start;
     }
-    .post-card[aria-pressed="true"] {
-      border-color:rgba(255,45,45,.7);
-      box-shadow:0 0 30px rgba(255,45,45,.25);
-      transform:translateY(-2px);
+    .post-card.is-active {
+      border-color: rgba(255, 59, 48, 0.6);
+      transform: translateY(-2px);
     }
     .post-card:focus-visible {
-      outline:2px solid rgba(255,255,255,.7);
-      outline-offset:3px;
+      outline: 2px solid rgba(255, 255, 255, 0.6);
+      outline-offset: 4px;
     }
-    .post-card::before {
-      content:"";
-      position:absolute;
-      inset:0;
-      border-radius:inherit;
-      padding:1px;
-      background:linear-gradient(120deg,rgba(255,45,45,.35),rgba(255,45,45,0));
-      mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-      mask-composite:exclude;
-      opacity:.3;
-      pointer-events:none;
+    .post-card__media {
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: #0d0f15;
+      height: 130px;
     }
-    .post-card img {
-      width:100%;
-      height:180px;
-      object-fit:cover;
-      border-radius:var(--radius-sm);
+    .post-card__media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
     .post-card__placeholder {
-      width:100%;
-      height:180px;
-      border-radius:var(--radius-sm);
-      background:linear-gradient(135deg,#0d0d14,#15151f);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      color:var(--muted);
-      font-size:.85rem;
-      padding:1rem;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.82rem;
+      padding: 0.9rem;
     }
     .post-card h3 {
-      margin:.5rem 0 0;
-      font-size:1.3rem;
+      margin: 0;
+      font-size: 1.08rem;
+    }
+    .post-card p {
+      margin: 0;
+      color: var(--muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .meta-line {
-      display:flex;
-      flex-wrap:wrap;
-      gap:.6rem 1.2rem;
-      font-size:.85rem;
-      color:var(--muted);
-    }
-    .tag-row {
-      display:flex;
-      gap:.4rem;
-      flex-wrap:wrap;
-    }
-    .tag-row span {
-      padding:.25rem .75rem;
-      border-radius:999px;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.08);
-      font-size:.75rem;
-      letter-spacing:.05em;
-    }
-    details summary {
-      cursor:pointer;
-      list-style:none;
-      font-weight:600;
-      display:flex;
-      align-items:center;
-      gap:.4rem;
-      color:var(--accent);
-      margin-top:.5rem;
-    }
-    details summary::-webkit-details-marker {
-      display:none;
-    }
-    details summary svg {
-      width:14px;
-      height:14px;
-      transition:transform .2s ease;
-    }
-    details[open] summary svg {
-      transform:rotate(90deg);
-    }
-    details .body-copy {
-      margin-top:.75rem;
-      color:var(--muted);
-      line-height:1.65;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
     }
     .empty-state {
-      border:1px dashed var(--line);
-      border-radius:var(--radius-lg);
-      padding:3rem 1.5rem;
-      text-align:center;
-      color:var(--muted);
-      background:rgba(255,255,255,.02);
+      border: 1px dashed var(--line);
+      border-radius: var(--radius-lg);
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.02);
     }
-    @media (max-width:900px) {
-      body {
-        padding:2rem 1rem 3rem;
-      }
-      .gallery-stage {
-        grid-template-columns:1fr;
-        padding:1.6rem;
-      }
-      .stage-media {
-        min-height:240px;
-      }
-      .tag-filter {
-        justify-content:flex-start;
-      }
-      .gallery-strip {
-        grid-auto-columns:minmax(220px,70vw);
-      }
+    @media (max-width: 960px) {
+      .page { padding: 2.2rem 1.1rem 3rem; }
+      .stage { padding: 1.4rem; }
+      .stage-compare { grid-template-columns: 1fr; }
+      .project-strip { grid-auto-columns: minmax(220px, 78vw); }
+      .stage-preview { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
     }
   </style>
 </head>
@@ -398,11 +590,18 @@
   {% include "includes/marketing_body.html" %}
   <main class="page">
     <header class="hero">
-      <p class="eyebrow">Internal spotlight</p>
-      <h1>{{ page_title }}</h1>
+      <div class="hero__top">
+        <div>
+          <p class="eyebrow">Build Journal</p>
+          <h1>{{ page_title }}</h1>
+        </div>
+        <div class="hero__actions">
+          <a class="btn btn--ghost" href="{% url 'home' %}">Go Home</a>
+        </div>
+      </div>
       <p class="lead">
-        Quietly showcasing recent wraps, detailing jobs, and special builds before we share them publicly.
-        Save this URL and pass it only to people who should see it.
+        Before-and-after build stories with photo comparisons, written for clients who want the straight story.
+        Tap a project, then open the report when you want the full breakdown.
       </p>
       {% if available_tags %}
       <div class="tag-filter" aria-label="Filter by tag">
@@ -415,100 +614,160 @@
           {% endwith %}
         {% endfor %}
         {% if tag_filter %}
-          <a href="{% url 'project-journal' %}" class="chip">Clear filter</a>
+          <a href="{% url 'project-journal' %}" class="btn">Clear filter</a>
         {% endif %}
       </div>
       {% endif %}
     </header>
 
     {% if has_posts and featured_post %}
-      <section class="gallery" aria-live="polite">
-        <div class="gallery-stage" data-active-id="{{ featured_post.id }}">
-          <div class="stage-media">
-            {% if featured_post.cover_image %}
-              <img id="projectImage" src="{{ featured_post.cover_image.url }}" alt="{{ featured_post.hero_title|default:featured_post.title }}" loading="lazy" decoding="async">
-            {% else %}
-              <div id="projectPlaceholder" class="stage-placeholder">Cover image coming soon.</div>
+      <section class="stage" data-stage data-active-id="{{ featured_post.id }}">
+        <div class="stage__summary">
+          <div class="stage-meta">
+            <span data-field="date">{{ featured_post.published_at|date:"M d, Y" }}</span>
+            {% if featured_post.client_name %}
+              <span data-field="client">Client · {{ featured_post.client_name }}</span>
             {% endif %}
+            {% if featured_post.location %}
+              <span data-field="location">{{ featured_post.location }}</span>
+            {% endif %}
+            <span data-field="reading">{{ featured_post.reading_time }} min read</span>
           </div>
-          <div class="stage-content">
-            <div class="stage-meta" id="projectMeta">
-              <span data-field="date">{{ featured_post.published_at|date:"M d, Y" }}</span>
-              {% if featured_post.client_name %}
-                <span data-field="client">Client · {{ featured_post.client_name }}</span>
-              {% endif %}
-              {% if featured_post.location %}
-                <span data-field="location">{{ featured_post.location }}</span>
-              {% endif %}
-              <span data-field="reading">{{ featured_post.reading_time }} min read</span>
+          <h2 class="stage-title" id="projectTitle">{{ featured_post.hero_title }}</h2>
+          <div class="highlight" id="projectHighlight" {% if not featured_post.result_highlight %}hidden{% endif %}>
+            {{ featured_post.result_highlight }}
+          </div>
+          <p class="stage-excerpt" id="projectExcerpt">
+            {{ featured_post.excerpt|default:"This build highlight is ready whenever you are." }}
+          </p>
+          {% if featured_post.services_list %}
+            <div class="chip-row" id="projectServices" aria-label="Services performed">
+              {% for service in featured_post.services_list %}
+                <span>{{ service }}</span>
+              {% endfor %}
             </div>
-            <h2 class="stage-title" id="projectTitle">{{ featured_post.hero_title }}</h2>
-            <div class="chip chip--accent" id="projectHighlight" {% if not featured_post.result_highlight %}hidden{% endif %}>
-              {{ featured_post.result_highlight }}
+          {% else %}
+            <div class="chip-row" id="projectServices" aria-label="Services performed" hidden></div>
+          {% endif %}
+          {% if featured_post.tag_list %}
+            <div class="chip-row" id="projectTags" aria-label="Tags">
+              {% for tag in featured_post.tag_list %}
+                <span>#{{ tag }}</span>
+              {% endfor %}
             </div>
-            <p class="stage-excerpt" id="projectExcerpt">
-              {{ featured_post.excerpt|default:"This build highlight is ready whenever you are." }}
-            </p>
-            {% if featured_post.services_list %}
-              <div class="tag-row" id="projectServices" aria-label="Services performed">
-                {% for service in featured_post.services_list %}
-                  <span>{{ service }}</span>
-                {% endfor %}
-              </div>
-            {% else %}
-              <div class="tag-row" id="projectServices" aria-label="Services performed" hidden></div>
-            {% endif %}
-            {% if featured_post.tag_list %}
-              <div class="tag-row" id="projectTags" aria-label="Tags">
-                {% for tag in featured_post.tag_list %}
-                  <span>#{{ tag }}</span>
-                {% endfor %}
-              </div>
-            {% else %}
-              <div class="tag-row" id="projectTags" aria-label="Tags" hidden></div>
-            {% endif %}
-            <div class="stage-sections">
-              <div class="stage-section" data-section="overview" {% if not featured_post.overview and not featured_post.excerpt %}hidden{% endif %}>
-                <h3>Overview</h3>
-                <div class="body-copy" data-field="overview">
-                  {{ featured_post.overview|default:featured_post.excerpt|linebreaks }}
+          {% else %}
+            <div class="chip-row" id="projectTags" aria-label="Tags" hidden></div>
+          {% endif %}
+          <div class="stage-preview" aria-label="Before and after preview">
+            <div class="preview-card" data-preview="before">
+              <span class="preview-label">Before</span>
+              <img class="preview-img" id="previewBefore" alt="" hidden>
+              <div class="preview-placeholder" id="previewBeforePlaceholder">Before image coming soon.</div>
+            </div>
+            <div class="preview-card" data-preview="after">
+              <span class="preview-label">After</span>
+              <img class="preview-img" id="previewAfter" alt="" hidden>
+              <div class="preview-placeholder" id="previewAfterPlaceholder">After image coming soon.</div>
+            </div>
+          </div>
+          <details class="stage-toggle" id="stageToggle">
+            <summary>
+              <span class="toggle-text">
+                <span class="toggle-title">
+                  <span class="label-closed">Open full report</span>
+                  <span class="label-open">Close report</span>
+                </span>
+                <span class="toggle-hint">Before/after + full breakdown</span>
+              </span>
+              <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </summary>
+            <div class="stage__expanded">
+              <div class="stage-compare">
+                <div class="carousel" data-carousel="before">
+                  <div class="carousel__head">
+                    <div>
+                      <p class="eyebrow">Before</p>
+                      <p class="carousel__title">Original condition</p>
+                    </div>
+                    <div class="carousel__controls">
+                      <button class="icon-btn" type="button" data-carousel-prev aria-label="Previous before photo">&#9664;</button>
+                      <span data-carousel-count>0 / 0</span>
+                      <button class="icon-btn" type="button" data-carousel-next aria-label="Next before photo">&#9654;</button>
+                    </div>
+                  </div>
+                  <div class="carousel__frame" data-carousel-frame>
+                    <img class="carousel__image" data-carousel-image alt="" hidden>
+                    <div class="carousel__placeholder" data-carousel-placeholder>Before photos coming soon.</div>
+                  </div>
+                  <div class="carousel__thumbs" data-carousel-thumbs></div>
+                </div>
+                <div class="carousel" data-carousel="after">
+                  <div class="carousel__head">
+                    <div>
+                      <p class="eyebrow">After</p>
+                      <p class="carousel__title">Delivered result</p>
+                    </div>
+                    <div class="carousel__controls">
+                      <button class="icon-btn" type="button" data-carousel-prev aria-label="Previous after photo">&#9664;</button>
+                      <span data-carousel-count>0 / 0</span>
+                      <button class="icon-btn" type="button" data-carousel-next aria-label="Next after photo">&#9654;</button>
+                    </div>
+                  </div>
+                  <div class="carousel__frame" data-carousel-frame>
+                    <img class="carousel__image" data-carousel-image alt="" hidden>
+                    <div class="carousel__placeholder" data-carousel-placeholder>After photos coming soon.</div>
+                  </div>
+                  <div class="carousel__thumbs" data-carousel-thumbs></div>
                 </div>
               </div>
-              <div class="stage-section" data-section="parts" {% if not featured_post.parts %}hidden{% endif %}>
-                <h3>Parts</h3>
-                <div class="body-copy" data-field="parts">{{ featured_post.parts|linebreaks }}</div>
+              <div class="info-grid">
+                <article class="info-card" data-section="overview" {% if not featured_post.overview and not featured_post.excerpt %}hidden{% endif %}>
+                  <h3>Overview</h3>
+                  <div class="body-copy" data-field="overview">
+                    {{ featured_post.overview|default:featured_post.excerpt|linebreaks }}
+                  </div>
+                </article>
+                <article class="info-card" data-section="parts" {% if not featured_post.parts %}hidden{% endif %}>
+                  <h3>Parts</h3>
+                  <div class="body-copy" data-field="parts">{{ featured_post.parts|linebreaks }}</div>
+                </article>
+                <article class="info-card" data-section="customizations" {% if not featured_post.customizations %}hidden{% endif %}>
+                  <h3>Customizations</h3>
+                  <div class="body-copy" data-field="customizations">{{ featured_post.customizations|linebreaks }}</div>
+                </article>
+                <article class="info-card" data-section="backstory" {% if not featured_post.backstory %}hidden{% endif %}>
+                  <h3>Backstory</h3>
+                  <div class="body-copy" data-field="backstory">{{ featured_post.backstory|linebreaks }}</div>
+                </article>
               </div>
-              <div class="stage-section" data-section="customizations" {% if not featured_post.customizations %}hidden{% endif %}>
-                <h3>Customizations</h3>
-                <div class="body-copy" data-field="customizations">{{ featured_post.customizations|linebreaks }}</div>
-              </div>
-              <div class="stage-section" data-section="backstory" {% if not featured_post.backstory %}hidden{% endif %}>
-                <h3>Backstory</h3>
-                <div class="body-copy" data-field="backstory">{{ featured_post.backstory|linebreaks }}</div>
+              <div class="report-block" id="projectReport" {% if not featured_post.body %}hidden{% endif %}>
+                <h3>Full report</h3>
+                <div class="body-copy" data-field="body">
+                  {{ featured_post.body|linebreaks }}
+                </div>
               </div>
             </div>
-            <details class="stage-report" id="projectReport" {% if not featured_post.body %}hidden{% endif %}>
-              <summary>
-                Read the full report
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </summary>
-              <div class="body-copy" data-field="body">
-                {{ featured_post.body|linebreaks }}
-              </div>
-            </details>
-          </div>
+          </details>
         </div>
+      </section>
 
-        <div class="gallery-strip" role="list">
+      <section class="build-list">
+        <div class="build-list__head">
+          <h2>All builds</h2>
+          <p>Tap a card, then open the report to compare before and after.</p>
+        </div>
+        <div class="project-strip" role="list">
           {% for post in gallery_posts %}
-            <article class="post-card" data-project-id="{{ post.id }}" data-project-slug="{{ post.slug }}" role="button" tabindex="0" aria-pressed="{% if featured_post and post.id == featured_post.id %}true{% else %}false{% endif %}">
-              {% if post.cover_image %}
-                <img src="{{ post.cover_image.url }}" alt="{{ post.title }} cover" loading="lazy" decoding="async">
-              {% else %}
-                <div class="post-card__placeholder">Cover image pending</div>
-              {% endif %}
+            <article class="post-card {% if featured_post and post.id == featured_post.id %}is-active{% endif %}" data-project-id="{{ post.id }}" data-project-slug="{{ post.slug }}" role="button" tabindex="0" aria-pressed="{% if featured_post and post.id == featured_post.id %}true{% else %}false{% endif %}">
+              <div class="post-card__media">
+                {% if post.cover_image %}
+                  <img src="{{ post.cover_image.url }}" alt="{{ post.title }} cover" loading="lazy" decoding="async">
+                {% else %}
+                  <div class="post-card__placeholder">Cover image pending</div>
+                {% endif %}
+              </div>
               <div class="meta-line">
                 <span>{{ post.published_at|date:"M d, Y" }}</span>
                 <span>{{ post.reading_time }} min read</span>
@@ -516,7 +775,7 @@
               <h3>{{ post.title }}</h3>
               <p>{{ post.excerpt|default:"Tap to view the full build breakdown." }}</p>
               {% if post.tag_list %}
-                <div class="tag-row">
+                <div class="chip-row">
                   {% for tag in post.tag_list %}
                     <span>#{{ tag }}</span>
                   {% endfor %}
@@ -536,6 +795,7 @@
       </section>
     {% endif %}
   </main>
+
   {% if has_posts and featured_post %}
     {{ project_payload|json_script:"projectJournalData" }}
     <script>
@@ -543,9 +803,9 @@
         const dataEl = document.getElementById('projectJournalData');
         if (!dataEl) return;
         let projects = [];
-        try{
+        try {
           projects = JSON.parse(dataEl.textContent);
-        }catch(err){
+        } catch (err) {
           return;
         }
         if (!Array.isArray(projects) || !projects.length) return;
@@ -561,11 +821,8 @@
           }
         });
 
-        const stage = document.querySelector('.gallery-stage');
+        const stage = document.querySelector('[data-stage]');
         if (!stage) return;
-        const media = stage.querySelector('.stage-media');
-        let imageEl = document.getElementById('projectImage');
-        let placeholderEl = document.getElementById('projectPlaceholder');
 
         const titleEl = document.getElementById('projectTitle');
         const excerptEl = document.getElementById('projectExcerpt');
@@ -574,6 +831,10 @@
         const tagsEl = document.getElementById('projectTags');
         const reportEl = document.getElementById('projectReport');
         const reportBodyEl = stage.querySelector('[data-field="body"]');
+        const previewBeforeEl = document.getElementById('previewBefore');
+        const previewAfterEl = document.getElementById('previewAfter');
+        const previewBeforePlaceholder = document.getElementById('previewBeforePlaceholder');
+        const previewAfterPlaceholder = document.getElementById('previewAfterPlaceholder');
 
         const metaEls = {
           date: stage.querySelector('[data-field="date"]'),
@@ -603,6 +864,51 @@
 
         const cards = Array.from(document.querySelectorAll('[data-project-id]'));
 
+        function setupCarousel(el){
+          if (!el) return null;
+          const state = {
+            el,
+            prev: el.querySelector('[data-carousel-prev]'),
+            next: el.querySelector('[data-carousel-next]'),
+            count: el.querySelector('[data-carousel-count]'),
+            img: el.querySelector('[data-carousel-image]'),
+            placeholder: el.querySelector('[data-carousel-placeholder]'),
+            thumbs: el.querySelector('[data-carousel-thumbs]'),
+            images: [],
+            index: 0,
+            altFallback: '',
+            placeholderText: '',
+          };
+          if (state.prev) {
+            state.prev.addEventListener('click', () => shiftCarousel(state, -1));
+          }
+          if (state.next) {
+            state.next.addEventListener('click', () => shiftCarousel(state, 1));
+          }
+          return state;
+        }
+
+        const carousels = {
+          before: setupCarousel(stage.querySelector('[data-carousel="before"]')),
+          after: setupCarousel(stage.querySelector('[data-carousel="after"]')),
+        };
+
+        function normalizeImages(items){
+          if (!Array.isArray(items)) return [];
+          return items.map((item) => {
+            if (typeof item === 'string') {
+              return { url: item, alt: '' };
+            }
+            if (item && typeof item === 'object') {
+              return {
+                url: item.url || item.src || '',
+                alt: item.alt || '',
+              };
+            }
+            return null;
+          }).filter((entry) => entry && entry.url);
+        }
+
         function renderText(container, text){
           if (!container) return;
           container.innerHTML = '';
@@ -620,14 +926,14 @@
           });
         }
 
-        function setMeta(el, value, prefix){
+        function setMeta(el, value){
           if (!el) return;
           if (!value) {
             el.hidden = true;
             return;
           }
           el.hidden = false;
-          el.textContent = prefix ? `${prefix}${value}` : value;
+          el.textContent = value;
         }
 
         function renderChips(container, items, prefix){
@@ -645,35 +951,85 @@
           });
         }
 
-        function updateMedia(src, altText){
-          const hasSrc = Boolean(src);
-          if (hasSrc) {
-            if (!imageEl) {
-              imageEl = document.createElement('img');
-              imageEl.id = 'projectImage';
-              imageEl.loading = 'lazy';
-              imageEl.decoding = 'async';
-              media.appendChild(imageEl);
-            }
-            imageEl.src = src;
-            imageEl.alt = altText || 'Project cover';
+        function setPreview(imageEl, placeholderEl, image, fallbackAlt, emptyText){
+          if (!imageEl || !placeholderEl) return;
+          if (image && image.url) {
+            imageEl.src = image.url;
+            imageEl.alt = image.alt || fallbackAlt || 'Project preview';
             imageEl.hidden = false;
-            if (placeholderEl) {
-              placeholderEl.hidden = true;
-            }
+            placeholderEl.hidden = true;
           } else {
-            if (imageEl) {
-              imageEl.hidden = true;
-            }
-            if (!placeholderEl) {
-              placeholderEl = document.createElement('div');
-              placeholderEl.id = 'projectPlaceholder';
-              placeholderEl.className = 'stage-placeholder';
-              placeholderEl.textContent = 'Cover image coming soon.';
-              media.appendChild(placeholderEl);
-            }
+            imageEl.hidden = true;
             placeholderEl.hidden = false;
+            placeholderEl.textContent = emptyText || 'Image coming soon.';
           }
+        }
+
+        function renderThumbs(state){
+          if (!state || !state.thumbs) return;
+          state.thumbs.innerHTML = '';
+          if (!state.images || state.images.length <= 1) return;
+          state.images.forEach((image, idx) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'thumb';
+            btn.style.backgroundImage = `url('${image.url}')`;
+            btn.setAttribute('aria-label', `View image ${idx + 1}`);
+            if (idx === state.index) {
+              btn.classList.add('is-active');
+            }
+            btn.addEventListener('click', () => {
+              state.index = idx;
+              renderCarousel(state);
+              renderThumbs(state);
+            });
+            state.thumbs.appendChild(btn);
+          });
+        }
+
+        function renderCarousel(state){
+          if (!state) return;
+          const images = state.images || [];
+          if (!images.length) {
+            if (state.img) state.img.hidden = true;
+            if (state.placeholder) {
+              state.placeholder.hidden = false;
+              state.placeholder.textContent = state.placeholderText || 'Photos coming soon.';
+            }
+            if (state.count) state.count.textContent = '0 / 0';
+            if (state.prev) state.prev.disabled = true;
+            if (state.next) state.next.disabled = true;
+            return;
+          }
+          const total = images.length;
+          const active = images[state.index] || images[0];
+          if (state.img) {
+            state.img.hidden = false;
+            state.img.src = active.url;
+            state.img.alt = active.alt || state.altFallback || 'Project photo';
+          }
+          if (state.placeholder) state.placeholder.hidden = true;
+          if (state.count) state.count.textContent = `${state.index + 1} / ${total}`;
+          if (state.prev) state.prev.disabled = total <= 1;
+          if (state.next) state.next.disabled = total <= 1;
+        }
+
+        function shiftCarousel(state, delta){
+          if (!state || !state.images || state.images.length <= 1) return;
+          const total = state.images.length;
+          state.index = (state.index + delta + total) % total;
+          renderCarousel(state);
+          renderThumbs(state);
+        }
+
+        function setCarousel(state, items, altFallback, placeholderText){
+          if (!state) return;
+          state.images = normalizeImages(items);
+          state.index = 0;
+          state.altFallback = altFallback || '';
+          state.placeholderText = placeholderText || '';
+          renderCarousel(state);
+          renderThumbs(state);
         }
 
         function setSection(key, value){
@@ -692,7 +1048,7 @@
           if (!project) return;
           const opts = options || {};
           stage.dataset.activeId = project.id;
-          updateMedia(project.cover_image, project.hero_title || project.title);
+
           if (titleEl) titleEl.textContent = project.hero_title || project.title || '';
           if (excerptEl) {
             excerptEl.textContent = project.excerpt || project.overview || 'This build highlight is ready whenever you are.';
@@ -706,10 +1062,10 @@
             }
           }
 
-          setMeta(metaEls.date, project.published_label || '', '');
-          setMeta(metaEls.client, project.client_name ? `Client · ${project.client_name}` : '', '');
-          setMeta(metaEls.location, project.location || '', '');
-          setMeta(metaEls.reading, project.reading_time ? `${project.reading_time} min read` : '', '');
+          setMeta(metaEls.date, project.published_label || '');
+          setMeta(metaEls.client, project.client_name ? `Client · ${project.client_name}` : '');
+          setMeta(metaEls.location, project.location || '');
+          setMeta(metaEls.reading, project.reading_time ? `${project.reading_time} min read` : '');
 
           renderChips(servicesEl, project.services, '');
           renderChips(tagsEl, project.tags, '#');
@@ -725,14 +1081,33 @@
               reportEl.hidden = true;
             } else {
               reportEl.hidden = false;
-              reportEl.removeAttribute('open');
               renderText(reportBodyEl, bodyText);
             }
           }
 
+          let beforeImages = project.before_images || project.before_gallery || project.before || [];
+          let afterImages = project.after_images || project.after_gallery || project.after || [];
+          if (!beforeImages || !beforeImages.length) {
+            if (project.cover_image) {
+              beforeImages = [{ url: project.cover_image, alt: `${project.title} before` }];
+            }
+          }
+          if (!afterImages || !afterImages.length) {
+            if (project.cover_image) {
+              afterImages = [{ url: project.cover_image, alt: `${project.title} after` }];
+            }
+          }
+          const beforePreview = beforeImages && beforeImages.length ? beforeImages[0] : null;
+          const afterPreview = afterImages && afterImages.length ? afterImages[0] : null;
+          setPreview(previewBeforeEl, previewBeforePlaceholder, beforePreview, `${project.title} before`, 'Before image coming soon.');
+          setPreview(previewAfterEl, previewAfterPlaceholder, afterPreview, `${project.title} after`, 'After image coming soon.');
+          setCarousel(carousels.before, beforeImages, `${project.title} before`, 'Before photos coming soon.');
+          setCarousel(carousels.after, afterImages, `${project.title} after`, 'After photos coming soon.');
+
           cards.forEach((card) => {
             const isActive = card.dataset.projectId === project.id;
             card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            card.classList.toggle('is-active', isActive);
           });
 
           if (opts.updateHash && project.slug) {
@@ -777,6 +1152,6 @@
       })();
     </script>
   {% endif %}
-{% include "includes/analytics_tracker.html" %}
+  {% include "includes/analytics_tracker.html" %}
 </body>
 </html>

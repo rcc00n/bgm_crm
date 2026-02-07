@@ -234,6 +234,7 @@
             <thead>
               <tr>
                 <th>IP address</th>
+                <th>Location</th>
                 <th class="numeric">Visits</th>
                 <th class="numeric">Signed-in</th>
               </tr>
@@ -242,6 +243,7 @@
               {% for row in analytics.top_ips %}
                 <tr>
                   <td>{{ row.ip_address }}</td>
+                  <td>{{ row.location|default:"-" }}</td>
                   <td class="numeric">{{ row.visits }}</td>
                   <td class="numeric">{{ row.signed_in_pct }}%</td>
                 </tr>

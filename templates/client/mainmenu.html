@@ -143,6 +143,12 @@
     h2{font-family:var(--font-head);font-weight:900;font-size:1.6rem;line-height:1.2;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1.25rem}
     .filters{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.25rem 0 1.75rem}
     .filters input,.filters select{padding:.65rem 1rem;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:.95rem;min-width:170px;background:var(--field-bg);color:var(--ink)}
+    #services .filters select{color-scheme:dark;}
+    #services .filters select option,
+    #services .filters select optgroup{
+      background:#121212;
+      color:#f2f2f2;
+    }
     .filters ::placeholder{color:var(--muted)}
     .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.1rem}
 
@@ -691,17 +697,17 @@ main h3{
 
 </head>
 <body data-template-version="mainmenu-mobile-v2-2026-01-26">
+  {% include "includes/marketing_body.html" %}
+  {% with current='services' %}
+    {% include "includes/topbar_client_v3.html" %}
+  {% endwith %}
+
   {% if page_sections %}
     {% include "sections/render_sections.html" %}
   {% else %}
 
-  {% include "includes/marketing_body.html" %}
 <div id="bg"></div>
 <a href="#services" class="visually-hidden">{{ services_copy.skip_to_main_label }}</a>
-
-{% with current='services' %}
-  {% include "includes/site_header.html" %}
-{% endwith %}
 
 
 <section class="hero">

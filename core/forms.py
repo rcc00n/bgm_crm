@@ -10,6 +10,10 @@ from django.contrib.auth.password_validation import validate_password
 from .models import *
 from .constants import STAFF_DISPLAY_NAME
 from core.validators import clean_phone
+from core.services.admin_notifications import (
+    get_notification_group_choices,
+    get_notification_group_keys,
+)
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -254,6 +258,12 @@ class CustomUserChangeForm(UserChangeForm):
     last_name = forms.CharField(required=False)
     phone = forms.CharField(required=True)
     birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
+    admin_notification_sections = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label="Admin notification sections",
+        help_text="Toggle which admin notification sections are enabled for this staff member.",
+    )
 
 
     files = forms.FileField(
@@ -284,9 +294,16 @@ class CustomUserChangeForm(UserChangeForm):
         """
         super().__init__(*args, **kwargs)
 
+        choices = get_notification_group_choices()
+        self.fields["admin_notification_sections"].choices = choices
+
         if self.instance and hasattr(self.instance, 'userprofile'):
             self.fields['phone'].initial = self.instance.userprofile.phone
             self.fields['birth_date'].initial = self.instance.userprofile.birth_date
+            disabled = set(self.instance.userprofile.admin_notification_disabled_sections or [])
+            all_keys = [key for key, _ in choices]
+            enabled = [key for key in all_keys if key not in disabled]
+            self.fields["admin_notification_sections"].initial = enabled
 
 
     def save(self, commit=True):
@@ -304,6 +321,9 @@ class CustomUserChangeForm(UserChangeForm):
         profile, _ = UserProfile.objects.get_or_create(user=user)
         profile.phone = phone
         profile.birth_date = birth_date
+        selected_sections = set(self.cleaned_data.get("admin_notification_sections", []))
+        all_sections = set(get_notification_group_keys())
+        profile.admin_notification_disabled_sections = sorted(all_sections - selected_sections)
         profile.save()
 
 

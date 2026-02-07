@@ -1,6 +1,8 @@
 {% extends "admin/base_site.html" %}
 {% load static dealer_extras %}
 
+{% block bodyclass %}admin-dashboard{% endblock %}
+
 {% block extrahead %}
   {{ block.super }}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -26,6 +28,11 @@
         <span>Appointments value (7 days)</span>
         <strong>CA$ {{ total_sales|floatformat:2 }}</strong>
         <small>Based on scheduled appointments</small>
+      </div>
+      <div class="hero-stat">
+        <span>Revenue (7 days)</span>
+        <strong>CA$ {{ total_sales|floatformat:2 }}</strong>
+        <small>Appointments only</small>
       </div>
       {% endif %}
     </div>
@@ -81,13 +88,6 @@
       {% endif %}
     </article>
 
-    {% if not is_master %}
-    <article class="kpi-card">
-      <small>Revenue (7 days)</small>
-      <div class="kpi-value">CA$ {{ total_sales|floatformat:2 }}</div>
-      <div class="kpi-trend neutral">Appointments only</div>
-    </article>
-    {% endif %}
   </div>
 
   <div class="dashboard-grid{% if not is_master %} dashboard-grid-primary{% endif %}">

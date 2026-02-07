@@ -330,6 +330,7 @@ TEMPLATES = [
                 "core.context_processors_core.currency",
                 "core.context_processors_core.marketing_tags",
                 "core.context_processors_core.topbar_style",
+                "core.context_processors_core.cart_summary",
             ],
         },
     },
@@ -393,10 +394,10 @@ CKEDITOR_CONFIGS = {
     }
 }
 
-# STORAGES = {
-#     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
-#     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-# }
+STORAGES = {
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+}
 
 # S3 для медиа включается переменной USE_S3_MEDIA=1
 if os.getenv("USE_S3_MEDIA") == "1":
@@ -622,6 +623,42 @@ ADMIN_SIDEBAR_SECTIONS = [
                 ],
             },
             {
+                "label": "Email Reporting",
+                "icon": "fas fa-inbox",
+                "items": [
+                    {
+                        "label": "Email overview",
+                        "url": "admin-email-overview",
+                        "icon": "fas fa-chart-line",
+                        "active_patterns": ["admin-email-overview"],
+                        "permissions": ["core.view_emailsendlog"],
+                    },
+                    {
+                        "label": "Send logs",
+                        "url": "admin-email-logs",
+                        "icon": "fas fa-clipboard-list",
+                        "active_patterns": ["admin-email-logs"],
+                        "permissions": ["core.view_emailsendlog"],
+                    },
+                    {
+                        "label": "Email history",
+                        "url": "admin-email-history",
+                        "icon": "fas fa-history",
+                        "active_patterns": ["admin-email-history"],
+                        "permissions": ["core.view_emailsendlog"],
+                    },
+                    {
+                        "label": "Campaign history",
+                        "url": "admin-email-campaign-history",
+                        "icon": "fas fa-paper-plane",
+                        "active_patterns": ["admin-email-campaign-history"],
+                        "permissions": ["core.view_emailcampaign"],
+                    },
+                    {"model": "core.EmailSendLog", "label": "Raw send logs"},
+                    {"model": "core.EmailCampaignRecipient", "label": "Campaign recipients"},
+                ],
+            },
+            {
                 "label": "Messaging",
                 "icon": "fas fa-bell",
                 "items": [
@@ -658,6 +695,9 @@ ADMIN_SIDEBAR_SECTIONS = [
         ],
     },
 ]
+
+# Include the current user's own admin edits in sidebar/notification activity.
+ADMIN_SIDEBAR_INCLUDE_SELF_ACTIVITY = True
 
 JAZZMIN_SETTINGS = {
     "site_title": "BGM Admin",
@@ -700,6 +740,7 @@ JAZZMIN_SETTINGS = {
         "core.EmailCampaign": "fas fa-paper-plane",
         "core.EmailSubscriber": "fas fa-user-plus",
         "core.EmailCampaignRecipient": "fas fa-envelope",
+        "core.EmailSendLog": "fas fa-mail-bulk",
         "core.LandingPageReview": "fas fa-star",
         "core.LegalPage": "fas fa-balance-scale",
         "core.MasterAvailability": "fas fa-business-time",
@@ -794,6 +835,10 @@ LOGGING = {
 
 
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Use non-manifest storage to avoid hard failures on missing manifest entries.
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 # карта sourcemap .css.map по-прежнему может отсутствовать — это ок:
 WHITENOISE_IGNORE_MISSING_FILES = True
+WHITENOISE_MANIFEST_STRICT = False
+# Serve from source static directories if the file is missing from STATIC_ROOT.
+WHITENOISE_USE_FINDERS = True

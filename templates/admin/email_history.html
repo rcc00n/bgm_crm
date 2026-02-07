@@ -1,0 +1,79 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="col-12">
+  <div class="dashboard-shell">
+    <section class="dashboard-hero">
+      <div class="dashboard-hero-content">
+        <div>
+          <p class="panel-subtitle">Aggregate past sends</p>
+          <h1>Email history</h1>
+          {% if window_days %}
+            <p>Last {{ window_days }} days{% if start_date %} · since {{ start_date|date:"M d" }}{% endif %}</p>
+          {% else %}
+            <p>All-time email sends</p>
+          {% endif %}
+          <div class="insights-window">
+            {% for option in window_options %}
+              {% if option == 'all' %}
+                <a class="pill{% if not window_days %} active{% endif %}" href="?window=all">All</a>
+              {% else %}
+                <a class="pill{% if option == window_days %} active{% endif %}" href="?window={{ option }}">{{ option }}d</a>
+              {% endif %}
+            {% endfor %}
+            <a class="pill" href="{% url 'admin-email-overview' %}">Overview</a>
+          </div>
+        </div>
+        <div class="hero-stat">
+          <span>Total sends</span>
+          <strong>{{ overall_total }}</strong>
+          <small>Across all email types</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Email type history</div>
+      <div class="panel-subtitle">Grouped totals, success rate, and last activity.</div>
+      {% if history_rows %}
+        <div class="table-scroll">
+          <table class="analytics-table">
+            <thead>
+              <tr>
+                <th>Reason</th>
+                <th class="numeric">Sends</th>
+                <th class="numeric">Success</th>
+                <th class="numeric">Recipients</th>
+                <th class="numeric">Share</th>
+                <th>Last sent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in history_rows %}
+                <tr>
+                  <td>
+                    <strong><a href="{% url 'admin-email-logs' %}?type={{ row.email_type|urlencode }}">{{ row.reason.label|default:row.email_type }}</a></strong>
+                    {% if row.reason.description %}
+                      <div class="panel-subtitle">{{ row.reason.description }}</div>
+                    {% endif %}
+                    {% if row.reason.category %}
+                      <span class="pill muted">{{ row.reason.category }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="numeric">{{ row.total }}</td>
+                  <td class="numeric">{{ row.success_rate }}%</td>
+                  <td class="numeric">{{ row.recipients }}</td>
+                  <td class="numeric">{{ row.share }}%</td>
+                  <td>{% if row.last_sent %}{{ row.last_sent|date:"M d · H:i" }}{% else %}—{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state"><p>No email history for this window yet.</p></div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.deprecation import MiddlewareMixin
 
 from core.models import AdminSidebarSeen, VisitorSession
+from core.services.ip_location import format_ip_location, get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +56,11 @@ class VisitorAnalyticsMiddleware:
         if not session_key:
             return None
 
+        ip_address = self._get_ip(request)
+        ip_location = format_ip_location(request.META)
         defaults = {
-            "ip_address": self._get_ip(request),
+            "ip_address": ip_address,
+            "ip_location": ip_location,
             "user_agent": (request.META.get("HTTP_USER_AGENT") or "")[:1024],
             "referrer": (request.META.get("HTTP_REFERER") or "")[:512],
             "landing_path": (request.path or "")[:512],
@@ -72,11 +76,13 @@ class VisitorAnalyticsMiddleware:
 
         dirty_fields = []
         if not created:
-            ip = self._get_ip(request)
             user_agent = (request.META.get("HTTP_USER_AGENT") or "")[:1024]
-            if ip and ip != session.ip_address:
-                session.ip_address = ip
+            if ip_address and ip_address != session.ip_address:
+                session.ip_address = ip_address
                 dirty_fields.append("ip_address")
+            if ip_location and ip_location != session.ip_location:
+                session.ip_location = ip_location
+                dirty_fields.append("ip_location")
             if user_agent and user_agent != session.user_agent:
                 session.user_agent = user_agent
                 dirty_fields.append("user_agent")
@@ -114,10 +120,7 @@ class VisitorAnalyticsMiddleware:
 
     @staticmethod
     def _get_ip(request):
-        forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        return request.META.get("REMOTE_ADDR")
+        return get_client_ip(request.META)
 
     @staticmethod
     def _snapshot_user(user):

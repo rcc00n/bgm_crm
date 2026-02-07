@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db.models import Sum
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.templatetags.static import static
+from django.contrib.staticfiles import finders
 
 from storages.backends.s3boto3 import S3Boto3Storage
 # --- 1. ROLES ---
@@ -750,6 +751,46 @@ class HomePageCopy(models.Model):
         return obj
 
 
+class HomePageFAQItem(models.Model):
+    home_page_copy = models.ForeignKey(
+        HomePageCopy,
+        on_delete=models.CASCADE,
+        related_name="faq_items",
+    )
+    order = models.PositiveIntegerField(default=0)
+    question = models.CharField(max_length=160)
+    answer = models.TextField()
+    is_published = models.BooleanField(
+        default=True,
+        help_text="If unchecked, this FAQ is saved as a draft and will not be shown on the website.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Home page FAQ"
+        verbose_name_plural = "Home page FAQs"
+        ordering = ("order", "id")
+
+    def save(self, *args, **kwargs):
+        # Default new items to the end of the list for this page copy.
+        if self.home_page_copy_id and (self.order or 0) == 0:
+            max_order = (
+                HomePageFAQItem.objects.filter(home_page_copy_id=self.home_page_copy_id)
+                .exclude(pk=self.pk)
+                .aggregate(max=models.Max("order"))
+                .get("max")
+            )
+            self.order = (max_order or 0) + 1
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        question = (self.question or "").strip()
+        if question:
+            return question[:60]
+        return f"FAQ #{self.pk}"
+
+
 class ServicesPageCopy(models.Model):
     """
     Editable static text for the services catalog page.
@@ -1081,6 +1122,11 @@ class ClientPortalPageCopy(models.Model):
     rates_shop_value = models.CharField(max_length=40, default="130/hr")
     rates_cad_label = models.CharField(max_length=60, default="Design/CAD rate")
     rates_cad_value = models.CharField(max_length=40, default="150/hr")
+    rates_customer_parts_label = models.CharField(
+        max_length=80,
+        default="Customer supplied parts",
+    )
+    rates_customer_parts_value = models.CharField(max_length=40, default="145/hr")
     quick_facts_title = models.CharField(max_length=60, default="Quick facts")
     quick_fact_1 = models.CharField(max_length=160, default="Alberta-made parts, built in Medicine Hat")
     quick_fact_2 = models.CharField(max_length=160, default="Custom fabrication, diesel performance, coatings")
@@ -1634,6 +1680,19 @@ class AboutPageCopy(models.Model):
     rates_shop_value = models.CharField(max_length=40, default="130/hr")
     rates_cad_label = models.CharField(max_length=60, default="Design/CAD rate")
     rates_cad_value = models.CharField(max_length=40, default="150/hr")
+    rates_customer_parts_label = models.CharField(
+        max_length=80,
+        default="Customer supplied parts",
+    )
+    rates_customer_parts_value = models.CharField(max_length=40, default="145/hr")
+    rates_policies = models.TextField(
+        default=(
+            "Deposits secure your slot; balance due on delivery.\n"
+            "Storage fees may apply for completed items not picked up promptly.\n"
+            "Warranty & support — if it isn’t right, we make it right."
+        ),
+        help_text="One policy per line.",
+    )
     rates_policy_1 = models.CharField(
         max_length=160,
         default="Deposits secure your slot; balance due on delivery.",
@@ -2220,7 +2279,14 @@ class FontPreset(models.Model):
             except Exception:
                 pass
         if self.static_path:
-            return static(self.static_path)
+            try:
+                return static(self.static_path)
+            except Exception:
+                try:
+                    if finders.find(self.static_path):
+                        return f"{settings.STATIC_URL}{self.static_path.lstrip('/')}"
+                except Exception:
+                    pass
         return ""
 
     @property
@@ -2318,6 +2384,30 @@ class TopbarSettings(models.Model):
         related_name="topbar_brand_settings",
         help_text="Font used for the business name in the top bar.",
     )
+    brand_word_white_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_brand_word_white_settings",
+        help_text="Optional font override for the first brand word.",
+    )
+    brand_word_red_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_brand_word_red_settings",
+        help_text="Optional font override for the third brand word.",
+    )
+    brand_word_middle_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_brand_word_middle_settings",
+        help_text="Optional font override for the middle brand word.",
+    )
     nav_font = models.ForeignKey(
         FontPreset,
         on_delete=models.SET_NULL,
@@ -2325,6 +2415,49 @@ class TopbarSettings(models.Model):
         blank=True,
         related_name="topbar_nav_settings",
         help_text="Font used for navigation links and badges.",
+    )
+    tagline_word_1_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_tagline_word_1_settings",
+        help_text="Optional font override for the first tagline word.",
+    )
+    tagline_word_2_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_tagline_word_2_settings",
+        help_text="Optional font override for the second tagline word.",
+    )
+    tagline_word_3_font = models.ForeignKey(
+        FontPreset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="topbar_tagline_word_3_settings",
+        help_text="Optional font override for the third tagline word.",
+    )
+
+    tagline_word_1_text = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        help_text="Optional override for the first tagline word.",
+    )
+    tagline_word_2_text = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        help_text="Optional override for the second tagline word.",
+    )
+    tagline_word_3_text = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        help_text="Optional override for the third tagline word.",
     )
 
     brand_size_desktop = models.CharField(
@@ -2362,6 +2495,165 @@ class TopbarSettings(models.Model):
         max_length=16,
         default="0.95rem",
         help_text="CSS padding-block for the top bar (desktop).",
+    )
+    order_brand = models.CharField(
+        max_length=8,
+        default="1",
+        help_text="CSS order for the brand block.",
+    )
+    order_tagline = models.CharField(
+        max_length=8,
+        default="2",
+        help_text="CSS order for the tagline block.",
+    )
+    order_nav = models.CharField(
+        max_length=8,
+        default="3",
+        help_text="CSS order for the navigation block.",
+    )
+    brand_word_1_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the first brand word.",
+    )
+    brand_word_2_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the second brand word.",
+    )
+    brand_word_3_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the third brand word.",
+    )
+    brand_word_1_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the first brand word.",
+    )
+    brand_word_2_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the second brand word.",
+    )
+    brand_word_3_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the third brand word.",
+    )
+    brand_word_1_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the first brand word.",
+    )
+    brand_word_2_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the second brand word.",
+    )
+    brand_word_3_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the third brand word.",
+    )
+    brand_word_1_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the first brand word (normal/italic).",
+    )
+    brand_word_2_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the second brand word (normal/italic).",
+    )
+    brand_word_3_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the third brand word (normal/italic).",
+    )
+    tagline_word_1_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the first tagline word.",
+    )
+    tagline_word_2_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the second tagline word.",
+    )
+    tagline_word_3_color = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        help_text="CSS color for the third tagline word.",
+    )
+    tagline_word_1_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the first tagline word.",
+    )
+    tagline_word_2_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the second tagline word.",
+    )
+    tagline_word_3_size = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-size for the third tagline word.",
+    )
+    tagline_word_1_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the first tagline word.",
+    )
+    tagline_word_2_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the second tagline word.",
+    )
+    tagline_word_3_weight = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-weight for the third tagline word.",
+    )
+    tagline_word_1_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the first tagline word (normal/italic).",
+    )
+    tagline_word_2_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the second tagline word (normal/italic).",
+    )
+    tagline_word_3_style = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="CSS font-style for the third tagline word (normal/italic).",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -2427,6 +2719,16 @@ class ProjectJournalEntry(models.Model):
     )
     body = models.TextField()
     cover_image = models.ImageField(upload_to="project-journal/", blank=True, null=True)
+    before_gallery = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of before photos as JSON (e.g. [{\"url\":\"...\",\"alt\":\"...\"}] or [\"url1\",\"url2\"]).",
+    )
+    after_gallery = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of after photos as JSON (e.g. [{\"url\":\"...\",\"alt\":\"...\"}] or [\"url1\",\"url2\"]).",
+    )
     tags = models.CharField(
         max_length=160,
         blank=True,
@@ -2516,6 +2818,34 @@ class ProjectJournalEntry(models.Model):
             self.published_at = None
 
         super().save(*args, **kwargs)
+
+class ProjectJournalPhoto(models.Model):
+    class Kind(models.TextChoices):
+        BEFORE = "before", "Before"
+        AFTER = "after", "After"
+
+    entry = models.ForeignKey(
+        ProjectJournalEntry,
+        on_delete=models.CASCADE,
+        related_name="photos",
+    )
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    image = models.ImageField(upload_to="project-journal/photos/")
+    alt_text = models.CharField(max_length=140, blank=True)
+    sort_order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Lower numbers show first.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Project journal photo"
+        verbose_name_plural = "Project journal photos"
+        ordering = ("sort_order", "created_at")
+
+    def __str__(self) -> str:
+        title = self.entry.title if self.entry_id else "Project journal photo"
+        return f"{title} ({self.get_kind_display()})"
 
 class HeroImage(models.Model):
     """
@@ -2773,6 +3103,11 @@ class UserProfile(models.Model):
     email_marketing_consented_at = models.DateTimeField(null=True, blank=True)
     email_product_updates = models.BooleanField(default=False)
     email_service_updates = models.BooleanField(default=False)
+    admin_notification_disabled_sections = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Admin notification section keys disabled for this user.",
+    )
     how_heard = models.CharField(max_length=32, choices=HowHeard.choices, blank=True)
     email_verified_at = models.DateTimeField(null=True, blank=True)
     email_verification_sent_at = models.DateTimeField(null=True, blank=True)
@@ -3658,6 +3993,7 @@ class LeadSubmissionEvent(models.Model):
     suspicion_score = models.PositiveSmallIntegerField(default=0)
     validation_errors = models.TextField(blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
+    ip_location = models.CharField(max_length=255, blank=True)
     user_agent = models.TextField(blank=True)
     accept_language = models.CharField(max_length=512, blank=True)
     referer = models.CharField(max_length=600, blank=True)
@@ -3750,6 +4086,7 @@ class VisitorSession(models.Model):
     user_email_snapshot = models.EmailField(blank=True)
     user_name_snapshot = models.CharField(max_length=255, blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
+    ip_location = models.CharField(max_length=255, blank=True)
     user_agent = models.TextField(blank=True)
     referrer = models.URLField(max_length=512, blank=True)
     landing_path = models.CharField(max_length=512, blank=True)

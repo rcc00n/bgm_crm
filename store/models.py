@@ -254,6 +254,18 @@ class Product(models.Model):
         validators=[MinValueValidator(0)],
         help_text="Optional hint that displays as “From $X”.",
     )
+    option_column_1_label = models.CharField(
+        "Option column 1 label",
+        max_length=60,
+        blank=True,
+        help_text="Heading shown above the first option column on the product page.",
+    )
+    option_column_2_label = models.CharField(
+        "Option column 2 label",
+        max_length=60,
+        blank=True,
+        help_text="Heading shown above the second option column on the product page.",
+    )
 
     # SEO/meta
     short_description = models.CharField(max_length=240, blank=True)
@@ -399,6 +411,12 @@ class ProductOption(models.Model):
         "Separator",
         default=False,
         help_text="Show this option as a non-selectable separator in the option list.",
+    )
+    option_column = models.PositiveSmallIntegerField(
+        "Display column",
+        default=1,
+        choices=((1, "Column 1"), (2, "Column 2")),
+        help_text="Which option column to show this option under on the product page.",
     )
     price = models.DecimalField(
         "Price override",

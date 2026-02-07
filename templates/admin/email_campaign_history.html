@@ -1,0 +1,133 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="col-12">
+  <div class="dashboard-shell">
+    <section class="dashboard-hero">
+      <div class="dashboard-hero-content">
+        <div>
+          <p class="panel-subtitle">Past campaign sends</p>
+          <h1>Email campaign history</h1>
+          {% if window_days %}
+            <p>Last {{ window_days }} days{% if start_date %} · since {{ start_date|date:"M d" }}{% endif %}</p>
+          {% else %}
+            <p>All campaigns</p>
+          {% endif %}
+          <div class="insights-window">
+            {% for option in window_options %}
+              {% if option == 'all' %}
+                <a class="pill{% if not window_days %} active{% endif %}" href="?window=all">All</a>
+              {% else %}
+                <a class="pill{% if option == window_days %} active{% endif %}" href="?window={{ option }}">{{ option }}d</a>
+              {% endif %}
+            {% endfor %}
+          </div>
+          <div class="insights-window">
+            <a class="pill{% if not status_filter %} active{% endif %}" href="?{{ window_param }}">All statuses</a>
+            <a class="pill{% if status_filter == 'draft' %} active{% endif %}" href="?status=draft&{{ window_param }}">Draft</a>
+            <a class="pill{% if status_filter == 'sending' %} active{% endif %}" href="?status=sending&{{ window_param }}">Sending</a>
+            <a class="pill{% if status_filter == 'sent' %} active{% endif %}" href="?status=sent&{{ window_param }}">Sent</a>
+            <a class="pill{% if status_filter == 'partial' %} active{% endif %}" href="?status=partial&{{ window_param }}">Partial</a>
+            <a class="pill{% if status_filter == 'failed' %} active{% endif %}" href="?status=failed&{{ window_param }}">Failed</a>
+          </div>
+        </div>
+        <div class="hero-stat">
+          <span>Total campaigns</span>
+          <strong>{{ stats.total }}</strong>
+          <small>{{ stats.sent }} sent · {{ stats.failed }} failed</small>
+        </div>
+        <div class="hero-stat">
+          <span>Delivered emails</span>
+          <strong>{{ stats.sent_total }}</strong>
+          <small>{{ stats.success_rate }}% success</small>
+        </div>
+      </div>
+    </section>
+
+    <div class="kpi-grid">
+      <article class="kpi-card">
+        <small>Recipients targeted</small>
+        <div class="kpi-value">{{ stats.recipients_total }}</div>
+        <div class="kpi-trend neutral">{{ stats.failed_total }} failed</div>
+      </article>
+      <article class="kpi-card">
+        <small>Draft campaigns</small>
+        <div class="kpi-value">{{ stats.draft }}</div>
+        <div class="kpi-trend neutral">Sending {{ stats.sending }}</div>
+      </article>
+    </div>
+
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Campaigns</div>
+      <div class="panel-subtitle">Page {{ pagination.page }} of {{ pagination.total_pages }}</div>
+      {% if rows %}
+        <div class="table-scroll">
+          <table class="analytics-table">
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th>Status</th>
+                <th class="numeric">Recipients</th>
+                <th class="numeric">Sent</th>
+                <th class="numeric">Success</th>
+                <th>Sent at</th>
+                <th>Links</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                <tr>
+                  <td>
+                    <strong>{{ row.campaign.name }}</strong>
+                    <div class="panel-subtitle">{{ row.campaign.subject }}</div>
+                  </td>
+                  <td>
+                    <span class="status-pill {{ row.campaign.status }}">
+                      {{ row.campaign.get_status_display }}
+                    </span>
+                  </td>
+                  <td class="numeric">{{ row.campaign.recipients_total }}</td>
+                  <td class="numeric">{{ row.campaign.sent_count }}</td>
+                  <td class="numeric">{{ row.success_rate }}%</td>
+                  <td>
+                    {% if row.campaign.send_completed_at %}
+                      {{ row.campaign.send_completed_at|date:"M d · H:i" }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{{ row.change_url }}">Open</a>
+                    {% if row.recipients_url %}
+                      · <a href="{{ row.recipients_url }}">Recipients</a>
+                    {% endif %}
+                    {% if row.logs_url %}
+                      · <a href="{{ row.logs_url }}">Logs</a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="action-history-pagination">
+          {% if pagination.has_previous %}
+            <a class="page-link" href="?page={{ pagination.prev_page }}&per_page={{ pagination.per_page }}&{{ window_param }}{% if status_filter %}&status={{ status_filter }}{% endif %}">Prev</a>
+          {% else %}
+            <span class="page-link disabled">Prev</span>
+          {% endif %}
+          <span class="page-status">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+          {% if pagination.has_next %}
+            <a class="page-link" href="?page={{ pagination.next_page }}&per_page={{ pagination.per_page }}&{{ window_param }}{% if status_filter %}&status={{ status_filter }}{% endif %}">Next</a>
+          {% else %}
+            <span class="page-link disabled">Next</span>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="empty-state"><p>No campaigns for this filter.</p></div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

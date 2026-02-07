@@ -15,8 +15,8 @@ from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import Http404
-from django.views.decorators.http import require_POST
+from django.http import Http404, JsonResponse
+from django.views.decorators.http import require_GET, require_POST
 from PIL import Image, UnidentifiedImageError
 from square.client import Square, SquareEnvironment
 
@@ -233,6 +233,66 @@ def _apply_filters(qs, form: ProductFilterForm):
         )
 
     return qs.distinct()
+
+
+def _normalize_search_text(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").strip().lower())
+
+
+def _score_product_match(product: Product, query: str, tokens: list[str]) -> int:
+    """
+    Simple relevance scoring for live-search. Keep it deterministic and fast.
+    """
+    qn = _normalize_search_text(query)
+    if not qn:
+        return 0
+    name = _normalize_search_text(getattr(product, "name", "") or "")
+    sku = _normalize_search_text(getattr(product, "sku", "") or "")
+    cat = ""
+    try:
+        cat = _normalize_search_text(getattr(product.category, "display_name", "") or getattr(product.category, "name", "") or "")
+    except Exception:
+        cat = ""
+    desc = _normalize_search_text(getattr(product, "short_description", "") or "")
+
+    score = 0
+    if qn in name:
+        score += 200
+        if name.startswith(qn):
+            score += 40
+    if qn in sku:
+        score += 180
+        if sku.startswith(qn):
+            score += 30
+    if qn in cat:
+        score += 60
+    if qn in desc:
+        score += 20
+
+    for token in tokens:
+        if token in name:
+            score += 12
+        if token in sku:
+            score += 10
+        if token in cat:
+            score += 4
+        if token in desc:
+            score += 2
+    return score
+
+
+def _rank_products(qs, query: str, limit: int = 60):
+    products = list(qs)
+    if not query:
+        products.sort(key=lambda p: (getattr(p, "name", "") or "").lower())
+        return products[:limit]
+
+    tokens = [t for t in re.split(r"[^a-z0-9]+", _normalize_search_text(query)) if t]
+    scored = [(p, _score_product_match(p, query, tokens)) for p in products]
+    positive = [pair for pair in scored if pair[1] > 0]
+    ranked = positive if positive else scored
+    ranked.sort(key=lambda pair: (-pair[1], (getattr(pair[0], "name", "") or "").lower()))
+    return [p for p, _ in ranked[:limit]]
 
 
 def _quote_notification_recipients() -> list[str]:
@@ -525,7 +585,11 @@ def _send_order_confirmation(
 
 def store_home(request):
     categories = Category.objects.filter(products__is_active=True).distinct()
-    form = ProductFilterForm(request.GET or None)
+    form_data = request.GET.copy()
+    if form_data.get("cat") and not form_data.get("category"):
+        form_data["category"] = form_data.get("cat")
+    q = (form_data.get("q") or "").strip()
+    form = ProductFilterForm(form_data or None)
 
     base_qs = (
         Product.objects.filter(is_active=True)
@@ -535,9 +599,21 @@ def store_home(request):
     )
 
     filtered_qs = _apply_filters(base_qs, form)
+    if q:
+        tokens = [t for t in re.split(r"[^a-z0-9]+", q.lower()) if t]
+        if tokens:
+            q_obj = Q()
+            for token in tokens:
+                q_obj &= (
+                    Q(name__icontains=token)
+                    | Q(sku__icontains=token)
+                    | Q(short_description__icontains=token)
+                    | Q(category__name__icontains=token)
+                )
+            filtered_qs = filtered_qs.filter(q_obj)
 
     # Блок "New arrivals" показываем только если фильтр НЕ применён
-    filters_active = form.is_valid() and any(form.cleaned_data.values())
+    filters_active = bool(q) or (form.is_valid() and any(form.cleaned_data.values()))
     new_arrivals = None if filters_active else base_qs[:8]
 
     # Секции по всем категориям
@@ -560,10 +636,73 @@ def store_home(request):
         "new_arrivals": new_arrivals,
         "sections": sections,
         "store_copy": StorePageCopy.get_solo(),
+        "q": q,
     }
     context["page_sections"] = get_page_sections(context["store_copy"])
     context["font_settings"] = build_page_font_context(PageFontSetting.Page.STORE)
     return render(request, "store/store_home.html", context)
+
+
+@require_GET
+def product_search(request):
+    q = (request.GET.get("q") or "").strip()
+    cat = (request.GET.get("cat") or "").strip()
+    if cat and not cat.isdigit():
+        cat = ""
+
+    all_qs = (
+        Product.objects.filter(is_active=True)
+        .select_related("category")
+        .prefetch_related("options")
+    )
+    qs = all_qs
+    if cat:
+        qs = qs.filter(category_id=cat)
+
+    ranked = []
+    if not q:
+        ranked = list(qs.order_by("name")[:60])
+    else:
+        tokens = [t for t in re.split(r"[^a-z0-9]+", q.lower()) if t]
+        if tokens:
+            q_obj = Q()
+            for token in tokens:
+                q_obj &= (
+                    Q(name__icontains=token)
+                    | Q(sku__icontains=token)
+                    | Q(short_description__icontains=token)
+                    | Q(category__name__icontains=token)
+                )
+            qs = qs.filter(q_obj)
+        # Rank a bounded candidate set to keep response snappy.
+        ranked = _rank_products(qs.order_by("-created_at")[:400], q, limit=60)
+        if not ranked and all_qs.exists():
+            ranked = _rank_products(all_qs.order_by("-created_at")[:400], q, limit=60)
+
+    results = []
+    for p in ranked:
+        cat_name = ""
+        try:
+            cat_name = p.category.display_name
+        except Exception:
+            cat_name = ""
+        results.append(
+            {
+                "id": str(p.id),
+                "slug": getattr(p, "slug", "") or "",
+                "url": p.get_absolute_url(),
+                "name": p.name,
+                "category": cat_name,
+                "short_description": (getattr(p, "short_description", "") or "")[:280],
+                "contact_for_estimate": bool(getattr(p, "contact_for_estimate", False)),
+                "estimate_from_price": str(p.estimate_from_price) if getattr(p, "estimate_from_price", None) is not None else "",
+                "display_price": str(p.display_price),
+                "has_option_price_overrides": bool(getattr(p, "has_option_price_overrides", False)),
+                "has_active_options": bool(getattr(p, "has_active_options", False)),
+                "image": p.main_image_url,
+            }
+        )
+    return JsonResponse({"results": results})
 
 
 def category_list(request, slug):
@@ -599,6 +738,9 @@ def product_detail(request, slug: str):
         messages.info(request, "This product is no longer available. Explore other parts below.")
         return redirect("store:store")
     options = product.get_active_options()
+    options_col_1 = [opt for opt in options if getattr(opt, "option_column", 1) == 1]
+    options_col_2 = [opt for opt in options if getattr(opt, "option_column", 1) == 2]
+    options_two_column = bool(options_col_1) and bool(options_col_2)
     default_option = next((opt for opt in options if not getattr(opt, "is_separator", False)), None)
     related = (
         Product.objects.filter(is_active=True, category=product.category)
@@ -639,6 +781,9 @@ def product_detail(request, slug: str):
             "product": product,
             "related": related,
             "product_options": options,
+            "options_col_1": options_col_1,
+            "options_col_2": options_col_2,
+            "options_two_column": options_two_column,
             "default_option_id": default_option.id if default_option else None,
             "go_along": go_along,
             "quote_form": quote_form,

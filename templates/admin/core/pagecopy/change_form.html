@@ -152,6 +152,51 @@
       align-items: center;
     }
 
+    .pagecopy-preview__menu {
+      position: relative;
+    }
+
+    .pagecopy-preview__menu-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      min-width: 260px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      box-shadow: 0 18px 30px rgba(15, 23, 42, 0.18);
+      display: none;
+      z-index: 20;
+    }
+
+    .pagecopy-preview__menu.is-open .pagecopy-preview__menu-panel {
+      display: block;
+    }
+
+    .pagecopy-preview__menu-group {
+      margin-bottom: 12px;
+    }
+
+    .pagecopy-preview__menu-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .pagecopy-preview__menu-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+
+    .pagecopy-preview__menu-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
     .pagecopy-preview__actions .button.is-active {
       background: #2563eb;
       border-color: #2563eb;
@@ -236,6 +281,14 @@
       }
     }
 
+    @media (max-width: 640px) {
+      .pagecopy-preview__menu-panel {
+        right: auto;
+        left: 0;
+        min-width: min(92vw, 320px);
+      }
+    }
+
     @media (min-width: 992px) {
       body.pagecopy-preview .submit-row,
       body.pagecopy-preview .object-tools {
@@ -257,21 +310,41 @@
       </div>
       <div class="pagecopy-preview__actions">
         <div class="pagecopy-preview__status" data-pagecopy-status data-state="idle">Autosave ready</div>
-        <div class="pagecopy-preview__actions-group">
-          <button type="button" class="button default" data-pagecopy-save>Save</button>
-          <button type="button" class="button" data-pagecopy-refresh>Refresh preview</button>
-          {% if pagecopy_preview_url %}
-            <a class="button" href="{{ pagecopy_preview_url }}" target="_blank" rel="noopener">Open preview</a>
-          {% endif %}
-        </div>
-        <div class="pagecopy-preview__actions-group">
-          <button type="button" class="button" data-pagecopy-mode="desktop">Desktop</button>
-          <button type="button" class="button" data-pagecopy-mode="mobile">Mobile</button>
-        </div>
-        <div class="pagecopy-preview__actions-group">
-          <button type="button" class="button" data-pagecopy-layout-toggle>Move elements</button>
-          <button type="button" class="button" data-pagecopy-layout-reset>Reset positions</button>
-          <button type="button" class="button" data-pagecopy-section-toggle>Move sections</button>
+        <div class="pagecopy-preview__menu" data-pagecopy-menu>
+          <button type="button" class="button" data-pagecopy-menu-toggle aria-expanded="false">Actions</button>
+          <div class="pagecopy-preview__menu-panel" data-pagecopy-menu-panel>
+            <div class="pagecopy-preview__menu-group">
+              <div class="pagecopy-preview__menu-title">Publish</div>
+              <div class="pagecopy-preview__menu-buttons">
+                <button type="button" class="button default" data-pagecopy-save>Publish</button>
+                <button type="button" class="button" data-pagecopy-draft>Save draft</button>
+              </div>
+            </div>
+            <div class="pagecopy-preview__menu-group">
+              <div class="pagecopy-preview__menu-title">Preview</div>
+              <div class="pagecopy-preview__menu-buttons">
+                <button type="button" class="button" data-pagecopy-refresh>Refresh preview</button>
+                {% if pagecopy_preview_url %}
+                  <a class="button" href="{{ pagecopy_preview_url }}" target="_blank" rel="noopener">Open preview</a>
+                {% endif %}
+              </div>
+            </div>
+            <div class="pagecopy-preview__menu-group">
+              <div class="pagecopy-preview__menu-title">Viewport</div>
+              <div class="pagecopy-preview__menu-buttons">
+                <button type="button" class="button" data-pagecopy-mode="desktop">Desktop</button>
+                <button type="button" class="button" data-pagecopy-mode="mobile">Mobile</button>
+              </div>
+            </div>
+            <div class="pagecopy-preview__menu-group">
+              <div class="pagecopy-preview__menu-title">Layout</div>
+              <div class="pagecopy-preview__menu-buttons">
+                <button type="button" class="button" data-pagecopy-layout-toggle>Move elements</button>
+                <button type="button" class="button" data-pagecopy-layout-reset>Reset positions</button>
+                <button type="button" class="button" data-pagecopy-section-toggle>Move sections</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -407,6 +480,8 @@
   </div>
   {% endif %}
   {{ pagecopy_draft_data|json_script:"pagecopyDraftData" }}
+  {{ pagecopy_meta|json_script:"pagecopyMeta" }}
+  {{ pagecopy_text_fields|json_script:"pagecopyTextFields" }}
   {% if page_font_page %}
     {{ page_font_page|json_script:"pagecopyFontPage" }}
     {{ page_font_styles|json_script:"pagecopyFontStyles" }}
@@ -423,6 +498,7 @@
       const form = document.querySelector('#content-main form');
       const frame = document.querySelector('[data-pagecopy-preview-frame]');
       const saveButton = document.querySelector('[data-pagecopy-save]');
+      const draftButton = document.querySelector('[data-pagecopy-draft]');
       const refreshButton = document.querySelector('[data-pagecopy-refresh]');
       const frameWrap = document.querySelector('.pagecopy-preview__frame-wrap');
       const modeButtons = Array.from(document.querySelectorAll('[data-pagecopy-mode]'));
@@ -431,6 +507,8 @@
       const sectionToggle = document.querySelector('[data-pagecopy-section-toggle]');
       const layoutField = form ? form.querySelector('[name="layout_overrides"]') : null;
       const statusIndicator = document.querySelector('[data-pagecopy-status]');
+      const menu = document.querySelector('[data-pagecopy-menu]');
+      const menuToggle = document.querySelector('[data-pagecopy-menu-toggle]');
       if (!form) {
         if (document.body) {
           document.body.classList.remove('pagecopy-section-config-pending');
@@ -443,6 +521,7 @@
       const hasPreview = !!previewUrl;
       const sectionLayoutSaveUrl = "{{ page_section_layout_save_url|default:'' }}";
       const sectionOrderSaveUrl = "{{ page_section_order_save_url|default:'' }}";
+      const draftSaveUrl = "{{ pagecopy_save_draft_url|default:'' }}";
 
       let renderTimer = null;
       let renderInFlight = false;
@@ -470,12 +549,47 @@
         }
       }
 
+      const metaScript = document.getElementById('pagecopyMeta');
+      let pagecopyMeta = {};
+      if (metaScript) {
+        try {
+          pagecopyMeta = JSON.parse(metaScript.textContent || '{}') || {};
+        } catch (err) {
+          pagecopyMeta = {};
+        }
+      }
+
+      const textFieldsScript = document.getElementById('pagecopyTextFields');
+      let textFields = [];
+      if (textFieldsScript) {
+        try {
+          textFields = JSON.parse(textFieldsScript.textContent || '[]') || [];
+        } catch (err) {
+          textFields = [];
+        }
+      }
+      if (!Array.isArray(textFields)) {
+        textFields = [];
+      }
+      const normalizedTextFields = textFields
+        .map((item) => {
+          if (typeof item === 'string') {
+            return { name: item, type: 'plain' };
+          }
+          if (item && typeof item === 'object' && item.name) {
+            return { name: item.name, type: item.type || 'plain' };
+          }
+          return null;
+        })
+        .filter(Boolean);
+      const textFieldNames = normalizedTextFields.map((item) => item.name);
+
       const STATUS_LABELS = {
         idle: 'Autosave ready',
-        dirty: 'Unsaved changes - click Save',
+        dirty: 'Unsaved changes - click Publish',
         saving: 'Saving draft...',
-        saved: 'Draft saved - click Save',
-        error: 'Autosave failed - click Save',
+        saved: 'Draft saved - click Publish',
+        error: 'Autosave failed - click Publish',
       };
 
       const setStatus = (state, message) => {
@@ -483,6 +597,33 @@
         statusIndicator.dataset.state = state || 'idle';
         statusIndicator.textContent = message || STATUS_LABELS[state] || STATUS_LABELS.idle;
       };
+
+      const closeMenu = () => {
+        if (!menu) return;
+        menu.classList.remove('is-open');
+        if (menuToggle) {
+          menuToggle.setAttribute('aria-expanded', 'false');
+        }
+      };
+
+      if (menuToggle && menu) {
+        menuToggle.addEventListener('click', (event) => {
+          event.preventDefault();
+          const nextOpen = !menu.classList.contains('is-open');
+          menu.classList.toggle('is-open', nextOpen);
+          menuToggle.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+        });
+        document.addEventListener('click', (event) => {
+          if (!menu.contains(event.target)) {
+            closeMenu();
+          }
+        });
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            closeMenu();
+          }
+        });
+      }
 
       const applyDraftData = (payload) => {
         if (!payload || !form) return;
@@ -505,7 +646,7 @@
         });
         suppressRender = false;
         suppressStatus = false;
-        setStatus('saved', 'Draft restored - click Save');
+        setStatus('saved', 'Draft restored - click Publish');
       };
 
       const setupSectionSorting = () => {
@@ -849,6 +990,50 @@
         return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
       };
 
+      const readInputValue = (input) => {
+        if (!input) return '';
+        if (window.CKEDITOR && input.id && CKEDITOR.instances && CKEDITOR.instances[input.id]) {
+          return CKEDITOR.instances[input.id].getData();
+        }
+        if (input.type === 'checkbox') {
+          return input.checked ? 'true' : 'false';
+        }
+        return input.value == null ? '' : input.value;
+      };
+
+      const collectFormValues = () => {
+        const payload = {};
+        textFieldNames.forEach((name) => {
+          const input = form.querySelector(`[name="${safeEscape(name)}"]`);
+          if (!input) return;
+          payload[name] = readInputValue(input);
+        });
+        return payload;
+      };
+
+      const applyValuesToForm = (payload) => {
+        if (!payload || !form) return;
+        const entries = Object.entries(payload);
+        if (!entries.length) return;
+        suppressRender = true;
+        suppressStatus = true;
+        entries.forEach(([field, value]) => {
+          const input = form.querySelector(`[name="${safeEscape(field)}"]`);
+          if (!input) return;
+          if (input.type === 'checkbox') {
+            input.checked = value === true || value === 'true';
+          } else {
+            input.value = value == null ? '' : value;
+            if (window.CKEDITOR && input.id && CKEDITOR.instances && CKEDITOR.instances[input.id]) {
+              CKEDITOR.instances[input.id].setData(value == null ? '' : value);
+            }
+          }
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        suppressRender = false;
+        suppressStatus = false;
+      };
+
       const getCookie = (name) => {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
@@ -856,6 +1041,32 @@
           return decodeURIComponent(parts.pop().split(';').shift());
         }
         return '';
+      };
+
+      const requestPreviewValues = () => {
+        if (!frame || !frame.contentWindow) {
+          return Promise.resolve(null);
+        }
+        const nonce = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        return new Promise((resolve) => {
+          let settled = false;
+          const handler = (event) => {
+            const data = event.data || {};
+            if (data.type !== 'pagecopy:values' || data.nonce !== nonce) {
+              return;
+            }
+            settled = true;
+            window.removeEventListener('message', handler);
+            resolve(data.values || null);
+          };
+          window.addEventListener('message', handler);
+          window.setTimeout(() => {
+            if (settled) return;
+            window.removeEventListener('message', handler);
+            resolve(null);
+          }, 1200);
+          frame.contentWindow.postMessage({ type: 'pagecopy:request-values', nonce }, '*');
+        });
       };
 
       const sectionLayoutTimers = new Map();
@@ -1091,7 +1302,78 @@
         refreshButton.addEventListener('click', () => renderPreview());
       }
       if (saveButton) {
-        saveButton.addEventListener('click', () => form.submit());
+        saveButton.addEventListener('click', async () => {
+          closeMenu();
+          setStatus('saving', 'Preparing publish...');
+          const values = await requestPreviewValues();
+          if (values) {
+            applyValuesToForm(values);
+          }
+          if (window.CKEDITOR && CKEDITOR.instances) {
+            Object.values(CKEDITOR.instances).forEach((instance) => {
+              if (instance && typeof instance.updateElement === 'function') {
+                instance.updateElement();
+              }
+            });
+          }
+          form.submit();
+        });
+      }
+      if (draftButton) {
+        if (!pagecopyMeta || !pagecopyMeta.model || !pagecopyMeta.object_id || !draftSaveUrl) {
+          draftButton.disabled = true;
+          draftButton.title = 'Drafts are available after the first save.';
+        }
+        draftButton.addEventListener('click', async () => {
+          closeMenu();
+          if (!draftSaveUrl || !pagecopyMeta || !pagecopyMeta.model || !pagecopyMeta.object_id) {
+            setStatus('error', 'Draft save unavailable');
+            return;
+          }
+          setStatus('saving', 'Saving draft...');
+          const values = (await requestPreviewValues()) || collectFormValues();
+          if (values) {
+            applyValuesToForm(values);
+          }
+          const payload = {};
+          textFieldNames.forEach((name) => {
+            if (values && Object.prototype.hasOwnProperty.call(values, name)) {
+              payload[name] = values[name];
+              return;
+            }
+            const input = form.querySelector(`[name="${safeEscape(name)}"]`);
+            if (!input) return;
+            payload[name] = readInputValue(input);
+          });
+          if (!Object.keys(payload).length) {
+            setStatus('error', 'No draft fields found');
+            return;
+          }
+          fetch(draftSaveUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+              model: pagecopyMeta.model,
+              object_id: pagecopyMeta.object_id,
+              data: payload,
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error('Draft update failed');
+              return response.json();
+            })
+            .then(() => {
+              setStatus('saved', 'Draft saved');
+            })
+            .catch(() => {
+              setStatus('error', 'Draft save failed');
+            });
+        });
       }
 
       modeButtons.forEach((button) => {

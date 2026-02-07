@@ -1,0 +1,94 @@
+{% load calendar_filter %}
+<div class="scrollable" style="--master-count: {{ masters|length|default:1 }};">
+    <table class="calendar-table">
+        <thead>
+        <tr>
+            <th class="time-col"></th>
+            {% for master in masters %}
+                <th class="master-col">
+                    <div class="master-header">
+                        <div class="initials-circle">
+                            {{ master.first_name|slice:":1" }}{{ master.last_name|slice:":1" }}
+                        </div>
+                        <div class="master-name">
+                            {{ master.first_name }} {{ master.last_name }}
+                        </div>
+                    </div>
+                </th>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in calendar_table %}
+            <tr>
+                <td class="time-col">
+                    {% if forloop.first or forloop.counter0|divisibleby:4 %}
+                        {{ row.time|string_to_ampm }}
+                    {% endif %}
+                </td>
+                {% for cell in row.cells %}
+                    {% if cell.skip %}
+                        {# ничего не рендерим, пропускаем #}
+
+                    {% elif cell.unavailable %}
+                        <td rowspan="{{ cell.rowspan }}" class="unavailable-cell"
+                            data-reason="{{ cell.reason }}"
+                            data-start="{{ cell.start }}"
+                            data-end="{{ cell.end }}"
+                            data-until="{{ cell.until }}"
+                            data-id="{{ cell.availability_id }}">
+                            <div>{{ cell.html }}</div>
+                        </td>
+
+                    {% elif cell.appt_id %}
+                        <td rowspan="{{ cell.rowspan }}" class="event"
+                            draggable="true"
+                            data-appt-id="{{ cell.appt_id }}"
+                            onclick="window.location.href='/admin/core/appointment/{{cell.appt_id}}/change/'"
+                            data-client="{{ cell.client }}"
+                            data-phone="{{ cell.phone }}"
+                            data-service="{{ cell.service }}"
+                            data-status="{{ cell.status }}"
+                            data-master="{{ cell.master }}"
+                            data-time-label="{{ cell.time_label }}"
+                            data-duration="{{ cell.duration }}"
+                            data-price="{{ cell.price }}"
+                            data-discount="{{ cell.discount }}"
+                            data-pricedisc="{{ cell.price_discounted }}">
+                            <div style="background-color: {{ cell.background }}; {% if cell.status == "Cancelled" %} opacity: 50%; {% endif %} position: relative;">
+                                {% if cell.discount != "" or cell.price != cell.price_discounted %}
+                                    <div style="
+                                        position: absolute;
+                                        top: 4px;
+                                        right: 6px;
+                                        background: rgba(255,64,129,0.6);
+                                        color: white;
+                                        font-size: 12px;
+                                        font-weight: bold;
+                                        border-radius: 4px;
+                                        padding: 2px 4px;
+                                    ">
+                                        %
+                                    </div>
+                                {% endif %}
+                                {{ cell.html|safe }}
+                            </div>
+                        </td>
+
+                    {% else %}
+                        <td>
+                            <div class="calendar-cell"
+                                 data-time="{{ row.time|string_to_ampm }}"
+                                 data-time24="{{ row.time }}"
+                                 data-time-label="{{ row.time|string_to_ampm }}"
+                                 data-master="{{ cell.master_id }}"
+                                 onclick="showAddPopup(event, '{{ row.time }}', '{{ row.time|string_to_ampm }}')">
+                            </div>
+                        </td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

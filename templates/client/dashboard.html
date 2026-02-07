@@ -527,15 +527,22 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 </style>
 <style id="font-lock-brand">
   .brand {
-    font-size: 1.6rem !important;   /* общий размер */
-    line-height: 1.2 !important;
+    font-size: 1.15rem !important;   /* общий размер */
+    line-height: 1.1 !important;
+    flex-wrap: wrap;
+    row-gap: .2rem;
+    max-width: 100%;
   }
   .brand .mark {
-    font-size: 1.2em !important;    /* BGM */
-    padding: .2rem .55rem;          /* чуть больше «капсула» */
+    font-size: .9em !important;     /* BGM */
+    padding: .18rem .5rem;          /* капсула */
+    border-radius: .65rem;
   }
   .brand .name {
-    font-size: 1.1em !important;    /* Client Portal */
+    font-size: 1em !important;      /* Client Portal */
+    letter-spacing: .06em;
+    min-width: 0;
+    white-space: normal;
   }
 </style>
 
@@ -596,7 +603,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
           {{ portal_copy.welcome_back_prefix }} {{ request.user.username }}{{ portal_copy.welcome_back_suffix }}
         {% endif %}
       </h1>
-      <p class="kicker mb-8">{{ portal_copy.dashboard_kicker }}</p>
+      <p class="kicker mb-8">{{ portal_copy.dashboard_kicker|striptags|safe }}</p>
 
       <div class="grid lg:grid-cols-3 gap-6">
         <!-- Upcoming -->
@@ -679,15 +686,18 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
             <div class="flex items-center justify-between">
               <span class="muted">{{ portal_copy.rates_cad_label }}</span><span class="font-bold">{{ currency.code }} {{ currency.symbol }}{{ portal_copy.rates_cad_value }}</span>
             </div>
+            <div class="flex items-center justify-between">
+              <span class="muted">{{ portal_copy.rates_customer_parts_label }}</span><span class="font-bold">{{ currency.code }} {{ currency.symbol }}{{ portal_copy.rates_customer_parts_value }}</span>
+            </div>
           </div>
         </div>
 
         <div class="panel panel-pad lg:col-span-2 panel-strong">
           <h2 class="text-lg font-bold mb-4">{{ portal_copy.quick_facts_title }}</h2>
           <ul class="list-disc ms-5 text-sm space-y-1">
-            <li>{{ portal_copy.quick_fact_1 }}</li>
-            <li>{{ portal_copy.quick_fact_2 }}</li>
-            <li>{{ portal_copy.quick_fact_3 }}</li>
+            <li>{{ portal_copy.quick_fact_1|striptags|safe }}</li>
+            <li>{{ portal_copy.quick_fact_2|striptags|safe }}</li>
+            <li>{{ portal_copy.quick_fact_3|striptags|safe }}</li>
           </ul>
         </div>
       </div>
@@ -697,19 +707,19 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         <div class="panel panel-pad">
           <h2 class="text-lg font-bold mb-3">{{ portal_copy.policies_title }}</h2>
           <ul class="list-disc ms-5 text-sm space-y-1">
-            <li>{{ portal_copy.policy_item_1 }}</li>
-            <li>{{ portal_copy.policy_item_2 }}</li>
-            <li>{{ portal_copy.policy_item_3 }}</li>
-            <li>{{ portal_copy.policy_item_4 }}</li>
+            <li>{{ portal_copy.policy_item_1|striptags|safe }}</li>
+            <li>{{ portal_copy.policy_item_2|striptags|safe }}</li>
+            <li>{{ portal_copy.policy_item_3|striptags|safe }}</li>
+            <li>{{ portal_copy.policy_item_4|striptags|safe }}</li>
           </ul>
         </div>
 
         <div class="panel panel-pad">
           <h2 class="text-lg font-bold mb-3">{{ portal_copy.care_title }}</h2>
           <ul class="list-disc ms-5 text-sm space-y-1">
-            <li>{{ portal_copy.care_item_1 }}</li>
-            <li>{{ portal_copy.care_item_2 }}</li>
-            <li>{{ portal_copy.care_item_3 }}</li>
+            <li>{{ portal_copy.care_item_1|striptags|safe }}</li>
+            <li>{{ portal_copy.care_item_2|striptags|safe }}</li>
+            <li>{{ portal_copy.care_item_3|striptags|safe }}</li>
           </ul>
         </div>
       </div>
@@ -781,7 +791,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       <div class="flex flex-col md:flex-row md:items-end gap-2 mb-6">
         <div>
           <h2 class="text-2xl font-bold">{{ portal_copy.files_title }}</h2>
-          <p class="muted-2">{{ portal_copy.files_lead }}</p>
+          <p class="muted-2">{{ portal_copy.files_lead|striptags|safe }}</p>
         </div>
         <span class="text-sm muted-2 md:ml-auto">{{ portal_copy.files_max_size_label }} {{ client_file_max_mb }} MB</span>
       </div>

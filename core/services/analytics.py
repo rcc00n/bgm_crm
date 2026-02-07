@@ -447,6 +447,7 @@ def summarize_web_analytics_insights(
         "user_name_snapshot",
         "user_email_snapshot",
         "ip_address",
+        "ip_location",
         "created_at",
         "last_seen_at",
     ):
@@ -476,10 +477,11 @@ def summarize_web_analytics_insights(
             new_sessions += 1
 
         ip_address = session.get("ip_address") or ""
+        ip_location = session.get("ip_location") or ""
         if ip_address:
             ip_entry = ip_stats.setdefault(
                 ip_address,
-                {"visits": 0, "signed_in": 0, "last_seen": None},
+                {"visits": 0, "signed_in": 0, "last_seen": None, "location": ""},
             )
             ip_entry["visits"] += 1
             if session.get("user_id"):
@@ -487,6 +489,8 @@ def summarize_web_analytics_insights(
             last_seen = session.get("last_seen_at")
             if last_seen and (not ip_entry["last_seen"] or last_seen > ip_entry["last_seen"]):
                 ip_entry["last_seen"] = last_seen
+            if ip_location and not ip_entry["location"]:
+                ip_entry["location"] = ip_location
 
         session_leaders.append(
             {
@@ -494,6 +498,7 @@ def summarize_web_analytics_insights(
                 "user_name": session.get("user_name_snapshot") or "Guest",
                 "user_email": session.get("user_email_snapshot") or "",
                 "ip_address": ip_address or "",
+                "ip_location": ip_location or "",
                 "landing_path": landing_path,
                 "views": views_count,
                 "total_seconds": round(total_ms / 1000, 1),
@@ -533,6 +538,7 @@ def summarize_web_analytics_insights(
         ip_rows.append(
             {
                 "ip_address": ip,
+                "location": stats.get("location") or "",
                 "visits": visits_count,
                 "signed_in": stats["signed_in"],
                 "signed_in_pct": round((stats["signed_in"] / visits_count) * 100, 1)

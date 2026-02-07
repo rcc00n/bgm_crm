@@ -5,11 +5,13 @@
 {% block object-tools %}{% endblock %}
 {% block title %}Daily Calendar{% endblock %}
 {% block extrahead %}
+    {{ block.super }}
     <script defer src="{% static 'admin/js/appointments.js' %}"></script>
     <!-- <link rel="stylesheet" href="{% static 'admin/css/custom_sidebar.css' %}">
     <script defer src="{% static 'admin/js/custom_sidebar.js' %}"></script> -->
 {% endblock %}
 {% block extrastyle %}
+    {{ block.super }}
     <link rel="stylesheet" href="{% static 'admin/css/appointments.css' %}">
 {% endblock %}
 {% block content %}
@@ -30,6 +32,12 @@
                         />
                     </div>
                     <button class="nav-icon2" onclick="changeDateByDays(1)">&gt;</button>
+                </div>
+
+                <div class="view-toggle" role="tablist" aria-label="Calendar view">
+                    <button type="button" class="view-btn {% if calendar_view == 'day' %}active{% endif %}" data-view="day" onclick="setCalendarView('day')">Day</button>
+                    <button type="button" class="view-btn {% if calendar_view == 'week' %}active{% endif %}" data-view="week" onclick="setCalendarView('week')">Week</button>
+                    <button type="button" class="view-btn {% if calendar_view == 'month' %}active{% endif %}" data-view="month" onclick="setCalendarView('month')">Month</button>
                 </div>
 
                 <button class="nav-icon2" id="nav-icon2" style="border-radius: 10px;">
@@ -111,12 +119,106 @@
     <div id="calendar-container">
         {% include "admin/appointments_calendar_partial.html" %}
     </div>
+    <input type="hidden" id="calendarView" value="{{ calendar_view|default:'week' }}">
     <div id="addPopup" class="popup hidden">
         <div class="popup-header">
             <span id="popupTime">Time</span>
             <button class="popup-close" onclick="closePopup()">✕</button>
         </div>
         <div class="popup-body">
+        </div>
+    </div>
+    <div id="qaOverlay" class="qa-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="qaTitle">
+        <div class="qa-dialog" role="document">
+            <div class="qa-head">
+                <div class="qa-head__meta">
+                    <div class="qa-kicker">New appointment</div>
+                    <div class="qa-title" id="qaTitle">Pick a time slot</div>
+                    <div class="qa-sub" id="qaSub">Fast add without leaving the calendar</div>
+                </div>
+                <button type="button" class="qa-close" onclick="closeQuickAdd()" aria-label="Close">✕</button>
+            </div>
+            <form id="qaForm" class="qa-body" onsubmit="submitQuickAdd(event)">
+                <input type="hidden" name="date" id="qaDate" value="">
+                <input type="hidden" name="time" id="qaTime" value="">
+                <input type="hidden" name="client" id="qaClientId" value="">
+
+                <div class="qa-grid qa-grid--2">
+                    <div class="qa-field qa-field--full">
+                        <label class="qa-label" for="qaClientSearch">Client (optional)</label>
+                        <div class="qa-client">
+                            <input id="qaClientSearch" class="qa-input" type="text" placeholder="Search name, email, phone" autocomplete="off" />
+                            <div id="qaClientResults" class="qa-results hidden" role="listbox" aria-label="Client results"></div>
+                        </div>
+                        <div class="qa-hint">Leave empty for guest bookings.</div>
+                    </div>
+
+                    <div class="qa-field">
+                        <label class="qa-label" for="qaName">Name</label>
+                        <input id="qaName" name="contact_name" class="qa-input" type="text" placeholder="Full name" />
+                    </div>
+                    <div class="qa-field">
+                        <label class="qa-label" for="qaPhone">Phone</label>
+                        <input id="qaPhone" name="contact_phone" class="qa-input" type="tel" placeholder="+1 ..." />
+                    </div>
+                    <div class="qa-field qa-field--full">
+                        <label class="qa-label" for="qaEmail">Email</label>
+                        <input id="qaEmail" name="contact_email" class="qa-input" type="email" placeholder="name@example.com" />
+                    </div>
+                </div>
+
+                <div class="qa-grid qa-grid--2">
+                    <div class="qa-field">
+                        <label class="qa-label" for="qaMaster">Tech</label>
+                        <select id="qaMaster" name="master" class="qa-select">
+                            <option value="">Select tech</option>
+                            {% for m in masters %}
+                                <option value="{{ m.id }}">{{ m.first_name }} {{ m.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="qa-field">
+                        <label class="qa-label" for="qaService">Service</label>
+                        <select id="qaService" name="service" class="qa-select">
+                            <option value="">Select service</option>
+                            {% for service in services %}
+                                <option value="{{ service.id }}">{{ service.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="qa-field">
+                        <label class="qa-label" for="qaStatus">Status</label>
+                        <select id="qaStatus" name="status" class="qa-select">
+                            <option value="">Select status</option>
+                            {% for st in appointment_statuses %}
+                                <option value="{{ st.id }}"
+                                        {% if st.name == "Scheduled" or st.name == "Booked" or st.name == "Confirmed" %}selected{% endif %}>
+                                    {{ st.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="qa-field">
+                        <label class="qa-label" for="qaPayment">Payment</label>
+                        <select id="qaPayment" name="payment_status" class="qa-select">
+                            <option value="">Select payment status</option>
+                            {% for ps in payment_statuses %}
+                                <option value="{{ ps.id }}"
+                                        {% if ps.name == "Unpaid" or ps.name == "Pending" %}selected{% endif %}>
+                                    {{ ps.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div id="qaErrors" class="qa-errors hidden" aria-live="polite"></div>
+
+                <div class="qa-actions">
+                    <button type="button" class="qa-btn qa-btn--ghost" onclick="closeQuickAdd()">Cancel</button>
+                    <button type="submit" class="qa-btn qa-btn--primary" id="qaSubmit">Create appointment</button>
+                </div>
+            </form>
         </div>
     </div>
     <div id="apptTooltip" class="appt-tooltip hidden"></div>

@@ -30,6 +30,7 @@ from core.models import (
     Service,
     Appointment,
     AppointmentStatusHistory,
+    ClientReview,
     ClientFile,
     ClientPortalPageCopy,
     MerchPageCopy,
@@ -464,9 +465,9 @@ from core.models import ServiceCategory, Service
 
 # accounts/views.py (или где у вас HomeView)
 from django.views.generic import TemplateView
-from core.models import Service, ServiceCategory, HomePageCopy, ProjectJournalEntry   # ваши модели услуг
+from core.models import Service, ServiceCategory, HomePageCopy, HomePageFAQItem, ProjectJournalEntry   # ваши модели услуг
 from core.services.page_layout import build_layout_styles
-from store.models import Product                    # товары
+from store.models import Product, Category as StoreCategory  # товары
 
 
 def _select_home_products(
@@ -529,6 +530,51 @@ def _select_home_products(
 
     return selected
 
+
+def _build_home_reviews(*, limit: int | None = None):
+    landing_qs = LandingPageReview.objects.filter(
+        is_published=True,
+    ).order_by("page", "display_order", "-created_at")
+    if limit:
+        landing_qs = landing_qs[:limit]
+    landing_reviews = list(landing_qs)
+    if landing_reviews:
+        return landing_reviews
+
+    reviews = []
+    client_reviews = (
+        ClientReview.objects.select_related(
+            "appointment",
+            "appointment__client",
+            "appointment__service",
+        )
+        .exclude(comment__isnull=True)
+        .exclude(comment__exact="")
+        .order_by("-created_at")
+    )
+    for review in client_reviews:
+        comment = (review.comment or "").strip()
+        if not comment:
+            continue
+        appt = review.appointment
+        reviewer_name = appt.contact_name
+        if not reviewer_name and appt.client_id:
+            reviewer_name = appt.client.get_full_name() or appt.client.username
+        reviewer_name = reviewer_name or "BGM Client"
+        reviewer_title = appt.service.name if getattr(appt, "service_id", None) else ""
+        reviews.append(
+            {
+                "rating": review.rating,
+                "quote": comment,
+                "reviewer_name": reviewer_name,
+                "reviewer_title": reviewer_title,
+                "star_range": range(review.rating or 0),
+            }
+        )
+        if len(reviews) >= limit:
+            break
+    return reviews
+
 class HomeView(TemplateView):
     template_name = "client/bgm_home.html"
 
@@ -537,18 +583,27 @@ class HomeView(TemplateView):
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
         home_copy = HomePageCopy.get_solo()
         ctx["home_copy"] = home_copy
+        from django.db.utils import OperationalError, ProgrammingError
+        try:
+            all_faq_items = list(
+                HomePageFAQItem.objects.filter(home_page_copy=home_copy).order_by("order", "id")
+            )
+        except (OperationalError, ProgrammingError):
+            # Backwards compatible: if the FAQ table isn't migrated yet, fall back to legacy fields.
+            ctx["home_faq_legacy"] = True
+            ctx["home_faq_items"] = []
+        else:
+            ctx["home_faq_legacy"] = False
+            ctx["home_faq_items"] = [item for item in all_faq_items if item.is_published]
         ctx["page_sections"] = get_page_sections(home_copy)
         ctx["layout_styles"] = build_layout_styles(HomePageCopy, home_copy.layout_overrides)
-        ctx["home_reviews"] = (
-            LandingPageReview.objects.filter(
-                page=LandingPageReview.Page.HOME,
-                is_published=True,
-            )
-            .order_by("display_order", "-created_at")
-        )
+        ctx["home_reviews"] = _build_home_reviews()
         # это у вас уже есть:
         ctx["categories"] = ServiceCategory.objects.all()
         ctx["filter_categories"] = ctx["categories"]
+        ctx["product_filter_categories"] = (
+            StoreCategory.objects.filter(products__is_active=True).distinct().order_by("name")
+        )
         ctx["uncategorized"] = Service.objects.filter(category__isnull=True)
         ctx["has_any_services"] = Service.objects.exists()
 

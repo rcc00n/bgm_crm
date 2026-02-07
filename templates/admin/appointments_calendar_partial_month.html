@@ -1,0 +1,42 @@
+{% load calendar_filter %}
+<div class="scrollable calendar-month">
+    <div class="month-grid">
+        {% for day_name in month_day_names %}
+            <div class="month-header-cell">{{ day_name|date:"D" }}</div>
+        {% endfor %}
+        {% for week in month_grid %}
+            {% for day in week %}
+                <div class="month-day-cell {% if not day.in_month %}out-month{% endif %}"
+                     onclick="openMonthDay('{{ day.date|date:'Y-m-d' }}')">
+                    <div class="month-day-top">
+                        <span class="month-day-number">{{ day.date|date:"j" }}</span>
+                    </div>
+                    <div class="month-events">
+                        {% for appt in day.appointments %}
+                            <a class="month-event event-card"
+                               href="{{ appt.url }}"
+                               onclick="event.stopPropagation();"
+                               style="background-color: {{ appt.background }};"
+                               data-client="{{ appt.client }}"
+                               data-phone="{{ appt.phone }}"
+                               data-service="{{ appt.service }}"
+                               data-status="{{ appt.status }}"
+                               data-master="{{ appt.master }}"
+                               data-time-label="{{ appt.time_label }}"
+                               data-duration="{{ appt.duration }}"
+                               data-price="{{ appt.price }}"
+                               data-discount="{{ appt.discount }}"
+                               data-pricedisc="{{ appt.price_discounted }}">
+                                <span class="month-event-time">{{ appt.time_start }}</span>
+                                <span class="month-event-title">{{ appt.client }}</span>
+                            </a>
+                        {% endfor %}
+                        {% if day.overflow %}
+                            <div class="month-more">+{{ day.overflow }} more</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>

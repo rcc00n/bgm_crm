@@ -1,0 +1,142 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="col-12">
+  <div class="dashboard-shell">
+    <section class="dashboard-hero">
+      <div class="dashboard-hero-content">
+        <div>
+          <p class="panel-subtitle">Outbound send audit trail</p>
+          <h1>Email send logs</h1>
+          <p>Every outbound email with reason, recipient counts, and delivery status.</p>
+          <div class="insights-window">
+            <a class="pill" href="{% url 'admin-email-overview' %}">Overview</a>
+            <a class="pill" href="{% url 'admin-email-history' %}">Email history</a>
+            <a class="pill" href="{% url 'admin-email-campaign-history' %}">Campaign history</a>
+          </div>
+        </div>
+        <div class="hero-stat">
+          <span>Total logs</span>
+          <strong>{{ stats.total }}</strong>
+          <small>{{ stats.success_rate }}% success</small>
+        </div>
+        <div class="hero-stat">
+          <span>Successful sends</span>
+          <strong>{{ stats.success }}</strong>
+          <small>{{ stats.failed }} failed</small>
+        </div>
+      </div>
+    </section>
+
+    <div class="kpi-grid">
+      <article class="kpi-card">
+        <small>Success rate</small>
+        <div class="kpi-value">{{ stats.success_rate }}%</div>
+        <div class="kpi-trend neutral">{{ stats.success }} ok · {{ stats.failed }} failed</div>
+      </article>
+      <article class="kpi-card">
+        <small>Log entries</small>
+        <div class="kpi-value">{{ stats.total }}</div>
+        <div class="kpi-trend neutral">Filtered results</div>
+      </article>
+    </div>
+
+    <section class="data-panel">
+      <div class="panel-title">Filters</div>
+      <div class="panel-subtitle">Refine logs by status, type, keyword, or date range.</div>
+      <form method="get" class="action-history-controls" style="flex-wrap:wrap; gap:12px;">
+        <input type="text" name="q" placeholder="Search subject, from, type" value="{{ filters.q }}" style="min-width:220px;">
+        <select name="type">
+          <option value="">All types</option>
+          {% for t in type_options %}
+            <option value="{{ t }}"{% if filters.type == t %} selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <select name="status">
+          <option value="">All statuses</option>
+          <option value="success"{% if filters.status == 'success' %} selected{% endif %}>Success</option>
+          <option value="failed"{% if filters.status == 'failed' %} selected{% endif %}>Failed</option>
+        </select>
+        <input type="date" name="start" value="{{ filters.start }}">
+        <input type="date" name="end" value="{{ filters.end }}">
+        <button class="button" type="submit">Apply</button>
+        <a class="button" href="{% url 'admin-email-logs' %}">Reset</a>
+      </form>
+    </section>
+
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Log entries</div>
+      <div class="panel-subtitle">Page {{ pagination.page }} of {{ pagination.total_pages }}</div>
+      {% if logs %}
+        <div class="table-scroll">
+          <table class="analytics-table">
+            <thead>
+              <tr>
+                <th>Sent</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Subject</th>
+                <th>Recipients</th>
+                <th>Links</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in logs %}
+                <tr>
+                  <td>{{ row.log.sent_at|date:"M d · H:i" }}</td>
+                  <td>
+                    <strong>{{ row.reason.label|default:row.log.email_type }}</strong>
+                    {% if row.reason.description %}
+                      <div class="panel-subtitle">{{ row.reason.description }}</div>
+                    {% endif %}
+                    {% if row.reason.category %}
+                      <span class="pill muted">{{ row.reason.category }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="status-pill {% if row.log.success %}success{% else %}failed{% endif %}">
+                      {% if row.log.success %}Sent{% else %}Failed{% endif %}
+                    </span>
+                    {% if not row.log.success and row.log.error_message %}
+                      <div class="panel-subtitle">{{ row.log.error_message|truncatechars:120 }}</div>
+                    {% endif %}
+                  </td>
+                  <td>{{ row.log.subject|default:"—" }}</td>
+                  <td>
+                    <strong>{{ row.log.recipient_count }}</strong>
+                    {% if row.recipients_preview %}
+                      <div class="panel-subtitle">{{ row.recipients_preview }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{{ row.detail_url }}">Log</a>
+                    {% if row.campaign_url %}
+                      · <a href="{{ row.campaign_url }}">Campaign</a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="action-history-pagination">
+          {% if pagination.has_previous %}
+            <a class="page-link" href="?page={{ pagination.prev_page }}&per_page={{ pagination.per_page }}&q={{ filters.q|urlencode }}&status={{ filters.status|urlencode }}&type={{ filters.type|urlencode }}&start={{ filters.start }}&end={{ filters.end }}">Prev</a>
+          {% else %}
+            <span class="page-link disabled">Prev</span>
+          {% endif %}
+          <span class="page-status">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+          {% if pagination.has_next %}
+            <a class="page-link" href="?page={{ pagination.next_page }}&per_page={{ pagination.per_page }}&q={{ filters.q|urlencode }}&status={{ filters.status|urlencode }}&type={{ filters.type|urlencode }}&start={{ filters.start }}&end={{ filters.end }}">Next</a>
+          {% else %}
+            <span class="page-link disabled">Next</span>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="empty-state"><p>No email logs match this filter.</p></div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

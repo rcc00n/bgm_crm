@@ -1,4 +1,5 @@
 from bisect import bisect_left
+from calendar import monthrange
 from decimal import Decimal
 
 from django.contrib.admin import DateFieldListFilter
@@ -21,7 +22,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.admin import GenericStackedInline
 from django.http import JsonResponse
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
@@ -344,6 +345,7 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'birth_date')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Admin Notifications', {'fields': ('admin_notification_sections',)}),
         ('Files', {'fields': ('files', 'files_overview')}),
     )
     readonly_fields = BaseUserAdmin.readonly_fields + ('files_overview',)
@@ -625,9 +627,12 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
 
         if selected_date:
             selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
-
         else:
             selected_date = timezone.localdate()
+
+        calendar_view = request.GET.get("view", "week")
+        if calendar_view not in {"day", "week", "month"}:
+            calendar_view = "week"
 
         services = Service.objects.all()
         appointment_statuses = AppointmentStatus.objects.all()
@@ -657,14 +662,26 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         else:
             masters_qs = get_staff_queryset(active_only=True)
         masters = list(masters_qs.select_related("master_profile"))
-        start_of_day = make_aware(datetime.combine(selected_date, datetime.min.time()))
-        end_of_day = make_aware(datetime.combine(selected_date, datetime.max.time()))
+        if calendar_view == "week":
+            range_start_date = selected_date - timedelta(days=selected_date.weekday())
+            range_end_date = range_start_date + timedelta(days=6)
+        elif calendar_view == "month":
+            month_start = selected_date.replace(day=1)
+            month_last = selected_date.replace(day=monthrange(selected_date.year, selected_date.month)[1])
+            range_start_date = month_start - timedelta(days=month_start.weekday())
+            range_end_date = month_last + timedelta(days=(6 - month_last.weekday()))
+        else:
+            range_start_date = selected_date
+            range_end_date = selected_date
+
+        range_start = make_aware(datetime.combine(range_start_date, datetime.min.time()))
+        range_end = make_aware(datetime.combine(range_end_date, datetime.max.time()))
 
         availabilities = MasterAvailability.objects.filter(
-            start_time__lte=end_of_day,
-            end_time__gte=start_of_day
+            start_time__lte=range_end,
+            end_time__gte=range_start
         )
-        appointments = appointments.filter(start_time__gte=start_of_day, start_time__lte=end_of_day)
+        appointments = appointments.filter(start_time__gte=range_start, start_time__lte=range_end)
         if request.GET.get("service"):
             appointments = appointments.filter(service_id=request.GET["service"])
         if request.GET.get("status"):
@@ -672,10 +689,37 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         if request.GET.get("payment_status"):
             appointments = appointments.filter(payment_status_id__in=request.GET.getlist("payment_status"))
 
-        appointments_for_day = list(appointments)
-        slot_times = []
-        grid_start, grid_end = determine_calendar_window(masters, appointments_for_day)
-        calendar_table = createTable(selected_date, grid_start, grid_end, slot_times, appointments_for_day, masters, availabilities)
+        appointments_for_range = list(appointments)
+        availabilities_for_range = list(availabilities)
+
+        calendar_table = []
+        week_table = []
+        week_dates = []
+        month_grid = []
+        month_day_names = []
+
+        if calendar_view == "day":
+            slot_times = []
+            grid_start, grid_end = determine_calendar_window(masters, appointments_for_range)
+            calendar_table = createTable(selected_date, grid_start, grid_end, slot_times, appointments_for_range, masters, availabilities_for_range)
+        elif calendar_view == "week":
+            grid_start, grid_end = determine_calendar_window(masters, appointments_for_range)
+            slot_times = build_slot_times(grid_start, grid_end)
+            week_dates = [range_start_date + timedelta(days=i) for i in range(7)]
+            week_table = build_week_table(week_dates, slot_times, appointments_for_range, masters)
+        else:
+            month_day_names = [datetime(2020, 1, 6) + timedelta(days=i) for i in range(7)]
+            month_grid = build_month_grid(range_start_date, range_end_date, selected_date.month, appointments_for_range, masters)
+
+        calendar_context = {
+            "calendar_view": calendar_view,
+            "masters": masters,
+            "calendar_table": calendar_table,
+            "week_dates": week_dates,
+            "week_table": week_table,
+            "month_grid": month_grid,
+            "month_day_names": month_day_names,
+        }
 
 
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -683,18 +727,12 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
 
             if action == "filter":  # Фильтрация по форме
 
-                html = render_to_string('admin/appointments_calendar_partial.html', {
-                    "calendar_table": calendar_table,
-                    'masters': masters,
-                })
+                html = render_to_string('admin/appointments_calendar_partial.html', calendar_context)
                 return JsonResponse({"html": html})
 
             elif action == "calendar":  # Подгрузка календаря (твоя текущая логика)
 
-                html = render_to_string('admin/appointments_calendar_partial.html', {
-                    'calendar_table': calendar_table,
-                    'masters': masters,
-                }, request=request)
+                html = render_to_string('admin/appointments_calendar_partial.html', calendar_context, request=request)
 
                 return JsonResponse({'html': html})
 
@@ -703,7 +741,12 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         if hasattr(response, "context_data"):
             context = response.context_data
             context.update({
+                "calendar_view": calendar_view,
                 "calendar_table": calendar_table,
+                "week_dates": week_dates,
+                "week_table": week_table,
+                "month_grid": month_grid,
+                "month_day_names": month_day_names,
                 "masters": masters,
                 "selected_date": selected_date,
                 "prev_date": (selected_date - timedelta(days=1)).strftime("%Y-%m-%d"),
@@ -715,6 +758,115 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
             })
 
         return response
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "move/",
+                self.admin_site.admin_view(self.move_appointment_view),
+                name="core_appointment_move",
+            ),
+            path(
+                "quick_add/",
+                self.admin_site.admin_view(self.quick_add_view),
+                name="core_appointment_quick_add",
+            ),
+        ]
+        return custom_urls + urls
+
+    def quick_add_view(self, request):
+        """
+        Lightweight endpoint used by the calendar "quick add" modal.
+        Creates an Appointment using the same validation rules as the admin form.
+        """
+        if request.method != "POST":
+            return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+        if not self.has_add_permission(request):
+            return JsonResponse({"ok": False, "error": "Permission denied."}, status=403)
+
+        date_str = (request.POST.get("date") or "").strip()
+        time_str = (request.POST.get("time") or "").strip()
+
+        if not date_str or not time_str:
+            return JsonResponse({"ok": False, "error": "Missing date/time."}, status=400)
+
+        try:
+            combined = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            return JsonResponse({"ok": False, "error": "Invalid date/time format."}, status=400)
+
+        post = request.POST.copy()
+        post["start_time"] = combined.strftime("%Y-%m-%d %H:%M")
+
+        # Masters can only create appointments for themselves.
+        if hasattr(request.user, "master_profile") and not request.user.is_superuser:
+            post["master"] = str(request.user.id)
+
+        form = AppointmentForm(data=post, user=request.user)
+        if not form.is_valid():
+            errors = {k: [str(m) for m in v] for k, v in form.errors.items()}
+            return JsonResponse({"ok": False, "errors": errors}, status=400)
+
+        appt = form.save()
+        return JsonResponse({"ok": True, "appointment_id": str(appt.pk)})
+
+    def move_appointment_view(self, request):
+        if request.method != "POST":
+            return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+        appointment_id = request.POST.get("appointment_id")
+        date_str = request.POST.get("date")
+        time_str = request.POST.get("time")
+        master_id = (request.POST.get("master_id") or "").strip() or None
+
+        if not appointment_id or not date_str or not time_str:
+            return JsonResponse({"ok": False, "error": "Missing appointment_id/date/time."}, status=400)
+
+        try:
+            appt = Appointment.objects.select_related("service", "master").get(pk=appointment_id)
+        except (Appointment.DoesNotExist, ValueError):
+            return JsonResponse({"ok": False, "error": "Appointment not found."}, status=404)
+
+        if not self.has_change_permission(request, appt):
+            return JsonResponse({"ok": False, "error": "Permission denied."}, status=403)
+
+        if master_id:
+            # Masters can only move their own appointments and cannot reassign to another tech.
+            if hasattr(request.user, "master_profile") and not request.user.is_superuser:
+                if str(master_id) != str(request.user.id):
+                    return JsonResponse(
+                        {"ok": False, "error": "You cannot reassign appointments to a different tech."},
+                        status=403,
+                    )
+            try:
+                appt.master = CustomUserDisplay.objects.get(pk=master_id)
+            except (CustomUserDisplay.DoesNotExist, ValueError):
+                return JsonResponse({"ok": False, "error": "Tech not found."}, status=400)
+
+        try:
+            combined = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            return JsonResponse({"ok": False, "error": "Invalid date/time format."}, status=400)
+
+        appt.start_time = make_aware(combined)
+
+        try:
+            appt.full_clean()
+        except ValidationError as exc:
+            if hasattr(exc, "message_dict"):
+                msg = "; ".join(
+                    f"{field}: {', '.join(msgs)}"
+                    for field, msgs in exc.message_dict.items()
+                )
+            else:
+                msg = str(exc)
+            return JsonResponse({"ok": False, "error": msg or "Validation failed."}, status=400)
+
+        appt.save()
+        return JsonResponse({"ok": True})
+
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         if hasattr(request.user, "master_profile") and not request.user.is_superuser:
@@ -1192,6 +1344,140 @@ GRID_STEP_MINUTES = 15
 DEFAULT_START_MINUTES = 6 * 60
 DEFAULT_END_MINUTES = 23 * 60
 MAX_CALENDAR_MINUTES = (24 * 60) - GRID_STEP_MINUTES
+CALENDAR_COLOR_PALETTE = ["#E4D08A", "#EDC2A2", "#CEAEC6", "#A3C1C9", "#C3CEA3", "#E7B3C3"]
+
+
+def build_slot_times(time_pointer, end_time):
+    slot_times = []
+    pointer = time_pointer
+    while pointer <= end_time:
+        slot_times.append(pointer.strftime('%H:%M'))
+        pointer += timedelta(minutes=GRID_STEP_MINUTES)
+    return slot_times
+
+
+def _get_master_colors(masters):
+    master_ids = [m.id for m in masters]
+    return dict(zip(master_ids, cycle(CALENDAR_COLOR_PALETTE)))
+
+
+def _build_appointment_display(appt, master_color):
+    local_start = localtime(appt.start_time)
+    service = appt.service
+    base_duration = int(getattr(service, "duration_min", 0) or 0)
+    extra_duration = int(getattr(service, "extra_time_min", 0) or 0)
+    total_minutes = base_duration + extra_duration
+    if total_minutes <= 0:
+        total_minutes = GRID_STEP_MINUTES
+    local_end = local_start + timedelta(minutes=total_minutes)
+    last_status = appt.appointmentstatushistory_set.order_by('-set_at').first()
+    status_name = last_status.status.name if last_status else "Unknown"
+
+    if service.contact_for_estimate:
+        price_value = "Contact for estimate"
+        price_discounted = price_value
+    else:
+        price_discounted = f"${service.get_discounted_price():.2f}"
+        price_value = f"${service.base_price_amount():.2f}"
+
+    try:
+        appt_promocode = appt.appointmentpromocode
+    except AppointmentPromoCode.DoesNotExist:
+        appt_promocode = None
+
+    client_name = appt.contact_name or ""
+    if not client_name and appt.client_id:
+        client_name = appt.client.get_full_name() or appt.client.username or appt.client.email
+    client_name = client_name or "Guest"
+
+    phone_value = appt.contact_phone or ""
+    if not phone_value and appt.client_id:
+        profile = getattr(appt.client, "userprofile", None)
+        phone_value = getattr(profile, "phone", "") if profile else ""
+
+    master_name = ""
+    if appt.master_id:
+        master_name = appt.master.get_full_name()
+
+    return {
+        "id": appt.id,
+        "url": f"/admin/core/appointment/{appt.id}/change/",
+        "client": escape(client_name),
+        "phone": escape(phone_value or ""),
+        "service": escape(service.name),
+        "status": status_name,
+        "master": escape(master_name),
+        "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
+        "time_start": local_start.strftime('%I:%M%p').lstrip('0'),
+        "duration": f"{base_duration}min",
+        "discount": f"-{appt_promocode.promocode.discount_percent}" if appt_promocode else "",
+        "price_discounted": price_discounted,
+        "price": price_value,
+        "background": master_color or CALENDAR_COLOR_PALETTE[0],
+        "start_minutes": _time_to_minutes(local_start.time()),
+    }
+
+
+def build_week_table(week_dates, slot_times, appointments, masters):
+    master_colors = _get_master_colors(masters)
+    appointments_by_slot = {}
+
+    week_set = set(week_dates)
+    for appt in appointments:
+        local_start = localtime(appt.start_time)
+        appt_date = local_start.date()
+        if appt_date not in week_set:
+            continue
+        time_key = local_start.strftime('%H:%M')
+        appt_display = _build_appointment_display(appt, master_colors.get(appt.master_id))
+        appointments_by_slot.setdefault(appt_date, {}).setdefault(time_key, []).append(appt_display)
+
+    for day_map in appointments_by_slot.values():
+        for time_key in day_map:
+            day_map[time_key].sort(key=lambda item: item["start_minutes"])
+
+    week_table = []
+    for time_str in slot_times:
+        row = {"time": time_str, "cells": []}
+        for day in week_dates:
+            row["cells"].append({
+                "date": day,
+                "appointments": appointments_by_slot.get(day, {}).get(time_str, []),
+            })
+        week_table.append(row)
+    return week_table
+
+
+def build_month_grid(range_start_date, range_end_date, focus_month, appointments, masters):
+    master_colors = _get_master_colors(masters)
+    appointments_by_day = {}
+
+    for appt in appointments:
+        local_start = localtime(appt.start_time)
+        appt_date = local_start.date()
+        if appt_date < range_start_date or appt_date > range_end_date:
+            continue
+        appt_display = _build_appointment_display(appt, master_colors.get(appt.master_id))
+        appointments_by_day.setdefault(appt_date, []).append(appt_display)
+
+    for day, items in appointments_by_day.items():
+        items.sort(key=lambda item: item["start_minutes"])
+
+    month_grid = []
+    pointer = range_start_date
+    while pointer <= range_end_date:
+        week = []
+        for _ in range(7):
+            items = appointments_by_day.get(pointer, [])
+            week.append({
+                "date": pointer,
+                "in_month": pointer.month == focus_month,
+                "appointments": items[:3],
+                "overflow": max(0, len(items) - 3),
+            })
+            pointer += timedelta(days=1)
+        month_grid.append(week)
+    return month_grid
 
 
 def _time_to_minutes(value):
@@ -1257,9 +1543,7 @@ def determine_calendar_window(masters, appointments):
 
 
 def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities):
-    COLOR_PALETTE = ["#E4D08A", "#EDC2A2", "#CEAEC6", "#A3C1C9", "#C3CEA3", "#E7B3C3"]
-    master_ids = [m.id for m in masters]
-    MASTER_COLORS = dict(zip(master_ids, cycle(COLOR_PALETTE)))
+    MASTER_COLORS = _get_master_colors(masters)
 
 
     grid_start_dt = time_pointer
@@ -1402,11 +1686,11 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
                 row["cells"].append({
                     "html": f"""
                                         <div>
-                                            <div style="font-size:1.8vh;">
+                                            <div style="font-size:0.75rem;">
                                                 {local_start.strftime('%I:%M').lstrip('0')} – {local_end.strftime('%I:%M').lstrip('0')}
                                                 <strong>{escape(client_name)}</strong>
                                             </div>
-                                            <div style="font-size:1.8vh;">
+                                            <div style="font-size:0.75rem;">
                                                 {escape(appt.service.name)}
                                             </div>
                                         </div>
@@ -1694,20 +1978,366 @@ class PageFontSettingAdmin(admin.ModelAdmin):
         return format_html("<style>{}</style>{}", mark_safe(face_block), mark_safe(preview_block))
 
 
+class TopbarSettingsAdminForm(forms.ModelForm):
+    NAV_SIZE_PRESETS = {
+        "sm": "0.9rem",
+        "md": "1.05rem",
+        "lg": "1.2rem",
+        "xl": "1.35rem",
+        "xxl": "1.5rem",
+        "xxxl": "1.65rem",
+    }
+    BRAND_SIZE_PRESETS = {
+        "sm": "clamp(1.1rem, 1.8vw, 1.5rem)",
+        "md": "clamp(1.25rem, 2.1vw, 1.7rem)",
+        "lg": "clamp(1.35rem, 2.4vw, 1.9rem)",
+        "xl": "clamp(1.5rem, 2.8vw, 2.1rem)",
+        "xxl": "clamp(1.6rem, 3.1vw, 2.35rem)",
+        "xxxl": "clamp(1.75rem, 3.5vw, 2.6rem)",
+    }
+    TAGLINE_SIZE_PRESETS = {
+        "sm": "0.85em",
+        "md": "1em",
+        "lg": "1.15em",
+        "xl": "1.3em",
+        "xxl": "1.45em",
+        "xxxl": "1.6em",
+    }
+
+    SIZE_CHOICES = (
+        ("sm", "Small"),
+        ("md", "Medium (default)"),
+        ("lg", "Large"),
+        ("xl", "Extra large"),
+        ("xxl", "2x large"),
+        ("xxxl", "3x large"),
+        ("custom", "Custom (leave as-is)"),
+    )
+
+    nav_size_desktop_preset = forms.ChoiceField(
+        label="Menu size (desktop)",
+        choices=SIZE_CHOICES,
+        required=True,
+        help_text="Pick a preset without CSS. Custom does not change the value below.",
+    )
+    brand_size_desktop_preset = forms.ChoiceField(
+        label="Brand size (desktop)",
+        choices=SIZE_CHOICES,
+        required=True,
+        help_text="Quick size selection for the brand text.",
+    )
+    tagline_word_1_size_preset = forms.ChoiceField(
+        label="Tagline word 1 size (easy)",
+        choices=SIZE_CHOICES,
+        required=True,
+        help_text="Pick a preset size. Custom keeps the manual CSS value below.",
+    )
+    tagline_word_2_size_preset = forms.ChoiceField(
+        label="Tagline word 2 size (easy)",
+        choices=SIZE_CHOICES,
+        required=True,
+        help_text="Pick a preset size. Custom keeps the manual CSS value below.",
+    )
+    tagline_word_3_size_preset = forms.ChoiceField(
+        label="Tagline word 3 size (easy)",
+        choices=SIZE_CHOICES,
+        required=True,
+        help_text="Pick a preset size. Custom keeps the manual CSS value below.",
+    )
+
+    class Meta:
+        model = TopbarSettings
+        fields = "__all__"
+        labels = {
+            "tagline_word_1_text": "Tagline word 1",
+            "tagline_word_2_text": "Tagline word 2",
+            "tagline_word_3_text": "Tagline word 3",
+        }
+        help_texts = {
+            "tagline_word_1_text": "If set, replaces the first word in the tagline.",
+            "tagline_word_2_text": "If set, replaces the second word in the tagline.",
+            "tagline_word_3_text": "If set, replaces the third word in the tagline.",
+        }
+
+    def _preset_for_value(self, value, preset_map):
+        if not value:
+            return "custom"
+        normalized = str(value).strip()
+        for key, preset_value in preset_map.items():
+            if normalized == preset_value:
+                return key
+        return "custom"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        nav_value = getattr(self.instance, "nav_size_desktop", None)
+        brand_value = getattr(self.instance, "brand_size_desktop", None)
+        tag1_value = getattr(self.instance, "tagline_word_1_size", None)
+        tag2_value = getattr(self.instance, "tagline_word_2_size", None)
+        tag3_value = getattr(self.instance, "tagline_word_3_size", None)
+        self.fields["nav_size_desktop_preset"].initial = self._preset_for_value(
+            nav_value,
+            self.NAV_SIZE_PRESETS,
+        )
+        self.fields["brand_size_desktop_preset"].initial = self._preset_for_value(
+            brand_value,
+            self.BRAND_SIZE_PRESETS,
+        )
+        self.fields["tagline_word_1_size_preset"].initial = self._preset_for_value(
+            tag1_value,
+            self.TAGLINE_SIZE_PRESETS,
+        )
+        self.fields["tagline_word_2_size_preset"].initial = self._preset_for_value(
+            tag2_value,
+            self.TAGLINE_SIZE_PRESETS,
+        )
+        self.fields["tagline_word_3_size_preset"].initial = self._preset_for_value(
+            tag3_value,
+            self.TAGLINE_SIZE_PRESETS,
+        )
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        nav_preset = self.cleaned_data.get("nav_size_desktop_preset")
+        brand_preset = self.cleaned_data.get("brand_size_desktop_preset")
+        tag1_preset = self.cleaned_data.get("tagline_word_1_size_preset")
+        tag2_preset = self.cleaned_data.get("tagline_word_2_size_preset")
+        tag3_preset = self.cleaned_data.get("tagline_word_3_size_preset")
+
+        if nav_preset in self.NAV_SIZE_PRESETS:
+            obj.nav_size_desktop = self.NAV_SIZE_PRESETS[nav_preset]
+        if brand_preset in self.BRAND_SIZE_PRESETS:
+            obj.brand_size_desktop = self.BRAND_SIZE_PRESETS[brand_preset]
+        if tag1_preset in self.TAGLINE_SIZE_PRESETS:
+            obj.tagline_word_1_size = self.TAGLINE_SIZE_PRESETS[tag1_preset]
+        if tag2_preset in self.TAGLINE_SIZE_PRESETS:
+            obj.tagline_word_2_size = self.TAGLINE_SIZE_PRESETS[tag2_preset]
+        if tag3_preset in self.TAGLINE_SIZE_PRESETS:
+            obj.tagline_word_3_size = self.TAGLINE_SIZE_PRESETS[tag3_preset]
+
+        if commit:
+            obj.save()
+            self.save_m2m()
+        return obj
+
+
 @admin.register(TopbarSettings)
 class TopbarSettingsAdmin(admin.ModelAdmin):
     list_display = ("label", "updated_at")
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("preview", "created_at", "updated_at")
+    form = TopbarSettingsAdminForm
     fieldsets = (
-        ("Fonts", {"fields": ("brand_font", "nav_font")}),
-        ("Sizing", {"fields": ("brand_size_desktop", "nav_size", "nav_size_desktop", "padding_y_desktop")}),
+        ("Preview", {"fields": ("preview",)}),
+        ("Fonts", {"fields": ("brand_font", "brand_word_white_font", "brand_word_middle_font", "brand_word_red_font", "nav_font", "tagline_word_1_font", "tagline_word_2_font", "tagline_word_3_font")}),
+        ("Sizing (easy)", {"fields": ("brand_size_desktop_preset", "nav_size_desktop_preset")}),
+        ("Sizing (advanced)", {"fields": ("brand_size_desktop", "nav_size", "nav_size_desktop", "padding_y_desktop"), "classes": ("collapse",)}),
+        ("Layout", {"fields": ("order_brand", "order_tagline", "order_nav")}),
         ("Brand styling", {"fields": ("brand_weight", "brand_letter_spacing", "brand_transform")}),
+        ("Brand word styles", {"fields": ("brand_word_1_color", "brand_word_2_color", "brand_word_3_color", "brand_word_1_size", "brand_word_2_size", "brand_word_3_size", "brand_word_1_weight", "brand_word_2_weight", "brand_word_3_weight", "brand_word_1_style", "brand_word_2_style", "brand_word_3_style")}),
+        ("Tagline (words + styles)", {
+            "fields": (
+                "tagline_word_1_text",
+                "tagline_word_2_text",
+                "tagline_word_3_text",
+                "tagline_word_1_color",
+                "tagline_word_2_color",
+                "tagline_word_3_color",
+                "tagline_word_1_size_preset",
+                "tagline_word_2_size_preset",
+                "tagline_word_3_size_preset",
+                "tagline_word_1_size",
+                "tagline_word_2_size",
+                "tagline_word_3_size",
+                "tagline_word_1_weight",
+                "tagline_word_2_weight",
+                "tagline_word_3_weight",
+                "tagline_word_1_style",
+                "tagline_word_2_style",
+                "tagline_word_3_style",
+            )
+        }),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
 
     @admin.display(description="Topbar settings")
     def label(self, obj):
         return "Topbar settings"
+
+    @admin.display(description="Topbar preview")
+    def preview(self, obj):
+        if not obj:
+            return ""
+
+        def stack(font, fallback):
+            return font.font_stack if font else fallback
+
+        brand_stack = stack(obj.brand_font, '"Inter", system-ui, sans-serif')
+        word1_stack = stack(obj.brand_word_white_font, brand_stack)
+        word2_stack = stack(obj.brand_word_middle_font, brand_stack)
+        word3_stack = stack(obj.brand_word_red_font, brand_stack)
+        nav_stack = stack(obj.nav_font, '"Inter", system-ui, sans-serif')
+        tag1_stack = stack(obj.tagline_word_1_font, nav_stack)
+        tag2_stack = stack(obj.tagline_word_2_font, nav_stack)
+        tag3_stack = stack(obj.tagline_word_3_font, nav_stack)
+
+        def face_block(font):
+            if not font or not font.url:
+                return ""
+            return (
+                "@font-face{"
+                f"font-family:\"{font.font_family}\";"
+                f"src:url(\"{font.url}\") format(\"{font.format_hint}\");"
+                f"font-weight:{font.font_weight};"
+                f"font-style:{font.font_style};"
+                f"font-display:{font.font_display};"
+                "}"
+            )
+
+        faces = "".join(
+            face_block(font)
+            for font in (
+                obj.brand_font,
+                obj.brand_word_white_font,
+                obj.brand_word_middle_font,
+                obj.brand_word_red_font,
+                obj.nav_font,
+                obj.tagline_word_1_font,
+                obj.tagline_word_2_font,
+                obj.tagline_word_3_font,
+            )
+        )
+
+        preview_style = f"""
+        {faces}
+        .topbar-preview{{
+          display:flex;
+          align-items:center;
+          gap:20px;
+          padding:12px 16px;
+          background:#050505;
+          border:1px solid rgba(255,255,255,.12);
+          border-radius:12px;
+          color:#fff;
+        }}
+        .topbar-preview__brand{{
+          display:flex;
+          align-items:baseline;
+          gap:.45rem;
+          font-family:{brand_stack};
+          font-size:{obj.brand_size_desktop or "1.35rem"};
+          font-weight:{obj.brand_weight or "800"};
+          letter-spacing:{obj.brand_letter_spacing or ".06em"};
+          text-transform:{obj.brand_transform or "uppercase"};
+        }}
+        .topbar-preview__brand span{{line-height:1;}}
+        .topbar-preview__brand .word-1{{
+          color:{obj.brand_word_1_color or "#fff"};
+          font-family:{word1_stack};
+          font-size:{obj.brand_word_1_size or "inherit"};
+          font-weight:{obj.brand_word_1_weight or "inherit"};
+          font-style:{obj.brand_word_1_style or "normal"};
+        }}
+        .topbar-preview__brand .word-2{{
+          color:{obj.brand_word_2_color or "#fff"};
+          font-family:{word2_stack};
+          font-size:{obj.brand_word_2_size or "inherit"};
+          font-weight:{obj.brand_word_2_weight or "inherit"};
+          font-style:{obj.brand_word_2_style or "normal"};
+        }}
+        .topbar-preview__brand .word-3{{
+          color:{obj.brand_word_3_color or "#d50000"};
+          font-family:{word3_stack};
+          font-size:{obj.brand_word_3_size or "inherit"};
+          font-weight:{obj.brand_word_3_weight or "inherit"};
+          font-style:{obj.brand_word_3_style or "normal"};
+        }}
+        .topbar-preview__tagline{{
+          display:flex;
+          align-items:center;
+          gap:.5rem;
+          font-family:{nav_stack};
+          font-size:.85rem;
+          letter-spacing:.2em;
+          text-transform:uppercase;
+          color:rgba(255,255,255,.7);
+          white-space:nowrap;
+        }}
+        .topbar-preview__tagline .tag-1{{
+          color:{obj.tagline_word_1_color or "rgba(255,255,255,.7)"};
+          font-family:{tag1_stack};
+          font-size:{obj.tagline_word_1_size or "inherit"};
+          font-weight:{obj.tagline_word_1_weight or "800"};
+          font-style:{obj.tagline_word_1_style or "normal"};
+        }}
+        .topbar-preview__tagline .tag-2{{
+          color:{obj.tagline_word_2_color or "rgba(255,255,255,.7)"};
+          font-family:{tag2_stack};
+          font-size:{obj.tagline_word_2_size or "inherit"};
+          font-weight:{obj.tagline_word_2_weight or "800"};
+          font-style:{obj.tagline_word_2_style or "normal"};
+        }}
+        .topbar-preview__tagline .tag-3{{
+          color:{obj.tagline_word_3_color or "rgba(255,255,255,.7)"};
+          font-family:{tag3_stack};
+          font-size:{obj.tagline_word_3_size or "inherit"};
+          font-weight:{obj.tagline_word_3_weight or "800"};
+          font-style:{obj.tagline_word_3_style or "normal"};
+        }}
+        .topbar-preview__nav{{
+          margin-left:auto;
+          display:flex;
+          align-items:center;
+          gap:1rem;
+          font-family:{nav_stack};
+          font-size:{obj.nav_size_desktop or ".95rem"};
+          text-transform:uppercase;
+          letter-spacing:.08em;
+          color:rgba(255,255,255,.78);
+        }}
+        .topbar-preview__nav span{{padding:.2rem .4rem;border-radius:.5rem;}}
+        """
+
+        tag1_text = (obj.tagline_word_1_text or "").strip()
+        tag2_text = (obj.tagline_word_2_text or "").strip()
+        tag3_text = (obj.tagline_word_3_text or "").strip()
+        if not (tag1_text or tag2_text or tag3_text):
+            tag1_text = "CUSTOM BUILDS"
+            tag2_text = "INSTALLS"
+            tag3_text = "UPGRADES"
+
+        def _tag_span(cls_name: str, text: str) -> str:
+            return f'<span class="{cls_name}">{escape(text)}</span>'
+
+        tagline_parts = []
+        if tag1_text:
+            tagline_parts.append(_tag_span("tag-1", tag1_text))
+        if tag1_text and tag2_text:
+            tagline_parts.append("<span>•</span>")
+        if tag2_text:
+            tagline_parts.append(_tag_span("tag-2", tag2_text))
+        if (tag1_text or tag2_text) and tag3_text:
+            tagline_parts.append("<span>•</span>")
+        if tag3_text:
+            tagline_parts.append(_tag_span("tag-3", tag3_text))
+
+        preview_markup = f"""
+        <div class="topbar-preview">
+          <div class="topbar-preview__brand">
+            <span class="word-1">BAD</span>
+            <span class="word-2">GUY</span>
+            <span class="word-3">MOTORS</span>
+          </div>
+          <div class="topbar-preview__tagline">
+            {''.join(tagline_parts)}
+          </div>
+          <div class="topbar-preview__nav">
+            <span>Services</span>
+            <span>Products</span>
+            <span>Merch</span>
+          </div>
+        </div>
+        """
+        return format_html("<style>{}</style>{}", mark_safe(preview_style), mark_safe(preview_markup))
 
     def has_add_permission(self, request):
         if TopbarSettings.objects.exists():
@@ -2073,6 +2703,18 @@ class PageCopyAdminMixin(admin.ModelAdmin):
                 obj = None
         extra_context["pagecopy_preview_url"] = preview_url
         extra_context["pagecopy_draft_data"] = self._get_draft_data(obj)
+        extra_context["pagecopy_meta"] = {
+            "model": f"{opts.app_label}.{opts.model_name}",
+            "object_id": getattr(obj, "pk", None),
+        }
+        extra_context["pagecopy_text_fields"] = [
+            {
+                "name": field.name,
+                "type": "rich" if isinstance(field, models.TextField) else "plain",
+            }
+            for field in self.model._meta.get_fields()
+            if isinstance(field, (models.CharField, models.TextField)) and getattr(field, "editable", True)
+        ]
         try:
             extra_context["page_section_layout_save_url"] = reverse("admin-pagecopy-save-section-layout")
             extra_context["page_section_order_save_url"] = reverse("admin-pagecopy-save-section-order")
@@ -2097,6 +2739,10 @@ class PageCopyAdminMixin(admin.ModelAdmin):
                 extra_context["page_font_save_url"] = None
                 extra_context["page_font_upload_url"] = None
                 extra_context["page_font_style_save_url"] = None
+        try:
+            extra_context["pagecopy_save_draft_url"] = reverse("admin-pagecopy-save-draft")
+        except Exception:
+            extra_context["pagecopy_save_draft_url"] = None
         return super().changeform_view(
             request,
             object_id=object_id,
@@ -2105,9 +2751,25 @@ class PageCopyAdminMixin(admin.ModelAdmin):
         )
 
     def save_model(self, request, obj, form, change):
+        content_type = None
+        draft = None
+        if change and getattr(obj, "pk", None):
+            content_type = ContentType.objects.get_for_model(obj.__class__)
+            draft = PageCopyDraft.objects.filter(content_type=content_type, object_id=obj.pk).first()
+            if draft and draft.data:
+                changed = set(getattr(form, "changed_data", []) or [])
+                for field_name, value in (draft.data or {}).items():
+                    if field_name in changed:
+                        continue
+                    try:
+                        field_obj = obj._meta.get_field(field_name)
+                    except Exception:
+                        continue
+                    if isinstance(field_obj, (models.CharField, models.TextField)):
+                        setattr(obj, field_name, value)
         super().save_model(request, obj, form, change)
-        content_type = ContentType.objects.get_for_model(obj.__class__)
-        PageCopyDraft.objects.filter(content_type=content_type, object_id=obj.pk).delete()
+        if content_type and getattr(obj, "pk", None):
+            PageCopyDraft.objects.filter(content_type=content_type, object_id=obj.pk).delete()
 
 
 HOME_HERO_CAROUSEL_SLOTS = (
@@ -2294,10 +2956,21 @@ class HomePageCopyAdminForm(forms.ModelForm):
             asset.save()
 
 
+class HomePageFAQItemInline(admin.StackedInline):
+    model = HomePageFAQItem
+    extra = 1
+    fields = ("order", "is_published", "question", "answer")
+    ordering = ("order", "id")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+
+
 @admin.register(HomePageCopy)
 class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
+    inlines = [PageSectionInline, HomePageFAQItemInline]
     form = HomePageCopyAdminForm
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
@@ -2502,13 +3175,8 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
             "fields": (
                 "faq_title",
                 "faq_desc",
-                "faq_1_question",
-                "faq_1_answer",
-                "faq_2_question",
-                "faq_2_answer",
-                "faq_3_question",
-                "faq_3_answer",
-            )
+            ),
+            "description": "FAQ entries are managed below in “Home page FAQs”. Unpublished items are saved as drafts and won’t display on the site.",
         }),
         ("Final CTA", {
             "fields": (
@@ -2867,19 +3535,21 @@ class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "table_amount_label",
             )
         }),
-        ("Rates & facts", {
-            "fields": (
-                "rates_title",
-                "rates_shop_label",
-                "rates_shop_value",
-                "rates_cad_label",
-                "rates_cad_value",
-                "quick_facts_title",
-                "quick_fact_1",
-                "quick_fact_2",
-                "quick_fact_3",
-            )
-        }),
+	        ("Rates & facts", {
+	            "fields": (
+	                "rates_title",
+	                "rates_shop_label",
+	                "rates_shop_value",
+	                "rates_cad_label",
+	                "rates_cad_value",
+	                "rates_customer_parts_label",
+	                "rates_customer_parts_value",
+	                "quick_facts_title",
+	                "quick_fact_1",
+	                "quick_fact_2",
+	                "quick_fact_3",
+	            )
+	        }),
         ("Policies & care", {
             "fields": (
                 "policies_title",
@@ -3005,10 +3675,71 @@ class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
         return "Client portal"
 
 
+class MerchPageCopyAdminForm(forms.ModelForm):
+    hero_image = forms.ImageField(
+        required=False,
+        label="Hero image",
+        help_text="Upload a 16:9 hero image (webp/jpg recommended).",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    hero_image_alt_text = forms.CharField(
+        required=False,
+        label="Hero image alt text",
+        max_length=160,
+    )
+    hero_image_caption = forms.CharField(
+        required=False,
+        label="Hero image caption",
+        max_length=160,
+    )
+
+    class Meta:
+        model = MerchPageCopy
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            asset = HeroImage.objects.filter(location=HeroImage.Location.MERCH).first()
+        except Exception:
+            asset = None
+        if asset and getattr(asset, "image", None):
+            self.fields["hero_image"].initial = asset.image
+        if asset:
+            self.fields["hero_image_alt_text"].initial = asset.alt_text
+            self.fields["hero_image_caption"].initial = asset.caption
+
+    def save_hero_asset(self):
+        image_value = self.cleaned_data.get("hero_image")
+        alt_text = (self.cleaned_data.get("hero_image_alt_text") or "").strip()
+        caption = (self.cleaned_data.get("hero_image_caption") or "").strip()
+
+        has_new_image = image_value not in (None, False)
+        has_any_value = has_new_image or alt_text or caption
+        asset = HeroImage.objects.filter(location=HeroImage.Location.MERCH).first()
+        if not asset and not has_any_value:
+            return
+        if not asset:
+            asset = HeroImage(location=HeroImage.Location.MERCH)
+
+        if image_value is False:
+            asset.image = None
+        elif image_value:
+            asset.image = image_value
+
+        asset.alt_text = alt_text
+        asset.caption = caption
+        if not asset.title:
+            asset.title = "Merch hero"
+        asset.is_active = bool(asset.image)
+        asset.save()
+
+
 @admin.register(MerchPageCopy)
 class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
+    form = MerchPageCopyAdminForm
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
@@ -3041,6 +3772,14 @@ class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "hero_secondary_cta_label",
                 "hero_disclaimer_fallback",
             )
+        }),
+        ("Hero image", {
+            "fields": (
+                "hero_image",
+                "hero_image_alt_text",
+                "hero_image_caption",
+            ),
+            "description": "Controls the merch hero image displayed above the intro copy.",
         }),
         ("First drop section", {
             "fields": (
@@ -3134,6 +3873,11 @@ class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     @admin.display(description="Page")
     def label(self, obj):
         return "Merch page"
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if hasattr(form, "save_hero_asset"):
+            form.save_hero_asset()
 
 
 @admin.register(FinancingPageCopy)
@@ -3345,18 +4089,18 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "how_step_4_desc",
             )
         }),
-        ("Rates & policies", {
-            "fields": (
-                "rates_title",
-                "rates_shop_label",
-                "rates_shop_value",
-                "rates_cad_label",
-                "rates_cad_value",
-                "rates_policy_1",
-                "rates_policy_2",
-                "rates_policy_3",
-            )
-        }),
+	        ("Rates & policies", {
+	            "fields": (
+	                "rates_title",
+	                "rates_shop_label",
+	                "rates_shop_value",
+	                "rates_cad_label",
+	                "rates_cad_value",
+	                "rates_customer_parts_label",
+	                "rates_customer_parts_value",
+	                "rates_policies",
+	            )
+	        }),
         ("Location", {
             "fields": (
                 "location_title",
@@ -3389,6 +4133,11 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
         }),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "rates_policies":
+            kwargs["widget"] = forms.Textarea(attrs={"rows": 5})
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     def has_add_permission(self, request):
         if AboutPageCopy.objects.exists():
@@ -4154,6 +4903,13 @@ class EmailSendLogAdmin(admin.ModelAdmin):
         "sent_at",
     )
 
+class ProjectJournalPhotoInline(admin.TabularInline):
+    model = ProjectJournalPhoto
+    extra = 1
+    fields = ("kind", "image", "alt_text", "sort_order")
+    ordering = ("sort_order", "created_at")
+
+
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
@@ -4174,6 +4930,7 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
     ordering = ("-published_at", "-updated_at")
     readonly_fields = ("created_at", "updated_at", "published_at", "preview_link")
     prepopulated_fields = {"slug": ("title",)}
+    inlines = (ProjectJournalPhotoInline,)
     fieldsets = (
         ("Story", {
             "fields": (
@@ -4184,6 +4941,13 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
                 "cover_image",
                 "result_highlight",
             )
+        }),
+        ("Photo comparison (manual URLs)", {
+            "fields": (
+                "before_gallery",
+                "after_gallery",
+            ),
+            "classes": ("collapse",),
         }),
         ("Build breakdown", {
             "fields": (
@@ -4338,6 +5102,7 @@ class LeadSubmissionEventAdmin(admin.ModelAdmin):
         "success",
         "suspicion_score",
         "ip_address",
+        "ip_location",
         "cf_country",
         "cf_asn",
     )
@@ -4357,7 +5122,7 @@ class LeadSubmissionEventAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("form_type", "outcome", "success", "suspicion_score")}),
         ("Request", {"fields": ("path", "referer", "origin", "accept_language", "user_agent")}),
-        ("Network", {"fields": ("ip_address", "cf_country", "cf_asn", "cf_asn_org")}),
+        ("Network", {"fields": ("ip_address", "ip_location", "cf_country", "cf_asn", "cf_asn_org")}),
         ("Session", {"fields": ("session_key_hash", "session_first_seen_at", "time_on_page_ms")}),
         ("Diagnostics", {"fields": ("validation_errors", "flags", "created_at")}),
     )
@@ -4369,6 +5134,7 @@ class VisitorSessionAdmin(admin.ModelAdmin):
         "session_key",
         "user_display",
         "ip_address",
+        "ip_location",
         "landing_path",
         "created_at",
         "last_seen_at",
@@ -4379,6 +5145,7 @@ class VisitorSessionAdmin(admin.ModelAdmin):
         "user_email_snapshot",
         "user_name_snapshot",
         "ip_address",
+        "ip_location",
     )
     list_filter = ("created_at", "last_seen_at")
     readonly_fields = ("created_at", "last_seen_at")

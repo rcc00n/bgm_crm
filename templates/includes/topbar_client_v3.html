@@ -1,0 +1,96 @@
+{% load topbar_extras %}
+{% firstof header_copy home_copy services_copy store_copy merch_copy financing_copy about_copy dealer_copy as topbar_copy %}
+{% with brand_words=topbar_copy.brand_word_white|default:"Bad Guy"|split_words %}
+{% with tagline_words=topbar_copy.brand_tagline|default:"CUSTOM BUILDS • INSTALLS • UPGRADES"|split_bullets %}
+{% with tagline_override_1=topbar_settings.tagline_word_1_text|default:"" tagline_override_2=topbar_settings.tagline_word_2_text|default:"" tagline_override_3=topbar_settings.tagline_word_3_text|default:"" %}
+<header class="bgm-topbar" role="banner">
+  <div class="bgm-topbar__inner">
+    <div class="bgm-topbar__slot bgm-topbar__slot--brand">
+      <a class="bgm-topbar__brand" href="{% url 'home' %}">
+        <span class="bgm-topbar__brand-word bgm-topbar__brand-word--1">{{ brand_words.0|default:"Bad" }}</span>
+        {% if brand_words.1 %}
+          <span class="bgm-topbar__brand-word bgm-topbar__brand-word--2">{{ brand_words.1 }}</span>
+        {% endif %}
+        <span class="bgm-topbar__brand-word bgm-topbar__brand-word--3">{{ topbar_copy.brand_word_red|default:"Motors" }}</span>
+      </a>
+      {% if topbar_badge_label %}
+        <span class="bgm-topbar__badge">{{ topbar_badge_label }}</span>
+      {% endif %}
+    </div>
+
+    <div class="bgm-topbar__slot bgm-topbar__slot--tagline">
+      <span class="bgm-topbar__tagline">
+        {% if tagline_override_1 or tagline_override_2 or tagline_override_3 %}
+          {% if tagline_override_1 %}
+            <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--1">{{ tagline_override_1 }}</span>
+          {% endif %}
+          {% if tagline_override_1 and tagline_override_2 %}
+            <span class="bgm-topbar__tagline-sep">•</span>
+          {% endif %}
+          {% if tagline_override_2 %}
+            <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--2">{{ tagline_override_2 }}</span>
+          {% endif %}
+          {% if tagline_override_3 %}
+            {% if tagline_override_1 or tagline_override_2 %}
+              <span class="bgm-topbar__tagline-sep">•</span>
+            {% endif %}
+            <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--3">{{ tagline_override_3 }}</span>
+          {% endif %}
+        {% else %}
+          <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--1">{{ tagline_words.0|default:"CUSTOM BUILDS" }}</span>
+          {% if tagline_words.1 %}
+            <span class="bgm-topbar__tagline-sep">•</span>
+            <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--2">{{ tagline_words.1 }}</span>
+          {% endif %}
+          {% if tagline_words.2 %}
+            <span class="bgm-topbar__tagline-sep">•</span>
+            <span class="bgm-topbar__tagline-word bgm-topbar__tagline-word--3">{{ tagline_words.2 }}</span>
+          {% endif %}
+        {% endif %}
+      </span>
+    </div>
+
+    <button class="bgm-topbar__toggle" type="button" aria-expanded="false" aria-controls="bgmSiteNav">
+      <span class="bgm-topbar__toggle-box" aria-hidden="true">
+        <span class="bgm-topbar__toggle-lines"></span>
+      </span>
+      <span class="visually-hidden">{{ topbar_copy.nav_toggle_label|default:"Toggle navigation" }}</span>
+    </button>
+
+    <div id="bgmSiteNav" class="bgm-topbar__nav bgm-topbar__slot bgm-topbar__slot--nav" role="navigation" aria-label="Main navigation">
+      <ul class="bgm-topbar__nav-list">
+        {% with nav_template=topbar_nav_template|default:"includes/topbar_nav_default.html" %}
+          {% include nav_template %}
+        {% endwith %}
+      </ul>
+    </div>
+  </div>
+</header>
+<div class="bgm-topbar__spacer" aria-hidden="true"></div>
+<a
+  class="bgm-cart-fab"
+  href="{% url 'store-cart' %}"
+  aria-label="View cart{% if cart_item_count %}, {{ cart_item_count }} item{{ cart_item_count|pluralize }}{% endif %}"
+  title="View cart{% if cart_item_count %} ({{ cart_item_count }} item{{ cart_item_count|pluralize }}){% endif %}"
+>
+  <span class="bgm-cart-fab__icon">
+    <svg viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
+      <path
+        d="M7 18.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm10 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM4 3.75h2.2l.9 3.45a1 1 0 0 0 .97.75h9.6a1 1 0 0 1 .96 1.28l-1.5 5.25a1 1 0 0 1-.96.72H8.4a1 1 0 0 1-.97-.76L5.1 5.75H4a1 1 0 0 1 0-2Z"
+        fill="currentColor"
+      />
+      <path
+        d="M9.2 12.5h7.25l1.07-3.75H8.25l.95 3.75Z"
+        fill="currentColor"
+        opacity=".35"
+      />
+    </svg>
+    {% if cart_item_count %}
+      <span class="bgm-cart-fab__count" aria-live="polite" aria-atomic="true">{{ cart_item_count }}</span>
+    {% endif %}
+  </span>
+  <span class="bgm-cart-fab__label">Cart</span>
+</a>
+{% endwith %}
+{% endwith %}
+{% endwith %}

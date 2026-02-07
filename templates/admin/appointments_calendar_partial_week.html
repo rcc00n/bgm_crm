@@ -1,0 +1,62 @@
+{% load calendar_filter %}
+<div class="scrollable calendar-week" style="--master-count: 7;">
+    <table class="calendar-table week-table">
+        <thead>
+        <tr>
+            <th class="time-col"></th>
+            {% for day in week_dates %}
+                <th class="day-col">
+                    <div class="day-header">
+                        <div class="day-name">{{ day|date:"D" }}</div>
+                        <div class="day-date">{{ day|date:"M d" }}</div>
+                    </div>
+                </th>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in week_table %}
+            <tr>
+                <td class="time-col">
+                    {% if forloop.first or forloop.counter0|divisibleby:4 %}
+                        {{ row.time|string_to_ampm }}
+                    {% endif %}
+                </td>
+                {% for cell in row.cells %}
+                    <td class="week-cell"
+                        data-date="{{ cell.date|date:'Y-m-d' }}"
+                        data-time24="{{ row.time }}"
+                        data-time-label="{{ row.time|string_to_ampm }}">
+                        <div class="calendar-cell week-slot"
+                             data-date="{{ cell.date|date:'Y-m-d' }}"
+                             data-time24="{{ row.time }}"
+                             data-time-label="{{ row.time|string_to_ampm }}"
+                             onclick="showAddPopup(event, '{{ row.time }}', '{{ row.time|string_to_ampm }}')"></div>
+                        {% for appt in cell.appointments %}
+                            <a class="week-event event-card"
+                               href="{{ appt.url }}"
+                               draggable="true"
+                               data-appt-id="{{ appt.id }}"
+                               style="background-color: {{ appt.background }};"
+                               data-client="{{ appt.client }}"
+                               data-phone="{{ appt.phone }}"
+                               data-service="{{ appt.service }}"
+                               data-status="{{ appt.status }}"
+                               data-master="{{ appt.master }}"
+                               data-time-label="{{ appt.time_label }}"
+                               data-duration="{{ appt.duration }}"
+                               data-price="{{ appt.price }}"
+                               data-discount="{{ appt.discount }}"
+                               data-pricedisc="{{ appt.price_discounted }}">
+                                <div class="week-event-time">{{ appt.time_start }}</div>
+                                <div class="week-event-title">{{ appt.client }}</div>
+                                <div class="week-event-meta">{{ appt.service }} · {{ appt.master }}</div>
+                            </a>
+                        {% endfor %}
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

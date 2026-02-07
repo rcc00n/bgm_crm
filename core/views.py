@@ -22,8 +22,9 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import validate_email
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.urls import reverse
 from django.template.response import TemplateResponse
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import html as py_html
 from django.utils.functional import cached_property
@@ -51,6 +52,9 @@ from core.models import (
     FinancingPageCopy,
     AboutPageCopy,
     DealerStatusPageCopy,
+    EmailCampaign,
+    EmailSendLog,
+    EmailSubscriber,
 )
 from core.forms import ServiceLeadForm
 from core.services.booking import (
@@ -72,6 +76,8 @@ from core.services.analytics import (
     summarize_staff_action_history,
     summarize_web_analytics_insights,
 )
+from core.services.ip_location import format_ip_location, get_client_ip
+from core.services.email_reporting import describe_email_types
 from notifications.services import (
     notify_about_service_lead,
     notify_about_site_notice_signup,
@@ -170,6 +176,75 @@ def admin_pagecopy_save_field(request):
     draft.save(update_fields=["data", "updated_at"])
 
     return JsonResponse({"ok": True, "draft": True, "field": field_name, "value": value})
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
+def admin_pagecopy_save_draft(request):
+    payload = {}
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            payload = {}
+    if not payload:
+        payload = request.POST.dict()
+
+    model_label = (payload.get("model") or "").strip()
+    object_id = payload.get("object_id") or payload.get("objectId")
+    data = payload.get("data") or payload.get("fields") or payload.get("values") or {}
+
+    if not model_label:
+        return JsonResponse({"ok": False, "error": "Missing model."}, status=400)
+
+    if not isinstance(data, dict):
+        return JsonResponse({"ok": False, "error": "Invalid draft payload."}, status=400)
+
+    model_cls = _resolve_pagecopy_model(model_label)
+    if not model_cls:
+        return JsonResponse({"ok": False, "error": "Unsupported model."}, status=400)
+
+    if not request.user.has_perm(f"{model_cls._meta.app_label}.change_{model_cls._meta.model_name}"):
+        raise PermissionDenied
+
+    try:
+        object_id = int(object_id) if object_id is not None else None
+    except (TypeError, ValueError):
+        object_id = None
+
+    obj = model_cls.objects.filter(pk=object_id).first() if object_id else model_cls.objects.first()
+    if not obj:
+        return JsonResponse({"ok": False, "error": "Object not found."}, status=404)
+
+    allowed = {
+        field.name: field
+        for field in model_cls._meta.get_fields()
+        if isinstance(field, (models.CharField, models.TextField))
+    }
+
+    updated = {}
+    draft = PageCopyDraft.for_instance(obj)
+    payload_data = draft.data or {}
+    for field_name, raw_value in data.items():
+        field_obj = allowed.get(field_name)
+        if not field_obj:
+            continue
+        value = "" if raw_value is None else str(raw_value)
+        if isinstance(field_obj, models.CharField):
+            value = _normalize_plain_value(value)
+            if field_obj.max_length:
+                value = value[: field_obj.max_length]
+        payload_data[field_name] = value
+        updated[field_name] = value
+
+    if not updated:
+        return JsonResponse({"ok": False, "error": "No draft fields."}, status=400)
+
+    draft.data = payload_data
+    draft.save(update_fields=["data", "updated_at"])
+
+    return JsonResponse({"ok": True, "draft": True, "fields": list(updated.keys())})
 
 
 @staff_member_required
@@ -676,6 +751,60 @@ def admin_client_contact(request, user_id):
 
 
 @staff_member_required
+@require_GET
+def admin_client_search(request):
+    """
+    Lightweight search endpoint for the calendar "quick add" modal.
+    Returns a small list of matching clients (id + label + meta).
+    """
+    query = (request.GET.get("q") or "").strip()
+    if len(query) < 2:
+        return JsonResponse({"results": []})
+
+    # Prefer client role, but fall back to non-staff users if roles aren't configured.
+    from core.models import Role
+    client_role = Role.objects.filter(name__iexact="Client").first()
+
+    qs = CustomUserDisplay.objects.select_related("userprofile").all()
+    if client_role:
+        qs = qs.filter(Q(is_staff=False) | Q(userrole__role=client_role)).distinct()
+    else:
+        qs = qs.filter(is_staff=False)
+
+    tokens = query.split()
+    if len(tokens) >= 2:
+        a, b = tokens[0], tokens[1]
+        name_q = (
+            Q(first_name__icontains=a, last_name__icontains=b) |
+            Q(first_name__icontains=b, last_name__icontains=a)
+        )
+    else:
+        name_q = Q(first_name__icontains=query) | Q(last_name__icontains=query)
+
+    qs = (
+        qs.filter(
+            name_q |
+            Q(username__icontains=query) |
+            Q(email__icontains=query) |
+            Q(userprofile__phone__icontains=query)
+        )
+        .order_by("first_name", "last_name", "username")[:15]
+    )
+
+    results = []
+    for user in qs:
+        profile = getattr(user, "userprofile", None)
+        label = user.get_full_name() or user.username or user.email or str(user.id)
+        results.append({
+            "id": user.id,
+            "label": label,
+            "email": user.email or "",
+            "phone": getattr(profile, "phone", "") if profile else "",
+        })
+    return JsonResponse({"results": results})
+
+
+@staff_member_required
 @require_POST
 def admin_ui_check_run(request):
     from core.models import ClientUiCheckRun
@@ -773,6 +902,483 @@ def admin_web_analytics_insights(request):
         }
     )
     return TemplateResponse(request, "admin/analytics_insights.html", context)
+
+
+def _summarize_email_logs(queryset):
+    summary = queryset.aggregate(
+        total=models.Count("id"),
+        success_count=models.Count("id", filter=Q(success=True)),
+        failed_count=models.Count("id", filter=Q(success=False)),
+        recipients=models.Sum("recipient_count"),
+        last_sent=models.Max("sent_at"),
+    )
+    total = summary.get("total") or 0
+    recipients = summary.get("recipients") or 0
+    success = summary.get("success_count") or 0
+    failed = summary.get("failed_count") or 0
+    return {
+        "total": total,
+        "success": success,
+        "failed": failed,
+        "recipients": recipients,
+        "avg_recipients": round(recipients / total, 1) if total else 0,
+        "success_rate": round(success / total * 100, 1) if total else 0,
+        "last_sent": summary.get("last_sent"),
+    }
+
+
+def admin_email_overview(request):
+    user = request.user
+    is_master = user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
+    if is_master:
+        raise PermissionDenied
+
+    today = timezone.localdate()
+    base_qs = EmailSendLog.objects.all()
+
+    total_summary = _summarize_email_logs(base_qs)
+    last_log = base_qs.order_by("-sent_at").first()
+
+    window_defs = [("Last 24 hours", 1), ("Last 7 days", 7), ("Last 30 days", 30)]
+    window_stats = []
+    for label, days in window_defs:
+        start = today - timedelta(days=days - 1)
+        qs = base_qs.filter(sent_at__date__gte=start)
+        stats = _summarize_email_logs(qs)
+        stats.update({"label": label, "days": days, "start": start})
+        window_stats.append(stats)
+
+    top_window_start = today - timedelta(days=29)
+    top_rows = list(
+        base_qs.filter(sent_at__date__gte=top_window_start)
+        .values("email_type")
+        .annotate(
+            total=models.Count("id"),
+            success_count=models.Count("id", filter=Q(success=True)),
+            failed_count=models.Count("id", filter=Q(success=False)),
+            recipients=models.Sum("recipient_count"),
+            last_sent=models.Max("sent_at"),
+        )
+        .order_by("-total")[:10]
+    )
+
+    recent_failures = list(base_qs.filter(success=False).order_by("-sent_at")[:12])
+
+    campaign_qs = EmailCampaign.objects.all()
+    campaign_summary = campaign_qs.aggregate(
+        total=models.Count("id"),
+        draft=models.Count("id", filter=Q(status=EmailCampaign.Status.DRAFT)),
+        sending=models.Count("id", filter=Q(status=EmailCampaign.Status.SENDING)),
+        sent=models.Count("id", filter=Q(status=EmailCampaign.Status.SENT)),
+        partial=models.Count("id", filter=Q(status=EmailCampaign.Status.PARTIAL)),
+        failed=models.Count("id", filter=Q(status=EmailCampaign.Status.FAILED)),
+        sent_total=models.Sum("sent_count"),
+        failed_total=models.Sum("failed_count"),
+        recipients_total=models.Sum("recipients_total"),
+    )
+    sent_total = campaign_summary.get("sent_total") or 0
+    failed_total = campaign_summary.get("failed_total") or 0
+    delivered_total = sent_total + failed_total
+    campaign_summary.update(
+        {
+            "sent_total": sent_total,
+            "failed_total": failed_total,
+            "recipients_total": campaign_summary.get("recipients_total") or 0,
+            "success_rate": round(sent_total / delivered_total * 100, 1) if delivered_total else 0,
+        }
+    )
+    last_campaign = (
+        campaign_qs.exclude(send_completed_at__isnull=True)
+        .order_by("-send_completed_at")
+        .first()
+    )
+
+    subscriber_total = EmailSubscriber.objects.count()
+    subscriber_active = EmailSubscriber.objects.filter(is_active=True).count()
+    subscriber_new = EmailSubscriber.objects.filter(
+        created_at__date__gte=today - timedelta(days=29)
+    ).count()
+    subscriber_summary = {
+        "total": subscriber_total,
+        "active": subscriber_active,
+        "inactive": max(subscriber_total - subscriber_active, 0),
+        "new_30": subscriber_new,
+    }
+
+    type_inputs = [row["email_type"] for row in top_rows]
+    type_inputs += [log.email_type for log in recent_failures]
+    if last_log:
+        type_inputs.append(last_log.email_type)
+    type_meta = describe_email_types(type_inputs)
+
+    top_types = []
+    for row in top_rows:
+        total = row.get("total") or 0
+        success = row.get("success_count") or 0
+        recipients = row.get("recipients") or 0
+        top_types.append(
+            {
+                "email_type": row.get("email_type"),
+                "total": total,
+                "success": success,
+                "failed": row.get("failed_count") or 0,
+                "recipients": recipients,
+                "avg_recipients": round(recipients / total, 1) if total else 0,
+                "success_rate": round(success / total * 100, 1) if total else 0,
+                "last_sent": row.get("last_sent"),
+                "reason": type_meta.get(row.get("email_type")),
+            }
+        )
+
+    failure_rows = [
+        {"log": log, "reason": type_meta.get(log.email_type)} for log in recent_failures
+    ]
+
+    last_reason = None
+    if last_log:
+        last_reason = type_meta.get(last_log.email_type, {}).get("label")
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Email overview",
+            "total_summary": total_summary,
+            "last_log": last_log,
+            "last_reason": last_reason,
+            "window_stats": window_stats,
+            "top_types": top_types,
+            "recent_failures": failure_rows,
+            "campaign_summary": campaign_summary,
+            "last_campaign": last_campaign,
+            "subscriber_summary": subscriber_summary,
+        }
+    )
+    return TemplateResponse(request, "admin/email_overview.html", context)
+
+
+def admin_email_logs(request):
+    user = request.user
+    is_master = user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
+    if is_master:
+        raise PermissionDenied
+
+    qs = EmailSendLog.objects.all()
+    filters = {
+        "q": (request.GET.get("q") or "").strip(),
+        "status": (request.GET.get("status") or "").strip(),
+        "type": (request.GET.get("type") or "").strip(),
+        "start": (request.GET.get("start") or "").strip(),
+        "end": (request.GET.get("end") or "").strip(),
+    }
+
+    if filters["q"]:
+        qs = qs.filter(
+            Q(subject__icontains=filters["q"])
+            | Q(from_email__icontains=filters["q"])
+            | Q(email_type__icontains=filters["q"])
+        )
+
+    if filters["type"]:
+        qs = qs.filter(email_type=filters["type"])
+
+    if filters["status"] == "success":
+        qs = qs.filter(success=True)
+    elif filters["status"] == "failed":
+        qs = qs.filter(success=False)
+
+    start_date = parse_date(filters["start"]) if filters["start"] else None
+    end_date = parse_date(filters["end"]) if filters["end"] else None
+    if start_date:
+        qs = qs.filter(sent_at__date__gte=start_date)
+    if end_date:
+        qs = qs.filter(sent_at__date__lte=end_date)
+
+    qs = qs.order_by("-sent_at")
+    stats = qs.aggregate(
+        total=models.Count("id"),
+        success_count=models.Count("id", filter=Q(success=True)),
+        failed_count=models.Count("id", filter=Q(success=False)),
+    )
+    total = stats.get("total") or 0
+    success = stats.get("success_count") or 0
+    failed = stats.get("failed_count") or 0
+
+    per_page_raw = request.GET.get("per_page")
+    page_raw = request.GET.get("page")
+    try:
+        per_page = int(per_page_raw or 50)
+    except (TypeError, ValueError):
+        per_page = 50
+    per_page = max(25, min(per_page, 200))
+    try:
+        page = int(page_raw or 1)
+    except (TypeError, ValueError):
+        page = 1
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = max(1, min(page, total_pages))
+
+    offset = (page - 1) * per_page
+    page_logs = list(qs[offset : offset + per_page])
+
+    type_options = list(
+        EmailSendLog.objects.values_list("email_type", flat=True)
+        .distinct()
+        .order_by("email_type")
+    )
+
+    type_meta = describe_email_types([log.email_type for log in page_logs])
+    rows = []
+    for log in page_logs:
+        recipients_preview = ""
+        recipients = log.recipients if isinstance(log.recipients, list) else []
+        if recipients:
+            preview = recipients[:2]
+            recipients_preview = ", ".join(preview)
+            if len(recipients) > 2:
+                recipients_preview += f" +{len(recipients) - 2} more"
+
+        reason = type_meta.get(log.email_type)
+        campaign_url = None
+        if reason and reason.get("campaign_id"):
+            try:
+                campaign_url = reverse(
+                    "admin:core_emailcampaign_change", args=[reason["campaign_id"]]
+                )
+            except Exception:
+                campaign_url = None
+
+        rows.append(
+            {
+                "log": log,
+                "reason": reason,
+                "recipients_preview": recipients_preview,
+                "detail_url": reverse("admin:core_emailsendlog_change", args=[log.pk]),
+                "campaign_url": campaign_url,
+            }
+        )
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Email send logs",
+            "filters": filters,
+            "logs": rows,
+            "stats": {
+                "total": total,
+                "success": success,
+                "failed": failed,
+                "success_rate": round(success / total * 100, 1) if total else 0,
+            },
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "has_previous": page > 1,
+                "has_next": page < total_pages,
+                "prev_page": page - 1,
+                "next_page": page + 1,
+            },
+            "type_options": type_options,
+        }
+    )
+    return TemplateResponse(request, "admin/email_send_logs.html", context)
+
+
+def admin_email_history(request):
+    user = request.user
+    is_master = user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
+    if is_master:
+        raise PermissionDenied
+
+    today = timezone.localdate()
+    window_raw = (request.GET.get("window") or "30").strip().lower()
+    if window_raw == "all":
+        window_days = None
+    else:
+        try:
+            window_days = int(window_raw)
+        except (TypeError, ValueError):
+            window_days = 30
+        window_days = max(1, min(window_days, 365))
+
+    qs = EmailSendLog.objects.all()
+    if window_days:
+        start_date = today - timedelta(days=window_days - 1)
+        qs = qs.filter(sent_at__date__gte=start_date)
+    else:
+        start_date = None
+
+    summary_rows = list(
+        qs.values("email_type")
+        .annotate(
+            total=models.Count("id"),
+            success_count=models.Count("id", filter=Q(success=True)),
+            failed_count=models.Count("id", filter=Q(success=False)),
+            recipients=models.Sum("recipient_count"),
+            last_sent=models.Max("sent_at"),
+        )
+        .order_by("-total")
+    )
+
+    overall_total = sum(row.get("total") or 0 for row in summary_rows) or 0
+    type_meta = describe_email_types([row["email_type"] for row in summary_rows])
+    history_rows = []
+    for row in summary_rows:
+        total = row.get("total") or 0
+        success = row.get("success_count") or 0
+        recipients = row.get("recipients") or 0
+        history_rows.append(
+            {
+                "email_type": row.get("email_type"),
+                "total": total,
+                "success": success,
+                "failed": row.get("failed_count") or 0,
+                "recipients": recipients,
+                "avg_recipients": round(recipients / total, 1) if total else 0,
+                "success_rate": round(success / total * 100, 1) if total else 0,
+                "share": round(total / overall_total * 100, 1) if overall_total else 0,
+                "last_sent": row.get("last_sent"),
+                "reason": type_meta.get(row.get("email_type")),
+            }
+        )
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Email history",
+            "window_days": window_days,
+            "window_options": [7, 30, 90, 180, 365, "all"],
+            "start_date": start_date,
+            "history_rows": history_rows,
+            "overall_total": overall_total,
+        }
+    )
+    return TemplateResponse(request, "admin/email_history.html", context)
+
+
+def admin_email_campaign_history(request):
+    user = request.user
+    is_master = user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
+    if is_master:
+        raise PermissionDenied
+
+    today = timezone.localdate()
+    window_raw = (request.GET.get("window") or "90").strip().lower()
+    if window_raw == "all":
+        window_days = None
+    else:
+        try:
+            window_days = int(window_raw)
+        except (TypeError, ValueError):
+            window_days = 90
+        window_days = max(1, min(window_days, 365))
+
+    status_filter = (request.GET.get("status") or "").strip().lower()
+
+    qs = EmailCampaign.objects.select_related("sent_by")
+    if window_days:
+        start_date = today - timedelta(days=window_days - 1)
+        qs = qs.filter(created_at__date__gte=start_date)
+    else:
+        start_date = None
+
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+
+    qs = qs.order_by("-created_at")
+    stats = qs.aggregate(
+        total=models.Count("id"),
+        sent=models.Count("id", filter=Q(status=EmailCampaign.Status.SENT)),
+        partial=models.Count("id", filter=Q(status=EmailCampaign.Status.PARTIAL)),
+        failed=models.Count("id", filter=Q(status=EmailCampaign.Status.FAILED)),
+        draft=models.Count("id", filter=Q(status=EmailCampaign.Status.DRAFT)),
+        sending=models.Count("id", filter=Q(status=EmailCampaign.Status.SENDING)),
+        sent_total=models.Sum("sent_count"),
+        failed_total=models.Sum("failed_count"),
+        recipients_total=models.Sum("recipients_total"),
+    )
+    sent_total = stats.get("sent_total") or 0
+    failed_total = stats.get("failed_total") or 0
+    delivered_total = sent_total + failed_total
+    stats.update(
+        {
+            "sent_total": sent_total,
+            "failed_total": failed_total,
+            "recipients_total": stats.get("recipients_total") or 0,
+            "success_rate": round(sent_total / delivered_total * 100, 1) if delivered_total else 0,
+        }
+    )
+
+    per_page_raw = request.GET.get("per_page")
+    page_raw = request.GET.get("page")
+    try:
+        per_page = int(per_page_raw or 50)
+    except (TypeError, ValueError):
+        per_page = 50
+    per_page = max(25, min(per_page, 200))
+    try:
+        page = int(page_raw or 1)
+    except (TypeError, ValueError):
+        page = 1
+    total = stats.get("total") or 0
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = max(1, min(page, total_pages))
+
+    offset = (page - 1) * per_page
+    campaigns = list(qs[offset : offset + per_page])
+
+    rows = []
+    for campaign in campaigns:
+        delivered = campaign.sent_count + campaign.failed_count
+        success_rate = round(campaign.sent_count / delivered * 100, 1) if delivered else 0
+        recipients_url = None
+        logs_url = None
+        try:
+            recipients_url = (
+                reverse("admin:core_emailcampaignrecipient_changelist")
+                + f"?campaign__id__exact={campaign.id}"
+            )
+        except Exception:
+            recipients_url = None
+        try:
+            logs_url = reverse("admin-email-logs") + f"?type=campaign:{campaign.id}"
+        except Exception:
+            logs_url = None
+        rows.append(
+            {
+                "campaign": campaign,
+                "success_rate": success_rate,
+                "change_url": reverse("admin:core_emailcampaign_change", args=[campaign.id]),
+                "recipients_url": recipients_url,
+                "logs_url": logs_url,
+            }
+        )
+
+    window_param = f"window={window_days}" if window_days else "window=all"
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Email campaign history",
+            "window_days": window_days,
+            "window_options": [30, 90, 180, 365, "all"],
+            "status_filter": status_filter,
+            "stats": stats,
+            "rows": rows,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "has_previous": page > 1,
+                "has_next": page < total_pages,
+                "prev_page": page - 1,
+                "next_page": page + 1,
+            },
+            "start_date": start_date,
+            "window_param": window_param,
+        }
+    )
+    return TemplateResponse(request, "admin/email_campaign_history.html", context)
 
 # ===== API =====
 
@@ -1564,7 +2170,7 @@ def project_journal_view(request):
     tag_filter = (request.GET.get("tag") or "").strip()
     normalized_tag = tag_filter.lower()
 
-    published_posts = list(ProjectJournalEntry.objects.published())
+    published_posts = list(ProjectJournalEntry.objects.published().prefetch_related("photos"))
     available_tags = sorted(
         {tag for post in published_posts for tag in post.tag_list},
         key=lambda tag: tag.lower(),
@@ -1593,6 +2199,33 @@ def project_journal_view(request):
         published_label = ""
         if post.published_at:
             published_label = timezone.localtime(post.published_at).strftime("%b %d, %Y")
+        before_images = []
+        after_images = []
+        photos = list(getattr(post, "photos", []).all()) if hasattr(post, "photos") else []
+        if photos:
+            before_images = [
+                {"url": photo.image.url, "alt": photo.alt_text or ""}
+                for photo in photos
+                if photo.kind == "before" and photo.image
+            ]
+            after_images = [
+                {"url": photo.image.url, "alt": photo.alt_text or ""}
+                for photo in photos
+                if photo.kind == "after" and photo.image
+            ]
+
+        if not before_images:
+            before_gallery = post.before_gallery or []
+            if isinstance(before_gallery, list):
+                before_images = list(before_gallery)
+        if not after_images:
+            after_gallery = post.after_gallery or []
+            if isinstance(after_gallery, list):
+                after_images = list(after_gallery)
+        if not before_images and post.cover_image:
+            before_images = [{"url": post.cover_image.url, "alt": f"{post.title} before"}]
+        if not after_images and post.cover_image:
+            after_images = [{"url": post.cover_image.url, "alt": f"{post.title} after"}]
         project_payload.append(
             {
                 "id": str(post.pk),
@@ -1610,6 +2243,8 @@ def project_journal_view(request):
                 "location": post.location or "",
                 "reading_time": post.reading_time or 0,
                 "published_label": published_label,
+                "before_images": before_images,
+                "after_images": after_images,
                 "cover_image": post.cover_image.url if post.cover_image else "",
                 "services": post.services_list,
                 "tags": post.tag_list,
@@ -1702,7 +2337,8 @@ def analytics_collect(request):
         visitor_session, _ = VisitorSession.objects.get_or_create(
             session_key=session_key,
             defaults={
-                "ip_address": request.META.get("REMOTE_ADDR"),
+                "ip_address": get_client_ip(request.META),
+                "ip_location": format_ip_location(request.META),
                 "user_agent": (request.META.get("HTTP_USER_AGENT") or "")[:1024],
                 "landing_path": (request.path or "")[:512],
             },

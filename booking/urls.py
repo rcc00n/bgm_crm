@@ -19,6 +19,11 @@ urlpatterns = [
         name="admin-client-contact",
     ),
     path(
+        "admin/api/clients/search/",
+        core_views.admin_client_search,
+        name="admin-client-search",
+    ),
+    path(
         "admin/analytics/collect/",
         core_views.admin_analytics_collect,
         name="admin-analytics-collect",
@@ -28,6 +33,11 @@ urlpatterns = [
         "admin/pagecopy/save-field/",
         admin.site.admin_view(core_views.admin_pagecopy_save_field),
         name="admin-pagecopy-save-field",
+    ),
+    path(
+        "admin/pagecopy/save-draft/",
+        admin.site.admin_view(core_views.admin_pagecopy_save_draft),
+        name="admin-pagecopy-save-draft",
     ),
     path(
         "admin/pagecopy/save-fonts/",
@@ -63,6 +73,26 @@ urlpatterns = [
         "admin/analytics/insights/",
         admin.site.admin_view(core_views.admin_web_analytics_insights),
         name="admin-analytics-insights",
+    ),
+    path(
+        "admin/email/overview/",
+        admin.site.admin_view(core_views.admin_email_overview),
+        name="admin-email-overview",
+    ),
+    path(
+        "admin/email/logs/",
+        admin.site.admin_view(core_views.admin_email_logs),
+        name="admin-email-logs",
+    ),
+    path(
+        "admin/email/history/",
+        admin.site.admin_view(core_views.admin_email_history),
+        name="admin-email-history",
+    ),
+    path(
+        "admin/email/campaigns/",
+        admin.site.admin_view(core_views.admin_email_campaign_history),
+        name="admin-email-campaign-history",
     ),
     path("ckeditor/", include("ckeditor_uploader.urls")),
     # Admin

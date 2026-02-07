@@ -643,12 +643,39 @@ def inject_preview_helpers(
       });
     }
 
+    const collectFieldValues = () => {
+      const payload = {};
+      Object.keys(byField).forEach((field) => {
+        const nodes = byField[field] || [];
+        if (!nodes.length) return;
+        const node = nodes[0];
+        const copyType = node.dataset.copyType || 'plain';
+        const editor = editors.get(node);
+        if (editor) {
+          payload[field] = editor.getData();
+          return;
+        }
+        payload[field] = copyType === 'rich' ? readRichValue(node) : readPlainValue(node);
+      });
+      return payload;
+    };
+
     window.addEventListener('message', (event) => {
       const data = event.data || {};
-      if (data.type !== 'pagecopy:sync') return;
-      const field = data.field;
-      const value = data.value;
-      (byField[field] || []).forEach(node => setNodeValue(node, value));
+      if (data.type === 'pagecopy:sync') {
+        const field = data.field;
+        const value = data.value;
+        (byField[field] || []).forEach(node => setNodeValue(node, value));
+        return;
+      }
+      if (data.type === 'pagecopy:request-values') {
+        if (window.parent) {
+          window.parent.postMessage(
+            { type: 'pagecopy:values', values: collectFieldValues(), nonce: data.nonce },
+            '*'
+          );
+        }
+      }
     });
 
     const layoutConfig = __LAYOUT_CONFIG__;

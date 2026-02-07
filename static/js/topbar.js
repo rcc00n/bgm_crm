@@ -1,10 +1,28 @@
 /* static/js/topbar.js
    Mobile overlay nav: accessible, focus-trapped, robust, desktop-safe. */
 (() => {
-  const header = document.querySelector('.site-header');
-  const toggle = document.querySelector('.site-header__toggle');
-  const nav = document.getElementById('siteNav');
+  if (document.querySelector('.contact-fab')) {
+    document.body.classList.add('has-contact-fab');
+  }
+
+  const header = document.querySelector('.bgm-topbar');
+  const toggle = document.querySelector('.bgm-topbar__toggle');
+  const nav = document.getElementById('bgmSiteNav');
   if (!header || !toggle || !nav) return;
+
+  const syncHeight = () => {
+    const height = Math.ceil(header.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--bgm-topbar-height', `${height}px`);
+  };
+
+  if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(syncHeight);
+    ro.observe(header);
+  }
+
+  window.addEventListener('load', syncHeight);
+  window.addEventListener('resize', syncHeight);
+  syncHeight();
 
   const mq = window.matchMedia('(max-width: 960px)');
   let lastFocused = null;
@@ -46,9 +64,9 @@
   };
 
   const open = () => {
-    if (header.classList.contains('site-header--open')) return;
+    if (header.classList.contains('bgm-topbar--open')) return;
     lastFocused = document.activeElement;
-    header.classList.add('site-header--open');
+    header.classList.add('bgm-topbar--open');
     document.body.classList.add('nav-open');
     toggle.setAttribute('aria-expanded', 'true');
     setInert(false);
@@ -61,8 +79,8 @@
   };
 
   const close = () => {
-    if (!header.classList.contains('site-header--open')) return;
-    header.classList.remove('site-header--open');
+    if (!header.classList.contains('bgm-topbar--open')) return;
+    header.classList.remove('bgm-topbar--open');
     document.body.classList.remove('nav-open');
     toggle.setAttribute('aria-expanded', 'false');
     setInert(true);
@@ -104,7 +122,7 @@
   };
 
   const onToggle = () =>
-    header.classList.contains('site-header--open') ? close() : open();
+    header.classList.contains('bgm-topbar--open') ? close() : open();
 
   const applyMode = () => {
     if (mq.matches) {
