@@ -188,10 +188,31 @@
   }
   .location-card__map-link{ position:absolute; right:.6rem; bottom:.6rem; z-index:2; }
   .location-card__map-link .btn{ padding:.55rem .85rem; font-size:.85rem; }
-  .story-photo{ display:grid; grid-template-columns:110px 1fr; gap:1rem; align-items:center; padding:.9rem; border:1px solid var(--line); border-radius:.9rem; background:rgba(255,255,255,.03); }
-  .story-photo__frame{ width:110px; height:110px; border-radius:.9rem; overflow:hidden; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); }
+  /* Story photo (Denim & Kacy) */
+  .story-photo{
+    --story-photo-size: clamp(132px, 14vw, 176px);
+    display:grid;
+    grid-template-columns: var(--story-photo-size) 1fr;
+    gap:1rem;
+    align-items:center;
+    padding:.9rem;
+    border:1px solid var(--line);
+    border-radius:.9rem;
+    background:rgba(255,255,255,.03);
+  }
+  .story-photo__frame{
+    width:var(--story-photo-size);
+    height:var(--story-photo-size);
+    border-radius:1rem;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+  }
   .story-photo__frame img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .story-photo__fallback{ font-weight:900; letter-spacing:.08em; color:#fff; font-size:1.2rem; }
+  .story-photo__fallback{ font-weight:900; letter-spacing:.08em; color:#fff; font-size:1.35rem; }
   .story-photo__name{ font-weight:900; font-size:1.05rem; }
   .story-photo__role{ color:var(--muted); font-size:var(--text-detail); }
   .story-photo__caption{ margin-top:.35rem; color:var(--muted); font-size:var(--text-detail); }
@@ -411,15 +432,16 @@
         </article>
 
         <article class="card">
-          <h2 class="section__title">{{ about_copy.rates_title }}</h2>
-          <ul class="list">
-            <li>{{ about_copy.rates_shop_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_shop_value }}</strong></li>
-            <li>{{ about_copy.rates_cad_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_cad_value }}</strong></li>
-            {% for policy in about_copy.rates_policies|split_lines %}
-              <li>{{ policy }}</li>
-            {% endfor %}
-          </ul>
-        </article>
+	          <h2 class="section__title">{{ about_copy.rates_title }}</h2>
+	          <ul class="list">
+	            <li>{{ about_copy.rates_shop_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_shop_value }}</strong></li>
+	            <li>{{ about_copy.rates_cad_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_cad_value }}</strong></li>
+	            <li>{{ about_copy.rates_customer_parts_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_customer_parts_value }}</strong></li>
+	            {% for policy in about_copy.rates_policies|split_lines %}
+	              <li>{{ policy }}</li>
+	            {% endfor %}
+	          </ul>
+	        </article>
       </div>
     </section>
 

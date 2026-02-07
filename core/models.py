@@ -1640,6 +1640,11 @@ class AboutPageCopy(models.Model):
     rates_shop_value = models.CharField(max_length=40, default="130/hr")
     rates_cad_label = models.CharField(max_length=60, default="Design/CAD rate")
     rates_cad_value = models.CharField(max_length=40, default="150/hr")
+    rates_customer_parts_label = models.CharField(
+        max_length=80,
+        default="Customer supplied parts",
+    )
+    rates_customer_parts_value = models.CharField(max_length=40, default="145/hr")
     rates_policies = models.TextField(
         default=(
             "Deposits secure your slot; balance due on delivery.\n"

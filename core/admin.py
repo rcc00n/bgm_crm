@@ -3974,16 +3974,18 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "how_step_4_desc",
             )
         }),
-        ("Rates & policies", {
-            "fields": (
-                "rates_title",
-                "rates_shop_label",
-                "rates_shop_value",
-                "rates_cad_label",
-                "rates_cad_value",
-                "rates_policies",
-            )
-        }),
+	        ("Rates & policies", {
+	            "fields": (
+	                "rates_title",
+	                "rates_shop_label",
+	                "rates_shop_value",
+	                "rates_cad_label",
+	                "rates_cad_value",
+	                "rates_customer_parts_label",
+	                "rates_customer_parts_value",
+	                "rates_policies",
+	            )
+	        }),
         ("Location", {
             "fields": (
                 "location_title",
