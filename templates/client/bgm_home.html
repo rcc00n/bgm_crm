@@ -383,6 +383,25 @@
         margin-top:.25rem;
       }
     }
+    /* Desktop: keep the step number inline with the title in "Our Process". */
+    @media (min-width: 861px){
+      .tiles--process .tile{
+        display:grid;
+        grid-template-columns:auto 1fr;
+        grid-template-rows:auto auto;
+        column-gap:.7rem;
+        align-items:start;
+      }
+      .tiles--process .tile .tile__icon{
+        margin-bottom:0;
+        font-size:1.35rem;
+        line-height:1;
+      }
+      .tiles--process .tile p.muted{
+        grid-column:1 / -1;
+        margin-top:.35rem;
+      }
+    }
     .tile--link{display:flex;flex-direction:column;gap:.4rem;min-height:100%;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
     .tile--link .tile__cta{margin-top:.1rem;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--muted);display:inline-flex;align-items:center;gap:.35rem}
     .tile--link:hover,.tile--link:focus-visible{border-color:rgba(213,0,0,.65);box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 20px rgba(213,0,0,.2);transform:translateY(-2px);outline:none}
@@ -1470,7 +1489,7 @@
           <h2 class="section__title">{{ home_copy.how_title }}</h2>
           <p class="section__desc">{{ home_copy.how_desc }}</p>
         </div>
-        <div class="tiles">
+        <div class="tiles tiles--process">
           <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
           <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
           <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
