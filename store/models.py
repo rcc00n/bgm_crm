@@ -230,7 +230,8 @@ class Product(models.Model):
     )
 
     # media
-    main_image = models.ImageField(upload_to="store/products/", blank=True, null=True)
+    # Stores either a local path or a remote http(s) URL (see main_image_url).
+    main_image = models.ImageField(upload_to="store/products/", blank=True, null=True, max_length=2048)
 
     # attributes
     specs = models.JSONField(default=dict, blank=True)

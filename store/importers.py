@@ -256,8 +256,32 @@ def read_spreadsheet(uploaded_file) -> Tuple[List[str], List[Dict[str, object]]]
 def detect_shopify(headers: Iterable[str]) -> bool:
     normalized = {_normalize_header(header) for header in headers}
     required = {"handle", "title"}
-    has_variant = {"variantsku", "variantprice"} & normalized
-    return required.issubset(normalized) and bool(has_variant)
+    # Shopify exports always have Handle/Title, but variant columns differ by source.
+    #
+    # DDC "Shopify-like" files omit Variant SKU / Variant Price and instead use SKU
+    # and RETAIL PRICE, plus Shopify-ish image/option columns. Auto mode should
+    # still route these through the Shopify importer to avoid creating junk
+    # products from image-only rows.
+    markers = {
+        # canonical Shopify
+        "variantsku",
+        "variantprice",
+        "variantimage",
+        # DDC/Shopify-like
+        "sku",
+        "imagesrc",
+        "imageposition",
+        "option1name",
+        "option1value",
+        # common Shopify-ish metadata
+        "vendor",
+        "bodyhtml",
+        "published",
+        "status",
+        "tags",
+        "type",
+    }
+    return required.issubset(normalized) and bool(markers & normalized)
 
 
 def _ensure_unique_slug(base: str) -> str:
@@ -336,6 +360,7 @@ FIELD_ALIASES = {
         "listprice",
         "msrp",
         "retail",
+        "retail price",
         "variant price",
     ],
     "currency": [
@@ -659,6 +684,64 @@ def _shopify_option_label(row_norm: Dict[str, object]) -> Optional[str]:
     return " / ".join(parts)[:120]
 
 
+def _pick_shopify_primary_row(
+    group: List[Dict[str, object]],
+    *,
+    currency_default: str,
+) -> Dict[str, object]:
+    """
+    Shopify-like imports can include many rows per handle, including image-only rows
+    with blank metadata. Pick the best row for product-level fields deterministically.
+    """
+    best = group[0]
+    best_score = -1
+    for row_norm in group:
+        score = 0
+        if _get_value(row_norm, "title") is not None:
+            score += 10
+        if _get_value(row_norm, "body (html)", "body html", "body") is not None:
+            score += 6
+        if _parse_decimal(_pick_price(row_norm, currency_default)) is not None:
+            score += 3
+        if _get_value(row_norm, "vendor") is not None:
+            score += 2
+        if _get_value(row_norm, "product category", "type", "collection") is not None:
+            score += 2
+
+        # Tie-breaker: earliest in file wins (keep existing best when scores match).
+        if score > best_score:
+            best = row_norm
+            best_score = score
+    return best
+
+
+def _pick_shopify_main_image_url(group: List[Dict[str, object]]) -> str:
+    """
+    Extract the primary product image for a handle group.
+
+    - Collect Image Src / Variant Image across all rows
+    - Sort by Image Position (lowest wins); rows without a position sort last
+    - Deduplicate URLs (keeping the best-positioned occurrence)
+    """
+    best_by_url: Dict[str, Tuple[int, int]] = {}
+    for idx, row_norm in enumerate(group):
+        src_raw = _get_value(row_norm, "image src", "variant image")
+        if src_raw is None:
+            continue
+        src = str(src_raw).strip()
+        if not src:
+            continue
+        pos = _parse_int(_get_value(row_norm, "image position"))
+        sort_pos = pos if pos is not None else 10**9
+        key = (sort_pos, idx)
+        if src not in best_by_url or key < best_by_url[src]:
+            best_by_url[src] = key
+    if not best_by_url:
+        return ""
+    best_src, _best_key = min(best_by_url.items(), key=lambda kv: kv[1])
+    return best_src
+
+
 def _import_shopify(
     rows: Iterable[Dict[str, object]],
     *,
@@ -687,40 +770,32 @@ def _import_shopify(
         grouped.setdefault(handle, []).append(row_norm)
 
     for handle, group in grouped.items():
-        first = group[0]
-        title_raw = _get_value(first, "title")
+        handle_slug = _slug_seed(handle)
+        primary = _pick_shopify_primary_row(group, currency_default=currency_default)
+
+        title_raw = _get_value(primary, "title")
         name = _trim_text(title_raw or handle, 180)
         if not name:
             result.errors.append(f"{handle}: missing title.")
             result.skipped_products += 1
             continue
 
-        category_raw = _get_value(first, "product category", "type", "collection")
+        category_raw = _get_value(primary, "product category", "type", "collection")
         category_name = str(category_raw).strip() if category_raw else ""
-        category, category_created = _resolve_category(
-            category_name,
-            default_category=default_category,
-            create_missing=create_missing_categories,
-            dry_run=dry_run,
-        )
-        if category_created:
-            result.created_categories += 1
-        if not category and not dry_run:
-            result.errors.append(f"{handle}: missing category and no default set.")
-            result.skipped_products += 1
-            continue
 
-        description_raw = _get_value(first, "body (html)", "body html", "body")
+        description_raw = _get_value(primary, "body (html)", "body html", "body")
         description = str(description_raw).strip() if description_raw else ""
-        short_desc_raw = _get_value(first, "seo description")
+        short_desc_raw = _get_value(primary, "seo description")
         short_description = _trim_text(short_desc_raw, 240)
-        tags = _parse_tags(_get_value(first, "tags"))
-        vendor_raw = _get_value(first, "vendor")
+        tags_raw = _get_value(primary, "tags")
+        tags = _parse_tags(tags_raw)
+        vendor_raw = _get_value(primary, "vendor")
         if vendor_raw:
             vendor_tag = _trim_text(vendor_raw, 32)
             if vendor_tag and vendor_tag not in tags:
                 tags.append(vendor_tag)
-        is_active = _parse_bool(_get_value(first, "published", "status"), default=True)
+        active_raw = _get_value(primary, "published", "status")
+        is_active = _parse_bool(active_raw, default=True)
 
         variant_prices = []
         for row_norm in group:
@@ -729,13 +804,14 @@ def _import_shopify(
             if price is not None:
                 price = _apply_price_multiplier(price, price_multiplier)
                 variant_prices.append(price)
+        has_price = bool(variant_prices)
         base_price = min(variant_prices) if variant_prices else Decimal("0.00")
 
         base_sku = None
         for row_norm in group:
             opt_label = _shopify_option_label(row_norm)
             if not opt_label:
-                sku_candidate = _get_value(row_norm, "variant sku")
+                sku_candidate = _get_value(row_norm, "variant sku", "sku")
                 if sku_candidate:
                     base_sku = _clean_sku(sku_candidate)
                     break
@@ -744,29 +820,55 @@ def _import_shopify(
         else:
             taken_skus.add(base_sku)
 
-        inventory_raw = _get_value(first, "variant inventory qty", "inventory", "qty", "quantity")
-        inventory = _parse_int(inventory_raw) or 0
+        inventory_raw = _get_value(primary, "variant inventory qty", "inventory", "qty", "quantity")
+        inventory_value = _parse_int(inventory_raw) if inventory_raw is not None else None
 
-        existing = Product.objects.filter(sku=base_sku).first()
+        main_image_url = _pick_shopify_main_image_url(group)
+
+        # Prefer stable Shopify handle/slug matching; fall back to SKU.
+        existing = Product.objects.filter(slug=handle_slug).first() if handle_slug else None
+        if not existing:
+            existing = Product.objects.filter(sku=base_sku).first()
+
         if existing:
             if not update_existing:
                 result.skipped_products += 1
                 continue
             if dry_run:
                 result.updated_products += 1
+                product = existing
             else:
+                category = None
+                category_created = False
+                if category_raw is not None or default_category is not None:
+                    category, category_created = _resolve_category(
+                        category_name,
+                        default_category=default_category,
+                        create_missing=create_missing_categories,
+                        dry_run=dry_run,
+                    )
+                if category_created:
+                    result.created_categories += 1
                 try:
-                    existing.name = name
-                    if category:
+                    if title_raw is not None:
+                        existing.name = name
+                    if (category_raw is not None or default_category is not None) and category:
                         existing.category = category
-                    existing.price = base_price
-                    existing.currency = currency_default
-                    existing.inventory = inventory
-                    existing.description = description
+                    if has_price:
+                        existing.price = base_price
+                        existing.currency = currency_default
+                    if inventory_value is not None:
+                        existing.inventory = inventory_value
+                    if description_raw is not None:
+                        existing.description = description
                     if short_description:
                         existing.short_description = short_description
-                    existing.tags = tags
-                    existing.is_active = is_active
+                    if tags_raw is not None:
+                        existing.tags = tags
+                    if active_raw is not None:
+                        existing.is_active = is_active
+                    if main_image_url:
+                        existing.main_image = main_image_url
                     existing.save()
                 except Exception as exc:
                     result.errors.append(f"{handle}: {exc}")
@@ -776,6 +878,19 @@ def _import_shopify(
                     result.updated_products += 1
             product = existing
         else:
+            category, category_created = _resolve_category(
+                category_name,
+                default_category=default_category,
+                create_missing=create_missing_categories,
+                dry_run=dry_run,
+            )
+            if category_created:
+                result.created_categories += 1
+            if not category and not dry_run:
+                result.errors.append(f"{handle}: missing category and no default set.")
+                result.skipped_products += 1
+                continue
+
             if dry_run:
                 result.created_products += 1
                 product = None
@@ -790,11 +905,12 @@ def _import_shopify(
                         category=category,
                         price=base_price,
                         currency=currency_default,
-                        inventory=inventory,
+                        inventory=inventory_value or 0,
                         is_active=is_active,
                         short_description=short_description,
                         description=description,
                         tags=tags,
+                        main_image=main_image_url or None,
                         import_batch=import_batch,
                     )
                 except Exception as exc:
@@ -808,12 +924,13 @@ def _import_shopify(
             opt_label = _shopify_option_label(row_norm)
             if not opt_label:
                 continue
-            opt_sku_raw = _get_value(row_norm, "variant sku")
+            opt_sku_raw = _get_value(row_norm, "variant sku", "sku")
             opt_sku = _clean_sku(opt_sku_raw) if opt_sku_raw else ""
             opt_price_raw = _pick_price(row_norm, currency_default)
             opt_price = _parse_decimal(opt_price_raw)
             opt_price = _apply_price_multiplier(opt_price, price_multiplier)
-            opt_active = _parse_bool(_get_value(row_norm, "published", "status"), default=True)
+            opt_active_raw = _get_value(row_norm, "published", "status")
+            opt_active = _parse_bool(opt_active_raw, default=True)
 
             existing_opt = None
             if opt_sku:
@@ -834,7 +951,8 @@ def _import_shopify(
                         existing_opt.sku = opt_sku
                     if opt_price is not None:
                         existing_opt.price = opt_price
-                    existing_opt.is_active = opt_active
+                    if opt_active_raw is not None:
+                        existing_opt.is_active = opt_active
                     existing_opt.save()
                 except Exception as exc:
                     result.errors.append(f"{handle}: option {opt_label} -> {exc}")
