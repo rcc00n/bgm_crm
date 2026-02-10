@@ -1,12 +1,34 @@
 from __future__ import annotations
 
+import logging
+from functools import lru_cache
 from typing import Any, Dict
 
+from django.conf import settings
 from django.templatetags.static import static
 
 from core.models import HeroImage
 
 DEFAULT_MEDIA_CAPTION = "Product may not appear exactly as shown."
+
+logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=64)
+def _safe_static(path: str) -> str:
+    """Best-effort static URL resolution for runtime fallbacks.
+
+    With a manifest storage backend (e.g. WhiteNoise), missing manifest entries
+    raise ValueError and can take down unrelated pages (admin, product pages)
+    because context processors run for every template render.
+    """
+    try:
+        return static(path)
+    except Exception as exc:
+        # Log once per path (thanks to lru_cache) to avoid spamming logs.
+        logger.warning("Static asset missing from manifest: %s (%s)", path, exc)
+        static_url = getattr(settings, "STATIC_URL", "/static/")
+        return f"{static_url.rstrip('/')}/{path.lstrip('/')}"
 
 
 def resolve_media_asset(
@@ -22,7 +44,7 @@ def resolve_media_asset(
     Keeps rendering resilient if the upload is missing or storage is misconfigured.
     """
     payload: Dict[str, Any] = {
-        "src": static(fallback_path),
+        "src": _safe_static(fallback_path),
         "alt": fallback_alt or "",
         "caption": fallback_caption or "",
         "location": str(location or ""),

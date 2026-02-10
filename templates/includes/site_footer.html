@@ -20,8 +20,9 @@
   .site-footer__group{display:flex;flex-direction:column;gap:.55rem;}
   .site-footer__brand{display:flex;flex-direction:column;gap:.35rem;}
   .site-footer__title{font-weight:900;color:var(--fg, #fff);letter-spacing:.02em;}
-  .site-footer__meta{color:var(--muted-2, rgba(255,255,255,.65));}
-  .site-footer__contact{display:flex;flex-direction:column;gap:.55rem;}
+	  .site-footer__meta{color:var(--muted-2, rgba(255,255,255,.65));}
+	  .site-footer__hours-label{color:rgba(255,255,255,.85);font-weight:900;}
+	  .site-footer__contact{display:flex;flex-direction:column;gap:.55rem;}
   .site-footer__links{
     display:flex;
     flex-direction:column;
@@ -100,12 +101,18 @@
   }
 </style>
 
-<footer class="site-footer" id="contact">
-  <div class="site-footer__inner">
-    <div class="site-footer__brand site-footer__group">
-      <div class="site-footer__title">Bad Guy Motors</div>
-      <div class="site-footer__meta">620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2</div>
-    </div>
+	<footer class="site-footer" id="contact">
+	  <div class="site-footer__inner">
+	    <div class="site-footer__brand site-footer__group">
+	      <div class="site-footer__title">Bad Guy Motors</div>
+	      <div class="site-footer__meta">{{ company.address|default:"620 Porcelain Ave SE, Medicine Hat, AB T1A 0C2" }}</div>
+	      {% if company.hours_lines %}
+	        <div class="site-footer__meta">
+	          <span class="site-footer__hours-label">Hours:</span>
+	          {{ company.hours_lines|join:" · " }}
+	        </div>
+	      {% endif %}
+	    </div>
 
     <div class="site-footer__contact site-footer__group">
       <div class="site-footer__label">Contact</div>

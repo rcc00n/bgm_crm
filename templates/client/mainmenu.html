@@ -385,7 +385,7 @@
 
 /* Заголовки секций (Upgrades & Services и пр.) */
 h2, .section__title{
-  font-family: var(--font-body) !important;
+  font-family: var(--font-head) !important;
   font-weight: 900 !important;
   font-size: clamp(1.85rem, 2.6vw, 2.2rem) !important;
   letter-spacing: .005em !important;
@@ -396,7 +396,7 @@ h2, .section__title{
 
 /* Подзаголовки категоний/блоков (некоторые заданы инлайн — перебиваем) */
 main h3{
-  font-family: var(--font-body) !important;
+  font-family: var(--font-head) !important;
   font-weight: 900 !important;
   font-size: 1.15rem !important;
   letter-spacing: .01em !important;
@@ -754,7 +754,7 @@ main h3{
 
 <section class="hero">
   <h1>{{ services_copy.hero_title }}</h1>
-  <p>{{ services_copy.hero_lead|safe }}</p>
+  <p>{{ services_copy.hero_lead|striptags|safe }}</p>
   <div class="cta"><a href="#services" class="btn btn--primary">{{ services_copy.hero_cta_label }}</a></div>
 </section>
 
@@ -793,7 +793,7 @@ main h3{
                 {% if s.category %}<span class="service-card__badge">{{ s.category.name }}</span>{% endif %}
               </div>
               <h3>{{ s.name }}</h3>
-              {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
+              {% if s.description %}<p class="muted">{{ s.description|striptags|truncatewords:22|safe }}</p>{% endif %}
               <div class="service-meta">
                 {% if s.contact_for_estimate %}
                   <strong>{{ services_copy.contact_for_estimate_label }}</strong>
@@ -834,7 +834,7 @@ main h3{
                     <span class="service-card__badge">{{ c.name }}</span>
                   </div>
                   <h3>{{ s.name }}</h3>
-                  {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
+                  {% if s.description %}<p class="muted">{{ s.description|striptags|truncatewords:22|safe }}</p>{% endif %}
                   <div class="service-meta">
                     {% if s.contact_for_estimate %}
                       <strong>{{ services_copy.contact_for_estimate_label }}</strong>
@@ -871,7 +871,7 @@ main h3{
                 {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
               </div>
               <h3>{{ s.name }}</h3>
-              {% if s.description %}<p class="muted">{{ s.description|truncatewords:22 }}</p>{% endif %}
+              {% if s.description %}<p class="muted">{{ s.description|striptags|truncatewords:22|safe }}</p>{% endif %}
               <div class="service-meta">
                 {% if s.contact_for_estimate %}
                   <strong>{{ services_copy.contact_for_estimate_label }}</strong>
