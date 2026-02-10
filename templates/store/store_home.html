@@ -1,5 +1,5 @@
 {% extends "store/_base_store.html" %}
-{% load dealer_extras %}
+{% load dealer_extras thumbnail %}
 {% block title %}{{ store_copy.page_title|default:"BGM — Products" }}{% endblock %}
 
 {% block marketing_meta %}
@@ -26,7 +26,23 @@
     </div>
 
     <div class="hero__media frame frame--media">
-      <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Products hero' }}" loading="lazy" decoding="async">
+      {% if hero_media.image %}
+        {% thumbnail hero_media.image "800" quality=72 format="WEBP" as hero_1x %}
+          {% thumbnail hero_media.image "1600" quality=72 format="WEBP" as hero_2x %}
+            <img
+              src="{{ hero_1x.url }}"
+              srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
+              width="{{ hero_1x.width }}"
+              height="{{ hero_1x.height }}"
+              alt="{{ hero_media.alt|default:'Products hero' }}"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async">
+          {% endthumbnail %}
+        {% endthumbnail %}
+      {% else %}
+        <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Products hero' }}" loading="eager" fetchpriority="high" decoding="async">
+      {% endif %}
       <p class="hero__disclaimer">{{ hero_media.caption|default:store_copy.hero_disclaimer_fallback|default:"Product may not appear exactly as shown." }}</p>
     </div>
   </div>

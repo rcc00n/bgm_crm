@@ -1634,6 +1634,11 @@ def service_search(request):
     if not ranked and all_qs.exists():
         ranked = _rank_services(all_qs, q, limit=60)
 
+    try:
+        from sorl.thumbnail import get_thumbnail  # type: ignore
+    except Exception:  # pragma: no cover
+        get_thumbnail = None
+
     results = []
     for s in ranked:
         disc = s.get_active_discount() if not s.contact_for_estimate else None
@@ -1641,6 +1646,20 @@ def service_search(request):
         price = None
         if not s.contact_for_estimate:
             price = str(s.get_discounted_price()) if disc else base_price
+
+        image_url = ""
+        if getattr(s, "image", None):
+            if get_thumbnail is not None:
+                try:
+                    image_url = get_thumbnail(s.image, "320", quality=72, format="WEBP").url
+                except Exception:
+                    image_url = ""
+            if not image_url:
+                try:
+                    image_url = s.image.url
+                except Exception:
+                    image_url = ""
+
         results.append({
             "id": str(s.id),
             "name": s.name,
@@ -1653,7 +1672,7 @@ def service_search(request):
             "discount_percent": disc.discount_percent if disc else None,
             "duration_min": s.duration_min,
             # NEW: image url for cards
-            "image": s.image.url if getattr(s, "image", None) else "",
+            "image": image_url,
         })
     return JsonResponse({"results": results})
 

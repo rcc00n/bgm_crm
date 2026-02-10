@@ -1,4 +1,4 @@
-{% load static %}
+{% load static thumbnail %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -520,7 +520,23 @@ body.nav-open .contact-fab,
       </div>
 
       <div class="hero__media frame frame--media">
-        <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Merch hero' }}" loading="lazy" decoding="async">
+        {% if hero_media.image %}
+          {% thumbnail hero_media.image "800" quality=72 format="WEBP" as hero_1x %}
+            {% thumbnail hero_media.image "1600" quality=72 format="WEBP" as hero_2x %}
+              <img
+                src="{{ hero_1x.url }}"
+                srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
+                width="{{ hero_1x.width }}"
+                height="{{ hero_1x.height }}"
+                alt="{{ hero_media.alt|default:'Merch hero' }}"
+                loading="eager"
+                fetchpriority="high"
+                decoding="async">
+            {% endthumbnail %}
+          {% endthumbnail %}
+        {% else %}
+          <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Merch hero' }}" loading="eager" fetchpriority="high" decoding="async">
+        {% endif %}
         <p class="hero__disclaimer">{{ hero_media.caption|default:merch_copy.hero_disclaimer_fallback }}</p>
       </div>
     </div>

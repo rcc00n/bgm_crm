@@ -630,6 +630,7 @@ class HomeView(TemplateView):
         )
         gallery_items = [
             {
+                "image": post.cover_image,
                 "src": post.cover_image.url,
                 "alt": post.hero_title or post.title,
                 "title": post.hero_title or post.title,
@@ -644,6 +645,7 @@ class HomeView(TemplateView):
                     break
                 gallery_items.append(
                     {
+                        "image": None,
                         "src": asset["src"],
                         "alt": asset.get("alt") or "",
                         "title": asset.get("title") or "",

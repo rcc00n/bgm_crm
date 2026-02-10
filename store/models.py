@@ -304,6 +304,25 @@ class Product(models.Model):
         except Exception:
             return ""
 
+    @property
+    def main_image_is_remote(self) -> bool:
+        image = getattr(self, "main_image", None)
+        if not image:
+            return False
+        name = getattr(image, "name", "") or str(image)
+        return name.startswith(("http://", "https://"))
+
+    @property
+    def main_image_local(self):
+        """
+        Template-friendly handle for thumbnailing.
+        Sorl/easy-thumbnail style libraries generally expect a real file object, not a remote URL.
+        """
+        image = getattr(self, "main_image", None)
+        if not image or self.main_image_is_remote:
+            return None
+        return image
+
     def get_absolute_url(self):
         # под шаблоны, где используется {% url 'store-product' slug=p.slug %}
         return reverse("store-product", kwargs={"slug": self.slug})

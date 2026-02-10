@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Any, Dict
 
 from django.templatetags.static import static
 
@@ -15,19 +15,20 @@ def resolve_media_asset(
     fallback_alt: str,
     fallback_caption: str = DEFAULT_MEDIA_CAPTION,
     asset: HeroImage | None = None,
-) -> Dict[str, str | bool]:
+) -> Dict[str, Any]:
     """
     Resolve a hero/marketing asset with a database override and safe fallback.
     Optional prefetched asset can be passed to avoid extra queries.
     Keeps rendering resilient if the upload is missing or storage is misconfigured.
     """
-    payload: Dict[str, str | bool] = {
+    payload: Dict[str, Any] = {
         "src": static(fallback_path),
         "alt": fallback_alt or "",
         "caption": fallback_caption or "",
         "location": str(location or ""),
         "is_custom": False,
         "title": "",
+        "image": None,  # ImageFieldFile when the source is a DB upload.
     }
 
     hero = asset
@@ -57,6 +58,7 @@ def resolve_media_asset(
                     "location": getattr(hero, "location", payload["location"]),
                     "is_custom": True,
                     "title": hero_title or payload.get("title", ""),
+                    "image": hero.image,
                 }
             )
         except Exception:

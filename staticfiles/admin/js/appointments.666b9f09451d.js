@@ -1,0 +1,1054 @@
+function getLocalDateString(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getCalendarView() {
+    const viewInput = document.getElementById("calendarView");
+    return viewInput ? viewInput.value : "week";
+}
+
+function setCalendarView(view) {
+    const viewInput = document.getElementById("calendarView");
+    if (viewInput) {
+        viewInput.value = view;
+    }
+    document.querySelectorAll(".view-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.view === view);
+    });
+    updateDisplayDateLabel();
+    const selectedDate = document.getElementById("realDateInput")?.value;
+    if (selectedDate) {
+        onDateChange(selectedDate);
+    }
+}
+
+function openMonthDay(dateStr) {
+    const input = document.getElementById("realDateInput");
+    if (!input || !dateStr) {
+        return;
+    }
+    input.value = dateStr;
+    closePopup();
+    setCalendarView("day");
+}
+
+function getWeekStart(date) {
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const start = new Date(date);
+    start.setDate(date.getDate() + diff);
+    return start;
+}
+
+function formatRangeDate(date, includeYear = false) {
+    const options = {
+        month: "short",
+        day: "numeric"
+    };
+    if (includeYear) {
+        options.year = "numeric";
+    }
+    return date.toLocaleDateString("en-US", options).replace(/,/, "");
+}
+
+function updateDisplayDateLabel() {
+    const display = document.getElementById("displayDate");
+    const input = document.getElementById("realDateInput");
+    if (!display || !input || !input.value) {
+        return;
+    }
+    const view = getCalendarView();
+    const currentDate = new Date(`${input.value}T12:00:00`);
+
+    if (view === "month") {
+        display.textContent = currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+        return;
+    }
+    if (view === "week") {
+        const start = getWeekStart(currentDate);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        const includeYear = start.getFullYear() !== end.getFullYear();
+        display.textContent = `${formatRangeDate(start, includeYear)} - ${formatRangeDate(end, true)}`;
+        return;
+    }
+    display.textContent = input.value;
+}
+
+function changeDateToToday() {
+    const today = getLocalDateString();
+    document.getElementById('realDateInput').value = today;
+    onDateChange(today);
+}
+
+function changeDateByDays(days) {
+    const input = document.getElementById('realDateInput');
+
+    // Преобразуем вручную в YYYY-MM-DD → локальная дата
+    const [year, month, day] = input.value.split('-').map(Number);
+    const currentDate = new Date(year, month - 1, day); // ← важно: месяц от 0
+    currentDate.setHours(12);  // 👈 Устанавливаем безопасное время (чтобы избежать смещений при DST)
+
+    // Меняем дату
+    const view = getCalendarView();
+    if (view === "week") {
+        currentDate.setDate(currentDate.getDate() + (days * 7));
+    } else if (view === "month") {
+        const currentDay = currentDate.getDate();
+        currentDate.setDate(1);
+        currentDate.setMonth(currentDate.getMonth() + days);
+        const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+        currentDate.setDate(Math.min(currentDay, lastDay));
+    } else {
+        currentDate.setDate(currentDate.getDate() + days);
+    }
+
+    const newDate = getLocalDateString(currentDate);
+    input.value = newDate;
+
+    onDateChange(newDate);
+}
+
+function onDateChange(value) {
+    updateDisplayDateLabel();
+
+    const formData = new FormData(document.getElementById("filterForm"));
+    formData.append("action", "calendar");
+    formData.set("date", value);  // заменяем дату
+    formData.set("view", getCalendarView());
+
+    const params = new URLSearchParams(formData).toString();
+
+    fetch(`/admin/core/appointment/?${params}`, {
+        headers: { 'x-requested-with': 'XMLHttpRequest' }
+    })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("calendar-container").innerHTML = data.html;
+            attachTooltipHandlers();
+            syncCalendarScrollHeight();
+        });
+}
+
+
+const sidebar = document.getElementById("filterSidebar");
+const filterBtn = document.getElementById("nav-icon2");
+const filterForm = document.getElementById("filterForm");
+
+filterBtn.addEventListener("click", () => {
+
+    sidebar.classList.remove("hidden");
+    setTimeout(() => sidebar.classList.add("visible"), 200);
+});
+function closeSidebar() {
+    sidebar.classList.remove("visible");
+    setTimeout(() => sidebar.classList.add("hidden"), 350);
+}
+
+function toggleSection(el) {
+    const content = el.nextElementSibling;
+    content.style.display = content.style.display === 'block' ? 'none' : 'block';
+}
+
+function clearAllFilters() {
+    // Сброс чекбоксов
+    document.querySelectorAll('#filterForm input[type="checkbox"]').forEach(cb => cb.checked = false);
+    // Сброс селектов
+    document.querySelectorAll('#filterForm select').forEach(sel => sel.value = "");
+}
+
+// Преобразуем несколько чекбоксов в один параметр запроса: ?status=1&status=2
+filterForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(filterForm);
+    formData.append("action", "filter");
+    const selectedDate = document.getElementById("realDateInput").value;
+    formData.append("date", selectedDate);
+    formData.set("view", getCalendarView());
+    const params = new URLSearchParams(formData).toString();
+
+    fetch(`?${params}`, {
+        headers: {
+            "X-Requested-With": "XMLHttpRequest"
+        }
+    })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("calendar-container").innerHTML = data.html;
+            attachTooltipHandlers();
+            syncCalendarScrollHeight();
+            closeSidebar();
+        })
+        .catch(err => {
+            console.error("Error loading appointments:", err);
+        });
+});
+function syncCalendarScrollHeight() {
+    const scrollable = document.querySelector(".scrollable");
+    if (!scrollable) {
+        return;
+    }
+    const rect = scrollable.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const bottomPadding = 12;
+    const available = viewportHeight - rect.top - bottomPadding;
+    const height = Math.max(240, Math.floor(available));
+    scrollable.style.height = `${height}px`;
+    scrollable.style.maxHeight = `${height}px`;
+}
+let popup = document.getElementById("addPopup");
+let popupTime = document.getElementById("popupTime");
+
+
+let lastActiveCell = null;
+
+const qaOverlay = document.getElementById("qaOverlay");
+const qaForm = document.getElementById("qaForm");
+const qaTitle = document.getElementById("qaTitle");
+const qaSub = document.getElementById("qaSub");
+const qaErrors = document.getElementById("qaErrors");
+const qaDate = document.getElementById("qaDate");
+const qaTime = document.getElementById("qaTime");
+const qaClientId = document.getElementById("qaClientId");
+const qaClientSearch = document.getElementById("qaClientSearch");
+const qaClientResults = document.getElementById("qaClientResults");
+const qaName = document.getElementById("qaName");
+const qaPhone = document.getElementById("qaPhone");
+const qaEmail = document.getElementById("qaEmail");
+const qaMaster = document.getElementById("qaMaster");
+const qaService = document.getElementById("qaService");
+const qaStatus = document.getElementById("qaStatus");
+const qaPayment = document.getElementById("qaPayment");
+const qaSubmit = document.getElementById("qaSubmit");
+
+function qaClearErrors() {
+    if (!qaErrors) {
+        return;
+    }
+    qaErrors.classList.add("hidden");
+    qaErrors.textContent = "";
+}
+
+function qaShowErrors(payload) {
+    if (!qaErrors) {
+        return;
+    }
+
+    const msgs = [];
+    if (!payload) {
+        msgs.push("Something went wrong. Please try again.");
+    } else if (typeof payload === "string") {
+        msgs.push(payload);
+    } else if (Array.isArray(payload)) {
+        payload.forEach(m => msgs.push(String(m)));
+    } else if (payload.errors && typeof payload.errors === "object") {
+        Object.entries(payload.errors).forEach(([field, list]) => {
+            (Array.isArray(list) ? list : [list]).forEach(msg => {
+                const prefix = field === "__all__" ? "" : `${field}: `;
+                msgs.push(prefix + String(msg));
+            });
+        });
+    } else if (payload.error) {
+        msgs.push(String(payload.error));
+    } else if (typeof payload === "object") {
+        Object.entries(payload).forEach(([field, list]) => {
+            (Array.isArray(list) ? list : [list]).forEach(msg => {
+                const prefix = field === "__all__" ? "" : `${field}: `;
+                msgs.push(prefix + String(msg));
+            });
+        });
+    }
+
+    qaErrors.textContent = msgs.filter(Boolean).join(" • ") || "Something went wrong. Please try again.";
+    qaErrors.classList.remove("hidden");
+}
+
+function getQuickAddContext() {
+    const fallbackDate = document.getElementById("realDateInput")?.value || "";
+    const date = lastActiveCell?.dataset?.date || fallbackDate;
+    const time = lastActiveCell?.value || lastActiveCell?.dataset?.time24 || "";
+    const timeLabel =
+        lastActiveCell?.dataset?.timeLabel ||
+        document.getElementById("popupTime")?.textContent ||
+        time;
+    const masterId = lastActiveCell?.dataset?.master || "";
+    return { date, time, timeLabel, masterId };
+}
+
+function openQuickAdd() {
+    if (!qaOverlay || !qaForm) {
+        handleAdd("appointment");
+        return;
+    }
+
+    const ctx = getQuickAddContext();
+    closePopup();
+
+    qaClearErrors();
+
+    if (!ctx.date || !ctx.time) {
+        qaShowErrors("Pick a time slot first.");
+        qaOverlay.classList.remove("hidden");
+        return;
+    }
+
+    if (qaDate) {
+        qaDate.value = ctx.date;
+    }
+    if (qaTime) {
+        qaTime.value = ctx.time;
+    }
+
+    if (qaTitle) {
+        qaTitle.textContent = `${ctx.date} • ${ctx.timeLabel}`;
+    }
+    if (qaSub) {
+        qaSub.textContent = "Fast add without leaving the calendar";
+    }
+
+    if (qaClientId) {
+        qaClientId.value = "";
+    }
+    if (qaClientSearch) {
+        qaClientSearch.value = "";
+    }
+    if (qaClientResults) {
+        qaClientResults.innerHTML = "";
+        qaClientResults.classList.add("hidden");
+    }
+
+    if (qaName) {
+        qaName.value = "";
+    }
+    if (qaPhone) {
+        qaPhone.value = "";
+    }
+    if (qaEmail) {
+        qaEmail.value = "";
+    }
+
+    if (qaMaster) {
+        if (ctx.masterId) {
+            qaMaster.value = ctx.masterId;
+        }
+        // Auto-select if there is only one tech option.
+        const options = Array.from(qaMaster.options || []).filter(opt => (opt.value || "").trim());
+        if (!qaMaster.value && options.length === 1) {
+            qaMaster.value = options[0].value;
+        }
+        if (qaSub && qaMaster.value) {
+            const selected = qaMaster.options[qaMaster.selectedIndex];
+            const label = (selected?.textContent || "").trim();
+            if (label) {
+                qaSub.textContent = `Tech: ${label}`;
+            }
+        }
+    }
+
+    qaOverlay.classList.remove("hidden");
+    setTimeout(() => {
+        (qaClientSearch || qaName || qaService || qaMaster)?.focus?.();
+    }, 0);
+}
+
+function closeQuickAdd() {
+    if (!qaOverlay) {
+        return;
+    }
+    qaOverlay.classList.add("hidden");
+    qaClearErrors();
+}
+
+async function submitQuickAdd(event) {
+    event.preventDefault();
+    qaClearErrors();
+
+    if (!qaForm) {
+        qaShowErrors("Quick add is not available on this page.");
+        return;
+    }
+
+    const formData = new FormData(qaForm);
+    const date = (formData.get("date") || "").toString().trim();
+    const time = (formData.get("time") || "").toString().trim();
+    const client = (formData.get("client") || "").toString().trim();
+    const name = (formData.get("contact_name") || "").toString().trim();
+    const email = (formData.get("contact_email") || "").toString().trim();
+    const phone = (formData.get("contact_phone") || "").toString().trim();
+    const master = (formData.get("master") || "").toString().trim();
+    const service = (formData.get("service") || "").toString().trim();
+    const status = (formData.get("status") || "").toString().trim();
+    const paymentStatus = (formData.get("payment_status") || "").toString().trim();
+
+    const localErrors = {};
+    if (!date || !time) {
+        localErrors.__all__ = ["Pick a date and time slot."];
+    }
+    if (!master) {
+        localErrors.master = ["Tech is required."];
+    }
+    if (!service) {
+        localErrors.service = ["Service is required."];
+    }
+    if (!status) {
+        localErrors.status = ["Status is required."];
+    }
+    if (!paymentStatus) {
+        localErrors.payment_status = ["Payment status is required."];
+    }
+    if (!client) {
+        if (!name) {
+            localErrors.contact_name = ["Name is required for guest bookings."];
+        }
+        if (!email) {
+            localErrors.contact_email = ["Email is required for guest bookings."];
+        }
+        if (!phone) {
+            localErrors.contact_phone = ["Phone is required for guest bookings."];
+        }
+    }
+    if (Object.keys(localErrors).length) {
+        qaShowErrors(localErrors);
+        return;
+    }
+
+    const csrfToken = getCSRFToken();
+    if (!csrfToken) {
+        qaShowErrors("Missing CSRF token. Reload the page and try again.");
+        return;
+    }
+
+    const payload = new URLSearchParams();
+    formData.forEach((value, key) => {
+        payload.set(key, value);
+    });
+
+    const prevLabel = qaSubmit?.textContent || "";
+    if (qaSubmit) {
+        qaSubmit.disabled = true;
+        qaSubmit.textContent = "Creating…";
+    }
+
+    let resp;
+    try {
+        resp = await fetch("/admin/core/appointment/quick_add/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": csrfToken,
+            },
+            body: payload.toString(),
+            credentials: "same-origin",
+        });
+    } catch (err) {
+        console.error(err);
+        qaShowErrors("Network error while creating appointment.");
+        if (qaSubmit) {
+            qaSubmit.disabled = false;
+            qaSubmit.textContent = prevLabel;
+        }
+        return;
+    }
+
+    let data = null;
+    try {
+        data = await resp.json();
+    } catch (err) {
+        data = null;
+    }
+
+    if (!resp.ok || !data || !data.ok) {
+        qaShowErrors(data || "Failed to create appointment.");
+        if (qaSubmit) {
+            qaSubmit.disabled = false;
+            qaSubmit.textContent = prevLabel;
+        }
+        return;
+    }
+
+    closeQuickAdd();
+    onDateChange(date);
+
+    if (qaSubmit) {
+        qaSubmit.disabled = false;
+        qaSubmit.textContent = prevLabel;
+    }
+}
+
+function showAddPopup(event, time, label) {
+    closePopup();
+
+    const cell = event.currentTarget;
+    cell.innerHTML = `<span class="cell-label">${label}</span>`;
+    const rect = cell.getBoundingClientRect();
+    const masterId = cell.dataset.master;
+    cell.value = time;
+    // Обновить текст времени
+    const popupTimeEl = document.getElementById("popupTime");
+    popupTimeEl.textContent = label;
+
+    lastActiveCell = cell;
+    cell.classList.add("active");
+
+    // Заполняем тело popup-а новыми действиями
+    const popupBody = popup.querySelector(".popup-body");
+    popupBody.innerHTML = `
+        <button type="button" class="popup-action popup-action--rich popup-action--primary" onclick="openQuickAdd()">
+            <span class="popup-action__icon" aria-hidden="true">+</span>
+            <span class="popup-action__content">
+                <span class="popup-action__title">New appointment</span>
+                <span class="popup-action__desc">Fast add, stays in calendar</span>
+            </span>
+        </button>
+        <button type="button" class="popup-action popup-action--rich" onclick="handleAdd('vacation')">
+            <span class="popup-action__icon" aria-hidden="true">X</span>
+            <span class="popup-action__content">
+                <span class="popup-action__title">Blocked time</span>
+                <span class="popup-action__desc">Vacation, lunch, time off</span>
+            </span>
+        </button>
+    `;
+
+    if ((rect.left + window.scrollX - 230) < 0 || rect.width < 100) {
+        // либо слишком близко к левому краю, либо слишком узкая ячейка
+        popup.style.left = `${rect.left + window.scrollX + rect.width + 10}px`;
+    } else {
+        popup.style.left = `${rect.left + window.scrollX - rect.width/2.5}px`;
+    }
+    popup.style.top = `${rect.top + window.scrollY - 40}px`;
+
+
+    popup.classList.remove("hidden");
+}
+
+function closePopup() {
+    popup.classList.add("hidden");
+
+    // Сбросить активную ячейку
+    if (lastActiveCell) {
+        lastActiveCell.classList.remove("active");
+        lastActiveCell.innerHTML = ``;
+        lastActiveCell = null;
+    }
+}
+
+document.addEventListener("click", function (e) {
+    if (!popup.contains(e.target) && !e.target.classList.contains("calendar-cell")) {
+        closePopup();
+    }
+});
+
+function initQuickAdd() {
+    if (!qaOverlay) {
+        return;
+    }
+    qaOverlay.addEventListener("click", (e) => {
+        if (e.target === qaOverlay) {
+            closeQuickAdd();
+        }
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !qaOverlay.classList.contains("hidden")) {
+            closeQuickAdd();
+        }
+    });
+
+    if (!qaClientSearch || !qaClientResults || !qaClientId) {
+        return;
+    }
+
+    let timer = null;
+    let abortController = null;
+
+    function hideResults() {
+        qaClientResults.classList.add("hidden");
+    }
+
+    function showResults() {
+        if (qaClientResults.childElementCount) {
+            qaClientResults.classList.remove("hidden");
+        }
+    }
+
+    function renderResults(results) {
+        qaClientResults.innerHTML = "";
+        (results || []).forEach((item) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "qa-result";
+            btn.setAttribute("role", "option");
+            btn.dataset.id = item.id;
+
+            const title = document.createElement("div");
+            title.className = "qa-result__title";
+            title.textContent = item.label || `#${item.id}`;
+
+            const meta = document.createElement("div");
+            meta.className = "qa-result__meta";
+            const metaBits = [];
+            if (item.email) {
+                metaBits.push(item.email);
+            }
+            if (item.phone) {
+                metaBits.push(item.phone);
+            }
+            meta.textContent = metaBits.join(" · ");
+
+            btn.appendChild(title);
+            if (meta.textContent) {
+                btn.appendChild(meta);
+            }
+
+            btn.addEventListener("click", () => {
+                qaClientId.value = String(item.id || "");
+                qaClientSearch.value = item.label || "";
+                hideResults();
+                if (!qaClientId.value) {
+                    return;
+                }
+                fetch(`/admin/api/clients/${encodeURIComponent(qaClientId.value)}/contact/`, { credentials: "same-origin" })
+                    .then(r => r.ok ? r.json() : null)
+                    .then((payload) => {
+                        if (!payload) {
+                            return;
+                        }
+                        if (qaName && !qaName.value.trim()) {
+                            qaName.value = payload.name || "";
+                        }
+                        if (qaEmail && !qaEmail.value.trim()) {
+                            qaEmail.value = payload.email || "";
+                        }
+                        if (qaPhone && !qaPhone.value.trim()) {
+                            qaPhone.value = payload.phone || "";
+                        }
+                    })
+                    .catch(() => { /* ignore */ });
+            });
+
+            qaClientResults.appendChild(btn);
+        });
+        showResults();
+        if (!qaClientResults.childElementCount) {
+            hideResults();
+        }
+    }
+
+    qaClientSearch.addEventListener("input", () => {
+        qaClientId.value = "";
+        const q = (qaClientSearch.value || "").trim();
+        if (timer) {
+            clearTimeout(timer);
+        }
+        if (abortController) {
+            abortController.abort();
+            abortController = null;
+        }
+        if (q.length < 2) {
+            qaClientResults.innerHTML = "";
+            hideResults();
+            return;
+        }
+        timer = setTimeout(() => {
+            abortController = new AbortController();
+            fetch(`/admin/api/clients/search/?q=${encodeURIComponent(q)}`, {
+                credentials: "same-origin",
+                signal: abortController.signal,
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+                .then(r => r.ok ? r.json() : null)
+                .then(data => renderResults(data?.results || []))
+                .catch(() => { /* ignore */ });
+        }, 180);
+    });
+
+    qaClientSearch.addEventListener("focus", () => {
+        showResults();
+    });
+    qaClientSearch.addEventListener("blur", () => {
+        setTimeout(() => hideResults(), 140);
+    });
+}
+
+const tooltip = document.getElementById("apptTooltip");
+
+function attachTooltipHandlers() {
+    document.querySelectorAll(".event, .event-card").forEach(box => {
+        box.addEventListener("mouseenter", function () {
+            showTooltip(box);
+        });
+        box.addEventListener("mouseleave", function () {
+            hideTooltip();
+        });
+    });
+    document.querySelectorAll(".unavailable-cell").forEach(cell => {
+        cell.addEventListener("click", () => {
+            const id = cell.dataset.id;
+            if (id) {
+                window.location.href = `/admin/core/masteravailability/${id}/change/`;
+            }
+        });
+    });
+    document.querySelectorAll(".unavailable-cell").forEach(cell => {
+        cell.addEventListener("mouseenter", () => showUnavailableTooltip(cell));
+        cell.addEventListener("mouseleave", () => hideTooltip());
+    });
+
+    attachDragAndDropHandlers();
+}
+
+attachTooltipHandlers();
+initQuickAdd();
+syncCalendarScrollHeight();
+updateDisplayDateLabel();
+
+window.addEventListener("resize", syncCalendarScrollHeight);
+
+function getCSRFToken() {
+    const name = 'csrftoken';
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        if (cookie.trim().startsWith(name + '=')) {
+            return decodeURIComponent(cookie.trim().substring(name.length + 1));
+        }
+    }
+    return null;
+}
+
+async function moveAppointment(appointmentId, dateStr, timeStr, masterId = "") {
+    const csrfToken = getCSRFToken();
+    const payload = new URLSearchParams();
+    payload.set("appointment_id", appointmentId);
+    payload.set("date", dateStr);
+    payload.set("time", timeStr);
+    if (masterId) {
+        payload.set("master_id", masterId);
+    }
+
+    let res;
+    try {
+        res = await fetch("/admin/core/appointment/move/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": csrfToken || "",
+            },
+            body: payload.toString(),
+        });
+    } catch (err) {
+        console.error("Move appointment request failed:", err);
+        alert("Network error while moving appointment.");
+        return false;
+    }
+
+    let data = null;
+    try {
+        data = await res.json();
+    } catch {
+        data = null;
+    }
+
+    if (!res.ok || !data || !data.ok) {
+        const msg = (data && data.error) ? data.error : `Unable to move appointment (HTTP ${res.status}).`;
+        alert(msg);
+        return false;
+    }
+    return true;
+}
+
+function onApptDragStart(e) {
+    const el = e.currentTarget;
+    const apptId = el.dataset.apptId;
+    if (!apptId) {
+        return;
+    }
+    el.classList.add("dragging");
+    e.dataTransfer.setData("text/plain", apptId);
+    e.dataTransfer.effectAllowed = "move";
+}
+
+function onApptDragEnd(e) {
+    e.currentTarget.classList.remove("dragging");
+    document.querySelectorAll(".drop-hover").forEach(el => el.classList.remove("drop-hover"));
+}
+
+function onSlotDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    e.currentTarget.classList.add("drop-hover");
+}
+
+function onSlotDragLeave(e) {
+    e.currentTarget.classList.remove("drop-hover");
+}
+
+async function onSlotDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const slot = e.currentTarget;
+    slot.classList.remove("drop-hover");
+
+    const apptId = e.dataTransfer.getData("text/plain");
+    if (!apptId) {
+        return;
+    }
+
+    const dateStr = slot.dataset.date || document.getElementById("realDateInput")?.value;
+    const timeStr = slot.dataset.time24;
+    const masterId = slot.dataset.master || "";
+
+    if (!dateStr || !timeStr) {
+        alert("This slot is missing date/time information.");
+        return;
+    }
+
+    const ok = await moveAppointment(apptId, dateStr, timeStr, masterId);
+    if (ok) {
+        closePopup();
+        const focusDate = document.getElementById("realDateInput")?.value || dateStr;
+        onDateChange(focusDate);
+    }
+}
+
+function attachDragAndDropHandlers() {
+    document.querySelectorAll("[data-appt-id]").forEach(el => {
+        el.addEventListener("dragstart", onApptDragStart);
+        el.addEventListener("dragend", onApptDragEnd);
+    });
+
+    // Day view slots.
+    document.querySelectorAll(".calendar-cell[data-time24]:not(.week-slot)").forEach(slot => {
+        slot.addEventListener("dragover", onSlotDragOver);
+        slot.addEventListener("dragleave", onSlotDragLeave);
+        slot.addEventListener("drop", onSlotDrop);
+    });
+
+    // Week table cells (drop should work even when dropping over an existing card).
+    document.querySelectorAll(".week-cell[data-time24]").forEach(slot => {
+        slot.addEventListener("dragover", onSlotDragOver);
+        slot.addEventListener("dragleave", onSlotDragLeave);
+        slot.addEventListener("drop", onSlotDrop);
+    });
+}
+
+function showTooltip(box) {
+    const rect = box.getBoundingClientRect();
+    const client = box.dataset.client || "";
+    const phone = box.dataset.phone || "";
+    const service = box.dataset.service || "";
+    const time = box.dataset.timeLabel || "";
+    const status = box.dataset.status || "";
+    const duration = box.dataset.duration || "";
+    const price = box.dataset.price || "";
+    const price_discounted = box.dataset.pricedisc || "";
+    const discount = box.dataset.discount || "";
+    const master = box.dataset.master || "";
+
+    const firstLetter = client.trim().charAt(0).toUpperCase();
+    if (price === price_discounted) {
+        let floatNumber = parseFloat(price.replace(/[^0-9.]/g, '')); // 150.00
+        let intNumber = Math.round(floatNumber); // 150
+        let final_price = 0;
+        if(discount === ""){
+            final_price = intNumber;
+        }
+        else {
+            final_price = intNumber * (1 - parseInt(discount)/(-1*100));
+        }
+
+        tooltip.innerHTML = `
+        <div class="tooltip-card">
+            <div class="tooltip-header">
+                <span>${time}</span>
+                <span>${status}</span>
+            </div>
+            <div class="tooltip-body">
+                <div class="tooltip-client">
+                    <div class="tooltip-avatar">${firstLetter}</div>
+                    <div class="tooltip-client-info">
+                        <div class="tooltip-client-name">${client}</div>
+                        <div class="tooltip-client-phone">${phone}</div>
+                    </div>
+                </div>
+
+                <div class="tooltip-footer">
+                    <div class="tooltip-service">${service}</div>
+                    <div class="tooltip-price">$${final_price}</div>
+                </div>
+                <div class="tooltip-meta">${master} · ${duration}</div>
+            </div>
+        </div>
+    `;
+    }
+    else {
+        let floatNumber = parseFloat(price_discounted.replace(/[^0-9.]/g, ''));
+        let intNumber = Math.round(floatNumber);
+
+        tooltip.innerHTML = `
+        <div class="tooltip-card">
+            <div class="tooltip-header">
+                <span>${time}</span>
+                <span>${status}</span>
+            </div>
+            <div class="tooltip-body">
+                <div class="tooltip-client">
+                    <div class="tooltip-avatar">${firstLetter}</div>
+                    <div class="tooltip-client-info">
+                        <div class="tooltip-client-name">${client}</div>
+                        <div class="tooltip-client-phone">${phone}</div>
+                    </div>
+                </div>
+
+                <div class="tooltip-footer">
+                    <div class="tooltip-service">${service}</div>
+                    <div>
+                    <div class="tooltip-price" style="opacity: 0.5; text-decoration: line-through;">${price}</div>
+                    <div class="tooltip-price">$${intNumber * (1 - discount/(-1*100))}</div>
+                    </div>
+                </div>
+                <div class="tooltip-meta">${master} · ${duration}</div>
+            </div>
+        </div>
+    `;
+    }
+    const card = tooltip.querySelector('.tooltip-card');
+    const tooltipWidth = card ? card.offsetWidth : Math.min(320, document.documentElement.clientWidth * 0.8);
+    const tooltipHeight = card ? card.offsetHeight : 200;
+    const scrollX = window.scrollX || document.documentElement.scrollLeft || 0;
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight;
+
+    let top = rect.top + scrollY + rect.height / 2 - tooltipHeight / 2;
+    let left = rect.left + scrollX - tooltipWidth - 12;
+
+    if (left < scrollX + 12) {
+        left = rect.right + scrollX + 12;
+    }
+    if (left + tooltipWidth > scrollX + viewportWidth - 12) {
+        left = scrollX + viewportWidth - tooltipWidth - 12;
+    }
+
+    const minTop = scrollY + 12;
+    const maxTop = scrollY + viewportHeight - tooltipHeight - 12;
+    top = Math.min(Math.max(top, minTop), maxTop);
+    left = Math.max(left, scrollX + 12);
+
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+    tooltip.classList.remove("hidden");
+    tooltip.classList.add("visible");
+}
+
+function hideTooltip() {
+    tooltip.classList.remove("visible");
+    tooltip.classList.add("hidden");
+}
+
+document.querySelectorAll(".unavailable-cell").forEach(cell => {
+    cell.addEventListener("mouseenter", () => showUnavailableTooltip(cell));
+    cell.addEventListener("mouseleave", () => hideTooltip());
+});
+
+function showUnavailableTooltip(cell) {
+    const rect = cell.getBoundingClientRect();
+    const reason = cell.dataset.reason || "Unavailable";
+    const start = cell.dataset.start || "";
+    const end = cell.dataset.end || "";
+    const until = cell.dataset.until || "";
+
+    const tooltip = document.getElementById("apptTooltip");
+
+    tooltip.innerHTML = `
+        <div class="tooltip-card">
+            <div class="tooltip-header">
+                <span><strong>${reason.charAt(0).toUpperCase() + reason.slice(1)}</strong></span>
+            </div>
+            <div class="tooltip-body">
+                <div style="font-size:1.6vh; font-weight:500; margin-bottom: 0.66vh;">
+                    ${start} - ${end}
+                </div>
+                ${until ? `<div style="font-size:1.4vh; color:#777;">Ends ${until}</div>` : ""}
+            </div>
+        </div>
+    `;
+    const card = tooltip.querySelector('.tooltip-card');
+    const tooltipWidth = card ? card.offsetWidth : Math.min(320, document.documentElement.clientWidth * 0.8);
+    const tooltipHeight = card ? card.offsetHeight : 150;
+    const scrollX = window.scrollX || document.documentElement.scrollLeft || 0;
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight;
+    const middleY = rect.top + rect.height / 2 + scrollY;
+
+    let leftX = rect.left + scrollX - tooltipWidth - 12;
+    let rightX = rect.right + scrollX + 12;
+    let left = leftX;
+    if (leftX < scrollX + 12) {
+        left = rightX;
+    }
+    if (left + tooltipWidth > scrollX + viewportWidth - 12) {
+        left = scrollX + viewportWidth - tooltipWidth - 12;
+    }
+
+    let top = middleY - tooltipHeight / 2;
+    const minTop = scrollY + 12;
+    const maxTop = scrollY + viewportHeight - tooltipHeight - 12;
+    top = Math.min(Math.max(top, minTop), maxTop);
+
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+    tooltip.classList.remove("hidden");
+    tooltip.classList.add("visible");
+}
+
+const addBtn = document.getElementById("addDropdownBtn");
+const menu = document.getElementById("addDropdownMenu");
+const arrow = document.getElementById("arrow");
+
+addBtn.addEventListener("click", () => {
+    menu.classList.toggle("hidden");
+    arrow.textContent = menu.classList.contains("hidden") ? "▾" : "▴";
+});
+
+// Закрытие по клику вне меню
+document.addEventListener("click", (e) => {
+    if (!addBtn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.add("hidden");
+        arrow.textContent = "▾";
+    }
+});
+
+function handleAdd(type) {
+    const fallbackDate = document.getElementById("realDateInput")?.value || "";
+    const selectedDate = lastActiveCell?.dataset?.date || fallbackDate;
+    const masterId = lastActiveCell?.dataset?.master || "";
+    const time = lastActiveCell?.value || "";
+
+    let baseUrl = "";
+    if (type === "appointment") {
+        baseUrl = "/admin/core/appointment/add/";
+    } else if (type === "vacation") {
+        baseUrl = "/admin/core/masteravailability/add/";
+    } else {
+        alert(`"${type}" action is not implemented yet.`);
+        return;
+    }
+
+    const params = new URLSearchParams();
+    if (selectedDate && time) {
+        params.set("date", selectedDate);
+        params.set("time", time);
+    }
+    if (masterId) {
+        params.set("master", masterId);
+    }
+
+    const qs = params.toString();
+    window.location.href = qs ? `${baseUrl}?${qs}` : baseUrl;
+}

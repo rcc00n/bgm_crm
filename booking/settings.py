@@ -283,6 +283,7 @@ INSTALLED_APPS = [
     "dal_select2",
     # "storages",
     "jazzmin",
+    "sorl.thumbnail",
 
     "django.contrib.admin",
     "django.contrib.auth",
@@ -395,7 +396,7 @@ CKEDITOR_CONFIGS = {
 }
 
 STORAGES = {
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
 }
 
@@ -836,7 +837,7 @@ LOGGING = {
 
 
 # Use non-manifest storage to avoid hard failures on missing manifest entries.
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # карта sourcemap .css.map по-прежнему может отсутствовать — это ок:
 WHITENOISE_IGNORE_MISSING_FILES = True
 WHITENOISE_MANIFEST_STRICT = False

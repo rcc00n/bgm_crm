@@ -1,5 +1,5 @@
 
-{% load static dealer_extras %}
+{% load static dealer_extras thumbnail %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1253,14 +1253,26 @@
           <div class="hero__logo-block hero__logo-block--{{ logo_layout }}" style="--hero-logo-size: {{ home_copy.hero_logo_size|default:180 }}px;">
             <div class="hero__logo hero__logo--bg-{{ logo_bg }}{% if not home_copy.hero_logo_show_ring %} hero__logo--no-ring{% endif %}{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} hero__logo--backdrop{% endif %}"{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} style="--hero-logo-backdrop:url('{{ home_copy.hero_logo_backdrop.url }}')"{% endif %}>
               {% if home_copy.hero_logo %}
-                <img src="{{ home_copy.hero_logo.url }}" alt="{{ home_copy.hero_logo_alt }}"{% if not home_copy.hero_logo_alt %} aria-hidden="true"{% endif %} loading="lazy" decoding="async">
+                <img src="{{ home_copy.hero_logo.url }}" alt="{{ home_copy.hero_logo_alt }}"{% if not home_copy.hero_logo_alt %} aria-hidden="true"{% endif %} loading="eager" decoding="async">
               {% else %}
                 <span class="hero__logo-text">BGM</span>
               {% endif %}
             </div>
             {% if home_copy.hero_logo_backdrop and logo_layout == 'stacked' %}
               <div class="hero__logo-photo"{% if home_copy.hero_logo_photo_width or home_copy.hero_logo_photo_height %} style="{% if home_copy.hero_logo_photo_width %}--hero-logo-photo-width: {{ home_copy.hero_logo_photo_width }}px;{% endif %}{% if home_copy.hero_logo_photo_height %}--hero-logo-photo-height: {{ home_copy.hero_logo_photo_height }}px;{% endif %}"{% endif %}>
-                <img src="{{ home_copy.hero_logo_backdrop.url }}" alt="" loading="lazy" decoding="async">
+                {% thumbnail home_copy.hero_logo_backdrop "440" quality=72 format="WEBP" as hero_logo_1x %}
+                  {% thumbnail home_copy.hero_logo_backdrop "880" quality=72 format="WEBP" as hero_logo_2x %}
+                    <img
+                      src="{{ hero_logo_1x.url }}"
+                      srcset="{{ hero_logo_1x.url }} 1x, {{ hero_logo_2x.url }} 2x"
+                      width="{{ hero_logo_1x.width }}"
+                      height="{{ hero_logo_1x.height }}"
+                      alt=""
+                      loading="eager"
+                      fetchpriority="high"
+                      decoding="async">
+                  {% endthumbnail %}
+                {% endthumbnail %}
               </div>
             {% endif %}
           </div>
@@ -1315,10 +1327,28 @@
               <div class="hero__slide{% if forloop.first %} is-active{% endif %}"
                    data-hero-slide
                    data-caption="{{ slide.caption|default:hero_media.caption|default:'Product may not appear exactly as shown.' }}">
-                <img src="{{ slide.src }}"
-                     alt="{{ slide.alt|default:hero_media.alt|default:'BGM hero' }}"
-                     loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
-                     decoding="async">
+                {% if slide.image %}
+                  {% thumbnail slide.image "800" quality=72 format="WEBP" as slide_1x %}
+                    {% thumbnail slide.image "1600" quality=72 format="WEBP" as slide_2x %}
+                      <img
+                        src="{{ slide_1x.url }}"
+                        srcset="{{ slide_1x.url }} 1x, {{ slide_2x.url }} 2x"
+                        width="{{ slide_1x.width }}"
+                        height="{{ slide_1x.height }}"
+                        alt="{{ slide.alt|default:hero_media.alt|default:'BGM hero' }}"
+                        loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                        {% if forloop.first %}fetchpriority="high"{% endif %}
+                        decoding="async">
+                    {% endthumbnail %}
+                  {% endthumbnail %}
+                {% else %}
+                  <img
+                    src="{{ slide.src }}"
+                    alt="{{ slide.alt|default:hero_media.alt|default:'BGM hero' }}"
+                    loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                    {% if forloop.first %}fetchpriority="high"{% endif %}
+                    decoding="async">
+                {% endif %}
               </div>
             {% endfor %}
           </div>
@@ -1336,7 +1366,23 @@
         </div>
       {% else %}
         <div class="frame frame--media hero__media"{% if home_copy.hero_media_width or home_copy.hero_media_height %} style="{% if home_copy.hero_media_width %}--hero-media-width: {{ home_copy.hero_media_width }}px;{% endif %}{% if home_copy.hero_media_height %}--hero-media-height: {{ home_copy.hero_media_height }}px;{% endif %}"{% endif %}>
-          <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'BGM hero' }}" loading="lazy" decoding="async">
+          {% if hero_media.image %}
+            {% thumbnail hero_media.image "800" quality=72 format="WEBP" as hero_1x %}
+              {% thumbnail hero_media.image "1600" quality=72 format="WEBP" as hero_2x %}
+                <img
+                  src="{{ hero_1x.url }}"
+                  srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
+                  width="{{ hero_1x.width }}"
+                  height="{{ hero_1x.height }}"
+                  alt="{{ hero_media.alt|default:'BGM hero' }}"
+                  loading="eager"
+                  fetchpriority="high"
+                  decoding="async">
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% else %}
+            <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'BGM hero' }}" loading="eager" fetchpriority="high" decoding="async">
+          {% endif %}
           <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
         </div>
       {% endif %}
@@ -1378,7 +1424,22 @@
 	            {% for item in home_gallery_items %}
 	              <a class="gallery-card" href="{% url 'client-dashboard' %}#services" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
 	                <div class="frame frame--media">
-	                  <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy" decoding="async">
+	                  {% if item.image %}
+	                    {% thumbnail item.image "420" quality=72 format="WEBP" as gallery_1x %}
+	                      {% thumbnail item.image "840" quality=72 format="WEBP" as gallery_2x %}
+	                        <img
+	                          src="{{ gallery_1x.url }}"
+	                          srcset="{{ gallery_1x.url }} 1x, {{ gallery_2x.url }} 2x"
+	                          width="{{ gallery_1x.width }}"
+	                          height="{{ gallery_1x.height }}"
+	                          alt="{{ item.alt }}"
+	                          loading="lazy"
+	                          decoding="async">
+	                      {% endthumbnail %}
+	                    {% endthumbnail %}
+	                  {% else %}
+	                    <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy" decoding="async">
+	                  {% endif %}
 	                </div>
 	                {% if item.title or item.caption %}
 	                  <div class="gallery-card__meta">
@@ -1450,7 +1511,22 @@
               {% for s in search_results|slice:":8" %}
                 <article class="card">
                   <div class="card__img">
-                    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+                    {% if s.image %}
+                      {% thumbnail s.image "320" quality=72 format="WEBP" as service_1x %}
+                        {% thumbnail s.image "640" quality=72 format="WEBP" as service_2x %}
+                          <img
+                            src="{{ service_1x.url }}"
+                            srcset="{{ service_1x.url }} 1x, {{ service_2x.url }} 2x"
+                            width="{{ service_1x.width }}"
+                            height="{{ service_1x.height }}"
+                            alt="{{ s.name }}"
+                            loading="lazy"
+                            decoding="async">
+                        {% endthumbnail %}
+                      {% endthumbnail %}
+                    {% else %}
+                      <div class="ph" aria-hidden="true"></div>
+                    {% endif %}
                     {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
                   <div class="card__head">
@@ -1494,7 +1570,22 @@
 		              {% for s in home_services|slice:":8" %}
 		                <article class="card">
 		                  <div class="card__img">
-	                    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+	                    {% if s.image %}
+	                      {% thumbnail s.image "320" quality=72 format="WEBP" as service_1x %}
+	                        {% thumbnail s.image "640" quality=72 format="WEBP" as service_2x %}
+	                          <img
+	                            src="{{ service_1x.url }}"
+	                            srcset="{{ service_1x.url }} 1x, {{ service_2x.url }} 2x"
+	                            width="{{ service_1x.width }}"
+	                            height="{{ service_1x.height }}"
+	                            alt="{{ s.name }}"
+	                            loading="lazy"
+	                            decoding="async">
+	                        {% endthumbnail %}
+	                      {% endthumbnail %}
+	                    {% else %}
+	                      <div class="ph" aria-hidden="true"></div>
+	                    {% endif %}
                     {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
                   <div class="card__head">
@@ -1591,9 +1682,37 @@
 	                <article class="card">
 	                  <a href="{% url 'store-product' slug=p.slug %}">
 	                    <div class="card__img">
-	                      {% if p.main_image %}<img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
-	                      {% elif p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
-	                      {% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+	                      {% if p.main_image_local %}
+	                        {% thumbnail p.main_image_local "320" quality=72 format="WEBP" as product_1x %}
+	                          {% thumbnail p.main_image_local "640" quality=72 format="WEBP" as product_2x %}
+	                            <img
+	                              src="{{ product_1x.url }}"
+	                              srcset="{{ product_1x.url }} 1x, {{ product_2x.url }} 2x"
+	                              width="{{ product_1x.width }}"
+	                              height="{{ product_1x.height }}"
+	                              alt="{{ p.name }}"
+	                              loading="lazy"
+	                              decoding="async">
+	                          {% endthumbnail %}
+	                        {% endthumbnail %}
+	                      {% elif p.main_image_url %}
+	                        <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	                      {% elif p.image %}
+	                        {% thumbnail p.image "320" quality=72 format="WEBP" as product_fallback_1x %}
+	                          {% thumbnail p.image "640" quality=72 format="WEBP" as product_fallback_2x %}
+	                            <img
+	                              src="{{ product_fallback_1x.url }}"
+	                              srcset="{{ product_fallback_1x.url }} 1x, {{ product_fallback_2x.url }} 2x"
+	                              width="{{ product_fallback_1x.width }}"
+	                              height="{{ product_fallback_1x.height }}"
+	                              alt="{{ p.name }}"
+	                              loading="lazy"
+	                              decoding="async">
+	                          {% endthumbnail %}
+	                        {% endthumbnail %}
+	                      {% else %}
+	                        <div class="ph" aria-hidden="true"></div>
+	                      {% endif %}
 	                      {% if p.category %}<span class="card__badge">{{ p.category.display_name }}</span>{% endif %}
 	                    </div>
 	                    <div class="card__head" style="margin-top:.35rem">
