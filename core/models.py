@@ -1915,6 +1915,17 @@ class EmailTemplateSettings(models.Model):
         blank=True,
         help_text="Optional override for SITE_BRAND_TAGLINE in email headers/footers.",
     )
+    brand_logo = models.ImageField(
+        upload_to="email/branding/",
+        blank=True,
+        null=True,
+        help_text="Optional logo shown next to the brand name in email headers.",
+    )
+    brand_logo_alt = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Alt text for the email logo image. Leave blank to use the brand name.",
+    )
     company_address = models.CharField(
         max_length=200,
         blank=True,

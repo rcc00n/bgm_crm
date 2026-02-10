@@ -36,6 +36,8 @@ from .forms import *
 from core.email_templates import (
     email_accent_color,
     email_bg_color,
+    email_brand_logo_alt,
+    email_brand_logo_url,
     email_brand_name,
     email_brand_tagline,
     email_company_address,
@@ -4280,6 +4282,8 @@ class EmailTemplateSettingsForm(forms.ModelForm):
         fields = (
             "brand_name",
             "brand_tagline",
+            "brand_logo",
+            "brand_logo_alt",
             "company_address",
             "company_phone",
             "company_website",
@@ -4307,6 +4311,16 @@ class EmailTemplateAdminForm(forms.ModelForm):
         required=False,
         label="Brand tagline",
         help_text="Leave blank to use the site default.",
+    )
+    brand_logo = forms.ImageField(
+        required=False,
+        label="Brand logo",
+        help_text="Optional logo shown next to the brand name in email headers.",
+    )
+    brand_logo_alt = forms.CharField(
+        required=False,
+        label="Brand logo alt text",
+        help_text="Leave blank to use the brand name.",
     )
     company_address = forms.CharField(
         required=False,
@@ -4358,6 +4372,8 @@ class EmailTemplateAdminForm(forms.ModelForm):
         settings_obj = EmailTemplateSettings.get_solo()
         self.fields["brand_name"].initial = settings_obj.brand_name or ""
         self.fields["brand_tagline"].initial = settings_obj.brand_tagline or ""
+        self.fields["brand_logo"].initial = settings_obj.brand_logo or None
+        self.fields["brand_logo_alt"].initial = settings_obj.brand_logo_alt or ""
         self.fields["company_address"].initial = settings_obj.company_address or ""
         self.fields["company_phone"].initial = settings_obj.company_phone or ""
         self.fields["company_website"].initial = settings_obj.company_website or ""
@@ -4384,6 +4400,8 @@ class EmailTemplateAdmin(admin.ModelAdmin):
             "fields": (
                 "brand_name",
                 "brand_tagline",
+                "brand_logo",
+                "brand_logo_alt",
                 "company_address",
                 "company_phone",
                 "company_website",
@@ -4410,6 +4428,12 @@ class EmailTemplateAdmin(admin.ModelAdmin):
         settings_obj = EmailTemplateSettings.get_solo()
         settings_obj.brand_name = form.cleaned_data.get("brand_name", "") or ""
         settings_obj.brand_tagline = form.cleaned_data.get("brand_tagline", "") or ""
+        logo = form.cleaned_data.get("brand_logo")
+        if logo is False:
+            settings_obj.brand_logo = None
+        elif logo is not None:
+            settings_obj.brand_logo = logo
+        settings_obj.brand_logo_alt = form.cleaned_data.get("brand_logo_alt", "") or ""
         settings_obj.company_address = form.cleaned_data.get("company_address", "") or ""
         settings_obj.company_phone = form.cleaned_data.get("company_phone", "") or ""
         settings_obj.company_website = form.cleaned_data.get("company_website", "") or ""
@@ -4429,7 +4453,7 @@ class EmailTemplateAdmin(admin.ModelAdmin):
     def _get_email_settings_form(self, request):
         settings_obj = EmailTemplateSettings.get_solo()
         if request.method == "POST" and request.POST.get("email_settings_submit") == "1":
-            form = EmailTemplateSettingsForm(request.POST, instance=settings_obj)
+            form = EmailTemplateSettingsForm(request.POST, request.FILES, instance=settings_obj)
             if form.is_valid():
                 form.save()
                 messages.success(request, "Email settings updated.")
@@ -4444,6 +4468,8 @@ class EmailTemplateAdmin(admin.ModelAdmin):
         return {
             "brand_name": email_brand_name(),
             "brand_tagline": email_brand_tagline(),
+            "brand_logo_url": email_brand_logo_url(),
+            "brand_logo_alt": email_brand_logo_alt(),
             "company_address": email_company_address(),
             "company_phone": email_company_phone(),
             "company_website": email_company_website(),
@@ -4747,6 +4773,8 @@ class EmailCampaignAdmin(admin.ModelAdmin):
         return {
             "brand_name": email_brand_name(),
             "brand_tagline": email_brand_tagline(),
+            "brand_logo_url": email_brand_logo_url(),
+            "brand_logo_alt": email_brand_logo_alt(),
             "company_address": email_company_address(),
             "company_phone": email_company_phone(),
             "company_website": email_company_website(),

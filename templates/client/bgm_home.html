@@ -997,6 +997,41 @@
         font-size:1.05rem !important;
       }
 
+      /* Mobile: make the Builds "View Gallery" button bolder/more noticeable. */
+      .home-gallery__head .btn--ghost{
+        min-height:58px;
+        padding:1.05rem 1.25rem;
+        border-radius:1.05rem;
+        border:2px solid rgba(213,0,0,.68);
+        background:
+          radial-gradient(120% 140% at 0% 0%, rgba(255,26,26,.22), transparent 58%),
+          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+          linear-gradient(180deg, rgba(213,0,0,.18), rgba(0,0,0,.06));
+        box-shadow:0 18px 34px rgba(213,0,0,.18), 0 16px 30px rgba(0,0,0,.38);
+        color:#fff;
+        font-family:var(--font-head) !important;
+        font-weight:900 !important;
+        font-size:1.05rem !important;
+        letter-spacing:.12em !important;
+        text-transform:uppercase !important;
+      }
+      .home-gallery__head .btn--ghost::after{
+        content:"\203A";
+        font-size:1.7rem;
+        line-height:1;
+        opacity:.95;
+      }
+      .home-gallery__head .btn--ghost:active{ transform:translateY(1px); }
+      .home-gallery__head .btn--ghost:focus-visible{
+        outline:2px solid rgba(213,0,0,.55);
+        outline-offset:3px;
+      }
+
+      /* Mobile: show "Our Process" before FAQ. */
+      .home-faq-process{ display:flex; flex-direction:column; }
+      .home-faq-process .home-process{ order:1; }
+      .home-faq-process .home-faq{ order:2; }
+
       /* Mobile: make Services search + Products filters match the "highlight" look */
       .home-search--mobile{
         display:grid;
@@ -1800,52 +1835,54 @@
       </div>
     </section>
 
-    <!-- ========================= FAQ ========================= -->
-    {% if home_faq_legacy %}
-      <section class="section">
-        <div class="container">
-          <div class="section__head">
-            <h2 class="section__title">{{ home_copy.faq_title }}</h2>
-            <p class="section__desc">{{ home_copy.faq_desc }}</p>
+    <div class="home-faq-process">
+      <!-- ========================= FAQ ========================= -->
+      {% if home_faq_legacy %}
+        <section class="section home-faq">
+          <div class="container">
+            <div class="section__head">
+              <h2 class="section__title">{{ home_copy.faq_title }}</h2>
+              <p class="section__desc">{{ home_copy.faq_desc }}</p>
+            </div>
+            <div class="grid">
+              <details><summary>{{ home_copy.faq_1_question }}</summary><p>{{ home_copy.faq_1_answer }}</p></details>
+              <details><summary>{{ home_copy.faq_2_question }}</summary><p>{{ home_copy.faq_2_answer }}</p></details>
+              <details><summary>{{ home_copy.faq_3_question }}</summary><p>{{ home_copy.faq_3_answer }}</p></details>
+            </div>
           </div>
-          <div class="grid">
-            <details><summary>{{ home_copy.faq_1_question }}</summary><p>{{ home_copy.faq_1_answer }}</p></details>
-            <details><summary>{{ home_copy.faq_2_question }}</summary><p>{{ home_copy.faq_2_answer }}</p></details>
-            <details><summary>{{ home_copy.faq_3_question }}</summary><p>{{ home_copy.faq_3_answer }}</p></details>
+        </section>
+      {% elif home_faq_items %}
+        <section class="section home-faq">
+          <div class="container">
+            <div class="section__head">
+              <h2 class="section__title">{{ home_copy.faq_title }}</h2>
+              <p class="section__desc">{{ home_copy.faq_desc }}</p>
+            </div>
+            <div class="grid">
+              {% for item in home_faq_items %}
+                <details><summary>{{ item.question }}</summary><p>{{ item.answer }}</p></details>
+              {% endfor %}
+            </div>
           </div>
-        </div>
-      </section>
-    {% elif home_faq_items %}
-      <section class="section">
-        <div class="container">
-          <div class="section__head">
-            <h2 class="section__title">{{ home_copy.faq_title }}</h2>
-            <p class="section__desc">{{ home_copy.faq_desc }}</p>
-          </div>
-          <div class="grid">
-            {% for item in home_faq_items %}
-              <details><summary>{{ item.question }}</summary><p>{{ item.answer }}</p></details>
-            {% endfor %}
-          </div>
-        </div>
-      </section>
-    {% endif %}
+        </section>
+      {% endif %}
 
-    <!-- ========================= HOW IT WORKS ========================= -->
-    <section class="section">
-      <div class="container">
-        <div class="section__head">
-          <h2 class="section__title">{{ home_copy.how_title }}</h2>
-          <p class="section__desc">{{ home_copy.how_desc }}</p>
+      <!-- ========================= HOW IT WORKS ========================= -->
+      <section class="section home-process">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="section__title">{{ home_copy.how_title }}</h2>
+            <p class="section__desc">{{ home_copy.how_desc }}</p>
+          </div>
+          <div class="tiles tiles--process">
+            <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
+          </div>
         </div>
-        <div class="tiles tiles--process">
-          <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </main>
 
   {% include "includes/site_footer.html" %}

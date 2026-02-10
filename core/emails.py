@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Iterable, Sequence
+from urllib.parse import urljoin
 
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import escape
@@ -9,6 +10,8 @@ from django.utils.html import escape
 from core.email_templates import (
     email_accent_color,
     email_bg_color,
+    email_brand_logo_alt,
+    email_brand_logo_url,
     email_brand_name,
     email_brand_tagline,
     email_company_address,
@@ -73,6 +76,27 @@ def _format_url(raw: str) -> str:
     return f"https://{raw}"
 
 
+def _format_asset_url(raw: str, base_url: str) -> str:
+    """
+    Convert relative asset paths (like /media/...) into absolute URLs for email clients.
+    """
+    raw_text = (raw or "").strip()
+    if not raw_text:
+        return ""
+    if raw_text.startswith("http://") or raw_text.startswith("https://") or raw_text.startswith("data:"):
+        return raw_text
+    if raw_text.startswith("//"):
+        return f"https:{raw_text}"
+
+    base = _format_url(base_url).strip() if base_url else ""
+    if not base:
+        return raw_text
+    if not base.endswith("/"):
+        base = f"{base}/"
+    # urljoin handles leading slashes correctly and avoids accidental path concatenation.
+    return urljoin(base, raw_text)
+
+
 def build_email_html(
     *,
     title: str,
@@ -93,11 +117,15 @@ def build_email_html(
     tagline = _safe(email_brand_tagline())
     address = _safe(email_company_address())
     phone = _safe(email_company_phone())
-    website = _safe(email_company_website())
+    company_website_raw = email_company_website()
+    website = _safe(company_website_raw)
     accent = _safe(email_accent_color())
     dark = _safe(email_dark_color())
     bg = _safe(email_bg_color())
-    company_url = _format_url(email_company_website()) or ""
+    company_url = _format_url(company_website_raw) or ""
+    brand_logo_url = _format_asset_url(email_brand_logo_url(), company_url)
+    brand_logo_url_html = _safe(brand_logo_url)
+    brand_logo_alt_html = _safe(email_brand_logo_alt()) or brand_name
 
     detail_rows = _clean_rows(detail_rows)
     summary_rows = _clean_rows(summary_rows)
@@ -242,6 +270,48 @@ def build_email_html(
         contact_lines.append(website)
     contact_html = " | ".join(contact_lines)
 
+    header_logo_cell_html = ""
+    if brand_logo_url_html:
+        header_logo_cell_html = (
+            "<td style=\"padding:0 12px 0 0; vertical-align:middle;\">"
+            f"<img src=\"{brand_logo_url_html}\" alt=\"{brand_logo_alt_html}\" height=\"40\" "
+            "style=\"display:block; height:40px; width:auto; border:0; outline:none; text-decoration:none;\">"
+            "</td>"
+        )
+
+    header_brand_html = (
+        "<table role=\"presentation\" cellspacing=\"0\" cellpadding=\"0\">"
+        "<tr>"
+        f"{header_logo_cell_html}"
+        "<td style=\"vertical-align:middle;\">"
+        "<div style=\"font-size:22px; font-weight:900; letter-spacing:0.28em; text-transform:uppercase;\">"
+        f"{brand_name}"
+        "</div>"
+        "</td>"
+        "</tr>"
+        "</table>"
+    )
+
+    footer_logo_cell_html = ""
+    if brand_logo_url_html:
+        footer_logo_cell_html = (
+            "<td style=\"padding:0 10px 0 0; vertical-align:middle;\">"
+            f"<img src=\"{brand_logo_url_html}\" alt=\"{brand_logo_alt_html}\" height=\"26\" "
+            "style=\"display:block; height:26px; width:auto; border:0; outline:none; text-decoration:none;\">"
+            "</td>"
+        )
+
+    footer_brand_html = (
+        "<table role=\"presentation\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin:0 auto;\">"
+        "<tr>"
+        f"{footer_logo_cell_html}"
+        "<td style=\"vertical-align:middle;\">"
+        f"<div style=\"font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:#6b7280;\">{brand_name}</div>"
+        "</td>"
+        "</tr>"
+        "</table>"
+    )
+
     return f"""<!doctype html>
 <html>
   <head>
@@ -260,9 +330,7 @@ def build_email_html(
                  style="width:100%; max-width:600px;">
             <tr>
               <td style="color:#ffffff; font-family:{FONT_STACK}; padding:0 2px 6px;">
-                <div style="font-size:22px; font-weight:900; letter-spacing:0.28em; text-transform:uppercase;">
-                  {brand_name}
-                </div>
+                {header_brand_html}
                 {tagline_html}
               </td>
             </tr>
@@ -307,9 +375,7 @@ def build_email_html(
                  style="width:100%; max-width:600px;">
             <tr>
               <td style="font-family:{FONT_STACK}; color:#9ca3af; font-size:12px; text-align:center;">
-                <div style="font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:#6b7280;">
-                  {brand_name}
-                </div>
+                {footer_brand_html}
                 <div style="margin-top:6px; line-height:1.6;">{contact_html}</div>
               </td>
             </tr>
