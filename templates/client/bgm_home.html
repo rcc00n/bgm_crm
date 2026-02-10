@@ -63,6 +63,7 @@
 
     .hero{position:relative;overflow:hidden;background:transparent}
     .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(1.6rem,4.5vw,3.6rem) 0;align-items:center}
+    .hero__inner--no-media{grid-template-columns:1fr}
     .hero__title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15}
     .hero__lead{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);max-width:54ch;margin-top:1rem}
     .hero__cta{display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap}
@@ -1244,42 +1245,10 @@
 
   <div id="bg"></div>
 
-  <a href="#main" class="visually-hidden">{{ home_copy.skip_to_main_label }}</a>
+	  <a href="#main" class="visually-hidden">{{ home_copy.skip_to_main_label }}</a>
 
-  <section class="hero" id="top">
-    {% if home_copy.hero_logo or home_copy.hero_logo_backdrop %}
-      {% with logo_layout=home_copy.hero_logo_layout|default:"overlay" logo_bg=home_copy.hero_logo_bg_style|default:"dark" %}
-        <div class="container">
-          <div class="hero__logo-block hero__logo-block--{{ logo_layout }}" style="--hero-logo-size: {{ home_copy.hero_logo_size|default:180 }}px;">
-            <div class="hero__logo hero__logo--bg-{{ logo_bg }}{% if not home_copy.hero_logo_show_ring %} hero__logo--no-ring{% endif %}{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} hero__logo--backdrop{% endif %}"{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} style="--hero-logo-backdrop:url('{{ home_copy.hero_logo_backdrop.url }}')"{% endif %}>
-              {% if home_copy.hero_logo %}
-                <img src="{{ home_copy.hero_logo.url }}" alt="{{ home_copy.hero_logo_alt }}"{% if not home_copy.hero_logo_alt %} aria-hidden="true"{% endif %} loading="eager" decoding="async">
-              {% else %}
-                <span class="hero__logo-text">BGM</span>
-              {% endif %}
-            </div>
-            {% if home_copy.hero_logo_backdrop and logo_layout == 'stacked' %}
-              <div class="hero__logo-photo"{% if home_copy.hero_logo_photo_width or home_copy.hero_logo_photo_height %} style="{% if home_copy.hero_logo_photo_width %}--hero-logo-photo-width: {{ home_copy.hero_logo_photo_width }}px;{% endif %}{% if home_copy.hero_logo_photo_height %}--hero-logo-photo-height: {{ home_copy.hero_logo_photo_height }}px;{% endif %}"{% endif %}>
-                {% thumbnail home_copy.hero_logo_backdrop "440" quality=72 format="WEBP" as hero_logo_1x %}
-                  {% thumbnail home_copy.hero_logo_backdrop "880" quality=72 format="WEBP" as hero_logo_2x %}
-                    <img
-                      src="{{ hero_logo_1x.url }}"
-                      srcset="{{ hero_logo_1x.url }} 1x, {{ hero_logo_2x.url }} 2x"
-                      width="{{ hero_logo_1x.width }}"
-                      height="{{ hero_logo_1x.height }}"
-                      alt=""
-                      loading="eager"
-                      fetchpriority="high"
-                      decoding="async">
-                  {% endthumbnail %}
-                {% endthumbnail %}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      {% endwith %}
-    {% endif %}
-    <div class="container hero__inner">
+	  <section class="hero" id="top">
+	    <div class="container hero__inner hero__inner--no-media">
       <div>
         <p class="kicker">{{ home_copy.hero_kicker }}</p>
         <h1 class="hero__title">{{ home_copy.hero_title }}</h1>
@@ -1297,10 +1266,10 @@
       </div>
 
       <!-- Mobile quick actions -->
-      <div class="mobi-quick only-mobile" aria-label="Quick actions">
-        <div class="mobi-actions">
-          <a class="mobi-action" href="{% url 'client-dashboard' %}#services">
-            <b>{{ home_copy.hero_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_1_subtitle }}</span>
+	      <div class="mobi-quick only-mobile" aria-label="Quick actions">
+	        <div class="mobi-actions">
+	          <a class="mobi-action" href="{% url 'client-dashboard' %}#services">
+	            <b>{{ home_copy.hero_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_1_subtitle }}</span>
           </a>
           <a class="mobi-action" href="{% url 'store' %}">
             <b>{{ home_copy.hero_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_2_subtitle }}</span>
@@ -1310,85 +1279,12 @@
           </a>
           <a class="mobi-action" href="{% url 'our-story' %}">
             <b>{{ home_copy.hero_mobile_action_4_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_4_subtitle }}</span>
-          </a>
-        </div>
-      </div>
+	          </a>
+	        </div>
+	      </div>
 
-      {% if hero_carousel %}
-        <div class="frame frame--media hero__media hero__media--carousel"
-             data-hero-carousel
-             data-interval="8000"
-             data-slides="{{ hero_carousel|length }}"
-             aria-roledescription="carousel"
-             aria-label="Hero image carousel"
-             {% if home_copy.hero_media_width or home_copy.hero_media_height %}style="{% if home_copy.hero_media_width %}--hero-media-width: {{ home_copy.hero_media_width }}px;{% endif %}{% if home_copy.hero_media_height %}--hero-media-height: {{ home_copy.hero_media_height }}px;{% endif %}"{% endif %}>
-          <div class="hero__slides" data-hero-slides>
-            {% for slide in hero_carousel %}
-              <div class="hero__slide{% if forloop.first %} is-active{% endif %}"
-                   data-hero-slide
-                   data-caption="{{ slide.caption|default:hero_media.caption|default:'Product may not appear exactly as shown.' }}">
-                {% if slide.image %}
-                  {% thumbnail slide.image "800" quality=72 format="WEBP" as slide_1x %}
-                    {% thumbnail slide.image "1600" quality=72 format="WEBP" as slide_2x %}
-                      <img
-                        src="{{ slide_1x.url }}"
-                        srcset="{{ slide_1x.url }} 1x, {{ slide_2x.url }} 2x"
-                        width="{{ slide_1x.width }}"
-                        height="{{ slide_1x.height }}"
-                        alt="{{ slide.alt|default:hero_media.alt|default:'BGM hero' }}"
-                        loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
-                        {% if forloop.first %}fetchpriority="high"{% endif %}
-                        decoding="async">
-                    {% endthumbnail %}
-                  {% endthumbnail %}
-                {% else %}
-                  <img
-                    src="{{ slide.src }}"
-                    alt="{{ slide.alt|default:hero_media.alt|default:'BGM hero' }}"
-                    loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
-                    {% if forloop.first %}fetchpriority="high"{% endif %}
-                    decoding="async">
-                {% endif %}
-              </div>
-            {% endfor %}
-          </div>
-          <button class="hero__carousel-btn hero__carousel-btn--prev" type="button" aria-label="Previous image" data-hero-prev>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <button class="hero__carousel-btn hero__carousel-btn--next" type="button" aria-label="Next image" data-hero-next>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <p class="hero__disclaimer" data-hero-caption>{{ hero_carousel.0.caption|default:hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
-        </div>
-      {% else %}
-        <div class="frame frame--media hero__media"{% if home_copy.hero_media_width or home_copy.hero_media_height %} style="{% if home_copy.hero_media_width %}--hero-media-width: {{ home_copy.hero_media_width }}px;{% endif %}{% if home_copy.hero_media_height %}--hero-media-height: {{ home_copy.hero_media_height }}px;{% endif %}"{% endif %}>
-          {% if hero_media.image %}
-            {% thumbnail hero_media.image "800" quality=72 format="WEBP" as hero_1x %}
-              {% thumbnail hero_media.image "1600" quality=72 format="WEBP" as hero_2x %}
-                <img
-                  src="{{ hero_1x.url }}"
-                  srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
-                  width="{{ hero_1x.width }}"
-                  height="{{ hero_1x.height }}"
-                  alt="{{ hero_media.alt|default:'BGM hero' }}"
-                  loading="eager"
-                  fetchpriority="high"
-                  decoding="async">
-              {% endthumbnail %}
-            {% endthumbnail %}
-          {% else %}
-            <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'BGM hero' }}" loading="eager" fetchpriority="high" decoding="async">
-          {% endif %}
-          <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
-        </div>
-      {% endif %}
-
-    </div>
-  </section>
+	    </div>
+	  </section>
 
   <main id="main">
     <div class="container only-mobile" aria-label="Featured build">
