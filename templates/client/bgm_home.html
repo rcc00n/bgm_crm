@@ -1248,7 +1248,7 @@
 	  <a href="#main" class="visually-hidden">{{ home_copy.skip_to_main_label }}</a>
 
 	  <section class="hero" id="top">
-	    <div class="container hero__inner hero__inner--no-media">
+	    <div class="container hero__inner">
       <div>
         <p class="kicker">{{ home_copy.hero_kicker }}</p>
         <h1 class="hero__title">{{ home_copy.hero_title }}</h1>
@@ -1262,6 +1262,86 @@
           <a class="stat stat--link" href="#services"><b>{{ home_copy.hero_stat_1_title }}</b><br><span class="muted">{{ home_copy.hero_stat_1_subtitle }}</span></a>
           <a class="stat stat--link" href="#services"><b>{{ home_copy.hero_stat_2_title }}</b><br><span class="muted">{{ home_copy.hero_stat_2_subtitle }}</span></a>
           <a class="stat stat--link" href="#services"><b>{{ home_copy.hero_stat_3_title }}</b><br><span class="muted">{{ home_copy.hero_stat_3_subtitle }}</span></a>
+        </div>
+      </div>
+
+      <!-- Hero image carousel (desktop right rail; stacks on mobile) -->
+      <div class="hero__media frame frame--media hero__media--carousel"
+           data-hero-carousel
+           data-interval="8000"
+           data-slides="{% if hero_carousel %}{{ hero_carousel|length }}{% else %}1{% endif %}">
+
+        <button class="hero__carousel-btn hero__carousel-btn--prev" type="button" data-hero-prev aria-label="Previous image">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="hero__carousel-btn hero__carousel-btn--next" type="button" data-hero-next aria-label="Next image">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="hero__slides">
+          {% if hero_carousel %}
+            {% for slide in hero_carousel %}
+              <div class="hero__slide {% if forloop.first %}is-active{% endif %}"
+                   data-hero-slide
+                   data-caption="{{ slide.caption|default:hero_media.caption }}"
+                   aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
+                {% if slide.image %}
+                  {% thumbnail slide.image "1200" quality=74 format="WEBP" as hero_1x %}
+                    {% thumbnail slide.image "2000" quality=74 format="WEBP" as hero_2x %}
+                      <img
+                        src="{{ hero_1x.url }}"
+                        srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
+                        width="{{ hero_1x.width }}"
+                        height="{{ hero_1x.height }}"
+                        alt="{{ slide.alt }}"
+                        loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                        decoding="async"
+                        {% if forloop.first %}fetchpriority="high"{% endif %}>
+                    {% endthumbnail %}
+                  {% endthumbnail %}
+                {% else %}
+                  <img
+                    src="{{ slide.src }}"
+                    alt="{{ slide.alt }}"
+                    loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                    decoding="async"
+                    {% if forloop.first %}fetchpriority="high"{% endif %}>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="hero__slide is-active" data-hero-slide data-caption="{{ hero_media.caption }}" aria-hidden="false">
+              {% if hero_media.image %}
+                {% thumbnail hero_media.image "1200" quality=74 format="WEBP" as hero_1x %}
+                  {% thumbnail hero_media.image "2000" quality=74 format="WEBP" as hero_2x %}
+                    <img
+                      src="{{ hero_1x.url }}"
+                      srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
+                      width="{{ hero_1x.width }}"
+                      height="{{ hero_1x.height }}"
+                      alt="{{ hero_media.alt }}"
+                      loading="eager"
+                      decoding="async"
+                      fetchpriority="high">
+                  {% endthumbnail %}
+                {% endthumbnail %}
+              {% else %}
+                <img src="{{ hero_media.src }}" alt="{{ hero_media.alt }}" loading="eager" decoding="async" fetchpriority="high">
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="hero__disclaimer" data-hero-caption>
+          {% if hero_carousel %}
+            {{ hero_carousel.0.caption|default:hero_media.caption }}
+          {% else %}
+            {{ hero_media.caption }}
+          {% endif %}
         </div>
       </div>
 
@@ -1287,11 +1367,6 @@
 	  </section>
 
   <main id="main">
-    <div class="container only-mobile" aria-label="Featured build">
-      <div class="frame frame--media mobi-photo-break">
-        <img src="{% static 'img/hero-services.jpg' %}" alt="Service bay detail" loading="lazy" decoding="async">
-      </div>
-    </div>
     <!-- ========================= SERVICES on Home (limit 8) ========================= -->
 	    <section id="services" class="section">
 	      <div class="container">
