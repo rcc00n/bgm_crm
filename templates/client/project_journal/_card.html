@@ -62,14 +62,15 @@
         <figcaption class="pj-compare__label">Before</figcaption>
         <div class="pj-media" data-skeleton>
           {% if post.before_photos and post.before_photos.0.image %}
-            {% thumbnail post.before_photos.0.image "1200x675" crop="center" quality=74 format="WEBP" as before_1x %}
-              {% thumbnail post.before_photos.0.image "2000x1125" crop="center" quality=74 format="WEBP" as before_2x %}
+            {% thumbnail post.before_photos.0.image "1200" quality=74 format="WEBP" as before_1x %}
+              {% thumbnail post.before_photos.0.image "2000" quality=74 format="WEBP" as before_2x %}
                 <img
                   src="{{ before_1x.url }}"
                   srcset="{{ before_1x.url }} 1x, {{ before_2x.url }} 2x"
                   alt="{% firstof post.before_photos.0.alt_text post.title|add:' before' %}"
                   loading="{% if is_first %}eager{% else %}lazy{% endif %}"
                   decoding="async"
+                  draggable="false"
                 >
               {% endthumbnail %}
             {% endthumbnail %}
@@ -79,16 +80,18 @@
               alt="{% firstof post.legacy_before.0.alt post.title|add:' before' %}"
               loading="{% if is_first %}eager{% else %}lazy{% endif %}"
               decoding="async"
+              draggable="false"
             >
           {% elif post.cover_image %}
-            {% thumbnail post.cover_image "1200x675" crop="center" quality=74 format="WEBP" as cover_before_1x %}
-              {% thumbnail post.cover_image "2000x1125" crop="center" quality=74 format="WEBP" as cover_before_2x %}
+            {% thumbnail post.cover_image "1200" quality=74 format="WEBP" as cover_before_1x %}
+              {% thumbnail post.cover_image "2000" quality=74 format="WEBP" as cover_before_2x %}
                 <img
                   src="{{ cover_before_1x.url }}"
                   srcset="{{ cover_before_1x.url }} 1x, {{ cover_before_2x.url }} 2x"
                   alt="{{ post.title }} before"
                   loading="{% if is_first %}eager{% else %}lazy{% endif %}"
                   decoding="async"
+                  draggable="false"
                 >
               {% endthumbnail %}
             {% endthumbnail %}
@@ -100,14 +103,15 @@
         <figcaption class="pj-compare__label">After</figcaption>
         <div class="pj-media" data-skeleton>
           {% if post.after_photos and post.after_photos.0.image %}
-            {% thumbnail post.after_photos.0.image "1200x675" crop="center" quality=74 format="WEBP" as after_1x %}
-              {% thumbnail post.after_photos.0.image "2000x1125" crop="center" quality=74 format="WEBP" as after_2x %}
+            {% thumbnail post.after_photos.0.image "1200" quality=74 format="WEBP" as after_1x %}
+              {% thumbnail post.after_photos.0.image "2000" quality=74 format="WEBP" as after_2x %}
                 <img
                   src="{{ after_1x.url }}"
                   srcset="{{ after_1x.url }} 1x, {{ after_2x.url }} 2x"
                   alt="{% firstof post.after_photos.0.alt_text post.title|add:' after' %}"
                   loading="{% if is_first %}eager{% else %}lazy{% endif %}"
                   decoding="async"
+                  draggable="false"
                 >
               {% endthumbnail %}
             {% endthumbnail %}
@@ -117,16 +121,18 @@
               alt="{% firstof post.legacy_after.0.alt post.title|add:' after' %}"
               loading="{% if is_first %}eager{% else %}lazy{% endif %}"
               decoding="async"
+              draggable="false"
             >
           {% elif post.cover_image %}
-            {% thumbnail post.cover_image "1200x675" crop="center" quality=74 format="WEBP" as cover_after_1x %}
-              {% thumbnail post.cover_image "2000x1125" crop="center" quality=74 format="WEBP" as cover_after_2x %}
+            {% thumbnail post.cover_image "1200" quality=74 format="WEBP" as cover_after_1x %}
+              {% thumbnail post.cover_image "2000" quality=74 format="WEBP" as cover_after_2x %}
                 <img
                   src="{{ cover_after_1x.url }}"
                   srcset="{{ cover_after_1x.url }} 1x, {{ cover_after_2x.url }} 2x"
                   alt="{{ post.title }} after"
                   loading="{% if is_first %}eager{% else %}lazy{% endif %}"
                   decoding="async"
+                  draggable="false"
                 >
               {% endthumbnail %}
             {% endthumbnail %}
@@ -143,7 +149,7 @@
     </button>
     <div class="pj-compare__pager" data-compare-pager aria-live="polite"></div>
 
-    <span class="pj-compare__hint" aria-hidden="true">Drag</span>
+    <span class="pj-compare__hint" aria-hidden="true">Drag left/right</span>
     <span class="pj-compare__handle" aria-hidden="true"></span>
     <input class="pj-compare__range" type="range" min="0" max="100" value="50" aria-label="Before and after slider">
   </section>

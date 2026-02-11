@@ -554,6 +554,25 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   transform:scale(1);
 }
 
+/* Slider mode: prefer full-photo visibility over aggressive cropping. */
+.pj-compare--slider{
+  touch-action:pan-y;
+  user-select:none;
+}
+.pj-compare--slider .pj-media{
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255,255,255,.08), rgba(0,0,0,.28) 45%, rgba(0,0,0,.58) 100%);
+}
+.pj-compare--slider .pj-media img{
+  object-fit:contain;
+  transform:none;
+  pointer-events:none;
+  -webkit-user-drag:none;
+}
+.pj-compare--slider .pj-media.is-loaded img{
+  transform:none;
+}
+
 .pj-media::before{
   content:"";
   position:absolute;
@@ -583,8 +602,14 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   aspect-ratio:auto;
 }
 .pj-compare--slider .pj-compare__frame[data-kind="after"]{
+  position:relative;
+  z-index:1;
+}
+.pj-compare--slider .pj-compare__frame[data-kind="before"]{
   position:absolute;
   inset:0;
+  z-index:2;
+  /* Reveal the "before" image on the left side; "after" stays visible on the right. */
   clip-path:inset(0 calc(100% - var(--pos)) 0 0);
 }
 .pj-compare--slider .pj-compare__frame[data-kind="after"] .pj-compare__label{
@@ -677,8 +702,9 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 
 .pj-compare__hint{
   position:absolute;
-  right:.65rem;
   top:.65rem;
+  left:var(--pos);
+  transform:translateX(-50%);
   z-index:6;
   display:none;
   padding:.25rem .7rem;
@@ -689,11 +715,54 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   background:rgba(0,0,0,.55);
   border:1px solid rgba(255,255,255,.2);
   color:#fff;
+  pointer-events:none;
+  white-space:nowrap;
 }
-.pj-compare--slider .pj-compare__hint{ display:inline-flex; }
 .pj-compare--slider .pj-compare__range,
 .pj-compare--slider .pj-compare__handle{
   display:block;
+}
+
+/* In slider mode we drag anywhere; keep the range accessible but visually quiet. */
+.pj-compare--slider .pj-compare__range{
+  inset:0;
+  left:0;
+  right:0;
+  top:0;
+  bottom:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+}
+.pj-compare--slider .pj-compare__range::-webkit-slider-runnable-track{ background:transparent; }
+.pj-compare--slider .pj-compare__range::-webkit-slider-thumb{
+  background:transparent;
+  border-color:transparent;
+  box-shadow:none;
+}
+.pj-compare--slider .pj-compare__range::-moz-range-track{ background:transparent; }
+.pj-compare--slider .pj-compare__range::-moz-range-thumb{
+  background:transparent;
+  border-color:transparent;
+  box-shadow:none;
+}
+.pj-compare--slider:focus-within{
+  outline:2px solid rgba(255,255,255,.6);
+  outline-offset:4px;
+}
+
+@keyframes pj-hint-pulse{
+  0%,100%{ transform:translate(-50%, -50%) scale(1); }
+  50%{ transform:translate(-50%, -50%) scale(1.08); }
+}
+
+.pj-compare--hint .pj-compare__hint{
+  display:inline-flex;
+}
+.pj-compare--hint .pj-compare__handle{ transition:left .25s ease; }
+.pj-compare--hint .pj-compare__frame[data-kind="before"]{ transition:clip-path .25s ease; }
+.pj-compare--hint .pj-compare__handle::after{
+  animation:pj-hint-pulse 1s ease-in-out 0s 4;
 }
 
 /* Show photo nav when JS enables it (multi-photo posts). */

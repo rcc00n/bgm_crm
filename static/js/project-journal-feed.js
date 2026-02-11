@@ -5,6 +5,21 @@
    - "Load more" feed pagination (progressive enhancement) */
 
 (() => {
+  const COMPARE_HINT_KEY = 'pj_compare_hint_dismissed_v1';
+  let compareHintShown = false;
+
+  const isCompareHintDismissed = () => {
+    try {
+      return window.localStorage.getItem(COMPARE_HINT_KEY) === '1';
+    } catch (err) {
+      return false;
+    }
+  };
+
+  const dismissCompareHintForever = () => {
+    try { window.localStorage.setItem(COMPARE_HINT_KEY, '1'); } catch (err) {}
+  };
+
   const initSkeleton = (root = document) => {
     const medias = root.querySelectorAll('[data-skeleton]');
     medias.forEach((media) => {
@@ -136,6 +151,8 @@
 
       el.classList.add('pj-compare--slider');
 
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
       const setPos = (value) => {
         const v = Math.max(0, Math.min(100, Number(value)));
         el.style.setProperty('--pos', `${v}%`);
@@ -155,9 +172,10 @@
 
       let dragging = false;
       el.addEventListener('pointerdown', (e) => {
-        if (e.button !== 0) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (e.isPrimary === false) return;
         if (e.target && e.target.closest && e.target.closest('[data-compare-prev],[data-compare-next]')) return;
-        if (e.target && e.target.matches && e.target.matches('input[type="range"]')) return;
+        e.preventDefault(); // prevent native image dragging/selection and keep dragging consistent
         dragging = true;
         try { el.setPointerCapture(e.pointerId); } catch (err) {}
         setFromClientX(e.clientX);
@@ -169,6 +187,41 @@
       const stopDragging = () => { dragging = false; };
       el.addEventListener('pointerup', stopDragging);
       el.addEventListener('pointercancel', stopDragging);
+
+      // One-time interactive hint: nudge + pulse until the user interacts.
+      if (!compareHintShown && !isCompareHintDismissed()) {
+        compareHintShown = true;
+        el.classList.add('pj-compare--hint');
+
+        const dismiss = () => {
+          if (!el.classList.contains('pj-compare--hint')) return;
+          el.classList.remove('pj-compare--hint');
+          dismissCompareHintForever();
+        };
+
+        el.addEventListener('pointerdown', dismiss, { once: true, capture: true });
+        range.addEventListener('input', dismiss, { once: true });
+        range.addEventListener('keydown', dismiss, { once: true });
+
+        if (!prefersReducedMotion) {
+          const base = Math.max(0, Math.min(100, Number(range.value || 50)));
+          const seq = [
+            Math.max(0, Math.min(100, base + 12)),
+            Math.max(0, Math.min(100, base - 12)),
+            base,
+          ];
+
+          const step = (i) => {
+            if (!el.classList.contains('pj-compare--hint')) return;
+            const v = seq[i];
+            range.value = String(v);
+            setPos(v);
+            if (i + 1 < seq.length) window.setTimeout(() => step(i + 1), 420);
+          };
+
+          window.setTimeout(() => step(0), 650);
+        }
+      }
     });
   };
 
