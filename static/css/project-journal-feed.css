@@ -648,7 +648,7 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 }
 .pj-compare--slider.pj-compare--ratio-mixed .pj-media img,
 .pj-compare--slider.pj-compare--ratio-portrait .pj-media img{
-  object-fit:cover;
+  object-fit:contain;
 }
 
 .pj-compare__range{

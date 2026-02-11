@@ -246,6 +246,7 @@
       el.classList.add('pj-compare--slider');
 
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let stopHint = () => {};
 
       const setPos = (value) => {
         const v = Math.max(0, Math.min(100, Number(value)));
@@ -254,7 +255,23 @@
 
       setPos(range.value || 50);
       applyCompareRatioClass();
-      range.addEventListener('input', () => setPos(range.value));
+      range.addEventListener('input', () => {
+        setPos(range.value);
+        stopHint();
+      });
+      range.addEventListener('change', stopHint);
+      range.addEventListener('keydown', (e) => {
+        if (
+          e.key === 'ArrowLeft'
+          || e.key === 'ArrowRight'
+          || e.key === 'Home'
+          || e.key === 'End'
+          || e.key === 'PageUp'
+          || e.key === 'PageDown'
+        ) {
+          stopHint();
+        }
+      });
 
       const setFromClientX = (clientX) => {
         const rect = el.getBoundingClientRect();
@@ -270,6 +287,7 @@
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         if (e.isPrimary === false) return;
         if (e.target && e.target.closest && e.target.closest('[data-compare-prev],[data-compare-next]')) return;
+        stopHint();
         e.preventDefault(); // prevent native image dragging/selection and keep dragging consistent
         dragging = true;
         try { el.setPointerCapture(e.pointerId); } catch (err) {}
@@ -277,6 +295,7 @@
       });
       el.addEventListener('pointermove', (e) => {
         if (!dragging) return;
+        stopHint();
         setFromClientX(e.clientX);
       });
       const stopDragging = () => { dragging = false; };
@@ -290,21 +309,37 @@
 
         let hintInterval = 0;
         let hintBusy = false;
+        let hintInitialTimeout = 0;
+        let hintPulseTimeout = 0;
+        let hintStepTimeout = 0;
 
         const dismiss = () => {
-          if (!el.classList.contains('pj-compare--hint')) return;
+          if (!el.classList.contains('pj-compare--hint') && !hintInterval && !hintInitialTimeout && !hintPulseTimeout && !hintStepTimeout) return;
           el.classList.remove('pj-compare--hint');
+          el.classList.remove('pj-compare--remind');
+
           if (hintInterval) window.clearInterval(hintInterval);
+          if (hintInitialTimeout) window.clearTimeout(hintInitialTimeout);
+          if (hintPulseTimeout) window.clearTimeout(hintPulseTimeout);
+          if (hintStepTimeout) window.clearTimeout(hintStepTimeout);
+
+          hintInterval = 0;
+          hintInitialTimeout = 0;
+          hintPulseTimeout = 0;
+          hintStepTimeout = 0;
+          hintBusy = false;
           dismissCompareHintForever();
         };
+        stopHint = dismiss;
 
         el.addEventListener('pointerdown', (e) => {
           // Don't treat photo navigation as "using the slider".
           if (e.target && e.target.closest && e.target.closest('[data-compare-prev],[data-compare-next]')) return;
           dismiss();
-        }, { once: true, capture: true });
-        range.addEventListener('input', dismiss, { once: true });
-        range.addEventListener('keydown', dismiss, { once: true });
+        }, { capture: true });
+        range.addEventListener('input', dismiss);
+        range.addEventListener('keydown', dismiss);
+        range.addEventListener('change', dismiss);
 
         if (!prefersReducedMotion) {
           const remind = () => {
@@ -317,7 +352,10 @@
             // eslint-disable-next-line no-unused-expressions
             el.offsetWidth; // force reflow to restart CSS animation
             el.classList.add('pj-compare--remind');
-            window.setTimeout(() => el.classList.remove('pj-compare--remind'), 1300);
+            hintPulseTimeout = window.setTimeout(() => {
+              el.classList.remove('pj-compare--remind');
+              hintPulseTimeout = 0;
+            }, 1300);
 
             const base = Math.max(0, Math.min(100, Number(range.value || 50)));
             const seq = [
@@ -332,7 +370,10 @@
               range.value = String(v);
               setPos(v);
               if (i + 1 < seq.length) {
-                window.setTimeout(() => step(i + 1), 420);
+                hintStepTimeout = window.setTimeout(() => {
+                  hintStepTimeout = 0;
+                  step(i + 1);
+                }, 420);
               } else {
                 hintBusy = false;
               }
@@ -342,7 +383,10 @@
           };
 
           // Initial hint, then repeat every 5 seconds until first use.
-          window.setTimeout(remind, 650);
+          hintInitialTimeout = window.setTimeout(() => {
+            hintInitialTimeout = 0;
+            remind();
+          }, 650);
           hintInterval = window.setInterval(remind, 5000);
         }
       }
