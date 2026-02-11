@@ -3,7 +3,10 @@
 
 {% block extrahead %}
   {{ block.super }}
-  <link rel="stylesheet" href="{% static 'admin/css/project_journal_admin.css' %}">
+  {# NOTE: We intentionally avoid the {% static %} tag here to prevent hard failures
+     if the staticfiles manifest is stale/out-of-sync (common with persistent STATIC_ROOT mounts). #}
+  {% get_static_prefix as STATIC_PREFIX %}
+  <link rel="stylesheet" href="{{ STATIC_PREFIX }}admin/css/project_journal_admin.css">
 {% endblock %}
 
 {% block after_field_sets %}
@@ -37,6 +40,6 @@
     </div>
   </div>
 
-  <script src="{% static 'admin/js/project_journal_admin.js' %}"></script>
+  {% get_static_prefix as STATIC_PREFIX %}
+  <script src="{{ STATIC_PREFIX }}admin/js/project_journal_admin.js"></script>
 {% endblock %}
-

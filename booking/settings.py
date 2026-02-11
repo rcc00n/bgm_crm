@@ -1,6 +1,7 @@
 from pathlib import Path
 from decimal import Decimal, InvalidOperation
 import os
+import sys
 import dj_database_url
 from decouple import config, Csv  
 
@@ -27,6 +28,7 @@ def _bool_env(name: str, default: str = "False") -> bool:
 # ── Основное ─────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 DEBUG = _bool_env("DEBUG", "False")
+RUNNING_TESTS = len(sys.argv) > 1 and sys.argv[1] == "test"
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -422,7 +424,9 @@ if os.getenv("USE_S3_MEDIA") == "1":
 
 # ── Безопасность продакшна ──────────────────────────────────────────────
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = _bool_env("SECURE_SSL_REDIRECT", "True")
+# Enforced HTTPS is correct for production, but breaks the Django test client
+# expectations unless every request is marked secure.
+SECURE_SSL_REDIRECT = False if RUNNING_TESTS else _bool_env("SECURE_SSL_REDIRECT", "True")
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

@@ -70,7 +70,8 @@ class ProjectJournalFeedTests(TestCase):
         res = self.client.get(reverse("project-journal"))
         self.assertEqual(res.status_code, 200)
         html = res.content.decode("utf-8")
-        self.assertLess(html.find(featured.title), html.find(newest.title))
+        # Use stable card anchors to avoid accidental matches in filter UI labels.
+        self.assertLess(html.find(f'id="build-{featured.slug}"'), html.find(f'id="build-{newest.slug}"'))
 
     def test_sort_newest(self):
         now = timezone.now()
@@ -106,4 +107,3 @@ class ProjectJournalFeedTests(TestCase):
         missing = self._entry(title="Missing After", before=True, after=False, status=ProjectJournalEntry.Status.DRAFT)
         self.assertTrue(ok.is_publishable())
         self.assertFalse(missing.is_publishable())
-

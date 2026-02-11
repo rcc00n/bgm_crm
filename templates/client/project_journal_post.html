@@ -62,7 +62,9 @@
     {% endif %}
   </style>
 
-  <link rel="stylesheet" href="{% static 'css/project-journal-feed.css' %}">
+  {# Avoid hard failures if the staticfiles manifest is stale/out-of-sync. #}
+  {% get_static_prefix as STATIC_PREFIX %}
+  <link rel="stylesheet" href="{{ STATIC_PREFIX }}css/project-journal-feed.css">
 </head>
 <body class="pj">
   {% include "includes/marketing_body.html" %}
@@ -90,6 +92,7 @@
   {% include "includes/site_footer.html" %}
 
   <script src="{% static 'js/topbar.js' %}"></script>
-  <script src="{% static 'js/project-journal-feed.js' %}" defer></script>
+  {% get_static_prefix as STATIC_PREFIX %}
+  <script src="{{ STATIC_PREFIX }}js/project-journal-feed.js" defer></script>
 </body>
 </html>
