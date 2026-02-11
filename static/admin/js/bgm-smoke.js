@@ -8,7 +8,13 @@
   const saveData = !!(navigator.connection && navigator.connection.saveData);
   if (prefersReduced || saveData) return;
 
-  const host = document.getElementById('bg');
+  let host = document.getElementById('bg');
+  if (!host && document.body) {
+    host = document.createElement('div');
+    host.id = 'bg';
+    host.setAttribute('aria-hidden', 'true');
+    document.body.prepend(host);
+  }
   if (!host) return;
 
   const loadThreeScript = (src) =>
@@ -223,7 +229,15 @@
     });
   };
 
-  const events = ['pointerdown', 'touchstart', 'wheel', 'scroll', 'keydown'];
+  const events = [
+    'pointerdown',
+    'pointermove',
+    'touchstart',
+    'touchmove',
+    'wheel',
+    'scroll',
+    'keydown',
+  ];
   let activated = false;
 
   const cleanup = () => {
