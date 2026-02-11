@@ -1,4 +1,4 @@
-{% load topbar_extras %}
+{% load topbar_extras static %}
 {% firstof header_copy home_copy services_copy store_copy merch_copy financing_copy about_copy dealer_copy as topbar_copy %}
 {% with brand_words=topbar_copy.brand_word_white|default:"Bad Guy"|split_words %}
 {% with tagline_words=topbar_copy.brand_tagline|default:"CUSTOM BUILDS • INSTALLS • UPGRADES"|split_bullets %}
@@ -67,6 +67,41 @@
   </div>
 </header>
 <div class="bgm-topbar__spacer" aria-hidden="true"></div>
+<style id="bgm-topbar-mobile-hardfix">
+  @media (max-width: 960px){
+    .bgm-topbar{
+      z-index: 4200 !important;
+      background: #060606 !important;
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+    }
+    .bgm-topbar__nav{
+      top: var(--bgm-topbar-height, var(--site-header-height, 72px)) !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      height: calc(100dvh - var(--bgm-topbar-height, var(--site-header-height, 72px))) !important;
+      min-height: calc(100dvh - var(--bgm-topbar-height, var(--site-header-height, 72px))) !important;
+      padding-top: 1rem !important;
+      z-index: 4100 !important;
+    }
+    .bgm-topbar__nav a,
+    .bgm-topbar__nav .btn,
+    .bgm-topbar__nav .btn--ghost,
+    .bgm-topbar__nav .bgm-topbar__nav-trigger{
+      justify-content: flex-start !important;
+      text-align: left !important;
+    }
+    .bgm-topbar__nav a.bgm-topbar__nav-login{
+      justify-content: flex-start !important;
+      gap: .6rem !important;
+    }
+    .bgm-topbar__nav a.bgm-topbar__nav-login > span:last-child{
+      margin-left: 0 !important;
+    }
+  }
+</style>
+<script src="{% static 'js/topbar.js' %}"></script>
 <a
   class="bgm-cart-fab"
   href="{% url 'store-cart' %}"

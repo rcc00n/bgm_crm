@@ -1,3 +1,4 @@
+{% load static %}
 {% with marketing.google_tag_manager_id|default:"GTM-M7FTNXV6" as gtm_id %}
 {% if gtm_id %}
 <noscript>
@@ -10,4 +11,13 @@
 </noscript>
 {% endif %}
 {% endwith %}
+<script>
+  if (window.__bgmSmokeAutoStart !== false) {
+    window.__bgmSmokeAutoStart = true;
+  }
+  if (typeof window.__bgmSmokeAutoDelayMs !== "number") {
+    window.__bgmSmokeAutoDelayMs = 220;
+  }
+</script>
+<script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 {% include "includes/cookie_notice.html" %}

@@ -1,13 +1,17 @@
 /* Client topbar v3 (desktop + mobile). */
 @font-face{
   font-family:"Diesel";
-  src:url("../fonts/Diesel.ttf") format("truetype");
+  src:
+    url("../fonts/Diesel.woff2") format("woff2"),
+    url("../fonts/Diesel.ttf") format("truetype");
   font-display:swap;
 }
 
 @font-face{
   font-family:"Ford";
-  src:url("../fonts/Ford.ttf") format("truetype");
+  src:
+    url("../fonts/Ford.woff2") format("woff2"),
+    url("../fonts/Ford.ttf") format("truetype");
   font-display:swap;
 }
 
@@ -51,7 +55,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 3600;
+  z-index: 3900;
   background: var(--topbar-bg) !important;
   border-bottom: 1px solid var(--topbar-border) !important;
   backdrop-filter: blur(12px) saturate(1.2) !important;
@@ -321,8 +325,14 @@
 .bgm-topbar__icon{
   width: 1.05em;
   height: 1.05em;
+  display: block;
   flex: 0 0 auto;
   opacity: .9;
+}
+
+.bgm-topbar__nav a.bgm-topbar__nav-login{
+  justify-content: flex-start !important;
+  gap: .45rem !important;
 }
 
 .bgm-topbar__nav a:hover,
@@ -390,7 +400,12 @@
 
 @media (max-width: 960px){
   body.nav-open{ overflow: hidden; }
-  .bgm-topbar{ --site-header-height: max(62px, 10vh); }
+  .bgm-topbar{
+    --site-header-height: max(62px, 10vh);
+    background: #060606 !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
   .bgm-topbar__inner{
     display: grid !important;
     grid-template-columns: auto max-content !important;
@@ -414,10 +429,13 @@
 
   .bgm-topbar__nav{
     position: fixed !important;
-    inset: 0 !important;
-    height: 100dvh !important;
-    min-height: 100dvh !important;
-    padding-top: calc(var(--site-header-height) + 1rem) !important;
+    top: var(--bgm-topbar-height, var(--site-header-height, 72px)) !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    height: calc(100dvh - var(--bgm-topbar-height, var(--site-header-height, 72px))) !important;
+    min-height: calc(100dvh - var(--bgm-topbar-height, var(--site-header-height, 72px))) !important;
+    padding-top: 1rem !important;
     padding-inline: clamp(20px, 6vw, 36px) !important;
     padding-bottom: clamp(28px, 12vh, 46px) !important;
     background: transparent !important;
@@ -430,7 +448,7 @@
     pointer-events: none !important;
     transform: translateY(-12px) !important;
     transition: opacity .22s ease, transform .22s ease !important;
-    z-index: 3700 !important;
+    z-index: 3850 !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     max-width: none !important;
@@ -498,7 +516,17 @@
     font-size: var(--topbar-nav-size, 1rem) !important;
     letter-spacing: .035em !important;
     box-shadow: 0 8px 24px rgba(0,0,0,.35) !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
+  }
+
+  .bgm-topbar__nav a.bgm-topbar__nav-login{
+    justify-content: flex-start !important;
+    gap: .6rem !important;
+    text-align: left !important;
+  }
+
+  .bgm-topbar__nav a.bgm-topbar__nav-login > span:last-child{
+    margin-left: 0 !important;
   }
 
   .bgm-topbar__nav a:hover,

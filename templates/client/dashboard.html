@@ -48,7 +48,26 @@
     h1,h2,h3{color:#fff}
     .kicker{color:var(--muted)}
 
-    .panel{background:var(--panel); border:1px solid var(--grid); border-radius:var(--radius); box-shadow:var(--shadow)}
+    .panel{
+      background:
+        linear-gradient(155deg, rgba(255,255,255,.06), rgba(255,255,255,.02) 62%),
+        var(--panel);
+      border:1px solid var(--grid);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .panel::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:0;
+      right:0;
+      height:1px;
+      background:linear-gradient(90deg, rgba(213,0,0,.45), rgba(255,255,255,.04), rgba(213,0,0,.22));
+      pointer-events:none;
+    }
     .panel-strong{background:var(--panel-2)}
     .panel-pad{padding:1.25rem}
     .table th{background:rgba(213,0,0,.18); color:#fff}
@@ -63,36 +82,278 @@
     .btn-ghost:hover{background:rgba(255,255,255,.06)}
     .link{color:#fff; text-underline-offset:4px} .link:hover{color:var(--red); text-decoration:underline}
 
-    .ol2{display:flex;flex-direction:column;border:1px solid var(--grid);border-radius:12px;background:rgba(0,0,0,.35);backdrop-filter:saturate(1.2) blur(2px);overflow:visible}
-    .ol2__toolbar{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border-bottom:1px solid var(--grid)}
-    .ol2__wrap{flex:1 1 auto;overflow-x:auto;overflow-y:auto;max-height:56vh;min-height:300px;padding-bottom:10px;scrollbar-gutter:stable both-edges}
-    .ol2__grid{display:grid;grid-auto-rows:36px;grid-template-columns:100px repeat(var(--days,14),140px);min-width:calc(100px + var(--days,14)*140px + 1px)}
-    .ol2__cell{border-bottom:1px solid var(--grid);border-right:1px solid var(--grid);padding:.25rem .35rem;background:transparent;color:#fff;white-space:nowrap}
-    .ol2__cell.time{position:sticky;left:0;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);z-index:2;font-size:.85rem;color:var(--muted)}
-    .ol2__head{position:sticky;top:0;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);z-index:3;border-bottom:2px solid var(--grid)}
-    .ol2__day{display:flex;flex-direction:column;padding:.4rem .45rem}
-    .ol2__day .t{font-weight:900;font-size:.92rem;color:#fff;text-transform:capitalize}
-    .ol2__day .s{font-size:.75rem;color:var(--muted)}
-    .ol2__day.today{background:rgba(213,0,0,.12)}
-    .chip{display:inline-flex;align-items:center;justify-content:center;height:1.7rem;min-width:3.4rem;padding:0 .45rem;border-radius:.5rem;border:1.6px solid transparent;font-weight:900;font-size:.9rem;line-height:1;user-select:none}
-    .chip--free{color:#fff;border-color:rgba(255,255,255,.35);background:var(--chip);cursor:pointer}
-    .chip--free:hover{filter:brightness(1.05)}
-    .chip--busy{color:#aaa;background:var(--busy);opacity:.9; cursor:not-allowed}
-    .chip--sel{background:var(--red)!important;color:#fff;border-color:var(--red)!important;box-shadow:0 0 0 2px var(--ring)}
-
-    .modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:1rem; z-index:50}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:1rem;z-index:50}
     .modal--open{display:flex}
-    .modal__dialog{background:linear-gradient(180deg, rgba(15,15,15,.98), rgba(10,10,10,.98)); border:1px solid var(--grid); border-radius:16px; width:min(64rem, 96vw); padding:1rem; color:#fff; box-shadow:var(--shadow)}
-    .modal__header{display:flex; align-items:center; justify-content:space-between; padding:.25rem .25rem .5rem .25rem; border-bottom:1px solid var(--grid)}
-    .modal__title{font-weight:900; letter-spacing:.6px; color:#fff}
-    .modal__close{background:transparent;color:var(--muted); border:none; font-size:1.6rem; line-height:1; cursor:pointer}
-    .grid-2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:1rem; padding:1rem 0}
+    .modal__dialog{
+      background:linear-gradient(180deg,#0c0c0c,#121212);
+      border-radius:1rem;
+      box-shadow:0 14px 36px rgba(0,0,0,.75), 0 0 32px rgba(213,0,0,.18);
+      width:min(940px,calc(100dvw - 2rem));
+      border:1px solid var(--grid);
+      padding:1.2rem 1.25rem 1rem;
+      max-height:calc(100dvh - 2rem);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      color:var(--ink);
+    }
+    @supports not (height:100dvh){
+      .modal__dialog{
+        width:min(940px,calc(100vw - 2rem));
+        max-height:calc(100vh - 2rem);
+      }
+    }
+    .modal__header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:1rem}
+    .modal__title{
+      font-family:var(--font-body);
+      font-weight:900;
+      font-size:1.25rem;
+      line-height:1.2;
+      letter-spacing:.04em;
+      text-transform:none;
+    }
+    .modal__close{
+      background:transparent;
+      border:1px solid var(--grid);
+      font-size:1.2rem;
+      line-height:1;
+      cursor:pointer;
+      color:var(--muted);
+      border-radius:.5rem;
+      width:36px;
+      height:36px;
+    }
+    .res-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
+      gap:1rem;
+      flex:1 1 auto;
+      min-height:0;
+    }
+    .res-grid > div{min-height:0}
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:var(--muted)}
-    .field input,.field select, .field textarea{background:#0b0b0b; color:#fff; border:1px solid var(--grid); border-radius:10px; padding:.6rem .8rem; font-size:.95rem}
-    .hint{color:var(--muted-2); font-size:.85rem}
-    .error{color:#ff6b6b; font-size:.9rem; margin-top:.5rem}
-    .success{color:#33d17a; font-size:.95rem; margin-top:.5rem}
+    .field input,.field select,.field textarea{
+      background:#0a0a0a;
+      color:#fff;
+      border:1px solid var(--grid);
+      border-radius:.6rem;
+      padding:.6rem .8rem;
+      font-size:.95rem;
+    }
+    #resMaster{
+      width:100%;
+      background:#0a0a0a;
+      color:#fff;
+      color-scheme:dark;
+      border:1px solid var(--grid);
+      border-radius:.6rem;
+      padding:.62rem .85rem;
+      font-size:.95rem;
+      line-height:1.2;
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, rgba(255,255,255,.7) 50%),
+        linear-gradient(135deg, rgba(255,255,255,.7) 50%, transparent 50%);
+      background-position:
+        calc(100% - 20px) calc(50% - 3px),
+        calc(100% - 14px) calc(50% - 3px);
+      background-size:6px 6px, 6px 6px;
+      background-repeat:no-repeat;
+      padding-right:2.2rem;
+    }
+    #resMaster:focus{
+      outline:none;
+      border-color:rgba(213,0,0,.55);
+      box-shadow:0 0 0 2px rgba(213,0,0,.24);
+    }
+    #resMaster option{
+      background:#101010;
+      color:#fff;
+    }
+    .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
+    .hint{color:var(--muted-2);font-size:.85rem}
+    .error{color:#ff6b6b;font-size:.9rem;margin-top:.5rem}
+    .success{color:#33d17a;font-size:.95rem;margin-top:.5rem}
+
+    .outlook,
+    .ol2{
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+      border:1px solid var(--grid);
+      border-radius:12px;
+      overflow:visible;
+      background:#0a0a0a;
+      margin-top:.45rem;
+    }
+    .outlook__toolbar,
+    .ol2__toolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.75rem;
+      padding:.55rem .75rem;
+      border-bottom:1px solid var(--grid);
+      background:#0c0c0c;
+    }
+    .outlook__toolbar .controls,
+    .ol2__toolbar .controls{display:flex;gap:.4rem}
+    .outlook__toolbar .range,
+    .ol2__toolbar .range{font-weight:900;letter-spacing:.4px}
+    .outlook__toolbar button,
+    .ol2__toolbar button{
+      border:1px solid var(--grid);
+      background:#111;
+      border-radius:.5rem;
+      padding:.35rem .65rem;
+      cursor:pointer;
+      line-height:1;
+      font-weight:800;
+      color:var(--ink);
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+    .outlook__toolbar button:hover,
+    .ol2__toolbar button:hover{
+      border-color:rgba(213,0,0,.45);
+      box-shadow:0 0 16px rgba(213,0,0,.2);
+    }
+    .outlook__wrap,
+    .ol2__wrap{
+      flex:1 1 auto;
+      overflow-x:auto;
+      overflow-y:auto;
+      max-height:56vh;
+      min-height:300px;
+      max-width:100%;
+      padding-bottom:10px;
+      scrollbar-gutter:stable both-edges;
+      -webkit-overflow-scrolling:touch;
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+    }
+    .outlook__grid,
+    .ol2__grid{
+      display:grid;
+      min-width:calc(96px + (var(--days,14) * 160px) + 1px);
+      grid-auto-rows:minmax(36px,auto);
+      grid-template-columns:96px repeat(var(--days,14),160px);
+    }
+    .outlook__cell,
+    .ol2__cell{
+      border-bottom:1px solid var(--grid);
+      border-right:1px solid var(--grid);
+      padding:.25rem .4rem;
+      background:#0a0a0a;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+      color:var(--ink);
+    }
+    .outlook__cell.time,
+    .ol2__cell.time{
+      position:sticky;
+      left:0;
+      background:#0c0c0c;
+      z-index:2;
+      font-size:.85rem;
+      color:var(--muted);
+    }
+    .outlook__head,
+    .ol2__head{
+      position:sticky;
+      top:0;
+      background:#0c0c0c;
+      z-index:3;
+      border-bottom:2px solid var(--grid);
+      box-shadow:0 1px 0 rgba(255,255,255,.04);
+      padding:.45rem .5rem;
+    }
+    .day-head{display:flex;flex-direction:column}
+    .day-title{font:900 .95rem/1.1 var(--font-body);text-transform:capitalize;letter-spacing:.3px}
+    .day-sub{font-size:.78rem;color:var(--muted);margin-top:.15rem}
+    .day--today{background:linear-gradient(180deg, rgba(213,0,0,.08), rgba(213,0,0,0))}
+    .ol2__day{display:flex;flex-direction:column}
+    .ol2__day .t{font:900 .95rem/1.1 var(--font-body);text-transform:capitalize;letter-spacing:.3px}
+    .ol2__day .s{font-size:.78rem;color:var(--muted);margin-top:.15rem}
+    .ol2__day.today{background:linear-gradient(180deg, rgba(213,0,0,.08), rgba(213,0,0,0))}
+    .slot-chip,
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      height:1.7rem;
+      min-width:3.6rem;
+      padding:0 .5rem;
+      border-radius:.5rem;
+      border:1.6px solid transparent;
+      font-weight:900;
+      font-size:.9rem;
+      user-select:none;
+      line-height:1;
+      text-transform:uppercase;
+      letter-spacing:.3px;
+    }
+    .slot-free,
+    .chip--free{color:#fff;border-color:rgba(255,255,255,.22);background:#131313;cursor:pointer}
+    .slot-free:hover,
+    .chip--free:hover{border-color:rgba(213,0,0,.55);box-shadow:0 0 16px rgba(213,0,0,.25)}
+    .slot-busy,
+    .chip--busy{color:#fff;background:var(--red);opacity:.9}
+    .slot-selected,
+    .chip--sel{background:var(--red)!important;color:#fff;border-color:var(--red)!important;box-shadow:0 0 0 2px rgba(213,0,0,.35)}
+
+    .masters{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.25rem}
+    .master-pill{
+      display:flex;
+      align-items:center;
+      gap:.6rem;
+      padding:.4rem .6rem;
+      border:1px solid var(--grid);
+      border-radius:.8rem;
+      background:#0b0b0b;
+      cursor:pointer;
+    }
+    .master-pill:hover{border-color:rgba(213,0,0,.45);box-shadow:0 0 18px rgba(213,0,0,.2)}
+    .master-pill[aria-pressed="true"]{border-color:var(--red);box-shadow:0 0 0 2px rgba(213,0,0,.25)}
+    .master-pill img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#111}
+    .master-pill__avatar--fallback{
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      background:#1a1a1a;
+      color:#fff;
+      font-weight:800;
+      font-size:.72rem;
+      letter-spacing:.04em;
+      border:1px solid rgba(255,255,255,.12);
+    }
+    .master-name{font-weight:800;font-size:.92rem;color:#fff}
+    .res-summary{
+      min-height:2.5rem;
+      display:flex;
+      align-items:center;
+      border:1px solid var(--grid);
+      border-radius:.65rem;
+      background:#0b0b0b;
+      padding:.65rem .8rem;
+      line-height:1.25;
+    }
+    .sr-only{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
 
     .badge{display:inline-block;padding:.18rem .55rem;border-radius:999px;font-weight:800;font-size:.78rem;color:#fff;border:1px solid rgba(255,255,255,.12)}
     .st-processing{background:#f5a623}
@@ -100,7 +361,80 @@
     .st-completed{background:#17d45b}
     .st-cancelled{background:#ff5c72}
 
-    @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .ol2__wrap{max-height:50vh} }
+    .order-card{
+      cursor:pointer;
+      transition:border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+      position:relative;
+    }
+    .order-card:hover{
+      border-color:rgba(213,0,0,.45);
+      box-shadow:0 16px 32px rgba(0,0,0,.38), 0 0 20px rgba(213,0,0,.12);
+      transform:translateY(-1px);
+    }
+    .order-card:focus-visible{
+      outline:2px solid var(--ring);
+      outline-offset:2px;
+    }
+    .order-card__summary{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:.7rem;
+    }
+    .order-card__meta{
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap:.7rem;
+    }
+    .order-card__open-hint{
+      font-size:.72rem;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      color:var(--muted-2);
+      border:1px solid rgba(255,255,255,.12);
+      padding:.12rem .42rem;
+      border-radius:999px;
+    }
+    .order-card__details{margin-top:.75rem}
+    .order-card__item{gap:.65rem}
+
+    .order-modal__dialog{width:min(820px,calc(100dvw - 2rem))}
+    .order-modal__summary{
+      display:flex;
+      align-items:center;
+      gap:.8rem;
+      padding:.75rem .9rem;
+      border:1px solid var(--grid);
+      border-radius:.8rem;
+      background:rgba(255,255,255,.03);
+      margin-bottom:.85rem;
+    }
+    .order-modal__summary-title{
+      font-weight:900;
+      font-size:1rem;
+      letter-spacing:.02em;
+      color:#fff;
+    }
+    .order-modal__summary-meta{
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap:.75rem;
+    }
+    .order-modal__total{font-weight:900;font-size:1.05rem;color:#fff}
+    .order-modal__body{
+      border:1px solid var(--grid);
+      border-radius:.8rem;
+      background:rgba(0,0,0,.3);
+      padding:.95rem;
+      max-height:min(58vh,520px);
+      overflow:auto;
+    }
+    .order-modal__body .order-card__details{margin-top:0}
+    .order-modal__empty{font-size:.92rem;color:var(--muted-2)}
+
+    @media (max-width: 900px){ .res-grid{grid-template-columns:1fr} .outlook__wrap,.ol2__wrap{max-height:50vh} }
     table.min-w-full{color:#fff}
     /* Profile form: make input text visible on white fields */
 #tab-profile input,
@@ -243,6 +577,212 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       min-height:44px;
       font-weight:700;
     }
+    .upcoming-list{
+      padding-right:.15rem;
+    }
+    .upcoming-item{
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:12px;
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      padding:.8rem .9rem;
+      box-shadow:0 8px 18px rgba(0,0,0,.24);
+      transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+    .upcoming-item:hover{
+      border-color:rgba(213,0,0,.4);
+      box-shadow:0 12px 24px rgba(0,0,0,.32), 0 0 16px rgba(213,0,0,.12);
+      transform:translateY(-1px);
+    }
+    .upcoming-item__row{
+      display:flex;
+      align-items:center;
+      gap:.8rem;
+    }
+    .upcoming-item__media{
+      width:54px;
+      height:54px;
+      border-radius:12px;
+      object-fit:cover;
+      border:1px solid rgba(255,255,255,.14);
+      background:#101010;
+      box-shadow:0 10px 16px rgba(0,0,0,.35);
+      flex-shrink:0;
+    }
+    .upcoming-item__copy{min-width:0}
+    .upcoming-item .appt-actions{
+      margin-top:.7rem;
+    }
+    .upcoming-item .appt-actions .link{
+      min-height:34px;
+      padding:0 .75rem;
+      font-size:.88rem;
+    }
+    .appt-card{
+      cursor:pointer;
+      transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+      gap:.95rem;
+    }
+    .appt-card:hover{
+      border-color:rgba(213,0,0,.4);
+      box-shadow:0 12px 26px rgba(0,0,0,.32), 0 0 18px rgba(213,0,0,.14);
+      transform:translateY(-1px);
+    }
+    .appt-card__media{
+      width:74px;
+      height:74px;
+      border-radius:14px;
+      object-fit:cover;
+      border:1px solid rgba(255,255,255,.15);
+      box-shadow:0 10px 20px rgba(0,0,0,.34);
+      background:#101010;
+      flex-shrink:0;
+    }
+    .appt-main{min-width:0}
+    .appt-main .muted{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .appt-card .appt-actions{
+      margin-left:auto;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .appt-card:focus-visible{
+      outline:2px solid var(--ring);
+      outline-offset:2px;
+    }
+    .notice-list{
+      display:grid;
+      gap:.8rem;
+    }
+    .notice-card{
+      border:1px solid rgba(255,255,255,.14);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    }
+    .notice-card__head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:.7rem;
+      margin-bottom:.45rem;
+    }
+    .notice-card__title{
+      font-weight:900;
+      color:#fff;
+      line-height:1.3;
+    }
+    .notice-card__tag{
+      display:inline-flex;
+      align-items:center;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:999px;
+      padding:.15rem .55rem;
+      font-size:.72rem;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .notice-card__summary{
+      color:var(--muted);
+      line-height:1.5;
+      margin-bottom:.4rem;
+    }
+    .notice-card__time{
+      font-size:.82rem;
+      color:var(--muted-2);
+    }
+    .appt-modal__dialog{width:min(700px,calc(100dvw - 2rem))}
+    .appt-modal__body{
+      border:1px solid var(--grid);
+      border-radius:.85rem;
+      background:rgba(0,0,0,.3);
+      padding:1rem;
+      display:flex;
+      flex-direction:column;
+      gap:.9rem;
+    }
+    .appt-modal__media{
+      width:100%;
+      height:170px;
+      border-radius:.85rem;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.12);
+      background:linear-gradient(140deg, rgba(213,0,0,.18), rgba(255,255,255,.02));
+      box-shadow:0 12px 24px rgba(0,0,0,.32);
+    }
+    .appt-modal__media img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .appt-modal__headline{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:.75rem;
+      padding-bottom:.8rem;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .appt-modal__date{
+      font-size:1.08rem;
+      font-weight:900;
+      line-height:1.25;
+      color:#fff;
+    }
+    .appt-modal__rows{
+      display:grid;
+      gap:.55rem;
+    }
+    .appt-modal__row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.8rem;
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:.65rem;
+      background:rgba(255,255,255,.02);
+      padding:.58rem .72rem;
+    }
+    .appt-modal__row .label{
+      font-size:.78rem;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      color:var(--muted-2);
+    }
+    .appt-modal__row .value{
+      font-weight:800;
+      color:#fff;
+      text-align:right;
+    }
+    .order-item-media{
+      width:42px;
+      height:42px;
+      object-fit:cover;
+      border-radius:.6rem;
+      border:1px solid rgba(255,255,255,.12);
+      background:#121212;
+      flex-shrink:0;
+    }
+    .order-card__item-main{
+      display:flex;
+      align-items:center;
+      gap:.65rem;
+      min-width:0;
+      max-width:62%;
+    }
+    .order-modal__summary-cover{
+      width:66px;
+      height:66px;
+      border-radius:.8rem;
+      object-fit:cover;
+      border:1px solid rgba(255,255,255,.14);
+      background:#121212;
+      box-shadow:0 12px 22px rgba(0,0,0,.34);
+      flex-shrink:0;
+    }
     .mobile-portal-bar{
       display:none;
       align-items:center;
@@ -346,6 +886,32 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       }
       .grid.lg\:grid-cols-3{
         grid-template-columns:1fr;
+      }
+      .appt-card{
+        align-items:flex-start;
+        flex-wrap:wrap;
+      }
+      .appt-card__media{
+        width:62px;
+        height:62px;
+      }
+      .appt-card .appt-actions{
+        width:100%;
+        margin-left:0;
+        justify-content:flex-start;
+      }
+      .order-card__item{
+        align-items:flex-start;
+      }
+      .order-card__item-main{
+        max-width:100%;
+      }
+      .order-modal__summary-cover{
+        width:58px;
+        height:58px;
+      }
+      .appt-modal__media{
+        height:140px;
       }
     }
   </style>
@@ -545,6 +1111,17 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     white-space: normal;
   }
 </style>
+<style id="diesel-headline-lock">
+  h1, h2, h3,
+  .text-4xl, .text-3xl, .text-2xl, .text-xl, .text-lg,
+  .panel h2, .panel h3,
+  .modal__title,
+  .table th,
+  .brand, .brand .name, .brand .mark {
+    font-family:"Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+    letter-spacing:.02em;
+  }
+</style>
 
 </head>
 <body class="h-full">
@@ -553,6 +1130,10 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 <!-- <div class="smoke" id="smoke-layer"></div> -->
 <div id="bg"></div>
 
+<script>
+  window.__bgmSmokeForce = true;
+  window.__bgmSmokeAutoDelayMs = 250;
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
@@ -610,12 +1191,23 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         <div class="panel panel-pad">
           <h2 class="text-lg font-bold mb-4">{{ portal_copy.upcoming_title }}</h2>
           {% if upcoming_appointments %}
-            <ul class="space-y-4 max-h-64 overflow-y-auto pr-1">
+            <ul class="space-y-3 max-h-64 overflow-y-auto upcoming-list">
               {% for a in upcoming_appointments %}
-                <li data-appt-id="{{ a.id }}">
-                  <p class="font-semibold ink">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
-                  <p class="text-sm muted">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
-                  <div class="mt-2 flex gap-4 text-sm">
+                <li data-appt-id="{{ a.id }}" class="upcoming-item">
+                  <div class="upcoming-item__row">
+                    <img
+                      class="upcoming-item__media"
+                      src="{% if a.service.image %}{{ a.service.image.url }}{% else %}{% static 'img/hero-services.jpg' %}{% endif %}"
+                      alt="{{ a.service.name }}"
+                      loading="lazy"
+                      decoding="async"
+                    >
+                    <div class="upcoming-item__copy">
+                      <p class="font-semibold ink">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
+                      <p class="text-sm muted">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
+                    </div>
+                  </div>
+                  <div class="appt-actions text-sm">
                     <a href="#" class="appt-cancel link" data-appt-id="{{ a.id }}">{{ portal_copy.action_cancel_label }}</a>
                     <a href="#" class="appt-reschedule link" data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">{{ portal_copy.action_reschedule_label }}</a>
                   </div>
@@ -633,6 +1225,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
           <canvas id="stats_chart"
                   data-labels="{{ chart_labels|default:''|join:',' }}"
                   data-data="{{ chart_data|default:''|join:',' }}"
+                  data-potential="{{ chart_potential|default:''|join:',' }}"
                   class="w-full h-56"></canvas>
         </div>
       </div>
@@ -736,7 +1329,24 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       {% if appointments %}
         <div class="space-y-4">
           {% for a in appointments %}
-            <div class="panel panel-pad flex justify-between items-center {% if a.start_time < now %}opacity-70{% endif %}" data-appt-id="{{ a.id }}">
+            <div class="panel panel-pad flex justify-between items-center appt-card {% if a.start_time < now %}opacity-70{% endif %}"
+                 data-appt-id="{{ a.id }}"
+                 data-appt-modal-trigger
+                 data-appt-date="{{ a.start_time|localtime|date:'d M Y, H:i' }}"
+                 data-appt-service="{{ a.service.name }}"
+                 data-appt-master="{{ a.master.get_full_name }}"
+                 data-appt-image="{% if a.service.image %}{{ a.service.image.url|escape }}{% else %}{% static 'img/hero-services.jpg' %}{% endif %}"
+                 data-appt-status="{% if a.current_status %}{{ a.current_status }}{% elif a.start_time < now %}{{ portal_copy.appointments_completed_label }}{% else %}Upcoming{% endif %}"
+                 tabindex="0"
+                 role="button"
+                 aria-label="Open appointment #{{ a.id }}">
+              <img
+                class="appt-card__media"
+                src="{% if a.service.image %}{{ a.service.image.url }}{% else %}{% static 'img/hero-services.jpg' %}{% endif %}"
+                alt="{{ a.service.name }}"
+                loading="lazy"
+                decoding="async"
+              >
               <div class="appt-main">
                 <p class="font-semibold ink appt-dt">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
                 <p class="text-sm muted">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
@@ -864,7 +1474,27 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     <!-- NOTIFICATIONS -->
     <section id="tab-notifications" class="tab hidden">
       <h2 class="text-2xl font-bold mb-6">{{ portal_copy.notifications_title }}</h2>
-      <p class="muted-2">{{ portal_copy.notifications_empty_label }}</p>
+      {% if notification_emails %}
+        <div class="notice-list">
+          {% for item in notification_emails %}
+            <article class="panel panel-pad notice-card">
+              <div class="notice-card__head">
+                <h3 class="notice-card__title">{{ item.title }}</h3>
+                <span class="notice-card__tag">{{ item.tag }}</span>
+              </div>
+              <p class="notice-card__summary">{{ item.summary }}</p>
+              <p class="notice-card__time">{{ item.sent_at|localtime|date:"d M Y, H:i" }}</p>
+            </article>
+          {% endfor %}
+        </div>
+        {% if request.user.email %}
+          <p class="text-xs muted-2 mt-3">Showing recent emails sent to {{ request.user.email }}.</p>
+        {% endif %}
+      {% else %}
+        <div class="panel panel-pad">
+          <p class="muted-2">No emails yet. When we send you updates, they will show up here.</p>
+        </div>
+      {% endif %}
     </section>
 
     <!-- PROFILE -->
@@ -958,9 +1588,72 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   </div>
 </div>
 
+<!-- ===== MODAL: Order details ===== -->
+<div id="orderModal" class="modal" aria-hidden="true">
+  <div class="modal__dialog order-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
+    <div class="modal__header">
+      <h3 id="orderModalTitle" class="modal__title">{{ portal_copy.orders_title }}</h3>
+      <button id="orderModalClose"
+              class="modal__close"
+              type="button"
+              aria-label="{{ portal_copy.reschedule_close_label }}">&times;</button>
+    </div>
+    <div class="order-modal__summary">
+      <img id="orderModalCover" class="order-modal__summary-cover" src="{% static 'img/hero-products.jpg' %}" alt="Order item preview">
+      <div id="orderModalSummaryTitle" class="order-modal__summary-title">Order</div>
+      <div class="order-modal__summary-meta">
+        <span id="orderModalStatus" class="badge"></span>
+        <div id="orderModalTotal" class="order-modal__total"></div>
+      </div>
+    </div>
+    <div id="orderModalBody" class="order-modal__body">
+      <p class="order-modal__empty">{{ portal_copy.orders_empty_label }}</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: Appointment details ===== -->
+<div id="apptModal" class="modal" aria-hidden="true">
+  <div class="modal__dialog appt-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="apptModalTitle">
+    <div class="modal__header">
+      <h3 id="apptModalTitle" class="modal__title">{{ portal_copy.appointments_title }}</h3>
+      <button id="apptModalClose"
+              class="modal__close"
+              type="button"
+              aria-label="{{ portal_copy.reschedule_close_label }}">&times;</button>
+    </div>
+    <div class="appt-modal__body">
+      <div class="appt-modal__media">
+        <img id="apptModalImage" src="{% static 'img/hero-services.jpg' %}" alt="Service preview">
+      </div>
+      <div class="appt-modal__headline">
+        <div id="apptModalDate" class="appt-modal__date">—</div>
+        <span id="apptModalStatus" class="badge">—</span>
+      </div>
+      <div class="appt-modal__rows">
+        <div class="appt-modal__row">
+          <span class="label">{{ portal_copy.table_service_label }}</span>
+          <span id="apptModalService" class="value">—</span>
+        </div>
+        <div class="appt-modal__row">
+          <span class="label">{{ portal_copy.table_staff_label }}</span>
+          <span id="apptModalMaster" class="value">—</span>
+        </div>
+        <div class="appt-modal__row">
+          <span class="label">{{ portal_copy.table_status_label }}</span>
+          <span id="apptModalStatusText" class="value">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   const portalCopy = {
     statsChartLabel: "{{ portal_copy.stats_chart_label|escapejs }}",
+    appointmentsTitle: "{{ portal_copy.appointments_title|escapejs }}",
+    appointmentsCompletedLabel: "{{ portal_copy.appointments_completed_label|escapejs }}",
+    ordersTitle: "{{ portal_copy.orders_title|escapejs }}",
     cancelConfirmMessage: "{{ portal_copy.cancel_confirm_message|escapejs }}",
     cancelErrorPrefix: "{{ portal_copy.cancel_error_prefix|escapejs }}",
     rescheduleNoTechsLabel: "{{ portal_copy.reschedule_no_techs_label|escapejs }}",
@@ -984,6 +1677,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     contactCopyLabel: "{{ portal_copy.contact_copy_label|escapejs }}",
     contactCopySuccessLabel: "{{ portal_copy.contact_copy_success_label|escapejs }}",
     contactCopyFailedLabel: "{{ portal_copy.contact_copy_failed_label|escapejs }}",
+    defaultServiceImage: "{% static 'img/hero-services.jpg' %}",
+    defaultProductImage: "{% static 'img/hero-products.jpg' %}",
   };
 
   (function(){
@@ -1044,19 +1739,66 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       try { const t = String(raw).trim(); if (t.startsWith('[')) return JSON.parse(t); } catch(e){}
       return String(raw).split(',').map(s => s.trim()).filter(Boolean);
     };
+    const parseNumArr = (raw) => parseArr(raw).map(v => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    });
     const labels = parseArr(el.dataset.labels);
-    const data   = parseArr(el.dataset.data).map(Number).filter(v => !Number.isNaN(v));
+    const data = parseNumArr(el.dataset.data);
+    let potential = parseNumArr(el.dataset.potential);
 
-    if (!labels.length || !data.length) return;    // нет данных — не рисуем
+    if (!labels.length) return;
+
+    const normalizedData = labels.map((_, idx) => Number(data[idx] || 0));
+    if (potential.length !== labels.length) {
+      const avg = normalizedData.reduce((sum, value) => sum + value, 0) / Math.max(normalizedData.length, 1);
+      const fallback = Math.max(1, Math.round(avg || 1));
+      potential = Array(labels.length).fill(fallback);
+    }
+    const normalizedPotential = labels.map((_, idx) => Math.max(1, Number(potential[idx] || 0)));
+    const yMax = Math.max(
+      1,
+      ...normalizedData,
+      ...normalizedPotential,
+    );
 
     new Chart(el, {
       type: 'bar',
-      data: { labels, datasets: [{ data, label: portalCopy.statsChartLabel, backgroundColor: '#d50000', borderRadius: 8 }] },
+      data: {
+        labels,
+        datasets: [
+          {
+            data: normalizedPotential,
+            label: 'Potential',
+            backgroundColor: 'rgba(213,0,0,.20)',
+            borderColor: 'rgba(213,0,0,.30)',
+            borderWidth: 1,
+            borderRadius: 8,
+            categoryPercentage: .68,
+            barPercentage: .96,
+            order: 1,
+          },
+          {
+            data: normalizedData,
+            label: portalCopy.statsChartLabel,
+            backgroundColor: '#d50000',
+            borderRadius: 8,
+            categoryPercentage: .68,
+            barPercentage: .72,
+            order: 2,
+          },
+        ]
+      },
       options: {
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { color: '#ccc' }, grid: { color: 'rgba(255,255,255,.06)' } },
-          y: { beginAtZero: true, ticks: { stepSize: 1, color: '#ccc' }, grid: { color: 'rgba(255,255,255,.06)' } }
+          y: {
+            beginAtZero: true,
+            suggestedMax: yMax + 1,
+            ticks: { stepSize: 1, color: '#ccc' },
+            grid: { color: 'rgba(255,255,255,.06)' },
+          }
         }
       }
     });
@@ -1064,7 +1806,18 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
   /* ==== helpers ==== */
   const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
-  const fmtHM = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  const PORTAL_LOCALE = 'en-GB';
+  const fmtHM = d => d.toLocaleTimeString(PORTAL_LOCALE, { hour: 'numeric', minute: '2-digit', hour12: false });
+  const fmtMonthDay = d => d.toLocaleDateString(PORTAL_LOCALE, { month: 'short', day: 'numeric' });
+  const fmtWeekday = d => d.toLocaleDateString(PORTAL_LOCALE, { weekday: 'long' });
+  const fmtDateTime = d => d.toLocaleString(PORTAL_LOCALE, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
   const ymd = d => { const m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
 
   /* ==== Cancel ==== */
@@ -1086,6 +1839,219 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     const id = a.dataset.apptId; if(!id) return;
     cancelAppointment(id);
   });
+
+  /* ==== Appointments modal ==== */
+  const apptModal = document.getElementById('apptModal');
+  const apptModalClose = document.getElementById('apptModalClose');
+  const apptModalTitle = document.getElementById('apptModalTitle');
+  const apptModalDate = document.getElementById('apptModalDate');
+  const apptModalStatus = document.getElementById('apptModalStatus');
+  const apptModalStatusText = document.getElementById('apptModalStatusText');
+  const apptModalService = document.getElementById('apptModalService');
+  const apptModalMaster = document.getElementById('apptModalMaster');
+  const apptModalImage = document.getElementById('apptModalImage');
+  let apptModalReturnFocus = null;
+
+  if (
+    apptModal &&
+    apptModalDate &&
+    apptModalStatus &&
+    apptModalStatusText &&
+    apptModalService &&
+    apptModalMaster &&
+    apptModalImage
+  ) {
+    const statusClassFor = (statusRaw) => {
+      const v = String(statusRaw || '').toLowerCase();
+      if (v.includes('cancel')) return 'st-cancelled';
+      if (v.includes('complete') || v.includes('done')) return 'st-completed';
+      if (v.includes('confirm') || v.includes('scheduled')) return 'st-shipped';
+      return 'st-processing';
+    };
+
+    const resetApptModal = () => {
+      apptModalTitle.textContent = portalCopy.appointmentsTitle || 'Appointment details';
+      apptModalDate.textContent = '—';
+      apptModalStatus.className = 'badge';
+      apptModalStatus.textContent = '—';
+      apptModalStatusText.textContent = '—';
+      apptModalService.textContent = '—';
+      apptModalMaster.textContent = '—';
+      apptModalImage.src = portalCopy.defaultServiceImage;
+      apptModalImage.alt = 'Service preview';
+    };
+
+    const openApptModal = (card) => {
+      if (!card) return;
+      apptModalReturnFocus = document.activeElement;
+
+      const apptId = (card.dataset.apptId || '').trim();
+      const dateLabel = (card.dataset.apptDate || '').trim();
+      const serviceLabel = (card.dataset.apptService || '').trim();
+      const masterLabel = (card.dataset.apptMaster || '').trim();
+      const serviceImage = (card.dataset.apptImage || '').trim();
+      let statusLabel = (card.dataset.apptStatus || '').trim();
+      if (!statusLabel) {
+        const inlineStatus = card.querySelector('.text-xs.muted-2')?.textContent?.trim();
+        statusLabel = inlineStatus || (card.classList.contains('opacity-70') ? (portalCopy.appointmentsCompletedLabel || 'Completed') : 'Upcoming');
+      }
+
+      apptModalTitle.textContent = apptId ? `Appointment #${apptId}` : (portalCopy.appointmentsTitle || 'Appointment details');
+      apptModalDate.textContent = dateLabel || '—';
+      apptModalService.textContent = serviceLabel || '—';
+      apptModalMaster.textContent = masterLabel || '—';
+      apptModalStatusText.textContent = statusLabel || '—';
+      apptModalImage.src = serviceImage || portalCopy.defaultServiceImage;
+      apptModalImage.alt = serviceLabel ? `${serviceLabel} preview` : 'Service preview';
+
+      const statusClass = statusClassFor(statusLabel);
+      apptModalStatus.className = `badge ${statusClass}`;
+      apptModalStatus.textContent = statusLabel || '—';
+
+      apptModal.classList.add('modal--open');
+      apptModal.setAttribute('aria-hidden', 'false');
+      if (apptModalClose) apptModalClose.focus();
+    };
+
+    const closeApptModal = () => {
+      apptModal.classList.remove('modal--open');
+      apptModal.setAttribute('aria-hidden', 'true');
+      resetApptModal();
+      if (apptModalReturnFocus && typeof apptModalReturnFocus.focus === 'function') {
+        apptModalReturnFocus.focus();
+      }
+    };
+
+    document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('.appt-card[data-appt-modal-trigger]');
+      if (!trigger) return;
+      if (event.target.closest('a, button, input, select, textarea')) return;
+      openApptModal(trigger);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (!apptModal.classList.contains('modal--open')) {
+        if (!['Enter', ' '].includes(event.key)) return;
+        const focused = document.activeElement;
+        if (focused && focused.matches('.appt-card[data-appt-modal-trigger]')) {
+          event.preventDefault();
+          openApptModal(focused);
+        }
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeApptModal();
+      }
+    });
+
+    if (apptModalClose) {
+      apptModalClose.addEventListener('click', closeApptModal);
+    }
+    apptModal.addEventListener('click', (event) => {
+      if (event.target === apptModal) closeApptModal();
+    });
+
+    resetApptModal();
+  }
+
+  /* ==== Orders modal ==== */
+  const orderModal = document.getElementById('orderModal');
+  const orderModalClose = document.getElementById('orderModalClose');
+  const orderModalTitle = document.getElementById('orderModalTitle');
+  const orderModalSummaryTitle = document.getElementById('orderModalSummaryTitle');
+  const orderModalStatus = document.getElementById('orderModalStatus');
+  const orderModalTotal = document.getElementById('orderModalTotal');
+  const orderModalBody = document.getElementById('orderModalBody');
+  const orderModalCover = document.getElementById('orderModalCover');
+  let orderModalReturnFocus = null;
+
+  if (orderModal && orderModalBody && orderModalCover) {
+    const resetOrderModal = () => {
+      orderModalTitle.textContent = portalCopy.ordersTitle || 'Order details';
+      orderModalSummaryTitle.textContent = 'Order';
+      orderModalStatus.className = 'badge';
+      orderModalStatus.textContent = '';
+      orderModalTotal.textContent = '';
+      orderModalCover.src = portalCopy.defaultProductImage;
+      orderModalCover.alt = 'Order item preview';
+      orderModalBody.innerHTML = '<p class="order-modal__empty">No details available.</p>';
+    };
+
+    const openOrderModal = (card) => {
+      if (!card) return;
+      orderModalReturnFocus = document.activeElement;
+      const orderId = (card.dataset.orderId || '').trim();
+      const statusLabel = (card.dataset.orderStatusLabel || '').trim();
+      const statusClass = (card.dataset.orderStatusClass || '').trim();
+      const totalLabel = (card.dataset.orderTotal || '').trim();
+      const coverImage = (card.dataset.orderCover || '').trim();
+
+      orderModalTitle.textContent = orderId ? `Order #${orderId}` : 'Order details';
+      orderModalSummaryTitle.textContent = orderId ? `Order #${orderId}` : 'Order';
+      orderModalStatus.className = 'badge';
+      if (statusClass) {
+        statusClass.split(/\s+/).filter(Boolean).forEach(cls => orderModalStatus.classList.add(cls));
+      }
+      orderModalStatus.textContent = statusLabel || '—';
+      orderModalTotal.textContent = totalLabel || '';
+      orderModalCover.src = coverImage || portalCopy.defaultProductImage;
+      orderModalCover.alt = orderId ? `Order #${orderId} preview` : 'Order item preview';
+
+      orderModalBody.innerHTML = '';
+      const details = card.querySelector('.order-card__details');
+      if (details) {
+        orderModalBody.appendChild(details.cloneNode(true));
+      } else {
+        orderModalBody.innerHTML = '<p class="order-modal__empty">No details available.</p>';
+      }
+
+      orderModal.classList.add('modal--open');
+      orderModal.setAttribute('aria-hidden', 'false');
+      if (orderModalClose) orderModalClose.focus();
+    };
+
+    const closeOrderModal = () => {
+      orderModal.classList.remove('modal--open');
+      orderModal.setAttribute('aria-hidden', 'true');
+      resetOrderModal();
+      if (orderModalReturnFocus && typeof orderModalReturnFocus.focus === 'function') {
+        orderModalReturnFocus.focus();
+      }
+    };
+
+    document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('.order-card[data-order-modal-trigger]');
+      if (!trigger) return;
+      if (event.target.closest('a, button, input, select, textarea, [data-order-ignore-modal]')) return;
+      openOrderModal(trigger);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (!orderModal.classList.contains('modal--open')) {
+        if (!['Enter', ' '].includes(event.key)) return;
+        const focused = document.activeElement;
+        if (focused && focused.matches('.order-card[data-order-modal-trigger]')) {
+          event.preventDefault();
+          openOrderModal(focused);
+        }
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeOrderModal();
+      }
+    });
+
+    if (orderModalClose) {
+      orderModalClose.addEventListener('click', closeOrderModal);
+    }
+    orderModal.addEventListener('click', (event) => {
+      if (event.target === orderModal) closeOrderModal();
+    });
+
+    resetOrderModal();
+  }
 
   /* ==== RESCHEDULE ==== */
   const resModal  = document.getElementById('resModal');
@@ -1192,8 +2158,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       const dayData = dayStrs.map(ds => resState.cache.get(ds));
       const timeRows = buildTimeRows(dayData.map(item => (item && item.set) ? item.set : null));
 
-      const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
-      const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
+      const from = fmtMonthDay(days[0]);
+      const to   = fmtMonthDay(days[days.length-1]);
       rsRange.textContent = `${from} – ${to}`;
       rsGrid.style.setProperty('--days', String(WINDOW_DAYS));
       rsGrid.innerHTML='';
@@ -1205,8 +2171,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         h.className='ol2__cell ol2__head';
         const today = (new Date()).toDateString()===d.toDateString();
         h.innerHTML = `<div class="ol2__day ${today?'today':''}">
-          <div class="t">${d.toLocaleDateString([], {weekday:'long'})}</div>
-          <div class="s">${d.toLocaleDateString([], {month:'short', day:'numeric'})}</div>
+          <div class="t">${fmtWeekday(d)}</div>
+          <div class="s">${fmtMonthDay(d)}</div>
         </div>`;
         rsGrid.appendChild(h);
       });
@@ -1281,7 +2247,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         resOk.style.display='block';
         if (appointmentStart) {
           document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
-            try{ dt.textContent = new Date(appointmentStart).toLocaleString(); }catch(_){}
+            try{ dt.textContent = fmtDateTime(new Date(appointmentStart)); }catch(_){}
           });
         }
         setTimeout(()=> location.reload(), 700);

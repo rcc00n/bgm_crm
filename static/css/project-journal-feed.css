@@ -625,19 +625,30 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 .pj-compare--slider{
   /* Clamp height so feed cards fit on a single desktop viewport. */
   height:clamp(320px, 44vh, 440px);
+  width:100%;
+  max-width:100%;
+  justify-self:stretch;
   cursor:ew-resize;
 }
 
 /* Auto-normalize the comparison stage for mixed/portrait uploads. */
 .pj-compare--slider.pj-compare--ratio-mixed{
   max-width:min(960px, 100%);
+  width:100%;
+  justify-self:center;
   margin-inline:auto;
   height:clamp(330px, 47vh, 500px);
 }
 .pj-compare--slider.pj-compare--ratio-portrait{
   max-width:min(760px, 100%);
+  width:100%;
+  justify-self:center;
   margin-inline:auto;
   height:clamp(360px, 56vh, 540px);
+}
+.pj-compare--slider.pj-compare--ratio-mixed .pj-media img,
+.pj-compare--slider.pj-compare--ratio-portrait .pj-media img{
+  object-fit:contain;
 }
 
 .pj-compare__range{
