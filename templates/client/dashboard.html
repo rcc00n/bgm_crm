@@ -157,7 +157,46 @@
     .email-feed__time{margin-top:.35rem;font-size:.8rem;color:var(--muted-2)}
 
     @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .outlook__wrap{max-height:50vh} .details-grid{grid-template-columns:1fr} }
-    @media (max-width: 768px){ .mobile-booking{display:flex} .outlook{display:none} .mobile-booking__control{flex-direction:column;align-items:stretch} .mobile-booking__btn{width:100%} }
+    @media (max-width: 768px){
+      .mobile-booking{display:flex}
+      .outlook{display:none}
+      .mobile-booking__control{flex-direction:column;align-items:stretch}
+      .mobile-booking__btn{width:100%}
+
+      /* Appointments tab: keep future cards readable on mobile */
+      #tab-appointments .appt-card{
+        display:grid;
+        grid-template-columns:minmax(0,1fr) auto;
+        align-items:start;
+        gap:.75rem;
+      }
+      #tab-appointments .appt-card__meta{
+        min-width:0;
+      }
+      #tab-appointments .appt-card__meta p{
+        overflow-wrap:break-word;
+        word-break:normal;
+        line-height:1.34;
+      }
+      #tab-appointments .appt-card .flex.items-center.gap-3{
+        grid-column:2;
+        grid-row:1;
+      }
+      #tab-appointments .appt-card .appt-card__image{
+        width:72px;
+        height:72px;
+      }
+      #tab-appointments .appt-card .appt-actions{
+        grid-column:1 / -1;
+        width:100%;
+        justify-content:flex-start;
+        margin-top:.1rem;
+      }
+      #tab-appointments .appt-card .appt-actions .link{
+        min-height:42px;
+        padding:0 .95rem;
+      }
+    }
     table.min-w-full{color:#fff}
     /* Profile form: make input text visible on white fields */
 #tab-profile input,
