@@ -31,27 +31,43 @@
         "before": [
           {% if post.before_photos and post.before_photos.0.image %}
             {% for p in post.before_photos %}
-              {"src":"{{ p.image.url|escapejs }}","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' before'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+              {% thumbnail p.image "1200" quality=74 format="WEBP" as before_json_1x %}
+                {% thumbnail p.image "2000" quality=74 format="WEBP" as before_json_2x %}
+                  {"src":"{{ before_json_1x.url|escapejs }}","srcset":"{{ before_json_1x.url|escapejs }} 1x, {{ before_json_2x.url|escapejs }} 2x","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' before'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+                {% endthumbnail %}
+              {% endthumbnail %}
             {% endfor %}
           {% elif post.legacy_before %}
             {% for item in post.legacy_before %}
               {"src":"{{ item.url|escapejs }}","alt":"{% if item.alt %}{{ item.alt|escapejs }}{% else %}{{ post.title|add:' before'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
             {% endfor %}
           {% elif post.cover_image %}
-            {"src":"{{ post.cover_image.url|escapejs }}","alt":"{{ post.title|add:' before'|escapejs }}"}
+            {% thumbnail post.cover_image "1200" quality=74 format="WEBP" as cover_before_json_1x %}
+              {% thumbnail post.cover_image "2000" quality=74 format="WEBP" as cover_before_json_2x %}
+                {"src":"{{ cover_before_json_1x.url|escapejs }}","srcset":"{{ cover_before_json_1x.url|escapejs }} 1x, {{ cover_before_json_2x.url|escapejs }} 2x","alt":"{{ post.title|add:' before'|escapejs }}"}
+              {% endthumbnail %}
+            {% endthumbnail %}
           {% endif %}
         ],
         "after": [
           {% if post.after_photos and post.after_photos.0.image %}
             {% for p in post.after_photos %}
-              {"src":"{{ p.image.url|escapejs }}","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' after'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+              {% thumbnail p.image "1200" quality=74 format="WEBP" as after_json_1x %}
+                {% thumbnail p.image "2000" quality=74 format="WEBP" as after_json_2x %}
+                  {"src":"{{ after_json_1x.url|escapejs }}","srcset":"{{ after_json_1x.url|escapejs }} 1x, {{ after_json_2x.url|escapejs }} 2x","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' after'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+                {% endthumbnail %}
+              {% endthumbnail %}
             {% endfor %}
           {% elif post.legacy_after %}
             {% for item in post.legacy_after %}
               {"src":"{{ item.url|escapejs }}","alt":"{% if item.alt %}{{ item.alt|escapejs }}{% else %}{{ post.title|add:' after'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
             {% endfor %}
           {% elif post.cover_image %}
-            {"src":"{{ post.cover_image.url|escapejs }}","alt":"{{ post.title|add:' after'|escapejs }}"}
+            {% thumbnail post.cover_image "1200" quality=74 format="WEBP" as cover_after_json_1x %}
+              {% thumbnail post.cover_image "2000" quality=74 format="WEBP" as cover_after_json_2x %}
+                {"src":"{{ cover_after_json_1x.url|escapejs }}","srcset":"{{ cover_after_json_1x.url|escapejs }} 1x, {{ cover_after_json_2x.url|escapejs }} 2x","alt":"{{ post.title|add:' after'|escapejs }}"}
+              {% endthumbnail %}
+            {% endthumbnail %}
           {% endif %}
         ]
       }

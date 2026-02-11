@@ -30,12 +30,17 @@
       if (!img) return;
 
       const mark = () => media.classList.add('is-loaded');
-      if (img.complete && img.naturalWidth > 0) {
+      if (img.complete) {
         mark();
         return;
       }
-      img.addEventListener('load', mark, { once: true });
-      img.addEventListener('error', () => media.classList.add('is-loaded'), { once: true });
+      const fallbackTimer = window.setTimeout(mark, 4500);
+      const markOnce = () => {
+        window.clearTimeout(fallbackTimer);
+        mark();
+      };
+      img.addEventListener('load', markOnce, { once: true });
+      img.addEventListener('error', markOnce, { once: true });
     });
   };
 
@@ -58,12 +63,17 @@
         if (!mediaEl || !imgEl) return;
         mediaEl.classList.remove('is-loaded');
         const mark = () => mediaEl.classList.add('is-loaded');
-        if (imgEl.complete && imgEl.naturalWidth > 0) {
+        if (imgEl.complete) {
           mark();
           return;
         }
-        imgEl.addEventListener('load', mark, { once: true });
-        imgEl.addEventListener('error', mark, { once: true });
+        const fallbackTimer = window.setTimeout(mark, 4500);
+        const markOnce = () => {
+          window.clearTimeout(fallbackTimer);
+          mark();
+        };
+        imgEl.addEventListener('load', markOnce, { once: true });
+        imgEl.addEventListener('error', markOnce, { once: true });
       };
 
       const ratioClasses = [
