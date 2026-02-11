@@ -1349,17 +1349,20 @@
                    data-caption="{{ slide.caption|default:hero_media.caption }}"
                    aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
                 {% if slide.image %}
-                  {% thumbnail slide.image "900" quality=68 format="WEBP" as hero_1x %}
-                    {% thumbnail slide.image "1300" quality=68 format="WEBP" as hero_2x %}
+                  {% thumbnail slide.image "560" quality=62 format="WEBP" as hero_sm %}
+                    {% thumbnail slide.image "960" quality=62 format="WEBP" as hero_md %}
+                      {% thumbnail slide.image "1280" quality=62 format="WEBP" as hero_lg %}
                       <img
-                        src="{{ hero_1x.url }}"
-                        srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
-                        width="{{ hero_1x.width }}"
-                        height="{{ hero_1x.height }}"
+                        src="{{ hero_md.url }}"
+                        srcset="{{ hero_sm.url }} 560w, {{ hero_md.url }} 960w, {{ hero_lg.url }} 1280w"
+                        sizes="(max-width: 860px) 100vw, (max-width: 1280px) 46vw, 560px"
+                        width="{{ hero_md.width }}"
+                        height="{{ hero_md.height }}"
                         alt="{{ slide.alt }}"
                         loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
                         decoding="async"
                         {% if forloop.first %}fetchpriority="high"{% endif %}>
+                      {% endthumbnail %}
                     {% endthumbnail %}
                   {% endthumbnail %}
                 {% else %}
@@ -1391,17 +1394,20 @@
           {% else %}
             <div class="hero__slide is-active" data-hero-slide data-caption="{{ hero_media.caption }}" aria-hidden="false">
               {% if hero_media.image %}
-                {% thumbnail hero_media.image "900" quality=68 format="WEBP" as hero_1x %}
-                  {% thumbnail hero_media.image "1300" quality=68 format="WEBP" as hero_2x %}
+                {% thumbnail hero_media.image "560" quality=62 format="WEBP" as hero_sm %}
+                  {% thumbnail hero_media.image "960" quality=62 format="WEBP" as hero_md %}
+                    {% thumbnail hero_media.image "1280" quality=62 format="WEBP" as hero_lg %}
                     <img
-                      src="{{ hero_1x.url }}"
-                      srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
-                      width="{{ hero_1x.width }}"
-                      height="{{ hero_1x.height }}"
+                      src="{{ hero_md.url }}"
+                      srcset="{{ hero_sm.url }} 560w, {{ hero_md.url }} 960w, {{ hero_lg.url }} 1280w"
+                      sizes="(max-width: 860px) 100vw, (max-width: 1280px) 46vw, 560px"
+                      width="{{ hero_md.width }}"
+                      height="{{ hero_md.height }}"
                       alt="{{ hero_media.alt }}"
                       loading="eager"
                       decoding="async"
                       fetchpriority="high">
+                    {% endthumbnail %}
                   {% endthumbnail %}
                 {% endthumbnail %}
               {% else %}

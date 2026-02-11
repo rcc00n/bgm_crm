@@ -47,7 +47,11 @@
           {% if cfg.body %}<div class="builder-section__body">{{ cfg.body|safe }}</div>{% endif %}
           {% if cfg.image_url %}
             <div class="builder-section__media">
-              <img src="{{ cfg.image_url }}" alt="{{ cfg.image_alt|default:"" }}">
+              <img
+                src="{{ cfg.image_url }}"
+                alt="{{ cfg.image_alt|default:"" }}"
+                loading="lazy"
+                decoding="async">
             </div>
           {% endif %}
         {% elif section.section_type == "gallery" %}
@@ -56,7 +60,14 @@
           {% if cfg.images %}
             <div class="builder-gallery">
               {% for image in cfg.images %}
-                <img src="{{ image.url }}" alt="{{ image.alt|default:"" }}">
+                <img
+                  src="{{ image.url }}"
+                  {% if image.srcset %}srcset="{{ image.srcset }}"{% endif %}
+                  {% if image.sizes %}sizes="{{ image.sizes }}"{% endif %}
+                  {% if image.width and image.height %}width="{{ image.width }}" height="{{ image.height }}"{% endif %}
+                  alt="{{ image.alt|default:"" }}"
+                  loading="lazy"
+                  decoding="async">
               {% endfor %}
             </div>
           {% endif %}
