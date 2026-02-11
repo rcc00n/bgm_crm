@@ -326,7 +326,7 @@
   opacity: .9;
 }
 
-.bgm-topbar__nav .bgm-topbar__nav-login{
+.bgm-topbar__nav a.bgm-topbar__nav-login{
   justify-content: flex-start !important;
   gap: .45rem !important;
 }
@@ -505,6 +505,11 @@
     letter-spacing: .035em !important;
     box-shadow: 0 8px 24px rgba(0,0,0,.35) !important;
     justify-content: space-between !important;
+  }
+
+  .bgm-topbar__nav a.bgm-topbar__nav-login{
+    justify-content: flex-start !important;
+    gap: .6rem !important;
   }
 
   .bgm-topbar__nav a:hover,

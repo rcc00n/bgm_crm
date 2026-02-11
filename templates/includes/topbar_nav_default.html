@@ -52,8 +52,9 @@
 {% else %}
   <li class="bgm-topbar__nav-item">
     <a href="{% url 'login' %}?next={% url 'dashboard' %}" class="btn btn--ghost bgm-topbar__nav-login">
-      <svg class="bgm-topbar__icon" viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
-        <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.4 0-8 2-8 4.5V21h16v-2.5c0-2.5-3.6-4.5-8-4.5Z" fill="currentColor"/>
+      <svg class="bgm-topbar__icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="presentation" focusable="false" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M5 20c1.6-3.3 4.2-5 7-5s5.4 1.7 7 5"></path>
       </svg>
       <span>{{ topbar_copy.nav_login_label|default:"Login" }}</span>
     </a>
