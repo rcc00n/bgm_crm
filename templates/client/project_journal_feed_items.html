@@ -1,0 +1,8 @@
+{% load thumbnail dealer_extras %}
+
+{% for post in posts %}
+  {% include "client/project_journal/_card.html" with post=post is_first=forloop.first %}
+{% endfor %}
+
+<div data-feed-next data-next-url="{{ next_page_fragment_url|default:'' }}" hidden></div>
+

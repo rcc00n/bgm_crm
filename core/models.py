@@ -1915,6 +1915,17 @@ class EmailTemplateSettings(models.Model):
         blank=True,
         help_text="Optional override for SITE_BRAND_TAGLINE in email headers/footers.",
     )
+    brand_logo = models.ImageField(
+        upload_to="email/branding/",
+        blank=True,
+        null=True,
+        help_text="Optional logo shown next to the brand name in email headers.",
+    )
+    brand_logo_alt = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Alt text for the email logo image. Leave blank to use the brand name.",
+    )
     company_address = models.CharField(
         max_length=200,
         blank=True,
@@ -2683,6 +2694,35 @@ class ProjectJournalQuerySet(models.QuerySet):
             published_at__isnull=False,
         )
 
+class ProjectJournalCategory(models.Model):
+    """
+    Curated categories for the public Project Journal feed (e.g. Fabrication, Suspension).
+    Kept separate from free-form tags so filters stay clean and admin-friendly.
+    """
+
+    name = models.CharField(max_length=80, unique=True)
+    slug = models.SlugField(max_length=90, unique=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Lower numbers show first in filters.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Project journal category"
+        verbose_name_plural = "Project journal categories"
+        ordering = ("sort_order", "name")
+
+    def __str__(self) -> str:
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.name)[:80] if self.name else ""
+            self.slug = base_slug or slugify(str(uuid.uuid4()))
+        super().save(*args, **kwargs)
+
 
 class ProjectJournalEntry(models.Model):
     class Status(models.TextChoices):
@@ -2717,7 +2757,7 @@ class ProjectJournalEntry(models.Model):
         blank=True,
         help_text="Narrative backstory for the build.",
     )
-    body = models.TextField()
+    body = models.TextField(blank=True)
     cover_image = models.ImageField(upload_to="project-journal/", blank=True, null=True)
     before_gallery = models.JSONField(
         default=list,
@@ -2749,10 +2789,46 @@ class ProjectJournalEntry(models.Model):
         blank=True,
         help_text="Comma separated services rendered.",
     )
+    categories = models.ManyToManyField(
+        ProjectJournalCategory,
+        blank=True,
+        related_name="entries",
+        help_text="Used for fast public filters (curated, multi-select).",
+    )
     result_highlight = models.CharField(
         max_length=200,
         blank=True,
         help_text="Single sentence outcome that appears on cards.",
+    )
+    cta_primary_label = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="Primary button label (e.g. Book now).",
+    )
+    cta_primary_url = models.CharField(
+        max_length=240,
+        blank=True,
+        help_text="Primary button link (absolute or relative URL).",
+    )
+    cta_secondary_label = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="Secondary button label (e.g. Get quote).",
+    )
+    cta_secondary_url = models.CharField(
+        max_length=240,
+        blank=True,
+        help_text="Secondary button link (absolute or relative URL).",
+    )
+    cta_tertiary_label = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="Optional third button label (e.g. Explore services).",
+    )
+    cta_tertiary_url = models.CharField(
+        max_length=240,
+        blank=True,
+        help_text="Optional third button link (absolute or relative URL).",
     )
     reading_time = models.PositiveSmallIntegerField(
         default=4,
@@ -2795,10 +2871,45 @@ class ProjectJournalEntry(models.Model):
     def is_live(self) -> bool:
         return self.status == self.Status.PUBLISHED and self.published_at is not None
 
+    def _gallery_has_items(self, raw) -> bool:
+        if not isinstance(raw, list):
+            return False
+        for entry in raw:
+            if isinstance(entry, dict):
+                url = (entry.get("url") or "").strip()
+            else:
+                url = str(entry or "").strip()
+            if url:
+                return True
+        return False
+
+    def has_before_media(self) -> bool:
+        try:
+            if self.photos.filter(kind="before").exists():
+                return True
+        except Exception:
+            pass
+        return self._gallery_has_items(getattr(self, "before_gallery", None))
+
+    def has_after_media(self) -> bool:
+        try:
+            if self.photos.filter(kind="after").exists():
+                return True
+        except Exception:
+            pass
+        return self._gallery_has_items(getattr(self, "after_gallery", None))
+
+    def is_publishable(self) -> bool:
+        """
+        Guardrail for admin/actions: a published post must include at least one
+        BEFORE and one AFTER media item (either via ProjectJournalPhoto or legacy JSON galleries).
+        """
+        return self.has_before_media() and self.has_after_media()
+
     def get_absolute_url(self):
         from django.urls import reverse
 
-        return f"{reverse('project-journal')}#project-{self.slug}"
+        return reverse("project-journal-post", kwargs={"slug": self.slug})
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -2846,6 +2957,27 @@ class ProjectJournalPhoto(models.Model):
     def __str__(self) -> str:
         title = self.entry.title if self.entry_id else "Project journal photo"
         return f"{title} ({self.get_kind_display()})"
+
+class ProjectJournalBeforePhoto(ProjectJournalPhoto):
+    """
+    Proxy model used only for Django admin UX (separate before/after inlines).
+    """
+
+    class Meta:
+        proxy = True
+        verbose_name = "Before photo"
+        verbose_name_plural = "Before photos"
+
+
+class ProjectJournalAfterPhoto(ProjectJournalPhoto):
+    """
+    Proxy model used only for Django admin UX (separate before/after inlines).
+    """
+
+    class Meta:
+        proxy = True
+        verbose_name = "After photo"
+        verbose_name_plural = "After photos"
 
 class HeroImage(models.Model):
     """

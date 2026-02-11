@@ -1,4 +1,4 @@
-{% load static dealer_extras %}
+{% load static dealer_extras thumbnail %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -198,7 +198,23 @@
         {% endif %}
       </div>
       <div class="hero__media">
-        <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Dealer hero' }}" loading="lazy" decoding="async">
+        {% if hero_media.image %}
+          {% thumbnail hero_media.image "800" quality=72 format="WEBP" as hero_1x %}
+            {% thumbnail hero_media.image "1600" quality=72 format="WEBP" as hero_2x %}
+              <img
+                src="{{ hero_1x.url }}"
+                srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
+                width="{{ hero_1x.width }}"
+                height="{{ hero_1x.height }}"
+                alt="{{ hero_media.alt|default:'Dealer hero' }}"
+                loading="eager"
+                fetchpriority="high"
+                decoding="async">
+            {% endthumbnail %}
+          {% endthumbnail %}
+        {% else %}
+          <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Dealer hero' }}" loading="eager" fetchpriority="high" decoding="async">
+        {% endif %}
         <p class="hero__disclaimer">{{ hero_media.caption|default:dealer_copy.hero_disclaimer }}</p>
       </div>
     </section>

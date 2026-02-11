@@ -1,0 +1,254 @@
+{% load thumbnail dealer_extras %}
+
+<article class="pj-card" id="build-{{ post.slug }}" data-feed-card>
+  <header class="pj-card__head">
+    <div class="pj-meta">
+      {% if post.published_at %}
+        <time datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:"M j, Y" }}</time>
+      {% endif %}
+      {% if post.featured %}
+        <span class="pj-badge">Featured</span>
+      {% endif %}
+      {% if post.location %}
+        <span>{{ post.location }}</span>
+      {% endif %}
+      <span>{{ post.reading_time }} min</span>
+    </div>
+
+    <div class="pj-taxonomy" aria-label="Categories and tags">
+      {% for cat in post.categories.all %}
+        <a class="pj-taxonomy__pill" href="{% url 'project-journal' %}?cat={{ cat.slug|urlencode }}">{{ cat.name }}</a>
+      {% endfor %}
+      {% for tag in post.tag_list %}
+        <span class="pj-taxonomy__pill">#{{ tag }}</span>
+      {% endfor %}
+    </div>
+  </header>
+
+  <section class="pj-compare" data-compare aria-label="Before and after comparison">
+    <script type="application/json" data-compare-sources>
+      {
+        "before": [
+          {% if post.before_photos and post.before_photos.0.image %}
+            {% for p in post.before_photos %}
+              {% thumbnail p.image "1200" quality=74 format="WEBP" as before_json_1x %}
+                {% thumbnail p.image "2000" quality=74 format="WEBP" as before_json_2x %}
+                  {"src":"{{ before_json_1x.url|escapejs }}","srcset":"{{ before_json_1x.url|escapejs }} 1x, {{ before_json_2x.url|escapejs }} 2x","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' before'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+                {% endthumbnail %}
+              {% endthumbnail %}
+            {% endfor %}
+          {% elif post.legacy_before %}
+            {% for item in post.legacy_before %}
+              {"src":"{{ item.url|escapejs }}","alt":"{% if item.alt %}{{ item.alt|escapejs }}{% else %}{{ post.title|add:' before'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          {% elif post.cover_image %}
+            {% thumbnail post.cover_image "1200" quality=74 format="WEBP" as cover_before_json_1x %}
+              {% thumbnail post.cover_image "2000" quality=74 format="WEBP" as cover_before_json_2x %}
+                {"src":"{{ cover_before_json_1x.url|escapejs }}","srcset":"{{ cover_before_json_1x.url|escapejs }} 1x, {{ cover_before_json_2x.url|escapejs }} 2x","alt":"{{ post.title|add:' before'|escapejs }}"}
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% endif %}
+        ],
+        "after": [
+          {% if post.after_photos and post.after_photos.0.image %}
+            {% for p in post.after_photos %}
+              {% thumbnail p.image "1200" quality=74 format="WEBP" as after_json_1x %}
+                {% thumbnail p.image "2000" quality=74 format="WEBP" as after_json_2x %}
+                  {"src":"{{ after_json_1x.url|escapejs }}","srcset":"{{ after_json_1x.url|escapejs }} 1x, {{ after_json_2x.url|escapejs }} 2x","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' after'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+                {% endthumbnail %}
+              {% endthumbnail %}
+            {% endfor %}
+          {% elif post.legacy_after %}
+            {% for item in post.legacy_after %}
+              {"src":"{{ item.url|escapejs }}","alt":"{% if item.alt %}{{ item.alt|escapejs }}{% else %}{{ post.title|add:' after'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          {% elif post.cover_image %}
+            {% thumbnail post.cover_image "1200" quality=74 format="WEBP" as cover_after_json_1x %}
+              {% thumbnail post.cover_image "2000" quality=74 format="WEBP" as cover_after_json_2x %}
+                {"src":"{{ cover_after_json_1x.url|escapejs }}","srcset":"{{ cover_after_json_1x.url|escapejs }} 1x, {{ cover_after_json_2x.url|escapejs }} 2x","alt":"{{ post.title|add:' after'|escapejs }}"}
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% endif %}
+        ]
+      }
+    </script>
+
+    <div class="pj-compare__pair">
+      <figure class="pj-compare__frame" data-kind="before">
+        <figcaption class="pj-compare__label">Before</figcaption>
+        <div class="pj-media" data-skeleton>
+          {% if post.before_photos and post.before_photos.0.image %}
+            {% thumbnail post.before_photos.0.image "1200" quality=74 format="WEBP" as before_1x %}
+              {% thumbnail post.before_photos.0.image "2000" quality=74 format="WEBP" as before_2x %}
+                <img
+                  src="{{ before_1x.url }}"
+                  srcset="{{ before_1x.url }} 1x, {{ before_2x.url }} 2x"
+                  alt="{% firstof post.before_photos.0.alt_text post.title|add:' before' %}"
+                  loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                  decoding="async"
+                  draggable="false"
+                >
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% elif post.legacy_before %}
+            <img
+              src="{{ post.legacy_before.0.url }}"
+              alt="{% firstof post.legacy_before.0.alt post.title|add:' before' %}"
+              loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+              decoding="async"
+              draggable="false"
+            >
+          {% elif post.cover_image %}
+            {% thumbnail post.cover_image "1200" quality=74 format="WEBP" as cover_before_1x %}
+              {% thumbnail post.cover_image "2000" quality=74 format="WEBP" as cover_before_2x %}
+                <img
+                  src="{{ cover_before_1x.url }}"
+                  srcset="{{ cover_before_1x.url }} 1x, {{ cover_before_2x.url }} 2x"
+                  alt="{{ post.title }} before"
+                  loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                  decoding="async"
+                  draggable="false"
+                >
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% endif %}
+        </div>
+      </figure>
+
+      <figure class="pj-compare__frame" data-kind="after">
+        <figcaption class="pj-compare__label">After</figcaption>
+        <div class="pj-media" data-skeleton>
+          {% if post.after_photos and post.after_photos.0.image %}
+            {% thumbnail post.after_photos.0.image "1200" quality=74 format="WEBP" as after_1x %}
+              {% thumbnail post.after_photos.0.image "2000" quality=74 format="WEBP" as after_2x %}
+                <img
+                  src="{{ after_1x.url }}"
+                  srcset="{{ after_1x.url }} 1x, {{ after_2x.url }} 2x"
+                  alt="{% firstof post.after_photos.0.alt_text post.title|add:' after' %}"
+                  loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                  decoding="async"
+                  draggable="false"
+                >
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% elif post.legacy_after %}
+            <img
+              src="{{ post.legacy_after.0.url }}"
+              alt="{% firstof post.legacy_after.0.alt post.title|add:' after' %}"
+              loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+              decoding="async"
+              draggable="false"
+            >
+          {% elif post.cover_image %}
+            {% thumbnail post.cover_image "1200" quality=74 format="WEBP" as cover_after_1x %}
+              {% thumbnail post.cover_image "2000" quality=74 format="WEBP" as cover_after_2x %}
+                <img
+                  src="{{ cover_after_1x.url }}"
+                  srcset="{{ cover_after_1x.url }} 1x, {{ cover_after_2x.url }} 2x"
+                  alt="{{ post.title }} after"
+                  loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                  decoding="async"
+                  draggable="false"
+                >
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% endif %}
+        </div>
+      </figure>
+    </div>
+
+    <button class="pj-compare__nav pj-compare__nav--prev" type="button" data-compare-prev aria-label="Previous photos">
+      <span aria-hidden="true">‹</span>
+    </button>
+    <button class="pj-compare__nav pj-compare__nav--next" type="button" data-compare-next aria-label="Next photos">
+      <span aria-hidden="true">›</span>
+    </button>
+    <div class="pj-compare__pager" data-compare-pager aria-live="polite"></div>
+
+    <span class="pj-compare__hint" aria-hidden="true">Drag left/right</span>
+    <span class="pj-compare__handle" aria-hidden="true"></span>
+    <input class="pj-compare__range" type="range" min="0" max="100" value="50" aria-label="Before and after slider">
+  </section>
+
+  <section aria-label="Post summary">
+    <h2 class="pj-card__title">
+      <a class="pj-title-link" href="{{ post.get_absolute_url }}">{{ post.hero_title }}</a>
+    </h2>
+
+    {% if post.result_highlight %}
+      <p class="pj-highlight">{{ post.result_highlight }}</p>
+    {% endif %}
+
+    <p class="pj-excerpt">
+      {{ post.excerpt|default:"Before/after build highlight." }}
+    </p>
+
+    {% with parts_lines=post.parts|split_lines %}
+      {% if parts_lines %}
+        <ul class="pj-work" aria-label="Work done">
+          {% for item in parts_lines|slice:":3" %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+  </section>
+
+  {% if post.cta_primary_label and post.cta_primary_url or post.cta_secondary_label and post.cta_secondary_url or post.cta_tertiary_label and post.cta_tertiary_url %}
+    <nav class="pj-cta" aria-label="Call to action">
+      {% if post.cta_primary_label and post.cta_primary_url %}
+        <a class="pj-btn pj-btn--primary" href="{{ post.cta_primary_url }}">{{ post.cta_primary_label }}</a>
+      {% endif %}
+      {% if post.cta_secondary_label and post.cta_secondary_url %}
+        <a class="pj-btn pj-btn--ghost" href="{{ post.cta_secondary_url }}">{{ post.cta_secondary_label }}</a>
+      {% endif %}
+      {% if post.cta_tertiary_label and post.cta_tertiary_url %}
+        <a class="pj-btn pj-btn--ghost" href="{{ post.cta_tertiary_url }}">{{ post.cta_tertiary_label }}</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+
+  <details class="pj-details" {% if open_details %}open{% endif %}>
+    <summary>
+      <span>Details</span>
+      <span aria-hidden="true">+</span>
+    </summary>
+    <div class="pj-details__body">
+      <div class="pj-details__grid">
+        {% if post.overview or post.excerpt %}
+          <article class="pj-info">
+            <h3>Overview</h3>
+            <p>{{ post.overview|default:post.excerpt|linebreaksbr }}</p>
+          </article>
+        {% endif %}
+        {% if post.parts %}
+          <article class="pj-info">
+            <h3>Parts / Work done</h3>
+            <p>{{ post.parts|linebreaksbr }}</p>
+          </article>
+        {% endif %}
+        {% if post.customizations %}
+          <article class="pj-info">
+            <h3>Customizations</h3>
+            <p>{{ post.customizations|linebreaksbr }}</p>
+          </article>
+        {% endif %}
+        {% if post.backstory %}
+          <article class="pj-info">
+            <h3>Backstory</h3>
+            <p>{{ post.backstory|linebreaksbr }}</p>
+          </article>
+        {% endif %}
+      </div>
+
+      {% if post.body %}
+        <article class="pj-info">
+          <h3>Full report</h3>
+          <p>{{ post.body|linebreaksbr }}</p>
+        </article>
+      {% endif %}
+
+      <a class="pj-clear" href="{{ post.get_absolute_url }}">Open post</a>
+    </div>
+  </details>
+</article>

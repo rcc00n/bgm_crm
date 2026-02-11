@@ -230,7 +230,8 @@ class Product(models.Model):
     )
 
     # media
-    main_image = models.ImageField(upload_to="store/products/", blank=True, null=True)
+    # Stores either a local path or a remote http(s) URL (see main_image_url).
+    main_image = models.ImageField(upload_to="store/products/", blank=True, null=True, max_length=2048)
 
     # attributes
     specs = models.JSONField(default=dict, blank=True)
@@ -302,6 +303,25 @@ class Product(models.Model):
             return image.url
         except Exception:
             return ""
+
+    @property
+    def main_image_is_remote(self) -> bool:
+        image = getattr(self, "main_image", None)
+        if not image:
+            return False
+        name = getattr(image, "name", "") or str(image)
+        return name.startswith(("http://", "https://"))
+
+    @property
+    def main_image_local(self):
+        """
+        Template-friendly handle for thumbnailing.
+        Sorl/easy-thumbnail style libraries generally expect a real file object, not a remote URL.
+        """
+        image = getattr(self, "main_image", None)
+        if not image or self.main_image_is_remote:
+            return None
+        return image
 
     def get_absolute_url(self):
         # под шаблоны, где используется {% url 'store-product' slug=p.slug %}

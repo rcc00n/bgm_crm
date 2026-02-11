@@ -289,6 +289,24 @@ def _email_setting_value(attr: str, default: str = "") -> str:
     return value_text or default
 
 
+def _email_setting_file_url(attr: str) -> str:
+    try:
+        settings_obj = EmailTemplateSettings.objects.first()
+    except Exception:
+        return ""
+    if not settings_obj:
+        return ""
+    file_obj = getattr(settings_obj, attr, None)
+    if not file_obj:
+        return ""
+    try:
+        url = file_obj.url
+    except Exception:
+        return ""
+    url_text = str(url).strip()
+    return url_text
+
+
 def email_brand_name() -> str:
     default_brand = getattr(settings, "SITE_BRAND_NAME", "Bad Guy Motors")
     return _email_setting_value("brand_name", default_brand)
@@ -296,6 +314,17 @@ def email_brand_name() -> str:
 
 def email_brand_tagline() -> str:
     return _email_setting_value("brand_tagline", getattr(settings, "SITE_BRAND_TAGLINE", ""))
+
+
+def email_brand_logo_url() -> str:
+    """
+    URL (often relative) for the email header logo image.
+    """
+    return _email_setting_file_url("brand_logo")
+
+
+def email_brand_logo_alt() -> str:
+    return _email_setting_value("brand_logo_alt", "")
 
 
 def email_company_address() -> str:

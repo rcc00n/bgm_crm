@@ -679,6 +679,11 @@ def product_search(request):
         if not ranked and all_qs.exists():
             ranked = _rank_products(all_qs.order_by("-created_at")[:400], q, limit=60)
 
+    try:
+        from sorl.thumbnail import get_thumbnail  # type: ignore
+    except Exception:  # pragma: no cover
+        get_thumbnail = None
+
     results = []
     for p in ranked:
         cat_name = ""
@@ -686,6 +691,17 @@ def product_search(request):
             cat_name = p.category.display_name
         except Exception:
             cat_name = ""
+
+        image_url = ""
+        local_image = getattr(p, "main_image_local", None)
+        if local_image and get_thumbnail is not None:
+            try:
+                image_url = get_thumbnail(local_image, "320", quality=72, format="WEBP").url
+            except Exception:
+                image_url = ""
+        if not image_url:
+            image_url = p.main_image_url
+
         results.append(
             {
                 "id": str(p.id),
@@ -699,7 +715,7 @@ def product_search(request):
                 "display_price": str(p.display_price),
                 "has_option_price_overrides": bool(getattr(p, "has_option_price_overrides", False)),
                 "has_active_options": bool(getattr(p, "has_active_options", False)),
-                "image": p.main_image_url,
+                "image": image_url,
             }
         )
     return JsonResponse({"results": results})

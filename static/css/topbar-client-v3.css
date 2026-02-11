@@ -318,6 +318,13 @@
   cursor: pointer;
 }
 
+.bgm-topbar__icon{
+  width: 1.05em;
+  height: 1.05em;
+  flex: 0 0 auto;
+  opacity: .9;
+}
+
 .bgm-topbar__nav a:hover,
 .bgm-topbar__nav a[aria-current="page"],
 .bgm-topbar__nav .btn:hover,

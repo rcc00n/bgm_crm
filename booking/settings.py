@@ -1,6 +1,7 @@
 from pathlib import Path
 from decimal import Decimal, InvalidOperation
 import os
+import sys
 import dj_database_url
 from decouple import config, Csv  
 
@@ -27,6 +28,7 @@ def _bool_env(name: str, default: str = "False") -> bool:
 # ── Основное ─────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 DEBUG = _bool_env("DEBUG", "False")
+RUNNING_TESTS = len(sys.argv) > 1 and sys.argv[1] == "test"
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -221,6 +223,10 @@ COMPANY_ADDRESS = os.getenv(
 )
 COMPANY_PHONE = os.getenv("COMPANY_PHONE", "(403) 525-0432")
 COMPANY_WEBSITE = os.getenv("COMPANY_WEBSITE", "badguymotors.com")
+COMPANY_HOURS = os.getenv(
+    "COMPANY_HOURS",
+    "Mon–Fri: 9:00am–5:30pm\nSat–Sun: Closed",
+)
 EMAIL_ACCENT_COLOR = os.getenv("EMAIL_ACCENT_COLOR", "#d50000")
 EMAIL_DARK_COLOR = os.getenv("EMAIL_DARK_COLOR", "#0b0b0c")
 EMAIL_BG_COLOR = os.getenv("EMAIL_BG_COLOR", "#0b0b0c")
@@ -283,6 +289,7 @@ INSTALLED_APPS = [
     "dal_select2",
     # "storages",
     "jazzmin",
+    "sorl.thumbnail",
 
     "django.contrib.admin",
     "django.contrib.auth",
@@ -329,6 +336,7 @@ TEMPLATES = [
                 "core.context_processors_core.dealer_portal",
                 "core.context_processors_core.currency",
                 "core.context_processors_core.marketing_tags",
+                "core.context_processors_core.company_info",
                 "core.context_processors_core.topbar_style",
                 "core.context_processors_core.cart_summary",
             ],
@@ -395,7 +403,7 @@ CKEDITOR_CONFIGS = {
 }
 
 STORAGES = {
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
 }
 
@@ -416,7 +424,9 @@ if os.getenv("USE_S3_MEDIA") == "1":
 
 # ── Безопасность продакшна ──────────────────────────────────────────────
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = _bool_env("SECURE_SSL_REDIRECT", "True")
+# Enforced HTTPS is correct for production, but breaks the Django test client
+# expectations unless every request is marked secure.
+SECURE_SSL_REDIRECT = False if RUNNING_TESTS else _bool_env("SECURE_SSL_REDIRECT", "True")
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
@@ -836,7 +846,7 @@ LOGGING = {
 
 
 # Use non-manifest storage to avoid hard failures on missing manifest entries.
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # карта sourcemap .css.map по-прежнему может отсутствовать — это ок:
 WHITENOISE_IGNORE_MISSING_FILES = True
 WHITENOISE_MANIFEST_STRICT = False

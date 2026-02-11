@@ -5,6 +5,7 @@
   <meta charset="utf-8" />
   <title>{% block title %}BGM — Store{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>document.documentElement.classList.add('js');</script>
 
   {% block marketing_meta %}
     {% with meta_title="BGM Customs — Storefront" meta_description="Shop curated parts, aero, lighting, and performance upgrades from BGM Customs." meta_section="store" %}
@@ -231,7 +232,7 @@
     /* =============================== CONTENT ============================== */
     .section{ padding:clamp(2rem,6vw,4rem) 0; border-top:1px solid var(--line); }
     .section__head{ display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1.1rem; }
-    .section__title{ font-family:var(--font-body); font-size:1.6rem; font-weight:900; color:#fff; }
+    .section__title{ font-family:var(--font-head); font-size:1.6rem; font-weight:900; color:#fff; }
     .section__desc{ color:var(--muted); }
 
     .grid{ display:grid; gap:1rem; }

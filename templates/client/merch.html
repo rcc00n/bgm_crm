@@ -1,4 +1,4 @@
-{% load static %}
+{% load static thumbnail %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -263,7 +263,7 @@
     .card__meta dd{ margin:0; color:var(--fg); font-weight:700; }
 
     .coming-soon{
-      display:grid; gap:.55rem; margin:1rem 0 1.6rem;
+      display:grid; gap:.55rem; margin:1.8rem 0 0;
       padding:1rem 1.1rem; border-radius:1rem;
       border:1px solid rgba(213,0,0,.35); background:rgba(213,0,0,.08);
       box-shadow:0 14px 26px rgba(213,0,0,.18);
@@ -272,7 +272,7 @@
     .section--coming-soon .card{ border-style:dashed; }
 
     .social{
-      margin-top:1.8rem; padding:1.1rem;
+      margin:1rem 0 1.6rem; padding:1.1rem;
       border:1px solid var(--line); border-radius:1rem;
       background:linear-gradient(180deg,#0c0c0c,#111111);
       display:grid; gap:.75rem;
@@ -286,7 +286,40 @@
       font-weight:800; letter-spacing:.02em; transition:.2s ease;
       background:rgba(255,255,255,.04);
     }
-    .social__link:hover{ border-color:rgba(213,0,0,.6); color:#fff; box-shadow:0 0 18px rgba(213,0,0,.25); }
+    .social__link:hover{
+      border-color:var(--social-border-hover, rgba(255,255,255,.35));
+      color:#fff;
+      box-shadow:0 0 18px var(--social-glow, rgba(255,255,255,.16));
+      transform:translateY(-1px);
+    }
+
+    /* Per-platform colors */
+    .social__link--ig{
+      background:linear-gradient(135deg,#f58529 0%, #dd2a7b 35%, #8134af 70%, #515bd4 100%);
+      border-color:rgba(221,42,123,.55);
+      --social-border-hover: rgba(221,42,123,.8);
+      --social-glow: rgba(221,42,123,.35);
+    }
+    .social__link--fb{
+      background:linear-gradient(180deg,#1877F2 0%, #0b5bd3 100%);
+      border-color:rgba(24,119,242,.55);
+      --social-border-hover: rgba(24,119,242,.85);
+      --social-glow: rgba(24,119,242,.35);
+    }
+    .social__link--yt{
+      background:linear-gradient(180deg,#ff0033 0%, #c70028 100%);
+      border-color:rgba(255,0,51,.55);
+      --social-border-hover: rgba(255,0,51,.85);
+      --social-glow: rgba(255,0,51,.32);
+    }
+    .social__link--tt{
+      background:linear-gradient(180deg,#111 0%, #050505 100%);
+      border-color:rgba(255,255,255,.22);
+    }
+    .social__link--tt:hover{
+      border-color:rgba(0,242,234,.55);
+      box-shadow:0 0 18px rgba(0,242,234,.22), 0 0 18px rgba(255,0,80,.16);
+    }
 
     /* Skeleton shimmer */
     .sk{ height:140px; border-radius:.8rem; background:linear-gradient(90deg,#111,#151515,#111); background-size:200% 100%; animation:sh 1.1s ease-in-out infinite; }
@@ -520,7 +553,23 @@ body.nav-open .contact-fab,
       </div>
 
       <div class="hero__media frame frame--media">
-        <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Merch hero' }}" loading="lazy" decoding="async">
+        {% if hero_media.image %}
+          {% thumbnail hero_media.image "800" quality=72 format="WEBP" as hero_1x %}
+            {% thumbnail hero_media.image "1600" quality=72 format="WEBP" as hero_2x %}
+              <img
+                src="{{ hero_1x.url }}"
+                srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
+                width="{{ hero_1x.width }}"
+                height="{{ hero_1x.height }}"
+                alt="{{ hero_media.alt|default:'Merch hero' }}"
+                loading="eager"
+                fetchpriority="high"
+                decoding="async">
+            {% endthumbnail %}
+          {% endthumbnail %}
+        {% else %}
+          <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Merch hero' }}" loading="eager" fetchpriority="high" decoding="async">
+        {% endif %}
         <p class="hero__disclaimer">{{ hero_media.caption|default:merch_copy.hero_disclaimer_fallback }}</p>
       </div>
     </div>
@@ -536,12 +585,25 @@ body.nav-open .contact-fab,
           </div>
         </div>
 
-        {% if merch_copy.coming_soon_enabled %}
-          <div class="coming-soon">
-            <span class="badge">{{ merch_copy.coming_soon_badge }}</span>
+        {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
+          <div class="social">
             <div>
-              <div class="coming-soon__title">{{ merch_copy.coming_soon_title }}</div>
-              <p class="section__desc">{{ merch_copy.coming_soon_desc|striptags|safe }}</p>
+              <div class="social__title">{{ merch_copy.social_section_title }}</div>
+              <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
+            </div>
+            <div class="social__links">
+              {% if merch_copy.social_link_1_url %}
+                <a class="social__link social__link--ig" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
+              {% endif %}
+              {% if merch_copy.social_link_2_url %}
+                <a class="social__link social__link--fb" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
+              {% endif %}
+              {% if merch_copy.social_link_3_url %}
+                <a class="social__link social__link--yt" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
+              {% endif %}
+              {% if merch_copy.social_link_4_url %}
+                <a class="social__link social__link--tt" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
+              {% endif %}
             </div>
           </div>
         {% endif %}
@@ -668,25 +730,12 @@ body.nav-open .contact-fab,
           </article>
         </div>
 
-        {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
-          <div class="social">
+        {% if merch_copy.coming_soon_enabled %}
+          <div class="coming-soon">
+            <span class="badge">{{ merch_copy.coming_soon_badge }}</span>
             <div>
-              <div class="social__title">{{ merch_copy.social_section_title }}</div>
-              <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
-            </div>
-            <div class="social__links">
-              {% if merch_copy.social_link_1_url %}
-                <a class="social__link" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_2_url %}
-                <a class="social__link" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_3_url %}
-                <a class="social__link" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_4_url %}
-                <a class="social__link" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
-              {% endif %}
+              <div class="coming-soon__title">{{ merch_copy.coming_soon_title }}</div>
+              <p class="section__desc">{{ merch_copy.coming_soon_desc|striptags|safe }}</p>
             </div>
           </div>
         {% endif %}

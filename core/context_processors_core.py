@@ -17,9 +17,15 @@ HERO_FALLBACKS = {
     "home": {"path": "img/hero-home.jpg", "alt": "Home hero"},
     "client-dashboard": {"path": "img/hero-services.jpg", "alt": "Services hero"},
     "store": {"path": "img/hero-products.jpg", "alt": "Products hero"},
+    # Store sub-pages reuse the store hero.
+    "store-category": {"path": "img/hero-products.jpg", "alt": "Products hero"},
+    "store-product": {"path": "img/hero-products.jpg", "alt": "Products hero"},
+    "store-cart": {"path": "img/hero-products.jpg", "alt": "Products hero"},
+    "store-checkout": {"path": "img/hero-products.jpg", "alt": "Products hero"},
     "merch": {"path": "img/hero-merch.jpg", "alt": "Merch hero"},
     "dealer-status": {"path": "img/hero-dealers.jpg", "alt": "Dealer banner"},
-    "financing": {"path": "img/hero-financing.jpg", "alt": "Financing hero"},
+    # Keep financing resilient until a dedicated asset is added.
+    "financing": {"path": "img/hero-services.jpg", "alt": "Financing hero"},
     "our-story": {"path": "img/hero-about.jpg", "alt": "About hero"},
     "services-brake-suspension": {
         "path": "img/hero-services.jpg",
@@ -34,7 +40,9 @@ HERO_FALLBACKS = {
         "alt": "Performance Tuning hero",
     },
 }
-FALLBACK = {"path": "img/hero-preview.png", "alt": "BGM hero"}
+# Generic fallback used for any route that doesn't have a dedicated hero.
+# Must always exist in staticfiles to avoid 500s when using a manifest storage.
+FALLBACK = {"path": "img/hero-home.jpg", "alt": "BGM hero"}
 
 # Bind URL names to HeroImage placements for DB lookups.
 HERO_DB_BINDINGS = {
@@ -213,6 +221,24 @@ def marketing_tags(request):
             "google_ads_id": config.get("google_ads_id") or "",
             "google_ads_conversion_label": config.get("google_ads_conversion_label") or "",
             "google_ads_send_page_view": config.get("google_ads_send_page_view", True),
+        }
+    }
+
+
+def company_info(request):
+    """
+    Basic shop contact + hours, backed by env-configurable Django settings.
+    Keeps templates simple and makes footer/about blocks consistent.
+    """
+    hours_raw = (getattr(settings, "COMPANY_HOURS", "") or "").strip()
+    hours_lines = [line.strip() for line in hours_raw.splitlines() if line.strip()]
+
+    return {
+        "company": {
+            "address": getattr(settings, "COMPANY_ADDRESS", ""),
+            "phone": getattr(settings, "COMPANY_PHONE", ""),
+            "website": getattr(settings, "COMPANY_WEBSITE", ""),
+            "hours_lines": hours_lines,
         }
     }
 

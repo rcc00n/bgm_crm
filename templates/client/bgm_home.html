@@ -1,5 +1,5 @@
 
-{% load static dealer_extras %}
+{% load static dealer_extras thumbnail %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -63,6 +63,7 @@
 
     .hero{position:relative;overflow:hidden;background:transparent}
     .hero__inner{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;padding:clamp(1.6rem,4.5vw,3.6rem) 0;align-items:center}
+    .hero__inner--no-media{grid-template-columns:1fr}
     .hero__title{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.15}
     .hero__lead{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);max-width:54ch;margin-top:1rem}
     .hero__cta{display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap}
@@ -232,6 +233,12 @@
       background:#121212;
       color:#f2f2f2;
     }
+    #products .filters select{color-scheme:dark;}
+    #products .filters select option,
+    #products .filters select optgroup{
+      background:#121212;
+      color:#f2f2f2;
+    }
 
     .grid{display:grid;gap:1rem}
     .grid--services{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
@@ -331,6 +338,10 @@
 		      /* Home (desktop): make the search controls stand out more */
 		      #services .home-search,
 		      #products .home-search{
+		        display:grid;
+		        grid-template-columns:minmax(0,1.75fr) minmax(0,1.05fr) max-content max-content;
+		        align-items:stretch;
+		        gap:.75rem;
 		        padding:1rem 1.05rem;
 		        border-radius:1.1rem;
 		        border:1px solid rgba(255,255,255,.16);
@@ -340,12 +351,28 @@
 		          linear-gradient(180deg, var(--panel), var(--panel-2));
 		        box-shadow:0 18px 34px rgba(0,0,0,.42);
 		      }
+		      @media (min-width: 861px) and (max-width: 1099px){
+		        #services .home-search,
+		        #products .home-search{
+		          grid-template-columns:1fr 1fr;
+		        }
+		        #services .home-search button[type="submit"],
+		        #services .home-search .home-search__open,
+		        #products .home-search button[type="submit"],
+		        #products .home-search .home-search__open{
+		          width:100%;
+		          justify-content:center;
+		        }
+		      }
+
 		      #services .home-search .input,
 		      #services .home-search .select,
 		      #products .home-search .input,
 		      #products .home-search .select{
-		        min-height:54px;
-		        padding:.85rem 1rem;
+		        width:100%;
+		        min-width:0;
+		        min-height:62px;
+		        padding:1rem 1.05rem;
 		        border-color:rgba(255,255,255,.22);
 		        background:rgba(0,0,0,.22);
 		        font-family:var(--font-head) !important;
@@ -360,24 +387,48 @@
 		      }
 		      #services .home-search button[type="submit"],
 		      #products .home-search button[type="submit"]{
-		        min-height:54px;
-		        padding:.9rem 1.25rem;
-		        border-radius:.85rem;
+		        min-height:62px;
+		        padding:1.02rem 1.45rem;
+		        border-radius:.95rem;
+		        font-size:1.02rem !important;
 		        background:linear-gradient(180deg, var(--accent-2), var(--accent));
-	        border:1px solid rgba(213,0,0,.65);
-	        color:#fff;
-	        box-shadow:0 14px 24px rgba(213,0,0,.22);
-	        font-family:var(--font-head) !important;
-	        font-weight:900 !important;
+		        border:1px solid rgba(213,0,0,.65);
+		        color:#fff;
+		        box-shadow:0 14px 24px rgba(213,0,0,.22);
+		        font-family:var(--font-head) !important;
+		        font-weight:900 !important;
+		        letter-spacing:.08em !important;
+		        text-transform:uppercase !important;
+		      }
+		      #services .home-search .home-search__open,
+		      #products .home-search .home-search__open{
+		        min-height:62px;
+		        padding:1.02rem 1.45rem;
+		        border-radius:.95rem;
+		        font-size:1.02rem !important;
+		        background:linear-gradient(180deg, var(--accent-2), var(--accent));
+		        border:1px solid rgba(213,0,0,.65);
+		        color:#fff;
+		        box-shadow:0 14px 24px rgba(213,0,0,.22);
+		        font-family:var(--font-head) !important;
+		        font-weight:900 !important;
 		        letter-spacing:.08em !important;
 		        text-transform:uppercase !important;
 		      }
 		      #services .home-search button[type="submit"]:hover,
-		      #products .home-search button[type="submit"]:hover{
+		      #products .home-search button[type="submit"]:hover,
+		      #services .home-search .home-search__open:hover,
+		      #products .home-search .home-search__open:hover{
 		        transform:translateY(-2px);
 		        color:#fff;
 		        border-color:rgba(213,0,0,.75);
 		        box-shadow:0 18px 32px rgba(213,0,0,.26);
+		      }
+		      #services .home-search .btn--link,
+		      #products .home-search .btn--link{
+		        grid-column:1 / -1;
+		        justify-self:start;
+		        margin-top:-.15rem;
 		      }
 		      #services .home-divider,
 		      #products .home-divider{display:block;}
@@ -455,25 +506,48 @@
     }
     .tile{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:1rem;padding:1rem}
     .tile__icon{font-size:1.4rem;color:var(--accent);margin-bottom:.25rem}
-    /* Desktop: keep the icon inline with the heading for the 3 compact "Why BGM" tiles. */
-    @media (min-width: 861px){
-      .tiles--why .tile:not(.tile--link){
-        display:grid;
-        grid-template-columns:auto 1fr;
-        grid-template-rows:auto auto;
-        column-gap:.7rem;
-        align-items:start;
-      }
-      .tiles--why .tile:not(.tile--link) .tile__icon{
-        margin-bottom:0;
-        font-size:1.35rem;
-        line-height:1;
-      }
-      .tiles--why .tile:not(.tile--link) p.muted{
-        grid-column:1 / -1;
-        margin-top:.25rem;
-      }
-    }
+	    /* Desktop: keep the icon inline with the heading for the 3 compact "Why BGM" tiles. */
+	    @media (min-width: 861px){
+	      .tiles--why .tile:not(.tile--link){
+	        display:grid;
+	        grid-template-columns:auto 1fr;
+	        grid-template-rows:auto auto;
+	        column-gap:.7rem;
+	        align-items:start;
+	      }
+	      .tiles--why .tile:not(.tile--link) .tile__icon{
+	        margin-bottom:0;
+	        font-size:1.35rem;
+	        line-height:1;
+	      }
+	      .tiles--why .tile:not(.tile--link) p.muted{
+	        grid-column:1 / -1;
+	        margin-top:.25rem;
+	      }
+
+	      /* Desktop: align the "Warranty & Support" title with its icon (link tile). */
+	      .tiles--why .tile--link{
+	        display:grid;
+	        grid-template-columns:auto 1fr;
+	        grid-template-rows:auto auto auto;
+	        column-gap:.7rem;
+	        row-gap:.35rem;
+	        align-items:start;
+	      }
+	      .tiles--why .tile--link .tile__icon{
+	        margin-bottom:0;
+	        font-size:1.35rem;
+	        line-height:1;
+	        align-self:center;
+	      }
+	      .tiles--why .tile--link > b{
+	        align-self:center;
+	      }
+	      .tiles--why .tile--link > p.muted,
+	      .tiles--why .tile--link > .tile__cta{
+	        grid-column:1 / -1;
+	      }
+	    }
     /* Desktop: keep the step number inline with the title in "Our Process". */
     @media (min-width: 861px){
       .tiles--process .tile{
@@ -923,6 +997,91 @@
         font-size:1.05rem !important;
       }
 
+      /* Mobile: make the Builds "View Gallery" button bolder/more noticeable. */
+      .home-gallery__head .btn--ghost{
+        min-height:58px;
+        padding:1.05rem 1.25rem;
+        border-radius:1.05rem;
+        border:2px solid rgba(213,0,0,.68);
+        background:
+          radial-gradient(120% 140% at 0% 0%, rgba(255,26,26,.22), transparent 58%),
+          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+          linear-gradient(180deg, rgba(213,0,0,.18), rgba(0,0,0,.06));
+        box-shadow:0 18px 34px rgba(213,0,0,.18), 0 16px 30px rgba(0,0,0,.38);
+        color:#fff;
+        font-family:var(--font-head) !important;
+        font-weight:900 !important;
+        font-size:1.05rem !important;
+        letter-spacing:.12em !important;
+        text-transform:uppercase !important;
+      }
+      .home-gallery__head .btn--ghost::after{
+        content:"\203A";
+        font-size:1.7rem;
+        line-height:1;
+        opacity:.95;
+      }
+      .home-gallery__head .btn--ghost:active{ transform:translateY(1px); }
+      .home-gallery__head .btn--ghost:focus-visible{
+        outline:2px solid rgba(213,0,0,.55);
+        outline-offset:3px;
+      }
+
+      /* Mobile: show "Our Process" before FAQ. */
+      .home-faq-process{ display:flex; flex-direction:column; }
+      .home-faq-process .home-process{ order:1; }
+      .home-faq-process .home-faq{ order:2; }
+
+      /* Mobile: make Services search + Products filters match the "highlight" look */
+      .home-search--mobile{
+        display:grid;
+        grid-template-columns:1fr;
+        gap:.65rem;
+        padding:1rem 1.05rem;
+        border-radius:1.1rem;
+        border:1px solid rgba(255,255,255,.16);
+        background:
+          radial-gradient(120% 140% at 0% 0%, rgba(213,0,0,.15), transparent 58%),
+          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+          linear-gradient(180deg, var(--panel), var(--panel-2));
+        box-shadow:0 18px 34px rgba(0,0,0,.42);
+      }
+      #mobileProducts .home-search--mobile{ margin-top:.85rem; }
+      .home-search--mobile .input,
+      .home-search--mobile .select{
+        width:100%;
+        min-width:0;
+        min-height:62px;
+        padding:1rem 1.05rem;
+        border-radius:.95rem;
+        border-color:rgba(255,255,255,.22);
+        background:rgba(0,0,0,.22);
+        font-family:var(--font-head) !important;
+        font-weight:900 !important;
+        letter-spacing:.06em !important;
+        text-transform:uppercase !important;
+        font-size:1.05rem !important;
+      }
+      .home-search--mobile .input::placeholder{
+        color:rgba(255,255,255,.65);
+        font-weight:900;
+      }
+      .home-search--mobile button[type="submit"]{
+        min-height:62px;
+        padding:1.02rem 1.45rem;
+        border-radius:.95rem;
+        font-size:1.02rem !important;
+        background:linear-gradient(180deg, var(--accent-2), var(--accent));
+        border:1px solid rgba(213,0,0,.65);
+        color:#fff;
+        box-shadow:0 14px 24px rgba(213,0,0,.22);
+        font-family:var(--font-head) !important;
+        font-weight:900 !important;
+        letter-spacing:.08em !important;
+        text-transform:uppercase !important;
+      }
+      .home-search--mobile button[type="submit"]:active{ transform:translateY(1px); }
+
       .filters{ flex-direction:column; align-items:stretch; }
       .input,.select{ width:100%; min-width:0; }
       .filters .btn{ width:100%; justify-content:center; }
@@ -1121,30 +1280,10 @@
 
   <div id="bg"></div>
 
-  <a href="#main" class="visually-hidden">{{ home_copy.skip_to_main_label }}</a>
+	  <a href="#main" class="visually-hidden">{{ home_copy.skip_to_main_label }}</a>
 
-  <section class="hero" id="top">
-    {% if home_copy.hero_logo or home_copy.hero_logo_backdrop %}
-      {% with logo_layout=home_copy.hero_logo_layout|default:"overlay" logo_bg=home_copy.hero_logo_bg_style|default:"dark" %}
-        <div class="container">
-          <div class="hero__logo-block hero__logo-block--{{ logo_layout }}" style="--hero-logo-size: {{ home_copy.hero_logo_size|default:180 }}px;">
-            <div class="hero__logo hero__logo--bg-{{ logo_bg }}{% if not home_copy.hero_logo_show_ring %} hero__logo--no-ring{% endif %}{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} hero__logo--backdrop{% endif %}"{% if home_copy.hero_logo_backdrop and logo_layout == 'overlay' %} style="--hero-logo-backdrop:url('{{ home_copy.hero_logo_backdrop.url }}')"{% endif %}>
-              {% if home_copy.hero_logo %}
-                <img src="{{ home_copy.hero_logo.url }}" alt="{{ home_copy.hero_logo_alt }}"{% if not home_copy.hero_logo_alt %} aria-hidden="true"{% endif %} loading="lazy" decoding="async">
-              {% else %}
-                <span class="hero__logo-text">BGM</span>
-              {% endif %}
-            </div>
-            {% if home_copy.hero_logo_backdrop and logo_layout == 'stacked' %}
-              <div class="hero__logo-photo"{% if home_copy.hero_logo_photo_width or home_copy.hero_logo_photo_height %} style="{% if home_copy.hero_logo_photo_width %}--hero-logo-photo-width: {{ home_copy.hero_logo_photo_width }}px;{% endif %}{% if home_copy.hero_logo_photo_height %}--hero-logo-photo-height: {{ home_copy.hero_logo_photo_height }}px;{% endif %}"{% endif %}>
-                <img src="{{ home_copy.hero_logo_backdrop.url }}" alt="" loading="lazy" decoding="async">
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      {% endwith %}
-    {% endif %}
-    <div class="container hero__inner">
+	  <section class="hero" id="top">
+	    <div class="container hero__inner">
       <div>
         <p class="kicker">{{ home_copy.hero_kicker }}</p>
         <h1 class="hero__title">{{ home_copy.hero_title }}</h1>
@@ -1161,11 +1300,91 @@
         </div>
       </div>
 
+      <!-- Hero image carousel (desktop right rail; stacks on mobile) -->
+      <div class="hero__media frame frame--media hero__media--carousel"
+           data-hero-carousel
+           data-interval="8000"
+           data-slides="{% if hero_carousel %}{{ hero_carousel|length }}{% else %}1{% endif %}">
+
+        <button class="hero__carousel-btn hero__carousel-btn--prev" type="button" data-hero-prev aria-label="Previous image">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="hero__carousel-btn hero__carousel-btn--next" type="button" data-hero-next aria-label="Next image">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="hero__slides">
+          {% if hero_carousel %}
+            {% for slide in hero_carousel %}
+              <div class="hero__slide {% if forloop.first %}is-active{% endif %}"
+                   data-hero-slide
+                   data-caption="{{ slide.caption|default:hero_media.caption }}"
+                   aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
+                {% if slide.image %}
+                  {% thumbnail slide.image "1200" quality=74 format="WEBP" as hero_1x %}
+                    {% thumbnail slide.image "2000" quality=74 format="WEBP" as hero_2x %}
+                      <img
+                        src="{{ hero_1x.url }}"
+                        srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
+                        width="{{ hero_1x.width }}"
+                        height="{{ hero_1x.height }}"
+                        alt="{{ slide.alt }}"
+                        loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                        decoding="async"
+                        {% if forloop.first %}fetchpriority="high"{% endif %}>
+                    {% endthumbnail %}
+                  {% endthumbnail %}
+                {% else %}
+                  <img
+                    src="{{ slide.src }}"
+                    alt="{{ slide.alt }}"
+                    loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                    decoding="async"
+                    {% if forloop.first %}fetchpriority="high"{% endif %}>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="hero__slide is-active" data-hero-slide data-caption="{{ hero_media.caption }}" aria-hidden="false">
+              {% if hero_media.image %}
+                {% thumbnail hero_media.image "1200" quality=74 format="WEBP" as hero_1x %}
+                  {% thumbnail hero_media.image "2000" quality=74 format="WEBP" as hero_2x %}
+                    <img
+                      src="{{ hero_1x.url }}"
+                      srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
+                      width="{{ hero_1x.width }}"
+                      height="{{ hero_1x.height }}"
+                      alt="{{ hero_media.alt }}"
+                      loading="eager"
+                      decoding="async"
+                      fetchpriority="high">
+                  {% endthumbnail %}
+                {% endthumbnail %}
+              {% else %}
+                <img src="{{ hero_media.src }}" alt="{{ hero_media.alt }}" loading="eager" decoding="async" fetchpriority="high">
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="hero__disclaimer" data-hero-caption>
+          {% if hero_carousel %}
+            {{ hero_carousel.0.caption|default:hero_media.caption }}
+          {% else %}
+            {{ hero_media.caption }}
+          {% endif %}
+        </div>
+      </div>
+
       <!-- Mobile quick actions -->
-      <div class="mobi-quick only-mobile" aria-label="Quick actions">
-        <div class="mobi-actions">
-          <a class="mobi-action" href="{% url 'client-dashboard' %}#services">
-            <b>{{ home_copy.hero_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_1_subtitle }}</span>
+	      <div class="mobi-quick only-mobile" aria-label="Quick actions">
+	        <div class="mobi-actions">
+	          <a class="mobi-action" href="{% url 'client-dashboard' %}#services">
+	            <b>{{ home_copy.hero_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_1_subtitle }}</span>
           </a>
           <a class="mobi-action" href="{% url 'store' %}">
             <b>{{ home_copy.hero_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_2_subtitle }}</span>
@@ -1175,58 +1394,14 @@
           </a>
           <a class="mobi-action" href="{% url 'our-story' %}">
             <b>{{ home_copy.hero_mobile_action_4_title }}</b><span class="mobi-sub">{{ home_copy.hero_mobile_action_4_subtitle }}</span>
-          </a>
-        </div>
-      </div>
+	          </a>
+	        </div>
+	      </div>
 
-      {% if hero_carousel %}
-        <div class="frame frame--media hero__media hero__media--carousel"
-             data-hero-carousel
-             data-interval="8000"
-             data-slides="{{ hero_carousel|length }}"
-             aria-roledescription="carousel"
-             aria-label="Hero image carousel"
-             {% if home_copy.hero_media_width or home_copy.hero_media_height %}style="{% if home_copy.hero_media_width %}--hero-media-width: {{ home_copy.hero_media_width }}px;{% endif %}{% if home_copy.hero_media_height %}--hero-media-height: {{ home_copy.hero_media_height }}px;{% endif %}"{% endif %}>
-          <div class="hero__slides" data-hero-slides>
-            {% for slide in hero_carousel %}
-              <div class="hero__slide{% if forloop.first %} is-active{% endif %}"
-                   data-hero-slide
-                   data-caption="{{ slide.caption|default:hero_media.caption|default:'Product may not appear exactly as shown.' }}">
-                <img src="{{ slide.src }}"
-                     alt="{{ slide.alt|default:hero_media.alt|default:'BGM hero' }}"
-                     loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
-                     decoding="async">
-              </div>
-            {% endfor %}
-          </div>
-          <button class="hero__carousel-btn hero__carousel-btn--prev" type="button" aria-label="Previous image" data-hero-prev>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <button class="hero__carousel-btn hero__carousel-btn--next" type="button" aria-label="Next image" data-hero-next>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <p class="hero__disclaimer" data-hero-caption>{{ hero_carousel.0.caption|default:hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
-        </div>
-      {% else %}
-        <div class="frame frame--media hero__media"{% if home_copy.hero_media_width or home_copy.hero_media_height %} style="{% if home_copy.hero_media_width %}--hero-media-width: {{ home_copy.hero_media_width }}px;{% endif %}{% if home_copy.hero_media_height %}--hero-media-height: {{ home_copy.hero_media_height }}px;{% endif %}"{% endif %}>
-          <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'BGM hero' }}" loading="lazy" decoding="async">
-          <p class="hero__disclaimer">{{ hero_media.caption|default:"Product may not appear exactly as shown." }}</p>
-        </div>
-      {% endif %}
-
-    </div>
-  </section>
+	    </div>
+	  </section>
 
   <main id="main">
-    <div class="container only-mobile" aria-label="Featured build">
-      <div class="frame frame--media mobi-photo-break">
-        <img src="{% static 'img/hero-services.jpg' %}" alt="Service bay detail" loading="lazy" decoding="async">
-      </div>
-    </div>
     <!-- ========================= SERVICES on Home (limit 8) ========================= -->
 	    <section id="services" class="section">
 	      <div class="container">
@@ -1246,17 +1421,31 @@
 	            </div>
 	            <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
 	          </div>
-	          <div class="section__head home-services-under-builds">
-	            <div>
-	              <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
-	            </div>
-	            <div><a class="btn btn--primary" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a></div>
-	          </div>
+		          <div class="section__head home-services-under-builds">
+		            <div>
+		              <p class="section__desc">{{ home_copy.services_desc|safe }}</p>
+		            </div>
+		          </div>
 	          <div class="grid grid--gallery">
 	            {% for item in home_gallery_items %}
 	              <a class="gallery-card" href="{% url 'client-dashboard' %}#services" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
 	                <div class="frame frame--media">
-	                  <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy" decoding="async">
+	                  {% if item.image %}
+	                    {% thumbnail item.image "420" quality=72 format="WEBP" as gallery_1x %}
+	                      {% thumbnail item.image "840" quality=72 format="WEBP" as gallery_2x %}
+	                        <img
+	                          src="{{ gallery_1x.url }}"
+	                          srcset="{{ gallery_1x.url }} 1x, {{ gallery_2x.url }} 2x"
+	                          width="{{ gallery_1x.width }}"
+	                          height="{{ gallery_1x.height }}"
+	                          alt="{{ item.alt }}"
+	                          loading="lazy"
+	                          decoding="async">
+	                      {% endthumbnail %}
+	                    {% endthumbnail %}
+	                  {% else %}
+	                    <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy" decoding="async">
+	                  {% endif %}
 	                </div>
 	                {% if item.title or item.caption %}
 	                  <div class="gallery-card__meta">
@@ -1288,9 +1477,9 @@
               <b>{{ home_copy.services_mobile_action_4_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_4_subtitle }}</span>
             </a>
           </div>
-          <form class="filters" role="search" method="get" action="{% url 'client-dashboard' %}">
+          <form class="filters home-search home-search--mobile" role="search" method="get" action="{% url 'client-dashboard' %}">
             <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
-            <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+            <button class="btn btn--primary" type="submit">{{ home_copy.services_search_button_label }}</button>
           </form>
         </div>
 
@@ -1309,6 +1498,7 @@
 		              {% endfor %}
 		            </select>
 		            <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+		            <a class="btn btn--primary home-search__open" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_cta_label }}</a>
 		            {% if q or active_category %}
 		              <a class="btn btn--link" href="{% url 'client-dashboard' %}#services">{{ home_copy.services_reset_filters_label }}</a>
 		            {% endif %}
@@ -1327,7 +1517,22 @@
               {% for s in search_results|slice:":8" %}
                 <article class="card">
                   <div class="card__img">
-                    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+                    {% if s.image %}
+                      {% thumbnail s.image "320" quality=72 format="WEBP" as service_1x %}
+                        {% thumbnail s.image "640" quality=72 format="WEBP" as service_2x %}
+                          <img
+                            src="{{ service_1x.url }}"
+                            srcset="{{ service_1x.url }} 1x, {{ service_2x.url }} 2x"
+                            width="{{ service_1x.width }}"
+                            height="{{ service_1x.height }}"
+                            alt="{{ s.name }}"
+                            loading="lazy"
+                            decoding="async">
+                        {% endthumbnail %}
+                      {% endthumbnail %}
+                    {% else %}
+                      <div class="ph" aria-hidden="true"></div>
+                    {% endif %}
                     {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
                   <div class="card__head">
@@ -1371,7 +1576,22 @@
 		              {% for s in home_services|slice:":8" %}
 		                <article class="card">
 		                  <div class="card__img">
-	                    {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+	                    {% if s.image %}
+	                      {% thumbnail s.image "320" quality=72 format="WEBP" as service_1x %}
+	                        {% thumbnail s.image "640" quality=72 format="WEBP" as service_2x %}
+	                          <img
+	                            src="{{ service_1x.url }}"
+	                            srcset="{{ service_1x.url }} 1x, {{ service_2x.url }} 2x"
+	                            width="{{ service_1x.width }}"
+	                            height="{{ service_1x.height }}"
+	                            alt="{{ s.name }}"
+	                            loading="lazy"
+	                            decoding="async">
+	                        {% endthumbnail %}
+	                      {% endthumbnail %}
+	                    {% else %}
+	                      <div class="ph" aria-hidden="true"></div>
+	                    {% endif %}
                     {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
                   <div class="card__head">
@@ -1415,13 +1635,12 @@
     <!-- ========================= PRODUCTS ========================= -->
 	    <section id="products" class="section">
 	      <div class="container">
-	        <div class="section__head">
-	          <div>
-	            <h2 class="section__title">{{ home_copy.products_title }}</h2>
-	            <p class="section__desc">{{ home_copy.products_desc }}</p>
-	          </div>
-	          <div><a class="btn btn--primary" href="{% url 'store' %}">{{ home_copy.products_cta_label }}</a></div>
-	        </div>
+		        <div class="section__head">
+		          <div>
+		            <h2 class="section__title">{{ home_copy.products_title }}</h2>
+		            <p class="section__desc">{{ home_copy.products_desc }}</p>
+		          </div>
+		        </div>
 
 	        <!-- Mobile products lite -->
 	        <div id="mobileProducts" class="only-mobile" aria-labelledby="productsMobileTitle">
@@ -1434,26 +1653,33 @@
 	              <b>{{ home_copy.products_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_2_subtitle }}</span>
 	            </a>
 	          </div>
+            <form class="filters home-search home-search--mobile" role="search" method="get" action="{% url 'store' %}">
+              <input class="input" type="search" name="q" placeholder="Search products…" value="">
+              <select class="select" name="cat" aria-label="Category">
+                <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
+                {% for c in product_filter_categories %}
+                  <option value="{{ c.id }}">{{ c.display_name }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn--primary" type="submit">{{ home_copy.services_search_button_label }}</button>
+            </form>
 	        </div>
 
-	        <hr class="home-divider" aria-hidden="true">
+		        <form id="productsSearchForm" class="filters home-search" role="search" method="get" action="{% url 'store' %}">
+		          <input class="input" type="search" name="q" placeholder="Search a product…" value="">
+		          <select class="select" name="cat" aria-label="Category">
+		            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
+		            {% for c in product_filter_categories %}
+		              <option value="{{ c.id }}">{{ c.display_name }}</option>
+		            {% endfor %}
+		          </select>
+			          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
+			          <a class="btn btn--primary home-search__open" href="{% url 'store' %}">{{ home_copy.products_cta_label }}</a>
+			        </form>
 
-	        <form id="productsSearchForm" class="filters home-search" role="search" method="get" action="{% url 'store' %}">
-	          <input class="input" type="search" name="q" placeholder="Search a product…" value="">
-	          <select class="select" name="cat" aria-label="Category">
-	            <option value="">{{ home_copy.services_filter_all_categories_label }}</option>
-	            {% for c in product_filter_categories %}
-	              <option value="{{ c.id }}">{{ c.display_name }}</option>
-	            {% endfor %}
-	          </select>
-	          <button class="btn btn--ghost" type="submit">{{ home_copy.services_search_button_label }}</button>
-	        </form>
-
-	        <hr class="home-divider" aria-hidden="true">
-
-	        <!-- Live product search -->
-	        <h3 id="productsLiveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
-	        <div id="productsLiveGrid" class="grid grid--products" style="display:none"></div>
+		        <!-- Live product search -->
+		        <h3 id="productsLiveTitle" class="kicker" style="display:none">{{ home_copy.services_live_results_label }}</h3>
+		        <div id="productsLiveGrid" class="grid grid--products" style="display:none"></div>
 
 	        <div id="productsServerContent">
 	          {% if home_products %}
@@ -1462,9 +1688,37 @@
 	                <article class="card">
 	                  <a href="{% url 'store-product' slug=p.slug %}">
 	                    <div class="card__img">
-	                      {% if p.main_image %}<img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
-	                      {% elif p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
-	                      {% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
+	                      {% if p.main_image_local %}
+	                        {% thumbnail p.main_image_local "320" quality=72 format="WEBP" as product_1x %}
+	                          {% thumbnail p.main_image_local "640" quality=72 format="WEBP" as product_2x %}
+	                            <img
+	                              src="{{ product_1x.url }}"
+	                              srcset="{{ product_1x.url }} 1x, {{ product_2x.url }} 2x"
+	                              width="{{ product_1x.width }}"
+	                              height="{{ product_1x.height }}"
+	                              alt="{{ p.name }}"
+	                              loading="lazy"
+	                              decoding="async">
+	                          {% endthumbnail %}
+	                        {% endthumbnail %}
+	                      {% elif p.main_image_url %}
+	                        <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	                      {% elif p.image %}
+	                        {% thumbnail p.image "320" quality=72 format="WEBP" as product_fallback_1x %}
+	                          {% thumbnail p.image "640" quality=72 format="WEBP" as product_fallback_2x %}
+	                            <img
+	                              src="{{ product_fallback_1x.url }}"
+	                              srcset="{{ product_fallback_1x.url }} 1x, {{ product_fallback_2x.url }} 2x"
+	                              width="{{ product_fallback_1x.width }}"
+	                              height="{{ product_fallback_1x.height }}"
+	                              alt="{{ p.name }}"
+	                              loading="lazy"
+	                              decoding="async">
+	                          {% endthumbnail %}
+	                        {% endthumbnail %}
+	                      {% else %}
+	                        <div class="ph" aria-hidden="true"></div>
+	                      {% endif %}
 	                      {% if p.category %}<span class="card__badge">{{ p.category.display_name }}</span>{% endif %}
 	                    </div>
 	                    <div class="card__head" style="margin-top:.35rem">
@@ -1581,52 +1835,54 @@
       </div>
     </section>
 
-    <!-- ========================= FAQ ========================= -->
-    {% if home_faq_legacy %}
-      <section class="section">
-        <div class="container">
-          <div class="section__head">
-            <h2 class="section__title">{{ home_copy.faq_title }}</h2>
-            <p class="section__desc">{{ home_copy.faq_desc }}</p>
+    <div class="home-faq-process">
+      <!-- ========================= FAQ ========================= -->
+      {% if home_faq_legacy %}
+        <section class="section home-faq">
+          <div class="container">
+            <div class="section__head">
+              <h2 class="section__title">{{ home_copy.faq_title }}</h2>
+              <p class="section__desc">{{ home_copy.faq_desc }}</p>
+            </div>
+            <div class="grid">
+              <details><summary>{{ home_copy.faq_1_question }}</summary><p>{{ home_copy.faq_1_answer }}</p></details>
+              <details><summary>{{ home_copy.faq_2_question }}</summary><p>{{ home_copy.faq_2_answer }}</p></details>
+              <details><summary>{{ home_copy.faq_3_question }}</summary><p>{{ home_copy.faq_3_answer }}</p></details>
+            </div>
           </div>
-          <div class="grid">
-            <details><summary>{{ home_copy.faq_1_question }}</summary><p>{{ home_copy.faq_1_answer }}</p></details>
-            <details><summary>{{ home_copy.faq_2_question }}</summary><p>{{ home_copy.faq_2_answer }}</p></details>
-            <details><summary>{{ home_copy.faq_3_question }}</summary><p>{{ home_copy.faq_3_answer }}</p></details>
+        </section>
+      {% elif home_faq_items %}
+        <section class="section home-faq">
+          <div class="container">
+            <div class="section__head">
+              <h2 class="section__title">{{ home_copy.faq_title }}</h2>
+              <p class="section__desc">{{ home_copy.faq_desc }}</p>
+            </div>
+            <div class="grid">
+              {% for item in home_faq_items %}
+                <details><summary>{{ item.question }}</summary><p>{{ item.answer }}</p></details>
+              {% endfor %}
+            </div>
           </div>
-        </div>
-      </section>
-    {% elif home_faq_items %}
-      <section class="section">
-        <div class="container">
-          <div class="section__head">
-            <h2 class="section__title">{{ home_copy.faq_title }}</h2>
-            <p class="section__desc">{{ home_copy.faq_desc }}</p>
-          </div>
-          <div class="grid">
-            {% for item in home_faq_items %}
-              <details><summary>{{ item.question }}</summary><p>{{ item.answer }}</p></details>
-            {% endfor %}
-          </div>
-        </div>
-      </section>
-    {% endif %}
+        </section>
+      {% endif %}
 
-    <!-- ========================= HOW IT WORKS ========================= -->
-    <section class="section">
-      <div class="container">
-        <div class="section__head">
-          <h2 class="section__title">{{ home_copy.how_title }}</h2>
-          <p class="section__desc">{{ home_copy.how_desc }}</p>
+      <!-- ========================= HOW IT WORKS ========================= -->
+      <section class="section home-process">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="section__title">{{ home_copy.how_title }}</h2>
+            <p class="section__desc">{{ home_copy.how_desc }}</p>
+          </div>
+          <div class="tiles tiles--process">
+            <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
+          </div>
         </div>
-        <div class="tiles tiles--process">
-          <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
-          <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </main>
 
   {% include "includes/site_footer.html" %}
@@ -1775,18 +2031,16 @@
 	    };
 
 	    const skel = (n=8)=> Array.from({length:n}).map(()=>'<div class="sk"></div>').join('');
-	    const showLive = ()=>{
-	      liveTitle.style.display='block';
-	      liveGrid.style.display='grid';
-	      server.style.display='none';
-	      if (featuredTitle) featuredTitle.hidden = true;
-	    }
-	    const hideLive = ()=>{
-	      liveTitle.style.display='none';
-	      liveGrid.style.display='none';
-	      server.style.display='block';
-	      if (featuredTitle) featuredTitle.hidden = false;
-	    }
+		    const showLive = ()=>{
+		      liveTitle.style.display='block';
+		      liveGrid.style.display='grid';
+		      server.style.display='none';
+		    }
+		    const hideLive = ()=>{
+		      liveTitle.style.display='none';
+		      liveGrid.style.display='none';
+		      server.style.display='block';
+		    }
 	    const esc = s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 	    const formatMoney = (val) => {
 	      const num = Number(val);

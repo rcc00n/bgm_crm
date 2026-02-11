@@ -92,6 +92,23 @@
       margin-bottom: 6px;
     }
 
+    .email-preview__brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .email-preview__brand-row .email-preview__brand {
+      margin-bottom: 0;
+    }
+
+    .email-preview__logo {
+      display: none;
+      height: 40px;
+      width: auto;
+    }
+
     .email-preview__tagline {
       font-size: 11px;
       letter-spacing: 0.2em;
@@ -267,6 +284,15 @@
       color: #9ca3af;
     }
 
+    .email-preview__contact .email-preview__brand-row {
+      justify-content: center;
+      margin-bottom: 6px;
+    }
+
+    .email-preview__contact .email-preview__logo {
+      height: 26px;
+    }
+
     .email-preview__contact .email-preview__brand {
       font-size: 12px;
       letter-spacing: 0.2em;
@@ -323,6 +349,8 @@
          data-email-preview-root
          data-email-brand="{{ email_preview_defaults.brand_name|default_if_none:''|escape }}"
          data-email-tagline="{{ email_preview_defaults.brand_tagline|default_if_none:''|escape }}"
+         data-email-logo="{{ email_preview_defaults.brand_logo_url|default_if_none:''|escape }}"
+         data-email-logo-alt="{{ email_preview_defaults.brand_logo_alt|default_if_none:''|escape }}"
          data-email-address="{{ email_preview_defaults.company_address|default_if_none:''|escape }}"
          data-email-phone="{{ email_preview_defaults.company_phone|default_if_none:''|escape }}"
          data-email-website="{{ email_preview_defaults.company_website|default_if_none:''|escape }}"
@@ -341,7 +369,10 @@
       </div>
       <div class="email-preview__canvas">
         <div class="email-preview__frame">
-          <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
+          <div class="email-preview__brand-row">
+            <img class="email-preview__logo" data-preview-logo alt="">
+            <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
+          </div>
           <div class="email-preview__tagline" data-preview-field="brand_tagline" contenteditable="true" data-placeholder="Brand tagline"></div>
           <div class="email-preview__card">
             <div class="email-preview__accent"></div>
@@ -391,7 +422,10 @@
             </div>
           </div>
           <div class="email-preview__contact">
-            <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
+            <div class="email-preview__brand-row">
+              <img class="email-preview__logo" data-preview-logo alt="">
+              <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
+            </div>
             <div data-preview-field="contact_line"></div>
           </div>
           <div class="email-preview__note">Sample rows (details/items/links) are for layout only.</div>
@@ -461,6 +495,48 @@
         return value || (fallback || '');
       };
 
+      let logoObjectUrl = null;
+      const logoFileInput = document.getElementById('id_brand_logo');
+      const logoAltInput = document.getElementById('id_brand_logo_alt');
+      const logoClearInput = document.querySelector('input[name=\"brand_logo-clear\"]');
+
+      const syncLogo = () => {
+        const logoNodes = root.querySelectorAll('[data-preview-logo]');
+        if (!logoNodes.length) return;
+
+        let src = (root.dataset.emailLogo || '').trim();
+        const cleared = logoClearInput && logoClearInput.checked;
+        if (cleared) {
+          src = '';
+        }
+
+        if (logoFileInput && logoFileInput.files && logoFileInput.files.length) {
+          if (logoObjectUrl) URL.revokeObjectURL(logoObjectUrl);
+          logoObjectUrl = URL.createObjectURL(logoFileInput.files[0]);
+          src = logoObjectUrl;
+        } else if (logoObjectUrl) {
+          URL.revokeObjectURL(logoObjectUrl);
+          logoObjectUrl = null;
+        }
+
+        let alt = (logoAltInput ? logoAltInput.value : '').trim()
+          || (root.dataset.emailLogoAlt || '').trim();
+        if (!alt) {
+          alt = resolveValue(document.getElementById('id_brand_name'), root.dataset.emailBrand || '');
+        }
+
+        logoNodes.forEach((img) => {
+          if (src) {
+            img.src = src;
+            img.style.display = 'block';
+          } else {
+            img.removeAttribute('src');
+            img.style.display = 'none';
+          }
+          img.alt = alt || '';
+        });
+      };
+
       const syncGlobalFields = () => {
         const address = resolveValue(globalFields.company_address.input, globalFields.company_address.fallback);
         const phone = resolveValue(globalFields.company_phone.input, globalFields.company_phone.fallback);
@@ -471,6 +547,7 @@
 
         const contactPieces = [address, phone, website].filter(Boolean);
         updateFieldPreview('contact_line', contactPieces.join(' | '));
+        syncLogo();
       };
 
       const syncColors = () => {
@@ -579,6 +656,12 @@
         if (!input) return;
         input.addEventListener('input', syncColors);
         input.addEventListener('change', syncColors);
+      });
+
+      [logoFileInput, logoAltInput, logoClearInput].forEach((input) => {
+        if (!input) return;
+        input.addEventListener('input', syncLogo);
+        input.addEventListener('change', syncLogo);
       });
 
       syncGlobalFields();

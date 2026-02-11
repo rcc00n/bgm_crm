@@ -161,6 +161,7 @@ urlpatterns = [
     path("services/performance-tuning/", core_views.performance_tuning_view, name="services-performance-tuning"),
     path("services/lead/", core_views.submit_service_lead, name="service-lead-submit"),
     path("project-journal/", core_views.project_journal_view, name="project-journal"),
+    path("project-journal/<slug:slug>/", core_views.project_journal_post_view, name="project-journal-post"),
     path("legal/terms/", core_views.TermsAndConditionsView.as_view(), name="legal-terms"),
     path("legal/<slug:slug>/", core_views.LegalPageView.as_view(), name="legal-page"),
 ]

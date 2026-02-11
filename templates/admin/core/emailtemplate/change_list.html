@@ -5,7 +5,7 @@
     <h2 style="margin-top: 0;">Email settings (global)</h2>
     <div class="form-container">
       <p class="help">These defaults apply to all email templates and power the preview.</p>
-      <form method="post" novalidate>
+      <form method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         <input type="hidden" name="email_settings_submit" value="1">
         {{ email_settings_form.non_field_errors }}

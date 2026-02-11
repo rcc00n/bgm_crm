@@ -314,9 +314,12 @@ class ProductImportForm(forms.Form):
         help_text="Used when the file has no currency column.",
     )
     update_existing = forms.BooleanField(
-        label="Update existing products (by SKU)",
+        label="Update existing products",
         required=False,
         initial=False,
+        help_text=(
+            "Simple mode matches by SKU. Shopify mode matches by Handle (Product.slug) first, then SKU."
+        ),
     )
     create_missing_categories = forms.BooleanField(
         label="Create missing categories",
