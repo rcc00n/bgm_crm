@@ -3,8 +3,7 @@
 
 {% block extrahead %}
   {{ block.super }}
-  {# NOTE: We intentionally avoid the {% static %} tag here to prevent hard failures
-     if the staticfiles manifest is stale/out-of-sync (common with persistent STATIC_ROOT mounts). #}
+  {# Avoid manifest-resolved static URLs here: stale STATIC_ROOT/manifest can 500 the admin. #}
   {% get_static_prefix as STATIC_PREFIX %}
   <link rel="stylesheet" href="{{ STATIC_PREFIX }}admin/css/project_journal_admin.css">
 {% endblock %}
