@@ -1,5 +1,5 @@
 
-{% load static dealer_extras thumbnail %}
+{% load static dealer_extras thumbnail marketing_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1970,7 +1970,7 @@
   {% include "includes/site_footer.html" %}
 
   <script>
-    window.__bgmSmokeThreeSrc = "{% static 'vendor/three-r160.min.js' %}";
+    window.__bgmSmokeThreeSrc = "{% safe_static 'vendor/three-r160.min.js' '' %}";
     window.__bgmSmokeThreeFallbackSrc = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js";
   </script>
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
