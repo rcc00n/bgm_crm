@@ -76,6 +76,45 @@
         imgEl.addEventListener('error', markOnce, { once: true });
       };
 
+      const recoverBrokenSrcset = (imgEl) => {
+        if (!imgEl) return false;
+        const src = imgEl.getAttribute('src') || '';
+        const srcset = imgEl.getAttribute('srcset') || '';
+        if (!src || !srcset) return false;
+        imgEl.setAttribute('srcset', '');
+        imgEl.src = src;
+        return true;
+      };
+
+      const ensureImageSourceGuard = (imgEl) => {
+        if (!imgEl || imgEl.dataset.compareGuardInit === '1') return;
+        imgEl.dataset.compareGuardInit = '1';
+
+        const maybeRecover = () => {
+          const renderable = imgEl.naturalWidth > 0 && imgEl.naturalHeight > 0;
+          if (renderable) return;
+          if (imgEl.dataset.compareSrcsetRecovered === '1') return;
+          if (!imgEl.getAttribute('srcset')) return;
+          imgEl.dataset.compareSrcsetRecovered = '1';
+          recoverBrokenSrcset(imgEl);
+        };
+
+        // If decode already failed before JS booted, recover immediately.
+        if (imgEl.complete && (imgEl.naturalWidth === 0 || imgEl.naturalHeight === 0)) {
+          maybeRecover();
+        }
+
+        imgEl.addEventListener('error', maybeRecover);
+        imgEl.addEventListener('load', () => {
+          if (imgEl.naturalWidth > 0 && imgEl.naturalHeight > 0) {
+            imgEl.dataset.compareSrcsetRecovered = '0';
+          }
+        });
+      };
+
+      ensureImageSourceGuard(before);
+      ensureImageSourceGuard(after);
+
       const ratioClasses = [
         'pj-compare--ratio-landscape',
         'pj-compare--ratio-mixed',
@@ -138,9 +177,11 @@
 
       const applyItem = (imgEl, item) => {
         if (!imgEl || !item || !item.src) return;
+        imgEl.dataset.compareSrcsetRecovered = '0';
         imgEl.src = item.src;
         imgEl.srcset = item.srcset || '';
         imgEl.alt = item.alt || imgEl.alt || '';
+        ensureImageSourceGuard(imgEl);
       };
 
       if (before && after && totalSets > 1 && prevBtn && nextBtn && pager) {
