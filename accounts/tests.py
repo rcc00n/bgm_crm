@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model
+from django.test import RequestFactory
 from django.test import TestCase
 
+from accounts.views import ClientDashboardView
 from accounts.forms import ClientProfileForm, ClientRegistrationForm
-from core.models import UserProfile
+from core.models import EmailSendLog, UserProfile
 
 
 class ClientRegistrationFormTests(TestCase):
@@ -130,3 +132,72 @@ class ClientProfileFormTests(TestCase):
         form = ClientProfileForm(data=self._base_data(), user=self.user)
         self.assertFalse(form.is_valid())
         self.assertIn("phone", form.errors)
+
+
+class ClientDashboardNotificationEmailTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="dashboard-user",
+            email="dashboard@example.com",
+            password="StrongPass123!",
+        )
+        self.other = User.objects.create_user(
+            username="other-dashboard-user",
+            email="other-dashboard@example.com",
+            password="StrongPass123!",
+        )
+        self.factory = RequestFactory()
+
+    def _build_context(self, user):
+        request = self.factory.get("/accounts/dashboard/")
+        request.user = user
+        view = ClientDashboardView()
+        view.request = request
+        return view.get_context_data()
+
+    def test_notifications_include_only_successful_emails_for_current_user(self):
+        EmailSendLog.objects.create(
+            email_type="appointment_confirmation",
+            subject="Your booking is confirmed",
+            recipients=[self.user.email],
+            recipient_count=1,
+            success=True,
+        )
+        EmailSendLog.objects.create(
+            email_type="order_confirmation",
+            subject="Another user's order",
+            recipients=[self.other.email],
+            recipient_count=1,
+            success=True,
+        )
+        EmailSendLog.objects.create(
+            email_type="order_confirmation",
+            subject="Failed send",
+            recipients=[self.user.email],
+            recipient_count=1,
+            success=False,
+        )
+
+        context = self._build_context(self.user)
+        notifications = context["notification_emails"]
+
+        self.assertEqual(len(notifications), 1)
+        self.assertEqual(notifications[0]["title"], "Your booking is confirmed")
+        self.assertEqual(notifications[0]["tag"], "Appointment")
+
+    def test_notifications_match_recipient_case_insensitively(self):
+        EmailSendLog.objects.create(
+            email_type="email_verification",
+            subject="Verify your email",
+            recipients=[self.user.email.upper()],
+            recipient_count=1,
+            success=True,
+        )
+
+        context = self._build_context(self.user)
+        notifications = context["notification_emails"]
+
+        self.assertEqual(len(notifications), 1)
+        self.assertEqual(notifications[0]["title"], "Verify your email")
+        self.assertEqual(notifications[0]["tag"], "Account")
