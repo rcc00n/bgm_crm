@@ -650,6 +650,11 @@ class HomeView(TemplateView):
                         "alt": asset.get("alt") or "",
                         "title": asset.get("title") or "",
                         "caption": asset.get("caption") or "",
+                        "fallback_srcset_avif": asset.get("fallback_srcset_avif") or "",
+                        "fallback_srcset_webp": asset.get("fallback_srcset_webp") or "",
+                        "fallback_srcset_jpg": asset.get("fallback_srcset_jpg") or "",
+                        "fallback_width": asset.get("fallback_width"),
+                        "fallback_height": asset.get("fallback_height"),
                         "url": gallery_url,
                     }
                 )

@@ -1349,8 +1349,8 @@
                    data-caption="{{ slide.caption|default:hero_media.caption }}"
                    aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
                 {% if slide.image %}
-                  {% thumbnail slide.image "1200" quality=74 format="WEBP" as hero_1x %}
-                    {% thumbnail slide.image "2000" quality=74 format="WEBP" as hero_2x %}
+                  {% thumbnail slide.image "900" quality=68 format="WEBP" as hero_1x %}
+                    {% thumbnail slide.image "1300" quality=68 format="WEBP" as hero_2x %}
                       <img
                         src="{{ hero_1x.url }}"
                         srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
@@ -1391,8 +1391,8 @@
           {% else %}
             <div class="hero__slide is-active" data-hero-slide data-caption="{{ hero_media.caption }}" aria-hidden="false">
               {% if hero_media.image %}
-                {% thumbnail hero_media.image "1200" quality=74 format="WEBP" as hero_1x %}
-                  {% thumbnail hero_media.image "2000" quality=74 format="WEBP" as hero_2x %}
+                {% thumbnail hero_media.image "900" quality=68 format="WEBP" as hero_1x %}
+                  {% thumbnail hero_media.image "1300" quality=68 format="WEBP" as hero_2x %}
                     <img
                       src="{{ hero_1x.url }}"
                       srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
@@ -1492,11 +1492,11 @@
 	              <a class="gallery-card" href="{% url 'client-dashboard' %}#services" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
 	                <div class="frame frame--media">
 		                  {% if item.image %}
-		                    {% thumbnail item.image "420" quality=66 format="WEBP" as gallery_1x %}
-		                      {% thumbnail item.image "840" quality=66 format="WEBP" as gallery_2x %}
+		                    {% thumbnail item.image "320" quality=62 format="WEBP" as gallery_1x %}
+		                      {% thumbnail item.image "640" quality=62 format="WEBP" as gallery_2x %}
 		                        <img
 		                          src="{{ gallery_1x.url }}"
-		                          srcset="{{ gallery_1x.url }} 420w, {{ gallery_2x.url }} 840w"
+		                          srcset="{{ gallery_1x.url }} 320w, {{ gallery_2x.url }} 640w"
                               sizes="(max-width: 600px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 25vw, 300px"
 		                          width="{{ gallery_1x.width }}"
 		                          height="{{ gallery_1x.height }}"
