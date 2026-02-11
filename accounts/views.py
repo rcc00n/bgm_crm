@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -20,7 +20,7 @@ from django.views.generic.edit import CreateView
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.db.models import OuterRef, Subquery, Count
+from django.db.models import OuterRef, Subquery, Count, Q
 from django.db.models.functions import TruncMonth
 from django.conf import settings
 from django.template.defaultfilters import filesizeformat
@@ -30,6 +30,7 @@ from core.models import (
     Service,
     Appointment,
     AppointmentStatusHistory,
+    EmailSendLog,
     ClientReview,
     ClientFile,
     ClientPortalPageCopy,
@@ -38,10 +39,12 @@ from core.models import (
     PageFontSetting,
 )
 from core.services.fonts import build_page_font_context
+from core.services.email_reporting import describe_email_types
 from core.services.media import build_home_gallery_media
 from core.services.page_sections import get_page_sections
 from core.emails import build_email_html, send_html_email
 from core.email_templates import email_brand_name, join_text_sections
+from store.models import Order
 
 from .forms import (
     ClientRegistrationForm,
@@ -244,8 +247,10 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
         now = timezone.now()
+        local_today = timezone.localdate()
 
         ctx["portal_copy"] = ClientPortalPageCopy.get_solo()
+        ctx["now"] = now
         # профиль может отсутствовать → None
         ctx["profile"] = getattr(user, "userprofile", None)
 
@@ -287,16 +292,114 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         ctx["upcoming_appointments"] = upcoming_qs
         ctx["next_appointment"] = upcoming_qs.first()  # для обратной совместимости
 
-        # статистика по месяцам (для графика)
-        month_counts = (
-            qs.filter(start_time__year=now.year)
-              .annotate(month=TruncMonth("start_time"))
-              .values("month")
-              .annotate(cnt=Count("id"))
-              .order_by("month")
+        # Chart stats for exactly 6 months, including empty months.
+        this_month_start = local_today.replace(day=1)
+        month_starts: list[date] = []
+        for offset in range(5, -1, -1):
+            month = this_month_start.month - offset
+            year = this_month_start.year
+            while month <= 0:
+                month += 12
+                year -= 1
+            month_starts.append(date(year, month, 1))
+
+        range_start = month_starts[0]
+        range_end = date(
+            this_month_start.year + (1 if this_month_start.month == 12 else 0),
+            1 if this_month_start.month == 12 else this_month_start.month + 1,
+            1,
         )
-        ctx["chart_labels"] = [m["month"].strftime("%b") for m in month_counts]
-        ctx["chart_data"] = [m["cnt"] for m in month_counts]
+        month_counts = (
+            qs.filter(start_time__date__gte=range_start, start_time__date__lt=range_end)
+            .annotate(month=TruncMonth("start_time"))
+            .values("month")
+            .annotate(cnt=Count("id"))
+            .order_by("month")
+        )
+        count_by_month: dict[tuple[int, int], int] = {}
+        for row in month_counts:
+            month_value = row.get("month")
+            if not month_value:
+                continue
+            local_month = timezone.localtime(month_value)
+            count_by_month[(local_month.year, local_month.month)] = int(row.get("cnt") or 0)
+
+        chart_labels = [start.strftime("%b %Y") for start in month_starts]
+        chart_data = [count_by_month.get((start.year, start.month), 0) for start in month_starts]
+        chart_hint_data = [1 for _ in month_starts]
+        ctx["chart_labels"] = chart_labels
+        ctx["chart_data"] = chart_data
+        ctx["chart_hint_data"] = chart_hint_data
+
+        # Orders: first by FK user, fallback by email for legacy records.
+        orders_base = (
+            Order.objects
+            .select_related("user")
+            .prefetch_related("items__product", "items__option")
+            .order_by("-id")
+        )
+        orders_qs = orders_base.filter(user=user)
+        if not orders_qs.exists() and user.email:
+            orders_qs = orders_base.filter(email__iexact=user.email)
+        orders = list(orders_qs[:30])
+        for order in orders:
+            image_url = ""
+            if getattr(order, "reference_image", None):
+                try:
+                    image_url = order.reference_image.url
+                except Exception:
+                    image_url = ""
+            if not image_url:
+                for item in order.items.all():
+                    product = getattr(item, "product", None)
+                    candidate = getattr(product, "main_image_url", "") if product else ""
+                    if candidate:
+                        image_url = candidate
+                        break
+            order.portal_image_url = image_url
+        ctx["orders"] = orders
+
+        # Email history for the current user, formatted for non-technical UI.
+        user_email = (user.email or "").strip().lower()
+        email_feed = []
+        if user_email:
+            recent_logs = list(
+                EmailSendLog.objects
+                .filter(sent_at__gte=now - timedelta(days=365))
+                .only("email_type", "subject", "recipients", "success", "sent_at")
+                .order_by("-sent_at")[:500]
+            )
+
+            matched_logs = []
+            for log in recent_logs:
+                recipients = log.recipients if isinstance(log.recipients, list) else []
+                normalized = {
+                    str(recipient).strip().lower()
+                    for recipient in recipients
+                    if recipient
+                }
+                if user_email in normalized:
+                    matched_logs.append(log)
+
+            matched_logs = matched_logs[:30]
+            type_meta = describe_email_types([log.email_type for log in matched_logs])
+            for log in matched_logs:
+                reason = type_meta.get(log.email_type, {})
+                kind_label = (reason.get("label") or "Email update").strip()
+                about_label = (reason.get("description") or "").strip()
+                subject = (log.subject or "").strip()
+                email_feed.append(
+                    {
+                        "sent_at": log.sent_at,
+                        "kind_label": kind_label,
+                        "headline": subject or kind_label,
+                        "about_label": about_label,
+                        "status_label": "Delivered" if log.success else "Delivery issue",
+                        "is_success": bool(log.success),
+                    }
+                )
+
+        ctx["email_feed"] = email_feed
 
         return ctx
 
@@ -684,9 +787,7 @@ class MerchPlaceholderView(TemplateView):
         return ctx
 
 # accounts/views.py
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView, DetailView
-from store.models import Order
+from django.views.generic import DetailView
 
 class OrdersListView(LoginRequiredMixin, ListView):
     template_name = "client/orders_list.html"
@@ -694,7 +795,7 @@ class OrdersListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        qs = Order.objects.select_related("user").prefetch_related("orderitem_set__product").order_by("-created_at")
+        qs = Order.objects.select_related("user").prefetch_related("items__product").order_by("-id")
         # лучший вариант — по FK на пользователя
         qs_user = qs.filter(user=self.request.user)
         if qs_user.exists():
@@ -711,6 +812,6 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
     pk_url_kwarg = "pk"
 
     def get_queryset(self):
-        qs = super().get_queryset().select_related("user").prefetch_related("orderitem_set__product")
+        qs = super().get_queryset().select_related("user").prefetch_related("items__product")
         # та же защита доступа
-        return qs.filter(models.Q(user=self.request.user) | models.Q(email__iexact=self.request.user.email))
+        return qs.filter(Q(user=self.request.user) | Q(email__iexact=self.request.user.email))

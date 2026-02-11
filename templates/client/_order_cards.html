@@ -2,7 +2,14 @@
 {% if orders %}
   <div class="space-y-3">
     {% for o in orders %}
-      <div class="panel panel-pad">
+      <div class="panel panel-pad is-clickable order-open"
+           tabindex="0"
+           role="button"
+           aria-label="Open order details"
+           data-order-id="{{ o.id }}"
+           data-order-status="{{ o.status_label|default:o.get_status_display|default:o.status|escape }}"
+           data-order-total="{{ o.total|money }}"
+           data-order-image="{% if o.portal_image_url %}{{ o.portal_image_url }}{% elif o.reference_image %}{{ o.reference_image.url }}{% endif %}">
         <div class="flex flex-wrap items-center gap-3">
           <div class="text-sm muted">Order</div>
           <div class="font-bold">#{{ o.id }}</div>
@@ -18,7 +25,10 @@
           {% if items %}
             <div class="mt-3 border-t border-[color:var(--grid)] pt-3">
               {% for it in items %}
-                <div class="flex items-center justify-between py-1 text-sm">
+                <div class="flex items-center justify-between py-1 text-sm js-order-item"
+                     data-item-name="{{ it.product.name|escape }}"
+                     data-item-qty="{{ it.qty }}"
+                     data-item-subtotal="{{ it.subtotal|money }}">
                   <div class="truncate">
                     <span class="font-semibold">{{ it.product.name }}</span>
                     {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
@@ -44,6 +54,7 @@
             </div>
           </div>
         {% endif %}
+        <p class="click-hint mt-3">Tap to view details</p>
       </div>
     {% endfor %}
   </div>
