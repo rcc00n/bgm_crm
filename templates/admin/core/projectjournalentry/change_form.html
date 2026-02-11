@@ -1,0 +1,42 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin/css/project_journal_admin.css' %}">
+{% endblock %}
+
+{% block after_field_sets %}
+  {{ block.super }}
+
+  <div class="module pj-preview-module">
+    <h2 style="margin-top:0;">Live preview (feed card)</h2>
+    <p class="help pj-admin-hint">
+      Tip: drag & drop images into the Before/After sections. Publishing is blocked unless both exist.
+      Drag rows to reorder; sort order updates automatically.
+    </p>
+
+    <div class="pj-live-preview" data-pj-preview>
+      <div class="pj-live-preview__compare" aria-label="Before and after preview">
+        <div class="pj-live-preview__frame">
+          <span class="pj-live-preview__label">Before</span>
+          <img data-preview-image="before" alt="" style="display:none;">
+        </div>
+        <div class="pj-live-preview__frame">
+          <span class="pj-live-preview__label">After</span>
+          <img data-preview-image="after" alt="" style="display:none;">
+        </div>
+      </div>
+
+      <h3 class="pj-live-preview__title" data-preview-field="title">Untitled build</h3>
+      <p class="pj-live-preview__highlight" data-preview-field="highlight" style="display:none;"></p>
+      <p class="pj-live-preview__excerpt" data-preview-field="excerpt">Short summary…</p>
+
+      <div class="pj-live-preview__chips" data-preview-field="chips"></div>
+      <div class="pj-live-preview__cta" data-preview-field="ctas"></div>
+    </div>
+  </div>
+
+  <script src="{% static 'admin/js/project_journal_admin.js' %}"></script>
+{% endblock %}
+

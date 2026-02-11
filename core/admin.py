@@ -21,6 +21,7 @@ from django.template.defaultfilters import filesizeformat
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.admin import GenericStackedInline
+from django.forms.models import BaseInlineFormSet
 from django.http import JsonResponse
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.views.decorators.csrf import csrf_exempt
@@ -4931,17 +4932,118 @@ class EmailSendLogAdmin(admin.ModelAdmin):
         "sent_at",
     )
 
-class ProjectJournalPhotoInline(admin.TabularInline):
-    model = ProjectJournalPhoto
+@admin.register(ProjectJournalCategory)
+class ProjectJournalCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "is_active", "sort_order")
+    list_editable = ("is_active", "sort_order")
+    search_fields = ("name", "slug")
+    prepopulated_fields = {"slug": ("name",)}
+    ordering = ("sort_order", "name")
+
+
+class _ProjectJournalFixedKindPhotoFormSet(BaseInlineFormSet):
+    fixed_kind = ""
+    require_message = "At least one photo is required."
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+
+        status = (self.data.get("status") or "").strip()
+        if status != ProjectJournalEntry.Status.PUBLISHED:
+            return
+
+        kept = 0
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data"):
+                continue
+            if form.cleaned_data.get("DELETE"):
+                continue
+            image = form.cleaned_data.get("image") or getattr(form.instance, "image", None)
+            if image:
+                kept += 1
+
+        if kept < 1:
+            gallery_field = "before_gallery" if self.fixed_kind == ProjectJournalPhoto.Kind.BEFORE else "after_gallery"
+            raw_gallery = (self.data.get(gallery_field) or "").strip()
+            # Allow legacy/manual JSON gallery values (compat path).
+            if raw_gallery and raw_gallery not in {"[]", "null", "None"}:
+                return
+            if getattr(self.instance, gallery_field, None):
+                return
+            raise ValidationError(self.require_message)
+
+    def save_new(self, form, commit=True):
+        obj = super().save_new(form, commit=False)
+        if self.fixed_kind:
+            obj.kind = self.fixed_kind
+        if commit:
+            obj.save()
+        return obj
+
+    def save_existing(self, form, instance, commit=True):
+        obj = super().save_existing(form, instance, commit=False)
+        if self.fixed_kind:
+            obj.kind = self.fixed_kind
+        if commit:
+            obj.save()
+        return obj
+
+
+class ProjectJournalBeforePhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
+    fixed_kind = ProjectJournalPhoto.Kind.BEFORE
+    require_message = "To publish, add at least one BEFORE photo."
+
+
+class ProjectJournalAfterPhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
+    fixed_kind = ProjectJournalPhoto.Kind.AFTER
+    require_message = "To publish, add at least one AFTER photo."
+
+
+class _ProjectJournalPhotoInline(admin.TabularInline):
     extra = 1
-    fields = ("kind", "image", "alt_text", "sort_order")
+    fields = ("image_preview", "image", "alt_text", "sort_order")
+    readonly_fields = ("image_preview",)
     ordering = ("sort_order", "created_at")
+
+    @admin.display(description="Preview")
+    def image_preview(self, obj):
+        if not obj or not getattr(obj, "image", None):
+            return "—"
+        try:
+            url = obj.image.url
+        except Exception:
+            return "—"
+        return format_html(
+            '<img src="{}" alt="" style="height:64px;width:96px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb;">',
+            url,
+        )
+
+
+class ProjectJournalBeforePhotoInline(_ProjectJournalPhotoInline):
+    model = ProjectJournalBeforePhoto
+    formset = ProjectJournalBeforePhotoFormSet
+    verbose_name_plural = "Before media"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.BEFORE)
+
+
+class ProjectJournalAfterPhotoInline(_ProjectJournalPhotoInline):
+    model = ProjectJournalAfterPhoto
+    formset = ProjectJournalAfterPhotoFormSet
+    verbose_name_plural = "After media"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.AFTER)
 
 
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
+    change_form_template = "admin/core/projectjournalentry/change_form.html"
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
-    list_filter = ("status", "featured", "published_at")
+    list_filter = ("status", "featured", "published_at", "categories")
     search_fields = (
         "title",
         "excerpt",
@@ -4956,9 +5058,9 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
         "services",
     )
     ordering = ("-published_at", "-updated_at")
-    readonly_fields = ("created_at", "updated_at", "published_at", "preview_link")
+    readonly_fields = ("created_at", "updated_at", "preview_link")
     prepopulated_fields = {"slug": ("title",)}
-    inlines = (ProjectJournalPhotoInline,)
+    inlines = (ProjectJournalBeforePhotoInline, ProjectJournalAfterPhotoInline)
     fieldsets = (
         ("Story", {
             "fields": (
@@ -4968,6 +5070,13 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
                 "excerpt",
                 "cover_image",
                 "result_highlight",
+            )
+        }),
+        ("Calls to action", {
+            "fields": (
+                ("cta_primary_label", "cta_primary_url"),
+                ("cta_secondary_label", "cta_secondary_url"),
+                ("cta_tertiary_label", "cta_tertiary_url"),
             )
         }),
         ("Photo comparison (manual URLs)", {
@@ -4992,6 +5101,7 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
                 "location",
                 "services",
                 "reading_time",
+                "categories",
                 "tags",
             )
         }),
@@ -5031,12 +5141,23 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
     @admin.action(description="Publish selected posts")
     def mark_as_published(self, request, queryset):
         updated = 0
+        skipped = 0
         for entry in queryset:
             if entry.status != entry.Status.PUBLISHED:
+                if not entry.is_publishable():
+                    skipped += 1
+                    continue
                 entry.status = entry.Status.PUBLISHED
                 entry.save()
                 updated += 1
-        self.message_user(request, f"Published {updated} post(s).")
+        if updated:
+            self.message_user(request, f"Published {updated} post(s).")
+        if skipped:
+            self.message_user(
+                request,
+                f"Skipped {skipped} post(s): missing before/after media.",
+                level=messages.WARNING,
+            )
 
     @admin.action(description="Move selected posts to draft")
     def mark_as_draft(self, request, queryset):

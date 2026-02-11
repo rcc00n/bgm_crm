@@ -21,6 +21,7 @@ from django.utils.html import strip_tags
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import validate_email
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.core.paginator import Paginator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.urls import reverse
 from django.template.response import TemplateResponse
@@ -38,6 +39,7 @@ from core.models import (
     CustomUserDisplay,
     AppointmentStatusHistory,
     LegalPage,
+    ProjectJournalCategory,
     ProjectJournalEntry,
     PageView,
     VisitorSession,
@@ -2185,104 +2187,175 @@ def submit_service_lead(request):
     return HttpResponseRedirect(_lead_redirect_target(request))
 
 
+@require_GET
 def project_journal_view(request):
-    tag_filter = (request.GET.get("tag") or "").strip()
-    normalized_tag = tag_filter.lower()
+    def _normalize_gallery(raw):
+        items = []
+        if not isinstance(raw, list):
+            return items
+        for entry in raw:
+            if isinstance(entry, dict):
+                url = (entry.get("url") or "").strip()
+                alt = (entry.get("alt") or "").strip()
+            else:
+                url = str(entry or "").strip()
+                alt = ""
+            if not url:
+                continue
+            items.append({"url": url, "alt": alt})
+        return items
 
-    published_posts = list(ProjectJournalEntry.objects.published().prefetch_related("photos"))
-    available_tags = sorted(
-        {tag for post in published_posts for tag in post.tag_list},
-        key=lambda tag: tag.lower(),
+    q = (request.GET.get("q") or "").strip()
+    sort = (request.GET.get("sort") or "featured").strip().lower()
+    category_slugs = list(request.GET.getlist("cat"))
+    if not category_slugs:
+        raw = (request.GET.get("cat") or "").strip()
+        if raw and "," in raw:
+            category_slugs = [seg.strip() for seg in raw.split(",") if seg.strip()]
+
+    qs = (
+        ProjectJournalEntry.objects.published()
+        .prefetch_related("photos", "categories")
     )
 
-    if normalized_tag:
-        visible_posts = [
-            post for post in published_posts
-            if any(tag.lower() == normalized_tag for tag in post.tag_list)
-        ]
-    else:
-        visible_posts = published_posts
-
-    featured_post = next((post for post in visible_posts if post.featured), None)
-    if not featured_post and visible_posts:
-        featured_post = visible_posts[0]
-
-    remaining_posts = [
-        post for post in visible_posts
-        if not featured_post or post.pk != featured_post.pk
-    ]
-    gallery_posts = list(visible_posts)
-
-    project_payload = []
-    for post in gallery_posts:
-        published_label = ""
-        if post.published_at:
-            published_label = timezone.localtime(post.published_at).strftime("%b %d, %Y")
-        before_images = []
-        after_images = []
-        photos = list(getattr(post, "photos", []).all()) if hasattr(post, "photos") else []
-        if photos:
-            before_images = [
-                {"url": photo.image.url, "alt": photo.alt_text or ""}
-                for photo in photos
-                if photo.kind == "before" and photo.image
-            ]
-            after_images = [
-                {"url": photo.image.url, "alt": photo.alt_text or ""}
-                for photo in photos
-                if photo.kind == "after" and photo.image
-            ]
-
-        if not before_images:
-            before_gallery = post.before_gallery or []
-            if isinstance(before_gallery, list):
-                before_images = list(before_gallery)
-        if not after_images:
-            after_gallery = post.after_gallery or []
-            if isinstance(after_gallery, list):
-                after_images = list(after_gallery)
-        if not before_images and post.cover_image:
-            before_images = [{"url": post.cover_image.url, "alt": f"{post.title} before"}]
-        if not after_images and post.cover_image:
-            after_images = [{"url": post.cover_image.url, "alt": f"{post.title} after"}]
-        project_payload.append(
-            {
-                "id": str(post.pk),
-                "slug": post.slug,
-                "title": post.title,
-                "hero_title": post.hero_title,
-                "excerpt": post.excerpt or "",
-                "overview": post.overview or "",
-                "parts": post.parts or "",
-                "customizations": post.customizations or "",
-                "backstory": post.backstory or "",
-                "body": post.body or "",
-                "result_highlight": post.result_highlight or "",
-                "client_name": post.client_name or "",
-                "location": post.location or "",
-                "reading_time": post.reading_time or 0,
-                "published_label": published_label,
-                "before_images": before_images,
-                "after_images": after_images,
-                "cover_image": post.cover_image.url if post.cover_image else "",
-                "services": post.services_list,
-                "tags": post.tag_list,
-            }
+    if q:
+        qs = qs.filter(
+            Q(title__icontains=q)
+            | Q(excerpt__icontains=q)
+            | Q(tags__icontains=q)
+            | Q(overview__icontains=q)
+            | Q(parts__icontains=q)
+            | Q(customizations__icontains=q)
+            | Q(backstory__icontains=q)
+            | Q(body__icontains=q)
         )
 
+    if category_slugs:
+        qs = qs.filter(categories__slug__in=category_slugs).distinct()
+
+    if sort == "newest":
+        qs = qs.order_by("-published_at", "-created_at")
+    else:
+        # Default: "featured" behavior, still shows everything.
+        qs = qs.order_by("-featured", "-published_at", "-created_at")
+
+    paginator = Paginator(qs, 8)
+    page_number = request.GET.get("page") or 1
+    page_obj = paginator.get_page(page_number)
+
+    posts = list(page_obj.object_list)
+    for post in posts:
+        photos = list(getattr(post, "photos", []).all()) if hasattr(post, "photos") else []
+        before_photos = [p for p in photos if p.kind == "before" and getattr(p, "image", None)]
+        after_photos = [p for p in photos if p.kind == "after" and getattr(p, "image", None)]
+
+        legacy_before = _normalize_gallery(getattr(post, "before_gallery", None) or [])
+        legacy_after = _normalize_gallery(getattr(post, "after_gallery", None) or [])
+
+        post.before_photos = before_photos
+        post.after_photos = after_photos
+        post.legacy_before = legacy_before
+        post.legacy_after = legacy_after
+
+    available_categories = list(
+        ProjectJournalCategory.objects.filter(is_active=True).order_by("sort_order", "name")
+    )
+
+    def _build_url(**overrides):
+        params = request.GET.copy()
+        for key, value in overrides.items():
+            if value is None:
+                params.pop(key, None)
+            else:
+                params[key] = str(value)
+        return f"{reverse('project-journal')}?{params.urlencode()}" if params else reverse("project-journal")
+
+    next_page_url = ""
+    next_page_fragment_url = ""
+    if page_obj.has_next():
+        next_page_url = _build_url(page=page_obj.next_page_number())
+        next_page_fragment_url = _build_url(page=page_obj.next_page_number(), fragment=1)
+
     context = {
-        "featured_post": featured_post,
-        "journal_posts": remaining_posts,
-        "gallery_posts": gallery_posts,
-        "project_payload": project_payload,
-        "available_tags": available_tags,
-        "tag_filter": tag_filter,
-        "has_posts": bool(visible_posts),
-        "page_title": "Project Journal",
-        "meta_description": "Quiet corner of Bad Guy Motors where we document completed builds, wraps, and custom work.",
+        "posts": posts,
+        "page_obj": page_obj,
+        "available_categories": available_categories,
+        "active_categories": category_slugs,
+        "q": q,
+        "sort": sort,
+        "has_posts": bool(posts),
+        "next_page_url": next_page_url,
+        "next_page_fragment_url": next_page_fragment_url,
+        "page_title": "Builds",
+        "meta_description": "Before-and-after build highlights from Bad Guy Motors. Fast scans, clean comparisons, zero fluff.",
         "font_settings": build_page_font_context(PageFontSetting.Page.PROJECT_JOURNAL),
     }
+
+    if request.GET.get("fragment") == "1":
+        return render(request, "client/project_journal_feed_items.html", context)
+
     return render(request, "client/project_journal.html", context)
+
+
+@require_GET
+def project_journal_post_view(request, slug: str):
+    def _normalize_gallery(raw):
+        items = []
+        if not isinstance(raw, list):
+            return items
+        for entry in raw:
+            if isinstance(entry, dict):
+                url = (entry.get("url") or "").strip()
+                alt = (entry.get("alt") or "").strip()
+            else:
+                url = str(entry or "").strip()
+                alt = ""
+            if not url:
+                continue
+            items.append({"url": url, "alt": alt})
+        return items
+
+    post = get_object_or_404(
+        ProjectJournalEntry.objects.published().prefetch_related("photos", "categories"),
+        slug=slug,
+    )
+
+    photos = list(getattr(post, "photos", []).all()) if hasattr(post, "photos") else []
+    before_photos = [p for p in photos if p.kind == "before" and getattr(p, "image", None)]
+    after_photos = [p for p in photos if p.kind == "after" and getattr(p, "image", None)]
+
+    legacy_before = _normalize_gallery(getattr(post, "before_gallery", None) or [])
+    legacy_after = _normalize_gallery(getattr(post, "after_gallery", None) or [])
+
+    post.before_photos = before_photos
+    post.after_photos = after_photos
+    post.legacy_before = legacy_before
+    post.legacy_after = legacy_after
+
+    og_image = ""
+    if after_photos and after_photos[0].image:
+        og_image = after_photos[0].image.url
+    elif before_photos and before_photos[0].image:
+        og_image = before_photos[0].image.url
+    elif post.cover_image:
+        og_image = post.cover_image.url
+    elif legacy_after:
+        og_image = legacy_after[0]["url"]
+    elif legacy_before:
+        og_image = legacy_before[0]["url"]
+
+    meta_title = f"{post.title} | Bad Guy Motors"
+    meta_description = (post.excerpt or post.result_highlight or "Before/after build highlight from Bad Guy Motors.").strip()
+    context = {
+        "post": post,
+        "page_title": post.title,
+        "meta_title": meta_title,
+        "meta_description": meta_description,
+        "meta_section": "builds",
+        "meta_image": og_image,
+        "font_settings": build_page_font_context(PageFontSetting.Page.PROJECT_JOURNAL),
+    }
+    return render(request, "client/project_journal_post.html", context)
 
 
 class LegalPageView(TemplateView):
