@@ -50,6 +50,7 @@ from .forms import (
     ClientProfileForm,
     VerifiedLoginForm,
 )
+from store.models import Order
 
 CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
 CLIENT_PORTAL_FILE_MAX_BYTES = CLIENT_PORTAL_FILE_MAX_MB * 1024 * 1024
@@ -318,6 +319,38 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
             .order_by("-uploaded_at")
         )
         ctx["client_file_max_mb"] = CLIENT_PORTAL_FILE_MAX_MB
+
+        orders_qs = (
+            Order.objects
+            .select_related("user")
+            .prefetch_related("items__product", "items__option")
+            .filter(user=user)
+            .order_by("-id")
+        )
+        orders = list(orders_qs)
+        if not orders:
+            email = (user.email or "").strip()
+            if email:
+                orders = list(
+                    Order.objects
+                    .select_related("user")
+                    .prefetch_related("items__product", "items__option")
+                    .filter(email__iexact=email)
+                    .order_by("-id")
+                )
+
+        for order in orders:
+            preview_image_url = ""
+            for item in order.items.all():
+                product = getattr(item, "product", None)
+                if not product:
+                    continue
+                candidate = getattr(product, "main_image_url", "") or ""
+                if candidate:
+                    preview_image_url = candidate
+                    break
+            order.preview_image_url = preview_image_url
+        ctx["orders"] = orders
 
         # прошлые и будущие
         ctx["recent_appointments"] = qs.filter(start_time__lt=now)[:5]

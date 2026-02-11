@@ -48,7 +48,26 @@
     h1,h2,h3{color:#fff}
     .kicker{color:var(--muted)}
 
-    .panel{background:var(--panel); border:1px solid var(--grid); border-radius:var(--radius); box-shadow:var(--shadow)}
+    .panel{
+      background:
+        linear-gradient(155deg, rgba(255,255,255,.06), rgba(255,255,255,.02) 62%),
+        var(--panel);
+      border:1px solid var(--grid);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .panel::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:0;
+      right:0;
+      height:1px;
+      background:linear-gradient(90deg, rgba(213,0,0,.45), rgba(255,255,255,.04), rgba(213,0,0,.22));
+      pointer-events:none;
+    }
     .panel-strong{background:var(--panel-2)}
     .panel-pad{padding:1.25rem}
     .table th{background:rgba(213,0,0,.18); color:#fff}
@@ -121,6 +140,38 @@
       border-radius:.6rem;
       padding:.6rem .8rem;
       font-size:.95rem;
+    }
+    #resMaster{
+      width:100%;
+      background:#0a0a0a;
+      color:#fff;
+      color-scheme:dark;
+      border:1px solid var(--grid);
+      border-radius:.6rem;
+      padding:.62rem .85rem;
+      font-size:.95rem;
+      line-height:1.2;
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, rgba(255,255,255,.7) 50%),
+        linear-gradient(135deg, rgba(255,255,255,.7) 50%, transparent 50%);
+      background-position:
+        calc(100% - 20px) calc(50% - 3px),
+        calc(100% - 14px) calc(50% - 3px);
+      background-size:6px 6px, 6px 6px;
+      background-repeat:no-repeat;
+      padding-right:2.2rem;
+    }
+    #resMaster:focus{
+      outline:none;
+      border-color:rgba(213,0,0,.55);
+      box-shadow:0 0 0 2px rgba(213,0,0,.24);
+    }
+    #resMaster option{
+      background:#101010;
+      color:#fff;
     }
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
     .hint{color:var(--muted-2);font-size:.85rem}
@@ -542,6 +593,22 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       box-shadow:0 12px 24px rgba(0,0,0,.32), 0 0 16px rgba(213,0,0,.12);
       transform:translateY(-1px);
     }
+    .upcoming-item__row{
+      display:flex;
+      align-items:center;
+      gap:.8rem;
+    }
+    .upcoming-item__media{
+      width:54px;
+      height:54px;
+      border-radius:12px;
+      object-fit:cover;
+      border:1px solid rgba(255,255,255,.14);
+      background:#101010;
+      box-shadow:0 10px 16px rgba(0,0,0,.35);
+      flex-shrink:0;
+    }
+    .upcoming-item__copy{min-width:0}
     .upcoming-item .appt-actions{
       margin-top:.7rem;
     }
@@ -553,11 +620,33 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     .appt-card{
       cursor:pointer;
       transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+      gap:.95rem;
     }
     .appt-card:hover{
       border-color:rgba(213,0,0,.4);
       box-shadow:0 12px 26px rgba(0,0,0,.32), 0 0 18px rgba(213,0,0,.14);
       transform:translateY(-1px);
+    }
+    .appt-card__media{
+      width:74px;
+      height:74px;
+      border-radius:14px;
+      object-fit:cover;
+      border:1px solid rgba(255,255,255,.15);
+      box-shadow:0 10px 20px rgba(0,0,0,.34);
+      background:#101010;
+      flex-shrink:0;
+    }
+    .appt-main{min-width:0}
+    .appt-main .muted{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .appt-card .appt-actions{
+      margin-left:auto;
+      flex-wrap:wrap;
+      justify-content:flex-end;
     }
     .appt-card:focus-visible{
       outline:2px solid var(--ring);
@@ -614,6 +703,21 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       flex-direction:column;
       gap:.9rem;
     }
+    .appt-modal__media{
+      width:100%;
+      height:170px;
+      border-radius:.85rem;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.12);
+      background:linear-gradient(140deg, rgba(213,0,0,.18), rgba(255,255,255,.02));
+      box-shadow:0 12px 24px rgba(0,0,0,.32);
+    }
+    .appt-modal__media img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
     .appt-modal__headline{
       display:flex;
       align-items:flex-start;
@@ -652,6 +756,32 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       font-weight:800;
       color:#fff;
       text-align:right;
+    }
+    .order-item-media{
+      width:42px;
+      height:42px;
+      object-fit:cover;
+      border-radius:.6rem;
+      border:1px solid rgba(255,255,255,.12);
+      background:#121212;
+      flex-shrink:0;
+    }
+    .order-card__item-main{
+      display:flex;
+      align-items:center;
+      gap:.65rem;
+      min-width:0;
+      max-width:62%;
+    }
+    .order-modal__summary-cover{
+      width:66px;
+      height:66px;
+      border-radius:.8rem;
+      object-fit:cover;
+      border:1px solid rgba(255,255,255,.14);
+      background:#121212;
+      box-shadow:0 12px 22px rgba(0,0,0,.34);
+      flex-shrink:0;
     }
     .mobile-portal-bar{
       display:none;
@@ -756,6 +886,32 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       }
       .grid.lg\:grid-cols-3{
         grid-template-columns:1fr;
+      }
+      .appt-card{
+        align-items:flex-start;
+        flex-wrap:wrap;
+      }
+      .appt-card__media{
+        width:62px;
+        height:62px;
+      }
+      .appt-card .appt-actions{
+        width:100%;
+        margin-left:0;
+        justify-content:flex-start;
+      }
+      .order-card__item{
+        align-items:flex-start;
+      }
+      .order-card__item-main{
+        max-width:100%;
+      }
+      .order-modal__summary-cover{
+        width:58px;
+        height:58px;
+      }
+      .appt-modal__media{
+        height:140px;
       }
     }
   </style>
@@ -955,6 +1111,17 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     white-space: normal;
   }
 </style>
+<style id="diesel-headline-lock">
+  h1, h2, h3,
+  .text-4xl, .text-3xl, .text-2xl, .text-xl, .text-lg,
+  .panel h2, .panel h3,
+  .modal__title,
+  .table th,
+  .brand, .brand .name, .brand .mark {
+    font-family:"Diesel", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+    letter-spacing:.02em;
+  }
+</style>
 
 </head>
 <body class="h-full">
@@ -963,6 +1130,10 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 <!-- <div class="smoke" id="smoke-layer"></div> -->
 <div id="bg"></div>
 
+<script>
+  window.__bgmSmokeForce = true;
+  window.__bgmSmokeAutoDelayMs = 250;
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
@@ -1023,8 +1194,19 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
             <ul class="space-y-3 max-h-64 overflow-y-auto upcoming-list">
               {% for a in upcoming_appointments %}
                 <li data-appt-id="{{ a.id }}" class="upcoming-item">
-                  <p class="font-semibold ink">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
-                  <p class="text-sm muted">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
+                  <div class="upcoming-item__row">
+                    <img
+                      class="upcoming-item__media"
+                      src="{% if a.service.image %}{{ a.service.image.url }}{% else %}{% static 'img/hero-services.jpg' %}{% endif %}"
+                      alt="{{ a.service.name }}"
+                      loading="lazy"
+                      decoding="async"
+                    >
+                    <div class="upcoming-item__copy">
+                      <p class="font-semibold ink">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
+                      <p class="text-sm muted">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
+                    </div>
+                  </div>
                   <div class="appt-actions text-sm">
                     <a href="#" class="appt-cancel link" data-appt-id="{{ a.id }}">{{ portal_copy.action_cancel_label }}</a>
                     <a href="#" class="appt-reschedule link" data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">{{ portal_copy.action_reschedule_label }}</a>
@@ -1153,10 +1335,18 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
                  data-appt-date="{{ a.start_time|localtime|date:'d M Y, H:i' }}"
                  data-appt-service="{{ a.service.name }}"
                  data-appt-master="{{ a.master.get_full_name }}"
+                 data-appt-image="{% if a.service.image %}{{ a.service.image.url|escape }}{% else %}{% static 'img/hero-services.jpg' %}{% endif %}"
                  data-appt-status="{% if a.current_status %}{{ a.current_status }}{% elif a.start_time < now %}{{ portal_copy.appointments_completed_label }}{% else %}Upcoming{% endif %}"
                  tabindex="0"
                  role="button"
                  aria-label="Open appointment #{{ a.id }}">
+              <img
+                class="appt-card__media"
+                src="{% if a.service.image %}{{ a.service.image.url }}{% else %}{% static 'img/hero-services.jpg' %}{% endif %}"
+                alt="{{ a.service.name }}"
+                loading="lazy"
+                decoding="async"
+              >
               <div class="appt-main">
                 <p class="font-semibold ink appt-dt">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
                 <p class="text-sm muted">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
@@ -1409,6 +1599,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
               aria-label="{{ portal_copy.reschedule_close_label }}">&times;</button>
     </div>
     <div class="order-modal__summary">
+      <img id="orderModalCover" class="order-modal__summary-cover" src="{% static 'img/hero-products.jpg' %}" alt="Order item preview">
       <div id="orderModalSummaryTitle" class="order-modal__summary-title">Order</div>
       <div class="order-modal__summary-meta">
         <span id="orderModalStatus" class="badge"></span>
@@ -1432,6 +1623,9 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
               aria-label="{{ portal_copy.reschedule_close_label }}">&times;</button>
     </div>
     <div class="appt-modal__body">
+      <div class="appt-modal__media">
+        <img id="apptModalImage" src="{% static 'img/hero-services.jpg' %}" alt="Service preview">
+      </div>
       <div class="appt-modal__headline">
         <div id="apptModalDate" class="appt-modal__date">—</div>
         <span id="apptModalStatus" class="badge">—</span>
@@ -1483,6 +1677,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     contactCopyLabel: "{{ portal_copy.contact_copy_label|escapejs }}",
     contactCopySuccessLabel: "{{ portal_copy.contact_copy_success_label|escapejs }}",
     contactCopyFailedLabel: "{{ portal_copy.contact_copy_failed_label|escapejs }}",
+    defaultServiceImage: "{% static 'img/hero-services.jpg' %}",
+    defaultProductImage: "{% static 'img/hero-products.jpg' %}",
   };
 
   (function(){
@@ -1610,7 +1806,18 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
   /* ==== helpers ==== */
   const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
-  const fmtHM = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  const PORTAL_LOCALE = 'en-GB';
+  const fmtHM = d => d.toLocaleTimeString(PORTAL_LOCALE, { hour: 'numeric', minute: '2-digit', hour12: false });
+  const fmtMonthDay = d => d.toLocaleDateString(PORTAL_LOCALE, { month: 'short', day: 'numeric' });
+  const fmtWeekday = d => d.toLocaleDateString(PORTAL_LOCALE, { weekday: 'long' });
+  const fmtDateTime = d => d.toLocaleString(PORTAL_LOCALE, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
   const ymd = d => { const m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
 
   /* ==== Cancel ==== */
@@ -1642,9 +1849,18 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   const apptModalStatusText = document.getElementById('apptModalStatusText');
   const apptModalService = document.getElementById('apptModalService');
   const apptModalMaster = document.getElementById('apptModalMaster');
+  const apptModalImage = document.getElementById('apptModalImage');
   let apptModalReturnFocus = null;
 
-  if (apptModal && apptModalDate && apptModalStatus && apptModalStatusText && apptModalService && apptModalMaster) {
+  if (
+    apptModal &&
+    apptModalDate &&
+    apptModalStatus &&
+    apptModalStatusText &&
+    apptModalService &&
+    apptModalMaster &&
+    apptModalImage
+  ) {
     const statusClassFor = (statusRaw) => {
       const v = String(statusRaw || '').toLowerCase();
       if (v.includes('cancel')) return 'st-cancelled';
@@ -1661,6 +1877,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       apptModalStatusText.textContent = '—';
       apptModalService.textContent = '—';
       apptModalMaster.textContent = '—';
+      apptModalImage.src = portalCopy.defaultServiceImage;
+      apptModalImage.alt = 'Service preview';
     };
 
     const openApptModal = (card) => {
@@ -1671,6 +1889,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       const dateLabel = (card.dataset.apptDate || '').trim();
       const serviceLabel = (card.dataset.apptService || '').trim();
       const masterLabel = (card.dataset.apptMaster || '').trim();
+      const serviceImage = (card.dataset.apptImage || '').trim();
       let statusLabel = (card.dataset.apptStatus || '').trim();
       if (!statusLabel) {
         const inlineStatus = card.querySelector('.text-xs.muted-2')?.textContent?.trim();
@@ -1682,6 +1901,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       apptModalService.textContent = serviceLabel || '—';
       apptModalMaster.textContent = masterLabel || '—';
       apptModalStatusText.textContent = statusLabel || '—';
+      apptModalImage.src = serviceImage || portalCopy.defaultServiceImage;
+      apptModalImage.alt = serviceLabel ? `${serviceLabel} preview` : 'Service preview';
 
       const statusClass = statusClassFor(statusLabel);
       apptModalStatus.className = `badge ${statusClass}`;
@@ -1742,15 +1963,18 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   const orderModalStatus = document.getElementById('orderModalStatus');
   const orderModalTotal = document.getElementById('orderModalTotal');
   const orderModalBody = document.getElementById('orderModalBody');
+  const orderModalCover = document.getElementById('orderModalCover');
   let orderModalReturnFocus = null;
 
-  if (orderModal && orderModalBody) {
+  if (orderModal && orderModalBody && orderModalCover) {
     const resetOrderModal = () => {
       orderModalTitle.textContent = portalCopy.ordersTitle || 'Order details';
       orderModalSummaryTitle.textContent = 'Order';
       orderModalStatus.className = 'badge';
       orderModalStatus.textContent = '';
       orderModalTotal.textContent = '';
+      orderModalCover.src = portalCopy.defaultProductImage;
+      orderModalCover.alt = 'Order item preview';
       orderModalBody.innerHTML = '<p class="order-modal__empty">No details available.</p>';
     };
 
@@ -1761,6 +1985,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       const statusLabel = (card.dataset.orderStatusLabel || '').trim();
       const statusClass = (card.dataset.orderStatusClass || '').trim();
       const totalLabel = (card.dataset.orderTotal || '').trim();
+      const coverImage = (card.dataset.orderCover || '').trim();
 
       orderModalTitle.textContent = orderId ? `Order #${orderId}` : 'Order details';
       orderModalSummaryTitle.textContent = orderId ? `Order #${orderId}` : 'Order';
@@ -1770,6 +1995,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       }
       orderModalStatus.textContent = statusLabel || '—';
       orderModalTotal.textContent = totalLabel || '';
+      orderModalCover.src = coverImage || portalCopy.defaultProductImage;
+      orderModalCover.alt = orderId ? `Order #${orderId} preview` : 'Order item preview';
 
       orderModalBody.innerHTML = '';
       const details = card.querySelector('.order-card__details');
@@ -1931,8 +2158,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       const dayData = dayStrs.map(ds => resState.cache.get(ds));
       const timeRows = buildTimeRows(dayData.map(item => (item && item.set) ? item.set : null));
 
-      const from = days[0].toLocaleDateString([], {month:'short', day:'numeric'});
-      const to   = days[days.length-1].toLocaleDateString([], {month:'short', day:'numeric'});
+      const from = fmtMonthDay(days[0]);
+      const to   = fmtMonthDay(days[days.length-1]);
       rsRange.textContent = `${from} – ${to}`;
       rsGrid.style.setProperty('--days', String(WINDOW_DAYS));
       rsGrid.innerHTML='';
@@ -1944,8 +2171,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         h.className='ol2__cell ol2__head';
         const today = (new Date()).toDateString()===d.toDateString();
         h.innerHTML = `<div class="ol2__day ${today?'today':''}">
-          <div class="t">${d.toLocaleDateString([], {weekday:'long'})}</div>
-          <div class="s">${d.toLocaleDateString([], {month:'short', day:'numeric'})}</div>
+          <div class="t">${fmtWeekday(d)}</div>
+          <div class="s">${fmtMonthDay(d)}</div>
         </div>`;
         rsGrid.appendChild(h);
       });
@@ -2020,7 +2247,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         resOk.style.display='block';
         if (appointmentStart) {
           document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
-            try{ dt.textContent = new Date(appointmentStart).toLocaleString(); }catch(_){}
+            try{ dt.textContent = fmtDateTime(new Date(appointmentStart)); }catch(_){}
           });
         }
         setTimeout(()=> location.reload(), 700);

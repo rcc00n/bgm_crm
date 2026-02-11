@@ -1,14 +1,29 @@
 // static/admin/js/bgm-smoke.js
 (function init() {
+  if (window.__bgmSmokeInit) return;
+  window.__bgmSmokeInit = true;
+
   // Decorative effect only: don't run when reduced motion or data saver is enabled.
   if (window.__bgmSmokeStarted) return;
+  const forceSmoke = window.__bgmSmokeForce === true;
 
   const prefersReduced =
     window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const saveData = !!(navigator.connection && navigator.connection.saveData);
-  if (prefersReduced || saveData) return;
+  if (!forceSmoke && (prefersReduced || saveData)) return;
 
   let host = document.getElementById('bg');
+  if (!host && document.readyState === 'loading') {
+    document.addEventListener(
+      'DOMContentLoaded',
+      () => {
+        window.__bgmSmokeInit = false;
+        init();
+      },
+      { once: true }
+    );
+    return;
+  }
   if (!host && document.body) {
     host = document.createElement('div');
     host.id = 'bg';
@@ -396,4 +411,16 @@
   };
 
   events.forEach((eventName) => window.addEventListener(eventName, onFirstInteraction, true));
+
+  const shouldAutoStart = window.__bgmSmokeAutoStart !== false;
+  const rawDelay = Number(window.__bgmSmokeAutoDelayMs);
+  const autoStartDelayMs = Number.isFinite(rawDelay) ? Math.max(0, rawDelay) : 450;
+  if (shouldAutoStart) {
+    const scheduleAutoStart = () => window.setTimeout(onFirstInteraction, autoStartDelayMs);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', scheduleAutoStart, { once: true });
+    } else {
+      scheduleAutoStart();
+    }
+  }
 })();

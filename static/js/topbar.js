@@ -1,6 +1,9 @@
 /* static/js/topbar.js
    Mobile overlay nav: accessible, focus-trapped, robust, desktop-safe. */
 (() => {
+  if (window.__bgmTopbarInit) return;
+  window.__bgmTopbarInit = true;
+
   if (document.querySelector('.contact-fab')) {
     document.body.classList.add('has-contact-fab');
   }
@@ -160,6 +163,9 @@
 
 /* Preserve scroll position across same-page filter/search reloads (GET forms + filter links). */
 (() => {
+  if (window.__bgmTopbarScrollRestoreInit) return;
+  window.__bgmTopbarScrollRestoreInit = true;
+
   const KEY = 'bgm:scrollrestore:v1';
   const TTL_MS = 15000;
 

@@ -1,4 +1,4 @@
-{% load topbar_extras %}
+{% load topbar_extras static %}
 {% firstof header_copy home_copy services_copy store_copy merch_copy financing_copy about_copy dealer_copy as topbar_copy %}
 {% with brand_words=topbar_copy.brand_word_white|default:"Bad Guy"|split_words %}
 {% with tagline_words=topbar_copy.brand_tagline|default:"CUSTOM BUILDS • INSTALLS • UPGRADES"|split_bullets %}
@@ -101,6 +101,7 @@
     }
   }
 </style>
+<script src="{% static 'js/topbar.js' %}"></script>
 <a
   class="bgm-cart-fab"
   href="{% url 'store-cart' %}"

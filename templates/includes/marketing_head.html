@@ -33,8 +33,33 @@
   <meta name="twitter:title" content="{{ meta_title_resolved }}">
   <meta name="twitter:description" content="{{ meta_description_resolved }}">
   <meta name="twitter:image" content="{{ meta_image_absolute }}">
-  <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
+  <style id="topbar-critical-fallback">
+    .bgm-topbar{
+      position:fixed !important;
+      inset:0 0 auto 0 !important;
+      z-index:3900 !important;
+      background:rgba(6,6,6,.92) !important;
+      border-bottom:1px solid rgba(255,255,255,.12) !important;
+      backdrop-filter:blur(10px) saturate(1.1) !important;
+    }
+    .bgm-topbar__inner{
+      display:flex !important;
+      align-items:center !important;
+      min-height:var(--site-header-height,72px) !important;
+      padding:.75rem 1rem !important;
+      gap:.9rem !important;
+    }
+    .bgm-topbar__nav-list{
+      display:flex !important;
+      align-items:center !important;
+      gap:.75rem !important;
+      margin:0 !important;
+      padding:0 !important;
+      list-style:none !important;
+    }
+  </style>
   <link rel="preload" href="{% safe_static 'fonts/Diesel.woff2' 'fonts/Diesel.ttf' %}" as="font" type="font/woff2" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

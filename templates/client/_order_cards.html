@@ -1,4 +1,4 @@
-{% load dealer_extras %}
+{% load dealer_extras static %}
 {% if orders %}
   <div class="space-y-3">
     {% for o in orders %}
@@ -8,6 +8,7 @@
                data-order-status-class="st-{{ o.status|default:'processing' }}"
                data-order-status-label="{{ o.status_label|default:o.get_status_display|default:o.status|escape }}"
                data-order-total="{{ o.total|money|escape }}"
+               data-order-cover="{% if o.preview_image_url %}{{ o.preview_image_url|escape }}{% else %}{% static 'img/hero-products.jpg' %}{% endif %}"
                tabindex="0"
                role="button"
                aria-label="Open order #{{ o.id }} details">
@@ -29,9 +30,18 @@
               <div class="order-card__items border-t border-[color:var(--grid)] pt-3">
                 {% for it in items %}
                   <div class="order-card__item flex items-center justify-between py-1 text-sm">
-                    <div class="truncate">
-                      <span class="font-semibold">{{ it.product.name }}</span>
-                      {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
+                    <div class="order-card__item-main">
+                      <img
+                        class="order-item-media"
+                        src="{% if it.product.main_image_url %}{{ it.product.main_image_url }}{% else %}{% static 'img/hero-products.jpg' %}{% endif %}"
+                        alt="{{ it.product.name }}"
+                        loading="lazy"
+                        decoding="async"
+                      >
+                      <div class="truncate">
+                        <span class="font-semibold">{{ it.product.name }}</span>
+                        {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
+                      </div>
                     </div>
                     <div class="muted-2">x {{ it.qty }}</div>
                     <div class="font-semibold">{{ it.subtotal|money }}</div>
