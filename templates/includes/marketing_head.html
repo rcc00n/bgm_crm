@@ -35,6 +35,7 @@
   <meta name="twitter:image" content="{{ meta_image_absolute }}">
   <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="preload" href="{% static 'fonts/Diesel.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -44,13 +45,19 @@
   {% if topbar_settings %}
     <style id="topbar-style">
       {% for font in topbar_settings.fonts %}
+      {% with font_url=font.url|default:'' font_url_l=font.url|default:''|lower %}
       @font-face{
         font-family:"{{ font.family }}";
-        src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+        src:
+          {% if ".ttf" in font_url_l %}
+            url("{{ font_url|slice:":-4" }}.woff2") format("woff2"),
+          {% endif %}
+          url("{{ font_url }}") format("{{ font.format|default:'truetype' }}");
         font-weight:{{ font.weight|default:"400" }};
         font-style:{{ font.style|default:"normal" }};
         font-display:{{ font.display|default:"swap" }};
       }
+      {% endwith %}
       {% endfor %}
       :root{
         {% if topbar_settings.brand.stack %}--topbar-brand-font: {{ topbar_settings.brand.stack|safe }};{% endif %}
