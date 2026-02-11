@@ -67,6 +67,89 @@
   </div>
 </header>
 <div class="bgm-topbar__spacer" aria-hidden="true"></div>
+<style id="bgm-topbar-mobile-hardfix">
+  @media (max-width: 960px){
+    .bgm-topbar{
+      z-index: 4200 !important;
+      background: #060606 !important;
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+    }
+    .bgm-topbar__nav{
+      top: var(--bgm-topbar-height, var(--site-header-height, 72px)) !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      height: calc(100dvh - var(--bgm-topbar-height, var(--site-header-height, 72px))) !important;
+      min-height: calc(100dvh - var(--bgm-topbar-height, var(--site-header-height, 72px))) !important;
+      padding-top: 1rem !important;
+      z-index: 4100 !important;
+    }
+    .bgm-topbar__nav a,
+    .bgm-topbar__nav .btn,
+    .bgm-topbar__nav .btn--ghost,
+    .bgm-topbar__nav .bgm-topbar__nav-trigger{
+      justify-content: flex-start !important;
+      text-align: left !important;
+    }
+    .bgm-topbar__nav a.bgm-topbar__nav-login{
+      justify-content: flex-start !important;
+      gap: .6rem !important;
+    }
+    .bgm-topbar__nav a.bgm-topbar__nav-login > span:last-child{
+      margin-left: 0 !important;
+    }
+  }
+</style>
+<script id="bgm-topbar-mobile-hardfix-js">
+  (function () {
+    var mq = window.matchMedia("(max-width: 960px)");
+    function applyMobileHardfix() {
+      if (!mq.matches) return;
+      var header = document.querySelector(".bgm-topbar");
+      var nav = document.getElementById("bgmSiteNav");
+      if (!header || !nav) return;
+
+      var h = Math.ceil(header.getBoundingClientRect().height) || 72;
+      header.style.zIndex = "4200";
+      header.style.background = "#060606";
+      header.style.webkitBackdropFilter = "none";
+      header.style.backdropFilter = "none";
+
+      nav.style.top = h + "px";
+      nav.style.right = "0";
+      nav.style.bottom = "0";
+      nav.style.left = "0";
+      nav.style.height = "calc(100dvh - " + h + "px)";
+      nav.style.minHeight = "calc(100dvh - " + h + "px)";
+      nav.style.paddingTop = "1rem";
+      nav.style.zIndex = "4100";
+
+      nav.querySelectorAll("a, .btn, .btn--ghost, .bgm-topbar__nav-trigger").forEach(function (el) {
+        el.style.justifyContent = "flex-start";
+        el.style.textAlign = "left";
+      });
+
+      var login = nav.querySelector("a.bgm-topbar__nav-login");
+      if (login) {
+        login.style.justifyContent = "flex-start";
+        login.style.gap = ".6rem";
+        var label = login.querySelector("span:last-child");
+        if (label) label.style.marginLeft = "0";
+      }
+    }
+
+    window.addEventListener("load", applyMobileHardfix);
+    window.addEventListener("resize", applyMobileHardfix);
+    document.addEventListener("click", function (event) {
+      var t = event.target;
+      if (t && (t.closest(".bgm-topbar__toggle") || t.closest("#bgmSiteNav"))) {
+        setTimeout(applyMobileHardfix, 0);
+      }
+    });
+    setTimeout(applyMobileHardfix, 0);
+  })();
+</script>
 <a
   class="bgm-cart-fab"
   href="{% url 'store-cart' %}"
