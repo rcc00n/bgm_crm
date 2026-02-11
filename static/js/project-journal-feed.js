@@ -34,8 +34,105 @@
       const before = el.querySelector('[data-kind="before"] img');
       const after = el.querySelector('[data-kind="after"] img');
       const range = el.querySelector('input[type="range"]');
-      if (!before || !after || !range) return;
-      if (!canSlider) return;
+      const sourcesScript = el.querySelector('[data-compare-sources]');
+      const prevBtn = el.querySelector('[data-compare-prev]');
+      const nextBtn = el.querySelector('[data-compare-next]');
+      const pager = el.querySelector('[data-compare-pager]');
+
+      const resetSkeleton = (mediaEl, imgEl) => {
+        if (!mediaEl || !imgEl) return;
+        mediaEl.classList.remove('is-loaded');
+        const mark = () => mediaEl.classList.add('is-loaded');
+        if (imgEl.complete && imgEl.naturalWidth > 0) {
+          mark();
+          return;
+        }
+        imgEl.addEventListener('load', mark, { once: true });
+        imgEl.addEventListener('error', mark, { once: true });
+      };
+
+      // Photo set navigation (multi-photo before/after).
+      let gallery = null;
+      try {
+        gallery = sourcesScript ? JSON.parse(sourcesScript.textContent || '{}') : null;
+      } catch (err) {
+        gallery = null;
+      }
+
+      const beforeList = Array.isArray(gallery && gallery.before) ? gallery.before : [];
+      const afterList = Array.isArray(gallery && gallery.after) ? gallery.after : [];
+      const totalSets = Math.max(beforeList.length, afterList.length);
+
+      const resolveItem = (list, idx) => {
+        if (!Array.isArray(list) || list.length === 0) return null;
+        if (idx >= 0 && idx < list.length) return list[idx];
+        return list[list.length - 1] || null;
+      };
+
+      const applyItem = (imgEl, item) => {
+        if (!imgEl || !item || !item.src) return;
+        imgEl.src = item.src;
+        imgEl.srcset = item.srcset || '';
+        imgEl.alt = item.alt || imgEl.alt || '';
+      };
+
+      if (before && after && totalSets > 1 && prevBtn && nextBtn && pager) {
+        // Ensure set index 0 matches the server-rendered markup (thumbnails/srcset),
+        // so we don't force a full-size media swap on init.
+        if (beforeList.length > 0) {
+          beforeList[0] = {
+            ...beforeList[0],
+            src: before.getAttribute('src') || beforeList[0].src,
+            srcset: before.getAttribute('srcset') || beforeList[0].srcset || '',
+            alt: before.getAttribute('alt') || beforeList[0].alt || '',
+          };
+        }
+        if (afterList.length > 0) {
+          afterList[0] = {
+            ...afterList[0],
+            src: after.getAttribute('src') || afterList[0].src,
+            srcset: after.getAttribute('srcset') || afterList[0].srcset || '',
+            alt: after.getAttribute('alt') || afterList[0].alt || '',
+          };
+        }
+
+        el.dataset.hasGallery = '1';
+        let idx = 0;
+
+        const update = () => {
+          const b = resolveItem(beforeList, idx);
+          const a = resolveItem(afterList, idx);
+
+          const beforeMedia = before.closest('[data-skeleton]');
+          const afterMedia = after.closest('[data-skeleton]');
+
+          applyItem(before, b);
+          applyItem(after, a);
+
+          if (b) resetSkeleton(beforeMedia, before);
+          if (a) resetSkeleton(afterMedia, after);
+
+          pager.textContent = `${idx + 1} / ${totalSets}`;
+        };
+
+        const move = (delta) => {
+          idx = (idx + delta + totalSets) % totalSets;
+          update();
+        };
+
+        prevBtn.addEventListener('click', () => move(-1));
+        nextBtn.addEventListener('click', () => move(1));
+        el.addEventListener('keydown', (e) => {
+          if (e.target && e.target.matches && e.target.matches('input[type="range"]')) return;
+          if (e.key === 'ArrowLeft') move(-1);
+          if (e.key === 'ArrowRight') move(1);
+        });
+
+        update();
+      }
+
+      // Before/After slider (desktop pointer devices).
+      if (!before || !after || !range || !canSlider) return;
 
       el.classList.add('pj-compare--slider');
 
@@ -46,6 +143,32 @@
 
       setPos(range.value || 50);
       range.addEventListener('input', () => setPos(range.value));
+
+      const setFromClientX = (clientX) => {
+        const rect = el.getBoundingClientRect();
+        if (!rect.width) return;
+        const pct = ((clientX - rect.left) / rect.width) * 100;
+        const v = Math.max(0, Math.min(100, Math.round(pct)));
+        range.value = String(v);
+        setPos(v);
+      };
+
+      let dragging = false;
+      el.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        if (e.target && e.target.closest && e.target.closest('[data-compare-prev],[data-compare-next]')) return;
+        if (e.target && e.target.matches && e.target.matches('input[type="range"]')) return;
+        dragging = true;
+        try { el.setPointerCapture(e.pointerId); } catch (err) {}
+        setFromClientX(e.clientX);
+      });
+      el.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        setFromClientX(e.clientX);
+      });
+      const stopDragging = () => { dragging = false; };
+      el.addEventListener('pointerup', stopDragging);
+      el.addEventListener('pointercancel', stopDragging);
     });
   };
 

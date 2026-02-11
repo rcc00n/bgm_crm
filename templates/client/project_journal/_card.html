@@ -26,6 +26,37 @@
   </header>
 
   <section class="pj-compare" data-compare aria-label="Before and after comparison">
+    <script type="application/json" data-compare-sources>
+      {
+        "before": [
+          {% if post.before_photos and post.before_photos.0.image %}
+            {% for p in post.before_photos %}
+              {"src":"{{ p.image.url|escapejs }}","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' before'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          {% elif post.legacy_before %}
+            {% for item in post.legacy_before %}
+              {"src":"{{ item.url|escapejs }}","alt":"{% if item.alt %}{{ item.alt|escapejs }}{% else %}{{ post.title|add:' before'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          {% elif post.cover_image %}
+            {"src":"{{ post.cover_image.url|escapejs }}","alt":"{{ post.title|add:' before'|escapejs }}"}
+          {% endif %}
+        ],
+        "after": [
+          {% if post.after_photos and post.after_photos.0.image %}
+            {% for p in post.after_photos %}
+              {"src":"{{ p.image.url|escapejs }}","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' after'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          {% elif post.legacy_after %}
+            {% for item in post.legacy_after %}
+              {"src":"{{ item.url|escapejs }}","alt":"{% if item.alt %}{{ item.alt|escapejs }}{% else %}{{ post.title|add:' after'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          {% elif post.cover_image %}
+            {"src":"{{ post.cover_image.url|escapejs }}","alt":"{{ post.title|add:' after'|escapejs }}"}
+          {% endif %}
+        ]
+      }
+    </script>
+
     <div class="pj-compare__pair">
       <figure class="pj-compare__frame" data-kind="before">
         <figcaption class="pj-compare__label">Before</figcaption>
@@ -103,6 +134,14 @@
         </div>
       </figure>
     </div>
+
+    <button class="pj-compare__nav pj-compare__nav--prev" type="button" data-compare-prev aria-label="Previous photos">
+      <span aria-hidden="true">‹</span>
+    </button>
+    <button class="pj-compare__nav pj-compare__nav--next" type="button" data-compare-next aria-label="Next photos">
+      <span aria-hidden="true">›</span>
+    </button>
+    <div class="pj-compare__pager" data-compare-pager aria-live="polite"></div>
 
     <span class="pj-compare__hint" aria-hidden="true">Drag</span>
     <span class="pj-compare__handle" aria-hidden="true"></span>
