@@ -101,13 +101,15 @@
     .modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:1rem; z-index:50}
     .modal--open{display:flex}
     .modal__dialog{background:linear-gradient(180deg, rgba(15,15,15,.98), rgba(10,10,10,.98)); border:1px solid var(--grid); border-radius:16px; width:min(62rem, 96vw); padding:1rem; color:#fff; box-shadow:var(--shadow)}
-    #resModal .modal__dialog{width:min(80rem, 98vw); max-height:92vh; overflow:auto}
+    #resModal .modal__dialog{width:min(80rem, 98vw); max-height:94vh; overflow:auto}
     .modal__header{display:flex; align-items:center; justify-content:space-between; padding:.25rem .25rem .5rem .25rem; border-bottom:1px solid var(--grid)}
     .modal__title{font-weight:900; letter-spacing:.6px; color:#fff}
     .modal__close{background:transparent;color:var(--muted); border:none; font-size:1.6rem; line-height:1; cursor:pointer}
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
     #resModal .grid-2{grid-template-columns:minmax(0,1fr)}
-    #resModal .modal__footer{justify-content:center;gap:.9rem;margin-top:1.25rem}
+    #resModal .outlook__wrap{height:clamp(320px,52vh,560px);max-height:clamp(320px,52vh,560px);min-height:320px}
+    #resModal .outlook__grid{width:max-content;margin-inline:auto;justify-content:center}
+    #resModal .modal__footer{justify-content:center;gap:.9rem;margin-top:.75rem;position:sticky;bottom:0;z-index:7;padding-top:.75rem;padding-bottom:max(.2rem, env(safe-area-inset-bottom, 0px));background:linear-gradient(180deg, rgba(12,12,12,0) 0%, rgba(12,12,12,.92) 38%, rgba(12,12,12,.98) 100%)}
     #resModal .modal__footer .btn{min-height:54px;min-width:180px;padding:.8rem 1.85rem;font-size:1.02rem}
     #resModal .res-modal__meta{margin-top:.8rem}
     .grid-2{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,.65fr); gap:1rem; padding:1rem 0}
@@ -161,7 +163,7 @@
     .email-feed__about{margin-top:.3rem;font-size:.88rem;color:var(--muted)}
     .email-feed__time{margin-top:.35rem;font-size:.8rem;color:var(--muted-2)}
 
-    @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .outlook__wrap{height:50vh;max-height:50vh;min-height:320px} .details-grid{grid-template-columns:1fr} }
+    @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .outlook__wrap{height:50vh;max-height:50vh;min-height:320px} #resModal .outlook__wrap{height:44vh;max-height:44vh;min-height:280px} .details-grid{grid-template-columns:1fr} }
     @media (max-width: 640px){
       #resModal .modal__footer{flex-wrap:wrap}
       #resModal .modal__footer .btn{width:min(100%,280px)}
@@ -278,6 +280,10 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       width:var(--sidebar-width);
       flex-shrink:0;
       transition:transform .35s ease;
+      position:sticky;
+      top:0;
+      height:100svh;
+      overflow-y:auto;
     }
     .sidebar__close{
       display:none;
@@ -307,6 +313,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       width:100%;
       padding:clamp(1.25rem, 2vw, 2.75rem);
       overflow-x:hidden;
+      overflow-y:auto;
+      height:100svh;
     }
     .tab{
       display:block;
@@ -431,6 +439,10 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         z-index:80;
         overflow-y:auto;
         border-right:1px solid rgba(255,255,255,.12);
+      }
+      main{
+        height:auto;
+        overflow-y:visible;
       }
       .sidebar.sidebar--open{
         transform:translateX(0);
