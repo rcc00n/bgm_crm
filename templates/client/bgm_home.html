@@ -1309,48 +1309,6 @@
 	  <section class="hero" id="top">
 	    <div class="container hero__inner">
       <div>
-        {% if home_copy.hero_logo %}
-          <div class="hero__logo-block">
-            <div
-              class="hero__logo
-                {% if home_copy.hero_logo_bg_style == 'light' %}hero__logo--bg-light{% elif home_copy.hero_logo_bg_style == 'accent' %}hero__logo--bg-accent{% elif home_copy.hero_logo_bg_style == 'transparent' %}hero__logo--bg-transparent{% else %}hero__logo--bg-dark{% endif %}
-                {% if not home_copy.hero_logo_show_ring %} hero__logo--no-ring{% endif %}"
-              {% if home_copy.hero_logo_size %}style="--hero-logo-size:{{ home_copy.hero_logo_size }}px"{% endif %}
-            >
-              {% thumbnail home_copy.hero_logo "240x240" crop="center" quality=82 format="WEBP" as hero_logo_1x %}
-                {% thumbnail home_copy.hero_logo "420x420" crop="center" quality=82 format="WEBP" as hero_logo_2x %}
-                  <img
-                    src="{{ hero_logo_1x.url }}"
-                    srcset="{{ hero_logo_1x.url }} 1x, {{ hero_logo_2x.url }} 2x"
-                    width="{{ hero_logo_1x.width }}"
-                    height="{{ hero_logo_1x.height }}"
-                    alt="{{ home_copy.hero_logo_alt|default:home_copy.hero_title }}"
-                    loading="eager"
-                    decoding="async">
-                {% endthumbnail %}
-              {% endthumbnail %}
-            </div>
-            {% if home_copy.hero_logo_backdrop and home_copy.hero_logo_layout != 'overlay' %}
-              <div
-                class="hero__logo-photo"
-                style="{% if home_copy.hero_logo_photo_width %}--hero-logo-photo-width:{{ home_copy.hero_logo_photo_width }}px;{% endif %}{% if home_copy.hero_logo_photo_height %}--hero-logo-photo-height:{{ home_copy.hero_logo_photo_height }}px;{% endif %}"
-              >
-                {% thumbnail home_copy.hero_logo_backdrop "440x280" crop="center" quality=66 format="WEBP" as hero_logo_photo_1x %}
-                  {% thumbnail home_copy.hero_logo_backdrop "880x560" crop="center" quality=66 format="WEBP" as hero_logo_photo_2x %}
-                    <img
-                      src="{{ hero_logo_photo_1x.url }}"
-                      srcset="{{ hero_logo_photo_1x.url }} 1x, {{ hero_logo_photo_2x.url }} 2x"
-                      width="{{ hero_logo_photo_1x.width }}"
-                      height="{{ hero_logo_photo_1x.height }}"
-                      alt="{{ home_copy.hero_logo_alt|default:home_copy.hero_title }}"
-                      loading="lazy"
-                      decoding="async">
-                  {% endthumbnail %}
-                {% endthumbnail %}
-              </div>
-            {% endif %}
-          </div>
-        {% endif %}
         <p class="kicker">{{ home_copy.hero_kicker }}</p>
         <h1 class="hero__title">{{ home_copy.hero_title }}</h1>
         <p class="hero__lead">{{ home_copy.hero_lead|safe }}</p>
@@ -2011,6 +1969,10 @@
 
   {% include "includes/site_footer.html" %}
 
+  <script>
+    window.__bgmSmokeThreeSrc = "{% static 'vendor/three-r160.min.js' %}";
+    window.__bgmSmokeThreeFallbackSrc = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js";
+  </script>
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 
   <!-- Live search -->

@@ -11,16 +11,11 @@
   const host = document.getElementById('bg');
   if (!host) return;
 
-  const ensureThreeLoaded = () => {
-    if (window.THREE) return Promise.resolve(window.THREE);
-    if (window.__bgmSmokeThreePromise) return window.__bgmSmokeThreePromise;
-
-    const threeSrc =
-      window.__bgmSmokeThreeSrc ||
-      'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
-
-    window.__bgmSmokeThreePromise = new Promise((resolve, reject) => {
-      const existing = document.querySelector('script[data-bgm-three="1"]');
+  const loadThreeScript = (src) =>
+    new Promise((resolve, reject) => {
+      const existing = Array.from(document.querySelectorAll('script[data-bgm-three="1"]')).find(
+        (script) => script.getAttribute('src') === src || script.src === src
+      );
       if (existing) {
         if (window.THREE) {
           resolve(window.THREE);
@@ -28,13 +23,7 @@
         }
         existing.addEventListener(
           'load',
-          () => {
-            if (window.THREE) {
-              resolve(window.THREE);
-            } else {
-              reject(new Error('THREE loaded but unavailable on window'));
-            }
-          },
+          () => (window.THREE ? resolve(window.THREE) : reject(new Error('THREE unavailable'))),
           { once: true }
         );
         existing.addEventListener('error', () => reject(new Error('Failed to load THREE')), {
@@ -44,25 +33,47 @@
       }
 
       const script = document.createElement('script');
-      script.src = threeSrc;
+      script.src = src;
       script.async = true;
       script.dataset.bgmThree = '1';
       script.addEventListener(
         'load',
+        () => (window.THREE ? resolve(window.THREE) : reject(new Error('THREE unavailable'))),
+        { once: true }
+      );
+      script.addEventListener(
+        'error',
         () => {
-          if (window.THREE) {
-            resolve(window.THREE);
-          } else {
-            reject(new Error('THREE loaded but unavailable on window'));
-          }
+          script.remove();
+          reject(new Error('Failed to load THREE'));
         },
         { once: true }
       );
-      script.addEventListener('error', () => reject(new Error('Failed to load THREE')), {
-        once: true,
-      });
       document.head.appendChild(script);
-    }).catch((error) => {
+    });
+
+  const ensureThreeLoaded = () => {
+    if (window.THREE) return Promise.resolve(window.THREE);
+    if (window.__bgmSmokeThreePromise) return window.__bgmSmokeThreePromise;
+
+    const sources = [];
+    const pushSource = (value) => {
+      if (!value || typeof value !== 'string') return;
+      if (!sources.includes(value)) sources.push(value);
+    };
+    pushSource(window.__bgmSmokeThreeSrc);
+    pushSource(window.__bgmSmokeThreeFallbackSrc);
+    pushSource('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js');
+    pushSource('https://unpkg.com/three@0.160.0/build/three.min.js');
+
+    const trySource = (index) => {
+      if (index >= sources.length) {
+        return Promise.reject(new Error('No THREE source could be loaded'));
+      }
+      return loadThreeScript(sources[index]).catch(() => trySource(index + 1));
+    };
+
+    window.__bgmSmokeThreePromise = trySource(0).catch((error) => {
       window.__bgmSmokeThreePromise = null;
       throw error;
     });
