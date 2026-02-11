@@ -597,6 +597,30 @@
     .review-stars{font-size:.92rem;color:var(--accent-2);letter-spacing:.18em}
     .review-quote{font-size:1.02rem;color:var(--muted)}
     .review-author{font-weight:800;color:rgba(255,255,255,.9);font-size:.95rem}
+    @media (min-width: 861px){
+      .review-carousel{
+        display:grid;
+        grid-template-columns:auto minmax(0,1fr) auto;
+        align-items:center;
+        column-gap:.7rem;
+      }
+      .review-carousel__nav{
+        display:contents;
+        margin:0;
+      }
+      .review-carousel__btn[data-review-prev]{
+        grid-column:1;
+        grid-row:1;
+      }
+      .review-carousel__track{
+        grid-column:2;
+        grid-row:1;
+      }
+      .review-carousel__btn[data-review-next]{
+        grid-column:3;
+        grid-row:1;
+      }
+    }
 
     details{background:var(--panel);border:1px solid var(--line);border-radius:.8rem;padding:.8rem}
     summary{cursor:pointer;font-weight:700}
