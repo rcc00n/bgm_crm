@@ -193,33 +193,62 @@
         compareHintShown = true;
         el.classList.add('pj-compare--hint');
 
+        let hintInterval = 0;
+        let hintBusy = false;
+
         const dismiss = () => {
           if (!el.classList.contains('pj-compare--hint')) return;
           el.classList.remove('pj-compare--hint');
+          if (hintInterval) window.clearInterval(hintInterval);
           dismissCompareHintForever();
         };
 
-        el.addEventListener('pointerdown', dismiss, { once: true, capture: true });
+        el.addEventListener('pointerdown', (e) => {
+          // Don't treat photo navigation as "using the slider".
+          if (e.target && e.target.closest && e.target.closest('[data-compare-prev],[data-compare-next]')) return;
+          dismiss();
+        }, { once: true, capture: true });
         range.addEventListener('input', dismiss, { once: true });
         range.addEventListener('keydown', dismiss, { once: true });
 
         if (!prefersReducedMotion) {
-          const base = Math.max(0, Math.min(100, Number(range.value || 50)));
-          const seq = [
-            Math.max(0, Math.min(100, base + 12)),
-            Math.max(0, Math.min(100, base - 12)),
-            base,
-          ];
-
-          const step = (i) => {
+          const remind = () => {
             if (!el.classList.contains('pj-compare--hint')) return;
-            const v = seq[i];
-            range.value = String(v);
-            setPos(v);
-            if (i + 1 < seq.length) window.setTimeout(() => step(i + 1), 420);
+            if (hintBusy) return;
+            hintBusy = true;
+
+            // Restart the knob pulse animation.
+            el.classList.remove('pj-compare--remind');
+            // eslint-disable-next-line no-unused-expressions
+            el.offsetWidth; // force reflow to restart CSS animation
+            el.classList.add('pj-compare--remind');
+            window.setTimeout(() => el.classList.remove('pj-compare--remind'), 1300);
+
+            const base = Math.max(0, Math.min(100, Number(range.value || 50)));
+            const seq = [
+              Math.max(0, Math.min(100, base + 12)),
+              Math.max(0, Math.min(100, base - 12)),
+              base,
+            ];
+
+            const step = (i) => {
+              if (!el.classList.contains('pj-compare--hint')) return;
+              const v = seq[i];
+              range.value = String(v);
+              setPos(v);
+              if (i + 1 < seq.length) {
+                window.setTimeout(() => step(i + 1), 420);
+              } else {
+                hintBusy = false;
+              }
+            };
+
+            step(0);
           };
 
-          window.setTimeout(() => step(0), 650);
+          // Initial hint, then repeat every 5 seconds until first use.
+          window.setTimeout(remind, 650);
+          hintInterval = window.setInterval(remind, 5000);
         }
       }
     });
