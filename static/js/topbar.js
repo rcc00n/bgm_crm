@@ -10,19 +10,33 @@
   const nav = document.getElementById('bgmSiteNav');
   if (!header || !toggle || !nav) return;
 
-  const syncHeight = () => {
-    const height = Math.ceil(header.getBoundingClientRect().height);
-    document.documentElement.style.setProperty('--bgm-topbar-height', `${height}px`);
+  let syncRaf = 0;
+  let topbarHeight = 0;
+
+  const readHeight = () => Math.ceil(header.getBoundingClientRect().height);
+
+  const applyHeight = () => {
+    syncRaf = 0;
+    const nextHeight = readHeight();
+    if (!nextHeight || nextHeight === topbarHeight) return;
+    topbarHeight = nextHeight;
+    document.documentElement.style.setProperty('--bgm-topbar-height', `${nextHeight}px`);
+  };
+
+  const scheduleHeightSync = () => {
+    if (syncRaf) return;
+    syncRaf = requestAnimationFrame(applyHeight);
   };
 
   if ('ResizeObserver' in window) {
-    const ro = new ResizeObserver(syncHeight);
+    const ro = new ResizeObserver(scheduleHeightSync);
     ro.observe(header);
   }
 
-  window.addEventListener('load', syncHeight);
-  window.addEventListener('resize', syncHeight);
-  syncHeight();
+  window.addEventListener('resize', scheduleHeightSync, { passive: true });
+  window.addEventListener('orientationchange', scheduleHeightSync, { passive: true });
+  window.addEventListener('pageshow', scheduleHeightSync);
+  scheduleHeightSync();
 
   const mq = window.matchMedia('(max-width: 960px)');
   let lastFocused = null;
@@ -73,6 +87,7 @@
 
     const focusables = getFocusable();
     (focusables[0] || toggle).focus();
+    scheduleHeightSync();
 
     document.addEventListener('keydown', onKeyDown, true);
     nav.addEventListener('click', onNavClick, true);
@@ -89,6 +104,7 @@
     nav.removeEventListener('click', onNavClick, true);
 
     (lastFocused || toggle).focus();
+    scheduleHeightSync();
   };
 
   const onKeyDown = (e) => {
@@ -135,6 +151,7 @@
       setInert(false);   // nav must be reachable on desktop
       toggle.removeEventListener('click', onToggle);
     }
+    scheduleHeightSync();
   };
 
   mq.addEventListener('change', applyMode);

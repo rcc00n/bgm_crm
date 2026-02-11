@@ -1,65 +1,77 @@
 // static/admin/js/bgm-smoke.js
 (function init() {
-  // Don't run the decorative smoke effect if the user asked for reduced motion,
-  // if data-saver is enabled, or if we've already started once.
+  // Decorative effect only: don't run when reduced motion or data saver is enabled.
   if (window.__bgmSmokeStarted) return;
-  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const prefersReduced =
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const saveData = !!(navigator.connection && navigator.connection.saveData);
   if (prefersReduced || saveData) return;
 
-  const schedule = (startFn) => {
-    let started = false;
-    const startOnce = () => {
-      if (started) return;
-      started = true;
-      startFn();
-    };
+  const host = document.getElementById('bg');
+  if (!host) return;
 
-    // First user interaction: start immediately (keeps Lighthouse / initial load lighter).
-    const onFirstInteraction = () => {
-      cleanup();
-      startOnce();
-    };
+  const ensureThreeLoaded = () => {
+    if (window.THREE) return Promise.resolve(window.THREE);
+    if (window.__bgmSmokeThreePromise) return window.__bgmSmokeThreePromise;
 
-    const events = ['pointerdown', 'touchstart', 'scroll', 'wheel', 'keydown', 'mousemove'];
-    const opts = { passive: true, capture: true };
-    events.forEach((ev) => window.addEventListener(ev, onFirstInteraction, opts));
+    const threeSrc =
+      window.__bgmSmokeThreeSrc ||
+      'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
 
-    const cleanup = () => {
-      events.forEach((ev) => window.removeEventListener(ev, onFirstInteraction, opts));
-    };
-
-    const idleStart = () => {
-      if (started) return;
-      cleanup();
-      startOnce();
-    };
-
-    const runIdle = () => {
-      if ('requestIdleCallback' in window) {
-        // Delay long-running animation until well after initial paint/TTI.
-        window.requestIdleCallback(idleStart, { timeout: 10000 });
-      } else {
-        window.setTimeout(idleStart, 8000);
+    window.__bgmSmokeThreePromise = new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-bgm-three="1"]');
+      if (existing) {
+        if (window.THREE) {
+          resolve(window.THREE);
+          return;
+        }
+        existing.addEventListener(
+          'load',
+          () => {
+            if (window.THREE) {
+              resolve(window.THREE);
+            } else {
+              reject(new Error('THREE loaded but unavailable on window'));
+            }
+          },
+          { once: true }
+        );
+        existing.addEventListener('error', () => reject(new Error('Failed to load THREE')), {
+          once: true,
+        });
+        return;
       }
-    };
 
-    if (document.readyState === 'complete') {
-      runIdle();
-    } else {
-      window.addEventListener('load', runIdle, { once: true });
-    }
+      const script = document.createElement('script');
+      script.src = threeSrc;
+      script.async = true;
+      script.dataset.bgmThree = '1';
+      script.addEventListener(
+        'load',
+        () => {
+          if (window.THREE) {
+            resolve(window.THREE);
+          } else {
+            reject(new Error('THREE loaded but unavailable on window'));
+          }
+        },
+        { once: true }
+      );
+      script.addEventListener('error', () => reject(new Error('Failed to load THREE')), {
+        once: true,
+      });
+      document.head.appendChild(script);
+    }).catch((error) => {
+      window.__bgmSmokeThreePromise = null;
+      throw error;
+    });
+
+    return window.__bgmSmokeThreePromise;
   };
 
   const start = () => {
-    // дождаться DOM, если #bg ещё не в дереве
-    const host = document.getElementById('bg');
-    if (!host) return;
-    if (!window.THREE) {
-      console.warn('THREE not loaded');
-      return;
-    }
-    if (window.__bgmSmokeStarted) return;
+    if (!window.THREE || window.__bgmSmokeStarted) return;
     window.__bgmSmokeStarted = true;
 
     // Lower the pixel ratio to reduce GPU work; the effect is purely decorative.
@@ -200,5 +212,24 @@
     });
   };
 
-  schedule(start);
+  const events = ['pointerdown', 'touchstart', 'wheel', 'scroll', 'keydown'];
+  let activated = false;
+
+  const cleanup = () => {
+    events.forEach((eventName) => window.removeEventListener(eventName, onFirstInteraction, true));
+  };
+
+  const onFirstInteraction = () => {
+    if (activated) return;
+    activated = true;
+    cleanup();
+
+    ensureThreeLoaded()
+      .then(() => start())
+      .catch(() => {
+        // Keep failures silent: the effect is decorative.
+      });
+  };
+
+  events.forEach((eventName) => window.addEventListener(eventName, onFirstInteraction, true));
 })();
