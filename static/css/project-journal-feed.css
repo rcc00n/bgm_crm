@@ -812,6 +812,23 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   /* Desktop cards: slightly tighter to keep a "one screen" feel. */
   .pj-card{ gap:.9rem; }
   .pj-excerpt{ -webkit-line-clamp:2; }
+
+  /* Keep Details compact on desktop: long text scrolls inside tiles instead of expanding the page. */
+  .pj-details__body{ gap:.85rem; line-height:1.6; }
+  .pj-details__grid{ gap:.75rem; }
+  .pj-details__grid .pj-info{
+    max-height:clamp(200px, 28vh, 320px);
+    overflow:auto;
+    overscroll-behavior:contain;
+    scrollbar-width:thin;
+  }
+  .pj-details__grid .pj-info p{ line-height:1.6; }
+  .pj-details__body > .pj-info{
+    max-height:clamp(220px, 34vh, 420px);
+    overflow:auto;
+    overscroll-behavior:contain;
+    scrollbar-width:thin;
+  }
 }
 
 @media (prefers-reduced-motion: reduce){
