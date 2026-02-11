@@ -287,14 +287,26 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     }
     .sidebar__close{
       display:none;
-      margin:0 1.25rem 1rem;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.16);
-      background:rgba(0,0,0,.35);
+      width:calc(100% - 1.5rem);
+      margin:0 .75rem .9rem;
+      padding:0 .95rem;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.18);
+      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
       color:#fff;
-      font-weight:700;
+      font-weight:800;
+      letter-spacing:.01em;
+      line-height:1;
+      align-items:center;
       justify-content:center;
       min-height:44px;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+      transition:border-color .2s ease, background .2s ease, transform .15s ease;
+    }
+    .sidebar__close:hover{
+      border-color:rgba(255,255,255,.32);
+      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      transform:translateY(-1px);
     }
     .sidebar-link,
     .logout-btn{
@@ -367,6 +379,10 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       border-radius:14px;
       background:rgba(0,0,0,.35);
       box-shadow:var(--shadow);
+      position:sticky;
+      top:0;
+      z-index:65;
+      backdrop-filter:blur(8px);
     }
     .mobile-portal-bar__title{
       display:flex;
@@ -2590,6 +2606,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   const drawer   = document.getElementById('portalSidebar');
   const toggle   = document.getElementById('sidebarToggle');
   const nav      = document.getElementById('sidebar');       // the nav inside the drawer
+  const closeBtn = document.getElementById('sidebarClose');
+  const backdrop = document.getElementById('sidebarBackdrop');
   const mqMobile = window.matchMedia('(max-width: 1024px)');
   if (!drawer || !nav) return;
 
@@ -2602,6 +2620,19 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     document.body.classList.remove('has-drawer-open');
     if (toggle) toggle.setAttribute('aria-expanded', 'false');
   };
+
+  if (closeBtn){
+    const closeByButton = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeDrawer();
+    };
+    closeBtn.addEventListener('click', closeByButton);
+    closeBtn.addEventListener('touchend', closeByButton, {passive:false});
+  }
+  if (backdrop){
+    backdrop.addEventListener('click', closeDrawer);
+  }
 
   // 1) Close drawer when any nav item (link/button) is clicked on mobile
   nav.addEventListener('click', (e) => {
