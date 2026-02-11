@@ -624,6 +624,18 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   cursor:ew-resize;
 }
 
+/* Auto-normalize the comparison stage for mixed/portrait uploads. */
+.pj-compare--slider.pj-compare--ratio-mixed{
+  max-width:min(960px, 100%);
+  margin-inline:auto;
+  height:clamp(330px, 47vh, 500px);
+}
+.pj-compare--slider.pj-compare--ratio-portrait{
+  max-width:min(760px, 100%);
+  margin-inline:auto;
+  height:clamp(360px, 56vh, 540px);
+}
+
 .pj-compare__range{
   position:absolute;
   left:12px;

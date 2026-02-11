@@ -66,6 +66,48 @@
         imgEl.addEventListener('error', mark, { once: true });
       };
 
+      const ratioClasses = [
+        'pj-compare--ratio-landscape',
+        'pj-compare--ratio-mixed',
+        'pj-compare--ratio-portrait',
+      ];
+
+      const applyCompareRatioClass = () => {
+        if (!el.classList.contains('pj-compare--slider')) return;
+
+        ratioClasses.forEach((cls) => el.classList.remove(cls));
+
+        const beforeRatio = before && before.naturalWidth && before.naturalHeight
+          ? (before.naturalWidth / before.naturalHeight)
+          : 0;
+        const afterRatio = after && after.naturalWidth && after.naturalHeight
+          ? (after.naturalWidth / after.naturalHeight)
+          : 0;
+
+        if (!beforeRatio || !afterRatio) {
+          el.classList.add('pj-compare--ratio-landscape');
+          return;
+        }
+
+        const beforePortrait = beforeRatio < 0.92;
+        const afterPortrait = afterRatio < 0.92;
+
+        if (beforePortrait && afterPortrait) {
+          el.classList.add('pj-compare--ratio-portrait');
+          return;
+        }
+
+        if (beforePortrait || afterPortrait) {
+          el.classList.add('pj-compare--ratio-mixed');
+          return;
+        }
+
+        el.classList.add('pj-compare--ratio-landscape');
+      };
+
+      if (before) before.addEventListener('load', applyCompareRatioClass);
+      if (after) after.addEventListener('load', applyCompareRatioClass);
+
       // Photo set navigation (multi-photo before/after).
       let gallery = null;
       try {
@@ -128,6 +170,7 @@
           if (a) resetSkeleton(afterMedia, after);
 
           pager.textContent = `${idx + 1} / ${totalSets}`;
+          window.requestAnimationFrame(applyCompareRatioClass);
         };
 
         const move = (delta) => {
@@ -159,6 +202,7 @@
       };
 
       setPos(range.value || 50);
+      applyCompareRatioClass();
       range.addEventListener('input', () => setPos(range.value));
 
       const setFromClientX = (clientX) => {
