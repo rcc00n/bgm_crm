@@ -106,6 +106,10 @@
     .modal__title{font-weight:900; letter-spacing:.6px; color:#fff}
     .modal__close{background:transparent;color:var(--muted); border:none; font-size:1.6rem; line-height:1; cursor:pointer}
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
+    #resModal .grid-2{grid-template-columns:minmax(0,1fr)}
+    #resModal .modal__footer{justify-content:center;gap:.9rem;margin-top:1.25rem}
+    #resModal .modal__footer .btn{min-height:54px;min-width:180px;padding:.8rem 1.85rem;font-size:1.02rem}
+    #resModal .res-modal__meta{margin-top:.8rem}
     .grid-2{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,.65fr); gap:1rem; padding:1rem 0}
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:var(--muted)}
@@ -158,6 +162,10 @@
     .email-feed__time{margin-top:.35rem;font-size:.8rem;color:var(--muted-2)}
 
     @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .outlook__wrap{height:50vh;max-height:50vh;min-height:320px} .details-grid{grid-template-columns:1fr} }
+    @media (max-width: 640px){
+      #resModal .modal__footer{flex-wrap:wrap}
+      #resModal .modal__footer .btn{width:min(100%,280px)}
+    }
     @media (max-width: 768px){
       .mobile-booking{display:flex}
       .outlook{display:none}
@@ -532,7 +540,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     font-family: var(--font-body) !important; /* Diesel */
   }
 
-  /* Табличные заголовки: Date / Service / Master / Status / Amount */
+  /* Табличные заголовки: Date / Service / Master / Status */
   .table th,
   .table thead th{
     font-family: var(--font-body) !important; /* Diesel */
@@ -766,7 +774,6 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
                   <th class="py-2 pr-4">{{ portal_copy.table_service_label }}</th>
                   <th class="py-2 pr-4">{{ portal_copy.table_staff_label }}</th>
                   <th class="py-2 pr-4">{{ portal_copy.table_status_label }}</th>
-                  <th class="py-2 pr-3">{{ portal_copy.table_amount_label }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -785,13 +792,6 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
                     <td class="py-2 pr-4">{{ a.service.name }}</td>
                     <td class="py-2 pr-4">{{ a.master.get_full_name }}</td>
                     <td class="py-2 pr-4">{{ a.current_status }}</td>
-                    <td class="py-2 pr-3">
-                      {% if a.price is not None %}
-                        {{ a.price|money }}
-                      {% else %}
-                        —
-                      {% endif %}
-                    </td>
                   </tr>
                 {% endfor %}
               </tbody>
@@ -1152,17 +1152,14 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div>
-        <div class="field">
-          <label>Summary</label>
-          <div class="muted" id="resSummary">Choose staff and time.</div>
+          <div id="resSummary" class="sr-only" aria-live="polite">Choose staff and time.</div>
+          <div class="res-modal__meta">
+            <p class="hint">{{ portal_copy.reschedule_shift_scroll_hint }}</p>
+            <p class="error" id="resErr" style="display:none"></p>
+            <p class="success" id="resOk" style="display:none"></p>
+          </div>
         </div>
-        <p class="hint" style="margin-top:.85rem">{{ portal_copy.reschedule_shift_scroll_hint }}</p>
-        <p class="error" id="resErr" style="display:none"></p>
-        <p class="success" id="resOk" style="display:none"></p>
       </div>
     </div>
 
@@ -1469,9 +1466,11 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
   if (resModal) {
     const WINDOW_DAYS = 14;
-    const START_HOUR = 6;
-    const END_HOUR = 23;
-    const STEP_MIN = 30;
+    const DEFAULT_START_HOUR = 6;
+    const DEFAULT_END_HOUR = 23;
+    const GRID_STEP_MIN = 30;
+    const EDGE_BUFFER_MIN = 60;
+    const LAST_ROW_MINUTES = (23 * 60) + 45;
 
     const mobileState = {
       active: false,
@@ -1493,8 +1492,34 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
     const summaryDefault = 'Choose staff and time.';
 
+    function hmToMinutes(value){
+      if (!value || typeof value !== 'string') return null;
+      const parts = value.split(':');
+      if (parts.length !== 2) return null;
+      const hours = Number(parts[0]);
+      const minutes = Number(parts[1]);
+      if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null;
+      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+      return (hours * 60) + minutes;
+    }
+
+    function minutesToHm(total){
+      const normalized = Math.max(0, Math.min(LAST_ROW_MINUTES, total));
+      const hours = Math.floor(normalized / 60);
+      const minutes = normalized % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
+    function floorToStep(total, step){
+      return Math.floor(total / step) * step;
+    }
+
+    function ceilToStep(total, step){
+      return Math.ceil(total / step) * step;
+    }
+
     function setSummaryDefault(){
-      resSummary.textContent = summaryDefault;
+      if (resSummary) resSummary.textContent = summaryDefault;
     }
 
     function setMobileStatus(text, isError){
@@ -1599,9 +1624,9 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       const slotDate = parseISO(slotIso);
       if (slotDate){
         const dayLabel = slotDate.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'});
-        resSummary.textContent = `${getActiveMasterName()} · ${fmtHM(slotDate)}, ${dayLabel}`;
+        if (resSummary) resSummary.textContent = `${getActiveMasterName()} · ${fmtHM(slotDate)}, ${dayLabel}`;
       } else {
-        resSummary.textContent = `${getActiveMasterName()} · Time selected`;
+        if (resSummary) resSummary.textContent = `${getActiveMasterName()} · Time selected`;
       }
       resErr.style.display = 'none';
       updateSubmitState();
@@ -1609,16 +1634,42 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     }
 
     function buildTimeRows(extraSets){
-      const output = [];
-      for (let hour = START_HOUR; hour <= END_HOUR; hour += 1){
-        for (let minute = 0; minute < 60; minute += STEP_MIN){
-          output.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
-        }
+      const slotMinutes = [];
+      (extraSets || []).forEach((set) => {
+        if (!set) return;
+        set.forEach((timeValue) => {
+          const minutes = hmToMinutes(timeValue);
+          if (minutes !== null) slotMinutes.push(minutes);
+        });
+      });
+
+      let startMinutes = DEFAULT_START_HOUR * 60;
+      let endMinutes = (DEFAULT_END_HOUR * 60) + 30;
+      if (slotMinutes.length){
+        const earliest = Math.min(...slotMinutes);
+        const latest = Math.max(...slotMinutes);
+        startMinutes = floorToStep(Math.max(0, earliest - EDGE_BUFFER_MIN), GRID_STEP_MIN);
+        endMinutes = ceilToStep(Math.min(LAST_ROW_MINUTES, latest + EDGE_BUFFER_MIN), GRID_STEP_MIN);
       }
-      (extraSets || []).forEach((set) => set && set.forEach((timeValue) => {
-        if (!output.includes(timeValue)) output.push(timeValue);
-      }));
-      return output.sort();
+      if (endMinutes < startMinutes){
+        endMinutes = startMinutes;
+      }
+
+      const output = new Set();
+      for (let minutes = startMinutes; minutes <= endMinutes; minutes += GRID_STEP_MIN){
+        output.add(minutesToHm(minutes));
+      }
+
+      (extraSets || []).forEach((set) => {
+        if (!set) return;
+        set.forEach((timeValue) => {
+          const minutes = hmToMinutes(timeValue);
+          if (minutes === null || (minutes % GRID_STEP_MIN) !== 0) return;
+          output.add(timeValue);
+        });
+      });
+
+      return Array.from(output).sort();
     }
 
     async function fetchAvailability(dayISO, masterId){
@@ -1642,6 +1693,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         const slotDate = parseISO(iso);
         if (!slotDate) return;
         const key = hmValue(slotDate);
+        const minuteValue = slotDate.getMinutes();
+        if ((minuteValue % GRID_STEP_MIN) !== 0) return;
         set.add(key);
         if (!map.has(key)) map.set(key, iso);
       });
