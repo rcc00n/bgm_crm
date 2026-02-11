@@ -35,7 +35,7 @@
   <meta name="twitter:image" content="{{ meta_image_absolute }}">
   <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
-  <link rel="preload" href="{% static 'fonts/Diesel.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{% safe_static 'fonts/Diesel.woff2' 'fonts/Diesel.ttf' %}" as="font" type="font/woff2" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
