@@ -266,7 +266,7 @@
 
     /* Outlook grid */
     .outlook{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:var(--radius-md);overflow:visible;background:#0a0a0a;margin-top:.45rem}
-    .outlook__toolbar{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .75rem;border-bottom:1px solid var(--line);background:#0c0c0c}
+    .outlook__toolbar{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .75rem;border-bottom:1px solid var(--line);background:#0c0c0c;position:relative;z-index:5}
     .outlook__toolbar .controls{display:flex;gap:.4rem}
     .outlook__toolbar .range{font-weight:900;letter-spacing:.4px}
     .outlook__toolbar button{border:1px solid var(--line);background:#111;border-radius:.5rem;padding:.35rem .65rem;cursor:pointer;line-height:1;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.4px}
@@ -279,7 +279,7 @@
     .day-head{display:flex;flex-direction:column}
     .day-title{font:900 .95rem/1.1 Inter;text-transform:capitalize;letter-spacing:.3px}
     .day-sub{font-size:.78rem;color:var(--muted);margin-top:.15rem}
-    .day--today{background:linear-gradient(180deg, rgba(213,0,0,.08), rgba(213,0,0,0))}
+    .day--today{background:linear-gradient(180deg,#3a0b0b 0%,#240808 100%)}
     .slot-chip{display:inline-flex;align-items:center;justify-content:center;height:1.7rem;min-width:3.6rem;padding:0 .5rem;border-radius:.5rem;border:1.6px solid transparent;font-weight:900;font-size:.9rem;user-select:none;line-height:1;text-transform:uppercase;letter-spacing:.3px}
     .slot-free{color:#fff;border-color:rgba(255,255,255,.22);background:#131313;cursor:pointer}
     .slot-free:hover{border-color:rgba(213,0,0,.55);box-shadow:0 0 16px rgba(213,0,0,.25)}
@@ -1071,7 +1071,7 @@ main h3{
     const mobileState = { active:false, dateKey:'', times:[], isoMap:new Map() };
     const SUMMARY_DEFAULT = copy.summaryDefault;
 
-    const WINDOW_DAYS = 14, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
+    const WINDOW_DAYS = 5, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
     let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
     let baseStart = new Date(); baseStart.setHours(0,0,0,0);
     let availabilityCache = new Map();
