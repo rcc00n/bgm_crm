@@ -586,12 +586,10 @@
     .review-carousel__track{
       display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
       padding:.1rem 0 .65rem;
-      scrollbar-width:thin;
-      scrollbar-color:rgba(255,255,255,.2) rgba(255,255,255,.06);
+      -ms-overflow-style:none;
+      scrollbar-width:none;
     }
-    .review-carousel__track::-webkit-scrollbar{height:6px}
-    .review-carousel__track::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:999px}
-    .review-carousel__track::-webkit-scrollbar-track{background:rgba(255,255,255,.06)}
+    .review-carousel__track::-webkit-scrollbar{width:0;height:0;display:none}
     .review-slide{flex:0 0 100%;max-width:100%;scroll-snap-align:start}
     .review-card{display:flex;flex-direction:column;gap:.6rem;padding:1.1rem 1.35rem;min-height:140px}
     .review-stars{font-size:.92rem;color:var(--accent-2);letter-spacing:.18em}
