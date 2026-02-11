@@ -545,14 +545,18 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   height:100%;
   object-fit:cover;
   display:block;
-  opacity:0;
+  /* Never hide media completely: compare block must remain visible even if skeleton events miss. */
+  opacity:1;
   transform:scale(1.01);
-  transition:opacity .25s ease, transform .25s ease;
+  transition:transform .25s ease, filter .25s ease;
 }
 
 .pj-media.is-loaded img{
-  opacity:1;
   transform:scale(1);
+}
+
+.pj-media:not(.is-loaded) img{
+  filter:saturate(.96) contrast(1.02);
 }
 
 /* Slider mode: prefer full-photo visibility over aggressive cropping. */
@@ -581,7 +585,7 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   background:linear-gradient(110deg, rgba(255,255,255,.06) 20%, rgba(255,255,255,.12) 35%, rgba(255,255,255,.06) 50%);
   background-size:200% 100%;
   animation:pj-shimmer 1.1s linear infinite;
-  opacity:.75;
+  opacity:.55;
 }
 
 .pj-media.is-loaded::before{ display:none; }
