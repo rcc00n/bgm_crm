@@ -321,8 +321,14 @@
 .bgm-topbar__icon{
   width: 1.05em;
   height: 1.05em;
+  display: block;
   flex: 0 0 auto;
   opacity: .9;
+}
+
+.bgm-topbar__nav .bgm-topbar__nav-login{
+  justify-content: flex-start !important;
+  gap: .45rem !important;
 }
 
 .bgm-topbar__nav a:hover,
