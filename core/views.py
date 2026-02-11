@@ -661,7 +661,9 @@ def _build_catalog_context(request):
         filtered_qs = filtered_qs.filter(category__id=cat)
 
     categories_qs = (
-        ServiceCategory.objects.order_by("name")
+        ServiceCategory.objects
+        .annotate(services_count=models.Count("service", distinct=True))
+        .order_by("-services_count", "name")
         .prefetch_related(Prefetch("service_set", queryset=all_services_qs))
     )
 

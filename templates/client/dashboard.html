@@ -69,7 +69,7 @@
     .outlook__toolbar .range{font-weight:900;letter-spacing:.4px}
     .outlook__toolbar button{border:1px solid var(--grid);background:#111;border-radius:.5rem;padding:.35rem .65rem;cursor:pointer;line-height:1;font-weight:800;color:#fff}
     .outlook__toolbar button:hover{border-color:rgba(213,0,0,.45);box-shadow:0 0 16px rgba(213,0,0,.2)}
-    .outlook__wrap{flex:1 1 auto;overflow-x:auto;overflow-y:auto;max-height:56vh;min-height:300px;max-width:100%;padding-bottom:10px;scrollbar-gutter:stable both-edges}
+    .outlook__wrap{flex:1 1 auto;overflow-x:auto;overflow-y:auto;height:clamp(460px,66vh,760px);max-height:clamp(460px,66vh,760px);min-height:460px;max-width:100%;padding-bottom:10px;scrollbar-gutter:stable both-edges}
     .outlook__grid{display:grid;min-width:calc(96px + (var(--days,14) * 160px) + 1px);grid-auto-rows:minmax(36px, auto);grid-template-columns:96px repeat(var(--days, 14), 160px)}
     .outlook__cell{border-bottom:1px solid var(--grid);border-right:1px solid var(--grid);padding:.25rem .4rem;background:#0a0a0a;color:#fff;white-space:nowrap}
     .outlook__cell.time{position:sticky;left:0;background:#0c0c0c;z-index:2;font-size:.85rem;color:var(--muted)}
@@ -101,11 +101,12 @@
     .modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:1rem; z-index:50}
     .modal--open{display:flex}
     .modal__dialog{background:linear-gradient(180deg, rgba(15,15,15,.98), rgba(10,10,10,.98)); border:1px solid var(--grid); border-radius:16px; width:min(62rem, 96vw); padding:1rem; color:#fff; box-shadow:var(--shadow)}
+    #resModal .modal__dialog{width:min(80rem, 98vw); max-height:92vh; overflow:auto}
     .modal__header{display:flex; align-items:center; justify-content:space-between; padding:.25rem .25rem .5rem .25rem; border-bottom:1px solid var(--grid)}
     .modal__title{font-weight:900; letter-spacing:.6px; color:#fff}
     .modal__close{background:transparent;color:var(--muted); border:none; font-size:1.6rem; line-height:1; cursor:pointer}
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
-    .grid-2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:1rem; padding:1rem 0}
+    .grid-2{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,.65fr); gap:1rem; padding:1rem 0}
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:var(--muted)}
     .field input,.field select, .field textarea{background:#0b0b0b; color:#fff; border:1px solid var(--grid); border-radius:10px; padding:.6rem .8rem; font-size:.95rem}
@@ -156,7 +157,7 @@
     .email-feed__about{margin-top:.3rem;font-size:.88rem;color:var(--muted)}
     .email-feed__time{margin-top:.35rem;font-size:.8rem;color:var(--muted-2)}
 
-    @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .outlook__wrap{max-height:50vh} .details-grid{grid-template-columns:1fr} }
+    @media (max-width: 900px){ .grid-2{grid-template-columns:1fr} .outlook__wrap{height:50vh;max-height:50vh;min-height:320px} .details-grid{grid-template-columns:1fr} }
     @media (max-width: 768px){
       .mobile-booking{display:flex}
       .outlook{display:none}
@@ -1293,6 +1294,12 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     const labels = parseArr(el.dataset.labels);
     const activity = parseArr(el.dataset.data).map(Number).map(v => Number.isFinite(v) ? v : 0);
     const baseline = parseArr(el.dataset.hint).map(Number).map(v => Number.isFinite(v) ? v : 1);
+    const baselineVisible = labels.map((_, index) => {
+      const activeValue = Number(activity[index] || 0);
+      if (activeValue > 0) return 0;
+      const baseValue = Number(baseline[index]);
+      return Number.isFinite(baseValue) ? baseValue : 1;
+    });
     if (!labels.length) return;
 
     new Chart(el, {
@@ -1301,7 +1308,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         labels,
         datasets: [
           {
-            data: baseline.length === labels.length ? baseline : labels.map(() => 1),
+            data: baseline.length === labels.length ? baselineVisible : labels.map(() => 1),
             backgroundColor: 'rgba(255,255,255,0.16)',
             borderRadius: 8,
             grouped: false,
