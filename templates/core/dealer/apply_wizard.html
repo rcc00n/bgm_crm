@@ -99,6 +99,13 @@
       /* Ask the browser to render native controls (incl. <select> popup) in dark mode. */
       color-scheme: dark;
     }
+    /* Chrome/Edge sometimes render the <select> popup with a light background while inheriting our light text.
+       Force readable option colors in the native dropdown. */
+    select option,
+    select optgroup{
+      color:#111;
+      background-color:#fff;
+    }
     textarea{min-height:110px;resize:vertical}
 
     .actions{
