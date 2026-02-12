@@ -184,6 +184,21 @@ def _build_price_label(variants: list[dict[str, Any]]) -> str:
     return f"From {format_currency(low, include_code=False)}"
 
 
+def _build_variant_skus(variants: list[dict[str, Any]]) -> list[str]:
+    skus: list[str] = []
+    seen: set[str] = set()
+    for variant in variants:
+        raw = (variant.get("sku") or "").strip()
+        if not raw:
+            continue
+        key = raw.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        skus.append(raw)
+    return skus
+
+
 def _build_product_url(*, product_id: int, name: str, external_id: str, catalog_url: str) -> str:
     ext = (external_id or "").strip()
     if ext.startswith("http://") or ext.startswith("https://"):
@@ -280,6 +295,7 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
                     "image_url": (item.get("thumbnail_url") or "").strip(),
                     "price_label": _build_price_label(variants) if show_prices else "",
                     "variant_label": f"{variant_count} variants" if variant_count > 1 else "",
+                    "skus": _build_variant_skus(variants),
                     "url": _build_product_url(
                         product_id=product_id,
                         name=name,

@@ -246,6 +246,11 @@
       background:linear-gradient(180deg,var(--panel),var(--panel-2));
       border:1px solid var(--line); border-radius:1rem; padding:1rem; box-shadow:var(--shadow);
     }
+    .card--quick-checkout{ cursor:pointer; }
+    .card--quick-checkout:focus-visible{
+      outline:2px solid rgba(255,255,255,.75);
+      outline-offset:3px;
+    }
     .card__media{
       border-radius:.85rem; overflow:hidden; border:1px solid rgba(255,255,255,.08);
       background:#0c0c0c;
@@ -281,6 +286,7 @@
       color:#fff;
       letter-spacing:.01em;
     }
+    .card__checkout-form{ margin-top:.25rem; }
     .card__cta{ margin-top:.25rem; width:fit-content; }
     .card__cta[aria-disabled="true"]{
       opacity:.6;
@@ -636,7 +642,7 @@ body.nav-open .contact-fab,
 
           <div class="grid grid--cards" style="margin-top:1rem">
             {% for item in printful_products %}
-              <article class="card">
+              <article class="card{% if item.checkout_action %} card--quick-checkout{% endif %}"{% if item.checkout_action %} data-quick-checkout-card{% endif %}>
                 <div class="card__media">
                   {% if item.image_url %}
                     <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy" decoding="async">
@@ -652,8 +658,18 @@ body.nav-open .contact-fab,
                   {% if item.variant_label %}
                     <p class="section__desc">{{ item.variant_label }}</p>
                   {% endif %}
-                  {% if item.url %}
-                    <a class="btn btn--ghost card__cta" href="{{ item.url }}" target="_blank" rel="noopener">Shop now</a>
+                  {% if item.checkout_action %}
+                    <form method="post" action="{{ item.checkout_action }}" class="card__checkout-form" data-quick-checkout-form>
+                      {% csrf_token %}
+                      <input type="hidden" name="qty" value="1">
+                      <input type="hidden" name="buy_now" value="1">
+                      {% if item.checkout_option_id %}
+                        <input type="hidden" name="option_id" value="{{ item.checkout_option_id }}">
+                      {% endif %}
+                      <button type="submit" class="btn btn--primary card__cta">{{ item.checkout_label|default:"Checkout now" }}</button>
+                    </form>
+                  {% elif item.url %}
+                    <a class="btn btn--ghost card__cta" href="{{ item.url }}">{{ item.checkout_label|default:"Shop now" }}</a>
                   {% else %}
                     <span class="btn btn--ghost card__cta" aria-disabled="true">Available on request</span>
                   {% endif %}
@@ -870,6 +886,37 @@ body.nav-open .contact-fab,
   <script src="{% static 'js/topbar.js' %}"></script>
 
   <script>
+    (function () {
+      const cards = document.querySelectorAll("[data-quick-checkout-card]");
+      cards.forEach((card) => {
+        const form = card.querySelector("[data-quick-checkout-form]");
+        if (!form || typeof form.requestSubmit !== "function") {
+          return;
+        }
+
+        card.setAttribute("role", "button");
+        card.setAttribute("tabindex", "0");
+
+        card.addEventListener("click", (event) => {
+          if (event.target.closest("a,button,input,select,textarea,label,form")) {
+            return;
+          }
+          form.requestSubmit();
+        });
+
+        card.addEventListener("keydown", (event) => {
+          if (event.target !== card) {
+            return;
+          }
+          if (event.key !== "Enter" && event.key !== " ") {
+            return;
+          }
+          event.preventDefault();
+          form.requestSubmit();
+        });
+      });
+    })();
+
     /* Contact modal & clipboard (unchanged behavior, cleaned scope) */
     (function(){
       const fab   = document.getElementById('contactFab');

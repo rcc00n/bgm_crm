@@ -20,6 +20,7 @@ from django.views.generic.edit import CreateView
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.text import slugify
 from django.db.models import OuterRef, Subquery, Count
 from django.db.models.functions import TruncMonth
 from django.conf import settings
@@ -51,7 +52,7 @@ from .forms import (
     ClientProfileForm,
     VerifiedLoginForm,
 )
-from store.models import Order
+from store.models import Order, Product
 
 CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
 CLIENT_PORTAL_FILE_MAX_BYTES = CLIENT_PORTAL_FILE_MAX_MB * 1024 * 1024
@@ -815,6 +816,81 @@ class StoreView(TemplateView):
         return ctx
 
 
+def _normalize_merch_key(value: str) -> str:
+    return " ".join((value or "").strip().lower().split())
+
+
+def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
+    if not products:
+        return []
+
+    store_products = list(Product.objects.filter(is_active=True).prefetch_related("options"))
+    if not store_products:
+        return products
+
+    by_slug: dict[str, Product] = {}
+    by_name: dict[str, Product] = {}
+    by_sku: dict[str, Product] = {}
+    for product in store_products:
+        if product.slug:
+            by_slug.setdefault(product.slug, product)
+
+        name_key = _normalize_merch_key(product.name)
+        if name_key:
+            by_name.setdefault(name_key, product)
+
+        sku_key = (product.sku or "").strip().lower()
+        if sku_key:
+            by_sku.setdefault(sku_key, product)
+
+    enriched: list[dict] = []
+    for item in products:
+        row = dict(item or {})
+        product: Product | None = None
+
+        name = str(row.get("name") or "")
+        if name:
+            product = by_slug.get(slugify(name)) or by_name.get(_normalize_merch_key(name))
+
+        if not product:
+            for sku in row.get("skus") or []:
+                sku_key = str(sku or "").strip().lower()
+                if not sku_key:
+                    continue
+                product = by_sku.get(sku_key)
+                if product:
+                    break
+
+        if product:
+            default_option_id = None
+            if product.has_active_options:
+                selectable = product.get_selectable_options()
+                if selectable:
+                    default_option_id = selectable[0].id
+
+            row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
+            can_quick_checkout = not product.contact_for_estimate and (
+                not product.has_active_options or default_option_id is not None
+            )
+            if can_quick_checkout:
+                row["checkout_action"] = reverse("store:store-cart-add", kwargs={"slug": product.slug})
+                row["checkout_option_id"] = default_option_id
+                row["checkout_label"] = "Checkout now"
+            else:
+                row["checkout_action"] = ""
+                row["checkout_option_id"] = None
+                row["url"] = row["store_product_url"]
+                row["checkout_label"] = "Choose options"
+        else:
+            row.setdefault("checkout_action", "")
+            row.setdefault("checkout_option_id", None)
+            row.setdefault("checkout_label", "Shop now")
+
+        enriched.append(row)
+
+    return enriched
+
+
 class MerchPlaceholderView(TemplateView):
     template_name = "client/merch.html"
 
@@ -822,8 +898,9 @@ class MerchPlaceholderView(TemplateView):
         ctx = super().get_context_data(**kwargs)
         ctx["merch_copy"] = MerchPageCopy.get_solo()
         printful_feed = get_printful_merch_feed()
+        printful_products = _enrich_printful_merch_products(printful_feed.get("products", []))
         ctx["header_copy"] = ctx["merch_copy"]
-        ctx["printful_products"] = printful_feed.get("products", [])
+        ctx["printful_products"] = printful_products
         ctx["printful_catalog_url"] = printful_feed.get("catalog_url", "")
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
         return ctx
