@@ -253,26 +253,6 @@
             {% endif %}
 
             {% if not product.contact_for_estimate %}
-              <div class="cart-reference">
-                <label class="section__desc" for="cart_reference_image">Reference photo for this cart item (optional)</label>
-                <input
-                  class="field"
-                  id="cart_reference_image"
-                  name="reference_image"
-                  type="file"
-                  accept="image/*"
-                >
-                <div id="cartReferencePreview" class="cart-reference__preview" hidden>
-                  <img id="cartReferencePreviewImg" alt="Selected reference preview">
-                  <div class="cart-reference__meta">
-                    <span id="cartReferencePreviewName"></span>
-                    <small id="cartReferencePreviewSize"></small>
-                  </div>
-                </div>
-                <p class="section__desc cart-reference__hint">
-                  If you're signed in, this file is saved to your portal Files tab and linked to this cart line.
-                </p>
-              </div>
               <label class="section__desc" for="qty">Quantity</label>
               <div class="qty-row">
                 <input class="field" id="qty" name="qty" type="number" min="1" value="1" style="width:110px">
