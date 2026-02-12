@@ -203,6 +203,9 @@ class OrderCreateForm(forms.ModelForm):
             "notes": "Notes",
             "reference_image": "Photo reference",
         }
+        help_texts = {
+            "reference_image": "Optional: upload logos, artwork, inspiration, or fitment photos.",
+        }
 
 
 # =========================

@@ -551,7 +551,7 @@ class Order(models.Model):
         upload_to="store/order_attachments/",
         null=True,
         blank=True,
-        help_text="Optional photo reference uploaded at checkout.",
+        help_text="Optional reference image for logos, artwork, inspiration, or fitment examples uploaded at checkout.",
     )
 
     # payment
