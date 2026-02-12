@@ -186,7 +186,18 @@ def _apply_notification_state(sidebar: List[Dict[str, Any]], user) -> None:
     except (DatabaseError, OperationalError):
         return
 
-    baseline = user.last_login or getattr(user, "date_joined", None) or timezone.now()
+    # If a staff user has never opened a given admin model page, we still want "new work"
+    # to show up in the sidebar/bell. Using `last_login` as the fallback baseline is too
+    # aggressive because it updates on every login and can hide activity that happened
+    # shortly before the user signed in. Instead, anchor unseen detection to the earliest
+    # model page the user has actually visited (or their account creation time).
+    if seen_map:
+        baseline = min(seen_map.values())
+    else:
+        baseline = getattr(user, "date_joined", None) or timezone.now()
+    if baseline and timezone.is_naive(baseline):
+        baseline = timezone.make_aware(baseline, timezone.get_default_timezone())
+    baseline = baseline or timezone.now()
     activity_cache: Dict[tuple[str, str], Any] = {}
 
     for section in sidebar:

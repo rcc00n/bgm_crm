@@ -1990,6 +1990,9 @@ class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
             payload.update(state.get(slug) or {})
 
         preferred = payload.get("preferred_tier") or DealerTier.TIER_5
+        # Bump created_at on submit so admin notifications (which track created_at for public submissions)
+        # reflect fresh (re)submissions as "new" work items.
+        submitted_at = timezone.now()
         defaults = {
             "business_name": payload.get("business_name", "").strip(),
             "operating_as": payload.get("operating_as", "").strip(),
@@ -2024,6 +2027,7 @@ class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
             "internal_note": "",
             "reviewed_at": None,
             "reviewed_by": None,
+            "created_at": submitted_at,
         }
 
         with transaction.atomic():

@@ -8,6 +8,12 @@ from django.conf import settings
 from core.models import EmailTemplate, EmailTemplateSettings
 
 
+NO_REPLY_FOOTER_LINES = (
+    "Please do not reply to this email. This message was sent from a no-reply address and replies are not monitored.",
+    "For help, email {support_email}.",
+)
+
+
 @dataclass(frozen=True)
 class EmailTemplateDefinition:
     slug: str
@@ -50,7 +56,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
         title="Booking confirmed",
         greeting="Hi {client_name},",
         intro_lines=["Thanks for booking with {brand}. Your appointment is confirmed."],
-        footer_lines=["If you need to reschedule, reply to this email and we'll help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Visit {brand}",
         tokens=[
             "brand",
@@ -71,7 +77,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
         title="Order confirmed",
         greeting="Hi {customer_name},",
         intro_lines=["Thanks for your order with {brand}. We've got it and will follow up shortly."],
-        footer_lines=["Questions? Reply to this email and we'll help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Visit {brand}",
         tokens=[
             "brand",
@@ -92,7 +98,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
         title="Order update: processing",
         greeting="Hi {customer_name},",
         intro_lines=["Your order is now in processing. We'll keep you posted as it moves along."],
-        footer_lines=["Questions? Reply to this email and we'll help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Visit {brand}",
         tokens=["brand", "customer_name", "order_id", "order_status", "order_total", "company_website"],
     ),
@@ -105,7 +111,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
         title="Order update: shipped",
         greeting="Hi {customer_name},",
         intro_lines=["Your order has shipped and is on the way to you."],
-        footer_lines=["Questions? Reply to this email and we'll help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Visit {brand}",
         tokens=["brand", "customer_name", "order_id", "order_status", "order_total", "company_website"],
     ),
@@ -118,7 +124,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
         title="Order update: completed",
         greeting="Hi {customer_name},",
         intro_lines=["Your order is marked complete. Thanks again for choosing us."],
-        footer_lines=["Questions? Reply to this email and we'll help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Visit {brand}",
         tokens=["brand", "customer_name", "order_id", "order_status", "order_total", "company_website"],
     ),
@@ -130,8 +136,8 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
         preheader="Your order was cancelled.",
         title="Order update: cancelled",
         greeting="Hi {customer_name},",
-        intro_lines=["Your order was cancelled. If this is unexpected, reply to this email and we'll help."],
-        footer_lines=["Questions? Reply to this email and we'll help."],
+        intro_lines=["Your order was cancelled. If this is unexpected, email {support_email} and we'll help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Visit {brand}",
         tokens=["brand", "customer_name", "order_id", "order_status", "order_total", "company_website"],
     ),
@@ -144,7 +150,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
         title="Your cart is waiting",
         greeting="Hi there,",
         intro_lines=["You left a few items in your cart. We saved them for you."],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Resume checkout",
         tokens=["brand", "checkout_url", "cart_url", "store_url"],
     ),
@@ -156,8 +162,8 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
         preheader="Finish checkout whenever you are ready.",
         title="Your cart is still saved",
         greeting="Hi there,",
-        intro_lines=["Your cart is still saved. If you want help with fitment or shipping, reply here."],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        intro_lines=["Your cart is still saved. If you want help with fitment or shipping, email {support_email}."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Go to checkout",
         tokens=["brand", "checkout_url", "cart_url", "store_url"],
     ),
@@ -170,7 +176,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
         title="Last reminder for your cart",
         greeting="Hi there,",
         intro_lines=["Just a final reminder in case you still want these items."],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Checkout now",
         tokens=["brand", "checkout_url", "cart_url", "store_url"],
     ),
@@ -186,7 +192,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
             "Here is your welcome code for 5% off your first order.",
             "Use it on any product or service invoice.",
         ],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Visit {brand}",
         tokens=["brand", "welcome_code", "company_website"],
     ),
@@ -204,7 +210,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
         ],
         notice_title="Customer note",
         notice_lines=["\"The install was clean and the team kept me updated the whole time.\""],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Shop best sellers",
         tokens=["brand", "welcome_code", "best_sellers_url", "services_url", "booking_url"],
     ),
@@ -220,7 +226,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
             "We can price it out fast or lock in a time that works for you.",
             "Pick a service or jump straight to booking.",
         ],
-        footer_lines=["Questions? Reply to this email and we will help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Book a service",
         tokens=["brand", "services_url", "booking_url"],
     ),
@@ -236,7 +242,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
             "Thanks again for your order.",
             "If everything looks good, would you leave us a quick review?",
         ],
-        footer_lines=["Questions? Reply to this email and we'll help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Leave a review",
         tokens=["brand", "customer_name", "order_id", "review_url", "store_url"],
     ),
@@ -276,7 +282,10 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
             "Thanks for applying to the {brand} dealer program.",
             "Our team received your application and will review it shortly.",
         ],
-        footer_lines=["If you need to update anything, reply to this email."],
+        footer_lines=[
+            "If you need to update anything, email {support_email}.",
+            NO_REPLY_FOOTER_LINES[0],
+        ],
         cta_label="View status",
         tokens=[
             "brand",
@@ -299,7 +308,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
             "Congratulations, your dealer application has been approved.",
             "Your dealer access is now active.",
         ],
-        footer_lines=["Questions? Reply to this email and we'll help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="Open dealer portal",
         tokens=[
             "brand",
@@ -322,7 +331,7 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
             "Thanks for applying to the {brand} dealer program.",
             "At this time we're not able to approve your application.",
         ],
-        footer_lines=["If you have questions, reply to this email and we'll help."],
+        footer_lines=NO_REPLY_FOOTER_LINES,
         cta_label="View status",
         tokens=[
             "brand",
