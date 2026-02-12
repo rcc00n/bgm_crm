@@ -927,7 +927,7 @@
       .hero__lead{ font-size:1rem; margin-top:.85rem; }
       .hero__cta{ flex-direction:column; align-items:stretch; }
       .hero__cta .btn{ width:100%; justify-content:center; }
-      .hero__stats{ display:grid; grid-template-columns:1fr; gap:.45rem; width:100%; }
+      .hero__stats{ display:none !important; }
       .hero__stats br{ display:none; }
       .stat{
         width:100%;
@@ -2248,6 +2248,45 @@
 
   <!-- Unified topbar behavior -->
   <script src="{% static 'js/topbar.js' %}"></script>
+
+  <!-- Mobile layout: replace hero stats with Builds gallery -->
+  <script id="home-mobile-gallery-swap">
+  (function(){
+    const mobileQuery = window.matchMedia('(max-width: 860px)');
+    const gallery = document.querySelector('#services .home-gallery');
+    const servicesIntro = document.querySelector('#services .home-services-intro');
+    const heroStats = document.querySelector('.hero .hero__stats');
+    if (!gallery || !servicesIntro || !heroStats) return;
+
+    const servicesContainer = gallery.parentElement;
+
+    const moveForMobile = () => {
+      if (gallery.parentElement === heroStats.parentElement) return;
+      heroStats.parentElement.insertBefore(gallery, heroStats);
+    };
+
+    const moveForDesktop = () => {
+      if (gallery.parentElement === servicesContainer && servicesIntro.nextElementSibling === gallery) return;
+      servicesContainer.insertBefore(gallery, servicesIntro.nextSibling);
+    };
+
+    const syncLayout = () => {
+      if (mobileQuery.matches) {
+        moveForMobile();
+      } else {
+        moveForDesktop();
+      }
+    };
+
+    if (typeof mobileQuery.addEventListener === 'function') {
+      mobileQuery.addEventListener('change', syncLayout);
+    } else if (typeof mobileQuery.addListener === 'function') {
+      mobileQuery.addListener(syncLayout);
+    }
+
+    syncLayout();
+  })();
+  </script>
 
   <!-- Hero carousel -->
   <script id="hero-carousel-js">

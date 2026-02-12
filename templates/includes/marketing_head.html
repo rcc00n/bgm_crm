@@ -12,17 +12,18 @@
 {% firstof page_meta.updated meta_updated "" as meta_updated_resolved %}
 {% firstof page_meta.twitter_card meta_twitter_card "summary_large_image" as meta_twitter_card_resolved %}
 {% firstof page_meta.schema_type meta_schema_type "WebSite" as meta_schema_type_resolved %}
+{% with meta_title_clean=meta_title_resolved|meta_text meta_description_clean=meta_description_resolved|meta_text meta_site_name_clean=marketing.site_name|meta_text %}
 {% with meta_image_candidate=meta_image_resolved|default:marketing.default_image %}
   {% with meta_image_absolute=meta_image_candidate|absolute_url:marketing.origin|default:marketing.default_image_absolute %}
 
-  <meta name="description" content="{{ meta_description_resolved }}">
+  <meta name="description" content="{{ meta_description_clean }}">
   {% if meta_keywords_resolved %}<meta name="keywords" content="{{ meta_keywords_resolved }}">{% endif %}
   <meta name="robots" content="{{ meta_robots_resolved|default:'index,follow' }}">
   {% if meta_url_resolved %}<link rel="canonical" href="{{ meta_url_resolved }}">{% endif %}
   <meta property="og:type" content="{{ meta_type_resolved }}">
-  <meta property="og:title" content="{{ meta_title_resolved }}">
-  <meta property="og:description" content="{{ meta_description_resolved }}">
-  <meta property="og:site_name" content="{{ marketing.site_name }}">
+  <meta property="og:title" content="{{ meta_title_clean }}">
+  <meta property="og:description" content="{{ meta_description_clean }}">
+  <meta property="og:site_name" content="{{ meta_site_name_clean }}">
   {% if meta_url_resolved %}<meta property="og:url" content="{{ meta_url_resolved }}">{% endif %}
   <meta property="og:image" content="{{ meta_image_absolute }}">
   <meta property="og:locale" content="{{ meta_locale_resolved }}">
@@ -30,8 +31,8 @@
   {% if meta_published_resolved %}<meta property="article:published_time" content="{{ meta_published_resolved }}">{% endif %}
   {% if meta_updated_resolved %}<meta property="article:modified_time" content="{{ meta_updated_resolved }}">{% endif %}
   <meta name="twitter:card" content="{{ meta_twitter_card_resolved }}">
-  <meta name="twitter:title" content="{{ meta_title_resolved }}">
-  <meta name="twitter:description" content="{{ meta_description_resolved }}">
+  <meta name="twitter:title" content="{{ meta_title_clean }}">
+  <meta name="twitter:description" content="{{ meta_description_clean }}">
   <meta name="twitter:image" content="{{ meta_image_absolute }}">
   <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
@@ -103,13 +104,13 @@
   {
     "@context": "https://schema.org",
     "@type": "{{ meta_schema_type_resolved }}",
-    "name": "{{ marketing.site_name }}",
+    "name": "{{ meta_site_name_clean|escapejs }}",
     "url": "{{ meta_url_resolved|default:marketing.canonical_url }}",
-    "description": "{{ meta_description_resolved }}",
+    "description": "{{ meta_description_clean|escapejs }}",
     "publisher": {
       "@type": "Organization",
-      "name": "{{ marketing.site_name }}",
-      "legalName": "{{ marketing.site_name }}",
+      "name": "{{ meta_site_name_clean|escapejs }}",
+      "legalName": "{{ meta_site_name_clean|escapejs }}",
       "url": "{{ marketing.canonical_url|default:marketing.page_url }}",
       "logo": {
         "@type": "ImageObject",
@@ -126,7 +127,7 @@
     window.dataLayer.push({
       event: "page_view",
       page: {
-        title: "{{ meta_title_resolved|escapejs }}",
+        title: "{{ meta_title_clean|escapejs }}",
         url: "{{ meta_url_resolved|default:marketing.page_url|escapejs }}",
         type: "{{ meta_type_resolved|escapejs }}",
         section: "{{ meta_section_resolved|escapejs }}",
@@ -181,4 +182,5 @@
     {% endif %}
   {% endif %}
   {% endwith %}
+{% endwith %}
 {% endwith %}

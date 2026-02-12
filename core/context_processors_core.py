@@ -166,7 +166,12 @@ def marketing_tags(request):
     Keeps logic centralized so templates only worry about rendering.
     """
     config = getattr(settings, "MARKETING", {})
-    site_name = config.get("site_name") or "BGM Customs"
+    raw_site_name = (config.get("site_name") or "").strip()
+    # Keep legacy defaults from leaking into share cards.
+    if not raw_site_name or raw_site_name.lower() == "bgm customs":
+        site_name = "BGM"
+    else:
+        site_name = raw_site_name
     default_description = config.get("default_description") or ""
     default_image = config.get("default_image") or "/static/img/bad-guy-preview.png"
     organization_logo = config.get("organization_logo") or default_image

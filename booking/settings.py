@@ -39,7 +39,7 @@ ALLOWED_HOSTS = [
 # ── Бренд и маркетинг ───────────────────────────────────────────────────
 SITE_BRAND_NAME = os.getenv(
     "SITE_BRAND_NAME",
-    "BGM Customs",
+    "BGM",
 )
 SITE_BRAND_TAGLINE = os.getenv(
     "SITE_BRAND_TAGLINE",
@@ -47,7 +47,7 @@ SITE_BRAND_TAGLINE = os.getenv(
 )
 SITE_DEFAULT_DESCRIPTION = os.getenv(
     "SITE_DEFAULT_DESCRIPTION",
-    "BGM Customs delivers bespoke performance builds, detailing and premium parts sourcing for enthusiasts across North America.",
+    "BGM delivers bespoke performance builds, detailing and premium parts sourcing for enthusiasts across North America.",
 )
 SITE_DEFAULT_KEYWORDS = os.getenv(
     "SITE_DEFAULT_KEYWORDS",
@@ -225,7 +225,7 @@ COMPANY_PHONE = os.getenv("COMPANY_PHONE", "(403) 525-0432")
 COMPANY_WEBSITE = os.getenv("COMPANY_WEBSITE", "badguymotors.com")
 COMPANY_HOURS = os.getenv(
     "COMPANY_HOURS",
-    "Mon–Fri: 9:00am–5:30pm\nSat–Sun: Closed",
+    "M-F 8-4:30",
 )
 EMAIL_ACCENT_COLOR = os.getenv("EMAIL_ACCENT_COLOR", "#d50000")
 EMAIL_DARK_COLOR = os.getenv("EMAIL_DARK_COLOR", "#0b0b0c")
