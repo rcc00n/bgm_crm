@@ -60,6 +60,7 @@ from core.services.pagecopy_preview import (
     render_pagecopy_preview,
 )
 from core.utils import get_staff_queryset, format_currency
+from core.utils_durations import format_hms_ms
 from datetime import timedelta, time
 # -----------------------------
 # Custom filter for filtering users by Role
@@ -5493,15 +5494,21 @@ class LeadSubmissionEventAdmin(admin.ModelAdmin):
         "cf_asn",
         "cf_asn_org",
     )
-    readonly_fields = ("created_at",)
+    readonly_fields = ("created_at", "time_on_page")
     ordering = ("-created_at",)
     fieldsets = (
         (None, {"fields": ("form_type", "outcome", "success", "suspicion_score")}),
         ("Request", {"fields": ("path", "referer", "origin", "accept_language", "user_agent")}),
         ("Network", {"fields": ("ip_address", "ip_location", "cf_country", "cf_asn", "cf_asn_org")}),
-        ("Session", {"fields": ("session_key_hash", "session_first_seen_at", "time_on_page_ms")}),
+        ("Session", {"fields": ("session_key_hash", "session_first_seen_at", "time_on_page")}),
         ("Diagnostics", {"fields": ("validation_errors", "flags", "created_at")}),
     )
+
+    @admin.display(description="Time on page")
+    def time_on_page(self, obj):
+        if obj.time_on_page_ms is None:
+            return "—"
+        return format_hms_ms(obj.time_on_page_ms)
 
 
 @admin.register(VisitorSession)
@@ -5539,11 +5546,32 @@ class VisitorSessionAdmin(admin.ModelAdmin):
 
 @admin.register(PageView)
 class PageViewAdmin(admin.ModelAdmin):
-    list_display = ("path", "session", "user", "duration_ms", "started_at")
+    list_display = ("path", "session", "user", "duration", "started_at")
     search_fields = ("path", "page_instance_id", "session__session_key", "user__username")
     list_filter = ("started_at",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at", "duration")
+    exclude = ("duration_ms",)
+    fields = (
+        "path",
+        "full_path",
+        "page_title",
+        "referrer",
+        "session",
+        "user",
+        "started_at",
+        "duration",
+        "timezone_offset",
+        "viewport_width",
+        "viewport_height",
+        "page_instance_id",
+        "created_at",
+        "updated_at",
+    )
     ordering = ("-started_at",)
+
+    @admin.display(description="Duration", ordering="duration_ms")
+    def duration(self, obj):
+        return format_hms_ms(getattr(obj, "duration_ms", 0) or 0)
 
 
 @admin.register(ClientUiCheckRun)
@@ -5563,7 +5591,25 @@ class ClientUiCheckRunAdmin(admin.ModelAdmin):
         "status",
         "started_at",
         "finished_at",
-        "duration_ms",
+        "duration",
+        "total_pages",
+        "total_links",
+        "total_forms",
+        "total_buttons",
+        "failures_count",
+        "warnings_count",
+        "skipped_count",
+        "summary",
+        "report",
+        "triggered_by",
+    )
+    exclude = ("duration_ms",)
+    fields = (
+        "trigger",
+        "status",
+        "started_at",
+        "finished_at",
+        "duration",
         "total_pages",
         "total_links",
         "total_forms",
@@ -5576,3 +5622,7 @@ class ClientUiCheckRunAdmin(admin.ModelAdmin):
         "triggered_by",
     )
     ordering = ("-started_at",)
+
+    @admin.display(description="Duration")
+    def duration(self, obj):
+        return format_hms_ms(getattr(obj, "duration_ms", 0) or 0)

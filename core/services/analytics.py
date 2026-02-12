@@ -40,18 +40,9 @@ def _day_range(window_days: int):
 
 def _format_duration(seconds: int) -> str:
     seconds = max(0, int(round(seconds or 0)))
-    if seconds <= 0:
-        return "0m"
-    if seconds < 60:
-        return "<1m"
-    minutes, _ = divmod(seconds, 60)
-    if minutes < 60:
-        return f"{minutes}m"
-    hours, minutes = divmod(minutes, 60)
-    if hours < 24:
-        return f"{hours}h {minutes}m" if minutes else f"{hours}h"
-    days, hours = divmod(hours, 24)
-    return f"{days}d {hours}h" if hours else f"{days}d"
+    hours, rem = divmod(seconds, 3600)
+    minutes, secs = divmod(rem, 60)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 
 def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
