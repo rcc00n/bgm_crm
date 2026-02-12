@@ -147,6 +147,11 @@
   {% include "includes/topbar_client_v3.html" with topbar_nav_template="includes/topbar_nav_dealer.html" topbar_badge_label=dealer_copy.header_badge_label %}
 
   <main class="container">
+    {% if show_dealer_welcome %}
+      <div class="callout callout--ok" role="status" aria-live="polite">
+        {{ dealer_welcome_callout|linebreaksbr }}
+      </div>
+    {% endif %}
     {% if submitted %}
       <div class="callout callout--ok" role="status" aria-live="polite">
         Your dealer application has been submitted. Our team will review it and contact you with next steps.
@@ -328,7 +333,7 @@
           {% elif dealer_application.status == "rejected" %}
             <div class="callout">{{ dealer_copy.application_rejected_callout }}</div>
           {% elif dealer_application.status == "approved" and not is_dealer %}
-            <div class="callout callout--ok">{{ dealer_copy.application_approved_callout }}</div>
+            <div class="callout callout--ok">{{ dealer_copy.dealer_welcome_callout|linebreaksbr }}</div>
           {% endif %}
           <div class="metrics" style="margin-top:.6rem">
             <div class="metric"><span class="metric__label">{{ dealer_copy.application_metric_business_label }}</span><span class="metric__value">{{ dealer_application.business_name }}</span></div>

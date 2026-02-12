@@ -2,6 +2,7 @@
 import logging
 import re
 
+from django.apps import apps
 from django import forms
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
@@ -35,6 +36,7 @@ from core.email_templates import base_email_context, email_brand_name, join_text
 from core.emails import build_email_html, send_html_email
 from core.models import (
     Appointment,
+    AdminSidebarSeen,
     ServiceCategory,
     Service,
     CustomUserDisplay,
@@ -55,7 +57,9 @@ from core.models import (
     ServicesPageCopy,
     FinancingPageCopy,
     AboutPageCopy,
+    DealerApplication,
     DealerStatusPageCopy,
+    DealerTier,
     EmailCampaign,
     EmailSendLog,
     EmailSubscriber,
@@ -97,6 +101,52 @@ logger = logging.getLogger(__name__)
 def admin_logout(request):
     logout(request)
     return redirect(getattr(settings, "LOGOUT_REDIRECT_URL", "/"))
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
+def admin_notifications_read_all(request):
+    """
+    Marks all admin sidebar notification items as seen for the current staff user.
+    This powers the "Read all" action in the admin notification center (bell menu).
+    """
+    user = request.user
+    now = timezone.now()
+
+    config = getattr(settings, "ADMIN_SIDEBAR_SECTIONS", None) or settings.JAZZMIN_SETTINGS.get(
+        "custom_sidebar", []
+    ) or []
+    pairs: set[tuple[str, str]] = set()
+    for section in config:
+        for group in section.get("groups", []):
+            if group.get("notifications_enabled") is False:
+                continue
+            for item in group.get("items", []):
+                if item.get("notifications_enabled") is False:
+                    continue
+                model_label = (item.get("model") or "").strip()
+                if not model_label:
+                    continue
+                try:
+                    app_label, model_name = model_label.split(".", 1)
+                    model = apps.get_model(app_label, model_name)
+                except Exception:
+                    continue
+                pairs.add((model._meta.app_label, model._meta.model_name))
+
+    for app_label, model_name in pairs:
+        AdminSidebarSeen.objects.update_or_create(
+            user=user,
+            app_label=app_label,
+            model_name=model_name,
+            defaults={"last_seen_at": now},
+        )
+
+    next_url = (request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("admin:index") or "").strip()
+    if not next_url or not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = reverse("admin:index")
+    return HttpResponseRedirect(next_url)
 
 
 def _resolve_pagecopy_model(label: str):
@@ -2007,6 +2057,35 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         ctx["userprofile"] = up
         ctx["dealer_application"] = dealer_app
         ctx["submitted"] = str(self.request.GET.get("submitted") or "").strip() in {"1", "true", "yes"}
+
+        # Backfill: if an application is marked approved but the profile was not upgraded
+        # (e.g. staff changed status in admin form), upgrade the profile here so the dealer
+        # portal behaves correctly.
+        if dealer_app and dealer_app.status == DealerApplication.Status.APPROVED and up:
+            update_fields = []
+            became_dealer = False
+
+            if not up.is_dealer:
+                up.is_dealer = True
+                became_dealer = True
+                update_fields.append("is_dealer")
+
+            final_tier = dealer_app.resolved_tier()
+            if final_tier and final_tier != DealerTier.NONE and up.dealer_tier != final_tier:
+                up.dealer_tier = final_tier
+                update_fields.append("dealer_tier")
+
+            if not up.dealer_since:
+                up.dealer_since = dealer_app.reviewed_at or timezone.now()
+                update_fields.append("dealer_since")
+
+            if became_dealer and hasattr(up, "dealer_welcome_seen"):
+                up.dealer_welcome_seen = False
+                update_fields.append("dealer_welcome_seen")
+
+            if update_fields:
+                up.save(update_fields=update_fields)
+
         # флаг доступа и snapshot для портала
         portal_snapshot = build_portal_snapshot(self.request.user)
         ctx["portal"] = portal_snapshot
@@ -2017,7 +2096,18 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         ctx["current_threshold"] = portal_snapshot.get("current_threshold")
         ctx["remaining_to_next"] = portal_snapshot.get("remaining_to_next")
         ctx["lifetime_spent"] = portal_snapshot.get("lifetime_spent")
-        ctx["is_dealer"] = portal_snapshot.get("is_dealer", False)
+
+        is_dealer = portal_snapshot.get("is_dealer", False)
+        ctx["is_dealer"] = is_dealer
+
+        # One-time success banner: show once after approval, then mark as seen.
+        show_welcome = bool(is_dealer and up and hasattr(up, "dealer_welcome_seen") and not up.dealer_welcome_seen)
+        ctx["show_dealer_welcome"] = show_welcome
+        if show_welcome:
+            ctx["dealer_welcome_callout"] = ctx["dealer_copy"].dealer_welcome_callout
+            up.dealer_welcome_seen = True
+            up.save(update_fields=["dealer_welcome_seen"])
+
         return ctx
 
 from django.shortcuts import render

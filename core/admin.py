@@ -1823,6 +1823,23 @@ class DealerApplicationAdmin(admin.ModelAdmin):
 
     actions = ["approve_selected", "reject_selected"]
 
+    def save_model(self, request, obj, form, change):
+        """
+        Keep dealer profile + review metadata in sync even when staff approve/reject
+        via the change form (not the bulk actions).
+        """
+        previous_status = None
+        if change and obj.pk:
+            try:
+                previous_status = DealerApplication.objects.only("status").get(pk=obj.pk).status
+            except DealerApplication.DoesNotExist:
+                previous_status = None
+        super().save_model(request, obj, form, change)
+        if obj.status == DealerApplication.Status.APPROVED and previous_status != DealerApplication.Status.APPROVED:
+            obj.approve(admin_user=request.user)
+        elif obj.status == DealerApplication.Status.REJECTED and previous_status != DealerApplication.Status.REJECTED:
+            obj.reject(admin_user=request.user)
+
     @admin.display(description="Requested tier")
     def preferred_tier_display(self, obj):
         return obj.get_preferred_tier_display() or "—"
@@ -4324,6 +4341,7 @@ class DealerStatusPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "application_pending_callout",
                 "application_rejected_callout",
                 "application_approved_callout",
+                "dealer_welcome_callout",
                 "application_none_callout",
                 "application_metric_business_label",
                 "application_metric_tier_label",

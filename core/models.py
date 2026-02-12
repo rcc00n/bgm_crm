@@ -1892,6 +1892,12 @@ class DealerStatusPageCopy(models.Model):
     application_approved_callout = models.TextField(
         default="Approved — we are finalizing onboarding. Expect an activation email shortly."
     )
+    dealer_welcome_callout = models.TextField(
+        default=(
+            "Congratulations, you're officially a Bad Guy Motors Dealer. "
+            "Your wholesale pricing is now active."
+        )
+    )
     application_none_callout = models.TextField(
         default=(
             "You have not submitted a dealer request yet. Tell us about your business and projected volume to "
@@ -3325,7 +3331,11 @@ class DealerApplication(models.Model):
                 # tier будет выставляться на основании total_spent (см. метод ниже)
                 up.recompute_dealer_tier()
             up.dealer_since = up.dealer_since or timezone.now()
-            up.save(update_fields=["is_dealer", "dealer_tier", "dealer_since"])
+            update_fields = ["is_dealer", "dealer_tier", "dealer_since"]
+            if hasattr(up, "dealer_welcome_seen"):
+                up.dealer_welcome_seen = False
+                update_fields.append("dealer_welcome_seen")
+            up.save(update_fields=update_fields)
 
     def reject(self, admin_user):
         self.status = self.Status.REJECTED
@@ -3349,6 +3359,11 @@ class UserProfile(models.Model):
         default=DealerTier.NONE,
     )
     dealer_since = models.DateTimeField("Dealer since", null=True, blank=True)
+    dealer_welcome_seen = models.BooleanField(
+        "Dealer welcome notice seen",
+        default=True,
+        help_text="Internal flag used to show the approval success banner once.",
+    )
 
     # === NEW ===
     address = models.TextField(blank=True)                         # одна строка/много строк — на твой вкус

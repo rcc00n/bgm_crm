@@ -30,6 +30,11 @@ urlpatterns = [
     ),
     path("admin/ui-check/run/", core_views.admin_ui_check_run, name="admin-ui-check-run"),
     path(
+        "admin/notifications/read-all/",
+        admin.site.admin_view(core_views.admin_notifications_read_all),
+        name="admin-notifications-read-all",
+    ),
+    path(
         "admin/pagecopy/save-field/",
         admin.site.admin_view(core_views.admin_pagecopy_save_field),
         name="admin-pagecopy-save-field",
