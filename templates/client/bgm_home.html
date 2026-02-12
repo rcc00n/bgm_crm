@@ -1448,7 +1448,7 @@
 		          </div>
 	          <div class="grid grid--gallery">
 	            {% for item in home_gallery_items %}
-	              <a class="gallery-card" href="{% url 'client-dashboard' %}#services" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
+	              <a class="gallery-card" href="{{ home_gallery_url }}" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
 	                <div class="frame frame--media">
 	                  {% if item.image %}
 	                    {% thumbnail item.image "420" quality=72 format="WEBP" as gallery_1x %}
