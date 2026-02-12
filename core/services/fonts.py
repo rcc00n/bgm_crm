@@ -3,6 +3,9 @@ from __future__ import annotations
 import re
 from typing import Dict, List, Optional
 
+from django.conf import settings
+from django.templatetags.static import static
+
 from core.models import FontPreset, PageFontSetting
 
 # Default fallbacks in case admin configuration is missing.
@@ -15,12 +18,24 @@ DEFAULT_FONT_SLUGS = {
 def serialize_font_preset(font: Optional[FontPreset]) -> Dict[str, str]:
     if not font:
         return {}
+
+    url_woff2 = ""
+    static_path = (getattr(font, "static_path", "") or "").strip()
+    if static_path.lower().endswith(".ttf"):
+        woff2_path = f"{static_path[:-4]}.woff2"
+        try:
+            url_woff2 = static(woff2_path)
+        except Exception:
+            static_url = getattr(settings, "STATIC_URL", "/static/")
+            url_woff2 = f"{static_url.rstrip('/')}/{woff2_path.lstrip('/')}"
+
     return {
         "slug": font.slug,
         "name": font.name,
         "family": font.font_family,
         "stack": font.font_stack,
         "url": font.url,
+        "url_woff2": url_woff2,
         "format": font.format_hint,
         "mime_type": font.mime_type,
         "weight": font.font_weight,

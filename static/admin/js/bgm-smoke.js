@@ -1,74 +1,253 @@
 // static/admin/js/bgm-smoke.js
 (function init() {
-  // Don't run the decorative smoke effect if the user asked for reduced motion,
-  // if data-saver is enabled, or if we've already started once.
+  if (window.__bgmSmokeInit) return;
+  window.__bgmSmokeInit = true;
+
+  // Decorative effect only: don't run when reduced motion or data saver is enabled.
   if (window.__bgmSmokeStarted) return;
-  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const forceSmoke = window.__bgmSmokeForce === true;
+
+  const prefersReduced =
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const saveData = !!(navigator.connection && navigator.connection.saveData);
-  if (prefersReduced || saveData) return;
+  if (!forceSmoke && (prefersReduced || saveData)) return;
 
-  const schedule = (startFn) => {
-    let started = false;
-    const startOnce = () => {
-      if (started) return;
-      started = true;
-      startFn();
+  let host = document.getElementById('bg');
+  if (!host && document.readyState === 'loading') {
+    document.addEventListener(
+      'DOMContentLoaded',
+      () => {
+        window.__bgmSmokeInit = false;
+        init();
+      },
+      { once: true }
+    );
+    return;
+  }
+  if (!host && document.body) {
+    host = document.createElement('div');
+    host.id = 'bg';
+    host.setAttribute('aria-hidden', 'true');
+    document.body.prepend(host);
+  }
+  if (!host) return;
+  host.style.position = 'fixed';
+  host.style.inset = '0';
+  host.style.pointerEvents = 'none';
+  if (!host.style.zIndex) host.style.zIndex = '0';
+
+  const loadThreeScript = (src) =>
+    new Promise((resolve, reject) => {
+      const existing = Array.from(document.querySelectorAll('script[data-bgm-three="1"]')).find(
+        (script) => script.getAttribute('src') === src || script.src === src
+      );
+      if (existing) {
+        if (window.THREE) {
+          resolve(window.THREE);
+          return;
+        }
+        existing.addEventListener(
+          'load',
+          () => (window.THREE ? resolve(window.THREE) : reject(new Error('THREE unavailable'))),
+          { once: true }
+        );
+        existing.addEventListener('error', () => reject(new Error('Failed to load THREE')), {
+          once: true,
+        });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = true;
+      script.dataset.bgmThree = '1';
+      script.addEventListener(
+        'load',
+        () => (window.THREE ? resolve(window.THREE) : reject(new Error('THREE unavailable'))),
+        { once: true }
+      );
+      script.addEventListener(
+        'error',
+        () => {
+          script.remove();
+          reject(new Error('Failed to load THREE'));
+        },
+        { once: true }
+      );
+      document.head.appendChild(script);
+    });
+
+  const ensureThreeLoaded = () => {
+    if (window.THREE) return Promise.resolve(window.THREE);
+    if (window.__bgmSmokeThreePromise) return window.__bgmSmokeThreePromise;
+
+    const sources = [];
+    const pushSource = (value) => {
+      if (!value || typeof value !== 'string') return;
+      if (!sources.includes(value)) sources.push(value);
+    };
+    pushSource(window.__bgmSmokeThreeSrc);
+    pushSource(window.__bgmSmokeThreeFallbackSrc);
+    pushSource('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js');
+    pushSource('https://unpkg.com/three@0.160.0/build/three.min.js');
+
+    const trySource = (index) => {
+      if (index >= sources.length) {
+        return Promise.reject(new Error('No THREE source could be loaded'));
+      }
+      return loadThreeScript(sources[index]).catch(() => trySource(index + 1));
     };
 
-    // First user interaction: start immediately (keeps Lighthouse / initial load lighter).
-    const onFirstInteraction = () => {
-      cleanup();
-      startOnce();
+    window.__bgmSmokeThreePromise = trySource(0).catch((error) => {
+      window.__bgmSmokeThreePromise = null;
+      throw error;
+    });
+
+    return window.__bgmSmokeThreePromise;
+  };
+
+  const startCanvasFallback = () => {
+    if (window.__bgmSmokeStarted) return;
+    window.__bgmSmokeStarted = true;
+
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('aria-hidden', 'true');
+    canvas.style.position = 'absolute';
+    canvas.style.inset = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.display = 'block';
+    canvas.style.opacity = '0.62';
+    canvas.style.mixBlendMode = 'screen';
+    host.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+
+    const baseFps = 24;
+    const frameMs = 1000 / baseFps;
+    let lastFrame = 0;
+    let raf = 0;
+    let pxW = 1;
+    let pxH = 1;
+    let dpr = 1;
+    let particles = [];
+
+    const spawnParticle = () => ({
+      x: Math.random() * pxW,
+      y: pxH + Math.random() * (pxH * 0.3),
+      r: (Math.random() * 90 + 55) * dpr,
+      vx: (Math.random() - 0.5) * 0.28 * dpr,
+      vy: -(Math.random() * 0.42 + 0.22) * dpr,
+      alpha: Math.random() * 0.05 + 0.025,
+      wobbleSeed: Math.random() * Math.PI * 2,
+    });
+
+    const resetParticle = (p) => {
+      p.x = Math.random() * pxW;
+      p.y = pxH + Math.random() * (pxH * 0.25);
+      p.r = (Math.random() * 90 + 55) * dpr;
+      p.vx = (Math.random() - 0.5) * 0.28 * dpr;
+      p.vy = -(Math.random() * 0.42 + 0.22) * dpr;
+      p.alpha = Math.random() * 0.05 + 0.025;
+      p.wobbleSeed = Math.random() * Math.PI * 2;
     };
 
-    const events = ['pointerdown', 'touchstart', 'scroll', 'wheel', 'keydown', 'mousemove'];
-    const opts = { passive: true, capture: true };
-    events.forEach((ev) => window.addEventListener(ev, onFirstInteraction, opts));
-
-    const cleanup = () => {
-      events.forEach((ev) => window.removeEventListener(ev, onFirstInteraction, opts));
-    };
-
-    const idleStart = () => {
-      if (started) return;
-      cleanup();
-      startOnce();
-    };
-
-    const runIdle = () => {
-      if ('requestIdleCallback' in window) {
-        // Delay long-running animation until well after initial paint/TTI.
-        window.requestIdleCallback(idleStart, { timeout: 10000 });
+    const resize = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+      pxW = Math.max(1, Math.floor(window.innerWidth * dpr));
+      pxH = Math.max(1, Math.floor(window.innerHeight * dpr));
+      canvas.width = pxW;
+      canvas.height = pxH;
+      const targetCount = Math.min(44, Math.max(20, Math.round((pxW * pxH) / 85000)));
+      if (particles.length > targetCount) {
+        particles.length = targetCount;
       } else {
-        window.setTimeout(idleStart, 8000);
+        while (particles.length < targetCount) particles.push(spawnParticle());
       }
     };
 
-    if (document.readyState === 'complete') {
-      runIdle();
-    } else {
-      window.addEventListener('load', runIdle, { once: true });
-    }
+    const drawParticle = (p) => {
+      const gradient = ctx.createRadialGradient(
+        p.x,
+        p.y,
+        p.r * 0.2,
+        p.x,
+        p.y,
+        p.r
+      );
+      gradient.addColorStop(0, `rgba(235,242,255,${p.alpha})`);
+      gradient.addColorStop(0.58, `rgba(208,220,248,${p.alpha * 0.55})`);
+      gradient.addColorStop(1, 'rgba(145,165,210,0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    const render = (now) => {
+      raf = requestAnimationFrame(render);
+      if (document.hidden) return;
+      if (now - lastFrame < frameMs) return;
+      lastFrame = now;
+
+      ctx.clearRect(0, 0, pxW, pxH);
+      for (let i = 0; i < particles.length; i += 1) {
+        const p = particles[i];
+        const wobble = Math.sin(now * 0.00075 + p.wobbleSeed + p.y * 0.004) * 0.18 * dpr;
+        p.x += p.vx + wobble;
+        p.y += p.vy;
+        if (p.y < -p.r || p.x < -p.r * 1.3 || p.x > pxW + p.r * 1.3) {
+          resetParticle(p);
+        }
+        drawParticle(p);
+      }
+    };
+
+    const stop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stop();
+      } else if (!raf) {
+        lastFrame = 0;
+        raf = requestAnimationFrame(render);
+      }
+    });
+
+    let resizeRaf = 0;
+    addEventListener('resize', () => {
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = 0;
+        resize();
+      });
+    });
+
+    resize();
+    raf = requestAnimationFrame(render);
   };
 
   const start = () => {
-    // дождаться DOM, если #bg ещё не в дереве
-    const host = document.getElementById('bg');
-    if (!host) return;
-    if (!window.THREE) {
-      console.warn('THREE not loaded');
-      return;
-    }
-    if (window.__bgmSmokeStarted) return;
+    if (!window.THREE || window.__bgmSmokeStarted) return false;
     window.__bgmSmokeStarted = true;
 
     // Lower the pixel ratio to reduce GPU work; the effect is purely decorative.
     const clampedDpr = Math.min(window.devicePixelRatio || 1, 1.25);
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: false,
-      powerPreference: 'low-power',
-    });
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: false,
+        powerPreference: 'low-power',
+      });
+    } catch (error) {
+      window.__bgmSmokeStarted = false;
+      return false;
+    }
     renderer.setPixelRatio(clampedDpr);
     renderer.setSize(window.innerWidth, window.innerHeight);
     if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -139,12 +318,12 @@
     const uniforms = {
       iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
       iTime:       { value: 0 },
-      uDensity:    { value: 0.35 },
+      uDensity:    { value: 0.52 },
       uRise:       { value: 0.5 },
       uWind:       { value: 0.15 },
       uTurbulence: { value: 1.0 },
       uFill:       { value: 0.7 },
-      uContrast:   { value: 0.7 },
+      uContrast:   { value: 0.95 },
       uGrain:      { value: 0.0 },
       uQuality:    { value: 0.65 },
     };
@@ -198,7 +377,50 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
       });
     });
+    return true;
   };
 
-  schedule(start);
+  const events = [
+    'pointerdown',
+    'pointermove',
+    'touchstart',
+    'touchmove',
+    'wheel',
+    'scroll',
+    'keydown',
+  ];
+  let activated = false;
+
+  const cleanup = () => {
+    events.forEach((eventName) => window.removeEventListener(eventName, onFirstInteraction, true));
+  };
+
+  const onFirstInteraction = () => {
+    if (activated) return;
+    activated = true;
+    cleanup();
+
+    ensureThreeLoaded()
+      .then(() => {
+        const started = start();
+        if (!started) startCanvasFallback();
+      })
+      .catch(() => {
+        startCanvasFallback();
+      });
+  };
+
+  events.forEach((eventName) => window.addEventListener(eventName, onFirstInteraction, true));
+
+  const shouldAutoStart = window.__bgmSmokeAutoStart !== false;
+  const rawDelay = Number(window.__bgmSmokeAutoDelayMs);
+  const autoStartDelayMs = Number.isFinite(rawDelay) ? Math.max(0, rawDelay) : 450;
+  if (shouldAutoStart) {
+    const scheduleAutoStart = () => window.setTimeout(onFirstInteraction, autoStartDelayMs);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', scheduleAutoStart, { once: true });
+    } else {
+      scheduleAutoStart();
+    }
+  }
 })();

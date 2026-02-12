@@ -43,6 +43,7 @@ from core.services.email_reporting import describe_email_types
 from core.services.media import build_home_gallery_media, build_merch_gallery_groups
 from core.services.printful import get_printful_merch_feed
 from core.services.page_sections import get_page_sections
+from core.services.email_reporting import describe_email_types
 from core.emails import build_email_html, send_html_email
 from core.email_templates import email_brand_name, join_text_sections
 from store.models import Order
@@ -52,6 +53,7 @@ from .forms import (
     ClientProfileForm,
     VerifiedLoginForm,
 )
+from store.models import Order
 
 CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
 CLIENT_PORTAL_FILE_MAX_BYTES = CLIENT_PORTAL_FILE_MAX_MB * 1024 * 1024
@@ -244,6 +246,48 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
     """
     template_name = "client/dashboard.html"
 
+    @staticmethod
+    def _notification_tag(email_type: str) -> str:
+        slug = (email_type or "").lower()
+        if "appointment" in slug:
+            return "Appointment"
+        if slug.startswith("order_"):
+            return "Order"
+        if slug.startswith("email_verification"):
+            return "Account"
+        if slug.startswith("site_notice") or "cart" in slug:
+            return "Offers"
+        return "Update"
+
+    @classmethod
+    def _notification_summary(cls, email_type: str) -> str:
+        tag = cls._notification_tag(email_type)
+        if tag == "Appointment":
+            return "Details about your booking were sent to your email."
+        if tag == "Order":
+            return "There is an update on your order."
+        if tag == "Account":
+            return "This message is about your account and sign-in."
+        if tag == "Offers":
+            return "A special offer or reminder was sent to you."
+        return "A new message from Bad Guy Motors was sent to your email."
+
+    @classmethod
+    def _notification_title(cls, subject: str, email_type: str, meta_label: str) -> str:
+        clean_subject = (subject or "").strip()
+        if clean_subject:
+            return clean_subject
+        tag = cls._notification_tag(email_type)
+        if tag == "Appointment":
+            return "Appointment update"
+        if tag == "Order":
+            return "Order update"
+        if tag == "Account":
+            return "Account update"
+        if tag == "Offers":
+            return "Offer update"
+        return (meta_label or "").strip() or "Update from Bad Guy Motors"
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
@@ -281,6 +325,38 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         )
         ctx["client_file_max_mb"] = CLIENT_PORTAL_FILE_MAX_MB
 
+        orders_qs = (
+            Order.objects
+            .select_related("user")
+            .prefetch_related("items__product", "items__option")
+            .filter(user=user)
+            .order_by("-id")
+        )
+        orders = list(orders_qs)
+        if not orders:
+            email = (user.email or "").strip()
+            if email:
+                orders = list(
+                    Order.objects
+                    .select_related("user")
+                    .prefetch_related("items__product", "items__option")
+                    .filter(email__iexact=email)
+                    .order_by("-id")
+                )
+
+        for order in orders:
+            preview_image_url = ""
+            for item in order.items.all():
+                product = getattr(item, "product", None)
+                if not product:
+                    continue
+                candidate = getattr(product, "main_image_url", "") or ""
+                if candidate:
+                    preview_image_url = candidate
+                    break
+            order.preview_image_url = preview_image_url
+        ctx["orders"] = orders
+
         # прошлые и будущие
         ctx["recent_appointments"] = qs.filter(start_time__lt=now)[:5]
 
@@ -293,114 +369,75 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         ctx["upcoming_appointments"] = upcoming_qs
         ctx["next_appointment"] = upcoming_qs.first()  # для обратной совместимости
 
-        # Chart stats for exactly 6 months, including empty months.
-        this_month_start = local_today.replace(day=1)
-        month_starts: list[date] = []
-        for offset in range(5, -1, -1):
-            month = this_month_start.month - offset
-            year = this_month_start.year
-            while month <= 0:
-                month += 12
-                year -= 1
-            month_starts.append(date(year, month, 1))
+        # статистика по месяцам: всегда последние 6 месяцев (включая текущий)
+        current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        range_start = month_starts[0]
-        range_end = date(
-            this_month_start.year + (1 if this_month_start.month == 12 else 0),
-            1 if this_month_start.month == 12 else this_month_start.month + 1,
-            1,
-        )
+        def shift_month(dt, delta):
+            month_index = (dt.month - 1) + delta
+            year = dt.year + (month_index // 12)
+            month = (month_index % 12) + 1
+            return dt.replace(year=year, month=month, day=1)
+
+        month_starts = [shift_month(current_month_start, delta) for delta in range(-5, 1)]
+        window_start = month_starts[0]
+        window_end = shift_month(current_month_start, 1)
+
         month_counts = (
-            qs.filter(start_time__date__gte=range_start, start_time__date__lt=range_end)
+            qs.filter(start_time__gte=window_start, start_time__lt=window_end)
             .annotate(month=TruncMonth("start_time"))
             .values("month")
             .annotate(cnt=Count("id"))
             .order_by("month")
         )
-        count_by_month: dict[tuple[int, int], int] = {}
-        for row in month_counts:
-            month_value = row.get("month")
-            if not month_value:
-                continue
-            local_month = timezone.localtime(month_value)
-            count_by_month[(local_month.year, local_month.month)] = int(row.get("cnt") or 0)
+        month_count_map = {
+            row["month"].strftime("%Y-%m"): row["cnt"]
+            for row in month_counts
+            if row.get("month")
+        }
+        chart_labels = [dt.strftime("%b") for dt in month_starts]
+        chart_data = [month_count_map.get(dt.strftime("%Y-%m"), 0) for dt in month_starts]
+        baseline = max(1, int(round(sum(chart_data) / len(chart_data)))) if chart_data else 1
+        chart_potential = [baseline for _ in chart_data]
 
-        chart_labels = [start.strftime("%b %Y") for start in month_starts]
-        chart_data = [count_by_month.get((start.year, start.month), 0) for start in month_starts]
-        chart_hint_data = [1 for _ in month_starts]
         ctx["chart_labels"] = chart_labels
         ctx["chart_data"] = chart_data
-        ctx["chart_hint_data"] = chart_hint_data
+        ctx["chart_potential"] = chart_potential
 
-        # Orders: first by FK user, fallback by email for legacy records.
-        orders_base = (
-            Order.objects
-            .select_related("user")
-            .prefetch_related("items__product", "items__option")
-            .order_by("-id")
-        )
-        orders_qs = orders_base.filter(user=user)
-        if not orders_qs.exists() and user.email:
-            orders_qs = orders_base.filter(email__iexact=user.email)
-        orders = list(orders_qs[:30])
-        for order in orders:
-            image_url = ""
-            if getattr(order, "reference_image", None):
-                try:
-                    image_url = order.reference_image.url
-                except Exception:
-                    image_url = ""
-            if not image_url:
-                for item in order.items.all():
-                    product = getattr(item, "product", None)
-                    candidate = getattr(product, "main_image_url", "") if product else ""
-                    if candidate:
-                        image_url = candidate
-                        break
-            order.portal_image_url = image_url
-        ctx["orders"] = orders
-
-        # Email history for the current user, formatted for non-technical UI.
+        notification_emails: list[dict[str, object]] = []
         user_email = (user.email or "").strip().lower()
-        email_feed = []
         if user_email:
-            recent_logs = list(
-                EmailSendLog.objects
-                .filter(sent_at__gte=now - timedelta(days=365))
-                .only("email_type", "subject", "recipients", "success", "sent_at")
-                .order_by("-sent_at")[:500]
-            )
-
+            # Keep portal load fast and scan only the most recent send logs.
+            recent_logs = EmailSendLog.objects.filter(success=True).only(
+                "email_type",
+                "subject",
+                "recipients",
+                "sent_at",
+            ).order_by("-sent_at")[:500]
             matched_logs = []
             for log in recent_logs:
                 recipients = log.recipients if isinstance(log.recipients, list) else []
-                normalized = {
-                    str(recipient).strip().lower()
+                if any(
+                    isinstance(recipient, str) and recipient.strip().lower() == user_email
                     for recipient in recipients
-                    if recipient
-                }
-                if user_email in normalized:
+                ):
                     matched_logs.append(log)
+                    if len(matched_logs) >= 20:
+                        break
 
-            matched_logs = matched_logs[:30]
-            type_meta = describe_email_types([log.email_type for log in matched_logs])
+            type_meta = describe_email_types([log.email_type for log in matched_logs]) if matched_logs else {}
             for log in matched_logs:
-                reason = type_meta.get(log.email_type, {})
-                kind_label = (reason.get("label") or "Email update").strip()
-                about_label = (reason.get("description") or "").strip()
-                subject = (log.subject or "").strip()
-                email_feed.append(
+                meta = type_meta.get(log.email_type, {})
+                title = self._notification_title(log.subject, log.email_type, str(meta.get("label") or ""))
+                summary = self._notification_summary(log.email_type)
+                notification_emails.append(
                     {
+                        "title": title,
+                        "summary": summary,
                         "sent_at": log.sent_at,
-                        "kind_label": kind_label,
-                        "headline": subject or kind_label,
-                        "about_label": about_label,
-                        "status_label": "Delivered" if log.success else "Delivery issue",
-                        "is_success": bool(log.success),
+                        "tag": self._notification_tag(log.email_type),
                     }
                 )
-
-        ctx["email_feed"] = email_feed
+        ctx["notification_emails"] = notification_emails
 
         return ctx
 
@@ -754,6 +791,11 @@ class HomeView(TemplateView):
                         "alt": asset.get("alt") or "",
                         "title": asset.get("title") or "",
                         "caption": asset.get("caption") or "",
+                        "fallback_srcset_avif": asset.get("fallback_srcset_avif") or "",
+                        "fallback_srcset_webp": asset.get("fallback_srcset_webp") or "",
+                        "fallback_srcset_jpg": asset.get("fallback_srcset_jpg") or "",
+                        "fallback_width": asset.get("fallback_width"),
+                        "fallback_height": asset.get("fallback_height"),
                         "url": gallery_url,
                     }
                 )
