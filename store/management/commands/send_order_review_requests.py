@@ -57,7 +57,7 @@ class Command(BaseCommand):
 
         delay_days = int(getattr(settings, "ORDER_REVIEW_REQUEST_DELAY_DAYS", 5))
         cutoff = timezone.now() - timedelta(days=delay_days)
-        review_url = _resolve_url("ORDER_REVIEW_URL", "/")
+        review_url = _resolve_url("ORDER_REVIEW_URL", "/review/")
         store_url = _resolve_url("ABANDONED_CART_STORE_URL", "/store/")
 
         qs = Order.objects.filter(

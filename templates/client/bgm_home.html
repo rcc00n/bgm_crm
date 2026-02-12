@@ -1821,8 +1821,13 @@
     <section class="section">
       <div class="container">
         <div class="section__head">
-          <h2 class="section__title">{{ home_copy.why_title }}</h2>
-          <p class="section__desc">{{ home_copy.why_desc }}</p>
+          <div>
+            <h2 class="section__title">{{ home_copy.why_title }}</h2>
+            <p class="section__desc">{{ home_copy.why_desc }}</p>
+          </div>
+          <div>
+            <a class="btn btn--ghost" href="{% url 'leave-review' %}">Leave a review</a>
+          </div>
         </div>
         {% if home_reviews %}
           <div class="review-carousel" data-review-carousel data-review-count="{{ home_reviews|length }}">

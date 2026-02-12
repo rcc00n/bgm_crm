@@ -685,10 +685,36 @@ class Order(models.Model):
             f"Status: {self.get_status_display()}",
             f"Order total: {total_text}",
         ]
+
+        link_lines: list[str] = []
+        link_rows: list[tuple[str, str]] = []
+        cta_label = template.cta_label
+        cta_url = getattr(settings, "COMPANY_WEBSITE", "")
+        if self.status == self.STATUS_COMPLETED:
+            base = (getattr(settings, "COMPANY_WEBSITE", "") or "").strip()
+            if base and not base.startswith(("http://", "https://")):
+                base = f"https://{base}"
+            base = base.rstrip("/")
+
+            raw_review = (getattr(settings, "ORDER_REVIEW_URL", "") or "").strip() or "/review/"
+            if raw_review.startswith(("http://", "https://")):
+                review_url = raw_review
+            elif base:
+                review_url = f"{base}/{raw_review.lstrip('/')}"
+            else:
+                review_url = ""
+
+            if review_url:
+                link_lines = [f"Leave a review: {review_url}"]
+                link_rows = [("Leave a review", review_url)]
+                cta_label = "Leave a review"
+                cta_url = review_url
+
         text_body = join_text_sections(
             [template.greeting],
             template.intro_lines,
             detail_lines,
+            link_lines,
             template.footer_lines,
         )
 
@@ -728,8 +754,9 @@ class Order(models.Model):
                 notice_title=template.notice_title or None,
                 notice_lines=template.notice_lines,
                 footer_lines=template.footer_lines,
-                cta_label=template.cta_label,
-                cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
+                cta_label=cta_label,
+                cta_url=cta_url,
+                link_rows=link_rows,
             )
             send_html_email(
                 subject=template.subject,
