@@ -1417,6 +1417,46 @@ class MerchPageCopy(models.Model):
         return obj
 
 
+class MerchGalleryItem(models.Model):
+    """
+    Additional merch cards managed directly from the merch page copy admin.
+    """
+
+    merch_page = models.ForeignKey(
+        MerchPageCopy,
+        on_delete=models.CASCADE,
+        related_name="gallery_items",
+    )
+    category = models.CharField(
+        max_length=80,
+        default="Featured",
+        blank=True,
+        help_text="Cards are grouped by this label on the merch page (e.g. Apparel, Headwear, Accessories).",
+    )
+    title = models.CharField(max_length=80, help_text="Short card title shown under the image.")
+    description = models.CharField(max_length=180, blank=True)
+    photo = models.ImageField(upload_to="merch/gallery/")
+    photo_alt = models.CharField(max_length=160, blank=True)
+    colors = models.CharField(max_length=160, blank=True)
+    sizes = models.CharField(max_length=160, blank=True)
+    sort_order = models.PositiveIntegerField(
+        default=10,
+        help_text="Lower numbers appear first.",
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Merch gallery item"
+        verbose_name_plural = "Merch gallery items"
+        ordering = ("sort_order", "id")
+
+    def __str__(self) -> str:
+        category = (self.category or "Featured").strip() or "Featured"
+        return f"{category} — {self.title}"
+
+
 class FinancingPageCopy(models.Model):
     """
     Editable static text for the financing page.

@@ -30,6 +30,7 @@ from core.models import (
     Service,
 )
 from core.services.fonts import build_page_font_context
+from core.services.media import build_merch_gallery_groups
 from core.services.page_layout import build_layout_styles, layout_config_for_model, normalize_layout_overrides
 from core.services.page_sections import get_page_sections
 
@@ -1551,6 +1552,7 @@ def build_store_context(request: HttpRequest) -> Dict[str, Any]:
 def build_merch_context(request: HttpRequest) -> Dict[str, Any]:
     return {
         "font_settings": build_page_font_context(PageFontSetting.Page.MERCH),
+        "merch_gallery_groups": build_merch_gallery_groups(),
     }
 
 

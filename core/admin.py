@@ -3738,10 +3738,44 @@ class MerchPageCopyAdminForm(forms.ModelForm):
         asset.save()
 
 
+class MerchGalleryItemInline(admin.StackedInline):
+    model = MerchGalleryItem
+    extra = 1
+    ordering = ("sort_order", "id")
+    fields = (
+        "is_active",
+        "sort_order",
+        "category",
+        "title",
+        "description",
+        "photo",
+        "photo_alt",
+        "colors",
+        "sizes",
+        "photo_preview",
+    )
+    readonly_fields = ("photo_preview",)
+    verbose_name = "Merch gallery item"
+    verbose_name_plural = "Merch gallery items (upload, categorize, and reorder cards)"
+
+    @admin.display(description="Preview")
+    def photo_preview(self, obj):
+        if not obj or not getattr(obj, "photo", None):
+            return "Upload image to preview."
+        try:
+            return format_html(
+                '<img src="{}" alt="" style="max-width:220px; border-radius:10px; border:1px solid #ddd;" />',
+                obj.photo.url,
+            )
+        except Exception:
+            return "Preview unavailable."
+
+
 @admin.register(MerchPageCopy)
 class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
+    inlines = [MerchGalleryItemInline]
     form = MerchPageCopyAdminForm
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
@@ -3800,7 +3834,7 @@ class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
             )
         }),
         ("Card meta labels", {"fields": ("card_colors_label", "card_sizes_label")}),
-        ("Drop idea cards", {
+        ("Legacy drop idea cards (optional fallback)", {
             "fields": (
                 "card_1_title",
                 "card_1_desc",
@@ -3826,7 +3860,8 @@ class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "card_4_photo_alt",
                 "card_4_colors",
                 "card_4_sizes",
-            )
+            ),
+            "description": "Optional legacy cards. For convenient multi-image uploads use the merch gallery items inline section below.",
         }),
         ("Social links", {
             "fields": (
