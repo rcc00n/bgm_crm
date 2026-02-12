@@ -242,6 +242,14 @@
       min-inline-size:0;
       min-height:52px;
     }
+    /* iOS/WebKit date control can render visually wider than sibling inputs */
+    #bookDate{
+      -webkit-appearance:none;
+      appearance:none;
+    }
+    #bookDate::-webkit-date-and-time-value{
+      text-align:left;
+    }
     .status{font-size:.9rem;color:var(--muted);margin-top:6px}
     .status:empty{display:none}
     .status.error{color:#ff5c72}
@@ -584,6 +592,7 @@
       const btnSubmit = document.getElementById('bookSubmit');
       const btnClose = document.getElementById('bookClose');
       const btnCancel = document.getElementById('bookCancel');
+      const sheetBody = modal ? modal.querySelector('.sheet__body') : null;
 
       const contactPrefillEl = document.getElementById('contactPrefillData');
       const contactPrefill = contactPrefillEl ? JSON.parse(contactPrefillEl.textContent) : {name:'', email:'', phone:''};
@@ -607,11 +616,25 @@
         elStatus.classList.toggle('error', Boolean(isError));
       }
 
+      function syncDateControlWidth(){
+        if (!elDate || !elTime) return;
+        const target = elTime.getBoundingClientRect().width || (elTime.parentElement && elTime.parentElement.getBoundingClientRect().width) || 0;
+        if (!target) return;
+        const px = `${Math.round(target)}px`;
+        elDate.style.width = px;
+        elDate.style.maxWidth = px;
+        elDate.style.inlineSize = px;
+      }
+      function scheduleDateWidthSync(){
+        window.requestAnimationFrame(syncDateControlWidth);
+      }
+
       function showModal(){
         modal.classList.add('is-open');
         modal.setAttribute('aria-hidden','false');
         document.body.style.overflow = 'hidden';
         document.body.classList.add('modal-open');
+        scheduleDateWidthSync();
       }
       function hideModal(){
         modal.classList.remove('is-open');
@@ -799,7 +822,15 @@
         elDate.value = today;
         showModal();
         loadAvailability(today);
+        scheduleDateWidthSync();
       }
+
+      if (window.ResizeObserver && sheetBody){
+        const widthObserver = new ResizeObserver(scheduleDateWidthSync);
+        widthObserver.observe(sheetBody);
+      }
+      window.addEventListener('resize', scheduleDateWidthSync, {passive:true});
+      window.addEventListener('orientationchange', scheduleDateWidthSync);
 
       async function submitBooking(){
         if (!state.serviceId || !state.slotIso) return;

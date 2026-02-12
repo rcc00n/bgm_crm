@@ -1085,10 +1085,33 @@ main h3{
       mobileState.active = active;
       mobileBooking.setAttribute('aria-hidden', active ? 'false' : 'true');
     }
+    function syncMobileDateInputWidth(){
+      if (!mobileDateInput || !mobileTimeInput) return;
+      const target = mobileTimeInput.getBoundingClientRect().width || (mobileTimeInput.parentElement && mobileTimeInput.parentElement.getBoundingClientRect().width) || 0;
+      if (!target) return;
+      const px = `${Math.round(target)}px`;
+      mobileDateInput.style.width = px;
+      mobileDateInput.style.maxWidth = px;
+      mobileDateInput.style.inlineSize = px;
+    }
+    function scheduleMobileDateInputWidthSync(){
+      window.requestAnimationFrame(syncMobileDateInputWidth);
+    }
     syncMobileVisibility();
+    scheduleMobileDateInputWidthSync();
     if (mobileQuery){
-      try{ mobileQuery.addEventListener('change', syncMobileVisibility); }
-      catch(_){ mobileQuery.addListener(syncMobileVisibility); }
+      try{
+        mobileQuery.addEventListener('change', ()=>{
+          syncMobileVisibility();
+          scheduleMobileDateInputWidthSync();
+        });
+      }
+      catch(_){
+        mobileQuery.addListener(()=>{
+          syncMobileVisibility();
+          scheduleMobileDateInputWidthSync();
+        });
+      }
     }
     if (mobileDateInput){
       mobileDateInput.addEventListener('change', ()=>{
@@ -1133,6 +1156,12 @@ main h3{
         loadMobileTimesForDay(nextKey);
       });
     }
+    if (window.ResizeObserver && mobileBooking){
+      const mobileWidthObserver = new ResizeObserver(scheduleMobileDateInputWidthSync);
+      mobileWidthObserver.observe(mobileBooking);
+    }
+    window.addEventListener('resize', scheduleMobileDateInputWidthSync, {passive:true});
+    window.addEventListener('orientationchange', scheduleMobileDateInputWidthSync);
 
     function hydrateContactForm(){
       Object.entries(contactInputs).forEach(([key, input])=>{
@@ -1374,6 +1403,7 @@ main h3{
     function setBookingModalState(isOpen){
       modal.classList.toggle('modal--open', Boolean(isOpen));
       modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+      if (isOpen) scheduleMobileDateInputWidthSync();
     }
 
     function closeBookingModal(){
@@ -1411,6 +1441,7 @@ main h3{
       hydrateContactForm();
       updateSubmitState();
       setBookingModalState(true);
+      scheduleMobileDateInputWidthSync();
       loadMastersAndRender();
     }
 
@@ -2149,6 +2180,14 @@ body.modal-open{
     max-inline-size:100%;
     min-inline-size:0;
     min-height:52px;
+  }
+  /* iOS/WebKit date control can render visually wider than sibling inputs */
+  #bookModal.book-modal--lk-clone #mobileDate{
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  #bookModal.book-modal--lk-clone #mobileDate::-webkit-date-and-time-value{
+    text-align:left;
   }
   #bookModal.book-modal--lk-clone #mobileTodayBtn{
     display:none;
