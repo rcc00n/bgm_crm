@@ -264,6 +264,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   <style id="dashboard-responsive">
     :root{
       --sidebar-width: clamp(260px, 28vw, 320px);
+      --mobile-portal-bar-height: 0px;
     }
     body{
       min-height:100svh;
@@ -459,6 +460,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       main{
         height:auto;
         overflow-y:visible;
+        padding-top:calc(clamp(1rem, 4vw, 1.5rem) + var(--mobile-portal-bar-height) + env(safe-area-inset-top, 0px));
       }
       .sidebar.sidebar--open{
         transform:translateX(0);
@@ -471,11 +473,17 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       }
       .mobile-portal-bar{
         display:flex;
+        position:fixed;
+        top:max(0px, env(safe-area-inset-top, 0px));
+        left:clamp(1rem, 4vw, 1.5rem);
+        right:clamp(1rem, 4vw, 1.5rem);
+        margin:0;
       }
     }
     @media (max-width:640px){
       main{
         padding:clamp(1rem,4vw,1.5rem);
+        padding-top:calc(clamp(1rem, 4vw, 1.5rem) + var(--mobile-portal-bar-height) + env(safe-area-inset-top, 0px));
       }
       .grid.lg\:grid-cols-3{
         grid-template-columns:1fr;
@@ -1231,8 +1239,15 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     const toggle = document.getElementById('sidebarToggle');
     const backdrop = document.getElementById('sidebarBackdrop');
     const closeBtn = document.getElementById('sidebarClose');
+    const mobileBar = document.querySelector('.mobile-portal-bar');
     const media = window.matchMedia('(max-width: 1024px)');
     if (!drawer) return;
+
+    const syncMobileBarOffset = () => {
+      if (!mobileBar) return;
+      const height = media.matches ? Math.ceil(mobileBar.getBoundingClientRect().height) : 0;
+      document.documentElement.style.setProperty('--mobile-portal-bar-height', `${height}px`);
+    };
 
     const setOpen = (open) => {
       drawer.classList.toggle('sidebar--open', !!open);
@@ -1253,12 +1268,22 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') closeDrawer();
     });
-    const mqHandler = (event) => { if (!event.matches) closeDrawer(); };
+    const mqHandler = (event) => {
+      if (!event.matches) closeDrawer();
+      syncMobileBarOffset();
+    };
     if (media.addEventListener) {
       media.addEventListener('change', mqHandler);
     } else if (media.addListener) {
       media.addListener(mqHandler);
     }
+    window.addEventListener('resize', syncMobileBarOffset);
+    window.addEventListener('orientationchange', syncMobileBarOffset);
+    if ('ResizeObserver' in window && mobileBar) {
+      const observer = new ResizeObserver(syncMobileBarOffset);
+      observer.observe(mobileBar);
+    }
+    syncMobileBarOffset();
   })();
 
   /* ==== табы ==== */
