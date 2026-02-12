@@ -14,6 +14,7 @@ from core.models import (
 )
 
 Slot = Tuple[datetime, datetime]
+DEFAULT_SLOT_STEP_MINUTES = 30
 
 def _tz_aware(dt: datetime) -> datetime:
     if timezone.is_aware(dt):
@@ -42,7 +43,11 @@ def _intervals_subtract(avail: Slot, blocks: List[Slot]) -> List[Slot]:
         free = next_free
     return [(s, e) for s, e in free if e > s]
 
-def _gen_slots_in_intervals(free_intervals: List[Slot], total_minutes: int, step_minutes: int = 15) -> List[datetime]:
+def _gen_slots_in_intervals(
+    free_intervals: List[Slot],
+    total_minutes: int,
+    step_minutes: int = DEFAULT_SLOT_STEP_MINUTES,
+) -> List[datetime]:
     """
     Разбиваем свободные интервалы на слоты с шагом step_minutes так,
     чтобы целиком помещался отрезок длиной total_minutes.
@@ -123,7 +128,7 @@ def get_available_slots(
     service: Service,
     day: datetime,
     master: Optional[CustomUserDisplay] = None,
-    step_minutes: int = 15
+    step_minutes: int = DEFAULT_SLOT_STEP_MINUTES,
 ) -> Dict[int, List[datetime]]:
     """
     Возвращает словарь {master_id: [datetime слот-старты]} на дату day.

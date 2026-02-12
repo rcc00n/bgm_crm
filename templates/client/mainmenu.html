@@ -1066,7 +1066,12 @@ main h3{
     const mobileState = { active:false, dateKey:'', times:[], isoMap:new Map() };
     const SUMMARY_DEFAULT = copy.chooseTimeLabel || copy.summaryDefault;
 
-    const WINDOW_DAYS = 5, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
+    const WINDOW_DAYS = 5;
+    const DEFAULT_START_HOUR = 6;
+    const DEFAULT_END_HOUR = 23;
+    const STEP_MIN = 30;
+    const EDGE_BUFFER_MIN = 60;
+    const LAST_ROW_MINUTES = (23 * 60) + 45;
     let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
     let baseStart = new Date(); baseStart.setHours(0,0,0,0);
     let availabilityCache = new Map();
@@ -1146,6 +1151,32 @@ main h3{
 
     function setSummaryDefault(){
       elSummary.textContent = SUMMARY_DEFAULT;
+    }
+
+    function hmToMinutes(value){
+      if (!value || typeof value !== 'string') return null;
+      const parts = value.split(':');
+      if (parts.length !== 2) return null;
+      const hours = Number(parts[0]);
+      const minutes = Number(parts[1]);
+      if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null;
+      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+      return (hours * 60) + minutes;
+    }
+
+    function minutesToHm(total){
+      const normalized = Math.max(0, Math.min(LAST_ROW_MINUTES, total));
+      const hours = Math.floor(normalized / 60);
+      const minutes = normalized % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
+    function floorToStep(total, step){
+      return Math.floor(total / step) * step;
+    }
+
+    function ceilToStep(total, step){
+      return Math.ceil(total / step) * step;
     }
 
     function selectSlot(slotIso){
@@ -1397,6 +1428,7 @@ main h3{
       const set = new Set(); const map = new Map();
       slots.forEach(iso=>{
         const d=parseISO(iso); if(!d) return;
+        if ((d.getMinutes() % STEP_MIN) !== 0) return;
         const key=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
         set.add(key); if(!map.has(key)) map.set(key, iso);
       });
@@ -1420,12 +1452,39 @@ main h3{
     }
 
     function buildTimeRows(extraSets){
-      const out=[];
-      for(let h=START_HOUR;h<=END_HOUR;h++){
-        for(let m=0;m<60;m+=STEP_MIN){ out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`); }
+      const slotMinutes = [];
+      (extraSets || []).forEach((set) => {
+        if (!set) return;
+        set.forEach((timeValue) => {
+          const minutes = hmToMinutes(timeValue);
+          if (minutes !== null) slotMinutes.push(minutes);
+        });
+      });
+
+      let startMinutes = DEFAULT_START_HOUR * 60;
+      let endMinutes = (DEFAULT_END_HOUR * 60) + 30;
+      if (slotMinutes.length){
+        const earliest = Math.min(...slotMinutes);
+        const latest = Math.max(...slotMinutes);
+        startMinutes = floorToStep(Math.max(0, earliest - EDGE_BUFFER_MIN), STEP_MIN);
+        endMinutes = ceilToStep(Math.min(LAST_ROW_MINUTES, latest + EDGE_BUFFER_MIN), STEP_MIN);
       }
-      (extraSets||[]).forEach(s=>s && s.forEach(t=>{ if(!out.includes(t)) out.push(t); }));
-      return out.sort();
+      if (endMinutes < startMinutes) endMinutes = startMinutes;
+
+      const output = new Set();
+      for (let minutes = startMinutes; minutes <= endMinutes; minutes += STEP_MIN){
+        output.add(minutesToHm(minutes));
+      }
+      (extraSets || []).forEach((set) => {
+        if (!set) return;
+        set.forEach((timeValue) => {
+          const minutes = hmToMinutes(timeValue);
+          if (minutes === null || (minutes % STEP_MIN) !== 0) return;
+          output.add(timeValue);
+        });
+      });
+
+      return Array.from(output).sort();
     }
 
     function pickAutoMasterId(masters){
@@ -2067,10 +2126,42 @@ body.modal-open .contact-fab{ display:none !important; }
 /* 7b) Mobile booking layout */
 @media (max-width:768px){
   .mobile-booking{ padding:.85rem; gap:.8rem; }
-  .mobile-booking__control{ flex-direction:column; align-items:stretch; }
+  .mobile-booking__control{ display:block; }
   .mobile-booking__btn{ width:100%; }
   .mobile-booking__label{ font-size:.75rem; }
   .mobile-booking__meta{ gap:.25rem; }
+  #bookModal.book-modal--lk-clone #mobileDate,
+  #bookModal.book-modal--lk-clone #mobileTime{
+    width:100%;
+    max-width:100%;
+    min-height:52px;
+  }
+  #bookModal.book-modal--lk-clone #mobileTodayBtn{
+    display:none;
+  }
+  #bookModal.book-modal--lk-clone .modal__header{
+    position:sticky;
+    top:0;
+    z-index:10;
+    margin-bottom:.45rem;
+    padding:.5rem .2rem .4rem;
+    background:linear-gradient(180deg, rgba(12,12,12,.98), rgba(12,12,12,.92));
+    border-bottom:1px solid var(--line);
+  }
+  #bookModal.book-modal--lk-clone .modal__close{
+    margin-left:auto;
+    width:40px;
+    height:40px;
+    border:1px solid rgba(255,255,255,.28);
+    border-radius:.7rem;
+    background:#111;
+    color:#fff;
+    font-size:1.55rem;
+    line-height:1;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
 }
 
 #bookModal.book-modal--lk-clone .book-modal__content{
@@ -2142,15 +2233,66 @@ body.modal-open .contact-fab{ display:none !important; }
   #bookModal.book-modal--lk-clone .book-contact-grid input{
     min-height:44px;
   }
+  #bookModal.book-modal--lk-clone .outlook{
+    border:1px solid var(--line);
+    background:rgba(0,0,0,.42);
+  }
+  #bookModal.book-modal--lk-clone .outlook__toolbar{
+    border-bottom:1px solid var(--line);
+    background:#0c0c0c;
+  }
   #bookModal.book-modal--lk-clone .outlook__toolbar button{
     text-transform:none !important;
     letter-spacing:0 !important;
     color:#fff;
   }
+  #bookModal.book-modal--lk-clone .outlook__cell{
+    border-bottom:1px solid var(--line);
+    border-right:1px solid var(--line);
+    background:#0a0a0a;
+    color:#fff;
+  }
+  #bookModal.book-modal--lk-clone .outlook__cell.time{
+    background:#0c0c0c;
+    color:var(--muted);
+  }
+  #bookModal.book-modal--lk-clone .outlook__head{
+    background:#0c0c0c;
+    border-bottom:2px solid var(--line);
+  }
+  #bookModal.book-modal--lk-clone .outlook__head.day--today{
+    background:linear-gradient(180deg,#3a0b0b 0%,#240808 100%);
+  }
+  #bookModal.book-modal--lk-clone .slot-free{
+    color:#fff;
+    border-color:rgba(255,255,255,.22);
+    background:#131313;
+    cursor:pointer;
+  }
+  #bookModal.book-modal--lk-clone .slot-busy{
+    color:#8f8f8f;
+    border-color:rgba(255,255,255,.18);
+    background:#292929;
+    cursor:not-allowed;
+  }
   #bookModal.book-modal--lk-clone .outlook__wrap{
     height:clamp(320px,52vh,560px);
     max-height:clamp(320px,52vh,560px);
     min-height:320px;
+    padding-bottom:0;
+    scrollbar-color:rgba(255,255,255,.32) #0b0b0b;
+  }
+  #bookModal.book-modal--lk-clone .outlook__wrap::-webkit-scrollbar{
+    width:10px;
+    height:10px;
+  }
+  #bookModal.book-modal--lk-clone .outlook__wrap::-webkit-scrollbar-track{
+    background:#0b0b0b;
+  }
+  #bookModal.book-modal--lk-clone .outlook__wrap::-webkit-scrollbar-thumb{
+    background:rgba(255,255,255,.32);
+    border:2px solid #0b0b0b;
+    border-radius:999px;
   }
   #bookModal.book-modal--lk-clone .outlook__grid{
     width:max-content;
@@ -2160,13 +2302,14 @@ body.modal-open .contact-fab{ display:none !important; }
   #bookModal.book-modal--lk-clone .modal__footer{
     justify-content:center;
     gap:.9rem;
-    margin-top:.75rem;
+    margin-top:0;
     position:sticky;
     bottom:0;
     z-index:7;
-    padding-top:.75rem;
+    padding-top:.68rem;
     padding-bottom:max(.2rem, env(safe-area-inset-bottom, 0px));
-    background:linear-gradient(180deg, rgba(12,12,12,0) 0%, rgba(12,12,12,.92) 38%, rgba(12,12,12,.98) 100%);
+    border-top:1px solid var(--line);
+    background:rgba(12,12,12,.98);
   }
   #bookModal.book-modal--lk-clone .modal__footer .btn{
     min-height:54px;
