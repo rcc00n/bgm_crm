@@ -86,6 +86,7 @@ from core.services.analytics import (
 )
 from core.services.ip_location import format_ip_location, get_client_ip
 from core.services.email_reporting import describe_email_types
+from core.services.dealer_application_emails import send_dealer_application_submitted
 from notifications.services import (
     notify_about_service_lead,
     notify_about_site_notice_signup,
@@ -2035,6 +2036,10 @@ class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
                     notify_about_dealer_application(app.pk)
                 except Exception:
                     logger.exception("Failed to send Telegram alert for dealer application %s", app.pk)
+                try:
+                    send_dealer_application_submitted(app.pk)
+                except Exception:
+                    logger.exception("Failed to send dealer application email for %s", app.pk)
             transaction.on_commit(_notify)
 
         request.session.pop(DEALER_WIZARD_SESSION_KEY, None)

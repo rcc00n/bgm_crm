@@ -2100,6 +2100,9 @@ class EmailTemplate(models.Model):
         SITE_NOTICE_FOLLOWUP_3 = "site_notice_followup_3", "Email signup: 3-day follow-up"
         ORDER_REVIEW_REQUEST = "order_review_request", "Order review request"
         FITMENT_REQUEST_INTERNAL = "fitment_request_internal", "Custom fitment request (internal)"
+        DEALER_APPLICATION_SUBMITTED = "dealer_application_submitted", "Dealer application: submitted"
+        DEALER_APPLICATION_APPROVED = "dealer_application_approved", "Dealer application: approved"
+        DEALER_APPLICATION_REJECTED = "dealer_application_rejected", "Dealer application: declined"
 
     slug = models.SlugField(max_length=80, unique=True, choices=TemplateSlug.choices)
     name = models.CharField(max_length=120)
@@ -3337,6 +3340,29 @@ class DealerApplication(models.Model):
                 update_fields.append("dealer_welcome_seen")
             up.save(update_fields=update_fields)
 
+        # Email the applicant after the approval is safely committed.
+        try:
+            from django.db import transaction
+            from core.services.dealer_application_emails import (
+                send_dealer_application_approved,
+            )
+
+            def _send():
+                try:
+                    send_dealer_application_approved(self.pk)
+                except Exception:
+                    import logging
+
+                    logging.getLogger(__name__).exception(
+                        "Failed to send dealer approval email for application %s",
+                        self.pk,
+                    )
+
+            transaction.on_commit(_send)
+        except Exception:
+            # Never block approval if email configuration is broken.
+            pass
+
     def reject(self, admin_user):
         self.status = self.Status.REJECTED
         self.reviewed_at = timezone.now()
@@ -3353,6 +3379,29 @@ class DealerApplication(models.Model):
                 up.dealer_welcome_seen = True
                 update_fields.append("dealer_welcome_seen")
             up.save(update_fields=update_fields)
+
+        # Email the applicant after the rejection is safely committed.
+        try:
+            from django.db import transaction
+            from core.services.dealer_application_emails import (
+                send_dealer_application_rejected,
+            )
+
+            def _send():
+                try:
+                    send_dealer_application_rejected(self.pk)
+                except Exception:
+                    import logging
+
+                    logging.getLogger(__name__).exception(
+                        "Failed to send dealer rejection email for application %s",
+                        self.pk,
+                    )
+
+            transaction.on_commit(_send)
+        except Exception:
+            # Never block rejection if email configuration is broken.
+            pass
 
 
 
