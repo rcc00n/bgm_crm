@@ -3343,6 +3343,16 @@ class DealerApplication(models.Model):
         self.reviewed_by = admin_user
         self.assigned_tier = ""
         self.save(update_fields=["status", "reviewed_at", "reviewed_by", "assigned_tier"])
+        # Revoke dealer access on rejection.
+        up = getattr(self.user, "userprofile", None)
+        if up and getattr(up, "is_dealer", False):
+            up.is_dealer = False
+            up.dealer_tier = DealerTier.NONE
+            update_fields = ["is_dealer", "dealer_tier"]
+            if hasattr(up, "dealer_welcome_seen"):
+                up.dealer_welcome_seen = True
+                update_fields.append("dealer_welcome_seen")
+            up.save(update_fields=update_fields)
 
 
 

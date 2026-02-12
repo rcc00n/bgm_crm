@@ -1742,7 +1742,7 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
 from django.contrib import admin
 from django.utils import timezone
-from core.models import DealerApplication, DealerTierLevel, UserProfile
+from core.models import DealerApplication, DealerTier, DealerTierLevel, UserProfile
 
 
 @admin.register(DealerTierLevel)
@@ -1823,6 +1823,18 @@ class DealerApplicationAdmin(admin.ModelAdmin):
 
     actions = ["approve_selected", "reject_selected"]
 
+    def _revoke_dealer_profile(self, obj):
+        up = getattr(obj.user, "userprofile", None)
+        if not up or not getattr(up, "is_dealer", False):
+            return
+        up.is_dealer = False
+        up.dealer_tier = DealerTier.NONE
+        update_fields = ["is_dealer", "dealer_tier"]
+        if hasattr(up, "dealer_welcome_seen"):
+            up.dealer_welcome_seen = True
+            update_fields.append("dealer_welcome_seen")
+        up.save(update_fields=update_fields)
+
     def save_model(self, request, obj, form, change):
         """
         Keep dealer profile + review metadata in sync even when staff approve/reject
@@ -1839,6 +1851,19 @@ class DealerApplicationAdmin(admin.ModelAdmin):
             obj.approve(admin_user=request.user)
         elif obj.status == DealerApplication.Status.REJECTED and previous_status != DealerApplication.Status.REJECTED:
             obj.reject(admin_user=request.user)
+        elif obj.status == DealerApplication.Status.PENDING and previous_status == DealerApplication.Status.APPROVED:
+            # Moving an approved application back to pending should revoke wholesale access.
+            self._revoke_dealer_profile(obj)
+
+    def delete_model(self, request, obj):
+        # Deleting an application should also drop any dealer access that was granted from it.
+        self._revoke_dealer_profile(obj)
+        return super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        for obj in queryset.select_related("user"):
+            self._revoke_dealer_profile(obj)
+        return super().delete_queryset(request, queryset)
 
     @admin.display(description="Requested tier")
     def preferred_tier_display(self, obj):

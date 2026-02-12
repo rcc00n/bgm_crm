@@ -2058,10 +2058,34 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         ctx["dealer_application"] = dealer_app
         ctx["submitted"] = str(self.request.GET.get("submitted") or "").strip() in {"1", "true", "yes"}
 
+        # If staff reset an approved application back to pending/rejected (or a stale app exists),
+        # ensure we don't keep wholesale access enabled on the profile.
+        if (
+            dealer_app
+            and dealer_app.status != DealerApplication.Status.APPROVED
+            and up
+            and getattr(up, "is_dealer", False)
+        ):
+            up.is_dealer = False
+            up.dealer_tier = DealerTier.NONE
+            update_fields = ["is_dealer", "dealer_tier"]
+            if hasattr(up, "dealer_welcome_seen"):
+                up.dealer_welcome_seen = True
+                update_fields.append("dealer_welcome_seen")
+            up.save(update_fields=update_fields)
+
         # Backfill: if an application is marked approved but the profile was not upgraded
         # (e.g. staff changed status in admin form), upgrade the profile here so the dealer
         # portal behaves correctly.
-        if dealer_app and dealer_app.status == DealerApplication.Status.APPROVED and up:
+        if (
+            dealer_app
+            and dealer_app.status == DealerApplication.Status.APPROVED
+            and up
+            and (not up.is_dealer)
+            # If dealer_since is already set, assume staff intentionally revoked access by
+            # unchecking is_dealer. Do not auto-reinstate on page load.
+            and (not up.dealer_since)
+        ):
             update_fields = []
             became_dealer = False
 
