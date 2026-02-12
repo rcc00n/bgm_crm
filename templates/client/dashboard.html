@@ -511,7 +511,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   /* ГЛАВНОЕ: переопределяем то, что ставит Tailwind */
   html, body { font-family: var(--font-body) !important; }
 
-  /* Заголовки/бренд/кнопки — Ford */
+  /* Headings/brand/buttons use heading font. */
   h1,h2,h3,h4,h5,h6,
   .brand, .brand .name, .brand .mark,
   .modal__title,
@@ -522,14 +522,14 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     font-family: var(--font-head) !important;
   }
 
-  /* Форма/обычный текст — Diesel */
+  /* Form/regular text uses body font. */
   input, select, textarea, button,
   .muted, .muted-2, .kicker, .panel, .chip {
     font-family: var(--font-body) !important;
   }
 </style>
 <style id="font-lock-strong">
-  /* === 1) База: весь мелкий/обычный текст — Diesel ===================== */
+  /* === 1) Base: small/regular text uses body font ====================== */
   html, body,
   p, li, span, a, small,
   label, input, select, textarea, button,
@@ -541,10 +541,10 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   .sidebar-link span,
   .appt-dt, .appt-main p, .appt-actions a,
   .text-sm, .text-xs {
-    font-family: var(--font-body) !important; /* Diesel */
+    font-family: var(--font-body) !important;
   }
 
-  /* === 2) Крупные и читабельные элементы — Ford ======================== */
+  /* === 2) Large/high-visibility elements use heading font ============== */
   h1, h2, h3,
   .modal__title,
   .brand, .brand .name, .brand .mark,
@@ -552,52 +552,46 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   .panel h1, .panel h2, .panel h3,
   .text-4xl, .text-3xl, .text-2xl, .text-xl,
   .font-black, .font-bold, .font-semibold {
-    font-family: var(--font-head) !important;  /* Ford */
+    font-family: var(--font-head) !important;
   }
 
-  /* === 3) Профиль: инпуты точно остаются читабельными (Diesel) ========= */
+  /* === 3) Profile inputs stay on body font for readability ============= */
   #tab-profile input,
   #tab-profile select,
   #tab-profile textarea {
-    font-family: var(--font-body) !important;   /* Diesel */
+    font-family: var(--font-body) !important;
   }
 </style>
 <style id="font-lock-diesel-targets">
-  /* Брендинг в сайдбаре */
+  /* High-visibility portal text should stay on Diesel. */
   .brand .name,
-  .brand .mark{
-    font-family: var(--font-body) !important; /* Diesel */
+  .brand .mark,
+  .mobile-portal-bar__title{
+    font-family: var(--font-head) !important;
   }
 
-  /* Заголовки панелей (Upcoming, Stats, Recent appointments, Rates, Quick facts и т.п.) */
+  /* Panel/page headings */
+  h1,
+  h2,
+  h3,
+  .modal__title,
   #tab-dashboard .panel h2,
   #tab-appointments .panel h2,
   #tab-orders .panel h2{
-    font-family: var(--font-body) !important; /* Diesel */
+    font-family: var(--font-head) !important;
   }
 
-  /* Табличные заголовки: Date / Service / Master / Status */
+  /* Table headers + large metric styles */
   .table th,
-  .table thead th{
-    font-family: var(--font-body) !important; /* Diesel */
-  }
-
-  /* Даты/суммы/жирный текст внутри панелей */
+  .table thead th,
+  .panel .text-4xl,
+  .panel .text-3xl,
+  .panel .text-2xl,
+  .panel .text-xl,
   .panel .font-bold,
   .panel .font-semibold,
   .panel .font-black{
-    font-family: var(--font-body) !important; /* Diesel */
-  }
-
-  /* Кнопки/ссылки Cancel / Reschedule и прочий экшен-текст */
-  .btn,
-  .btn-primary,
-  .btn-ghost,
-  .link,
-  .appt-actions a,
-  .appt-dt,
-  .appt-main p{
-    font-family: var(--font-body) !important; /* Diesel */
+    font-family: var(--font-head) !important;
   }
 </style>
 <style id="file-upload-styles">

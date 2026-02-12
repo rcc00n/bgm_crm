@@ -301,7 +301,6 @@
     .card:hover{transform:translateY(-3px)}
     .card__img{position:relative;aspect-ratio:16/9;border-radius:.8rem;overflow:hidden;background:#0b0b0b;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-size:.95rem}
     .card__img img{width:100%;height:100%;object-fit:cover;display:block}
-    .card__badge{position:absolute;left:.6rem;bottom:.6rem;font-size:.72rem;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
     .card__head{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap}
     .card__head h3{flex:1 1 auto;min-width:0}
     .price{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;white-space:normal;max-width:100%}
@@ -452,7 +451,6 @@
       }
       #services .grid--services .card .dur{font-size:.86rem!important}
       #services .grid--services .btn{padding:.6rem .95rem;font-size:.85rem!important}
-      #services .grid--services .card__badge{font-size:.68rem}
     }
 
     @media (min-width: 861px) and (max-width: 1099px){
@@ -478,7 +476,6 @@
       #products .grid--products .price__hint{font-size:.72rem}
       #products .grid--products .old{font-size:.85rem}
       #products .grid--products .btn{padding:.6rem .95rem;font-size:.85rem!important}
-      #products .grid--products .card__badge{font-size:.68rem}
     }
 
     @media (min-width: 861px) and (max-width: 1099px){
@@ -738,7 +735,7 @@
     .card h3{font-family:var(--font-head)!important;font-weight:900!important;font-size:1.08rem!important;letter-spacing:.01em!important;line-height:1.25!important;color:#fff!important}
     .card .muted,.card .dur{font-family:var(--font-body)!important;font-weight:400!important;font-size:.98rem!important;line-height:1.4!important;color:rgba(255,255,255,.86)!important}
     .price strong{font-family:var(--font-body)!important;font-weight:800!important}
-    .card__badge,.badge{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important}
+    .badge{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important}
     .btn{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important;line-height:1.15!important;font-size:.98rem!important}
     .input,.select,.filters .input,.filters .select{font-family:var(--font-ui)!important;font-size:.95rem!important;line-height:1.2!important}
   </style>
@@ -1556,7 +1553,6 @@
                     {% else %}
                       <div class="ph" aria-hidden="true"></div>
                     {% endif %}
-                    {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
                   <div class="card__head">
                     <h3 style="font-weight:900">{{ s.name }}</h3>
@@ -1615,7 +1611,6 @@
 	                    {% else %}
 	                      <div class="ph" aria-hidden="true"></div>
 	                    {% endif %}
-                    {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
                   <div class="card__head">
                     <h3 style="font-weight:900">{{ s.name }}</h3>
@@ -1742,7 +1737,6 @@
 	                      {% else %}
 	                        <div class="ph" aria-hidden="true"></div>
 	                      {% endif %}
-	                      {% if p.category %}<span class="card__badge">{{ p.category.display_name }}</span>{% endif %}
 	                    </div>
 	                    <div class="card__head" style="margin-top:.35rem">
 	                      <h3 style="font-weight:900">{{ p.name }}</h3>
@@ -1979,7 +1973,6 @@
         }
       }
       const media = s.image ? `<img src="${esc(s.image)}" alt="${esc(s.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
-      const cat   = s.category ? `<span class="card__badge">${esc(s.category)}</span>` : '';
       const desc  = s.description ? `<p class="muted">${esc(s.description)}</p>` : '';
       const bookingHref = toBookingUrl(s.id);
       const rawDuration = s.duration_min;
@@ -1994,7 +1987,7 @@
       const durationHtml = durationBits ? `<div class="dur">${durationBits}</div>` : "";
       return `
         <article class="card">
-          <div class="card__img">${media}${cat}</div>
+          <div class="card__img">${media}</div>
           <div class="card__head">
             <h3 style="font-weight:900">${esc(s.name)}</h3>
             <div class="price">${price}</div>
@@ -2081,7 +2074,6 @@
 	    function cardHTML(p){
 	      const href = p.url || "#";
 	      const media = p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
-	      const cat   = p.category ? `<span class="card__badge">${esc(p.category)}</span>` : '';
 	      const desc  = p.short_description ? `<p class="muted">${esc(p.short_description)}</p>` : '';
 
 	      let price;
@@ -2098,7 +2090,7 @@
 	      return `
 	        <article class="card">
 	          <a href="${esc(href)}">
-	            <div class="card__img">${media}${cat}</div>
+	            <div class="card__img">${media}</div>
 	            <div class="card__head" style="margin-top:.35rem">
 	              <h3 style="font-weight:900">${esc(p.name)}</h3>
 	              <div class="price price--stacked">${price}</div>

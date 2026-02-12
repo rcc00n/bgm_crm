@@ -71,7 +71,6 @@
     .card:hover{transform:translateY(-3px)}
     .card__img{position:relative;aspect-ratio:16/9;border-radius:.8rem;overflow:hidden;background:#0b0b0b;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-size:.95rem}
     .card__img img{width:100%;height:100%;object-fit:cover;display:block}
-    .card__badge{position:absolute;left:.6rem;bottom:.6rem;font-size:.72rem;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
     .card__head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
     .price{display:flex;gap:.5rem;align-items:baseline;white-space:nowrap}
     .price{display:flex;gap:.45rem;align-items:baseline;}
@@ -191,7 +190,6 @@
               <article class="card">
                 <div class="card__img">
                   {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
-                  {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                 </div>
                 <div class="card__head">
                   <h3 style="font-weight:900">{{ s.name }}</h3>
@@ -234,7 +232,6 @@
               <article class="card">
                 <div class="card__img">
                   {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
-                  {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                 </div>
                 <div class="card__head">
                   <h3 style="font-weight:900">{{ s.name }}</h3>
@@ -292,7 +289,6 @@
                   {% if p.main_image %}<img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
                   {% elif p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
                   {% else %}<div class="ph" aria-hidden="true"></div>{% endif %}
-                  {% if p.category %}<span class="card__badge">{{ p.category.name }}</span>{% endif %}
                 </div>
                 <div class="card__head" style="margin-top:.35rem">
                   <h3 style="font-weight:900">{{ p.name }}</h3>
@@ -470,12 +466,11 @@
       }
     }
     const media = s.image ? `<img src="${esc(s.image)}" alt="${esc(s.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
-    const cat   = s.category ? `<span class="card__badge">${esc(s.category)}</span>` : '';
     const desc  = s.description ? `<p class="muted">${esc(s.description)}</p>` : '';
     const bookingHref = toBookingUrl(s.id);
     return `
       <article class="card">
-        <div class="card__img">${media}${cat}</div>
+        <div class="card__img">${media}</div>
         <div class="card__head">
           <h3 style="font-weight:900">${esc(s.name)}</h3>
           <div class="price">${price}</div>
