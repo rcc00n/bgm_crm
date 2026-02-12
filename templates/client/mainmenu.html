@@ -288,7 +288,11 @@
     .mobile-booking__label{font-size:.8rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
     .mobile-booking__control{display:flex;gap:.5rem;align-items:center}
     .mobile-booking__input{
+      display:block;
       width:100%;
+      max-width:100%;
+      min-width:0;
+      min-inline-size:0;
       padding:.75rem .9rem;
       border-radius:.75rem;
       border:1px solid rgba(255,255,255,.18);
@@ -2137,8 +2141,13 @@ body.modal-open{
   .mobile-booking__meta{ gap:.25rem; }
   #bookModal.book-modal--lk-clone #mobileDate,
   #bookModal.book-modal--lk-clone #mobileTime{
+    display:block;
     width:100%;
     max-width:100%;
+    min-width:0;
+    inline-size:100%;
+    max-inline-size:100%;
+    min-inline-size:0;
     min-height:52px;
   }
   #bookModal.book-modal--lk-clone #mobileTodayBtn{
@@ -2147,8 +2156,12 @@ body.modal-open{
   #bookModal.book-modal--lk-clone .field input,
   #bookModal.book-modal--lk-clone .field select,
   #bookModal.book-modal--lk-clone .field textarea{
+    display:block;
     width:100%;
     max-width:100%;
+    min-width:0;
+    min-inline-size:0;
+    box-sizing:border-box;
   }
   #bookModal.book-modal--lk-clone .modal__title{
     min-width:0;
@@ -2213,7 +2226,7 @@ body.modal-open{
 @media (min-width:901px){
   #bookModal.book-modal--lk-clone{
     background:rgba(0,0,0,.6);
-    --book-footer-reserve: 86px;
+    --book-footer-reserve: 16px;
   }
   #bookModal.book-modal--lk-clone .modal__dialog{
     background:linear-gradient(180deg, rgba(15,15,15,.98), rgba(10,10,10,.98));
@@ -2307,7 +2320,7 @@ body.modal-open{
     height:clamp(320px,52vh,560px);
     max-height:clamp(320px,52vh,560px);
     min-height:320px;
-    /* Keep last row visible above sticky footer without huge extra scroll range */
+    /* Keep slight breathing room near the bottom scrollbar */
     padding-bottom:12px;
     scrollbar-color:rgba(255,255,255,.32) #0b0b0b;
   }
@@ -2332,12 +2345,10 @@ body.modal-open{
     justify-content:center;
     align-items:flex-end;
     gap:.9rem;
-    margin-top:0;
-    position:sticky;
-    bottom:-1rem;
+    margin-top:.35rem;
+    position:static;
     margin-inline:-1rem;
     padding-inline:1rem;
-    z-index:7;
     padding-top:.45rem;
     padding-bottom:max(.45rem, calc(.45rem + env(safe-area-inset-bottom, 0px)));
     border-top:1px solid var(--line);
