@@ -1021,6 +1021,26 @@ def _build_synced_printful_merch_map(products: list[dict]) -> tuple[dict[int, di
     return resolved, hidden_ids
 
 
+def _extract_printful_category_label(item: dict) -> str:
+    candidates = [
+        item.get("category_label"),
+        item.get("main_category"),
+        item.get("main_category_name"),
+        item.get("category_name"),
+        item.get("type_name"),
+        item.get("product_type_name"),
+        item.get("type"),
+        item.get("category"),
+    ]
+    for raw in candidates:
+        if isinstance(raw, dict):
+            raw = raw.get("name") or raw.get("title") or ""
+        text = " ".join(str(raw or "").strip().split())
+        if text:
+            return text[:80]
+    return ""
+
+
 def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
     if not products:
         return []
@@ -1042,6 +1062,10 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
             continue
 
         product = matched["product"]
+        category_label = _extract_printful_category_label(row)
+        if category_label:
+            row["category_label"] = category_label
+            row["category_key"] = slugify(category_label)[:64] or f"category-{product_id}"
         row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
         row["checkout_label"] = "Choose options"
         row["url"] = row["store_product_url"]
@@ -1056,10 +1080,34 @@ class MerchPlaceholderView(TemplateView):
         ctx = super().get_context_data(**kwargs)
         ctx["merch_copy"] = MerchPageCopy.get_solo()
         printful_feed = get_printful_merch_feed()
-        printful_products = _enrich_printful_merch_products(printful_feed.get("products", []))
+        all_products = _enrich_printful_merch_products(printful_feed.get("products", []))
+
+        category_map: dict[str, str] = {}
+        for row in all_products:
+            key = (row.get("category_key") or "").strip()
+            label = (row.get("category_label") or "").strip()
+            if key and label and key not in category_map:
+                category_map[key] = label
+
+        merch_categories = [
+            {"key": key, "label": label}
+            for key, label in sorted(category_map.items(), key=lambda pair: pair[1].lower())
+        ]
+
+        selected_merch_category = (self.request.GET.get("category") or "").strip()
+        if selected_merch_category and selected_merch_category in category_map:
+            printful_products = [
+                row for row in all_products if row.get("category_key") == selected_merch_category
+            ]
+        else:
+            selected_merch_category = ""
+            printful_products = all_products
+
         ctx["header_copy"] = ctx["merch_copy"]
         ctx["printful_products"] = printful_products
         ctx["printful_catalog_url"] = printful_feed.get("catalog_url", "")
+        ctx["merch_categories"] = merch_categories
+        ctx["selected_merch_category"] = selected_merch_category
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
         return ctx
 

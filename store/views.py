@@ -898,6 +898,14 @@ def product_detail(request, slug: str):
     options_col_1 = [opt for opt in options if getattr(opt, "option_column", 1) == 1]
     options_col_2 = [opt for opt in options if getattr(opt, "option_column", 1) == 2]
     options_two_column = bool(options_col_1) and bool(options_col_2)
+
+    auto_split_threshold = 10
+    selectable_option_count = sum(1 for opt in options if not getattr(opt, "is_separator", False))
+    if not options_two_column and selectable_option_count >= auto_split_threshold:
+        midpoint = max(1, (len(options) + 1) // 2)
+        options_col_1 = options[:midpoint]
+        options_col_2 = options[midpoint:]
+        options_two_column = bool(options_col_2)
     default_option = next((opt for opt in options if not getattr(opt, "is_separator", False)), None)
     related = (
         Product.objects.filter(is_active=True, category=product.category)

@@ -143,13 +143,71 @@ def _extract_product(row: dict[str, Any]) -> dict[str, Any]:
     sync_product = row.get("sync_product")
     if isinstance(sync_product, dict):
         merged = dict(sync_product)
-        for key in ("thumbnail_url", "external_id", "name", "id", "variants", "synced", "is_ignored"):
+        for key in (
+            "thumbnail_url",
+            "external_id",
+            "name",
+            "id",
+            "variants",
+            "synced",
+            "is_ignored",
+            "category_label",
+            "main_category_name",
+            "category_name",
+            "main_category",
+            "type_name",
+            "product_type_name",
+            "type",
+            "category",
+            "product",
+        ):
             if key not in merged and key in row:
                 merged[key] = row.get(key)
         if "sync_variants" not in merged and isinstance(row.get("sync_variants"), list):
             merged["sync_variants"] = row.get("sync_variants")
         return merged
     return row
+
+
+def _clean_category_label(value: Any) -> str:
+    text = " ".join(str(value or "").strip().split())
+    if not text:
+        return ""
+    return text[:80]
+
+
+def _extract_product_category_label(product: dict[str, Any]) -> str:
+    candidates: list[Any] = [
+        product.get("category_label"),
+        product.get("main_category_name"),
+        product.get("category_name"),
+        product.get("type_name"),
+        product.get("product_type_name"),
+        product.get("type"),
+        product.get("category"),
+    ]
+
+    main_category = product.get("main_category")
+    if isinstance(main_category, dict):
+        candidates.insert(0, main_category.get("name"))
+        candidates.append(main_category.get("title"))
+
+    nested_product = product.get("product")
+    if isinstance(nested_product, dict):
+        candidates.extend(
+            [
+                nested_product.get("type_name"),
+                nested_product.get("product_type_name"),
+                nested_product.get("type"),
+                nested_product.get("category"),
+            ]
+        )
+
+    for raw in candidates:
+        label = _clean_category_label(raw)
+        if label:
+            return label
+    return ""
 
 
 def _extract_variants(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -340,6 +398,7 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
                 {
                     "id": product_id,
                     "name": name,
+                    "category_label": _extract_product_category_label(item),
                     "image_url": (item.get("thumbnail_url") or "").strip(),
                     "price_label": _build_price_label(variants) if show_prices else "",
                     "base_price": _build_base_price(variants),
