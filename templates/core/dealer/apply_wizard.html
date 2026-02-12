@@ -167,7 +167,7 @@
   {% include "includes/marketing_body.html" %}
 
   <div id="bg"></div>
-  {% include "includes/topbar_client_v3.html" %}
+  {% include "includes/topbar_client_v3.html" with current="dealer" %}
 
   <main class="wrap">
     <div class="card">
@@ -193,7 +193,7 @@
           <div class="tier-list">
             {% for tier in tier_levels %}
               <div class="tier-pill">
-                <div class="tier-pill__name">{{ tier.label }}</div>
+                <div class="tier-pill__name">{{ tier.label|normalize_tier_label }}</div>
                 <div class="tier-pill__meta">{{ tier.minimum_spend|money }}+ · {{ tier.discount_percent }}% off</div>
                 {% if tier.description %}<div class="tier-pill__desc">{{ tier.description }}</div>{% endif %}
               </div>

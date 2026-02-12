@@ -69,3 +69,46 @@ def split_lines(value):
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     return lines
+
+
+@register.filter
+def normalize_tier_label(value):
+    """
+    Normalizes labels like:
+    - "Tier1" / "Tier 1" -> "Tier 1"
+    - "Tier Three" / "TierThree" -> "Tier 3"
+    Leaves custom labels untouched (e.g. "Gold", "Standard").
+    """
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+
+    words = {
+        "one": 1,
+        "two": 2,
+        "three": 3,
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+        "eight": 8,
+        "nine": 9,
+        "ten": 10,
+    }
+
+    m = re.match(r"(?i)^tier\\s*(\\d+)(\\b.*)$", text)
+    if m:
+        num = int(m.group(1))
+        rest = m.group(2) or ""
+        return f"Tier {num}{rest}"
+
+    m = re.match(r"(?i)^tier\\s*(one|two|three|four|five|six|seven|eight|nine|ten)(\\b.*)$", text)
+    if m:
+        num = words.get(m.group(1).lower())
+        rest = m.group(2) or ""
+        if num is not None:
+            return f"Tier {num}{rest}"
+
+    return text
