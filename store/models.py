@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
@@ -945,3 +945,83 @@ class CustomFitmentRequest(models.Model):
         if self.product and not self.product_name:
             self.product_name = self.product.name
         super().save(*args, **kwargs)
+
+
+# ─────────────────────────── Store: reviews ───────────────────────────
+
+class StoreReview(models.Model):
+    """
+    Customer-submitted reviews that require staff approval before being shown publicly.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = ("pending", "Pending")
+        APPROVED = ("approved", "Approved")
+        REJECTED = ("rejected", "Rejected")
+
+    product = models.ForeignKey(
+        Product,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reviews",
+        help_text="Optional. When set, this review will appear on the product page.",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="store_reviews",
+        help_text="Optional link to the logged-in user who submitted the review.",
+    )
+
+    reviewer_name = models.CharField(max_length=160)
+    reviewer_email = models.EmailField(blank=True)
+    reviewer_title = models.CharField(
+        max_length=160,
+        blank=True,
+        help_text="Optional context such as vehicle/platform, role, or short descriptor.",
+    )
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="Rating between 1 (worst) and 5 (best).",
+    )
+    title = models.CharField(max_length=160, blank=True)
+    body = models.TextField(help_text="Review text that may be edited by staff before publishing.")
+    source_url = models.URLField(blank=True, help_text="Page URL where the review was submitted from.")
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="approved_store_reviews",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Store review"
+        verbose_name_plural = "Store reviews"
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+            models.Index(fields=["product", "status", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        scope = f" for {self.product}" if self.product_id else ""
+        return f"{self.rating}★ by {self.reviewer_name}{scope}"
+
+    @property
+    def star_range(self):
+        return range(self.rating or 0)
