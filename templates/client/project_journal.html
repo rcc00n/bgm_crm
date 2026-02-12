@@ -4,10 +4,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>{{ page_title }} | Bad Guy Motors</title>
+  <title>{{ project_journal_copy.page_title|default:page_title|default:"Builds" }} | Bad Guy Motors</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  {% with resolved_title=page_title|default:"Builds" %}
+  {% with resolved_title=project_journal_copy.page_title|default:page_title|default:"Builds" %}
     {% with meta_title=resolved_title|add:" | Bad Guy Motors" meta_description=meta_description meta_section="builds" meta_robots="index,follow" %}
       {% include "includes/marketing_head.html" %}
     {% endwith %}
@@ -73,10 +73,10 @@
   <main class="pj-page">
     <header class="pj-hero">
       <div class="pj-hero__title">
-        <p class="pj-eyebrow">Builds / Gallery</p>
-        <h1 class="pj-title">{{ page_title }}</h1>
+        <p class="pj-eyebrow">{{ project_journal_copy.hero_eyebrow|default:"Builds / Gallery" }}</p>
+        <h1 class="pj-title">{{ project_journal_copy.page_title|default:page_title|default:"Builds" }}</h1>
         <p class="pj-lead">
-          One-post-per-screen highlights: compare before/after first, then open details only if you want the full story.
+          {{ project_journal_copy.hero_lead|default:"One-post-per-screen highlights: compare before/after first, then open details only if you want the full story." }}
         </p>
       </div>
 
@@ -113,45 +113,52 @@
       </nav>
     </header>
 
-    <form class="pj-filters filters" method="get" action="{% url 'project-journal' %}" data-preserve-scroll>
-      <div class="pj-filters__row">
-        <label class="pj-search">
-          <span class="pj-sr-only">Search</span>
-          <input type="search" name="q" value="{{ q }}" placeholder="Search builds (title, tags, notes)">
-        </label>
-
-        <label class="pj-sort">
-          <span class="pj-sr-only">Sort</span>
-          <select name="sort">
-            <option value="featured" {% if sort != 'newest' %}selected{% endif %}>Featured</option>
-            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest</option>
-          </select>
-        </label>
-
-        <button class="pj-btn pj-btn--primary" type="submit">Apply</button>
-        {% if active_categories or q %}
-          <a class="pj-clear" href="{% url 'project-journal' %}">Clear</a>
-        {% endif %}
-      </div>
-
-      {% if available_categories %}
-        <div class="pj-cats" role="group" aria-label="Categories">
-          {% for cat in available_categories %}
+    {% if show_filters %}
+      <form class="pj-filters filters" method="get" action="{% url 'project-journal' %}" data-preserve-scroll>
+        <div class="pj-filters__row">
+          <label class="pj-search">
+            <span class="pj-sr-only">Search</span>
             <input
-              class="pj-cat-input"
-              type="checkbox"
-              id="pj-cat-{{ cat.slug }}"
-              name="cat"
-              value="{{ cat.slug }}"
-              {% if cat.slug in active_categories %}checked{% endif %}
+              type="search"
+              name="q"
+              value="{{ q }}"
+              placeholder="{{ project_journal_copy.search_placeholder|default:'Search builds (title, tags, notes)' }}"
             >
-            <label class="pj-chip" for="pj-cat-{{ cat.slug }}">
-              <span>{{ cat.name }}</span>
-            </label>
-          {% endfor %}
+          </label>
+
+          <label class="pj-sort">
+            <span class="pj-sr-only">Sort</span>
+            <select name="sort">
+              <option value="featured" {% if sort != 'newest' %}selected{% endif %}>{{ project_journal_copy.sort_featured_label|default:"Featured" }}</option>
+              <option value="newest" {% if sort == 'newest' %}selected{% endif %}>{{ project_journal_copy.sort_newest_label|default:"Newest" }}</option>
+            </select>
+          </label>
+
+          <button class="pj-btn pj-btn--primary" type="submit">{{ project_journal_copy.apply_filters_label|default:"Apply" }}</button>
+          {% if active_categories or q %}
+            <a class="pj-clear" href="{% url 'project-journal' %}">{{ project_journal_copy.clear_filters_label|default:"Clear" }}</a>
+          {% endif %}
         </div>
-      {% endif %}
-    </form>
+
+        {% if available_categories %}
+          <div class="pj-cats" role="group" aria-label="Categories">
+            {% for cat in available_categories %}
+              <input
+                class="pj-cat-input"
+                type="checkbox"
+                id="pj-cat-{{ cat.slug }}"
+                name="cat"
+                value="{{ cat.slug }}"
+                {% if cat.slug in active_categories %}checked{% endif %}
+              >
+              <label class="pj-chip" for="pj-cat-{{ cat.slug }}">
+                <span>{{ cat.name }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </form>
+    {% endif %}
 
     {% if has_posts %}
       <section class="pj-feed" id="pjFeed" data-feed>
@@ -172,7 +179,7 @@
       {% endif %}
     {% else %}
       <section class="pj-empty">
-        No builds found. Try clearing filters or searching by a different keyword.
+        {{ project_journal_copy.empty_results_label|default:"No builds found. Try clearing filters or searching by a different keyword." }}
       </section>
     {% endif %}
   </main>

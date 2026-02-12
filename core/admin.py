@@ -2609,6 +2609,7 @@ PAGECOPY_FONT_PAGES = {
     StorePageCopy: PageFontSetting.Page.STORE,
     MerchPageCopy: PageFontSetting.Page.MERCH,
     AboutPageCopy: PageFontSetting.Page.ABOUT,
+    ProjectJournalPageCopy: PageFontSetting.Page.PROJECT_JOURNAL,
 }
 
 
@@ -4310,6 +4311,43 @@ class DealerStatusPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     @admin.display(description="Page")
     def label(self, obj):
         return "Dealer portal"
+
+
+@admin.register(ProjectJournalPageCopy)
+class ProjectJournalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("page_title", "meta_description")}),
+        ("Hero", {"fields": ("hero_eyebrow", "hero_lead")}),
+        ("Filters", {
+            "fields": (
+                "search_placeholder",
+                "sort_featured_label",
+                "sort_newest_label",
+                "apply_filters_label",
+                "clear_filters_label",
+                "empty_results_label",
+                "filters_min_build_count",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if ProjectJournalPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Project journal"
 
 
 class EmailTemplateSettingsForm(forms.ModelForm):

@@ -41,6 +41,7 @@ from core.models import (
     LegalPage,
     ProjectJournalCategory,
     ProjectJournalEntry,
+    ProjectJournalPageCopy,
     PageView,
     VisitorSession,
     PageFontSetting,
@@ -2231,6 +2232,7 @@ def project_journal_view(request):
 
     q = (request.GET.get("q") or "").strip()
     sort = (request.GET.get("sort") or "featured").strip().lower()
+    project_journal_copy = ProjectJournalPageCopy.get_solo()
     category_slugs = list(request.GET.getlist("cat"))
     if not category_slugs:
         raw = (request.GET.get("cat") or "").strip()
@@ -2300,18 +2302,27 @@ def project_journal_view(request):
         next_page_url = _build_url(page=page_obj.next_page_number())
         next_page_fragment_url = _build_url(page=page_obj.next_page_number(), fragment=1)
 
+    filters_min_build_count = max(int(getattr(project_journal_copy, "filters_min_build_count", 10) or 0), 0)
+    has_active_filter = bool(q or category_slugs or sort == "newest")
+    show_filters = page_obj.paginator.count >= filters_min_build_count or has_active_filter
+
     context = {
         "posts": posts,
         "page_obj": page_obj,
+        "project_journal_copy": project_journal_copy,
         "available_categories": available_categories,
         "active_categories": category_slugs,
+        "show_filters": show_filters,
         "q": q,
         "sort": sort,
         "has_posts": bool(posts),
         "next_page_url": next_page_url,
         "next_page_fragment_url": next_page_fragment_url,
-        "page_title": "Builds",
-        "meta_description": "Before-and-after build highlights from Bad Guy Motors. Fast scans, clean comparisons, zero fluff.",
+        "page_title": (project_journal_copy.page_title or "").strip() or "Builds",
+        "meta_description": (
+            (project_journal_copy.meta_description or "").strip()
+            or "Before-and-after build highlights from Bad Guy Motors. Fast scans, clean comparisons, zero fluff."
+        ),
         "font_settings": build_page_font_context(PageFontSetting.Page.PROJECT_JOURNAL),
     }
 

@@ -25,6 +25,7 @@ from core.models import (
     HomePageCopy,
     MerchPageCopy,
     PageFontSetting,
+    ProjectJournalPageCopy,
     ServicesPageCopy,
     StorePageCopy,
     Service,
@@ -1568,6 +1569,22 @@ def build_about_context(request: HttpRequest) -> Dict[str, Any]:
     }
 
 
+def build_project_journal_context(request: HttpRequest) -> Dict[str, Any]:
+    return {
+        "page_title": "Builds",
+        "meta_description": "Before-and-after build highlights from Bad Guy Motors. Fast scans, clean comparisons, zero fluff.",
+        "show_filters": False,
+        "available_categories": [],
+        "active_categories": [],
+        "q": "",
+        "sort": "featured",
+        "has_posts": False,
+        "next_page_url": "",
+        "next_page_fragment_url": "",
+        "font_settings": build_page_font_context(PageFontSetting.Page.PROJECT_JOURNAL),
+    }
+
+
 def build_client_portal_context(request: HttpRequest) -> Dict[str, Any]:
     return {
         "profile": None,
@@ -1636,6 +1653,11 @@ PREVIEW_CONFIG: Dict[type, PreviewConfig] = {
         copy_key="about_copy",
         header_key="header_copy",
         context_builder=build_about_context,
+    ),
+    ProjectJournalPageCopy: PreviewConfig(
+        template="client/project_journal.html",
+        copy_key="project_journal_copy",
+        context_builder=build_project_journal_context,
     ),
     ClientPortalPageCopy: PreviewConfig(
         template="client/dashboard.html",

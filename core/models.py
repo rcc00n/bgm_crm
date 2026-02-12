@@ -1940,6 +1940,63 @@ class DealerStatusPageCopy(models.Model):
         return obj
 
 
+class ProjectJournalPageCopy(models.Model):
+    """
+    Editable static text for the Project Journal feed page.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    page_title = models.CharField(max_length=160, default="Builds")
+    meta_description = models.TextField(
+        default="Before-and-after build highlights from Bad Guy Motors. Fast scans, clean comparisons, zero fluff."
+    )
+    hero_eyebrow = models.CharField(max_length=80, default="Builds / Gallery")
+    hero_lead = models.TextField(
+        default=(
+            "One-post-per-screen highlights: compare before/after first, then open details only if you want the full "
+            "story."
+        )
+    )
+
+    search_placeholder = models.CharField(max_length=120, default="Search builds (title, tags, notes)")
+    sort_featured_label = models.CharField(max_length=40, default="Featured")
+    sort_newest_label = models.CharField(max_length=40, default="Newest")
+    apply_filters_label = models.CharField(max_length=40, default="Apply")
+    clear_filters_label = models.CharField(max_length=40, default="Clear")
+    empty_results_label = models.CharField(
+        max_length=180,
+        default="No builds found. Try clearing filters or searching by a different keyword.",
+    )
+    filters_min_build_count = models.PositiveSmallIntegerField(
+        default=10,
+        validators=[MinValueValidator(0), MaxValueValidator(999)],
+        help_text=(
+            "Filters/search are shown when published build count reaches this number. "
+            "They still appear when a filter is already active."
+        ),
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Project journal copy"
+        verbose_name_plural = "Project journal copy"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Project journal copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
 class EmailTemplateSettings(models.Model):
     """
     Global defaults used across all email templates.
