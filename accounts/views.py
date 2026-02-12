@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from decimal import Decimal, InvalidOperation
 from datetime import timedelta
 
 from django.contrib import messages
@@ -9,6 +10,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.tokens import default_token_generator
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, get_object_or_404
@@ -52,7 +54,7 @@ from .forms import (
     ClientProfileForm,
     VerifiedLoginForm,
 )
-from store.models import Order, Product
+from store.models import Category, Order, Product, ProductOption
 
 CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
 CLIENT_PORTAL_FILE_MAX_BYTES = CLIENT_PORTAL_FILE_MAX_MB * 1024 * 1024
@@ -816,78 +818,220 @@ class StoreView(TemplateView):
         return ctx
 
 
-def _normalize_merch_key(value: str) -> str:
-    return " ".join((value or "").strip().lower().split())
+PRINTFUL_MERCH_SYNC_KEY_PREFIX = "printful_merch_store_sync_v2"
+
+
+def _parse_merch_decimal(value) -> Decimal | None:
+    if value in (None, ""):
+        return None
+    try:
+        parsed = Decimal(str(value).strip())
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0 else None
+
+
+def _build_printful_product_sku(product_id: int) -> str:
+    return f"PF-{product_id}"
+
+
+def _build_printful_product_slug(product_id: int, name: str) -> str:
+    base = slugify(name or "")[:140] or "item"
+    return f"merch-{product_id}-{base}"[:200]
+
+
+def _get_or_create_merch_category() -> Category:
+    existing = Category.objects.filter(name__iexact="Merch").first() or Category.objects.filter(slug="merch").first()
+    if existing:
+        return existing
+    return Category.objects.create(
+        name="Merch",
+        slug="merch",
+        description="Printful merchandise catalog.",
+    )
+
+
+def _dedupe_option_name(name: str, *, index: int, used: set[str]) -> str:
+    clean = (name or "").strip()[:120] or f"Option {index}"
+    if clean not in used:
+        used.add(clean)
+        return clean
+
+    attempt = 2
+    while True:
+        suffix = f" ({attempt})"
+        candidate = f"{clean[: max(1, 120 - len(suffix))]}{suffix}"
+        if candidate not in used:
+            used.add(candidate)
+            return candidate
+        attempt += 1
+
+
+def _sync_printful_options_for_product(product: Product, variants: list[dict]) -> int | None:
+    if not variants:
+        ProductOption.objects.filter(product=product).update(is_active=False)
+        return None
+
+    seen_skus: list[str] = []
+    used_names: set[str] = set()
+    default_option_id = None
+
+    for index, variant in enumerate(variants, start=1):
+        raw_sku = str(variant.get("sku") or "").strip()[:64]
+        variant_id = 0
+        try:
+            variant_id = int(variant.get("id") or 0)
+        except (TypeError, ValueError):
+            variant_id = 0
+
+        option_sku = raw_sku or f"{product.sku}-VAR-{variant_id or index}"
+        if option_sku in seen_skus:
+            option_sku = f"{option_sku[:56]}-{index}"[:64]
+        seen_skus.append(option_sku)
+
+        option_name = _dedupe_option_name(str(variant.get("name") or ""), index=index, used=used_names)
+        option_price = _parse_merch_decimal(variant.get("price"))
+
+        option, _ = ProductOption.objects.update_or_create(
+            sku=option_sku,
+            defaults={
+                "product": product,
+                "name": option_name,
+                "description": "",
+                "is_separator": False,
+                "option_column": 1,
+                "price": option_price,
+                "is_active": True,
+                "sort_order": index,
+            },
+        )
+        if default_option_id is None:
+            default_option_id = option.id
+
+    ProductOption.objects.filter(product=product).exclude(sku__in=seen_skus).update(is_active=False)
+    return default_option_id
+
+
+def _sync_printful_merch_products(products: list[dict]) -> None:
+    if not products:
+        return
+
+    category = _get_or_create_merch_category()
+    default_currency = (getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD") or "CAD").upper()
+
+    for item in products:
+        try:
+            product_id = int(item.get("id") or 0)
+        except (TypeError, ValueError):
+            product_id = 0
+        if product_id <= 0:
+            continue
+
+        name = (str(item.get("name") or "") or f"Merch item {product_id}").strip()[:180]
+        sku = _build_printful_product_sku(product_id)
+        slug = _build_printful_product_slug(product_id, name)
+        variants = [row for row in item.get("variants", []) if isinstance(row, dict)]
+
+        variant_prices = []
+        for variant in variants:
+            price = _parse_merch_decimal(variant.get("price"))
+            if price is not None:
+                variant_prices.append(price)
+
+        base_price = _parse_merch_decimal(item.get("base_price"))
+        if base_price is None and variant_prices:
+            base_price = min(variant_prices)
+        if base_price is None:
+            base_price = Decimal("0.00")
+
+        currency = (str(item.get("currency") or "") or default_currency).strip().upper() or default_currency
+        image_url = (str(item.get("image_url") or "") or "").strip()
+        defaults = {
+            "slug": slug,
+            "name": name,
+            "category": category,
+            "price": base_price,
+            "is_in_house": True,
+            "currency": currency,
+            "inventory": 9999,
+            "is_active": True,
+            "short_description": "Fulfilled by Printful.",
+            "description": f"Printful product #{product_id}",
+            "contact_for_estimate": False,
+            "estimate_from_price": None,
+            "main_image": image_url,
+        }
+        product, _ = Product.objects.update_or_create(sku=sku, defaults=defaults)
+        _sync_printful_options_for_product(product, variants)
+
+
+def _build_synced_printful_merch_map(products: list[dict]) -> dict[int, dict]:
+    ids: list[int] = []
+    for item in products:
+        try:
+            product_id = int(item.get("id") or 0)
+        except (TypeError, ValueError):
+            product_id = 0
+        if product_id > 0:
+            ids.append(product_id)
+    if not ids:
+        return {}
+
+    ids = sorted(set(ids))
+    sync_key = f"{PRINTFUL_MERCH_SYNC_KEY_PREFIX}:{','.join(str(pid) for pid in ids)}"
+    if not cache.get(sync_key):
+        sync_ttl = 900
+        try:
+            _sync_printful_merch_products(products)
+        except Exception:
+            logger.exception("Failed to sync Printful merch catalog to store products.")
+            sync_ttl = 60
+        cache.set(sync_key, True, sync_ttl)
+
+    skus = [_build_printful_product_sku(product_id) for product_id in ids]
+    store_products = Product.objects.filter(sku__in=skus).prefetch_related("options")
+    by_sku = {product.sku: product for product in store_products}
+
+    resolved: dict[int, dict] = {}
+    for product_id in ids:
+        product = by_sku.get(_build_printful_product_sku(product_id))
+        if not product:
+            continue
+        selectable = product.get_selectable_options()
+        default_option_id = selectable[0].id if selectable else None
+        resolved[product_id] = {
+            "product": product,
+            "default_option_id": default_option_id,
+        }
+    return resolved
 
 
 def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
     if not products:
         return []
 
-    store_products = list(Product.objects.filter(is_active=True).prefetch_related("options"))
-    if not store_products:
-        return products
-
-    by_slug: dict[str, Product] = {}
-    by_name: dict[str, Product] = {}
-    by_sku: dict[str, Product] = {}
-    for product in store_products:
-        if product.slug:
-            by_slug.setdefault(product.slug, product)
-
-        name_key = _normalize_merch_key(product.name)
-        if name_key:
-            by_name.setdefault(name_key, product)
-
-        sku_key = (product.sku or "").strip().lower()
-        if sku_key:
-            by_sku.setdefault(sku_key, product)
-
+    synced = _build_synced_printful_merch_map(products)
     enriched: list[dict] = []
     for item in products:
         row = dict(item or {})
-        product: Product | None = None
+        try:
+            product_id = int(row.get("id") or 0)
+        except (TypeError, ValueError):
+            product_id = 0
 
-        name = str(row.get("name") or "")
-        if name:
-            product = by_slug.get(slugify(name)) or by_name.get(_normalize_merch_key(name))
-
-        if not product:
-            for sku in row.get("skus") or []:
-                sku_key = str(sku or "").strip().lower()
-                if not sku_key:
-                    continue
-                product = by_sku.get(sku_key)
-                if product:
-                    break
-
-        if product:
-            default_option_id = None
-            if product.has_active_options:
-                selectable = product.get_selectable_options()
-                if selectable:
-                    default_option_id = selectable[0].id
-
+        matched = synced.get(product_id)
+        if matched:
+            product = matched["product"]
             row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
-            can_quick_checkout = not product.contact_for_estimate and (
-                not product.has_active_options or default_option_id is not None
-            )
-            if can_quick_checkout:
-                row["checkout_action"] = reverse("store:store-cart-add", kwargs={"slug": product.slug})
-                row["checkout_option_id"] = default_option_id
-                row["checkout_label"] = "Checkout now"
-            else:
-                row["checkout_action"] = ""
-                row["checkout_option_id"] = None
-                row["url"] = row["store_product_url"]
-                row["checkout_label"] = "Choose options"
+            row["checkout_action"] = reverse("store:store-cart-add", kwargs={"slug": product.slug})
+            row["checkout_option_id"] = matched.get("default_option_id")
+            row["checkout_label"] = "Checkout now"
+            row["url"] = row["store_product_url"]
         else:
             row.setdefault("checkout_action", "")
             row.setdefault("checkout_option_id", None)
             row.setdefault("checkout_label", "Shop now")
-
         enriched.append(row)
-
     return enriched
 
 

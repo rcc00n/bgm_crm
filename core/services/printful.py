@@ -184,6 +184,54 @@ def _build_price_label(variants: list[dict[str, Any]]) -> str:
     return f"From {format_currency(low, include_code=False)}"
 
 
+def _build_base_price(variants: list[dict[str, Any]]) -> str:
+    prices: list[Decimal] = []
+    for variant in variants:
+        price = _coerce_decimal(variant.get("retail_price") or variant.get("price"))
+        if price is not None:
+            prices.append(price)
+    if not prices:
+        return ""
+    return str(min(prices))
+
+
+def _variant_option_name(product_name: str, variant_name: str, index: int) -> str:
+    source = (variant_name or "").strip()
+    if not source:
+        return f"Option {index}"
+
+    product = (product_name or "").strip()
+    if product and source.lower().startswith(product.lower()):
+        trimmed = source[len(product):].strip(" /-")
+        if trimmed:
+            return trimmed[:120]
+    return source[:120]
+
+
+def _build_variants_payload(variants: list[dict[str, Any]], *, product_name: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index, variant in enumerate(variants, start=1):
+        price = _coerce_decimal(variant.get("retail_price") or variant.get("price"))
+        sku = (variant.get("sku") or "").strip()
+        row = {
+            "id": _coerce_int(variant.get("id")),
+            "name": _variant_option_name(product_name, str(variant.get("name") or ""), index),
+            "sku": sku,
+            "price": str(price) if price is not None else "",
+            "currency": (variant.get("currency") or "").strip().upper(),
+        }
+        rows.append(row)
+    return rows
+
+
+def _variant_currency(variants: list[dict[str, Any]]) -> str:
+    for variant in variants:
+        code = (variant.get("currency") or "").strip().upper()
+        if code:
+            return code
+    return ""
+
+
 def _build_variant_skus(variants: list[dict[str, Any]]) -> list[str]:
     skus: list[str] = []
     seen: set[str] = set()
@@ -278,7 +326,7 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
                 continue
 
             variants = _extract_variants(item)
-            if show_prices and not variants:
+            if not variants:
                 try:
                     variants = _fetch_product_detail_variants(product_id)
                 except PrintfulAPIError:
@@ -294,8 +342,11 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
                     "name": name,
                     "image_url": (item.get("thumbnail_url") or "").strip(),
                     "price_label": _build_price_label(variants) if show_prices else "",
+                    "base_price": _build_base_price(variants),
                     "variant_label": f"{variant_count} variants" if variant_count > 1 else "",
+                    "currency": _variant_currency(variants),
                     "skus": _build_variant_skus(variants),
+                    "variants": _build_variants_payload(variants, product_name=name),
                     "url": _build_product_url(
                         product_id=product_id,
                         name=name,
