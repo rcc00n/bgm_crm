@@ -102,7 +102,7 @@
     ::selection{ background:var(--red); color:#fff; }
 
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html{font-size:16px;scroll-behavior:smooth}
+    html{font-size:16px;scroll-behavior:smooth;overflow-x:hidden}
     body{background:var(--bg);color:var(--ink);font-family:var(--font-body, Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif);line-height:1.55;min-height:100dvh;overflow-x:hidden}
     body,button,input,select,textarea{font-family:var(--font-body, Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif)}
     h1,h2,h3,h4,h5,h6{font-family:var(--font-head, var(--font-body, Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif))}
@@ -304,7 +304,7 @@
     .mobile-booking__status[data-state="error"]{color:#ff5c72}
     .modal__dialog{width:min(940px,calc(100dvw - 2rem));max-height:calc(100dvh - 2rem)}
     @supports not (height:100dvh){.modal__dialog{width:min(940px,calc(100vw - 2rem));max-height:calc(100vh - 2rem)}}
-    @media (max-width:900px){.modal__dialog{width:min(96vw,720px)}.grid-2{grid-template-columns:1fr}.outlook__wrap{max-height:50vh}}
+    @media (max-width:900px){.modal__dialog{width:min(720px,100%)}.grid-2{grid-template-columns:1fr}.outlook__wrap{max-height:50vh}}
     @media (max-width:768px){
       .outlook{display:none}
       .hint{display:none}
@@ -2143,6 +2143,28 @@ body.modal-open{
   }
   #bookModal.book-modal--lk-clone #mobileTodayBtn{
     display:none;
+  }
+  #bookModal.book-modal--lk-clone .field input,
+  #bookModal.book-modal--lk-clone .field select,
+  #bookModal.book-modal--lk-clone .field textarea{
+    width:100%;
+    max-width:100%;
+  }
+  #bookModal.book-modal--lk-clone .modal__title{
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+  #bookModal.book-modal--lk-clone .modal__footer{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    justify-content:stretch;
+    gap:.75rem;
+  }
+  #bookModal.book-modal--lk-clone .modal__footer .btn{
+    width:100%;
+    min-width:0;
+    white-space:normal;
+    overflow-wrap:anywhere;
   }
   #bookModal.book-modal--lk-clone .modal__header{
     position:sticky;
