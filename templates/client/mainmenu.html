@@ -2213,7 +2213,7 @@ body.modal-open{
 @media (min-width:901px){
   #bookModal.book-modal--lk-clone{
     background:rgba(0,0,0,.6);
-    --book-footer-reserve: 124px;
+    --book-footer-reserve: 86px;
   }
   #bookModal.book-modal--lk-clone .modal__dialog{
     background:linear-gradient(180deg, rgba(15,15,15,.98), rgba(10,10,10,.98));
@@ -2308,7 +2308,7 @@ body.modal-open{
     max-height:clamp(320px,52vh,560px);
     min-height:320px;
     /* Keep last row visible above sticky footer without huge extra scroll range */
-    padding-bottom:28px;
+    padding-bottom:12px;
     scrollbar-color:rgba(255,255,255,.32) #0b0b0b;
   }
   #bookModal.book-modal--lk-clone .outlook__wrap::-webkit-scrollbar{
@@ -2337,13 +2337,12 @@ body.modal-open{
     bottom:-1rem;
     margin-inline:-1rem;
     padding-inline:1rem;
-    min-height:124px;
     z-index:7;
-    padding-top:.25rem;
-    padding-bottom:max(.8rem, calc(.8rem + env(safe-area-inset-bottom, 0px)));
+    padding-top:.45rem;
+    padding-bottom:max(.45rem, calc(.45rem + env(safe-area-inset-bottom, 0px)));
     border-top:1px solid var(--line);
     background:#0c0c0c;
-    box-shadow:0 -16px 24px rgba(0,0,0,.62);
+    box-shadow:0 -10px 18px rgba(0,0,0,.55);
   }
   #bookModal.book-modal--lk-clone .modal__footer .btn{
     min-height:54px;
