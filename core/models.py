@@ -3236,8 +3236,32 @@ class DealerApplication(models.Model):
         verbose_name="User",
     )
     business_name = models.CharField("Business name", max_length=128)
+    operating_as = models.CharField("Operating as", max_length=128, blank=True)
+    business_address = models.TextField("Business address", blank=True)
+    city = models.CharField("City", max_length=80, blank=True)
+    province = models.CharField("Province / State", max_length=80, blank=True)
+    postal_code = models.CharField("Postal / ZIP code", max_length=20, blank=True)
     website = models.URLField("Website", blank=True)
     phone = models.CharField("Phone", max_length=32, validators=[MinLengthValidator(5)])
+    email = models.EmailField("Email", blank=True)
+    gst_tax_id = models.CharField("GST / Tax ID", max_length=64, blank=True)
+    business_license_number = models.CharField("Business License #", max_length=64, blank=True)
+    resale_certificate_number = models.CharField("Resale Certificate #", max_length=64, blank=True)
+    years_in_business = models.PositiveSmallIntegerField("Years in business", null=True, blank=True)
+    business_type = models.CharField("Type of business", max_length=120, blank=True)
+    reference_1_name = models.CharField("Reference 1 name", max_length=120, blank=True)
+    reference_1_phone = models.CharField("Reference 1 phone", max_length=32, blank=True)
+    reference_1_email = models.EmailField("Reference 1 email", blank=True)
+    reference_2_name = models.CharField("Reference 2 name", max_length=120, blank=True)
+    reference_2_phone = models.CharField("Reference 2 phone", max_length=32, blank=True)
+    reference_2_email = models.EmailField("Reference 2 email", blank=True)
+    authorized_signature_printed_name = models.CharField(
+        "Authorized signature printed name",
+        max_length=160,
+        blank=True,
+    )
+    authorized_signature_title = models.CharField("Authorized signature title", max_length=120, blank=True)
+    authorized_signature_date = models.DateField("Authorized signature date", null=True, blank=True)
     notes = models.TextField("Notes", blank=True)
     preferred_tier = models.CharField(
         "Preferred tier",
@@ -3388,6 +3412,70 @@ class UserProfile(models.Model):
 
         return float(payments_total) + float(appts_without_payments_total)
 
+    def total_spent_products_cad(self) -> Decimal:
+        """
+        Total spent by the user on store products (order item subtotals) in CAD.
+
+        Includes orders linked via FK to the user; falls back to matching guest orders by email
+        when order.user is NULL.
+
+        Only counts orders that are:
+        - not cancelled, AND
+        - paid (payment_status=paid) OR completed (status=completed)
+
+        This is the number we use for dealer tier calculations and admin visibility.
+        """
+        from decimal import Decimal, InvalidOperation
+
+        try:
+            from store.models import Order, OrderItem
+        except Exception:
+            return Decimal("0.00")
+
+        user = getattr(self, "user", None)
+        if not user:
+            return Decimal("0.00")
+
+        from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum, Value
+        from django.db.models.functions import Coalesce
+
+        owner_q = Q(order__user=user)
+        email = (getattr(user, "email", "") or "").strip()
+        if email:
+            owner_q |= Q(order__user__isnull=True, order__email__iexact=email)
+
+        eligible_q = (
+            Q(order__payment_status=Order.PaymentStatus.PAID)
+            | Q(order__status=Order.STATUS_COMPLETED)
+        )
+
+        price_fallback = Value(
+            Decimal("0.00"),
+            output_field=DecimalField(max_digits=10, decimal_places=2),
+        )
+        line_expr = ExpressionWrapper(
+            F("qty") * Coalesce(F("price_at_moment"), price_fallback),
+            output_field=DecimalField(max_digits=12, decimal_places=2),
+        )
+
+        total = (
+            OrderItem.objects
+            .filter(owner_q)
+            .exclude(order__status=Order.STATUS_CANCELLED)
+            .filter(eligible_q)
+            .aggregate(
+                s=Coalesce(
+                    Sum(line_expr),
+                    Value(Decimal("0.00"), output_field=DecimalField(max_digits=12, decimal_places=2)),
+                )
+            )["s"]
+        )
+
+        try:
+            return Decimal(total).quantize(Decimal("0.01"))
+        except (InvalidOperation, TypeError):
+            return Decimal("0.00")
+
 
     def _tier_levels_queryset(self):
         return DealerTierLevel.objects.filter(is_active=True).order_by("minimum_spend", "sort_order", "code")
@@ -3405,7 +3493,10 @@ class UserProfile(models.Model):
         return level
 
     def recompute_dealer_tier(self) -> None:
-        spent = Decimal(str(self.total_spent_cad()))
+        try:
+            spent = Decimal(self.total_spent_products_cad())
+        except Exception:
+            spent = Decimal("0.00")
         try:
             tiers = list(self._tier_levels_queryset())
         except Exception:

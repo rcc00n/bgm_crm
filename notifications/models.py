@@ -151,6 +151,7 @@ class TelegramMessageLog(models.Model):
     EVENT_FITMENT_REQUEST = "fitment_request"
     EVENT_SITE_NOTICE_WELCOME = "site_notice_welcome"
     EVENT_ORDER_REVIEW_REQUEST = "order_review_request"
+    EVENT_DEALER_APPLICATION_CREATED = "dealer_application_created"
     EVENT_REMINDER = "reminder"
     EVENT_DIGEST = "digest"
     EVENT_MANUAL = "manual"

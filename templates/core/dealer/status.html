@@ -147,6 +147,11 @@
   {% include "includes/topbar_client_v3.html" with topbar_nav_template="includes/topbar_nav_dealer.html" topbar_badge_label=dealer_copy.header_badge_label %}
 
   <main class="container">
+    {% if submitted %}
+      <div class="callout callout--ok" role="status" aria-live="polite">
+        Your dealer application has been submitted. Our team will review it and contact you with next steps.
+      </div>
+    {% endif %}
     <section class="hero">
       <div>
         <p class="hero__eyebrow">{{ dealer_copy.hero_eyebrow }}</p>

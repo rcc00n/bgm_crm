@@ -132,7 +132,7 @@ def dealer_portal(request):
         "discount_percent": 0,
         "dealer_since": None,
         "show_discount": False,
-        "url": reverse("dealer-status"),
+        "url": reverse("dealer-entry"),
     }
 
     user = getattr(request, "user", None)

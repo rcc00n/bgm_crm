@@ -1763,18 +1763,54 @@ class DealerTierLevelAdmin(admin.ModelAdmin):
 @admin.register(DealerApplication)
 class DealerApplicationAdmin(admin.ModelAdmin):
     list_display = (
-        "user", "business_name", "status",
+        "user", "business_name", "status", "products_spent_display",
         "preferred_tier_display", "assigned_tier_display",
         "created_at", "reviewed_by", "reviewed_at",
     )
     list_filter = ("status", "preferred_tier", "assigned_tier", "created_at")
-    search_fields = ("user__email", "user__username", "business_name", "phone", "website")
-    readonly_fields = ("created_at", "reviewed_at", "reviewed_by")
+    search_fields = (
+        "user__email",
+        "user__username",
+        "business_name",
+        "operating_as",
+        "phone",
+        "email",
+        "website",
+        "city",
+        "province",
+        "postal_code",
+    )
+    readonly_fields = ("created_at", "reviewed_at", "reviewed_by", "products_spent_display")
     fieldsets = (
         ("Application", {
             "fields": (
-                "user", "business_name", "website", "phone",
-                "preferred_tier", "notes",
+                "user",
+                "products_spent_display",
+                "business_name",
+                "operating_as",
+                "business_type",
+                "years_in_business",
+                "website",
+                "phone",
+                "email",
+                "business_address",
+                "city",
+                "province",
+                "postal_code",
+                "gst_tax_id",
+                "business_license_number",
+                "resale_certificate_number",
+                "reference_1_name",
+                "reference_1_phone",
+                "reference_1_email",
+                "reference_2_name",
+                "reference_2_phone",
+                "reference_2_email",
+                "authorized_signature_printed_name",
+                "authorized_signature_title",
+                "authorized_signature_date",
+                "preferred_tier",
+                "notes",
             )
         }),
         ("Review", {
@@ -1794,6 +1830,16 @@ class DealerApplicationAdmin(admin.ModelAdmin):
     @admin.display(description="Assigned tier")
     def assigned_tier_display(self, obj):
         return obj.get_assigned_tier_display() or "—"
+
+    @admin.display(description="Products spent")
+    def products_spent_display(self, obj):
+        try:
+            up = getattr(obj.user, "userprofile", None)
+            if not up:
+                return format_currency(0)
+            return format_currency(up.total_spent_products_cad())
+        except Exception:
+            return format_currency(0)
 
     @admin.action(description="Approve selected applications")
     def approve_selected(self, request, queryset):
@@ -1822,7 +1868,7 @@ class DealerApplicationAdmin(admin.ModelAdmin):
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = (
         "user", "is_dealer", "dealer_tier", "dealer_since",
-        "total_spent_display", "dealer_discount_display",
+        "products_spent_display", "total_spent_display", "dealer_discount_display",
     )
     list_filter = ("is_dealer", "dealer_tier")
     search_fields = ("user__email", "user__username")
@@ -1834,10 +1880,17 @@ class UserProfileAdmin(admin.ModelAdmin):
         # добавьте ваши остальные поля профиля при необходимости
     )
 
-    @admin.display(description="Total spent")
+    @admin.display(description="Services spent")
     def total_spent_display(self, obj):
         try:
             return format_currency(obj.total_spent_cad())
+        except Exception:
+            return format_currency(0)
+
+    @admin.display(description="Products spent")
+    def products_spent_display(self, obj):
+        try:
+            return format_currency(obj.total_spent_products_cad())
         except Exception:
             return format_currency(0)
 

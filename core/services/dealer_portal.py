@@ -98,12 +98,18 @@ def build_portal_snapshot(user):
     - order summary
     """
     profile = getattr(user, "userprofile", None)
-    application = getattr(user, "dealer_application", None)
+    try:
+        application = user.dealer_application
+    except DealerApplication.DoesNotExist:
+        application = None
+    except Exception:
+        application = None
     tiers = _ordered_tiers()
     tier_map = {t.code: t for t in tiers}
 
     if profile:
-        lifetime_spent = _to_decimal(profile.total_spent_cad()).quantize(MONEY_QUANT)
+        # Dealer tiers and portal progress are based on store product spend.
+        lifetime_spent = _to_decimal(profile.total_spent_products_cad()).quantize(MONEY_QUANT)
         tier_code = profile.dealer_tier
         tier_level = tier_map.get(tier_code) or profile.get_dealer_tier_level()
     else:
@@ -143,7 +149,7 @@ def build_portal_snapshot(user):
         "tier": tier_level,
         "tier_code": tier_code,
         "tier_label": tier_level.label if tier_level else (profile.get_dealer_tier_display() if profile else "Standard"),
-        "discount_percent": getattr(tier_level, "discount_percent", 0),
+        "discount_percent": getattr(tier_level, "discount_percent", 0) if (profile and profile.is_dealer) else 0,
         "current_threshold": current_threshold,
         "progress": progress,
         "next_tier": upcoming,

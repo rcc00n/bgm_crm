@@ -402,6 +402,56 @@ def notify_about_order(order_id) -> int:
     return 0
 
 
+def notify_about_dealer_application(application_id) -> int:
+    from core.models import DealerApplication
+
+    app = (
+        DealerApplication.objects.select_related("user")
+        .get(pk=application_id)
+    )
+
+    def _safe(val: str | None) -> str:
+        return html.escape(val) if val else "—"
+
+    user = app.user
+    user_label = user.get_full_name() or user.username or "User"
+    user_label = user_label.strip() or "User"
+
+    products_spent = "—"
+    try:
+        from core.utils import format_currency
+
+        up = getattr(user, "userprofile", None)
+        if up:
+            products_spent = format_currency(up.total_spent_products_cad())
+    except Exception:
+        products_spent = "—"
+
+    address_bits = []
+    if app.business_address:
+        address_bits.append(app.business_address)
+    city_line = ", ".join([bit for bit in [app.city, app.province, app.postal_code] if bit]).strip(", ")
+    if city_line:
+        address_bits.append(city_line)
+
+    message = (
+        "<b>New dealer application</b>\n"
+        f"User: {_safe(user_label)} (#{getattr(user, 'pk', '—')})\n"
+        f"Business: {_safe(app.business_name)}\n"
+        f"Email: {_safe(app.email or getattr(user, 'email', ''))}\n"
+        f"Phone: {_safe(app.phone)}\n"
+        f"Products spent: {_safe(products_spent)}\n"
+        f"Projected tier: {_safe(getattr(app, 'get_preferred_tier_display', lambda: '')() or app.preferred_tier)}\n"
+    )
+    if address_bits:
+        message += "Address:\n" + "\n".join(_safe(line) for line in address_bits)
+
+    return send_telegram_message(
+        message,
+        event_type=TelegramMessageLog.EVENT_DEALER_APPLICATION_CREATED,
+    )
+
+
 def notify_about_service_lead(lead_id) -> int:
     """
     Notify ops chat about a new marketing/landing page inquiry.

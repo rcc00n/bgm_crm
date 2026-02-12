@@ -1,0 +1,248 @@
+{% load static dealer_extras %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Dealer Application</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with meta_title="Dealer Application — BGM Customs" meta_description="Apply for wholesale pricing with the BGM dealer program." meta_section="dealer" meta_type="article" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+
+  <style>
+    :root{
+      --bg:#0a0a0a;
+      --ink:#eaeaea;
+      --muted:#bdbdbd;
+      --red:#d50000;
+      --red-dark:#b60000;
+      --green:#17d45b;
+      --line:rgba(255,255,255,.12);
+      --card-bg:rgba(18,18,18,.78);
+      --card-border:rgba(255,255,255,.10);
+      --field-bg:rgba(255,255,255,.06);
+      --error-bg:#3b0000;
+      --error-text:#ff8a80;
+      --radius-lg:16px;
+      --radius-sm:12px;
+      --shadow:0 12px 28px rgba(0,0,0,.55);
+      --container:clamp(320px,92vw,1020px);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55}
+    a{color:inherit;text-decoration:none}
+
+    /* smoke */
+    #bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+    #bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
+    main, footer{position:relative; z-index:1;}
+
+    .wrap{width:var(--container);margin:clamp(24px,5vw,44px) auto;padding:0 1rem}
+    .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow)}
+    .title{font-weight:900;font-size:28px;letter-spacing:.02em;margin:0 0 .25rem}
+    .subtitle{color:var(--muted);margin:0 0 1.15rem}
+
+    .steps{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.6rem;
+      margin:.35rem 0 1rem;
+    }
+    .step-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      padding:.35rem .7rem;
+      border-radius:999px;
+      border:1px solid var(--card-border);
+      background:rgba(255,255,255,.03);
+      font-weight:800;
+      font-size:.82rem;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.82);
+    }
+    .step-pill--active{
+      border-color:rgba(213,0,0,.65);
+      background:rgba(213,0,0,.14);
+      color:#fff;
+    }
+    .progress{
+      height:10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      overflow:hidden;
+      margin:0 0 1.25rem;
+    }
+    .progress__fill{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg, var(--red), #ff4d4d);
+    }
+
+    label{display:block;font-weight:800;margin:12px 0 6px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:820px){.grid{grid-template-columns:1fr 1fr}}
+    .grid > .span2{grid-column:1 / -1}
+    .hint{font-size:.85rem;color:var(--muted);margin:.35rem 0 0}
+    .field-error{font-size:.85rem;color:var(--error-text);margin-top:.35rem}
+    .errors{background:var(--error-bg);color:var(--error-text);padding:12px;border-radius:12px;margin-bottom:12px}
+
+    input, textarea, select{
+      width:100%;
+      background:var(--field-bg);
+      color:var(--ink);
+      border:1px solid var(--card-border);
+      border-radius:12px;
+      padding:12px;
+      outline:none;
+    }
+    textarea{min-height:110px;resize:vertical}
+
+    .actions{
+      display:flex;
+      gap:.6rem;
+      flex-wrap:wrap;
+      margin-top:18px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .actions__left{display:flex;gap:.6rem;flex-wrap:wrap}
+    .actions__right{display:flex;gap:.6rem;flex-wrap:wrap}
+    .btn, a.btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:.6rem;
+      padding:.85rem 1.15rem;
+      border-radius:var(--radius-sm);
+      font-weight:900;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      border:1px solid transparent;
+      cursor:pointer;
+      transition:.18s;
+      min-height:44px;
+      line-height:1.1;
+    }
+    .btn--primary{background:linear-gradient(180deg, var(--red) 0%, var(--red-dark) 100%);color:#fff}
+    .btn--primary:hover{transform:translateY(-2px);box-shadow:0 12px 22px rgba(213,0,0,.25)}
+    .btn--ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+    .btn--ghost:hover{border-color:var(--red);color:var(--red)}
+
+    .tier-panel{
+      margin:1.05rem 0 1.25rem;
+      padding:1.05rem;
+      border:1px solid var(--card-border);
+      border-radius:var(--radius-lg);
+      background:rgba(255,255,255,.02);
+    }
+    .tier-panel h2{
+      font-size:1rem;
+      margin:0 0 .35rem;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+    }
+    .tier-panel p{color:var(--muted);font-size:.92rem;margin:0 0 .85rem}
+    .tier-list{display:flex;flex-direction:column;gap:.6rem}
+    .tier-pill{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.35rem;
+      justify-content:space-between;
+      padding:.75rem .9rem;
+      border-radius:.85rem;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.12);
+    }
+    .tier-pill__name{font-weight:800}
+    .tier-pill__meta{color:var(--muted);font-size:.9rem}
+    .tier-pill__desc{flex-basis:100%;color:var(--muted);font-size:.9rem}
+  </style>
+</head>
+<body>
+  {% include "includes/terms_gate.html" with terms_gate_autostart=True %}
+  {% include "includes/marketing_body.html" %}
+
+  <div id="bg"></div>
+  {% include "includes/topbar_client_v3.html" %}
+
+  <main class="wrap">
+    <div class="card">
+      <h1 class="title">Dealer Application</h1>
+      <p class="subtitle">Step {{ step_index }} of {{ step_total }}: {{ step_label }}</p>
+
+      <div class="steps" aria-label="Application steps">
+        {% for s in steps %}
+          <span class="step-pill{% if s.slug == step_slug %} step-pill--active{% endif %}">
+            {{ s.index }}. {{ s.label }}
+          </span>
+        {% endfor %}
+      </div>
+
+      <div class="progress" aria-hidden="true">
+        <div class="progress__fill" style="width: {{ progress_percent }}%"></div>
+      </div>
+
+      {% if step_slug == "business" and tier_levels %}
+        <section class="tier-panel" aria-label="Dealer tier overview">
+          <h2>Dealer tier overview</h2>
+          <p>Thresholds are denominated in CAD and can be updated by the ops team.</p>
+          <div class="tier-list">
+            {% for tier in tier_levels %}
+              <div class="tier-pill">
+                <div class="tier-pill__name">{{ tier.label }}</div>
+                <div class="tier-pill__meta">{{ tier.minimum_spend|money }}+ · {{ tier.discount_percent }}% off</div>
+                {% if tier.description %}<div class="tier-pill__desc">{{ tier.description }}</div>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if form.non_field_errors %}
+        <div class="errors" role="alert" aria-live="assertive">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="grid">
+          {% for field in form %}
+            <div class="{% if field.field.widget.attrs.rows %}span2{% endif %}{% if field.name == 'business_address' %} span2{% endif %}">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<p class="hint">{{ field.help_text }}</p>{% endif %}
+              {% if field.errors %}<div class="field-error">{{ field.errors.0 }}</div>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="actions">
+          <div class="actions__left">
+            {% if prev_step %}
+              <a class="btn btn--ghost" href="{% url 'dealer-apply-step' step=prev_step %}">← Back</a>
+            {% else %}
+              <a class="btn btn--ghost" href="{% url 'home' %}">← Home</a>
+            {% endif %}
+            <a class="btn btn--ghost" href="{% url 'dealer-status' %}">Exit</a>
+          </div>
+          <div class="actions__right">
+            <button class="btn btn--primary" type="submit">
+              {% if next_step %}Next{% else %}Submit application{% endif %}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  {% include "includes/site_footer.html" %}
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+  <script src="{% static 'js/topbar.js' %}"></script>
+</body>
+</html>
