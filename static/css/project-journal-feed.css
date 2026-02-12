@@ -366,10 +366,6 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   margin:0;
   color:var(--pj-muted);
   line-height:1.65;
-  display:-webkit-box;
-  -webkit-line-clamp:3;
-  -webkit-box-orient:vertical;
-  overflow:hidden;
 }
 
 .pj-work{
@@ -848,7 +844,12 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 @media (min-width: 960px){
   /* Desktop cards: slightly tighter to keep a "one screen" feel. */
   .pj-card{ gap:.9rem; }
-  .pj-excerpt{ -webkit-line-clamp:2; }
+  .pj-excerpt{
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
 
   /* Keep Details compact on desktop: long text scrolls inside tiles instead of expanding the page. */
   .pj-details__body{ gap:.85rem; line-height:1.6; }

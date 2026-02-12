@@ -45,6 +45,94 @@ def _tier_choices() -> list[tuple[str, str]]:
     return list(DealerTier.choices)
 
 
+CANADA_PROVINCE_STATE_CHOICES: list[tuple[str, str]] = [
+    ("Alberta", "Alberta"),
+    ("British Columbia", "British Columbia"),
+    ("Manitoba", "Manitoba"),
+    ("New Brunswick", "New Brunswick"),
+    ("Newfoundland and Labrador", "Newfoundland and Labrador"),
+    ("Nova Scotia", "Nova Scotia"),
+    ("Northwest Territories", "Northwest Territories"),
+    ("Nunavut", "Nunavut"),
+    ("Ontario", "Ontario"),
+    ("Prince Edward Island", "Prince Edward Island"),
+    ("Quebec", "Quebec"),
+    ("Saskatchewan", "Saskatchewan"),
+    ("Yukon", "Yukon"),
+]
+
+USA_PROVINCE_STATE_CHOICES: list[tuple[str, str]] = [
+    ("Alabama", "Alabama"),
+    ("Alaska", "Alaska"),
+    ("Arizona", "Arizona"),
+    ("Arkansas", "Arkansas"),
+    ("California", "California"),
+    ("Colorado", "Colorado"),
+    ("Connecticut", "Connecticut"),
+    ("Delaware", "Delaware"),
+    ("District of Columbia", "District of Columbia"),
+    ("Florida", "Florida"),
+    ("Georgia", "Georgia"),
+    ("Hawaii", "Hawaii"),
+    ("Idaho", "Idaho"),
+    ("Illinois", "Illinois"),
+    ("Indiana", "Indiana"),
+    ("Iowa", "Iowa"),
+    ("Kansas", "Kansas"),
+    ("Kentucky", "Kentucky"),
+    ("Louisiana", "Louisiana"),
+    ("Maine", "Maine"),
+    ("Maryland", "Maryland"),
+    ("Massachusetts", "Massachusetts"),
+    ("Michigan", "Michigan"),
+    ("Minnesota", "Minnesota"),
+    ("Mississippi", "Mississippi"),
+    ("Missouri", "Missouri"),
+    ("Montana", "Montana"),
+    ("Nebraska", "Nebraska"),
+    ("Nevada", "Nevada"),
+    ("New Hampshire", "New Hampshire"),
+    ("New Jersey", "New Jersey"),
+    ("New Mexico", "New Mexico"),
+    ("New York", "New York"),
+    ("North Carolina", "North Carolina"),
+    ("North Dakota", "North Dakota"),
+    ("Ohio", "Ohio"),
+    ("Oklahoma", "Oklahoma"),
+    ("Oregon", "Oregon"),
+    ("Pennsylvania", "Pennsylvania"),
+    ("Rhode Island", "Rhode Island"),
+    ("South Carolina", "South Carolina"),
+    ("South Dakota", "South Dakota"),
+    ("Tennessee", "Tennessee"),
+    ("Texas", "Texas"),
+    ("Utah", "Utah"),
+    ("Vermont", "Vermont"),
+    ("Virginia", "Virginia"),
+    ("Washington", "Washington"),
+    ("West Virginia", "West Virginia"),
+    ("Wisconsin", "Wisconsin"),
+    ("Wyoming", "Wyoming"),
+]
+
+PROVINCE_STATE_CHOICES: list[tuple[str, object]] = [
+    ("", "Select province/state"),
+    ("Canada", CANADA_PROVINCE_STATE_CHOICES),
+    ("USA", USA_PROVINCE_STATE_CHOICES),
+]
+
+
+def _flatten_choices(choices: list[tuple[str, object]]) -> set[str]:
+    values: set[str] = set()
+    for value, label in choices:
+        if isinstance(label, (list, tuple)):
+            for sub_value, _sub_label in label:
+                values.add(str(sub_value))
+            continue
+        values.add(str(value))
+    return values
+
+
 class DealerApplyBusinessForm(forms.Form):
     business_name = forms.CharField(label="Business Name", max_length=128)
     operating_as = forms.CharField(
@@ -78,7 +166,7 @@ class DealerApplyAddressForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 2}),
     )
     city = forms.CharField(label="City", max_length=80)
-    province = forms.CharField(label="Province / State", max_length=80)
+    province = forms.ChoiceField(label="Province / State", choices=PROVINCE_STATE_CHOICES)
     postal_code = forms.CharField(label="Postal / ZIP Code", max_length=20)
     gst_tax_id = forms.CharField(label="GST / Tax ID", max_length=64, required=False)
     business_license_number = forms.CharField(
@@ -87,6 +175,22 @@ class DealerApplyAddressForm(forms.Form):
     resale_certificate_number = forms.CharField(
         label="Resale Certificate #", max_length=64, required=False
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Preserve legacy values that were previously typed free-form.
+        existing = ""
+        if self.is_bound:
+            existing = str(self.data.get("province") or "").strip()
+        else:
+            existing = str(self.initial.get("province") or "").strip()
+        if existing and existing not in _flatten_choices(list(self.fields["province"].choices or [])):
+            self.fields["province"].choices = [
+                ("", "Select province/state"),
+                ("Current value", [(existing, existing)]),
+                ("Canada", CANADA_PROVINCE_STATE_CHOICES),
+                ("USA", USA_PROVINCE_STATE_CHOICES),
+            ]
 
 
 class DealerApplyReferencesForm(forms.Form):
@@ -115,4 +219,3 @@ class DealerApplySignatureForm(forms.Form):
         initial=date.today,
         widget=forms.DateInput(attrs={"type": "date"}),
     )
-

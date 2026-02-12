@@ -543,7 +543,13 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "icon": "fas fa-user-shield",
                 "items": [
                     {"model": "core.DealerTierLevel", "label": "Tier Levels"},
-                    {"model": "core.DealerApplication", "label": "Applications"},
+                    {
+                        "model": "core.DealerApplication",
+                        "label": "Applications",
+                        # Dealer applications are created via the public wizard (not via admin),
+                        # so LogEntry won't exist. Use created_at so the admin bell/sidebar can detect new items.
+                        "activity_field": "created_at",
+                    },
                 ],
             },
         ],
