@@ -5159,15 +5159,7 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
             ),
             "classes": ("collapse",),
         }),
-        ("Build breakdown", {
-            "fields": (
-                "overview",
-                "parts",
-                "customizations",
-                "backstory",
-            )
-        }),
-        ("Full report", {"fields": ("body",)}),
+        ("Build details", {"fields": ("overview",)}),
         ("Project meta", {
             "fields": (
                 "client_name",

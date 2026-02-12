@@ -159,15 +159,6 @@
       {{ post.excerpt|default:"Before/after build highlight." }}
     </p>
 
-    {% with parts_lines=post.parts|split_lines %}
-      {% if parts_lines %}
-        <ul class="pj-work" aria-label="Work done">
-          {% for item in parts_lines|slice:":3" %}
-            <li>{{ item }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
   </section>
 
   {% if post.cta_primary_label and post.cta_primary_url or post.cta_secondary_label and post.cta_secondary_url or post.cta_tertiary_label and post.cta_tertiary_url %}
@@ -184,47 +175,20 @@
     </nav>
   {% endif %}
 
-  <details class="pj-details" {% if open_details %}open{% endif %}>
-    <summary>
-      <span>Details</span>
-      <span aria-hidden="true">+</span>
-    </summary>
-    <div class="pj-details__body">
-      <div class="pj-details__grid">
-        {% if post.overview or post.excerpt %}
+  {% with detail_text=post.overview|default:post.excerpt %}
+    {% if detail_text %}
+      <details class="pj-details" {% if open_details %}open{% endif %}>
+        <summary>
+          <span>Build details</span>
+          <span aria-hidden="true">+</span>
+        </summary>
+        <div class="pj-details__body">
           <article class="pj-info">
             <h3>Overview</h3>
-            <p>{{ post.overview|default:post.excerpt|linebreaksbr }}</p>
+            <p>{{ detail_text|linebreaksbr }}</p>
           </article>
-        {% endif %}
-        {% if post.parts %}
-          <article class="pj-info">
-            <h3>Parts / Work done</h3>
-            <p>{{ post.parts|linebreaksbr }}</p>
-          </article>
-        {% endif %}
-        {% if post.customizations %}
-          <article class="pj-info">
-            <h3>Customizations</h3>
-            <p>{{ post.customizations|linebreaksbr }}</p>
-          </article>
-        {% endif %}
-        {% if post.backstory %}
-          <article class="pj-info">
-            <h3>Backstory</h3>
-            <p>{{ post.backstory|linebreaksbr }}</p>
-          </article>
-        {% endif %}
-      </div>
-
-      {% if post.body %}
-        <article class="pj-info">
-          <h3>Full report</h3>
-          <p>{{ post.body|linebreaksbr }}</p>
-        </article>
-      {% endif %}
-
-      <a class="pj-clear" href="{{ post.get_absolute_url }}">Open post</a>
-    </div>
-  </details>
+        </div>
+      </details>
+    {% endif %}
+  {% endwith %}
 </article>
