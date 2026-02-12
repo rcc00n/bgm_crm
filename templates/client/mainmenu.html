@@ -2226,7 +2226,6 @@ body.modal-open{
 @media (min-width:901px){
   #bookModal.book-modal--lk-clone{
     background:rgba(0,0,0,.6);
-    --book-footer-reserve: 16px;
   }
   #bookModal.book-modal--lk-clone .modal__dialog{
     background:linear-gradient(180deg, rgba(15,15,15,.98), rgba(10,10,10,.98));
@@ -2265,7 +2264,7 @@ body.modal-open{
   #bookModal.book-modal--lk-clone .book-modal__grid{
     grid-template-columns:minmax(0,1fr);
     gap:1rem;
-    padding:1rem 0 var(--book-footer-reserve);
+    padding:1rem 0;
   }
   #bookModal.book-modal--lk-clone .book-contact-grid{
     grid-template-columns:repeat(3, minmax(0,1fr));
@@ -2343,17 +2342,14 @@ body.modal-open{
   }
   #bookModal.book-modal--lk-clone .modal__footer{
     justify-content:center;
-    align-items:flex-end;
     gap:.9rem;
-    margin-top:.35rem;
-    position:static;
-    margin-inline:-1rem;
-    padding-inline:1rem;
-    padding-top:.45rem;
-    padding-bottom:max(.45rem, calc(.45rem + env(safe-area-inset-bottom, 0px)));
-    border-top:1px solid var(--line);
-    background:#0c0c0c;
-    box-shadow:0 -10px 18px rgba(0,0,0,.55);
+    margin-top:.75rem;
+    position:sticky;
+    bottom:0;
+    z-index:7;
+    padding-top:.75rem;
+    padding-bottom:max(.2rem, env(safe-area-inset-bottom, 0px));
+    background:linear-gradient(180deg, rgba(12,12,12,0) 0%, rgba(12,12,12,.92) 38%, rgba(12,12,12,.98) 100%);
   }
   #bookModal.book-modal--lk-clone .modal__footer .btn{
     min-height:54px;
