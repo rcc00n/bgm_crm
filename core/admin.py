@@ -3557,6 +3557,11 @@ class StorePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "save_label",
             )
         }),
+        ("Product detail — fitment form", {
+            "fields": (
+                "fitment_success_message",
+            )
+        }),
         ("Contact modal", {
             "fields": (
                 "contact_fab_label",

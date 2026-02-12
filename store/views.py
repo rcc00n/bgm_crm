@@ -910,6 +910,7 @@ def product_detail(request, slug: str):
         "source_url": request.build_absolute_uri(),
     }
     quote_form = CustomFitmentRequestForm(initial=quote_initial)
+    store_copy = StorePageCopy.get_solo()
 
     if request.method == "POST" and request.POST.get("form_type") == "custom_fitment":
         form_data = request.POST.copy()
@@ -936,9 +937,18 @@ def product_detail(request, slug: str):
                 lambda: notification_services.notify_about_fitment_request(fitment_request.pk)
             )
             customer_name = (fitment_request.customer_name or "").strip() or "there"
+            success_template = (
+                getattr(store_copy, "fitment_success_message", "") or ""
+            ).strip()
+            if not success_template:
+                success_template = (
+                    "Hi {customer_name}, thanks for submitting your custom fitment request. "
+                    "We got it and will reach out soon."
+                )
+            success_text = success_template.replace("{customer_name}", customer_name).replace("{name}", customer_name)
             messages.success(
                 request,
-                f"Hi {customer_name}, thanks for submitting your custom fitment request. We got it and will reach out soon.",
+                success_text,
             )
             return redirect(product.get_absolute_url() + "#quote-request")
         messages.error(request, "Please correct the fields highlighted below.")
@@ -956,7 +966,7 @@ def product_detail(request, slug: str):
             "default_option_id": default_option.id if default_option else None,
             "go_along": go_along,
             "quote_form": quote_form,
-            "store_copy": StorePageCopy.get_solo(),
+            "store_copy": store_copy,
         },
     )
 
