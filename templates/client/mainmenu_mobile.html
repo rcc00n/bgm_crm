@@ -174,29 +174,60 @@
       background:var(--panel);
       border-radius:0;
       border-top:1px solid var(--line);
-      padding:16px 16px calc(24px + env(safe-area-inset-bottom));
       height:100dvh;
       max-height:100dvh;
-      overflow-y:auto;
-      overflow-x:hidden;
-      overscroll-behavior:contain;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
     }
-    .sheet__header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .sheet__header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px 12px;
+      border-bottom:1px solid var(--line);
+      background:rgba(10,10,10,.96);
+    }
+    .sheet__body{
+      flex:1 1 auto;
+      min-height:0;
+      overflow-y:auto;
+      overscroll-behavior:contain;
+      padding:0 16px 12px;
+    }
     .sheet__title{font-size:1.1rem;font-weight:900}
     .sheet__close{border:1px solid var(--line);background:#0f0f0f;color:var(--ink);width:36px;height:36px;border-radius:10px}
     .field{display:flex;flex-direction:column;gap:6px;margin-top:12px}
     .field label{color:var(--muted);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
-    .field input,.field select{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0f0f0f;color:#fff;font-size:1rem}
-    .field-row{display:flex;gap:8px}
-    .field-row .field{flex:1}
+    .field input,.field select{width:100%;padding:13px 12px;border-radius:12px;border:1px solid var(--line);background:#0f0f0f;color:#fff;font-size:1rem}
+    .field-row{display:grid;grid-template-columns:1fr;gap:0}
+    .field-row .field{flex:1;margin-top:10px}
     .status{font-size:.9rem;color:var(--muted);margin-top:6px}
     .status:empty{display:none}
     .status.error{color:#ff5c72}
     .status.success{color:#22c55e}
-    .summary{background:#0f0f0f;border:1px solid var(--line);border-radius:12px;padding:10px;color:var(--muted);font-size:.9rem}
-    .actions{display:flex;gap:8px;margin-top:14px}
+    .actions{
+      flex:0 0 auto;
+      display:flex;
+      gap:8px;
+      margin:0;
+      padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+      border-top:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(15,15,15,.88), rgba(11,11,11,.98));
+    }
     .actions .btn{flex:1}
     .note{font-size:.85rem;color:var(--muted);margin-top:8px}
+    @media (min-width:721px){
+      .modal{padding:1rem;align-items:center;justify-content:center}
+      .sheet{
+        width:min(560px, 100%);
+        height:min(92dvh, 820px);
+        max-height:min(92dvh, 820px);
+        border:1px solid var(--line);
+        border-radius:16px;
+      }
+    }
 
     /* Contact FAB + modal */
     .contact-fab{
@@ -401,43 +432,35 @@
         <button class="sheet__close" type="button" id="bookClose" aria-label="{{ services_copy.booking_close_label }}">x</button>
       </div>
 
-      <div class="field">
-        <label for="bookMaster">{{ services_copy.booking_staff_label }}</label>
-        <select id="bookMaster"></select>
-      </div>
+      <div class="sheet__body">
+        <div class="field-row">
+          <div class="field">
+            <label for="bookDate">{{ services_copy.booking_mobile_pick_day_label }}</label>
+            <input id="bookDate" type="date">
+          </div>
+          <div class="field">
+            <label for="bookTime">{{ services_copy.booking_available_times_label }}</label>
+            <select id="bookTime"></select>
+          </div>
+        </div>
+        <div class="status" id="bookingStatus">{{ services_copy.booking_mobile_pick_day_label }}</div>
 
-      <div class="field-row">
         <div class="field">
-          <label for="bookDate">{{ services_copy.booking_mobile_pick_day_label }}</label>
-          <input id="bookDate" type="date">
+          <label for="contactName">{{ services_copy.booking_full_name_label }}</label>
+          <input id="contactName" type="text" maxlength="120" autocomplete="name" required placeholder="{{ services_copy.booking_full_name_placeholder }}">
         </div>
         <div class="field">
-          <label for="bookTime">{{ services_copy.booking_available_times_label }}</label>
-          <select id="bookTime"></select>
+          <label for="contactEmail">{{ services_copy.booking_email_label }}</label>
+          <input id="contactEmail" type="email" autocomplete="email" required placeholder="{{ services_copy.booking_email_placeholder }}">
         </div>
+        <div class="field">
+          <label for="contactPhone">{{ services_copy.booking_phone_label }}</label>
+          <input id="contactPhone" type="tel" inputmode="tel" autocomplete="tel" pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}" required placeholder="{{ services_copy.booking_phone_placeholder }}">
+        </div>
+        <div class="note">{{ services_copy.booking_confirmation_hint }}</div>
+        <div class="status error" id="bookError" style="display:none;"></div>
+        <div class="status success" id="bookSuccess" style="display:none;"></div>
       </div>
-      <div class="status" id="bookingStatus">{{ services_copy.booking_mobile_pick_day_label }}</div>
-
-      <div class="field">
-        <label>{{ services_copy.booking_summary_label }}</label>
-        <div class="summary" id="bookSummary">{{ services_copy.booking_summary_default }}</div>
-      </div>
-
-      <div class="field">
-        <label for="contactName">{{ services_copy.booking_full_name_label }}</label>
-        <input id="contactName" type="text" maxlength="120" autocomplete="name" required placeholder="{{ services_copy.booking_full_name_placeholder }}">
-      </div>
-      <div class="field">
-        <label for="contactEmail">{{ services_copy.booking_email_label }}</label>
-        <input id="contactEmail" type="email" autocomplete="email" required placeholder="{{ services_copy.booking_email_placeholder }}">
-      </div>
-      <div class="field">
-        <label for="contactPhone">{{ services_copy.booking_phone_label }}</label>
-        <input id="contactPhone" type="tel" inputmode="tel" autocomplete="tel" pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}" required placeholder="{{ services_copy.booking_phone_placeholder }}">
-      </div>
-      <div class="note">{{ services_copy.booking_confirmation_hint }}</div>
-      <div class="status error" id="bookError" style="display:none;"></div>
-      <div class="status success" id="bookSuccess" style="display:none;"></div>
 
       <div class="actions">
         <button class="btn btn--ghost" type="button" id="bookCancel">{{ services_copy.booking_cancel_label }}</button>
@@ -497,10 +520,6 @@
       const apiAvail = "/accounts/api/availability/";
       const apiBook = "/accounts/api/book/";
       const copy = {
-        summaryDefault: "{{ services_copy.booking_summary_default|escapejs }}",
-        summaryStaffPrefix: "{{ services_copy.booking_summary_staff_prefix|escapejs }}",
-        summaryTimePrefix: "{{ services_copy.booking_summary_time_prefix|escapejs }}",
-        summaryTimeSelected: "{{ services_copy.booking_summary_time_selected_label|escapejs }}",
         chooseTimeLabel: "{{ services_copy.booking_choose_time_label|escapejs }}",
         noStaffLabel: "{{ services_copy.booking_no_staff_label|escapejs }}",
         noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
@@ -518,10 +537,8 @@
 
       const modal = document.getElementById('bookModal');
       const elServiceName = document.getElementById('bookServiceName');
-      const elMaster = document.getElementById('bookMaster');
       const elDate = document.getElementById('bookDate');
       const elTime = document.getElementById('bookTime');
-      const elSummary = document.getElementById('bookSummary');
       const elStatus = document.getElementById('bookingStatus');
       const elError = document.getElementById('bookError');
       const elSuccess = document.getElementById('bookSuccess');
@@ -591,7 +608,7 @@
         return Boolean(contactInputs.name.value.trim() && contactInputs.email.value.trim() && contactInputs.phone.value.trim());
       }
       function updateSubmitState(){
-        btnSubmit.disabled = !(state.serviceId && state.masterId && state.slotIso && contactIsComplete());
+        btnSubmit.disabled = !(state.serviceId && state.slotIso && contactIsComplete());
       }
 
       Object.values(contactInputs).forEach(input=>{
@@ -607,44 +624,23 @@
         contactInputs.phone.value = contactPrefill.phone || '';
       }
 
-      function setSummaryDefault(){
-        elSummary.textContent = copy.summaryDefault;
-      }
-
-      function renderMasterOptions(){
-        elMaster.innerHTML = '';
-        if (!state.masters.length){
-          const opt = document.createElement('option');
-          opt.value = '';
-          opt.textContent = copy.noStaffLabel;
-          elMaster.appendChild(opt);
-          elMaster.disabled = true;
-          return;
-        }
-        elMaster.disabled = false;
-        state.masters.forEach(m=>{
-          const opt = document.createElement('option');
-          opt.value = String(m.id);
-          opt.textContent = m.name;
-          elMaster.appendChild(opt);
-        });
-        if (!state.masterId || !state.masters.find(m=>String(m.id) === String(state.masterId))){
-          state.masterId = state.masters[0].id;
-        }
-        elMaster.value = String(state.masterId);
-      }
-
-      function buildTimeMap(slots){
+      function buildTimeMap(masters){
         const map = new Map();
         const times = [];
-        slots.forEach(iso=>{
-          const d = new Date(iso);
-          if (Number.isNaN(d.getTime())) return;
-          const key = hmValue(d);
-          if (!map.has(key)){
-            map.set(key, iso);
-            times.push(key);
-          }
+        (masters || []).forEach(master=>{
+          (master.slots || []).forEach(iso=>{
+            const d = new Date(iso);
+            if (Number.isNaN(d.getTime())) return;
+            const key = hmValue(d);
+            if (!map.has(key)){
+              map.set(key, {
+                iso,
+                masterId: Number(master.id),
+                masterName: master.name || '',
+              });
+              times.push(key);
+            }
+          });
         });
         times.sort();
         return {map, times};
@@ -671,36 +667,31 @@
         elTime.disabled = false;
       }
 
-      function syncSummary(){
-        if (!state.slotIso){
-          setSummaryDefault();
-          return;
-        }
-        const slotDate = new Date(state.slotIso);
-        const dayLabel = slotDate.toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
-        const staffName = elMaster.selectedOptions[0]?.textContent?.trim() || '-';
-        elSummary.textContent = `${copy.summaryStaffPrefix} ${staffName}. ${copy.summaryTimePrefix} ${fmtHM(slotDate)}, ${dayLabel}.`;
-      }
-
       function applyTimeValue(timeValue){
         if (!timeValue){
+          state.masterId = null;
           state.slotIso = null;
-          setSummaryDefault();
           setStatus(copy.chooseTimeLabel, false);
           updateSubmitState();
           return;
         }
-        const iso = state.timeMap.get(timeValue);
-        if (!iso){
+        const selected = state.timeMap.get(timeValue);
+        if (!selected){
+          state.masterId = null;
           state.slotIso = null;
-          setSummaryDefault();
           setStatus(copy.noOpenTimesLabel, true);
           updateSubmitState();
           return;
         }
-        state.slotIso = iso;
-        syncSummary();
-        setStatus('', false);
+        state.masterId = selected.masterId || null;
+        state.slotIso = selected.iso;
+        const slotDate = new Date(selected.iso);
+        if (!Number.isNaN(slotDate.getTime())){
+          const dayLabel = slotDate.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+          setStatus(`${copy.timeLabel}: ${fmtHM(slotDate)} · ${dayLabel}`, false);
+        } else {
+          setStatus('', false);
+        }
         updateSubmitState();
       }
 
@@ -709,8 +700,8 @@
         setStatus(copy.pickDayLabel, false);
         elError.style.display = 'none';
         elSuccess.style.display = 'none';
+        state.masterId = null;
         state.slotIso = null;
-        setSummaryDefault();
         updateSubmitState();
 
         try{
@@ -719,19 +710,17 @@
           if (!r.ok) throw new Error(copy.failedSlotsLabel);
           const data = await r.json();
           state.masters = data.masters || [];
-          renderMasterOptions();
           if (!state.masters.length){
+            state.timeMap = new Map();
             renderTimeOptions([]);
             setStatus(copy.noStaffLabel, true);
             return;
           }
-          const activeMaster = state.masters.find(m=>String(m.id)===String(state.masterId)) || state.masters[0];
-          state.masterId = activeMaster.id;
-          const {map, times} = buildTimeMap(activeMaster.slots || []);
+          const {map, times} = buildTimeMap(state.masters);
           state.timeMap = map;
           renderTimeOptions(times);
           if (!times.length){
-            const dayLabel = new Date(dateKey).toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
+            const dayLabel = new Date(`${dateKey}T00:00:00`).toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
             setStatus(`${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`, true);
             return;
           }
@@ -740,33 +729,11 @@
             applyTimeValue(times[0]);
             return;
           }
-          setStatus('', false);
+          setStatus(copy.chooseTimeLabel, false);
         }catch(err){
           setStatus(err.message || copy.availabilityErrorLabel, true);
         }
       }
-
-      elMaster.addEventListener('change', ()=>{
-        const masterId = elMaster.value;
-        state.masterId = masterId ? Number(masterId) : null;
-        state.slotIso = null;
-        setSummaryDefault();
-        updateSubmitState();
-        const activeMaster = state.masters.find(m=>String(m.id) === String(state.masterId));
-        const {map, times} = buildTimeMap(activeMaster?.slots || []);
-        state.timeMap = map;
-        renderTimeOptions(times);
-        if (!times.length){
-          setStatus(copy.noOpenTimesLabel, true);
-          return;
-        }
-        if (times.length === 1){
-          elTime.value = times[0];
-          applyTimeValue(times[0]);
-          return;
-        }
-        setStatus('', false);
-      });
 
       elDate.addEventListener('change', ()=>{
         loadAvailability(elDate.value);
@@ -787,7 +754,7 @@
         elError.style.display = 'none';
         elSuccess.style.display = 'none';
         hydrateContact();
-        setSummaryDefault();
+        setStatus(copy.pickDayLabel, false);
         updateSubmitState();
         const today = ymd(new Date());
         elDate.value = today;
@@ -796,7 +763,7 @@
       }
 
       async function submitBooking(){
-        if (!state.serviceId || !state.masterId || !state.slotIso) return;
+        if (!state.serviceId || !state.slotIso) return;
         if (!contactIsComplete()){
           elError.textContent = copy.missingContactError;
           elError.style.display = 'block';
@@ -806,6 +773,18 @@
         elError.style.display = 'none';
         elSuccess.style.display = 'none';
         try{
+          const requestPayload = {
+            service: state.serviceId,
+            start_time: state.slotIso,
+            contact: {
+              name: contactInputs.name.value.trim(),
+              email: contactInputs.email.value.trim(),
+              phone: contactInputs.phone.value.trim(),
+            },
+          };
+          if (state.masterId){
+            requestPayload.master = state.masterId;
+          }
           const resp = await fetch(apiBook, {
             method:'POST',
             headers:{
@@ -813,16 +792,7 @@
               'X-CSRFToken': getCookie('csrftoken')
             },
             credentials:'same-origin',
-            body: JSON.stringify({
-              service: state.serviceId,
-              master: state.masterId,
-              start_time: state.slotIso,
-              contact: {
-                name: contactInputs.name.value.trim(),
-                email: contactInputs.email.value.trim(),
-                phone: contactInputs.phone.value.trim()
-              }
-            })
+            body: JSON.stringify(requestPayload)
           });
           const data = await resp.json().catch(()=>({}));
           if (!resp.ok){

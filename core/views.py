@@ -1439,15 +1439,10 @@ def api_book(request):
     master_id  = payload.get("master")
     start_iso  = payload.get("start_time")
 
-    if not service_id or not master_id or not start_iso:
-        return HttpResponseBadRequest("service, tech, start_time required")
+    if not service_id or not start_iso:
+        return HttpResponseBadRequest("service and start_time required")
 
     service = get_object_or_404(Service, pk=service_id)
-    master  = get_object_or_404(CustomUserDisplay, pk=master_id)
-
-    if not get_service_masters(service).filter(pk=master.pk).exists():
-        from django.http import HttpResponseBadRequest
-        return HttpResponseBadRequest("tech can't perform this service")
 
     try:
         start_dt = parse_datetime(start_iso) or _tz_aware(datetime.fromisoformat(start_iso))
@@ -1456,6 +1451,33 @@ def api_book(request):
     except Exception:
         from django.http import HttpResponseBadRequest
         return HttpResponseBadRequest("invalid start_time")
+
+    master = None
+    if master_id:
+        master = get_object_or_404(CustomUserDisplay, pk=master_id)
+        if not get_service_masters(service).filter(pk=master.pk).exists():
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest("tech can't perform this service")
+    else:
+        # Mobile flow can submit without a staff id; pick any staff member
+        # who is currently free at the requested start time.
+        local_start = timezone.localtime(start_dt).replace(second=0, microsecond=0)
+        probe_day = _tz_aware(datetime(local_start.year, local_start.month, local_start.day, 12, 0))
+        slots_map = get_available_slots(service, probe_day, master=None)
+        service_masters = list(get_service_masters(service))
+
+        for candidate in service_masters:
+            slots = slots_map.get(candidate.id, [])
+            matched = any(
+                timezone.localtime(slot).replace(second=0, microsecond=0) == local_start
+                for slot in slots
+            )
+            if matched:
+                master = candidate
+                break
+
+        if not master:
+            return JsonResponse({"error": "No staff is available for the selected time."}, status=400)
 
     contact = payload.get("contact") or {}
     contact_name = (contact.get("name") or "").strip()

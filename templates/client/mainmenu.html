@@ -911,16 +911,44 @@ main h3{
     </div>
 
     <div class="grid-2 book-modal__grid">
-      <div>
-        <div class="field">
-          <label for="bookMaster">{{ services_copy.booking_staff_label }}</label>
-          <!-- Скрытый/select для доступности -->
-          <select id="bookMaster" class="sr-only" aria-hidden="true"></select>
-          <!-- Пикер мастеров -->
-          <div id="masterPicker" class="masters" role="listbox" aria-label="{{ services_copy.booking_staff_picker_label }}"></div>
+      <div class="book-modal__content">
+        <select id="bookMaster" class="sr-only" aria-hidden="true"></select>
+        <div id="masterPicker" class="masters sr-only" role="listbox" aria-hidden="true"></div>
+
+        <div class="book-modal__contact-top">
+          <div class="field">
+            <label>{{ services_copy.booking_summary_label }}</label>
+            <div class="muted" id="bookSummary">{{ services_copy.booking_summary_default }}</div>
+          </div>
+
+          <div class="book-contact-grid">
+            <div class="field">
+              <label for="contactName">{{ services_copy.booking_full_name_label }}</label>
+              <input id="contactName" name="contact_name" type="text" maxlength="120"
+                     class="input" autocomplete="name" required
+                     placeholder="{{ services_copy.booking_full_name_placeholder }}">
+            </div>
+            <div class="field">
+              <label for="contactEmail">{{ services_copy.booking_email_label }}</label>
+              <input id="contactEmail" name="contact_email" type="email"
+                     class="input" autocomplete="email" required
+                     placeholder="{{ services_copy.booking_email_placeholder }}">
+            </div>
+            <div class="field">
+              <label for="contactPhone">{{ services_copy.booking_phone_label }}</label>
+              <input id="contactPhone" name="contact_phone" type="tel"
+                     class="input" autocomplete="tel" inputmode="tel"
+                     pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}"
+                     required placeholder="{{ services_copy.booking_phone_placeholder }}">
+            </div>
+          </div>
+
+          <p class="hint">{{ services_copy.booking_confirmation_hint }}</p>
+          <div class="error" id="bookError" style="display:none;"></div>
+          <div class="success" id="bookSuccess" style="display:none;"></div>
         </div>
 
-        <div class="field" style="margin-top:.5rem">
+        <div class="field book-modal__time-field">
           <label>{{ services_copy.booking_choose_time_label }}</label>
 
           <div class="outlook" id="ol">
@@ -956,35 +984,6 @@ main h3{
 
           <div class="hint" style="margin-top:.5rem">{{ services_copy.booking_scroll_hint_desktop }}</div>
         </div>
-      </div>
-
-      <div>
-        <div class="field">
-          <label>{{ services_copy.booking_summary_label }}</label>
-          <div class="muted" id="bookSummary">{{ services_copy.booking_summary_default }}</div>
-        </div>
-        <div class="field" style="margin-top:1rem;">
-          <label for="contactName">{{ services_copy.booking_full_name_label }}</label>
-          <input id="contactName" name="contact_name" type="text" maxlength="120"
-                 class="input" autocomplete="name" required
-                 placeholder="{{ services_copy.booking_full_name_placeholder }}">
-        </div>
-        <div class="field">
-          <label for="contactEmail">{{ services_copy.booking_email_label }}</label>
-          <input id="contactEmail" name="contact_email" type="email"
-                 class="input" autocomplete="email" required
-                 placeholder="{{ services_copy.booking_email_placeholder }}">
-        </div>
-        <div class="field">
-          <label for="contactPhone">{{ services_copy.booking_phone_label }}</label>
-          <input id="contactPhone" name="contact_phone" type="tel"
-                 class="input" autocomplete="tel" inputmode="tel"
-                 pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}"
-                 required placeholder="{{ services_copy.booking_phone_placeholder }}">
-        </div>
-        <p class="hint">{{ services_copy.booking_confirmation_hint }}</p>
-        <div class="error" id="bookError" style="display:none;"></div>
-        <div class="success" id="bookSuccess" style="display:none;"></div>
       </div>
     </div>
 
@@ -1065,7 +1064,7 @@ main h3{
     const mobileStatus=document.getElementById('mobileStatus');
     const mobileQuery = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
     const mobileState = { active:false, dateKey:'', times:[], isoMap:new Map() };
-    const SUMMARY_DEFAULT = copy.summaryDefault;
+    const SUMMARY_DEFAULT = copy.chooseTimeLabel || copy.summaryDefault;
 
     const WINDOW_DAYS = 5, START_HOUR=6, END_HOUR=23, STEP_MIN=30;
     let current={ serviceId:null, serviceName:'', masterId:null, slot:null, mastersData:[] };
@@ -1149,12 +1148,6 @@ main h3{
       elSummary.textContent = SUMMARY_DEFAULT;
     }
 
-    function getActiveStaffName(){
-      return elMaster.selectedOptions[0]?.text?.trim()
-        || elMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent?.trim()
-        || '—';
-    }
-
     function selectSlot(slotIso){
       if (!slotIso) return;
       if (elMaster.value){
@@ -1165,9 +1158,9 @@ main h3{
       const slotDate = parseISO(slotIso);
       if (slotDate){
         const dayLabel = slotDate.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'});
-        elSummary.textContent = `${copy.summaryStaffPrefix} ${getActiveStaffName()}. ${copy.summaryTimePrefix} ${fmtHM(slotDate)}, ${dayLabel}.`;
+        elSummary.textContent = `${copy.summaryTimePrefix} ${fmtHM(slotDate)}, ${dayLabel}.`;
       }else{
-        elSummary.textContent = `${copy.summaryStaffPrefix} ${getActiveStaffName()}. ${copy.summaryTimeSelected}`;
+        elSummary.textContent = copy.summaryTimeSelected;
       }
       elError.style.display='none';
       updateSubmitState();
@@ -1435,57 +1428,48 @@ main h3{
       return out.sort();
     }
 
+    function pickAutoMasterId(masters){
+      if (!Array.isArray(masters) || !masters.length) return null;
+      let bestId = null;
+      let bestTime = null;
+      masters.forEach((master) => {
+        const slots = Array.isArray(master.slots) ? master.slots : [];
+        const sorted = slots
+          .map((iso) => parseISO(iso))
+          .filter((d) => d && !Number.isNaN(d.getTime()))
+          .sort((a, b) => a - b);
+        const candidateTime = sorted[0] || null;
+        if (!bestId){
+          bestId = Number(master.id);
+          bestTime = candidateTime;
+          return;
+        }
+        if (candidateTime && (!bestTime || candidateTime < bestTime)){
+          bestId = Number(master.id);
+          bestTime = candidateTime;
+        }
+      });
+      return bestId;
+    }
+
     function renderMasterPicker(masters){
       elMaster.innerHTML = '';
-      elMasterPicker.innerHTML = '';
+      if (elMasterPicker) elMasterPicker.innerHTML = '';
 
-      masters.forEach(m=>{
-        // Заполняем скрытый select (для доступности)
+      masters.forEach((m) => {
         const opt=document.createElement('option');
-        opt.value=m.id;
+        opt.value=String(m.id);
         opt.textContent=m.name;
         elMaster.appendChild(opt);
-
-        // Плитка с аватаркой
-        const btn=document.createElement('button');
-        btn.type='button';
-        btn.className='master-pill';
-        btn.setAttribute('role','option');
-        btn.setAttribute('aria-pressed','false');
-        btn.dataset.id=m.id;
-
-        const img=document.createElement('img');
-        img.src = m.photo || m.avatar || 'https://via.placeholder.com/56x56?text=%20'; /* поддержка поля photo из API */
-        img.alt = '';
-        const name=document.createElement('span');
-        name.className='master-name';
-        name.textContent=m.name;
-
-        btn.appendChild(img);
-        btn.appendChild(name);
-        btn.addEventListener('click', async ()=>{
-          elMasterPicker.querySelectorAll('.master-pill[aria-pressed="true"]').forEach(x=>x.setAttribute('aria-pressed','false'));
-          btn.setAttribute('aria-pressed','true');
-
-          elMaster.value = String(m.id);
-          current.masterId = Number(m.id);
-          current.slot = null;
-          updateSubmitState();
-          setSummaryDefault();
-          syncSelectedSlotUI();
-          availabilityCache.clear();
-          await renderWindow();
-        });
-
-        elMasterPicker.appendChild(btn);
       });
 
-      const withSlots = masters.find(mm => (mm.slots||[]).length);
-      const pickId = withSlots ? withSlots.id : masters[0].id;
-      elMaster.value = pickId;
+      const pickId = pickAutoMasterId(masters) || Number(masters[0]?.id);
+      if (!pickId) return;
+      elMaster.value = String(pickId);
       current.masterId = Number(pickId);
-      const active = elMasterPicker.querySelector(`.master-pill[data-id="${pickId}"]`);
-      if (active) active.setAttribute('aria-pressed','true');
+      if (elMasterPicker){
+        elMasterPicker.dataset.autoMaster = String(pickId);
+      }
     }
 
     async function loadMastersAndRender(){
@@ -2089,6 +2073,24 @@ body.modal-open .contact-fab{ display:none !important; }
   .mobile-booking__meta{ gap:.25rem; }
 }
 
+#bookModal.book-modal--lk-clone .book-modal__content{
+  display:flex;
+  flex-direction:column;
+  gap:.7rem;
+}
+#bookModal.book-modal--lk-clone .book-modal__contact-top{
+  display:grid;
+  gap:.55rem;
+}
+#bookModal.book-modal--lk-clone .book-contact-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:.55rem;
+}
+#bookModal.book-modal--lk-clone .book-modal__contact-top .hint{
+  margin-top:.05rem;
+}
+
 /* 7c) Desktop booking modal parity with portal reschedule modal (isolated scope) */
 @media (min-width:901px){
   #bookModal.book-modal--lk-clone{
@@ -2133,6 +2135,13 @@ body.modal-open .contact-fab{ display:none !important; }
     gap:1rem;
     padding:1rem 0;
   }
+  #bookModal.book-modal--lk-clone .book-contact-grid{
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:.65rem;
+  }
+  #bookModal.book-modal--lk-clone .book-contact-grid input{
+    min-height:44px;
+  }
   #bookModal.book-modal--lk-clone .outlook__toolbar button{
     text-transform:none !important;
     letter-spacing:0 !important;
@@ -2168,6 +2177,11 @@ body.modal-open .contact-fab{ display:none !important; }
     font-weight:800 !important;
     text-transform:none !important;
     letter-spacing:.02em !important;
+  }
+}
+@media (min-width:901px) and (max-width:1180px){
+  #bookModal.book-modal--lk-clone .book-contact-grid{
+    grid-template-columns:repeat(2, minmax(0,1fr));
   }
 }
 
