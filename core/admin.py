@@ -5112,8 +5112,32 @@ class ProjectJournalAfterPhotoInline(_ProjectJournalPhotoInline):
         return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.AFTER)
 
 
+class ProjectJournalEntryAdminForm(forms.ModelForm):
+    page_intro_text = forms.CharField(
+        required=False,
+        label="Page intro text (shared)",
+        help_text="Text shown under the BUILDS title on the main Project Journal page.",
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+    class Meta:
+        model = ProjectJournalEntry
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            copy_obj = ProjectJournalPageCopy.get_solo()
+            self.fields["page_intro_text"].initial = copy_obj.hero_lead
+        except Exception:
+            self.fields["page_intro_text"].help_text = (
+                "Shared page copy is unavailable until project journal copy migration is applied."
+            )
+
+
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
+    form = ProjectJournalEntryAdminForm
     change_form_template = "admin/core/projectjournalentry/change_form.html"
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
     list_filter = ("status", "featured", "published_at", "categories")
@@ -5145,6 +5169,7 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
                 "result_highlight",
             )
         }),
+        ("Page header (shared)", {"fields": ("page_intro_text",)}),
         ("Calls to action", {
             "fields": (
                 ("cta_primary_label", "cta_primary_url"),
@@ -5233,6 +5258,21 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
                 entry.save()
                 updated += 1
         self.message_user(request, f"Moved {updated} post(s) to draft.")
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        intro_text = (form.cleaned_data.get("page_intro_text") or "").strip()
+        try:
+            copy_obj = ProjectJournalPageCopy.get_solo()
+            if copy_obj.hero_lead != intro_text:
+                copy_obj.hero_lead = intro_text
+                copy_obj.save()
+        except Exception:
+            self.message_user(
+                request,
+                "Entry saved, but shared page intro text was not updated.",
+                level=messages.WARNING,
+            )
 
 
 @admin.register(HeroImage)
