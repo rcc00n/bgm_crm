@@ -396,6 +396,17 @@
   body.no-contact-fab .contact-fab{ display:none !important; }
   body.nav-open .contact-fab{ display:none !important; }
 
+  /* Dealer page: keep extra visual separation between cart and contact FABs. */
+  body.has-contact-fab{
+    --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 6.6rem);
+  }
+
+  @media (max-width:720px){
+    body.has-contact-fab{
+      --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.8rem);
+    }
+  }
+
   @media (max-width:640px){
     .contact-title{ font-size:1.45rem; }
   }

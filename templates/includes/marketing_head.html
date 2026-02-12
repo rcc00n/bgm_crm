@@ -34,6 +34,12 @@
   <meta name="twitter:title" content="{{ meta_title_clean }}">
   <meta name="twitter:description" content="{{ meta_description_clean }}">
   <meta name="twitter:image" content="{{ meta_image_absolute }}">
+  {% with site_icon=marketing.organization_logo|default:marketing.default_image %}
+    {% with site_icon_abs=site_icon|absolute_url:marketing.origin %}
+      <link rel="icon" href="{{ site_icon_abs }}" type="image/png">
+      <link rel="apple-touch-icon" href="{{ site_icon_abs }}">
+    {% endwith %}
+  {% endwith %}
   <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">

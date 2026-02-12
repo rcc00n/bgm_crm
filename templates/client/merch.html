@@ -610,29 +610,6 @@ body.nav-open .contact-fab,
           </div>
         </div>
 
-        {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
-          <div class="social">
-            <div>
-              <div class="social__title">{{ merch_copy.social_section_title }}</div>
-              <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
-            </div>
-            <div class="social__links">
-              {% if merch_copy.social_link_1_url %}
-                <a class="social__link social__link--ig" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_2_url %}
-                <a class="social__link social__link--fb" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_3_url %}
-                <a class="social__link social__link--yt" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_4_url %}
-                <a class="social__link social__link--tt" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
-              {% endif %}
-            </div>
-          </div>
-        {% endif %}
-
         {% if merch_gallery_groups %}
           <div class="merch-gallery">
             {% for group in merch_gallery_groups %}
@@ -813,6 +790,29 @@ body.nav-open .contact-fab,
             <div>
               <div class="coming-soon__title">{{ merch_copy.coming_soon_title }}</div>
               <p class="section__desc">{{ merch_copy.coming_soon_desc|striptags|safe }}</p>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
+          <div class="social">
+            <div>
+              <div class="social__title">{{ merch_copy.social_section_title }}</div>
+              <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
+            </div>
+            <div class="social__links">
+              {% if merch_copy.social_link_1_url %}
+                <a class="social__link social__link--ig" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
+              {% endif %}
+              {% if merch_copy.social_link_2_url %}
+                <a class="social__link social__link--fb" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
+              {% endif %}
+              {% if merch_copy.social_link_3_url %}
+                <a class="social__link social__link--yt" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
+              {% endif %}
+              {% if merch_copy.social_link_4_url %}
+                <a class="social__link social__link--tt" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
+              {% endif %}
             </div>
           </div>
         {% endif %}

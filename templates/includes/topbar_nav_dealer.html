@@ -1,4 +1,10 @@
 <li><a href="{% url 'store' %}">{{ dealer_copy.nav_store_label }}</a></li>
 <li><a href="{% url 'store-cart' %}">{{ dealer_copy.nav_cart_label }}</a></li>
-<li><a href="{% url 'dealer-entry' %}" aria-current="page">{{ dealer_copy.nav_dealers_label }}</a></li>
+<li>
+  <a href="{% url 'dealer-entry' %}" aria-current="page">
+    {% with dealer_label=dealer_copy.nav_dealers_label|default:"Become a Dealer" %}
+      {% if dealer_label|lower == "dealers" %}Become a Dealer{% else %}{{ dealer_label }}{% endif %}
+    {% endwith %}
+  </a>
+</li>
 <li><a href="{% url 'client-dashboard' %}">{{ dealer_copy.nav_services_label }}</a></li>

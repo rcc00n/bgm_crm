@@ -1047,11 +1047,6 @@
         outline-offset:3px;
       }
 
-      /* Mobile: show "Our Process" before FAQ. */
-      .home-faq-process{ display:flex; flex-direction:column; }
-      .home-faq-process .home-process{ order:1; }
-      .home-faq-process .home-faq{ order:2; }
-
       /* Mobile: make Services search + Products filters match the "highlight" look */
       .home-search--mobile{
         display:grid;
@@ -1853,6 +1848,22 @@
     </section>
 
     <div class="home-faq-process">
+      <!-- ========================= HOW IT WORKS ========================= -->
+      <section class="section home-process">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="section__title">{{ home_copy.how_title }}</h2>
+            <p class="section__desc">{{ home_copy.how_desc }}</p>
+          </div>
+          <div class="tiles tiles--process">
+            <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
+          </div>
+        </div>
+      </section>
+
       <!-- ========================= FAQ ========================= -->
       {% if home_faq_legacy %}
         <section class="section home-faq">
@@ -1883,22 +1894,6 @@
           </div>
         </section>
       {% endif %}
-
-      <!-- ========================= HOW IT WORKS ========================= -->
-      <section class="section home-process">
-        <div class="container">
-          <div class="section__head">
-            <h2 class="section__title">{{ home_copy.how_title }}</h2>
-            <p class="section__desc">{{ home_copy.how_desc }}</p>
-          </div>
-          <div class="tiles tiles--process">
-            <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
-            <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
-            <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
-            <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
-          </div>
-        </div>
-      </section>
     </div>
   </main>
 
