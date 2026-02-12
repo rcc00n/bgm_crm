@@ -138,6 +138,19 @@ Configure environment variables: set DJANGO_SECRET_KEY, database credentials and
 GitHub
 .
 
+For live merch via Printful, add these optional variables:
+
+```bash
+PRINTFUL_TOKEN=your_private_printful_token
+PRINTFUL_STORE_ID=                  # optional for account-level tokens
+PRINTFUL_MERCH_CATALOG_URL=         # optional public shop URL for "Browse full catalog"
+PRINTFUL_MERCH_PRODUCT_URL_TEMPLATE= # optional, e.g. https://yourshop.com/products/{slug}
+PRINTFUL_MERCH_LIMIT=8
+PRINTFUL_MERCH_CACHE_SECONDS=300
+PRINTFUL_TIMEOUT_SECONDS=4
+PRINTFUL_MERCH_SHOW_PRICE=true
+```
+
 Apply migrations and create a superuser:
 
 python manage.py makemigrations

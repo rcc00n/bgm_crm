@@ -23,3 +23,20 @@ class SplitLinesFilterTests(SimpleTestCase):
 
         value = "<p>Warranty &amp;amp; support<br>Ok &amp;mdash; good</p>"
         self.assertEqual(split_lines(value), ["Warranty & support", "Ok — good"])
+
+
+class MetaTextFilterTests(SimpleTestCase):
+    def test_meta_text_strips_html_and_collapses_whitespace(self):
+        from core.templatetags.marketing_extras import meta_text
+
+        value = "<p>Performance-driven builds</p>\n<p>Detailed &amp; tuned<br>for street</p>"
+        self.assertEqual(
+            meta_text(value),
+            "Performance-driven builds Detailed & tuned for street",
+        )
+
+    def test_meta_text_decodes_double_encoded_entities(self):
+        from core.templatetags.marketing_extras import meta_text
+
+        value = "Warranty &amp;amp; support"
+        self.assertEqual(meta_text(value), "Warranty & support")

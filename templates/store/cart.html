@@ -53,6 +53,12 @@
                 {% if row.option %}
                   <div class="section__desc">Option: {{ row.option.name }}{% if row.option.sku %} · SKU: {{ row.option.sku }}{% endif %}</div>
                 {% endif %}
+                {% if row.has_reference_photo %}
+                  <div class="section__desc">
+                    <span class="badge badge--reference">Reference photo attached</span>
+                    {% if row.reference_file_name %}· {{ row.reference_file_name }}{% endif %}
+                  </div>
+                {% endif %}
                 <div class="section__desc">
                   Retail: {{ row.retail_unit_price|money }}
                   {% if row.discount_percent %}
@@ -78,6 +84,9 @@
                 {% csrf_token %}
                 {% if row.option_id %}
                   <input type="hidden" name="option_id" value="{{ row.option_id }}">
+                {% endif %}
+                {% if row.reference_client_file_id %}
+                  <input type="hidden" name="reference_client_file_id" value="{{ row.reference_client_file_id }}">
                 {% endif %}
                 <button class="btn btn--ghost cart__remove" type="submit" aria-label="Remove {{ row.product.name }}{% if row.option %} ({{ row.option.name }}){% endif %}">
                   Remove
@@ -188,6 +197,11 @@
     background:var(--field-bg); border:1px solid var(--card-border); color:var(--ink);
   }
   .badge--dealer{background:rgba(23,212,91,.12); border:1px solid rgba(23,212,91,.4); color:#17d45b;}
+  .badge--reference{
+    background:rgba(45,156,219,.14);
+    border:1px solid rgba(45,156,219,.45);
+    color:#8fd9ff;
+  }
 
   .cart__remove{ padding:.4rem .6rem; }
   .cart__remove:hover{ transform:translateY(-1px); }

@@ -40,6 +40,9 @@ def get_dealer_discount_percent(user) -> int:
         up = user.userprofile
     except Exception:
         return 0
+    # Discounts apply only after the account is approved as a dealer.
+    if not getattr(up, "is_dealer", False):
+        return 0
     return getattr(up, "dealer_discount_percent", 0) or 0
 
 

@@ -132,7 +132,7 @@ def dealer_portal(request):
         "discount_percent": 0,
         "dealer_since": None,
         "show_discount": False,
-        "url": reverse("dealer-status"),
+        "url": reverse("dealer-entry"),
     }
 
     user = getattr(request, "user", None)
@@ -166,7 +166,12 @@ def marketing_tags(request):
     Keeps logic centralized so templates only worry about rendering.
     """
     config = getattr(settings, "MARKETING", {})
-    site_name = config.get("site_name") or "BGM Customs"
+    raw_site_name = (config.get("site_name") or "").strip()
+    # Keep shorthand/legacy defaults from leaking into share cards.
+    if not raw_site_name or raw_site_name.lower() in {"bgm", "bgm customs"}:
+        site_name = "Bad Guy Motors"
+    else:
+        site_name = raw_site_name
     default_description = config.get("default_description") or ""
     default_image = config.get("default_image") or "/static/img/bad-guy-preview.png"
     organization_logo = config.get("organization_logo") or default_image

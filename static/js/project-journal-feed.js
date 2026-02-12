@@ -2,11 +2,15 @@
    Lightweight enhancements:
    - Image skeleton fade-in
    - Before/After slider (desktop pointer devices)
+   - Desktop album modal for statement photos
    - "Load more" feed pagination (progressive enhancement) */
 
 (() => {
   const COMPARE_HINT_KEY = 'pj_compare_hint_dismissed_v1';
   let compareHintShown = false;
+  let albumModalApi = null;
+
+  const isDesktopLayout = () => window.matchMedia('(min-width: 960px)').matches;
 
   const isCompareHintDismissed = () => {
     try {
@@ -45,11 +49,14 @@
   };
 
   const initCompare = (root = document) => {
-    const canSlider = window.matchMedia('(pointer: fine)').matches && window.matchMedia('(min-width: 960px)').matches;
+    const canSlider = window.matchMedia('(pointer: fine)').matches && isDesktopLayout();
     const compares = root.querySelectorAll('[data-compare]');
     compares.forEach((el) => {
       if (el.dataset.compareInit === '1') return;
       el.dataset.compareInit = '1';
+
+      const card = el.closest('[data-feed-card]');
+      const desktopMode = card ? (card.dataset.displayMode || 'slider') : 'slider';
 
       const before = el.querySelector('[data-kind="before"] img');
       const after = el.querySelector('[data-kind="after"] img');
@@ -242,6 +249,7 @@
 
       // Before/After slider (desktop pointer devices).
       if (!before || !after || !range || !canSlider) return;
+      if (desktopMode === 'album') return;
 
       el.classList.add('pj-compare--slider');
 
@@ -393,6 +401,181 @@
     });
   };
 
+  const albumStageLabel = (stage) => {
+    if (stage === 'before') return 'Before';
+    if (stage === 'process') return 'Process';
+    if (stage === 'after') return 'After';
+    return 'Build photo';
+  };
+
+  const getAlbumModalApi = () => {
+    if (albumModalApi) return albumModalApi;
+
+    const modal = document.createElement('div');
+    modal.className = 'pj-album-modal';
+    modal.setAttribute('data-album-modal', '1');
+    modal.setAttribute('hidden', 'hidden');
+    modal.innerHTML = `
+      <div class="pj-album-modal__dialog" role="dialog" aria-modal="true" aria-label="Build photo album">
+        <header class="pj-album-modal__top">
+          <h2 class="pj-album-modal__title" data-album-title>Build album</h2>
+          <button class="pj-album-modal__close" type="button" data-album-close aria-label="Close">×</button>
+        </header>
+        <div class="pj-album-modal__viewer">
+          <button class="pj-album-modal__nav pj-album-modal__nav--prev" type="button" data-album-prev aria-label="Previous photo">‹</button>
+          <img class="pj-album-modal__image" data-album-image alt="">
+          <button class="pj-album-modal__nav pj-album-modal__nav--next" type="button" data-album-next aria-label="Next photo">›</button>
+        </div>
+        <footer class="pj-album-modal__footer">
+          <div>
+            <p class="pj-album-modal__stage" data-album-stage>Build photo</p>
+            <p class="pj-album-modal__caption" data-album-caption></p>
+          </div>
+          <div class="pj-album-modal__count" data-album-count>1 / 1</div>
+        </footer>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const titleEl = modal.querySelector('[data-album-title]');
+    const imageEl = modal.querySelector('[data-album-image]');
+    const stageEl = modal.querySelector('[data-album-stage]');
+    const captionEl = modal.querySelector('[data-album-caption]');
+    const countEl = modal.querySelector('[data-album-count]');
+    const prevBtn = modal.querySelector('[data-album-prev]');
+    const nextBtn = modal.querySelector('[data-album-next]');
+    const closeBtn = modal.querySelector('[data-album-close]');
+
+    const state = {
+      items: [],
+      idx: 0,
+      title: 'Build album',
+    };
+
+    const isOpen = () => modal.classList.contains('is-open');
+
+    const render = () => {
+      if (!state.items.length || !imageEl) return;
+      const item = state.items[state.idx] || state.items[0];
+      if (!item || !item.src) return;
+
+      if (titleEl) titleEl.textContent = state.title || 'Build album';
+      imageEl.src = item.src;
+      imageEl.srcset = item.srcset || '';
+      imageEl.alt = item.alt || state.title || 'Build photo';
+      if (stageEl) stageEl.textContent = albumStageLabel(item.stage);
+      if (captionEl) captionEl.textContent = item.alt || state.title || '';
+      if (countEl) countEl.textContent = `${state.idx + 1} / ${state.items.length}`;
+
+      const canNavigate = state.items.length > 1;
+      if (prevBtn) prevBtn.style.display = canNavigate ? '' : 'none';
+      if (nextBtn) nextBtn.style.display = canNavigate ? '' : 'none';
+    };
+
+    const move = (delta) => {
+      if (!state.items.length) return;
+      state.idx = (state.idx + delta + state.items.length) % state.items.length;
+      render();
+    };
+
+    const close = () => {
+      modal.classList.remove('is-open');
+      modal.setAttribute('hidden', 'hidden');
+      document.body.classList.remove('pj-album-open');
+    };
+
+    const open = (items, startIdx = 0, title = 'Build album') => {
+      if (!Array.isArray(items)) return;
+      const prepared = items.filter((item) => item && item.src);
+      if (!prepared.length) return;
+
+      state.items = prepared;
+      state.idx = Math.max(0, Math.min(prepared.length - 1, Number(startIdx) || 0));
+      state.title = title || 'Build album';
+      render();
+      modal.removeAttribute('hidden');
+      modal.classList.add('is-open');
+      document.body.classList.add('pj-album-open');
+    };
+
+    if (prevBtn) prevBtn.addEventListener('click', () => move(-1));
+    if (nextBtn) nextBtn.addEventListener('click', () => move(1));
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!isOpen()) return;
+      if (e.key === 'Escape') close();
+      if (e.key === 'ArrowLeft') move(-1);
+      if (e.key === 'ArrowRight') move(1);
+    });
+
+    albumModalApi = { open, close };
+    return albumModalApi;
+  };
+
+  const initAlbum = (root = document) => {
+    const cards = root.querySelectorAll('[data-album-card]');
+    cards.forEach((card) => {
+      if (card.dataset.albumInit === '1') return;
+      card.dataset.albumInit = '1';
+
+      const feedCard = card.closest('[data-feed-card]');
+      const mode = feedCard ? (feedCard.dataset.displayMode || 'slider') : 'slider';
+      if (mode !== 'album') return;
+
+      let sources = null;
+      const script = card.querySelector('[data-album-sources]');
+      try {
+        sources = script ? JSON.parse(script.textContent || '{}') : null;
+      } catch (err) {
+        sources = null;
+      }
+
+      const toItems = (list, stage) => {
+        if (!Array.isArray(list)) return [];
+        return list
+          .filter((item) => item && item.src)
+          .map((item) => ({
+            src: item.src,
+            srcset: item.srcset || '',
+            alt: item.alt || '',
+            stage,
+          }));
+      };
+
+      const items = [
+        ...toItems(sources && sources.before, 'before'),
+        ...toItems(sources && sources.process, 'process'),
+        ...toItems(sources && sources.after, 'after'),
+      ];
+
+      if (!items.length) {
+        card.hidden = true;
+        return;
+      }
+
+      const countEl = card.querySelector('[data-album-count]');
+      if (countEl) countEl.textContent = `${items.length} photos`;
+
+      const openBtn = card.querySelector('[data-album-open]');
+      if (!openBtn) return;
+
+      let startIdx = items.findIndex((item) => item.stage === 'after');
+      if (startIdx < 0) startIdx = 0;
+
+      const titleEl = card.querySelector('.pj-album-teaser__title');
+      const albumTitle = titleEl ? (titleEl.textContent || '').trim() : 'Build album';
+      const modalApi = getAlbumModalApi();
+
+      openBtn.addEventListener('click', () => {
+        if (!isDesktopLayout()) return;
+        modalApi.open(items, startIdx, albumTitle || 'Build album');
+      });
+    });
+  };
+
   const initLoadMore = () => {
     const feed = document.querySelector('[data-feed]');
     const btn = document.querySelector('[data-feed-load-more]');
@@ -429,6 +612,7 @@
 
       initSkeleton(feed);
       initCompare(feed);
+      initAlbum(feed);
     };
 
     const load = async () => {
@@ -475,6 +659,7 @@
   const boot = () => {
     initSkeleton();
     initCompare();
+    initAlbum();
     initLoadMore();
   };
 

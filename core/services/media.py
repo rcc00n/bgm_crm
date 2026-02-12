@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
+from collections import OrderedDict
 from functools import lru_cache
 from typing import Any, Dict
 
 from django.conf import settings
 from django.templatetags.static import static
 
-from core.models import HeroImage
+from core.models import HeroImage, MerchGalleryItem, MerchPageCopy
 
 DEFAULT_MEDIA_CAPTION = "Product may not appear exactly as shown."
 
@@ -231,6 +232,38 @@ def build_home_gallery_media():
         asset["slot"] = f"gallery-{idx}"
 
     return gallery
+
+
+def build_merch_gallery_groups(merch_page: MerchPageCopy | None = None) -> list[Dict[str, Any]]:
+    """
+    Group active merch gallery cards by category while preserving card order.
+    """
+    page = merch_page
+    if page is None:
+        try:
+            page = MerchPageCopy.get_solo()
+        except Exception:
+            return []
+
+    page_id = getattr(page, "pk", None)
+    if not page_id:
+        return []
+
+    try:
+        items = list(
+            MerchGalleryItem.objects.filter(merch_page_id=page_id, is_active=True)
+            .exclude(photo="")
+            .order_by("sort_order", "id")
+        )
+    except Exception:
+        return []
+
+    grouped: OrderedDict[str, list[MerchGalleryItem]] = OrderedDict()
+    for item in items:
+        category = (item.category or "Featured").strip() or "Featured"
+        grouped.setdefault(category, []).append(item)
+
+    return [{"title": title, "items": cards} for title, cards in grouped.items()]
 
 
 def build_brake_suspension_media():

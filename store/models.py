@@ -910,6 +910,12 @@ class CustomFitmentRequest(models.Model):
         blank=True,
         help_text="Free-form notes provided by the customer.",
     )
+    reference_image = models.ImageField(
+        upload_to="store/fitment_attachments/",
+        null=True,
+        blank=True,
+        help_text="Optional customer reference photo for fitment context.",
+    )
     source_url = models.URLField(
         blank=True,
         help_text="Where on the site the request originated.",

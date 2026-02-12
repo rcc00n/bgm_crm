@@ -299,6 +299,7 @@
   };
 
   const beforeGroup = findInlineGroup('before');
+  const processGroup = findInlineGroup('process');
   const afterGroup = findInlineGroup('after');
 
   const updatePreview = () => {
@@ -361,6 +362,12 @@
       bindInlineFilePreview(beforeGroup);
       makeSortable(beforeGroup);
       updateSortOrders(beforeGroup);
+    }
+    if (processGroup) {
+      mountDropzone(processGroup, 'PROCESS');
+      bindInlineFilePreview(processGroup);
+      makeSortable(processGroup);
+      updateSortOrders(processGroup);
     }
     if (afterGroup) {
       mountDropzone(afterGroup, 'AFTER');

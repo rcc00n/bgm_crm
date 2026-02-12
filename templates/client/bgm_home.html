@@ -301,7 +301,6 @@
     .card:hover{transform:translateY(-3px)}
     .card__img{position:relative;aspect-ratio:16/9;border-radius:.8rem;overflow:hidden;background:#0b0b0b;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-size:.95rem}
     .card__img img{width:100%;height:100%;object-fit:cover;display:block}
-    .card__badge{position:absolute;left:.6rem;bottom:.6rem;font-size:.72rem;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(4px) saturate(120%)}
     .card__head{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap}
     .card__head h3{flex:1 1 auto;min-width:0}
     .price{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;white-space:normal;max-width:100%}
@@ -333,6 +332,36 @@
 	        font-size:clamp(2.05rem, 2.9vw, 2.7rem) !important;
 	        line-height:1.08 !important;
 	        margin:.25rem 0 1rem !important;
+		      }
+
+		      /* Home (desktop): make the Builds "View Gallery" CTA larger with mobile red treatment. */
+		      #services .home-gallery__head .btn--ghost{
+		        min-height:62px;
+		        padding:1.05rem clamp(1.35rem, 2.4vw, 2rem);
+		        border-radius:1.05rem;
+		        border:2px solid rgba(213,0,0,.68);
+		        background:
+		          radial-gradient(120% 140% at 0% 0%, rgba(255,26,26,.22), transparent 58%),
+		          linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+		          linear-gradient(180deg, rgba(213,0,0,.18), rgba(0,0,0,.06));
+		        box-shadow:0 18px 34px rgba(213,0,0,.18), 0 16px 30px rgba(0,0,0,.38);
+		        color:#fff !important;
+		        font-family:var(--font-head) !important;
+		        font-weight:900 !important;
+		        font-size:1.08rem !important;
+		        letter-spacing:.12em !important;
+		        text-transform:uppercase !important;
+		        white-space:nowrap;
+		      }
+		      #services .home-gallery__head .btn--ghost:hover{
+		        color:#fff !important;
+		        border-color:rgba(255,38,38,.9);
+		        box-shadow:0 20px 36px rgba(213,0,0,.24), 0 16px 30px rgba(0,0,0,.4);
+		        transform:translateY(-1px);
+		      }
+		      #services .home-gallery__head .btn--ghost:focus-visible{
+		        outline:2px solid rgba(213,0,0,.6);
+		        outline-offset:3px;
 		      }
 
 		      /* Home (desktop): make the search controls stand out more */
@@ -452,7 +481,6 @@
       }
       #services .grid--services .card .dur{font-size:.86rem!important}
       #services .grid--services .btn{padding:.6rem .95rem;font-size:.85rem!important}
-      #services .grid--services .card__badge{font-size:.68rem}
     }
 
     @media (min-width: 861px) and (max-width: 1099px){
@@ -478,7 +506,6 @@
       #products .grid--products .price__hint{font-size:.72rem}
       #products .grid--products .old{font-size:.85rem}
       #products .grid--products .btn{padding:.6rem .95rem;font-size:.85rem!important}
-      #products .grid--products .card__badge{font-size:.68rem}
     }
 
     @media (min-width: 861px) and (max-width: 1099px){
@@ -586,12 +613,10 @@
     .review-carousel__track{
       display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
       padding:.1rem 0 .65rem;
-      scrollbar-width:thin;
-      scrollbar-color:rgba(255,255,255,.2) rgba(255,255,255,.06);
+      -ms-overflow-style:none;
+      scrollbar-width:none;
     }
-    .review-carousel__track::-webkit-scrollbar{height:6px}
-    .review-carousel__track::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:999px}
-    .review-carousel__track::-webkit-scrollbar-track{background:rgba(255,255,255,.06)}
+    .review-carousel__track::-webkit-scrollbar{width:0;height:0;display:none}
     .review-slide{flex:0 0 100%;max-width:100%;scroll-snap-align:start}
     .review-card{display:flex;flex-direction:column;gap:.6rem;padding:1.1rem 1.35rem;min-height:140px}
     .review-stars{font-size:.92rem;color:var(--accent-2);letter-spacing:.18em}
@@ -740,7 +765,7 @@
     .card h3{font-family:var(--font-head)!important;font-weight:900!important;font-size:1.08rem!important;letter-spacing:.01em!important;line-height:1.25!important;color:#fff!important}
     .card .muted,.card .dur{font-family:var(--font-body)!important;font-weight:400!important;font-size:.98rem!important;line-height:1.4!important;color:rgba(255,255,255,.86)!important}
     .price strong{font-family:var(--font-body)!important;font-weight:800!important}
-    .card__badge,.badge{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important}
+    .badge{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important}
     .btn{font-family:var(--font-ui)!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important;line-height:1.15!important;font-size:.98rem!important}
     .input,.select,.filters .input,.filters .select{font-family:var(--font-ui)!important;font-size:.95rem!important;line-height:1.2!important}
   </style>
@@ -906,8 +931,9 @@
       .hero__media{
         display:block !important;
         width:100%;
-        order:2;
+        order:1;
       }
+      .mobi-quick{ order:2; }
       .hero__inner{ grid-template-columns: 1fr !important; }
       .hero__media.frame{
         aspect-ratio:auto;
@@ -929,7 +955,7 @@
       .hero__lead{ font-size:1rem; margin-top:.85rem; }
       .hero__cta{ flex-direction:column; align-items:stretch; }
       .hero__cta .btn{ width:100%; justify-content:center; }
-      .hero__stats{ display:grid; grid-template-columns:1fr; gap:.45rem; width:100%; }
+      .hero__stats{ display:none !important; }
       .hero__stats br{ display:none; }
       .stat{
         width:100%;
@@ -1050,11 +1076,6 @@
         outline:2px solid rgba(213,0,0,.55);
         outline-offset:3px;
       }
-
-      /* Mobile: show "Our Process" before FAQ. */
-      .home-faq-process{ display:flex; flex-direction:column; }
-      .home-faq-process .home-process{ order:1; }
-      .home-faq-process .home-faq{ order:2; }
 
       /* Mobile: make Services search + Products filters match the "highlight" look */
       .home-search--mobile{
@@ -1495,7 +1516,7 @@
 		          </div>
 	          <div class="grid grid--gallery">
 	            {% for item in home_gallery_items %}
-	              <a class="gallery-card" href="{% url 'client-dashboard' %}#services" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
+	              <a class="gallery-card" href="{{ home_gallery_url }}" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
 	                <div class="frame frame--media">
 		                  {% if item.image %}
 		                    {% thumbnail item.image "320" quality=62 format="WEBP" as gallery_1x %}
@@ -1621,7 +1642,6 @@
                     {% else %}
                       <div class="ph" aria-hidden="true"></div>
                     {% endif %}
-                    {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
                   <div class="card__head">
                     <h3 style="font-weight:900">{{ s.name }}</h3>
@@ -1680,7 +1700,6 @@
 	                    {% else %}
 	                      <div class="ph" aria-hidden="true"></div>
 	                    {% endif %}
-                    {% if s.category %}<span class="card__badge">{{ s.category.name }}</span>{% endif %}
                   </div>
                   <div class="card__head">
                     <h3 style="font-weight:900">{{ s.name }}</h3>
@@ -1807,7 +1826,6 @@
 	                      {% else %}
 	                        <div class="ph" aria-hidden="true"></div>
 	                      {% endif %}
-	                      {% if p.category %}<span class="card__badge">{{ p.category.display_name }}</span>{% endif %}
 	                    </div>
 	                    <div class="card__head" style="margin-top:.35rem">
 	                      <h3 style="font-weight:900">{{ p.name }}</h3>
@@ -1924,6 +1942,22 @@
     </section>
 
     <div class="home-faq-process">
+      <!-- ========================= HOW IT WORKS ========================= -->
+      <section class="section home-process">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="section__title">{{ home_copy.how_title }}</h2>
+            <p class="section__desc">{{ home_copy.how_desc }}</p>
+          </div>
+          <div class="tiles tiles--process">
+            <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
+            <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
+          </div>
+        </div>
+      </section>
+
       <!-- ========================= FAQ ========================= -->
       {% if home_faq_legacy %}
         <section class="section home-faq">
@@ -1954,22 +1988,6 @@
           </div>
         </section>
       {% endif %}
-
-      <!-- ========================= HOW IT WORKS ========================= -->
-      <section class="section home-process">
-        <div class="container">
-          <div class="section__head">
-            <h2 class="section__title">{{ home_copy.how_title }}</h2>
-            <p class="section__desc">{{ home_copy.how_desc }}</p>
-          </div>
-          <div class="tiles tiles--process">
-            <div class="tile"><div class="tile__icon">①</div><b>{{ home_copy.how_step_1_title }}</b><p class="muted">{{ home_copy.how_step_1_desc }}</p></div>
-            <div class="tile"><div class="tile__icon">②</div><b>{{ home_copy.how_step_2_title }}</b><p class="muted">{{ home_copy.how_step_2_desc }}</p></div>
-            <div class="tile"><div class="tile__icon">③</div><b>{{ home_copy.how_step_3_title }}</b><p class="muted">{{ home_copy.how_step_3_desc }}</p></div>
-            <div class="tile"><div class="tile__icon">④</div><b>{{ home_copy.how_step_4_title }}</b><p class="muted">{{ home_copy.how_step_4_desc }}</p></div>
-          </div>
-        </div>
-      </section>
     </div>
   </main>
 
@@ -2047,7 +2065,6 @@
         }
       }
       const media = s.image ? `<img src="${esc(s.image)}" alt="${esc(s.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
-      const cat   = s.category ? `<span class="card__badge">${esc(s.category)}</span>` : '';
       const desc  = s.description ? `<p class="muted">${esc(s.description)}</p>` : '';
       const bookingHref = toBookingUrl(s.id);
       const rawDuration = s.duration_min;
@@ -2062,7 +2079,7 @@
       const durationHtml = durationBits ? `<div class="dur">${durationBits}</div>` : "";
       return `
         <article class="card">
-          <div class="card__img">${media}${cat}</div>
+          <div class="card__img">${media}</div>
           <div class="card__head">
             <h3 style="font-weight:900">${esc(s.name)}</h3>
             <div class="price">${price}</div>
@@ -2149,7 +2166,6 @@
 	    function cardHTML(p){
 	      const href = p.url || "#";
 	      const media = p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<div class="ph" aria-hidden="true"></div>`;
-	      const cat   = p.category ? `<span class="card__badge">${esc(p.category)}</span>` : '';
 	      const desc  = p.short_description ? `<p class="muted">${esc(p.short_description)}</p>` : '';
 
 	      let price;
@@ -2166,7 +2182,7 @@
 	      return `
 	        <article class="card">
 	          <a href="${esc(href)}">
-	            <div class="card__img">${media}${cat}</div>
+	            <div class="card__img">${media}</div>
 	            <div class="card__head" style="margin-top:.35rem">
 	              <h3 style="font-weight:900">${esc(p.name)}</h3>
 	              <div class="price price--stacked">${price}</div>

@@ -491,6 +491,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   <style id="dashboard-responsive">
     :root{
       --sidebar-width: clamp(260px, 28vw, 320px);
+      --mobile-portal-bar-height: 0px;
     }
     body{
       min-height:100svh;
@@ -507,17 +508,33 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       width:var(--sidebar-width);
       flex-shrink:0;
       transition:transform .35s ease;
+      position:sticky;
+      top:0;
+      height:100svh;
+      overflow-y:auto;
     }
     .sidebar__close{
       display:none;
-      margin:0 1.25rem 1rem;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.16);
-      background:rgba(0,0,0,.35);
+      width:calc(100% - 1.5rem);
+      margin:0 .75rem .9rem;
+      padding:0 .95rem;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.18);
+      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
       color:#fff;
-      font-weight:700;
+      font-weight:800;
+      letter-spacing:.01em;
+      line-height:1;
+      align-items:center;
       justify-content:center;
       min-height:44px;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+      transition:border-color .2s ease, background .2s ease, transform .15s ease;
+    }
+    .sidebar__close:hover{
+      border-color:rgba(255,255,255,.32);
+      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      transform:translateY(-1px);
     }
     .sidebar-link,
     .logout-btn{
@@ -536,6 +553,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       width:100%;
       padding:clamp(1.25rem, 2vw, 2.75rem);
       overflow-x:hidden;
+      overflow-y:auto;
+      height:100svh;
     }
     .tab{
       display:block;
@@ -794,6 +813,10 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       border-radius:14px;
       background:rgba(0,0,0,.35);
       box-shadow:var(--shadow);
+      position:sticky;
+      top:0;
+      z-index:65;
+      backdrop-filter:blur(8px);
     }
     .mobile-portal-bar__title{
       display:flex;
@@ -867,6 +890,11 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         overflow-y:auto;
         border-right:1px solid rgba(255,255,255,.12);
       }
+      main{
+        height:auto;
+        overflow-y:visible;
+        padding-top:calc(clamp(1rem, 4vw, 1.5rem) + var(--mobile-portal-bar-height) + env(safe-area-inset-top, 0px));
+      }
       .sidebar.sidebar--open{
         transform:translateX(0);
       }
@@ -878,11 +906,17 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       }
       .mobile-portal-bar{
         display:flex;
+        position:fixed;
+        top:max(0px, env(safe-area-inset-top, 0px));
+        left:clamp(1rem, 4vw, 1.5rem);
+        right:clamp(1rem, 4vw, 1.5rem);
+        margin:0;
       }
     }
     @media (max-width:640px){
       main{
         padding:clamp(1rem,4vw,1.5rem);
+        padding-top:calc(clamp(1rem, 4vw, 1.5rem) + var(--mobile-portal-bar-height) + env(safe-area-inset-top, 0px));
       }
       .grid.lg\:grid-cols-3{
         grid-template-columns:1fr;
@@ -936,7 +970,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   /* ГЛАВНОЕ: переопределяем то, что ставит Tailwind */
   html, body { font-family: var(--font-body) !important; }
 
-  /* Заголовки/бренд/кнопки — Ford */
+  /* Headings/brand/buttons use heading font. */
   h1,h2,h3,h4,h5,h6,
   .brand, .brand .name, .brand .mark,
   .modal__title,
@@ -947,14 +981,14 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     font-family: var(--font-head) !important;
   }
 
-  /* Форма/обычный текст — Diesel */
+  /* Form/regular text uses body font. */
   input, select, textarea, button,
   .muted, .muted-2, .kicker, .panel, .chip {
     font-family: var(--font-body) !important;
   }
 </style>
 <style id="font-lock-strong">
-  /* === 1) База: весь мелкий/обычный текст — Diesel ===================== */
+  /* === 1) Base: small/regular text uses body font ====================== */
   html, body,
   p, li, span, a, small,
   label, input, select, textarea, button,
@@ -966,10 +1000,10 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   .sidebar-link span,
   .appt-dt, .appt-main p, .appt-actions a,
   .text-sm, .text-xs {
-    font-family: var(--font-body) !important; /* Diesel */
+    font-family: var(--font-body) !important;
   }
 
-  /* === 2) Крупные и читабельные элементы — Ford ======================== */
+  /* === 2) Large/high-visibility elements use heading font ============== */
   h1, h2, h3,
   .modal__title,
   .brand, .brand .name, .brand .mark,
@@ -977,52 +1011,46 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   .panel h1, .panel h2, .panel h3,
   .text-4xl, .text-3xl, .text-2xl, .text-xl,
   .font-black, .font-bold, .font-semibold {
-    font-family: var(--font-head) !important;  /* Ford */
+    font-family: var(--font-head) !important;
   }
 
-  /* === 3) Профиль: инпуты точно остаются читабельными (Diesel) ========= */
+  /* === 3) Profile inputs stay on body font for readability ============= */
   #tab-profile input,
   #tab-profile select,
   #tab-profile textarea {
-    font-family: var(--font-body) !important;   /* Diesel */
+    font-family: var(--font-body) !important;
   }
 </style>
 <style id="font-lock-diesel-targets">
-  /* Брендинг в сайдбаре */
+  /* High-visibility portal text should stay on Diesel. */
   .brand .name,
-  .brand .mark{
-    font-family: var(--font-body) !important; /* Diesel */
+  .brand .mark,
+  .mobile-portal-bar__title{
+    font-family: var(--font-head) !important;
   }
 
-  /* Заголовки панелей (Upcoming, Stats, Recent appointments, Rates, Quick facts и т.п.) */
+  /* Panel/page headings */
+  h1,
+  h2,
+  h3,
+  .modal__title,
   #tab-dashboard .panel h2,
   #tab-appointments .panel h2,
   #tab-orders .panel h2{
-    font-family: var(--font-body) !important; /* Diesel */
+    font-family: var(--font-head) !important;
   }
 
-  /* Табличные заголовки: Date / Service / Master / Status / Amount */
+  /* Table headers + large metric styles */
   .table th,
-  .table thead th{
-    font-family: var(--font-body) !important; /* Diesel */
-  }
-
-  /* Даты/суммы/жирный текст внутри панелей */
+  .table thead th,
+  .panel .text-4xl,
+  .panel .text-3xl,
+  .panel .text-2xl,
+  .panel .text-xl,
   .panel .font-bold,
   .panel .font-semibold,
   .panel .font-black{
-    font-family: var(--font-body) !important; /* Diesel */
-  }
-
-  /* Кнопки/ссылки Cancel / Reschedule и прочий экшен-текст */
-  .btn,
-  .btn-primary,
-  .btn-ghost,
-  .link,
-  .appt-actions a,
-  .appt-dt,
-  .appt-main p{
-    font-family: var(--font-body) !important; /* Diesel */
+    font-family: var(--font-head) !important;
   }
 </style>
 <style id="file-upload-styles">
@@ -1124,7 +1152,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 </style>
 
 </head>
-<body class="h-full">
+<body class="h-full has-contact-fab">
   {% include "includes/marketing_body.html" %}
 
 <!-- <div class="smoke" id="smoke-layer"></div> -->
@@ -1211,9 +1239,12 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
                     <a href="#" class="appt-cancel link" data-appt-id="{{ a.id }}">{{ portal_copy.action_cancel_label }}</a>
                     <a href="#" class="appt-reschedule link" data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">{{ portal_copy.action_reschedule_label }}</a>
                   </div>
-                </li>
+                  {% if a.service.image %}
+                    <img class="appt-card__image" src="{{ a.service.image.url }}" alt="{{ a.service.name }}">
+                  {% endif %}
+                </div>
               {% endfor %}
-            </ul>
+            </div>
           {% else %}
             <p class="muted-2">{{ portal_copy.upcoming_empty_label }}</p>
           {% endif %}
@@ -1242,23 +1273,24 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
                   <th class="py-2 pr-4">{{ portal_copy.table_service_label }}</th>
                   <th class="py-2 pr-4">{{ portal_copy.table_staff_label }}</th>
                   <th class="py-2 pr-4">{{ portal_copy.table_status_label }}</th>
-                  <th class="py-2 pr-3">{{ portal_copy.table_amount_label }}</th>
                 </tr>
               </thead>
               <tbody>
                 {% for a in recent_appointments %}
-                  <tr class="bg-transparent" data-appt-id="{{ a.id }}">
+                  <tr class="bg-transparent row-clickable appt-open"
+                      tabindex="0"
+                      role="button"
+                      aria-label="Open appointment details"
+                      data-appt-id="{{ a.id }}"
+                      data-service-name="{{ a.service.name|escape }}"
+                      data-master-name="{{ a.master.get_full_name|default:a.master.username|escape }}"
+                      data-status="{{ a.current_status|default:'Completed'|escape }}"
+                      data-start-time="{{ a.start_time|localtime|date:'M d, Y g:i A' }}"
+                      data-appt-image="{% if a.service.image %}{{ a.service.image.url }}{% endif %}">
                     <td class="py-2 pr-4 pl-3 whitespace-nowrap muted">{{ a.start_time|localtime|date:"d.m.Y H:i" }}</td>
                     <td class="py-2 pr-4">{{ a.service.name }}</td>
                     <td class="py-2 pr-4">{{ a.master.get_full_name }}</td>
                     <td class="py-2 pr-4">{{ a.current_status }}</td>
-                    <td class="py-2 pr-3">
-                      {% if a.price is not None %}
-                        {{ a.price|money }}
-                      {% else %}
-                        —
-                      {% endif %}
-                    </td>
                   </tr>
                 {% endfor %}
               </tbody>
@@ -1350,12 +1382,23 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
               <div class="appt-main">
                 <p class="font-semibold ink appt-dt">{{ a.start_time|localtime|date:"d M Y, H:i" }}</p>
                 <p class="text-sm muted">{{ a.service.name }} · {{ a.master.get_full_name }}</p>
+                <p class="click-hint">Tap to view details</p>
+              </div>
+
+              <div class="flex items-center gap-3">
+                {% if a.service.image %}
+                  <img class="appt-card__image" src="{{ a.service.image.url }}" alt="{{ a.service.name }}">
+                {% endif %}
               </div>
 
               {% if a.start_time >= now %}
                 <div class="flex gap-3 text-sm appt-actions">
                   <a href="#" class="appt-cancel link" data-appt-id="{{ a.id }}">{{ portal_copy.action_cancel_label }}</a>
-                  <a href="#" class="appt-reschedule link" data-appt-id="{{ a.id }}" data-service-id="{{ a.service.id }}">{{ portal_copy.action_reschedule_label }}</a>
+                  <a href="#"
+                     class="appt-reschedule link"
+                     data-appt-id="{{ a.id }}"
+                     data-service-id="{{ a.service.id }}"
+                     data-master-id="{{ a.master.id }}">{{ portal_copy.action_reschedule_label }}</a>
                 </div>
               {% else %}
                 <span class="text-xs muted-2">{{ portal_copy.appointments_completed_label }}</span>
@@ -1377,20 +1420,6 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
       {% if orders %}
         {% include "client/_order_cards.html" with orders=orders %}
-      {% elif request.user.is_authenticated %}
-        {% with user_orders=request.user.orders.all %}
-          {% if user_orders %}
-            {% include "client/_order_cards.html" with orders=user_orders %}
-          {% else %}
-            {% with legacy_orders=request.user.order_set.all %}
-              {% if legacy_orders %}
-                {% include "client/_order_cards.html" with orders=legacy_orders %}
-              {% else %}
-                <p class="muted-2">{{ portal_copy.orders_empty_label }}</p>
-              {% endif %}
-            {% endwith %}
-          {% endif %}
-        {% endwith %}
       {% else %}
         <p class="muted-2">{{ portal_copy.orders_empty_label }}</p>
       {% endif %}
@@ -1545,45 +1574,110 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   </main>
 </div>
 
+<!-- ===== MODAL: Appointment Details ===== -->
+<div id="apptDetailsModal" class="modal">
+  <div class="modal__dialog details-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="apptDetailsTitle">
+    <div class="modal__header">
+      <h3 id="apptDetailsTitle" class="modal__title">Appointment details</h3>
+      <button id="apptDetailsClose" class="modal__close" aria-label="Close">&times;</button>
+    </div>
+    <div class="details-grid">
+      <div id="apptDetailsImage" class="details-image details-image--fallback">No image</div>
+      <div class="details-card">
+        <div class="details-list">
+          <div class="details-row"><span class="details-key">Service</span><span class="details-val" id="apptDetailsService">-</span></div>
+          <div class="details-row"><span class="details-key">Specialist</span><span class="details-val" id="apptDetailsMaster">-</span></div>
+          <div class="details-row"><span class="details-key">Time</span><span class="details-val" id="apptDetailsTime">-</span></div>
+          <div class="details-row"><span class="details-key">Status</span><span class="details-val" id="apptDetailsStatus">-</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: Order Details ===== -->
+<div id="orderDetailsModal" class="modal">
+  <div class="modal__dialog details-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="orderDetailsTitle">
+    <div class="modal__header">
+      <h3 id="orderDetailsTitle" class="modal__title">Order details</h3>
+      <button id="orderDetailsClose" class="modal__close" aria-label="Close">&times;</button>
+    </div>
+    <div class="details-grid">
+      <div id="orderDetailsImage" class="details-image details-image--fallback">No image</div>
+      <div class="details-card">
+        <div class="details-list">
+          <div class="details-row"><span class="details-key">Order</span><span class="details-val" id="orderDetailsId">-</span></div>
+          <div class="details-row"><span class="details-key">Status</span><span class="details-val" id="orderDetailsStatus">-</span></div>
+          <div class="details-row"><span class="details-key">Total</span><span class="details-val" id="orderDetailsTotal">-</span></div>
+        </div>
+        <div class="order-items" id="orderDetailsItems"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL: Reschedule ===== -->
 <div id="resModal" class="modal">
-  <div class="modal__dialog">
+  <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="resTitle">
     <div class="modal__header">
-      <h3 class="modal__title">{{ portal_copy.reschedule_modal_title }}</h3>
+      <h3 id="resTitle" class="modal__title">{{ portal_copy.reschedule_modal_title }}</h3>
       <button id="resClose" class="modal__close" aria-label="{{ portal_copy.reschedule_close_label }}">&times;</button>
     </div>
 
-    <div class="space-y-3" style="padding-top:.75rem">
+    <div class="grid-2">
       <div>
-        <label class="text-sm muted">{{ portal_copy.reschedule_staff_label }}</label>
-        <select id="resMaster" class="w-full"></select>
-      </div>
-
-      <div>
-        <label class="text-sm muted">{{ portal_copy.reschedule_choose_time_label }}</label>
-        <div class="ol2 mt-1" id="rsOl">
-          <div class="ol2__toolbar">
-            <div class="flex gap-2">
-              <button id="rsPrev"  type="button" class="btn btn-ghost px-2 py-1">{{ portal_copy.reschedule_prev_label }}</button>
-              <button id="rsToday" type="button" class="btn btn-ghost px-2 py-1">{{ portal_copy.reschedule_today_label }}</button>
-              <button id="rsNext"  type="button" class="btn btn-ghost px-2 py-1">{{ portal_copy.reschedule_next_label }}</button>
-            </div>
-            <div id="rsRange" class="font-bold">—</div>
-          </div>
-          <div class="ol2__wrap" id="rsWrap">
-            <div class="ol2__grid" id="rsGrid" style="--days:14" tabindex="0"></div>
-          </div>
+        <div class="field">
+          <label for="resMaster">{{ portal_copy.reschedule_staff_label }}</label>
+          <select id="resMaster" class="sr-only" aria-hidden="true"></select>
+          <div id="resMasterPicker" class="masters" role="listbox" aria-label="{{ portal_copy.reschedule_staff_label }}"></div>
         </div>
 
-<p class="text-xs muted-2 mt-2">{{ portal_copy.reschedule_shift_scroll_hint }}</p>
-        <p class="text-sm" style="color:#ff6b6b; display:none" id="resErr"></p>
-        <p class="text-sm" style="color:#33d17a; display:none" id="resOk"></p>
+        <div class="field" style="margin-top:.5rem">
+          <label>{{ portal_copy.reschedule_choose_time_label }}</label>
+          <div class="outlook" id="rsOl">
+            <div class="outlook__toolbar">
+              <div class="controls">
+                <button id="rsPrev" type="button">{{ portal_copy.reschedule_prev_label }}</button>
+                <button id="rsToday" type="button">{{ portal_copy.reschedule_today_label }}</button>
+                <button id="rsNext" type="button">{{ portal_copy.reschedule_next_label }}</button>
+              </div>
+              <div class="range" id="rsRange">—</div>
+            </div>
+            <div class="outlook__wrap" id="rsWrap">
+              <div class="outlook__grid" id="rsGrid" tabindex="0" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div class="mobile-booking" id="rsMobileBooking" aria-live="polite" aria-hidden="true">
+            <div class="mobile-booking__row">
+              <label class="mobile-booking__label" for="rsMobileDate">Pick a day</label>
+              <div class="mobile-booking__control">
+                <input id="rsMobileDate" class="mobile-booking__input" type="date" aria-label="Pick a day">
+                <button class="mobile-booking__btn" id="rsMobileToday" type="button">{{ portal_copy.reschedule_today_label }}</button>
+              </div>
+            </div>
+            <div class="mobile-booking__row">
+              <label class="mobile-booking__label" for="rsMobileTime">Available times</label>
+              <select id="rsMobileTime" class="mobile-booking__input" aria-label="Available times"></select>
+              <div class="mobile-booking__meta">
+                <span class="mobile-booking__status" id="rsMobileStatus">Pick a day first</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="resSummary" class="sr-only" aria-live="polite">Choose staff and time.</div>
+          <div class="res-modal__meta">
+            <p class="hint">{{ portal_copy.reschedule_shift_scroll_hint }}</p>
+            <p class="error" id="resErr" style="display:none"></p>
+            <p class="success" id="resOk" style="display:none"></p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="flex justify-end gap-2 mt-4">
+    <div class="modal__footer">
       <button id="resCancel" class="btn btn-ghost">{{ portal_copy.reschedule_cancel_label }}</button>
-      <button id="resSubmit" class="btn btn-primary disabled:opacity-50" disabled>{{ portal_copy.reschedule_save_label }}</button>
+      <button id="resSubmit" class="btn btn-primary" disabled>{{ portal_copy.reschedule_save_label }}</button>
     </div>
   </div>
 </div>
@@ -1686,8 +1780,15 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     const toggle = document.getElementById('sidebarToggle');
     const backdrop = document.getElementById('sidebarBackdrop');
     const closeBtn = document.getElementById('sidebarClose');
+    const mobileBar = document.querySelector('.mobile-portal-bar');
     const media = window.matchMedia('(max-width: 1024px)');
     if (!drawer) return;
+
+    const syncMobileBarOffset = () => {
+      if (!mobileBar) return;
+      const height = media.matches ? Math.ceil(mobileBar.getBoundingClientRect().height) : 0;
+      document.documentElement.style.setProperty('--mobile-portal-bar-height', `${height}px`);
+    };
 
     const setOpen = (open) => {
       drawer.classList.toggle('sidebar--open', !!open);
@@ -1708,12 +1809,22 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') closeDrawer();
     });
-    const mqHandler = (event) => { if (!event.matches) closeDrawer(); };
+    const mqHandler = (event) => {
+      if (!event.matches) closeDrawer();
+      syncMobileBarOffset();
+    };
     if (media.addEventListener) {
       media.addEventListener('change', mqHandler);
     } else if (media.addListener) {
       media.addListener(mqHandler);
     }
+    window.addEventListener('resize', syncMobileBarOffset);
+    window.addEventListener('orientationchange', syncMobileBarOffset);
+    if ('ResizeObserver' in window && mobileBar) {
+      const observer = new ResizeObserver(syncMobileBarOffset);
+      observer.observe(mobileBar);
+    }
+    syncMobileBarOffset();
   })();
 
   /* ==== табы ==== */
@@ -1729,8 +1840,45 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     const tab = link.dataset.tab; if(!tab) return; e.preventDefault(); activate(tab); history.replaceState(null, '', '#'+tab);
   }));
 
-    /* ==== Chart.js (robust) ==== */
-  window.addEventListener('load', () => {          // <— добавь эту строку
+  /* ==== helpers ==== */
+  const LOCALE = 'en-US';
+  const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
+  const fmtHM = d => d.toLocaleTimeString(LOCALE, {hour:'numeric', minute:'2-digit'});
+  const ymd = d => { const m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
+  const parseISO = (iso) => {
+    const parsed = new Date(iso);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+  const hmValue = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+  function setDetailsImage(container, url, altText){
+    if (!container) return;
+    container.innerHTML = '';
+    if (url){
+      const image = document.createElement('img');
+      image.className = 'details-image__media';
+      image.src = url;
+      image.alt = altText || 'Image';
+      container.classList.remove('details-image--fallback');
+      container.appendChild(image);
+      return;
+    }
+    container.classList.add('details-image--fallback');
+    container.textContent = 'No image';
+  }
+
+  function closeModal(modal){
+    if (!modal) return;
+    modal.classList.remove('modal--open');
+  }
+
+  function openModal(modal){
+    if (!modal) return;
+    modal.classList.add('modal--open');
+  }
+
+  /* ==== Chart.js (6 months + baseline) ==== */
+  window.addEventListener('load', () => {
     const el = document.getElementById('stats_chart');
     if (!el || !window.Chart) return;
 
@@ -1790,7 +1938,12 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         ]
       },
       options: {
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            filter: (context) => context.datasetIndex === 1,
+          },
+        },
         scales: {
           x: { ticks: { color: '#ccc' }, grid: { color: 'rgba(255,255,255,.06)' } },
           y: {
@@ -1822,23 +1975,30 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
   /* ==== Cancel ==== */
   async function cancelAppointment(id){
-    if(!confirm(portalCopy.cancelConfirmMessage)) return;
-    const r = await fetch(`/accounts/api/appointment/${id}/cancel/`, { method:'POST', headers:{'X-CSRFToken': csrftoken}, credentials:'same-origin' });
-    if(!r.ok){ alert(portalCopy.cancelErrorPrefix + (await r.text())); return; }
+    if (!confirm(portalCopy.cancelConfirmMessage)) return;
+    const response = await fetch(`/accounts/api/appointment/${id}/cancel/`, {
+      method: 'POST',
+      headers: {'X-CSRFToken': csrftoken},
+      credentials: 'same-origin',
+    });
+    if (!response.ok){
+      alert(portalCopy.cancelErrorPrefix + (await response.text()));
+      return;
+    }
     strikeOut(id);
   }
+
   function strikeOut(id){
-    document.querySelectorAll(`[data-appt-id="${id}"]`).forEach(node=>{
+    document.querySelectorAll(`[data-appt-id="${id}"]`).forEach((node) => {
       node.classList.add('opacity-60');
-      node.querySelectorAll('.appt-actions a').forEach(a=>{ a.classList.add('pointer-events-none','opacity-50'); a.removeAttribute('href'); });
-      node.querySelectorAll('.appt-dt, .appt-main, p, td').forEach(el=> el.classList.add('line-through'));
+      node.dataset.status = 'Cancelled';
+      node.querySelectorAll('.appt-actions a').forEach((link) => {
+        link.classList.add('pointer-events-none', 'opacity-50');
+        link.removeAttribute('href');
+      });
+      node.querySelectorAll('.appt-dt, .appt-main, p, td').forEach((el) => el.classList.add('line-through'));
     });
   }
-  document.addEventListener('click', async (e)=>{
-    const a = e.target.closest('.appt-cancel'); if(!a) return; e.preventDefault();
-    const id = a.dataset.apptId; if(!id) return;
-    cancelAppointment(id);
-  });
 
   /* ==== Appointments modal ==== */
   const apptModal = document.getElementById('apptModal');
@@ -2059,99 +2219,390 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   const resCancel = document.getElementById('resCancel');
   const resSubmit = document.getElementById('resSubmit');
   const resMaster = document.getElementById('resMaster');
-  const resErr    = document.getElementById('resErr');
-  const resOk     = document.getElementById('resOk');
-
+  const resMasterPicker = document.getElementById('resMasterPicker');
+  const resSummary = document.getElementById('resSummary');
+  const resErr = document.getElementById('resErr');
+  const resOk = document.getElementById('resOk');
   const rsGrid = document.getElementById('rsGrid');
   const rsWrap = document.getElementById('rsWrap');
-  const rsRange= document.getElementById('rsRange');
+  const rsRange = document.getElementById('rsRange');
   const rsPrev = document.getElementById('rsPrev');
   const rsNext = document.getElementById('rsNext');
-  const rsToday= document.getElementById('rsToday');
+  const rsToday = document.getElementById('rsToday');
+  const rsMobileBooking = document.getElementById('rsMobileBooking');
+  const rsMobileDate = document.getElementById('rsMobileDate');
+  const rsMobileTime = document.getElementById('rsMobileTime');
+  const rsMobileToday = document.getElementById('rsMobileToday');
+  const rsMobileStatus = document.getElementById('rsMobileStatus');
+  const rsMobileQuery = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
 
   if (resModal) {
-    const WINDOW_DAYS = 14, START=6, END=23, STEP=30;
+    const WINDOW_DAYS = 5;
+    const DEFAULT_START_HOUR = 6;
+    const DEFAULT_END_HOUR = 23;
+    const GRID_STEP_MIN = 30;
+    const EDGE_BUFFER_MIN = 60;
+    const LAST_ROW_MINUTES = (23 * 60) + 45;
 
-    let resState = {
-      apptId:null, serviceId:null, masterId:null, slot:null, masters:[],
-      baseStart: (()=>{const d=new Date(); d.setHours(0,0,0,0); return d;})(),
-      cache: new Map()
+    const mobileState = {
+      active: false,
+      dateKey: '',
+      times: [],
+      isoMap: new Map(),
     };
 
-    function openRes(apptId, serviceId){
-      resState = { ...resState, apptId, serviceId, masterId:null, slot:null, masters:[], cache:new Map() };
-      resMaster.innerHTML = '';
-      resSubmit.disabled = true;
-      resErr.style.display='none'; resOk.style.display='none';
-      resModal.classList.add('modal--open');
-      loadMastersAndRender();
-    }
-    function closeRes(){ resModal.classList.remove('modal--open'); }
+    let resState = {
+      apptId: null,
+      serviceId: null,
+      preferredMasterId: null,
+      masterId: null,
+      slot: null,
+      masters: [],
+      baseStart: (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })(),
+      cache: new Map(),
+    };
 
-    async function fetchAvail(dayISO, masterId){
-      const params = new URLSearchParams({ service: resState.serviceId, date: dayISO });
-      if (masterId) params.set('master', masterId);
-      const r = await fetch(`/accounts/api/availability/?${params.toString()}`, {credentials:'same-origin'});
-      if(!r.ok) throw new Error(portalCopy.rescheduleFailedSlotsLabel);
-      const data = await r.json();
+    const summaryDefault = 'Choose staff and time.';
 
-      let slots=[];
-      if (masterId){
-        const m=(data.masters||[]).find(x=>Number(x.id)===Number(masterId)); slots = m ? (m.slots||[]) : [];
-      }else{
-        slots = (data.masters && data.masters[0] && data.masters[0].slots) ? data.masters[0].slots : [];
-      }
-      const set=new Set(), map=new Map();
-      (slots||[]).forEach(iso=>{ const d=new Date(iso); const key=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; set.add(key); if(!map.has(key)) map.set(key, iso); });
-      return { raw:data, set, map };
+    function hmToMinutes(value){
+      if (!value || typeof value !== 'string') return null;
+      const parts = value.split(':');
+      if (parts.length !== 2) return null;
+      const hours = Number(parts[0]);
+      const minutes = Number(parts[1]);
+      if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null;
+      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+      return (hours * 60) + minutes;
     }
 
-    async function ensureRangeLoaded(start, days){
-      const jobs=[];
-      for(let i=0;i<days;i++){
-        const d=new Date(start); d.setDate(d.getDate()+i); const ds=ymd(d);
-        if(!resState.cache.has(ds)){
-          jobs.push((async()=>{
-            resState.cache.set(ds, {loading:true});
-            const {set,map}=await fetchAvail(ds, resState.masterId);
-            resState.cache.set(ds,{set,iso:map});
-          })());
-        }
+    function minutesToHm(total){
+      const normalized = Math.max(0, Math.min(LAST_ROW_MINUTES, total));
+      const hours = Math.floor(normalized / 60);
+      const minutes = normalized % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
+    function floorToStep(total, step){
+      return Math.floor(total / step) * step;
+    }
+
+    function ceilToStep(total, step){
+      return Math.ceil(total / step) * step;
+    }
+
+    function setSummaryDefault(){
+      if (resSummary) resSummary.textContent = summaryDefault;
+    }
+
+    function setMobileStatus(text, isError){
+      if (!rsMobileStatus) return;
+      rsMobileStatus.textContent = text || '';
+      rsMobileStatus.dataset.state = isError ? 'error' : 'info';
+    }
+
+    function clearMobileTimeInput(){
+      if (!rsMobileTime) return;
+      rsMobileTime.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Choose time';
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      rsMobileTime.appendChild(placeholder);
+      rsMobileTime.disabled = true;
+      rsMobileTime.setCustomValidity('');
+    }
+
+    function updateMobileTimeOptions(times){
+      if (!rsMobileTime) return;
+      if (!times.length){
+        clearMobileTimeInput();
+        return;
       }
-      if (jobs.length) await Promise.allSettled(jobs);
+      rsMobileTime.disabled = false;
+      rsMobileTime.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Choose time';
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      rsMobileTime.appendChild(placeholder);
+      times.forEach((timeValue) => {
+        const option = document.createElement('option');
+        option.value = timeValue;
+        const fake = new Date();
+        const [hours, minutes] = timeValue.split(':').map((v) => parseInt(v, 10));
+        fake.setHours(hours, minutes, 0, 0);
+        option.textContent = fmtHM(fake);
+        rsMobileTime.appendChild(option);
+      });
+    }
+
+    function syncMobileDateRange(startDate){
+      if (!rsMobileDate) return;
+      const startKey = ymd(startDate);
+      const end = new Date(startDate);
+      end.setDate(end.getDate() + WINDOW_DAYS - 1);
+      rsMobileDate.min = startKey;
+      rsMobileDate.max = ymd(end);
+      if (!rsMobileDate.value || rsMobileDate.value < rsMobileDate.min){
+        rsMobileDate.value = rsMobileDate.min;
+      }
+      if (rsMobileDate.value > rsMobileDate.max){
+        rsMobileDate.value = rsMobileDate.max;
+      }
+    }
+
+    function syncMobileVisibility(){
+      const active = rsMobileQuery ? rsMobileQuery.matches : false;
+      mobileState.active = active;
+      if (rsMobileBooking){
+        rsMobileBooking.setAttribute('aria-hidden', active ? 'false' : 'true');
+      }
+    }
+
+    syncMobileVisibility();
+    if (rsMobileQuery){
+      try { rsMobileQuery.addEventListener('change', syncMobileVisibility); }
+      catch (_) { rsMobileQuery.addListener(syncMobileVisibility); }
+    }
+
+    function getActiveMasterName(){
+      return resMaster.selectedOptions[0]?.text?.trim()
+        || resMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent?.trim()
+        || '—';
+    }
+
+    function syncSelectedSlotUI(){
+      const slot = resState.slot;
+      rsGrid.querySelectorAll('.slot-chip').forEach((button) => {
+        button.classList.toggle('slot-selected', Boolean(slot && button.dataset.slot === slot));
+      });
+      if (rsMobileTime){
+        const slotDate = slot ? parseISO(slot) : null;
+        const value = slotDate ? hmValue(slotDate) : '';
+        if (rsMobileTime.value !== value) rsMobileTime.value = value;
+      }
+    }
+
+    function updateSubmitState(){
+      const ready = Boolean(resState.apptId && resState.masterId && resState.slot);
+      resSubmit.disabled = !ready;
+    }
+
+    function selectSlot(slotIso){
+      if (!slotIso) return;
+      resState.slot = slotIso;
+      const slotDate = parseISO(slotIso);
+      if (slotDate){
+        const dayLabel = slotDate.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'});
+        if (resSummary) resSummary.textContent = `${getActiveMasterName()} · ${fmtHM(slotDate)}, ${dayLabel}`;
+      } else {
+        if (resSummary) resSummary.textContent = `${getActiveMasterName()} · Time selected`;
+      }
+      resErr.style.display = 'none';
+      updateSubmitState();
+      syncSelectedSlotUI();
     }
 
     function buildTimeRows(extraSets){
-      const out=[];
-      for(let h=START;h<=END;h++) for(let m=0;m<60;m+=STEP) out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-      (extraSets||[]).forEach(s=>s && s.forEach(t=>{ if(!out.includes(t)) out.push(t); }));
-      return out.sort();
+      const slotMinutes = [];
+      (extraSets || []).forEach((set) => {
+        if (!set) return;
+        set.forEach((timeValue) => {
+          const minutes = hmToMinutes(timeValue);
+          if (minutes !== null) slotMinutes.push(minutes);
+        });
+      });
+
+      let startMinutes = DEFAULT_START_HOUR * 60;
+      let endMinutes = (DEFAULT_END_HOUR * 60) + 30;
+      if (slotMinutes.length){
+        const earliest = Math.min(...slotMinutes);
+        const latest = Math.max(...slotMinutes);
+        startMinutes = floorToStep(Math.max(0, earliest - EDGE_BUFFER_MIN), GRID_STEP_MIN);
+        endMinutes = ceilToStep(Math.min(LAST_ROW_MINUTES, latest + EDGE_BUFFER_MIN), GRID_STEP_MIN);
+      }
+      if (endMinutes < startMinutes){
+        endMinutes = startMinutes;
+      }
+
+      const output = new Set();
+      for (let minutes = startMinutes; minutes <= endMinutes; minutes += GRID_STEP_MIN){
+        output.add(minutesToHm(minutes));
+      }
+
+      (extraSets || []).forEach((set) => {
+        if (!set) return;
+        set.forEach((timeValue) => {
+          const minutes = hmToMinutes(timeValue);
+          if (minutes === null || (minutes % GRID_STEP_MIN) !== 0) return;
+          output.add(timeValue);
+        });
+      });
+
+      return Array.from(output).sort();
     }
 
-    async function loadMastersAndRender(){
-      try{
-        const first = await fetchAvail(ymd(resState.baseStart), null);
-        resState.masters = (first.raw && first.raw.masters) || [];
-        resMaster.innerHTML = '';
-        if(resState.masters.length===0){
-          resMaster.innerHTML = `<option>${portalCopy.rescheduleNoTechsLabel}</option>`;
-          rsGrid.innerHTML = `<div class="p-4 text-sm muted-2">${portalCopy.rescheduleNoAvailabilityLabel}</div>`;
+    async function fetchAvailability(dayISO, masterId){
+      const params = new URLSearchParams({ service: resState.serviceId, date: dayISO });
+      if (masterId) params.set('master', masterId);
+      const response = await fetch(`/accounts/api/availability/?${params.toString()}`, {credentials: 'same-origin'});
+      if (!response.ok) throw new Error(portalCopy.rescheduleFailedSlotsLabel);
+      const data = await response.json();
+
+      let slots = [];
+      if (masterId){
+        const master = (data.masters || []).find((item) => Number(item.id) === Number(masterId));
+        slots = master ? (master.slots || []) : [];
+      } else {
+        slots = data.masters?.[0]?.slots || [];
+      }
+
+      const set = new Set();
+      const map = new Map();
+      slots.forEach((iso) => {
+        const slotDate = parseISO(iso);
+        if (!slotDate) return;
+        const key = hmValue(slotDate);
+        const minuteValue = slotDate.getMinutes();
+        if ((minuteValue % GRID_STEP_MIN) !== 0) return;
+        set.add(key);
+        if (!map.has(key)) map.set(key, iso);
+      });
+      return { set, map, raw: data };
+    }
+
+    async function ensureRangeLoaded(startDate, daysCount){
+      const tasks = [];
+      for (let i = 0; i < daysCount; i += 1){
+        const day = new Date(startDate);
+        day.setDate(day.getDate() + i);
+        const key = ymd(day);
+        if (!resState.cache.has(key)){
+          tasks.push((async () => {
+            resState.cache.set(key, {loading: true});
+            const result = await fetchAvailability(key, Number(resMaster.value || resState.masterId));
+            resState.cache.set(key, {set: result.set, iso: result.map});
+          })());
+        }
+      }
+      if (tasks.length) await Promise.allSettled(tasks);
+    }
+
+    async function loadMobileTimesForDay(dayKey){
+      if (!mobileState.active || !rsMobileDate) return;
+      if (!dayKey){
+        setMobileStatus('Pick a day first', false);
+        clearMobileTimeInput();
+        return;
+      }
+      mobileState.dateKey = dayKey;
+      const activeDate = resState.slot ? parseISO(resState.slot) : null;
+      const activeDay = activeDate ? ymd(activeDate) : '';
+      if (activeDay !== dayKey){
+        resState.slot = null;
+        setSummaryDefault();
+        updateSubmitState();
+      }
+      clearMobileTimeInput();
+      try {
+        let cached = resState.cache.get(dayKey);
+        if (!cached || cached.loading){
+          resState.cache.set(dayKey, {loading: true});
+          const result = await fetchAvailability(dayKey, Number(resMaster.value || resState.masterId));
+          resState.cache.set(dayKey, {set: result.set, iso: result.map});
+          cached = resState.cache.get(dayKey);
+        }
+        const times = cached?.set ? Array.from(cached.set).sort() : [];
+        mobileState.times = times;
+        mobileState.isoMap = cached?.iso || new Map();
+        updateMobileTimeOptions(times);
+
+        if (!times.length){
+          setMobileStatus(portalCopy.rescheduleNoAvailabilityLabel, true);
+          rsMobileTime.setCustomValidity(portalCopy.rescheduleNoAvailabilityLabel);
           return;
         }
-        resState.masters.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.id; opt.textContent=m.name; resMaster.appendChild(opt); });
-        const withSlots = resState.masters.find(m=>(m.slots||[]).length) || resState.masters[0];
-        resMaster.value = withSlots.id;
-        resState.masterId = Number(resMaster.value);
-        resState.cache.clear();
-        await renderWindow();
-      }catch(e){
-        resErr.textContent = e.message || portalCopy.rescheduleFetchErrorLabel;
-        resErr.style.display='block';
+        rsMobileTime.setCustomValidity('');
+        const preview = times.slice(0, 5).map((timeValue) => {
+          const [hours, minutes] = timeValue.split(':').map((part) => parseInt(part, 10));
+          const fake = new Date();
+          fake.setHours(hours, minutes, 0, 0);
+          return fmtHM(fake);
+        }).join(', ');
+        setMobileStatus(preview || portalCopy.rescheduleNoAvailabilityLabel, false);
+        if (times.length === 1){
+          rsMobileTime.value = times[0];
+          const onlyIso = mobileState.isoMap.get(times[0]);
+          if (onlyIso) selectSlot(onlyIso);
+        }
+      } catch (error){
+        setMobileStatus(error.message || portalCopy.rescheduleFailedSlotsLabel, true);
       }
+    }
+
+    function renderMasterPicker(masters, preferredMasterId){
+      resMaster.innerHTML = '';
+      resMasterPicker.innerHTML = '';
+
+      masters.forEach((master) => {
+        const option = document.createElement('option');
+        option.value = String(master.id);
+        option.textContent = master.name;
+        resMaster.appendChild(option);
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'master-pill';
+        button.setAttribute('role', 'option');
+        button.setAttribute('aria-pressed', 'false');
+        button.dataset.id = String(master.id);
+
+        const image = document.createElement('img');
+        image.src = master.avatar || 'https://via.placeholder.com/56x56?text=%20';
+        image.alt = '';
+        const name = document.createElement('span');
+        name.className = 'master-name';
+        name.textContent = master.name;
+        button.appendChild(image);
+        button.appendChild(name);
+        button.addEventListener('click', async () => {
+          resMasterPicker.querySelectorAll('.master-pill[aria-pressed="true"]').forEach((pill) => {
+            pill.setAttribute('aria-pressed', 'false');
+          });
+          button.setAttribute('aria-pressed', 'true');
+          resMaster.value = String(master.id);
+          resState.masterId = Number(master.id);
+          resState.slot = null;
+          setSummaryDefault();
+          updateSubmitState();
+          resState.cache.clear();
+          await renderWindow();
+        });
+        resMasterPicker.appendChild(button);
+      });
+
+      const preferred = masters.find((master) => Number(master.id) === Number(preferredMasterId));
+      const withSlots = masters.find((master) => (master.slots || []).length);
+      const selected = preferred || withSlots || masters[0];
+      if (!selected) return;
+      resMaster.value = String(selected.id);
+      resState.masterId = Number(selected.id);
+      const active = resMasterPicker.querySelector(`.master-pill[data-id="${selected.id}"]`);
+      if (active) active.setAttribute('aria-pressed', 'true');
     }
 
     async function renderWindow(){
       await ensureRangeLoaded(resState.baseStart, WINDOW_DAYS);
+      const days = Array.from({length: WINDOW_DAYS}, (_, index) => {
+        const day = new Date(resState.baseStart);
+        day.setDate(day.getDate() + index);
+        return day;
+      });
+      const dayKeys = days.map(ymd);
+      const dayData = dayKeys.map((key) => resState.cache.get(key));
+      const timeRows = buildTimeRows(dayData.map((item) => item?.set));
 
       const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(resState.baseStart); d.setDate(d.getDate()+i); return d;});
       const dayStrs = days.map(ymd);
@@ -2174,54 +2625,138 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
           <div class="t">${fmtWeekday(d)}</div>
           <div class="s">${fmtMonthDay(d)}</div>
         </div>`;
-        rsGrid.appendChild(h);
+        rsGrid.appendChild(head);
       });
 
-      timeRows.forEach(t=>{
-        const [hh,mm]=t.split(':').map(Number);
-        const fake=new Date(); fake.setHours(hh,mm,0,0);
-        const timeCell=document.createElement('div');
-        timeCell.className='ol2__cell time'; timeCell.textContent = fmtHM(fake);
+      timeRows.forEach((timeValue) => {
+        const [hours, minutes] = timeValue.split(':').map((part) => parseInt(part, 10));
+        const fake = new Date();
+        fake.setHours(hours, minutes, 0, 0);
+
+        const timeCell = document.createElement('div');
+        timeCell.className = 'outlook__cell time';
+        timeCell.textContent = fmtHM(fake);
         rsGrid.appendChild(timeCell);
 
-        days.forEach((d, idx)=>{
-          const cell=document.createElement('div'); cell.className='ol2__cell';
-          const data = dayData[idx];
-          const slotSet = (data && data.set) ? data.set : null;
-          const hasSlot = slotSet ? slotSet.has(t) : false;
-          const canSelect = Boolean(hasSlot && data && data.iso);
-
-          const chip=document.createElement('button');
-          chip.type='button'; chip.className='chip ' + (canSelect?'chip--free':'chip--busy');
+        days.forEach((_, index) => {
+          const cell = document.createElement('div');
+          cell.className = 'outlook__cell';
+          const dayInfo = dayData[index];
+          const isoValue = dayInfo?.iso?.get(timeValue) || '';
+          const isFree = Boolean(isoValue && dayInfo?.set?.has(timeValue));
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = `slot-chip ${isFree ? 'slot-free' : 'slot-busy'}`;
           chip.textContent = fmtHM(fake);
-
-          if(canSelect){
-            chip.addEventListener('click', ()=>{
-              rsGrid.querySelectorAll('.chip--sel').forEach(x=>x.classList.remove('chip--sel'));
-              chip.classList.add('chip--sel');
-              resState.slot = data.iso.get(t);
-              resSubmit.disabled=false;
-            });
-          }else{
-            chip.disabled=true;
+          if (isoValue) chip.dataset.slot = isoValue;
+          if (isFree){
+            chip.addEventListener('click', () => selectSlot(isoValue));
+          } else {
+            chip.disabled = true;
           }
           cell.appendChild(chip);
           rsGrid.appendChild(cell);
         });
       });
 
-      const todayIdx = days.findIndex(x=>x.toDateString()===(new Date()).toDateString());
-      if (todayIdx>0){ rsWrap.scrollLeft = todayIdx*140 - 140; }
+      const todayIndex = days.findIndex((item) => item.toDateString() === new Date().toDateString());
+      if (todayIndex > 0){
+        rsWrap.scrollLeft = todayIndex * 160 - 160;
+      }
+      syncSelectedSlotUI();
+      syncMobileDateRange(resState.baseStart);
+      if (mobileState.active && rsMobileDate) await loadMobileTimesForDay(rsMobileDate.value);
     }
 
-    async function shiftWindow(delta){
-      const d=new Date(resState.baseStart); d.setDate(d.getDate()+delta); d.setHours(0,0,0,0); resState.baseStart = d;
+    async function loadMastersAndRender(){
+      try {
+        resErr.style.display = 'none';
+        const first = await fetchAvailability(ymd(resState.baseStart), null);
+        const masters = first.raw?.masters || [];
+        resState.masters = masters;
+
+        if (!masters.length){
+          resMaster.innerHTML = '';
+          resMasterPicker.innerHTML = `<div class="muted-2">${portalCopy.rescheduleNoTechsLabel}</div>`;
+          rsGrid.innerHTML = `<div class="muted-2" style="padding:1rem">${portalCopy.rescheduleNoAvailabilityLabel}</div>`;
+          clearMobileTimeInput();
+          setMobileStatus(portalCopy.rescheduleNoTechsLabel, true);
+          return;
+        }
+
+        renderMasterPicker(masters, resState.preferredMasterId);
+        resState.cache.clear();
+        await renderWindow();
+      } catch (error) {
+        resErr.textContent = error.message || portalCopy.rescheduleFetchErrorLabel;
+        resErr.style.display = 'block';
+      }
+    }
+
+    async function shiftWindow(deltaDays){
+      const next = new Date(resState.baseStart);
+      next.setDate(next.getDate() + deltaDays);
+      next.setHours(0, 0, 0, 0);
+      resState.baseStart = next;
       await renderWindow();
     }
 
-    resMaster.addEventListener('change', async ()=>{
-      resState.masterId = Number(resMaster.value);
-      resState.slot = null; resSubmit.disabled=true; resState.cache.clear();
+    async function submitReschedule(){
+      if (!resState.apptId || !resState.slot || !resState.masterId) return;
+      resSubmit.disabled = true;
+      resErr.style.display = 'none';
+      resOk.style.display = 'none';
+      const response = await fetch(`/accounts/api/appointment/${resState.apptId}/reschedule/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrftoken},
+        credentials: 'same-origin',
+        body: JSON.stringify({ start_time: resState.slot, master: resState.masterId }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok){
+        const nextStart = payload?.appointment?.start_time || '';
+        resOk.textContent = portalCopy.rescheduleSuccessPrefix + (nextStart || '');
+        resOk.style.display = 'block';
+        setTimeout(() => window.location.reload(), 700);
+      } else {
+        resErr.textContent = payload.error || payload.detail || portalCopy.rescheduleFailedLabel;
+        resErr.style.display = 'block';
+        updateSubmitState();
+      }
+    }
+
+    function openReschedule(apptId, serviceId, preferredMasterId){
+      resState = {
+        apptId,
+        serviceId,
+        preferredMasterId: preferredMasterId || null,
+        masterId: null,
+        slot: null,
+        masters: [],
+        baseStart: (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })(),
+        cache: new Map(),
+      };
+      setSummaryDefault();
+      clearMobileTimeInput();
+      setMobileStatus('Pick a day first', false);
+      resErr.style.display = 'none';
+      resOk.style.display = 'none';
+      updateSubmitState();
+      openModal(resModal);
+      loadMastersAndRender();
+    }
+
+    resMaster.addEventListener('change', async () => {
+      const selected = Number(resMaster.value);
+      if (!selected) return;
+      resState.masterId = selected;
+      resState.slot = null;
+      setSummaryDefault();
+      updateSubmitState();
+      resMasterPicker.querySelectorAll('.master-pill').forEach((pill) => {
+        pill.setAttribute('aria-pressed', pill.dataset.id === String(selected) ? 'true' : 'false');
+      });
+      resState.cache.clear();
       await renderWindow();
     });
     rsPrev.addEventListener('click', ()=>shiftWindow(-WINDOW_DAYS));
@@ -2250,23 +2785,91 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
             try{ dt.textContent = fmtDateTime(new Date(appointmentStart)); }catch(_){}
           });
         }
-        setTimeout(()=> location.reload(), 700);
-      }else{
-        resErr.textContent = data.error || data.detail || portalCopy.rescheduleFailedLabel;
-        resErr.style.display='block'; resSubmit.disabled = false;
-      }
+        const iso = mobileState.isoMap.get(selected);
+        if (iso) selectSlot(iso);
+      });
+    }
+    if (rsMobileToday){
+      rsMobileToday.addEventListener('click', () => {
+        if (!rsMobileDate) return;
+        const todayKey = ymd(new Date());
+        const bounded = todayKey < rsMobileDate.min ? rsMobileDate.min : (todayKey > rsMobileDate.max ? rsMobileDate.max : todayKey);
+        rsMobileDate.value = bounded;
+        loadMobileTimesForDay(bounded);
+      });
     }
 
-    document.addEventListener('click', (e)=>{
-      const a = e.target.closest('.appt-reschedule');
-      if(!a) return; e.preventDefault();
-      openRes(a.dataset.apptId, a.dataset.serviceId);
+    rsWrap.addEventListener('wheel', (event) => {
+      if (event.shiftKey && Math.abs(event.deltaY) > Math.abs(event.deltaX)){
+        event.preventDefault();
+        rsWrap.scrollLeft += event.deltaY;
+      }
+    }, {passive: false});
+
+    resClose.addEventListener('click', () => closeModal(resModal));
+    resCancel.addEventListener('click', () => closeModal(resModal));
+    resModal.addEventListener('click', (event) => {
+      if (event.target === resModal) closeModal(resModal);
     });
-    resClose.addEventListener('click', closeRes);
-    resCancel.addEventListener('click', closeRes);
-    resModal.addEventListener('click', (e)=>{ if(e.target===resModal) closeRes(); });
-    resSubmit.addEventListener('click', submitRes);
+    resSubmit.addEventListener('click', submitReschedule);
+
+    document.addEventListener('click', (event) => {
+      const cancelLink = event.target.closest('.appt-cancel');
+      if (cancelLink){
+        event.preventDefault();
+        const id = cancelLink.dataset.apptId;
+        if (id) cancelAppointment(id);
+        return;
+      }
+
+      const rescheduleLink = event.target.closest('.appt-reschedule');
+      if (rescheduleLink){
+        event.preventDefault();
+        openReschedule(
+          rescheduleLink.dataset.apptId,
+          rescheduleLink.dataset.serviceId,
+          rescheduleLink.dataset.masterId
+        );
+        return;
+      }
+
+      const isInteractive = event.target.closest('a,button,input,select,textarea,label');
+      if (isInteractive) return;
+
+      const apptNode = event.target.closest('.appt-open');
+      if (apptNode){
+        openAppointmentDetails(apptNode);
+        return;
+      }
+
+      const orderNode = event.target.closest('.order-open');
+      if (orderNode){
+        openOrderDetails(orderNode);
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (!['Enter', ' '].includes(event.key)) return;
+      const active = document.activeElement;
+      if (!active || active.closest('a,button,input,select,textarea,label')) return;
+      if (active.classList.contains('appt-open')){
+        event.preventDefault();
+        openAppointmentDetails(active);
+        return;
+      }
+      if (active.classList.contains('order-open')){
+        event.preventDefault();
+        openOrderDetails(active);
+      }
+    });
   }
+
+  window.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    closeModal(apptDetailsModal);
+    closeModal(orderDetailsModal);
+    closeModal(resModal);
+  });
 
   /* ==== Files upload ==== */
   const fileForm = document.getElementById('fileUploadForm');
@@ -2456,7 +3059,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   }
 
 </script>
-<!-- ===== CONTACT FAB + MODAL (BGM) =================================== -->
+<!-- ===== CONTACT/CART FAB + MODAL (BGM) =============================== -->
 <style id="contact-fab-css">
   :root{
     --ink:#eaeaea; --line:rgba(255,255,255,.12);
@@ -2524,11 +3127,114 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   /* hide everywhere if needed: add .no-contact-fab to <body> */
   body.no-contact-fab .contact-fab{ display:none !important; }
 
+  .bgm-cart-fab{
+    position:fixed;
+    right:22px;
+    bottom:var(--bgm-cart-fab-bottom, calc(env(safe-area-inset-bottom, 0px) + 5.5rem));
+    z-index:2050;
+    display:inline-flex;
+    align-items:center;
+    gap:.6rem;
+    padding:.62rem .85rem .62rem .62rem;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);
+    background:linear-gradient(135deg, rgba(18,18,18,.98), rgba(8,8,8,.98));
+    color:#fff;
+    text-decoration:none;
+    font-weight:800;
+    letter-spacing:.03em;
+    box-shadow:0 14px 30px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);
+    backdrop-filter:blur(10px) saturate(1.15);
+    transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+    animation:bgm-cart-float 5.5s ease-in-out infinite;
+    will-change:transform;
+  }
+  body.has-contact-fab{
+    --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+  }
+  .bgm-cart-fab:hover{
+    box-shadow:0 18px 36px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.32);
+    background:linear-gradient(135deg, rgba(26,26,26,.98), rgba(10,10,10,.98));
+  }
+  .bgm-cart-fab:focus-visible{
+    outline:2px solid #fff;
+    outline-offset:3px;
+  }
+  .bgm-cart-fab__icon{
+    position:relative;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    background:rgba(255,255,255,.06);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+  .bgm-cart-fab__icon svg{ width:22px; height:22px; }
+  .bgm-cart-fab__label{
+    font-size:.9rem;
+    text-transform:uppercase;
+  }
+  .bgm-cart-fab__count{
+    position:absolute;
+    top:-6px;
+    right:-6px;
+    min-width:1.35rem;
+    height:1.35rem;
+    padding:0 .35rem;
+    border-radius:999px;
+    background:var(--red);
+    color:#fff;
+    font-size:.72rem;
+    font-weight:900;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 8px 16px rgba(213,0,0,.35);
+  }
+  @keyframes bgm-cart-float{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-4px); }
+  }
+
   @media (max-width:640px){
     .contact-fab{ right:14px; bottom:14px; }
+    .bgm-cart-fab{
+      right:14px;
+      padding:.6rem;
+      gap:.4rem;
+      --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.1rem);
+    }
+    .bgm-cart-fab__label{ display:none; }
     .contact-title{ font-size:1.45rem; }
   }
 </style>
+
+<a
+  class="bgm-cart-fab"
+  href="{% url 'store-cart' %}"
+  aria-label="View cart{% if cart_item_count %}, {{ cart_item_count }} item{{ cart_item_count|pluralize }}{% endif %}"
+  title="View cart{% if cart_item_count %} ({{ cart_item_count }} item{{ cart_item_count|pluralize }}){% endif %}"
+>
+  <span class="bgm-cart-fab__icon">
+    <svg viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
+      <path
+        d="M7 18.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm10 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM4 3.75h2.2l.9 3.45a1 1 0 0 0 .97.75h9.6a1 1 0 0 1 .96 1.28l-1.5 5.25a1 1 0 0 1-.96.72H8.4a1 1 0 0 1-.97-.76L5.1 5.75H4a1 1 0 0 1 0-2Z"
+        fill="currentColor"
+      />
+      <path
+        d="M9.2 12.5h7.25l1.07-3.75H8.25l.95 3.75Z"
+        fill="currentColor"
+        opacity=".35"
+      />
+    </svg>
+    {% if cart_item_count %}
+      <span class="bgm-cart-fab__count" aria-live="polite" aria-atomic="true">{{ cart_item_count }}</span>
+    {% endif %}
+  </span>
+  <span class="bgm-cart-fab__label">Cart</span>
+</a>
 
 <button type="button" id="contactFab" class="contact-fab"
         aria-haspopup="dialog" aria-controls="contactModal" aria-expanded="false">
@@ -2636,7 +3342,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     #portalSidebar{ -webkit-overflow-scrolling:touch; }
 
     /* Do not overlap the floating contact button while drawer is open */
-    body.has-drawer-open .contact-fab{ display:none !important; }
+    body.has-drawer-open .contact-fab,
+    body.has-drawer-open .bgm-cart-fab{ display:none !important; }
   }
 
   /* No extra animations for users preferring reduced motion */
@@ -2650,6 +3357,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   const drawer   = document.getElementById('portalSidebar');
   const toggle   = document.getElementById('sidebarToggle');
   const nav      = document.getElementById('sidebar');       // the nav inside the drawer
+  const closeBtn = document.getElementById('sidebarClose');
+  const backdrop = document.getElementById('sidebarBackdrop');
   const mqMobile = window.matchMedia('(max-width: 1024px)');
   if (!drawer || !nav) return;
 
@@ -2662,6 +3371,19 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     document.body.classList.remove('has-drawer-open');
     if (toggle) toggle.setAttribute('aria-expanded', 'false');
   };
+
+  if (closeBtn){
+    const closeByButton = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeDrawer();
+    };
+    closeBtn.addEventListener('click', closeByButton);
+    closeBtn.addEventListener('touchend', closeByButton, {passive:false});
+  }
+  if (backdrop){
+    backdrop.addEventListener('click', closeDrawer);
+  }
 
   // 1) Close drawer when any nav item (link/button) is clicked on mobile
   nav.addEventListener('click', (e) => {

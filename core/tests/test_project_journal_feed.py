@@ -19,6 +19,7 @@ class ProjectJournalFeedTests(TestCase):
         categories=None,
         before: bool = True,
         after: bool = True,
+        desktop_media_mode: str = ProjectJournalEntry.DesktopMediaMode.SLIDER,
     ) -> ProjectJournalEntry:
         entry = ProjectJournalEntry.objects.create(
             title=title,
@@ -29,6 +30,7 @@ class ProjectJournalFeedTests(TestCase):
             featured=featured,
             status=status,
             published_at=published_at,
+            desktop_media_mode=desktop_media_mode,
             before_gallery=[{"url": "https://example.com/before.jpg", "alt": "Before"}] if before else [],
             after_gallery=[{"url": "https://example.com/after.jpg", "alt": "After"}] if after else [],
         )
@@ -96,6 +98,15 @@ class ProjectJournalFeedTests(TestCase):
         res = self.client.get(reverse("project-journal-post", kwargs={"slug": entry.slug}))
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "Detail Build")
+
+    def test_feed_marks_album_mode_cards(self):
+        self._entry(
+            title="Album Build",
+            desktop_media_mode=ProjectJournalEntry.DesktopMediaMode.ALBUM,
+        )
+        res = self.client.get(reverse("project-journal"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'data-display-mode="album"')
 
     def test_detail_page_draft_404(self):
         draft = self._entry(title="Draft Build", status=ProjectJournalEntry.Status.DRAFT)

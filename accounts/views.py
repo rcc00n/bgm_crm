@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -20,7 +20,7 @@ from django.views.generic.edit import CreateView
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.db.models import OuterRef, Subquery, Count
+from django.db.models import OuterRef, Subquery, Count, Q
 from django.db.models.functions import TruncMonth
 from django.conf import settings
 from django.template.defaultfilters import filesizeformat
@@ -39,11 +39,14 @@ from core.models import (
     PageFontSetting,
 )
 from core.services.fonts import build_page_font_context
-from core.services.media import build_home_gallery_media
+from core.services.email_reporting import describe_email_types
+from core.services.media import build_home_gallery_media, build_merch_gallery_groups
+from core.services.printful import get_printful_merch_feed
 from core.services.page_sections import get_page_sections
 from core.services.email_reporting import describe_email_types
 from core.emails import build_email_html, send_html_email
 from core.email_templates import email_brand_name, join_text_sections
+from store.models import Order
 
 from .forms import (
     ClientRegistrationForm,
@@ -289,8 +292,10 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
         now = timezone.now()
+        local_today = timezone.localdate()
 
         ctx["portal_copy"] = ClientPortalPageCopy.get_solo()
+        ctx["now"] = now
         # профиль может отсутствовать → None
         ctx["profile"] = getattr(user, "userprofile", None)
 
@@ -819,15 +824,18 @@ class MerchPlaceholderView(TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["merch_copy"] = MerchPageCopy.get_solo()
-        ctx["header_copy"] = ctx["merch_copy"]
+        merch_copy = MerchPageCopy.get_solo()
+        printful_feed = get_printful_merch_feed()
+        ctx["merch_copy"] = merch_copy
+        ctx["header_copy"] = merch_copy
+        ctx["merch_gallery_groups"] = build_merch_gallery_groups(merch_copy)
+        ctx["printful_products"] = printful_feed.get("products", [])
+        ctx["printful_catalog_url"] = printful_feed.get("catalog_url", "")
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
         return ctx
 
 # accounts/views.py
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView, DetailView
-from store.models import Order
+from django.views.generic import DetailView
 
 class OrdersListView(LoginRequiredMixin, ListView):
     template_name = "client/orders_list.html"
@@ -835,7 +843,7 @@ class OrdersListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        qs = Order.objects.select_related("user").prefetch_related("orderitem_set__product").order_by("-created_at")
+        qs = Order.objects.select_related("user").prefetch_related("items__product").order_by("-id")
         # лучший вариант — по FK на пользователя
         qs_user = qs.filter(user=self.request.user)
         if qs_user.exists():
@@ -852,6 +860,6 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
     pk_url_kwarg = "pk"
 
     def get_queryset(self):
-        qs = super().get_queryset().select_related("user").prefetch_related("orderitem_set__product")
+        qs = super().get_queryset().select_related("user").prefetch_related("items__product")
         # та же защита доступа
-        return qs.filter(models.Q(user=self.request.user) | models.Q(email__iexact=self.request.user.email))
+        return qs.filter(Q(user=self.request.user) | Q(email__iexact=self.request.user.email))

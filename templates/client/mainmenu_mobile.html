@@ -155,8 +155,6 @@
       background:linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
       border-radius:.9rem;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.6px}
     .service-card__img img{width:100%;height:100%;object-fit:cover;display:block}
-    .service-card__badge{position:absolute;left:.6rem;bottom:.6rem;z-index:2;font-size:.7rem;background:rgba(0,0,0,.55);
-      color:#fff;border-radius:999px;padding:.18rem .55rem;border:1px solid rgba(255,255,255,.14)}
     .ph{width:100%;height:100%;background:linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));background-size:200% 100%;animation:sh 1.2s ease-in-out infinite}
     @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
     .service-card h3{font-size:1.05rem;font-weight:900;letter-spacing:.2px}
@@ -176,29 +174,131 @@
       background:var(--panel);
       border-radius:0;
       border-top:1px solid var(--line);
-      padding:16px 16px calc(24px + env(safe-area-inset-bottom));
       height:100dvh;
       max-height:100dvh;
-      overflow-y:auto;
-      overflow-x:hidden;
-      overscroll-behavior:contain;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
     }
-    .sheet__header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .sheet__header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px 12px;
+      border-bottom:1px solid var(--line);
+      background:rgba(10,10,10,.96);
+      position:sticky;
+      top:0;
+      z-index:8;
+    }
+    .sheet__body{
+      flex:1 1 auto;
+      min-height:0;
+      overflow-y:auto;
+      overscroll-behavior:contain;
+      padding:0 16px 12px;
+    }
     .sheet__title{font-size:1.1rem;font-weight:900}
-    .sheet__close{border:1px solid var(--line);background:#0f0f0f;color:var(--ink);width:36px;height:36px;border-radius:10px}
+    .sheet__close{
+      border:1px solid rgba(255,255,255,.28);
+      background:#0f0f0f;
+      color:#fff;
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      font-size:1.6rem;
+      line-height:1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
     .field{display:flex;flex-direction:column;gap:6px;margin-top:12px}
     .field label{color:var(--muted);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
-    .field input,.field select{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0f0f0f;color:#fff;font-size:1rem}
-    .field-row{display:flex;gap:8px}
-    .field-row .field{flex:1}
+    .field input,.field select{
+      display:block;
+      width:100%;
+      max-width:100%;
+      min-width:0;
+      min-inline-size:0;
+      box-sizing:border-box;
+      padding:13px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#0f0f0f;
+      color:#fff;
+      font-size:1rem;
+    }
+    .booking-photo-preview{
+      display:flex;
+      align-items:center;
+      gap:.6rem;
+      margin-top:.25rem;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:.45rem .55rem;
+      background:#0d0d0d;
+    }
+    .booking-photo-preview img{
+      width:48px;
+      height:48px;
+      object-fit:cover;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.18);
+    }
+    .booking-photo-preview__meta{
+      display:flex;
+      flex-direction:column;
+      gap:.15rem;
+      font-size:.82rem;
+    }
+    .booking-photo-preview__meta small{color:var(--muted);}
+    .field-row{display:grid;grid-template-columns:1fr;gap:0}
+    .field-row .field{flex:1;margin-top:10px}
+    #bookDate,
+    #bookTime{
+      display:block;
+      width:100%;
+      max-width:100%;
+      min-width:0;
+      inline-size:100%;
+      max-inline-size:100%;
+      min-inline-size:0;
+      min-height:52px;
+    }
+    /* iOS/WebKit date control can render visually wider than sibling inputs */
+    #bookDate{
+      -webkit-appearance:none;
+      appearance:none;
+    }
+    #bookDate::-webkit-date-and-time-value{
+      text-align:left;
+    }
     .status{font-size:.9rem;color:var(--muted);margin-top:6px}
     .status:empty{display:none}
     .status.error{color:#ff5c72}
     .status.success{color:#22c55e}
-    .summary{background:#0f0f0f;border:1px solid var(--line);border-radius:12px;padding:10px;color:var(--muted);font-size:.9rem}
-    .actions{display:flex;gap:8px;margin-top:14px}
+    .actions{
+      flex:0 0 auto;
+      display:flex;
+      gap:8px;
+      margin:0;
+      padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+      border-top:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(15,15,15,.88), rgba(11,11,11,.98));
+    }
     .actions .btn{flex:1}
     .note{font-size:.85rem;color:var(--muted);margin-top:8px}
+    @media (min-width:721px){
+      .modal{padding:1rem;align-items:center;justify-content:center}
+      .sheet{
+        width:min(560px, 100%);
+        height:min(92dvh, 820px);
+        max-height:min(92dvh, 820px);
+        border:1px solid var(--line);
+        border-radius:16px;
+      }
+    }
 
     /* Contact FAB + modal */
     .contact-fab{
@@ -279,7 +379,6 @@
               <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
                 <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
                   {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
-                  {% if s.category %}<span class="service-card__badge">{{ s.category.name }}</span>{% endif %}
                 </div>
                 <h3>{{ s.name }}</h3>
                 {% if s.description %}<p>{{ s.description|striptags|truncatewords:18|safe }}</p>{% endif %}
@@ -320,7 +419,6 @@
                   <article class="service-card" data-service-id="{{ s.id }}" data-service-name="{{ s.name }}">
                     <div class="service-card__img" aria-label="{{ services_copy.service_image_aria_label }}">
                       {% if s.image %}<img src="{{ s.image.url }}" alt="{{ s.name }}" loading="lazy" decoding="async">{% else %}<div class="ph" aria-hidden="true">{{ services_copy.service_image_fallback_label }}</div>{% endif %}
-                      <span class="service-card__badge">{{ c.name }}</span>
                     </div>
                     <h3>{{ s.name }}</h3>
                     {% if s.description %}<p>{{ s.description|striptags|truncatewords:18|safe }}</p>{% endif %}
@@ -402,46 +500,49 @@
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
       <div class="sheet__header">
         <div class="sheet__title" id="bookTitle">{{ services_copy.booking_modal_title_prefix }} <span id="bookServiceName"></span></div>
-        <button class="sheet__close" type="button" id="bookClose" aria-label="{{ services_copy.booking_close_label }}">x</button>
+        <button class="sheet__close" type="button" id="bookClose" aria-label="{{ services_copy.booking_close_label }}">×</button>
       </div>
 
-      <div class="field">
-        <label for="bookMaster">{{ services_copy.booking_staff_label }}</label>
-        <select id="bookMaster"></select>
-      </div>
+      <div class="sheet__body">
+        <div class="field-row">
+          <div class="field">
+            <label for="bookDate">{{ services_copy.booking_mobile_pick_day_label }}</label>
+            <input id="bookDate" type="date">
+          </div>
+          <div class="field">
+            <label for="bookTime">{{ services_copy.booking_available_times_label }}</label>
+            <select id="bookTime"></select>
+          </div>
+        </div>
+        <div class="status" id="bookingStatus">{{ services_copy.booking_mobile_pick_day_label }}</div>
 
-      <div class="field-row">
         <div class="field">
-          <label for="bookDate">{{ services_copy.booking_mobile_pick_day_label }}</label>
-          <input id="bookDate" type="date">
+          <label for="contactName">{{ services_copy.booking_full_name_label }}</label>
+          <input id="contactName" type="text" maxlength="120" autocomplete="name" required placeholder="{{ services_copy.booking_full_name_placeholder }}">
         </div>
         <div class="field">
-          <label for="bookTime">{{ services_copy.booking_available_times_label }}</label>
-          <select id="bookTime"></select>
+          <label for="contactEmail">{{ services_copy.booking_email_label }}</label>
+          <input id="contactEmail" type="email" autocomplete="email" required placeholder="{{ services_copy.booking_email_placeholder }}">
         </div>
+        <div class="field">
+          <label for="contactPhone">{{ services_copy.booking_phone_label }}</label>
+          <input id="contactPhone" type="tel" inputmode="tel" autocomplete="tel" pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}" required placeholder="{{ services_copy.booking_phone_placeholder }}">
+        </div>
+        <div class="field">
+          <label for="contactReferenceImage">Reference photo (optional)</label>
+          <input id="contactReferenceImage" type="file" accept="image/*">
+          <div id="contactReferencePreview" class="booking-photo-preview" hidden>
+            <img id="contactReferencePreviewImg" alt="Reference preview">
+            <div class="booking-photo-preview__meta">
+              <strong id="contactReferencePreviewName"></strong>
+              <small id="contactReferencePreviewSize"></small>
+            </div>
+          </div>
+        </div>
+        <div class="note">{{ services_copy.booking_confirmation_hint }}</div>
+        <div class="status error" id="bookError" style="display:none;"></div>
+        <div class="status success" id="bookSuccess" style="display:none;"></div>
       </div>
-      <div class="status" id="bookingStatus">{{ services_copy.booking_mobile_pick_day_label }}</div>
-
-      <div class="field">
-        <label>{{ services_copy.booking_summary_label }}</label>
-        <div class="summary" id="bookSummary">{{ services_copy.booking_summary_default }}</div>
-      </div>
-
-      <div class="field">
-        <label for="contactName">{{ services_copy.booking_full_name_label }}</label>
-        <input id="contactName" type="text" maxlength="120" autocomplete="name" required placeholder="{{ services_copy.booking_full_name_placeholder }}">
-      </div>
-      <div class="field">
-        <label for="contactEmail">{{ services_copy.booking_email_label }}</label>
-        <input id="contactEmail" type="email" autocomplete="email" required placeholder="{{ services_copy.booking_email_placeholder }}">
-      </div>
-      <div class="field">
-        <label for="contactPhone">{{ services_copy.booking_phone_label }}</label>
-        <input id="contactPhone" type="tel" inputmode="tel" autocomplete="tel" pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}" required placeholder="{{ services_copy.booking_phone_placeholder }}">
-      </div>
-      <div class="note">{{ services_copy.booking_confirmation_hint }}</div>
-      <div class="status error" id="bookError" style="display:none;"></div>
-      <div class="status success" id="bookSuccess" style="display:none;"></div>
 
       <div class="actions">
         <button class="btn btn--ghost" type="button" id="bookCancel">{{ services_copy.booking_cancel_label }}</button>
@@ -501,10 +602,6 @@
       const apiAvail = "/accounts/api/availability/";
       const apiBook = "/accounts/api/book/";
       const copy = {
-        summaryDefault: "{{ services_copy.booking_summary_default|escapejs }}",
-        summaryStaffPrefix: "{{ services_copy.booking_summary_staff_prefix|escapejs }}",
-        summaryTimePrefix: "{{ services_copy.booking_summary_time_prefix|escapejs }}",
-        summaryTimeSelected: "{{ services_copy.booking_summary_time_selected_label|escapejs }}",
         chooseTimeLabel: "{{ services_copy.booking_choose_time_label|escapejs }}",
         noStaffLabel: "{{ services_copy.booking_no_staff_label|escapejs }}",
         noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
@@ -522,16 +619,15 @@
 
       const modal = document.getElementById('bookModal');
       const elServiceName = document.getElementById('bookServiceName');
-      const elMaster = document.getElementById('bookMaster');
       const elDate = document.getElementById('bookDate');
       const elTime = document.getElementById('bookTime');
-      const elSummary = document.getElementById('bookSummary');
       const elStatus = document.getElementById('bookingStatus');
       const elError = document.getElementById('bookError');
       const elSuccess = document.getElementById('bookSuccess');
       const btnSubmit = document.getElementById('bookSubmit');
       const btnClose = document.getElementById('bookClose');
       const btnCancel = document.getElementById('bookCancel');
+      const sheetBody = modal ? modal.querySelector('.sheet__body') : null;
 
       const contactPrefillEl = document.getElementById('contactPrefillData');
       const contactPrefill = contactPrefillEl ? JSON.parse(contactPrefillEl.textContent) : {name:'', email:'', phone:''};
@@ -540,6 +636,11 @@
         email: document.getElementById('contactEmail'),
         phone: document.getElementById('contactPhone'),
       };
+      const contactReferenceInput = document.getElementById('contactReferenceImage');
+      const contactReferencePreview = document.getElementById('contactReferencePreview');
+      const contactReferencePreviewImg = document.getElementById('contactReferencePreviewImg');
+      const contactReferencePreviewName = document.getElementById('contactReferencePreviewName');
+      const contactReferencePreviewSize = document.getElementById('contactReferencePreviewSize');
 
       const state = {
         serviceId:null,
@@ -555,11 +656,25 @@
         elStatus.classList.toggle('error', Boolean(isError));
       }
 
+      function syncDateControlWidth(){
+        if (!elDate || !elTime) return;
+        const target = elTime.getBoundingClientRect().width || (elTime.parentElement && elTime.parentElement.getBoundingClientRect().width) || 0;
+        if (!target) return;
+        const px = `${Math.round(target)}px`;
+        elDate.style.width = px;
+        elDate.style.maxWidth = px;
+        elDate.style.inlineSize = px;
+      }
+      function scheduleDateWidthSync(){
+        window.requestAnimationFrame(syncDateControlWidth);
+      }
+
       function showModal(){
         modal.classList.add('is-open');
         modal.setAttribute('aria-hidden','false');
         document.body.style.overflow = 'hidden';
         document.body.classList.add('modal-open');
+        scheduleDateWidthSync();
       }
       function hideModal(){
         modal.classList.remove('is-open');
@@ -591,11 +706,45 @@
         return fmtHM(d);
       }
 
+      function bytesToText(bytes){
+        if (!bytes && bytes !== 0) return '';
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / 1048576).toFixed(1)} MB`;
+      }
+
+      function resetReferencePreview(){
+        if (!contactReferencePreview) return;
+        contactReferencePreview.setAttribute('hidden', '');
+        if (contactReferencePreviewImg) contactReferencePreviewImg.removeAttribute('src');
+        if (contactReferencePreviewName) contactReferencePreviewName.textContent = '';
+        if (contactReferencePreviewSize) contactReferencePreviewSize.textContent = '';
+      }
+
+      function syncReferencePreview(){
+        if (!contactReferenceInput || !contactReferencePreview) return;
+        const file = contactReferenceInput.files && contactReferenceInput.files[0];
+        if (!file){
+          resetReferencePreview();
+          return;
+        }
+        contactReferencePreview.removeAttribute('hidden');
+        if (contactReferencePreviewName) contactReferencePreviewName.textContent = file.name || 'Selected image';
+        if (contactReferencePreviewSize) contactReferencePreviewSize.textContent = bytesToText(file.size);
+        if (contactReferencePreviewImg){
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            contactReferencePreviewImg.src = event.target && event.target.result ? event.target.result : '';
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
       function contactIsComplete(){
         return Boolean(contactInputs.name.value.trim() && contactInputs.email.value.trim() && contactInputs.phone.value.trim());
       }
       function updateSubmitState(){
-        btnSubmit.disabled = !(state.serviceId && state.masterId && state.slotIso && contactIsComplete());
+        btnSubmit.disabled = !(state.serviceId && state.slotIso && contactIsComplete());
       }
 
       Object.values(contactInputs).forEach(input=>{
@@ -604,6 +753,10 @@
           updateSubmitState();
         });
       });
+      if (contactReferenceInput){
+        contactReferenceInput.addEventListener('change', syncReferencePreview);
+      }
+      resetReferencePreview();
 
       function hydrateContact(){
         contactInputs.name.value = contactPrefill.name || '';
@@ -611,44 +764,23 @@
         contactInputs.phone.value = contactPrefill.phone || '';
       }
 
-      function setSummaryDefault(){
-        elSummary.textContent = copy.summaryDefault;
-      }
-
-      function renderMasterOptions(){
-        elMaster.innerHTML = '';
-        if (!state.masters.length){
-          const opt = document.createElement('option');
-          opt.value = '';
-          opt.textContent = copy.noStaffLabel;
-          elMaster.appendChild(opt);
-          elMaster.disabled = true;
-          return;
-        }
-        elMaster.disabled = false;
-        state.masters.forEach(m=>{
-          const opt = document.createElement('option');
-          opt.value = String(m.id);
-          opt.textContent = m.name;
-          elMaster.appendChild(opt);
-        });
-        if (!state.masterId || !state.masters.find(m=>String(m.id) === String(state.masterId))){
-          state.masterId = state.masters[0].id;
-        }
-        elMaster.value = String(state.masterId);
-      }
-
-      function buildTimeMap(slots){
+      function buildTimeMap(masters){
         const map = new Map();
         const times = [];
-        slots.forEach(iso=>{
-          const d = new Date(iso);
-          if (Number.isNaN(d.getTime())) return;
-          const key = hmValue(d);
-          if (!map.has(key)){
-            map.set(key, iso);
-            times.push(key);
-          }
+        (masters || []).forEach(master=>{
+          (master.slots || []).forEach(iso=>{
+            const d = new Date(iso);
+            if (Number.isNaN(d.getTime())) return;
+            const key = hmValue(d);
+            if (!map.has(key)){
+              map.set(key, {
+                iso,
+                masterId: Number(master.id),
+                masterName: master.name || '',
+              });
+              times.push(key);
+            }
+          });
         });
         times.sort();
         return {map, times};
@@ -675,36 +807,31 @@
         elTime.disabled = false;
       }
 
-      function syncSummary(){
-        if (!state.slotIso){
-          setSummaryDefault();
-          return;
-        }
-        const slotDate = new Date(state.slotIso);
-        const dayLabel = slotDate.toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
-        const staffName = elMaster.selectedOptions[0]?.textContent?.trim() || '-';
-        elSummary.textContent = `${copy.summaryStaffPrefix} ${staffName}. ${copy.summaryTimePrefix} ${fmtHM(slotDate)}, ${dayLabel}.`;
-      }
-
       function applyTimeValue(timeValue){
         if (!timeValue){
+          state.masterId = null;
           state.slotIso = null;
-          setSummaryDefault();
           setStatus(copy.chooseTimeLabel, false);
           updateSubmitState();
           return;
         }
-        const iso = state.timeMap.get(timeValue);
-        if (!iso){
+        const selected = state.timeMap.get(timeValue);
+        if (!selected){
+          state.masterId = null;
           state.slotIso = null;
-          setSummaryDefault();
           setStatus(copy.noOpenTimesLabel, true);
           updateSubmitState();
           return;
         }
-        state.slotIso = iso;
-        syncSummary();
-        setStatus('', false);
+        state.masterId = selected.masterId || null;
+        state.slotIso = selected.iso;
+        const slotDate = new Date(selected.iso);
+        if (!Number.isNaN(slotDate.getTime())){
+          const dayLabel = slotDate.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+          setStatus(`${copy.timeLabel}: ${fmtHM(slotDate)} · ${dayLabel}`, false);
+        } else {
+          setStatus('', false);
+        }
         updateSubmitState();
       }
 
@@ -713,8 +840,8 @@
         setStatus(copy.pickDayLabel, false);
         elError.style.display = 'none';
         elSuccess.style.display = 'none';
+        state.masterId = null;
         state.slotIso = null;
-        setSummaryDefault();
         updateSubmitState();
 
         try{
@@ -723,19 +850,17 @@
           if (!r.ok) throw new Error(copy.failedSlotsLabel);
           const data = await r.json();
           state.masters = data.masters || [];
-          renderMasterOptions();
           if (!state.masters.length){
+            state.timeMap = new Map();
             renderTimeOptions([]);
             setStatus(copy.noStaffLabel, true);
             return;
           }
-          const activeMaster = state.masters.find(m=>String(m.id)===String(state.masterId)) || state.masters[0];
-          state.masterId = activeMaster.id;
-          const {map, times} = buildTimeMap(activeMaster.slots || []);
+          const {map, times} = buildTimeMap(state.masters);
           state.timeMap = map;
           renderTimeOptions(times);
           if (!times.length){
-            const dayLabel = new Date(dateKey).toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
+            const dayLabel = new Date(`${dateKey}T00:00:00`).toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
             setStatus(`${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`, true);
             return;
           }
@@ -744,33 +869,11 @@
             applyTimeValue(times[0]);
             return;
           }
-          setStatus('', false);
+          setStatus(copy.chooseTimeLabel, false);
         }catch(err){
           setStatus(err.message || copy.availabilityErrorLabel, true);
         }
       }
-
-      elMaster.addEventListener('change', ()=>{
-        const masterId = elMaster.value;
-        state.masterId = masterId ? Number(masterId) : null;
-        state.slotIso = null;
-        setSummaryDefault();
-        updateSubmitState();
-        const activeMaster = state.masters.find(m=>String(m.id) === String(state.masterId));
-        const {map, times} = buildTimeMap(activeMaster?.slots || []);
-        state.timeMap = map;
-        renderTimeOptions(times);
-        if (!times.length){
-          setStatus(copy.noOpenTimesLabel, true);
-          return;
-        }
-        if (times.length === 1){
-          elTime.value = times[0];
-          applyTimeValue(times[0]);
-          return;
-        }
-        setStatus('', false);
-      });
 
       elDate.addEventListener('change', ()=>{
         loadAvailability(elDate.value);
@@ -791,16 +894,26 @@
         elError.style.display = 'none';
         elSuccess.style.display = 'none';
         hydrateContact();
-        setSummaryDefault();
+        if (contactReferenceInput) contactReferenceInput.value = '';
+        resetReferencePreview();
+        setStatus(copy.pickDayLabel, false);
         updateSubmitState();
         const today = ymd(new Date());
         elDate.value = today;
         showModal();
         loadAvailability(today);
+        scheduleDateWidthSync();
       }
 
+      if (window.ResizeObserver && sheetBody){
+        const widthObserver = new ResizeObserver(scheduleDateWidthSync);
+        widthObserver.observe(sheetBody);
+      }
+      window.addEventListener('resize', scheduleDateWidthSync, {passive:true});
+      window.addEventListener('orientationchange', scheduleDateWidthSync);
+
       async function submitBooking(){
-        if (!state.serviceId || !state.masterId || !state.slotIso) return;
+        if (!state.serviceId || !state.slotIso) return;
         if (!contactIsComplete()){
           elError.textContent = copy.missingContactError;
           elError.style.display = 'block';
@@ -810,28 +923,37 @@
         elError.style.display = 'none';
         elSuccess.style.display = 'none';
         try{
+          const payload = new FormData();
+          payload.append('service', state.serviceId);
+          payload.append('start_time', state.slotIso);
+          payload.append('contact_name', contactInputs.name.value.trim());
+          payload.append('contact_email', contactInputs.email.value.trim());
+          payload.append('contact_phone', contactInputs.phone.value.trim());
+          if (state.masterId){
+            payload.append('master', state.masterId);
+          }
+          if (contactReferenceInput && contactReferenceInput.files && contactReferenceInput.files[0]){
+            payload.append('reference_image', contactReferenceInput.files[0]);
+          }
           const resp = await fetch(apiBook, {
             method:'POST',
             headers:{
-              'Content-Type':'application/json',
               'X-CSRFToken': getCookie('csrftoken')
             },
             credentials:'same-origin',
-            body: JSON.stringify({
-              service: state.serviceId,
-              master: state.masterId,
-              start_time: state.slotIso,
-              contact: {
-                name: contactInputs.name.value.trim(),
-                email: contactInputs.email.value.trim(),
-                phone: contactInputs.phone.value.trim()
-              }
-            })
+            body: payload
           });
           const data = await resp.json().catch(()=>({}));
           if (!resp.ok){
             const contactErrors = data?.errors?.contact;
-            let message = (contactErrors && Object.values(contactErrors).find(Boolean)) || data?.error || data?.detail || copy.createErrorLabel;
+            const generalErrors = data?.errors;
+            let message =
+              (contactErrors && Object.values(contactErrors).find(Boolean))
+              || (generalErrors && generalErrors.reference_image)
+              || (generalErrors && Object.values(generalErrors).find(Boolean))
+              || data?.error
+              || data?.detail
+              || copy.createErrorLabel;
             if (Array.isArray(message)) message = message[0];
             throw new Error(message);
           }
@@ -923,7 +1045,6 @@
         const media = hasImage
           ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.name)}" loading="lazy" decoding="async">`
           : `<div class="ph" aria-hidden="true">${escapeHtml(searchCopy.serviceImageFallback)}</div>`;
-        const badge = s.category ? `<span class="service-card__badge">${escapeHtml(s.category)}</span>` : '';
         const rawDuration = s.duration_min;
         const durationValue = Number(rawDuration);
         const hasDuration = Number.isFinite(durationValue) && durationValue > 0;
@@ -940,7 +1061,6 @@
                    data-service-name="${escapeHtml(s.name)}">
             <div class="service-card__img" aria-label="${escapeHtml(searchCopy.serviceImageAriaLabel)}">
               ${media}
-              ${badge}
             </div>
             <h3>${escapeHtml(s.name)}</h3>
             ${desc}

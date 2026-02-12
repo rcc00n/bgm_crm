@@ -7,7 +7,13 @@
     <li><a href="{% url 'client-dashboard' %}">{{ topbar_copy.nav_services_label|default:"Services" }}</a></li>
     <li><a href="{% url 'store' %}">{{ topbar_copy.nav_products_label|default:"Products" }}</a></li>
     <li><a href="{% url 'merch' %}" {% if current == 'merch' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_merch_label|default:"Merch" }}</a></li>
-    <li><a href="{% url 'dealer-status' %}" {% if current == 'dealer' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_dealers_label|default:"Dealers" }}</a></li>
+    <li>
+      <a href="{% url 'dealer-entry' %}" {% if current == 'dealer' %}aria-current="page"{% endif %}>
+        {% with dealer_label=topbar_copy.nav_dealers_label|default:"Become a Dealer" %}
+          {% if dealer_label|lower == "dealers" %}Become a Dealer{% else %}{{ dealer_label }}{% endif %}
+        {% endwith %}
+      </a>
+    </li>
     <li><a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_financing_label|default:"Financing" }}</a></li>
     <li>
       <a href="{% url 'our-story' %}" {% if current == 'about' %}aria-current="page"{% endif %}>
@@ -32,7 +38,11 @@
   <a href="{% url 'merch' %}" {% if current == 'merch' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_merch_label|default:"Merch" }}</a>
 </li>
 <li class="bgm-topbar__nav-item bgm-topbar__nav-item--mobile-only">
-  <a href="{% url 'dealer-status' %}" {% if current == 'dealer' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_dealers_label|default:"Dealers" }}</a>
+  <a href="{% url 'dealer-entry' %}" {% if current == 'dealer' %}aria-current="page"{% endif %}>
+    {% with dealer_label=topbar_copy.nav_dealers_label|default:"Become a Dealer" %}
+      {% if dealer_label|lower == "dealers" %}Become a Dealer{% else %}{{ dealer_label }}{% endif %}
+    {% endwith %}
+  </a>
 </li>
 <li class="bgm-topbar__nav-item bgm-topbar__nav-item--mobile-only">
   <a href="{% url 'financing' %}" {% if current == 'financing' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_financing_label|default:"Financing" }}</a>

@@ -1742,7 +1742,7 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
 
 from django.contrib import admin
 from django.utils import timezone
-from core.models import DealerApplication, DealerTierLevel, UserProfile
+from core.models import DealerApplication, DealerTier, DealerTierLevel, UserProfile
 
 
 @admin.register(DealerTierLevel)
@@ -1763,18 +1763,54 @@ class DealerTierLevelAdmin(admin.ModelAdmin):
 @admin.register(DealerApplication)
 class DealerApplicationAdmin(admin.ModelAdmin):
     list_display = (
-        "user", "business_name", "status",
+        "user", "business_name", "status", "products_spent_display",
         "preferred_tier_display", "assigned_tier_display",
         "created_at", "reviewed_by", "reviewed_at",
     )
     list_filter = ("status", "preferred_tier", "assigned_tier", "created_at")
-    search_fields = ("user__email", "user__username", "business_name", "phone", "website")
-    readonly_fields = ("created_at", "reviewed_at", "reviewed_by")
+    search_fields = (
+        "user__email",
+        "user__username",
+        "business_name",
+        "operating_as",
+        "phone",
+        "email",
+        "website",
+        "city",
+        "province",
+        "postal_code",
+    )
+    readonly_fields = ("created_at", "reviewed_at", "reviewed_by", "products_spent_display")
     fieldsets = (
         ("Application", {
             "fields": (
-                "user", "business_name", "website", "phone",
-                "preferred_tier", "notes",
+                "user",
+                "products_spent_display",
+                "business_name",
+                "operating_as",
+                "business_type",
+                "years_in_business",
+                "website",
+                "phone",
+                "email",
+                "business_address",
+                "city",
+                "province",
+                "postal_code",
+                "gst_tax_id",
+                "business_license_number",
+                "resale_certificate_number",
+                "reference_1_name",
+                "reference_1_phone",
+                "reference_1_email",
+                "reference_2_name",
+                "reference_2_phone",
+                "reference_2_email",
+                "authorized_signature_printed_name",
+                "authorized_signature_title",
+                "authorized_signature_date",
+                "preferred_tier",
+                "notes",
             )
         }),
         ("Review", {
@@ -1787,6 +1823,48 @@ class DealerApplicationAdmin(admin.ModelAdmin):
 
     actions = ["approve_selected", "reject_selected"]
 
+    def _revoke_dealer_profile(self, obj):
+        up = getattr(obj.user, "userprofile", None)
+        if not up or not getattr(up, "is_dealer", False):
+            return
+        up.is_dealer = False
+        up.dealer_tier = DealerTier.NONE
+        update_fields = ["is_dealer", "dealer_tier"]
+        if hasattr(up, "dealer_welcome_seen"):
+            up.dealer_welcome_seen = True
+            update_fields.append("dealer_welcome_seen")
+        up.save(update_fields=update_fields)
+
+    def save_model(self, request, obj, form, change):
+        """
+        Keep dealer profile + review metadata in sync even when staff approve/reject
+        via the change form (not the bulk actions).
+        """
+        previous_status = None
+        if change and obj.pk:
+            try:
+                previous_status = DealerApplication.objects.only("status").get(pk=obj.pk).status
+            except DealerApplication.DoesNotExist:
+                previous_status = None
+        super().save_model(request, obj, form, change)
+        if obj.status == DealerApplication.Status.APPROVED and previous_status != DealerApplication.Status.APPROVED:
+            obj.approve(admin_user=request.user)
+        elif obj.status == DealerApplication.Status.REJECTED and previous_status != DealerApplication.Status.REJECTED:
+            obj.reject(admin_user=request.user)
+        elif obj.status == DealerApplication.Status.PENDING and previous_status == DealerApplication.Status.APPROVED:
+            # Moving an approved application back to pending should revoke wholesale access.
+            self._revoke_dealer_profile(obj)
+
+    def delete_model(self, request, obj):
+        # Deleting an application should also drop any dealer access that was granted from it.
+        self._revoke_dealer_profile(obj)
+        return super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        for obj in queryset.select_related("user"):
+            self._revoke_dealer_profile(obj)
+        return super().delete_queryset(request, queryset)
+
     @admin.display(description="Requested tier")
     def preferred_tier_display(self, obj):
         return obj.get_preferred_tier_display() or "—"
@@ -1794,6 +1872,16 @@ class DealerApplicationAdmin(admin.ModelAdmin):
     @admin.display(description="Assigned tier")
     def assigned_tier_display(self, obj):
         return obj.get_assigned_tier_display() or "—"
+
+    @admin.display(description="Products spent")
+    def products_spent_display(self, obj):
+        try:
+            up = getattr(obj.user, "userprofile", None)
+            if not up:
+                return format_currency(0)
+            return format_currency(up.total_spent_products_cad())
+        except Exception:
+            return format_currency(0)
 
     @admin.action(description="Approve selected applications")
     def approve_selected(self, request, queryset):
@@ -1822,7 +1910,7 @@ class DealerApplicationAdmin(admin.ModelAdmin):
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = (
         "user", "is_dealer", "dealer_tier", "dealer_since",
-        "total_spent_display", "dealer_discount_display",
+        "products_spent_display", "total_spent_display", "dealer_discount_display",
     )
     list_filter = ("is_dealer", "dealer_tier")
     search_fields = ("user__email", "user__username")
@@ -1834,10 +1922,17 @@ class UserProfileAdmin(admin.ModelAdmin):
         # добавьте ваши остальные поля профиля при необходимости
     )
 
-    @admin.display(description="Total spent")
+    @admin.display(description="Services spent")
     def total_spent_display(self, obj):
         try:
             return format_currency(obj.total_spent_cad())
+        except Exception:
+            return format_currency(0)
+
+    @admin.display(description="Products spent")
+    def products_spent_display(self, obj):
+        try:
+            return format_currency(obj.total_spent_products_cad())
         except Exception:
             return format_currency(0)
 
@@ -2609,6 +2704,7 @@ PAGECOPY_FONT_PAGES = {
     StorePageCopy: PageFontSetting.Page.STORE,
     MerchPageCopy: PageFontSetting.Page.MERCH,
     AboutPageCopy: PageFontSetting.Page.ABOUT,
+    ProjectJournalPageCopy: PageFontSetting.Page.PROJECT_JOURNAL,
 }
 
 
@@ -3738,10 +3834,44 @@ class MerchPageCopyAdminForm(forms.ModelForm):
         asset.save()
 
 
+class MerchGalleryItemInline(admin.StackedInline):
+    model = MerchGalleryItem
+    extra = 1
+    ordering = ("sort_order", "id")
+    fields = (
+        "is_active",
+        "sort_order",
+        "category",
+        "title",
+        "description",
+        "photo",
+        "photo_alt",
+        "colors",
+        "sizes",
+        "photo_preview",
+    )
+    readonly_fields = ("photo_preview",)
+    verbose_name = "Merch gallery item"
+    verbose_name_plural = "Merch gallery items (upload, categorize, and reorder cards)"
+
+    @admin.display(description="Preview")
+    def photo_preview(self, obj):
+        if not obj or not getattr(obj, "photo", None):
+            return "Upload image to preview."
+        try:
+            return format_html(
+                '<img src="{}" alt="" style="max-width:220px; border-radius:10px; border:1px solid #ddd;" />',
+                obj.photo.url,
+            )
+        except Exception:
+            return "Preview unavailable."
+
+
 @admin.register(MerchPageCopy)
 class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
     readonly_fields = ("created_at", "updated_at")
+    inlines = [MerchGalleryItemInline]
     form = MerchPageCopyAdminForm
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
@@ -3800,7 +3930,7 @@ class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
             )
         }),
         ("Card meta labels", {"fields": ("card_colors_label", "card_sizes_label")}),
-        ("Drop idea cards", {
+        ("Legacy drop idea cards (optional fallback)", {
             "fields": (
                 "card_1_title",
                 "card_1_desc",
@@ -3826,7 +3956,8 @@ class MerchPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "card_4_photo_alt",
                 "card_4_colors",
                 "card_4_sizes",
-            )
+            ),
+            "description": "Optional legacy cards. For convenient multi-image uploads use the merch gallery items inline section below.",
         }),
         ("Social links", {
             "fields": (
@@ -4235,6 +4366,7 @@ class DealerStatusPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "application_pending_callout",
                 "application_rejected_callout",
                 "application_approved_callout",
+                "dealer_welcome_callout",
                 "application_none_callout",
                 "application_metric_business_label",
                 "application_metric_tier_label",
@@ -4275,6 +4407,43 @@ class DealerStatusPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     @admin.display(description="Page")
     def label(self, obj):
         return "Dealer portal"
+
+
+@admin.register(ProjectJournalPageCopy)
+class ProjectJournalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("page_title", "meta_description")}),
+        ("Hero", {"fields": ("hero_eyebrow", "hero_lead")}),
+        ("Filters", {
+            "fields": (
+                "search_placeholder",
+                "sort_featured_label",
+                "sort_newest_label",
+                "apply_filters_label",
+                "clear_filters_label",
+                "empty_results_label",
+                "filters_min_build_count",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if ProjectJournalPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "Project journal"
 
 
 class EmailTemplateSettingsForm(forms.ModelForm):
@@ -4950,6 +5119,9 @@ class _ProjectJournalFixedKindPhotoFormSet(BaseInlineFormSet):
         if any(self.errors):
             return
 
+        if self.fixed_kind not in {ProjectJournalPhoto.Kind.BEFORE, ProjectJournalPhoto.Kind.AFTER}:
+            return
+
         status = (self.data.get("status") or "").strip()
         if status != ProjectJournalEntry.Status.PUBLISHED:
             return
@@ -5001,6 +5173,10 @@ class ProjectJournalAfterPhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
     require_message = "To publish, add at least one AFTER photo."
 
 
+class ProjectJournalProcessPhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
+    fixed_kind = ProjectJournalPhoto.Kind.PROCESS
+
+
 class _ProjectJournalPhotoInline(admin.TabularInline):
     extra = 1
     fields = ("image_preview", "image", "alt_text", "sort_order")
@@ -5039,11 +5215,44 @@ class ProjectJournalAfterPhotoInline(_ProjectJournalPhotoInline):
         return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.AFTER)
 
 
+class ProjectJournalProcessPhotoInline(_ProjectJournalPhotoInline):
+    model = ProjectJournalProcessPhoto
+    formset = ProjectJournalProcessPhotoFormSet
+    verbose_name_plural = "Process media"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.PROCESS)
+
+
+class ProjectJournalEntryAdminForm(forms.ModelForm):
+    page_intro_text = forms.CharField(
+        required=False,
+        label="Page intro text (shared)",
+        help_text="Text shown under the BUILDS title on the main Project Journal page.",
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+    class Meta:
+        model = ProjectJournalEntry
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            copy_obj = ProjectJournalPageCopy.get_solo()
+            self.fields["page_intro_text"].initial = copy_obj.hero_lead
+        except Exception:
+            self.fields["page_intro_text"].help_text = (
+                "Shared page copy is unavailable until project journal copy migration is applied."
+            )
+
+
 @admin.register(ProjectJournalEntry)
 class ProjectJournalEntryAdmin(admin.ModelAdmin):
+    form = ProjectJournalEntryAdminForm
     change_form_template = "admin/core/projectjournalentry/change_form.html"
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
-    list_filter = ("status", "featured", "published_at", "categories")
+    list_filter = ("status", "desktop_media_mode", "featured", "published_at", "categories")
     search_fields = (
         "title",
         "excerpt",
@@ -5060,7 +5269,11 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
     ordering = ("-published_at", "-updated_at")
     readonly_fields = ("created_at", "updated_at", "preview_link")
     prepopulated_fields = {"slug": ("title",)}
-    inlines = (ProjectJournalBeforePhotoInline, ProjectJournalAfterPhotoInline)
+    inlines = (
+        ProjectJournalBeforePhotoInline,
+        ProjectJournalProcessPhotoInline,
+        ProjectJournalAfterPhotoInline,
+    )
     fieldsets = (
         ("Story", {
             "fields": (
@@ -5070,8 +5283,10 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
                 "excerpt",
                 "cover_image",
                 "result_highlight",
+                "desktop_media_mode",
             )
         }),
+        ("Page header (shared)", {"fields": ("page_intro_text",)}),
         ("Calls to action", {
             "fields": (
                 ("cta_primary_label", "cta_primary_url"),
@@ -5086,15 +5301,7 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
             ),
             "classes": ("collapse",),
         }),
-        ("Build breakdown", {
-            "fields": (
-                "overview",
-                "parts",
-                "customizations",
-                "backstory",
-            )
-        }),
-        ("Full report", {"fields": ("body",)}),
+        ("Build details", {"fields": ("overview",)}),
         ("Project meta", {
             "fields": (
                 "client_name",
@@ -5168,6 +5375,21 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
                 entry.save()
                 updated += 1
         self.message_user(request, f"Moved {updated} post(s) to draft.")
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        intro_text = (form.cleaned_data.get("page_intro_text") or "").strip()
+        try:
+            copy_obj = ProjectJournalPageCopy.get_solo()
+            if copy_obj.hero_lead != intro_text:
+                copy_obj.hero_lead = intro_text
+                copy_obj.save()
+        except Exception:
+            self.message_user(
+                request,
+                "Entry saved, but shared page intro text was not updated.",
+                level=messages.WARNING,
+            )
 
 
 @admin.register(HeroImage)

@@ -1,5 +1,6 @@
 # store/views.py
 from decimal import Decimal, ROUND_HALF_UP
+import os
 import re
 from typing import Dict, Iterable
 import logging
@@ -8,6 +9,8 @@ import json
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.core.files.base import File
 from django.core.exceptions import ValidationError
 from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
@@ -31,18 +34,87 @@ from .models import (
     CarModel,
 )
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm
-from core.models import Payment, PaymentMethod, StorePageCopy, PageFontSetting
+from core.models import ClientFile, Payment, PaymentMethod, StorePageCopy, PageFontSetting
 from core.services.page_sections import get_page_sections
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
 from core.services.fonts import build_page_font_context
 from notifications import services as notification_services
 
 logger = logging.getLogger(__name__)
+UserModel = get_user_model()
 
 REFERENCE_IMAGE_MAX_MB = getattr(settings, "STORE_REFERENCE_IMAGE_MAX_MB", 8)
 REFERENCE_IMAGE_MAX_BYTES = int(REFERENCE_IMAGE_MAX_MB * 1024 * 1024)
 
 PAYMENT_QUANT = Decimal("0.01")
+
+
+def _validate_reference_image(uploaded_file) -> str:
+    if not uploaded_file:
+        return ""
+    if uploaded_file.size > REFERENCE_IMAGE_MAX_BYTES:
+        return f"Image is too large. Limit: {REFERENCE_IMAGE_MAX_MB} MB."
+    if not (uploaded_file.content_type or "").lower().startswith("image/"):
+        return "Please upload an image file."
+    try:
+        with Image.open(uploaded_file) as img:
+            img.verify()
+        uploaded_file.seek(0)
+    except (UnidentifiedImageError, OSError):
+        return "Unsupported image. Use JPG, PNG, or WEBP."
+    return ""
+
+
+def _resolve_client_file_owner(*, request_user=None, email: str = ""):
+    if request_user and getattr(request_user, "is_authenticated", False):
+        return request_user
+    normalized = (email or "").strip()
+    if not normalized:
+        return None
+    return UserModel.objects.filter(email__iexact=normalized).first()
+
+
+def _create_client_portal_file_from_upload(*, owner, uploaded_file, description: str) -> ClientFile | None:
+    if not owner or not uploaded_file:
+        return None
+    try:
+        uploaded_file.seek(0)
+    except Exception:
+        pass
+    try:
+        return ClientFile.objects.create(
+            user=owner,
+            file=uploaded_file,
+            uploaded_by=ClientFile.USER,
+            description=(description or "")[:255],
+        )
+    except Exception:
+        logger.exception("Failed to save uploaded reference to client portal files for user=%s", getattr(owner, "pk", None))
+    return None
+
+
+def _copy_saved_image_to_client_portal(*, owner, image_field, description: str) -> ClientFile | None:
+    if not owner or not image_field:
+        return None
+    source_name = os.path.basename(getattr(image_field, "name", "") or "reference.jpg")
+    try:
+        image_field.open("rb")
+        client_file = ClientFile(
+            user=owner,
+            uploaded_by=ClientFile.USER,
+            description=(description or "")[:255],
+        )
+        client_file.file.save(source_name, File(image_field.file), save=False)
+        client_file.save()
+        return client_file
+    except Exception:
+        logger.exception("Failed to copy reference image to client portal files for user=%s", getattr(owner, "pk", None))
+    finally:
+        try:
+            image_field.close()
+        except Exception:
+            pass
+    return None
 
 
 def _square_ready() -> bool:
@@ -349,6 +421,11 @@ def _notify_fitment_request(request_obj):
         f"Budget: {request_obj.budget or '—'}",
         f"Timeline: {request_obj.timeline or '—'}",
     ]
+    if getattr(request_obj, "reference_image", None):
+        try:
+            detail_lines.append(f"Reference photo: {request_obj.reference_image.url}")
+        except Exception:
+            detail_lines.append("Reference photo: uploaded")
     if request_obj.source_url:
         detail_lines.append(f"Source: {request_obj.source_url}")
     notice_lines = list(template.notice_lines)
@@ -383,6 +460,11 @@ def _notify_fitment_request(request_obj):
             ("Budget", request_obj.budget or "—"),
             ("Timeline", request_obj.timeline or "—"),
         ]
+        if getattr(request_obj, "reference_image", None):
+            try:
+                detail_rows.append(("Reference photo", request_obj.reference_image.url))
+            except Exception:
+                detail_rows.append(("Reference photo", "Uploaded"))
         if request_obj.source_url:
             detail_rows.append(("Source", request_obj.source_url))
         notice_lines_html = list(template.notice_lines)
@@ -410,6 +492,65 @@ def _notify_fitment_request(request_obj):
         )
     except Exception:
         logger.exception("Failed to notify about custom fitment request (id=%s)", request_obj.pk)
+
+
+def _send_fitment_request_received_email(request_obj):
+    recipient = (getattr(request_obj, "email", "") or "").strip()
+    if not recipient:
+        return
+
+    context = base_email_context(
+        {
+            "customer_name": request_obj.customer_name,
+            "product_name": request_obj.product_name or "Custom build",
+            "timeline": request_obj.timeline or "",
+        }
+    )
+    template = render_email_template("fitment_request_received", context)
+    detail_lines = [
+        f"Request for: {request_obj.product_name or 'Custom build'}",
+        "We got your fitment request and our team will reach out soon.",
+    ]
+    if request_obj.timeline:
+        detail_lines.append(f"Requested timeline: {request_obj.timeline}")
+    text_body = join_text_sections(
+        [template.greeting],
+        template.intro_lines,
+        detail_lines,
+        template.footer_lines,
+    )
+
+    sender = (
+        getattr(settings, "DEFAULT_FROM_EMAIL", None)
+        or getattr(settings, "SUPPORT_EMAIL", None)
+    )
+    if not sender:
+        return
+
+    try:
+        detail_rows = [("Request for", request_obj.product_name or "Custom build")]
+        if request_obj.timeline:
+            detail_rows.append(("Requested timeline", request_obj.timeline))
+        html_body = build_email_html(
+            title=template.title,
+            preheader=template.preheader,
+            greeting=template.greeting,
+            intro_lines=template.intro_lines,
+            detail_rows=detail_rows,
+            footer_lines=template.footer_lines,
+            cta_label=template.cta_label,
+            cta_url=getattr(settings, "COMPANY_WEBSITE", ""),
+        )
+        send_html_email(
+            subject=template.subject,
+            text_body=text_body,
+            html_body=html_body,
+            from_email=sender,
+            recipient_list=[recipient],
+            email_type="fitment_request_received",
+        )
+    except Exception:
+        logger.exception("Failed to send fitment request confirmation (id=%s)", request_obj.pk)
 
 
 def _normalize_etransfer_email(raw: str | None) -> str:
@@ -774,18 +915,30 @@ def product_detail(request, slug: str):
         form_data = request.POST.copy()
         form_data["product"] = product.pk
         form_data.setdefault("source_url", request.build_absolute_uri())
-        quote_form = CustomFitmentRequestForm(form_data)
+        quote_form = CustomFitmentRequestForm(form_data, request.FILES)
         if quote_form.is_valid():
             fitment_request = quote_form.save(commit=False)
             fitment_request._skip_telegram_notify = True  # avoid duplicate signal send
             fitment_request.save()
+            fitment_owner = _resolve_client_file_owner(
+                request_user=request.user,
+                email=fitment_request.email,
+            )
+            if fitment_owner and getattr(fitment_request, "reference_image", None):
+                _copy_saved_image_to_client_portal(
+                    owner=fitment_owner,
+                    image_field=fitment_request.reference_image,
+                    description=f"Custom fitment reference for {fitment_request.product_name or 'custom build'}",
+                )
             _notify_fitment_request(fitment_request)
+            _send_fitment_request_received_email(fitment_request)
             transaction.on_commit(
                 lambda: notification_services.notify_about_fitment_request(fitment_request.pk)
             )
+            customer_name = (fitment_request.customer_name or "").strip() or "there"
             messages.success(
                 request,
-                "Thanks! Your build notes reached our team. Expect a reply within 1-2 business days.",
+                f"Hi {customer_name}, thanks for submitting your custom fitment request. We got it and will reach out soon.",
             )
             return redirect(product.get_absolute_url() + "#quote-request")
         messages.error(request, "Please correct the fields highlighted below.")
@@ -850,19 +1003,47 @@ def _cart(session) -> Dict[str, list]:
                 option_id = int(option_id)
             except (TypeError, ValueError):
                 option_id = None
-        normalized.append({"product_id": product_id, "option_id": option_id, "qty": qty})
+        reference_client_file_id = entry.get("reference_client_file_id")
+        if reference_client_file_id in ("", None):
+            reference_client_file_id = None
+        else:
+            reference_client_file_id = str(reference_client_file_id)
+        reference_file_name = (entry.get("reference_file_name") or "").strip()[:255]
+        normalized.append(
+            {
+                "product_id": product_id,
+                "option_id": option_id,
+                "qty": qty,
+                "reference_client_file_id": reference_client_file_id,
+                "reference_file_name": reference_file_name,
+            }
+        )
 
     data["items"] = normalized
     session[CART_KEY] = data
     return data
 
 
-def _cart_add_item(session, *, product_id: int, qty: int, option_id: int | None = None):
+def _cart_add_item(
+    session,
+    *,
+    product_id: int,
+    qty: int,
+    option_id: int | None = None,
+    reference_client_file_id: str | None = None,
+    reference_file_name: str = "",
+):
     qty = max(1, int(qty))
     cart = _cart(session)
     for item in cart["items"]:
-        if item["product_id"] == product_id and item["option_id"] == option_id:
+        if (
+            item["product_id"] == product_id
+            and item["option_id"] == option_id
+            and item.get("reference_client_file_id") == reference_client_file_id
+        ):
             item["qty"] += qty
+            if reference_file_name and not item.get("reference_file_name"):
+                item["reference_file_name"] = reference_file_name
             break
     else:
         cart["items"].append(
@@ -870,13 +1051,15 @@ def _cart_add_item(session, *, product_id: int, qty: int, option_id: int | None 
                 "product_id": product_id,
                 "option_id": option_id,
                 "qty": qty,
+                "reference_client_file_id": reference_client_file_id,
+                "reference_file_name": (reference_file_name or "")[:255],
             }
         )
     session.modified = True
     return cart
 
 
-def _cart_positions(session, *, dealer_discount: int = 0):
+def _cart_positions(session, *, dealer_discount: int = 0, user=None):
     """
     Build hydrated cart positions for rendering/checkout.
     Returns (positions, dealer_total, retail_total).
@@ -889,6 +1072,11 @@ def _cart_positions(session, *, dealer_discount: int = 0):
     quant = Decimal("0.01")
     product_ids = {it["product_id"] for it in items}
     option_ids = {it["option_id"] for it in items if it.get("option_id")}
+    reference_file_ids = {
+        str(it.get("reference_client_file_id"))
+        for it in items
+        if it.get("reference_client_file_id")
+    }
 
     products = {
         p.id: p
@@ -898,6 +1086,12 @@ def _cart_positions(session, *, dealer_discount: int = 0):
         opt.id: opt
         for opt in ProductOption.objects.filter(id__in=option_ids)
     } if option_ids else {}
+    client_files: dict[str, ClientFile] = {}
+    if reference_file_ids:
+        files_qs = ClientFile.objects.filter(pk__in=reference_file_ids)
+        if user and getattr(user, "is_authenticated", False):
+            files_qs = files_qs.filter(user=user)
+        client_files = {str(item.id): item for item in files_qs}
 
     positions = []
     total = Decimal("0.00")
@@ -923,6 +1117,18 @@ def _cart_positions(session, *, dealer_discount: int = 0):
             discounted_unit = apply_dealer_discount(retail_unit, dealer_discount)
         line_total = (discounted_unit * qty).quantize(quant)
 
+        reference_client_file_id = entry.get("reference_client_file_id") or None
+        reference_file_name = (entry.get("reference_file_name") or "").strip()
+        reference_file = client_files.get(str(reference_client_file_id)) if reference_client_file_id else None
+        reference_preview_url = ""
+        if reference_file and reference_file.is_image:
+            try:
+                reference_preview_url = reference_file.file.url
+            except Exception:
+                reference_preview_url = ""
+        if reference_file and not reference_file_name:
+            reference_file_name = reference_file.filename
+
         total += line_total
         retail_total += retail_line
         positions.append(
@@ -937,6 +1143,10 @@ def _cart_positions(session, *, dealer_discount: int = 0):
                 "savings": (retail_line - line_total).quantize(quant),
                 "discount_percent": dealer_discount if dealer_discount else 0,
                 "option_id": entry["option_id"],
+                "reference_client_file_id": reference_client_file_id,
+                "reference_file_name": reference_file_name,
+                "reference_preview_url": reference_preview_url,
+                "has_reference_photo": bool(reference_client_file_id),
             }
         )
 
@@ -1060,11 +1270,40 @@ def cart_add(request, slug: str):
         messages.error(request, "Please select an option before adding the product to the cart.")
         return redirect("store:store-product", slug=product.slug)
 
+    reference_client_file_id = None
+    reference_file_name = ""
+    reference_file = request.FILES.get("reference_image")
+    if reference_file:
+        reference_error = _validate_reference_image(reference_file)
+        if reference_error:
+            messages.error(request, reference_error)
+            return redirect("store:store-product", slug=product.slug)
+        reference_owner = _resolve_client_file_owner(request_user=request.user)
+        if not reference_owner:
+            messages.error(
+                request,
+                "Please sign in to attach a reference photo to a specific cart item.",
+            )
+            return redirect("store:store-product", slug=product.slug)
+        option_name = option.name if option else "default option"
+        client_file = _create_client_portal_file_from_upload(
+            owner=reference_owner,
+            uploaded_file=reference_file,
+            description=f"Store cart reference for {product.name} ({option_name})",
+        )
+        if not client_file:
+            messages.error(request, "Could not save the reference photo. Please try again.")
+            return redirect("store:store-product", slug=product.slug)
+        reference_client_file_id = str(client_file.id)
+        reference_file_name = client_file.filename or os.path.basename(getattr(reference_file, "name", "") or "")
+
     _cart_add_item(
         request.session,
         product_id=product.id,
         qty=qty,
         option_id=option.id if option else None,
+        reference_client_file_id=reference_client_file_id,
+        reference_file_name=reference_file_name,
     )
 
     if request.POST.get("buy_now") == "1":
@@ -1072,13 +1311,20 @@ def cart_add(request, slug: str):
         return redirect("store:store-checkout")
 
     opt_suffix = f" ({option.name})" if option else ""
-    messages.success(request, f'Added to cart: "{product.name}{opt_suffix}".')
+    if reference_client_file_id:
+        messages.success(request, f'Added to cart: "{product.name}{opt_suffix}" with a reference photo.')
+    else:
+        messages.success(request, f'Added to cart: "{product.name}{opt_suffix}".')
     return redirect("store:store-product", slug=product.slug)
 
 
 def cart_view(request):
     dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
-    positions, total, retail_total = _cart_positions(request.session, dealer_discount=dealer_discount)
+    positions, total, retail_total = _cart_positions(
+        request.session,
+        dealer_discount=dealer_discount,
+        user=request.user if request.user.is_authenticated else None,
+    )
     savings = (retail_total - total) if retail_total and total else Decimal("0.00")
     context = {
         "positions": positions,
@@ -1095,6 +1341,7 @@ def cart_view(request):
 def cart_remove(request, slug: str):
     product = get_object_or_404(Product, slug=slug)
     option_id_raw = request.POST.get("option_id")
+    reference_client_file_id = (request.POST.get("reference_client_file_id") or "").strip() or None
     option_pk = None
     if option_id_raw not in (None, "", "null"):
         try:
@@ -1106,7 +1353,11 @@ def cart_remove(request, slug: str):
     before = len(cart["items"])
     cart["items"] = [
         item for item in cart["items"]
-        if not (item["product_id"] == product.id and item.get("option_id") == option_pk)
+        if not (
+            item["product_id"] == product.id
+            and item.get("option_id") == option_pk
+            and (item.get("reference_client_file_id") or None) == reference_client_file_id
+        )
     ]
     removed = before - len(cart["items"])
     if removed:
@@ -1116,7 +1367,8 @@ def cart_remove(request, slug: str):
             opt = ProductOption.objects.filter(id=option_pk, product=product).first()
             if opt:
                 option_label = f" ({opt.name})"
-        messages.info(request, f'Removed from cart: "{product.name}{option_label}".')
+        ref_label = " with reference photo" if reference_client_file_id else ""
+        messages.info(request, f'Removed from cart: "{product.name}{option_label}"{ref_label}.')
     return redirect("store:store-cart")
 
 
@@ -1141,7 +1393,11 @@ def _first_present(model_fields: set, candidates: Iterable[str]):
 def checkout(request):
     # собрать позиции заказа из корзины
     dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
-    positions, total, retail_total = _cart_positions(request.session, dealer_discount=dealer_discount)
+    positions, total, retail_total = _cart_positions(
+        request.session,
+        dealer_discount=dealer_discount,
+        user=request.user if request.user.is_authenticated else None,
+    )
 
     gst_rate = _get_decimal_setting("STORE_GST_RATE", "0.05")
     processing_rate = _get_decimal_setting("STORE_PROCESSING_FEE_RATE", "0.035")
@@ -1260,17 +1516,9 @@ def checkout(request):
             errors["agree"] = "You must agree to the terms."
 
         if reference_file:
-            if reference_file.size > REFERENCE_IMAGE_MAX_BYTES:
-                errors["reference_image"] = f"Image is too large. Limit: {REFERENCE_IMAGE_MAX_MB} MB."
-            elif not (reference_file.content_type or "").lower().startswith("image/"):
-                errors["reference_image"] = "Please upload an image file."
-            else:
-                try:
-                    with Image.open(reference_file) as img:
-                        img.verify()
-                    reference_file.seek(0)
-                except (UnidentifiedImageError, OSError):
-                    errors["reference_image"] = "Unsupported image. Use JPG, PNG, or WEBP."
+            image_error = _validate_reference_image(reference_file)
+            if image_error:
+                errors["reference_image"] = image_error
 
         if any(getattr(it["product"], "contact_for_estimate", False) for it in positions):
             errors["payment"] = "Items that require an estimate must be invoiced manually. Please remove them to pay online."
@@ -1402,6 +1650,17 @@ def checkout(request):
                     if memo_hint:
                         payment_note_parts.append(memo_hint)
                     extra_blocks.append("[Payment] " + " ".join(payment_note_parts))
+                item_reference_notes = []
+                for it in positions:
+                    if not it.get("has_reference_photo"):
+                        continue
+                    item_label = it["product"].name
+                    if it.get("option"):
+                        item_label = f"{item_label} ({it['option'].name})"
+                    file_name = it.get("reference_file_name") or "reference photo"
+                    item_reference_notes.append(f"- {item_label}: {file_name}")
+                if item_reference_notes:
+                    extra_blocks.append("[Item references]\n" + "\n".join(item_reference_notes))
                 if extra_blocks:
                     order_kwargs[comment_field] = "\n".join(extra_blocks)
 
@@ -1415,9 +1674,19 @@ def checkout(request):
 
             if reference_file and "reference_image" in o_fields:
                 order_kwargs["reference_image"] = reference_file
+            portal_owner = _resolve_client_file_owner(
+                request_user=request.user,
+                email=form.get("email", ""),
+            )
 
             with transaction.atomic():
                 order = Order.objects.create(**order_kwargs)
+                if portal_owner and getattr(order, "reference_image", None):
+                    _copy_saved_image_to_client_portal(
+                        owner=portal_owner,
+                        image_field=order.reference_image,
+                        description=f"Store checkout reference for Order #{order.id}",
+                    )
 
                 # ── создание позиций ──
                 i_fields = _model_field_names(OrderItem)

@@ -445,40 +445,40 @@ h1.title{
   -webkit-appearance:none;
   width:22px;
   height:22px;
+  aspect-ratio:1 / 1;
+  box-sizing:border-box;
+  padding:0;
   border-radius:0;
   border:2px solid rgba(255,255,255,.35);
-  background:transparent;
-  display:grid;
-  place-items:center;
+  background:rgba(255,255,255,.02);
+  display:inline-grid;
+  place-content:center;
   margin-top:2px;
   cursor:pointer;
   position:relative;
   flex-shrink:0;
+  transition:border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
 }
 
 .field--agree input::after{
-  content:"";
-  width:10px;
-  height:6px;
-  border-left:2px solid #fff;
-  border-bottom:2px solid #fff;
-  transform:rotate(-45deg) scale(0);
-  transition:transform .15s ease;
+  content:none;
 }
 
 .field--agree input:checked{
-  background:linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
   border-color:var(--red);
-  box-shadow:0 8px 18px rgba(225,6,0,.35);
-}
-
-.field--agree input:checked::after{
-  transform:rotate(-45deg) scale(1);
+  background:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A//www.w3.org/2000/svg'%20viewBox%3D'0%200%2024%2024'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'3'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%3Cpath%20d%3D'M20%206L9%2017l-5-5'/%3E%3C/svg%3E") center/14px 14px no-repeat,
+    linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
+  box-shadow:0 8px 18px rgba(225,6,0,.25);
 }
 
 .field--agree input:focus-visible{
   outline:none;
   box-shadow:0 0 0 3px rgba(225,6,0,.35);
+}
+
+.field--agree input:checked:focus-visible{
+  box-shadow:0 8px 18px rgba(225,6,0,.25), 0 0 0 3px rgba(225,6,0,.35);
 }
 
 .field--agree label{

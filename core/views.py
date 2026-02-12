@@ -2,6 +2,8 @@
 import logging
 import re
 
+from django.apps import apps
+from django import forms
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
@@ -25,15 +27,17 @@ from django.core.paginator import Paginator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.urls import reverse
 from django.template.response import TemplateResponse
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import json
 import html as py_html
 from django.utils.functional import cached_property
+from PIL import Image, UnidentifiedImageError
 
 from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from core.models import (
     Appointment,
+    AdminSidebarSeen,
     ServiceCategory,
     Service,
     CustomUserDisplay,
@@ -41,6 +45,7 @@ from core.models import (
     LegalPage,
     ProjectJournalCategory,
     ProjectJournalEntry,
+    ProjectJournalPageCopy,
     PageView,
     VisitorSession,
     PageFontSetting,
@@ -53,10 +58,13 @@ from core.models import (
     ServicesPageCopy,
     FinancingPageCopy,
     AboutPageCopy,
+    DealerApplication,
     DealerStatusPageCopy,
+    DealerTier,
     EmailCampaign,
     EmailSendLog,
     EmailSubscriber,
+    ClientFile,
 )
 from core.forms import ServiceLeadForm
 from core.services.booking import (
@@ -80,13 +88,61 @@ from core.services.analytics import (
 )
 from core.services.ip_location import format_ip_location, get_client_ip
 from core.services.email_reporting import describe_email_types
+from core.services.dealer_application_emails import send_dealer_application_submitted
 from notifications.services import (
     notify_about_service_lead,
     notify_about_site_notice_signup,
+    notify_about_dealer_application,
     queue_lead_digest,
 )
 
 logger = logging.getLogger(__name__)
+BOOKING_REFERENCE_IMAGE_MAX_MB = int(getattr(settings, "BOOKING_REFERENCE_IMAGE_MAX_MB", 8))
+BOOKING_REFERENCE_IMAGE_MAX_BYTES = BOOKING_REFERENCE_IMAGE_MAX_MB * 1024 * 1024
+
+
+def _validate_booking_reference_image(uploaded_file) -> str:
+    if not uploaded_file:
+        return ""
+    if uploaded_file.size > BOOKING_REFERENCE_IMAGE_MAX_BYTES:
+        return f"Image is too large. Limit: {BOOKING_REFERENCE_IMAGE_MAX_MB} MB."
+    content_type = (uploaded_file.content_type or "").lower()
+    if content_type and not content_type.startswith("image/"):
+        return "Please upload an image file."
+    try:
+        with Image.open(uploaded_file) as img:
+            img.verify()
+        uploaded_file.seek(0)
+    except (UnidentifiedImageError, OSError):
+        return "Unsupported image. Use JPG, PNG, or WEBP."
+    return ""
+
+
+def _store_booking_reference_file(*, owner, uploaded_file, service_name: str, start_dt):
+    if not owner or not uploaded_file:
+        return None
+    when_label = ""
+    try:
+        when_label = timezone.localtime(start_dt).strftime("%Y-%m-%d %H:%M")
+    except Exception:
+        when_label = ""
+    description = f"Appointment reference for {service_name}"
+    if when_label:
+        description += f" ({when_label})"
+    try:
+        uploaded_file.seek(0)
+    except Exception:
+        pass
+    try:
+        return ClientFile.objects.create(
+            user=owner,
+            file=uploaded_file,
+            uploaded_by=ClientFile.USER,
+            description=description[:255],
+        )
+    except Exception:
+        logger.exception("Failed to store appointment reference file for user=%s", getattr(owner, "pk", None))
+    return None
 
 
 @require_http_methods(["GET", "POST"])
@@ -94,6 +150,52 @@ logger = logging.getLogger(__name__)
 def admin_logout(request):
     logout(request)
     return redirect(getattr(settings, "LOGOUT_REDIRECT_URL", "/"))
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
+def admin_notifications_read_all(request):
+    """
+    Marks all admin sidebar notification items as seen for the current staff user.
+    This powers the "Read all" action in the admin notification center (bell menu).
+    """
+    user = request.user
+    now = timezone.now()
+
+    config = getattr(settings, "ADMIN_SIDEBAR_SECTIONS", None) or settings.JAZZMIN_SETTINGS.get(
+        "custom_sidebar", []
+    ) or []
+    pairs: set[tuple[str, str]] = set()
+    for section in config:
+        for group in section.get("groups", []):
+            if group.get("notifications_enabled") is False:
+                continue
+            for item in group.get("items", []):
+                if item.get("notifications_enabled") is False:
+                    continue
+                model_label = (item.get("model") or "").strip()
+                if not model_label:
+                    continue
+                try:
+                    app_label, model_name = model_label.split(".", 1)
+                    model = apps.get_model(app_label, model_name)
+                except Exception:
+                    continue
+                pairs.add((model._meta.app_label, model._meta.model_name))
+
+    for app_label, model_name in pairs:
+        AdminSidebarSeen.objects.update_or_create(
+            user=user,
+            app_label=app_label,
+            model_name=model_name,
+            defaults={"last_seen_at": now},
+        )
+
+    next_url = (request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("admin:index") or "").strip()
+    if not next_url or not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = reverse("admin:index")
+    return HttpResponseRedirect(next_url)
 
 
 def _resolve_pagecopy_model(label: str):
@@ -661,7 +763,9 @@ def _build_catalog_context(request):
         filtered_qs = filtered_qs.filter(category__id=cat)
 
     categories_qs = (
-        ServiceCategory.objects.order_by("name")
+        ServiceCategory.objects
+        .annotate(services_count=models.Count("service", distinct=True))
+        .order_by("-services_count", "name")
         .prefetch_related(Prefetch("service_set", queryset=all_services_qs))
     )
 
@@ -1427,25 +1531,26 @@ def api_availability(request):
 @require_POST
 @csrf_protect
 def api_book(request):
-    try:
-        payload = json.loads(request.body.decode("utf-8"))
-    except Exception:
-        from django.http import HttpResponseBadRequest
-        return HttpResponseBadRequest("invalid json")
+    content_type = (request.content_type or "").lower()
+    is_json = "application/json" in content_type
+    payload = {}
+    if is_json:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except Exception:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest("invalid json")
+    else:
+        payload = request.POST
 
     service_id = payload.get("service")
-    master_id  = payload.get("master")
-    start_iso  = payload.get("start_time")
+    master_id = payload.get("master")
+    start_iso = payload.get("start_time")
 
-    if not service_id or not master_id or not start_iso:
-        return HttpResponseBadRequest("service, tech, start_time required")
+    if not service_id or not start_iso:
+        return HttpResponseBadRequest("service and start_time required")
 
     service = get_object_or_404(Service, pk=service_id)
-    master  = get_object_or_404(CustomUserDisplay, pk=master_id)
-
-    if not get_service_masters(service).filter(pk=master.pk).exists():
-        from django.http import HttpResponseBadRequest
-        return HttpResponseBadRequest("tech can't perform this service")
 
     try:
         start_dt = parse_datetime(start_iso) or _tz_aware(datetime.fromisoformat(start_iso))
@@ -1455,10 +1560,62 @@ def api_book(request):
         from django.http import HttpResponseBadRequest
         return HttpResponseBadRequest("invalid start_time")
 
-    contact = payload.get("contact") or {}
-    contact_name = (contact.get("name") or "").strip()
-    contact_email = (contact.get("email") or "").strip()
-    raw_phone = (contact.get("phone") or "").strip()
+    master = None
+    if master_id:
+        master = get_object_or_404(CustomUserDisplay, pk=master_id)
+        if not get_service_masters(service).filter(pk=master.pk).exists():
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest("tech can't perform this service")
+    else:
+        # Mobile flow can submit without a staff id; pick any staff member
+        # who is currently free at the requested start time.
+        local_start = timezone.localtime(start_dt).replace(second=0, microsecond=0)
+        probe_day = _tz_aware(datetime(local_start.year, local_start.month, local_start.day, 12, 0))
+        slots_map = get_available_slots(service, probe_day, master=None)
+        service_masters = list(get_service_masters(service))
+
+        for candidate in service_masters:
+            slots = slots_map.get(candidate.id, [])
+            matched = any(
+                timezone.localtime(slot).replace(second=0, microsecond=0) == local_start
+                for slot in slots
+            )
+            if matched:
+                master = candidate
+                break
+
+        if not master:
+            return JsonResponse({"error": "No staff is available for the selected time."}, status=400)
+
+    if is_json:
+        contact = payload.get("contact") or {}
+        contact_name = (contact.get("name") or "").strip()
+        contact_email = (contact.get("email") or "").strip()
+        raw_phone = (contact.get("phone") or "").strip()
+    else:
+        contact_name = (
+            payload.get("contact_name")
+            or payload.get("name")
+            or payload.get("contact")
+            or ""
+        ).strip()
+        contact_email = (
+            payload.get("contact_email")
+            or payload.get("email")
+            or ""
+        ).strip()
+        raw_phone = (
+            payload.get("contact_phone")
+            or payload.get("phone")
+            or ""
+        ).strip()
+
+    reference_file = request.FILES.get("reference_image")
+    if reference_file:
+        reference_error = _validate_booking_reference_image(reference_file)
+        if reference_error:
+            return JsonResponse({"errors": {"reference_image": reference_error}}, status=400)
+
     digits_only = "".join(ch for ch in raw_phone if ch.isdigit())
     contact_phone = ""
     if digits_only:
@@ -1517,6 +1674,17 @@ def api_book(request):
         status=initial_status,
         set_by=user,
     )
+
+    file_owner = user
+    if not file_owner and contact_email:
+        file_owner = CustomUserDisplay.objects.filter(email__iexact=contact_email).first()
+    if reference_file and file_owner:
+        _store_booking_reference_file(
+            owner=file_owner,
+            uploaded_file=reference_file,
+            service_name=service.name,
+            start_dt=appt.start_time,
+        )
 
     return JsonResponse({
         "ok": True,
@@ -1679,51 +1847,298 @@ def service_search(request):
     return JsonResponse({"results": results})
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, TemplateView
+from django.views import View
+from django.views.generic import TemplateView
 
-from core.forms import DealerApplicationForm
-from core.models import DealerApplication, DealerTierLevel
+from core.forms_dealer import (
+    DealerApplyAddressForm,
+    DealerApplyBusinessForm,
+    DealerApplyReferencesForm,
+    DealerApplySignatureForm,
+)
+from core.models import DealerApplication, DealerTier, DealerTierLevel
 from core.services.dealer_portal import build_portal_snapshot
 
-class DealerApplyView(LoginRequiredMixin, CreateView):
-    template_name = "core/dealer/apply.html"
-    form_class = DealerApplicationForm
-    success_url = reverse_lazy("dealer-status")
+
+DEALER_WIZARD_SESSION_KEY = "dealer_apply_wizard_v1"
+DEALER_WIZARD_STEPS: list[tuple[str, type[forms.Form], str]] = [
+    ("business", DealerApplyBusinessForm, "Business"),
+    ("address", DealerApplyAddressForm, "Address"),
+    ("references", DealerApplyReferencesForm, "References"),
+    ("signature", DealerApplySignatureForm, "Signature"),
+]
+
+
+def _dealer_wizard_state(session) -> dict:
+    raw = session.get(DEALER_WIZARD_SESSION_KEY)
+    if isinstance(raw, dict):
+        return raw
+    return {}
+
+
+def _dealer_wizard_next_step(state: dict) -> str:
+    for slug, _form, _label in DEALER_WIZARD_STEPS:
+        if not state.get(slug):
+            return slug
+    return DEALER_WIZARD_STEPS[-1][0]
+
+
+def _dealer_application_for_user(user):
+    try:
+        return user.dealer_application
+    except DealerApplication.DoesNotExist:
+        return None
+    except Exception:
+        return None
+
+
+class DealerEntryView(View):
+    """
+    Single entrypoint for the topbar "Dealers" link.
+
+    - Anonymous users: sent to login/registration with a clear intent message.
+    - Approved dealers: land on the dealer portal.
+    - Logged-in non-dealers: taken through the multi-step dealer application wizard.
+    """
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            messages.info(
+                request,
+                "Dealer access: sign in or create an account to apply.",
+            )
+            return redirect(f"{reverse('login')}?next={reverse('dealer-entry')}")
+
+        profile = getattr(request.user, "userprofile", None)
+        if profile and profile.is_dealer:
+            return redirect("dealer-status")
+
+        dealer_app = _dealer_application_for_user(request.user)
+        if dealer_app and dealer_app.status != DealerApplication.Status.REJECTED:
+            return redirect("dealer-status")
+
+        state = _dealer_wizard_state(request.session)
+        next_step = _dealer_wizard_next_step(state)
+        return redirect("dealer-apply-step", step=next_step)
+
+
+class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
+    template_name = "core/dealer/apply_wizard.html"
 
     def dispatch(self, request, *args, **kwargs):
         profile = getattr(request.user, "userprofile", None)
         if profile and profile.is_dealer:
             return redirect("dealer-status")
+
+        dealer_app = _dealer_application_for_user(request.user)
+        if dealer_app and dealer_app.status != DealerApplication.Status.REJECTED:
+            return redirect("dealer-status")
+
+        step = kwargs.get("step") or DEALER_WIZARD_STEPS[0][0]
+        step_slugs = {slug for slug, _form, _label in DEALER_WIZARD_STEPS}
+        if step not in step_slugs:
+            return redirect("dealer-apply-step", step=DEALER_WIZARD_STEPS[0][0])
+
+        state = _dealer_wizard_state(request.session)
+        allowed_slug = _dealer_wizard_next_step(state)
+        step_order = [slug for slug, _form, _label in DEALER_WIZARD_STEPS]
+        if step_order.index(step) > step_order.index(allowed_slug):
+            return redirect("dealer-apply-step", step=allowed_slug)
+
+        self.step_slug = step
         return super().dispatch(request, *args, **kwargs)
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
-        # initial пригодится clean() для проверки дублей
-        kwargs.setdefault("initial", {})["user"] = self.request.user
-        return kwargs
+    def _step_meta(self):
+        for idx, (slug, form_cls, label) in enumerate(DEALER_WIZARD_STEPS):
+            if slug == self.step_slug:
+                return idx, form_cls, label
+        return 0, DEALER_WIZARD_STEPS[0][1], DEALER_WIZARD_STEPS[0][2]
+
+    def _initial_for_step(self, *, step_slug: str):
+        state = _dealer_wizard_state(self.request.session)
+        initial = dict(state.get(step_slug) or {})
+
+        # Prefill from an existing rejected application (re-apply flow).
+        dealer_app = _dealer_application_for_user(self.request.user)
+        if dealer_app and dealer_app.status == DealerApplication.Status.REJECTED:
+            for field in (
+                "business_name",
+                "operating_as",
+                "phone",
+                "email",
+                "website",
+                "years_in_business",
+                "business_type",
+                "preferred_tier",
+                "business_address",
+                "city",
+                "province",
+                "postal_code",
+                "gst_tax_id",
+                "business_license_number",
+                "resale_certificate_number",
+                "reference_1_name",
+                "reference_1_phone",
+                "reference_1_email",
+                "reference_2_name",
+                "reference_2_phone",
+                "reference_2_email",
+                "authorized_signature_printed_name",
+                "authorized_signature_title",
+                "authorized_signature_date",
+            ):
+                if field not in initial:
+                    val = getattr(dealer_app, field, None)
+                    if val not in (None, ""):
+                        initial[field] = val
+
+        profile = getattr(self.request.user, "userprofile", None)
+        if step_slug == "business":
+            initial.setdefault("email", getattr(self.request.user, "email", "") or "")
+            if profile and getattr(profile, "phone", None):
+                initial.setdefault("phone", profile.phone)
+            if not initial.get("preferred_tier"):
+                initial["preferred_tier"] = DealerTier.TIER_5
+
+        if step_slug == "address":
+            if profile and getattr(profile, "address", None):
+                initial.setdefault("business_address", profile.address)
+
+        if step_slug == "signature":
+            printed_name = (
+                (self.request.user.get_full_name() or "").strip()
+                or (getattr(self.request.user, "username", "") or "").strip()
+            )
+            if printed_name:
+                initial.setdefault("authorized_signature_printed_name", printed_name)
+
+        return initial
+
+    def _store_step_data(self, *, step_slug: str, cleaned: dict) -> None:
+        state = _dealer_wizard_state(self.request.session)
+        safe = {}
+        for key, value in (cleaned or {}).items():
+            if isinstance(value, (date, datetime)):
+                safe[key] = value.isoformat()
+            else:
+                safe[key] = value
+        state[step_slug] = safe
+        self.request.session[DEALER_WIZARD_SESSION_KEY] = state
+        self.request.session.modified = True
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        idx, _form_cls, label = self._step_meta()
+        ctx["step_slug"] = self.step_slug
+        ctx["step_label"] = label
+        ctx["step_index"] = idx + 1
+        ctx["step_total"] = len(DEALER_WIZARD_STEPS)
+        ctx["steps"] = [
+            {"slug": slug, "label": step_label, "index": i + 1}
+            for i, (slug, _f, step_label) in enumerate(DEALER_WIZARD_STEPS)
+        ]
+        ctx["progress_percent"] = int(((idx + 1) / max(1, len(DEALER_WIZARD_STEPS))) * 100)
+        ctx["prev_step"] = DEALER_WIZARD_STEPS[idx - 1][0] if idx > 0 else None
+        ctx["next_step"] = DEALER_WIZARD_STEPS[idx + 1][0] if (idx + 1) < len(DEALER_WIZARD_STEPS) else None
         try:
             ctx["tier_levels"] = list(
-                DealerTierLevel.objects.filter(is_active=True).order_by("minimum_spend", "sort_order", "code")
+                DealerTierLevel.objects.filter(is_active=True).order_by(
+                    "minimum_spend", "sort_order", "code"
+                )
             )
         except Exception:
             ctx["tier_levels"] = []
         return ctx
 
-    def form_valid(self, form):
-        # Один активный аппликейшен на пользователя (кроме REJECTED)
-        if DealerApplication.objects.filter(user=self.request.user).exclude(
-            status=DealerApplication.Status.REJECTED
-        ).exists():
-            form.add_error(None, "You already have an application in progress or approved.")
-            return self.form_invalid(form)
-        form.instance.user = self.request.user
-        return super().form_valid(form)
+    def get(self, request, *args, **kwargs):
+        _idx, form_cls, _label = self._step_meta()
+        form = form_cls(initial=self._initial_for_step(step_slug=self.step_slug))
+        ctx = self.get_context_data(**kwargs)
+        ctx["form"] = form
+        return self.render_to_response(ctx)
+
+    def post(self, request, *args, **kwargs):
+        idx, form_cls, _label = self._step_meta()
+        form = form_cls(data=request.POST)
+        ctx = self.get_context_data(**kwargs)
+        if not form.is_valid():
+            ctx["form"] = form
+            return self.render_to_response(ctx)
+
+        self._store_step_data(step_slug=self.step_slug, cleaned=form.cleaned_data)
+
+        is_last = (idx + 1) >= len(DEALER_WIZARD_STEPS)
+        if not is_last:
+            next_slug = DEALER_WIZARD_STEPS[idx + 1][0]
+            return redirect("dealer-apply-step", step=next_slug)
+
+        # --- submit ---
+        state = _dealer_wizard_state(request.session)
+        payload = {}
+        for slug, _form, _label in DEALER_WIZARD_STEPS:
+            payload.update(state.get(slug) or {})
+
+        preferred = payload.get("preferred_tier") or DealerTier.TIER_5
+        # Bump created_at on submit so admin notifications (which track created_at for public submissions)
+        # reflect fresh (re)submissions as "new" work items.
+        submitted_at = timezone.now()
+        defaults = {
+            "business_name": payload.get("business_name", "").strip(),
+            "operating_as": payload.get("operating_as", "").strip(),
+            "phone": payload.get("phone", "").strip(),
+            "email": payload.get("email", "").strip(),
+            "website": payload.get("website", "").strip(),
+            "years_in_business": payload.get("years_in_business") or None,
+            "business_type": payload.get("business_type", "").strip(),
+            "preferred_tier": preferred,
+            "business_address": payload.get("business_address", "").strip(),
+            "city": payload.get("city", "").strip(),
+            "province": payload.get("province", "").strip(),
+            "postal_code": payload.get("postal_code", "").strip(),
+            "gst_tax_id": payload.get("gst_tax_id", "").strip(),
+            "business_license_number": payload.get("business_license_number", "").strip(),
+            "resale_certificate_number": payload.get("resale_certificate_number", "").strip(),
+            "reference_1_name": payload.get("reference_1_name", "").strip(),
+            "reference_1_phone": payload.get("reference_1_phone", "").strip(),
+            "reference_1_email": payload.get("reference_1_email", "").strip(),
+            "reference_2_name": payload.get("reference_2_name", "").strip(),
+            "reference_2_phone": payload.get("reference_2_phone", "").strip(),
+            "reference_2_email": payload.get("reference_2_email", "").strip(),
+            "authorized_signature_printed_name": payload.get("authorized_signature_printed_name", "").strip(),
+            "authorized_signature_title": payload.get("authorized_signature_title", "").strip(),
+            "authorized_signature_date": (
+                parse_date(payload.get("authorized_signature_date"))
+                if isinstance(payload.get("authorized_signature_date"), str)
+                else (payload.get("authorized_signature_date") or None)
+            ),
+            "status": DealerApplication.Status.PENDING,
+            "assigned_tier": "",
+            "internal_note": "",
+            "reviewed_at": None,
+            "reviewed_by": None,
+            "created_at": submitted_at,
+        }
+
+        with transaction.atomic():
+            app, _created = DealerApplication.objects.update_or_create(
+                user=request.user,
+                defaults=defaults,
+            )
+            def _notify():
+                try:
+                    notify_about_dealer_application(app.pk)
+                except Exception:
+                    logger.exception("Failed to send Telegram alert for dealer application %s", app.pk)
+                try:
+                    send_dealer_application_submitted(app.pk)
+                except Exception:
+                    logger.exception("Failed to send dealer application email for %s", app.pk)
+            transaction.on_commit(_notify)
+
+        request.session.pop(DEALER_WIZARD_SESSION_KEY, None)
+        request.session.modified = True
+        return redirect(f"{reverse('dealer-status')}?submitted=1")
 
 
 class DealerStatusView(LoginRequiredMixin, TemplateView):
@@ -1736,10 +2151,64 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         up = getattr(self.request.user, "userprofile", None)
-        dealer_app = getattr(self.request.user, "dealer_application", None)
+        dealer_app = _dealer_application_for_user(self.request.user)
         ctx["dealer_copy"] = DealerStatusPageCopy.get_solo()
         ctx["userprofile"] = up
         ctx["dealer_application"] = dealer_app
+        ctx["submitted"] = str(self.request.GET.get("submitted") or "").strip() in {"1", "true", "yes"}
+
+        # If staff reset an approved application back to pending/rejected (or a stale app exists),
+        # ensure we don't keep wholesale access enabled on the profile.
+        if (
+            dealer_app
+            and dealer_app.status != DealerApplication.Status.APPROVED
+            and up
+            and getattr(up, "is_dealer", False)
+        ):
+            up.is_dealer = False
+            up.dealer_tier = DealerTier.NONE
+            update_fields = ["is_dealer", "dealer_tier"]
+            if hasattr(up, "dealer_welcome_seen"):
+                up.dealer_welcome_seen = True
+                update_fields.append("dealer_welcome_seen")
+            up.save(update_fields=update_fields)
+
+        # Backfill: if an application is marked approved but the profile was not upgraded
+        # (e.g. staff changed status in admin form), upgrade the profile here so the dealer
+        # portal behaves correctly.
+        if (
+            dealer_app
+            and dealer_app.status == DealerApplication.Status.APPROVED
+            and up
+            and (not up.is_dealer)
+            # If dealer_since is already set, assume staff intentionally revoked access by
+            # unchecking is_dealer. Do not auto-reinstate on page load.
+            and (not up.dealer_since)
+        ):
+            update_fields = []
+            became_dealer = False
+
+            if not up.is_dealer:
+                up.is_dealer = True
+                became_dealer = True
+                update_fields.append("is_dealer")
+
+            final_tier = dealer_app.resolved_tier()
+            if final_tier and final_tier != DealerTier.NONE and up.dealer_tier != final_tier:
+                up.dealer_tier = final_tier
+                update_fields.append("dealer_tier")
+
+            if not up.dealer_since:
+                up.dealer_since = dealer_app.reviewed_at or timezone.now()
+                update_fields.append("dealer_since")
+
+            if became_dealer and hasattr(up, "dealer_welcome_seen"):
+                up.dealer_welcome_seen = False
+                update_fields.append("dealer_welcome_seen")
+
+            if update_fields:
+                up.save(update_fields=update_fields)
+
         # флаг доступа и snapshot для портала
         portal_snapshot = build_portal_snapshot(self.request.user)
         ctx["portal"] = portal_snapshot
@@ -1750,7 +2219,18 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         ctx["current_threshold"] = portal_snapshot.get("current_threshold")
         ctx["remaining_to_next"] = portal_snapshot.get("remaining_to_next")
         ctx["lifetime_spent"] = portal_snapshot.get("lifetime_spent")
-        ctx["is_dealer"] = portal_snapshot.get("is_dealer", False)
+
+        is_dealer = portal_snapshot.get("is_dealer", False)
+        ctx["is_dealer"] = is_dealer
+
+        # One-time success banner: show once after approval, then mark as seen.
+        show_welcome = bool(is_dealer and up and hasattr(up, "dealer_welcome_seen") and not up.dealer_welcome_seen)
+        ctx["show_dealer_welcome"] = show_welcome
+        if show_welcome:
+            ctx["dealer_welcome_callout"] = ctx["dealer_copy"].dealer_welcome_callout
+            up.dealer_welcome_seen = True
+            up.save(update_fields=["dealer_welcome_seen"])
+
         return ctx
 
 from django.shortcuts import render
@@ -2207,6 +2687,7 @@ def project_journal_view(request):
 
     q = (request.GET.get("q") or "").strip()
     sort = (request.GET.get("sort") or "featured").strip().lower()
+    project_journal_copy = ProjectJournalPageCopy.get_solo()
     category_slugs = list(request.GET.getlist("cat"))
     if not category_slugs:
         raw = (request.GET.get("cat") or "").strip()
@@ -2247,12 +2728,14 @@ def project_journal_view(request):
     for post in posts:
         photos = list(getattr(post, "photos", []).all()) if hasattr(post, "photos") else []
         before_photos = [p for p in photos if p.kind == "before" and getattr(p, "image", None)]
+        process_photos = [p for p in photos if p.kind == "process" and getattr(p, "image", None)]
         after_photos = [p for p in photos if p.kind == "after" and getattr(p, "image", None)]
 
         legacy_before = _normalize_gallery(getattr(post, "before_gallery", None) or [])
         legacy_after = _normalize_gallery(getattr(post, "after_gallery", None) or [])
 
         post.before_photos = before_photos
+        post.process_photos = process_photos
         post.after_photos = after_photos
         post.legacy_before = legacy_before
         post.legacy_after = legacy_after
@@ -2276,18 +2759,27 @@ def project_journal_view(request):
         next_page_url = _build_url(page=page_obj.next_page_number())
         next_page_fragment_url = _build_url(page=page_obj.next_page_number(), fragment=1)
 
+    filters_min_build_count = max(int(getattr(project_journal_copy, "filters_min_build_count", 10) or 0), 0)
+    has_active_filter = bool(q or category_slugs or sort == "newest")
+    show_filters = page_obj.paginator.count >= filters_min_build_count or has_active_filter
+
     context = {
         "posts": posts,
         "page_obj": page_obj,
+        "project_journal_copy": project_journal_copy,
         "available_categories": available_categories,
         "active_categories": category_slugs,
+        "show_filters": show_filters,
         "q": q,
         "sort": sort,
         "has_posts": bool(posts),
         "next_page_url": next_page_url,
         "next_page_fragment_url": next_page_fragment_url,
-        "page_title": "Builds",
-        "meta_description": "Before-and-after build highlights from Bad Guy Motors. Fast scans, clean comparisons, zero fluff.",
+        "page_title": (project_journal_copy.page_title or "").strip() or "Builds",
+        "meta_description": (
+            (project_journal_copy.meta_description or "").strip()
+            or "Before-and-after build highlights from Bad Guy Motors. Fast scans, clean comparisons, zero fluff."
+        ),
         "font_settings": build_page_font_context(PageFontSetting.Page.PROJECT_JOURNAL),
     }
 
@@ -2322,12 +2814,14 @@ def project_journal_post_view(request, slug: str):
 
     photos = list(getattr(post, "photos", []).all()) if hasattr(post, "photos") else []
     before_photos = [p for p in photos if p.kind == "before" and getattr(p, "image", None)]
+    process_photos = [p for p in photos if p.kind == "process" and getattr(p, "image", None)]
     after_photos = [p for p in photos if p.kind == "after" and getattr(p, "image", None)]
 
     legacy_before = _normalize_gallery(getattr(post, "before_gallery", None) or [])
     legacy_after = _normalize_gallery(getattr(post, "after_gallery", None) or [])
 
     post.before_photos = before_photos
+    post.process_photos = process_photos
     post.after_photos = after_photos
     post.legacy_before = legacy_before
     post.legacy_after = legacy_after

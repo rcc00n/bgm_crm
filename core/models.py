@@ -1417,6 +1417,46 @@ class MerchPageCopy(models.Model):
         return obj
 
 
+class MerchGalleryItem(models.Model):
+    """
+    Additional merch cards managed directly from the merch page copy admin.
+    """
+
+    merch_page = models.ForeignKey(
+        MerchPageCopy,
+        on_delete=models.CASCADE,
+        related_name="gallery_items",
+    )
+    category = models.CharField(
+        max_length=80,
+        default="Featured",
+        blank=True,
+        help_text="Cards are grouped by this label on the merch page (e.g. Apparel, Headwear, Accessories).",
+    )
+    title = models.CharField(max_length=80, help_text="Short card title shown under the image.")
+    description = models.CharField(max_length=180, blank=True)
+    photo = models.ImageField(upload_to="merch/gallery/")
+    photo_alt = models.CharField(max_length=160, blank=True)
+    colors = models.CharField(max_length=160, blank=True)
+    sizes = models.CharField(max_length=160, blank=True)
+    sort_order = models.PositiveIntegerField(
+        default=10,
+        help_text="Lower numbers appear first.",
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Merch gallery item"
+        verbose_name_plural = "Merch gallery items"
+        ordering = ("sort_order", "id")
+
+    def __str__(self) -> str:
+        category = (self.category or "Featured").strip() or "Featured"
+        return f"{category} — {self.title}"
+
+
 class FinancingPageCopy(models.Model):
     """
     Editable static text for the financing page.
@@ -1852,6 +1892,12 @@ class DealerStatusPageCopy(models.Model):
     application_approved_callout = models.TextField(
         default="Approved — we are finalizing onboarding. Expect an activation email shortly."
     )
+    dealer_welcome_callout = models.TextField(
+        default=(
+            "Congratulations, you're officially a Bad Guy Motors Dealer. "
+            "Your wholesale pricing is now active."
+        )
+    )
     application_none_callout = models.TextField(
         default=(
             "You have not submitted a dealer request yet. Tell us about your business and projected volume to "
@@ -1889,6 +1935,63 @@ class DealerStatusPageCopy(models.Model):
 
     def __str__(self) -> str:
         return "Dealer portal copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
+class ProjectJournalPageCopy(models.Model):
+    """
+    Editable static text for the Project Journal feed page.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    page_title = models.CharField(max_length=160, default="Builds")
+    meta_description = models.TextField(
+        default="Before-and-after build highlights from Bad Guy Motors. Fast scans, clean comparisons, zero fluff."
+    )
+    hero_eyebrow = models.CharField(max_length=80, default="Builds / Gallery")
+    hero_lead = models.TextField(
+        default=(
+            "One-post-per-screen highlights: compare before/after first, then open details only if you want the full "
+            "story."
+        )
+    )
+
+    search_placeholder = models.CharField(max_length=120, default="Search builds (title, tags, notes)")
+    sort_featured_label = models.CharField(max_length=40, default="Featured")
+    sort_newest_label = models.CharField(max_length=40, default="Newest")
+    apply_filters_label = models.CharField(max_length=40, default="Apply")
+    clear_filters_label = models.CharField(max_length=40, default="Clear")
+    empty_results_label = models.CharField(
+        max_length=180,
+        default="No builds found. Try clearing filters or searching by a different keyword.",
+    )
+    filters_min_build_count = models.PositiveSmallIntegerField(
+        default=10,
+        validators=[MinValueValidator(0), MaxValueValidator(999)],
+        help_text=(
+            "Filters/search are shown when published build count reaches this number. "
+            "They still appear when a filter is already active."
+        ),
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Project journal copy"
+        verbose_name_plural = "Project journal copy"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Project journal copy"
 
     def save(self, *args, **kwargs):
         self.singleton_id = 1
@@ -1997,6 +2100,9 @@ class EmailTemplate(models.Model):
         SITE_NOTICE_FOLLOWUP_3 = "site_notice_followup_3", "Email signup: 3-day follow-up"
         ORDER_REVIEW_REQUEST = "order_review_request", "Order review request"
         FITMENT_REQUEST_INTERNAL = "fitment_request_internal", "Custom fitment request (internal)"
+        DEALER_APPLICATION_SUBMITTED = "dealer_application_submitted", "Dealer application: submitted"
+        DEALER_APPLICATION_APPROVED = "dealer_application_approved", "Dealer application: approved"
+        DEALER_APPLICATION_REJECTED = "dealer_application_rejected", "Dealer application: declined"
 
     slug = models.SlugField(max_length=80, unique=True, choices=TemplateSlug.choices)
     name = models.CharField(max_length=120)
@@ -2729,6 +2835,10 @@ class ProjectJournalEntry(models.Model):
         DRAFT = "draft", "Draft"
         PUBLISHED = "published", "Published"
 
+    class DesktopMediaMode(models.TextChoices):
+        SLIDER = "slider", "Desktop: Drag before/after"
+        ALBUM = "album", "Desktop: Statement photo + click-through album"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=180)
     slug = models.SlugField(max_length=180, unique=True)
@@ -2799,6 +2909,12 @@ class ProjectJournalEntry(models.Model):
         max_length=200,
         blank=True,
         help_text="Single sentence outcome that appears on cards.",
+    )
+    desktop_media_mode = models.CharField(
+        max_length=12,
+        choices=DesktopMediaMode.choices,
+        default=DesktopMediaMode.SLIDER,
+        help_text="Desktop only. Mobile keeps the current compare layout.",
     )
     cta_primary_label = models.CharField(
         max_length=64,
@@ -2933,6 +3049,7 @@ class ProjectJournalEntry(models.Model):
 class ProjectJournalPhoto(models.Model):
     class Kind(models.TextChoices):
         BEFORE = "before", "Before"
+        PROCESS = "process", "Process"
         AFTER = "after", "After"
 
     entry = models.ForeignKey(
@@ -2978,6 +3095,17 @@ class ProjectJournalAfterPhoto(ProjectJournalPhoto):
         proxy = True
         verbose_name = "After photo"
         verbose_name_plural = "After photos"
+
+
+class ProjectJournalProcessPhoto(ProjectJournalPhoto):
+    """
+    Proxy model used only for Django admin UX (separate process inline).
+    """
+
+    class Meta:
+        proxy = True
+        verbose_name = "Process photo"
+        verbose_name_plural = "Process photos"
 
 class HeroImage(models.Model):
     """
@@ -3139,8 +3267,32 @@ class DealerApplication(models.Model):
         verbose_name="User",
     )
     business_name = models.CharField("Business name", max_length=128)
+    operating_as = models.CharField("Operating as", max_length=128, blank=True)
+    business_address = models.TextField("Business address", blank=True)
+    city = models.CharField("City", max_length=80, blank=True)
+    province = models.CharField("Province / State", max_length=80, blank=True)
+    postal_code = models.CharField("Postal / ZIP code", max_length=20, blank=True)
     website = models.URLField("Website", blank=True)
     phone = models.CharField("Phone", max_length=32, validators=[MinLengthValidator(5)])
+    email = models.EmailField("Email", blank=True)
+    gst_tax_id = models.CharField("GST / Tax ID", max_length=64, blank=True)
+    business_license_number = models.CharField("Business License #", max_length=64, blank=True)
+    resale_certificate_number = models.CharField("Resale Certificate #", max_length=64, blank=True)
+    years_in_business = models.PositiveSmallIntegerField("Years in business", null=True, blank=True)
+    business_type = models.CharField("Type of business", max_length=120, blank=True)
+    reference_1_name = models.CharField("Reference 1 name", max_length=120, blank=True)
+    reference_1_phone = models.CharField("Reference 1 phone", max_length=32, blank=True)
+    reference_1_email = models.EmailField("Reference 1 email", blank=True)
+    reference_2_name = models.CharField("Reference 2 name", max_length=120, blank=True)
+    reference_2_phone = models.CharField("Reference 2 phone", max_length=32, blank=True)
+    reference_2_email = models.EmailField("Reference 2 email", blank=True)
+    authorized_signature_printed_name = models.CharField(
+        "Authorized signature printed name",
+        max_length=160,
+        blank=True,
+    )
+    authorized_signature_title = models.CharField("Authorized signature title", max_length=120, blank=True)
+    authorized_signature_date = models.DateField("Authorized signature date", null=True, blank=True)
     notes = models.TextField("Notes", blank=True)
     preferred_tier = models.CharField(
         "Preferred tier",
@@ -3204,7 +3356,34 @@ class DealerApplication(models.Model):
                 # tier будет выставляться на основании total_spent (см. метод ниже)
                 up.recompute_dealer_tier()
             up.dealer_since = up.dealer_since or timezone.now()
-            up.save(update_fields=["is_dealer", "dealer_tier", "dealer_since"])
+            update_fields = ["is_dealer", "dealer_tier", "dealer_since"]
+            if hasattr(up, "dealer_welcome_seen"):
+                up.dealer_welcome_seen = False
+                update_fields.append("dealer_welcome_seen")
+            up.save(update_fields=update_fields)
+
+        # Email the applicant after the approval is safely committed.
+        try:
+            from django.db import transaction
+            from core.services.dealer_application_emails import (
+                send_dealer_application_approved,
+            )
+
+            def _send():
+                try:
+                    send_dealer_application_approved(self.pk)
+                except Exception:
+                    import logging
+
+                    logging.getLogger(__name__).exception(
+                        "Failed to send dealer approval email for application %s",
+                        self.pk,
+                    )
+
+            transaction.on_commit(_send)
+        except Exception:
+            # Never block approval if email configuration is broken.
+            pass
 
     def reject(self, admin_user):
         self.status = self.Status.REJECTED
@@ -3212,6 +3391,39 @@ class DealerApplication(models.Model):
         self.reviewed_by = admin_user
         self.assigned_tier = ""
         self.save(update_fields=["status", "reviewed_at", "reviewed_by", "assigned_tier"])
+        # Revoke dealer access on rejection.
+        up = getattr(self.user, "userprofile", None)
+        if up and getattr(up, "is_dealer", False):
+            up.is_dealer = False
+            up.dealer_tier = DealerTier.NONE
+            update_fields = ["is_dealer", "dealer_tier"]
+            if hasattr(up, "dealer_welcome_seen"):
+                up.dealer_welcome_seen = True
+                update_fields.append("dealer_welcome_seen")
+            up.save(update_fields=update_fields)
+
+        # Email the applicant after the rejection is safely committed.
+        try:
+            from django.db import transaction
+            from core.services.dealer_application_emails import (
+                send_dealer_application_rejected,
+            )
+
+            def _send():
+                try:
+                    send_dealer_application_rejected(self.pk)
+                except Exception:
+                    import logging
+
+                    logging.getLogger(__name__).exception(
+                        "Failed to send dealer rejection email for application %s",
+                        self.pk,
+                    )
+
+            transaction.on_commit(_send)
+        except Exception:
+            # Never block rejection if email configuration is broken.
+            pass
 
 
 
@@ -3228,6 +3440,11 @@ class UserProfile(models.Model):
         default=DealerTier.NONE,
     )
     dealer_since = models.DateTimeField("Dealer since", null=True, blank=True)
+    dealer_welcome_seen = models.BooleanField(
+        "Dealer welcome notice seen",
+        default=True,
+        help_text="Internal flag used to show the approval success banner once.",
+    )
 
     # === NEW ===
     address = models.TextField(blank=True)                         # одна строка/много строк — на твой вкус
@@ -3291,6 +3508,70 @@ class UserProfile(models.Model):
 
         return float(payments_total) + float(appts_without_payments_total)
 
+    def total_spent_products_cad(self) -> Decimal:
+        """
+        Total spent by the user on store products (order item subtotals) in CAD.
+
+        Includes orders linked via FK to the user; falls back to matching guest orders by email
+        when order.user is NULL.
+
+        Only counts orders that are:
+        - not cancelled, AND
+        - paid (payment_status=paid) OR completed (status=completed)
+
+        This is the number we use for dealer tier calculations and admin visibility.
+        """
+        from decimal import Decimal, InvalidOperation
+
+        try:
+            from store.models import Order, OrderItem
+        except Exception:
+            return Decimal("0.00")
+
+        user = getattr(self, "user", None)
+        if not user:
+            return Decimal("0.00")
+
+        from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum, Value
+        from django.db.models.functions import Coalesce
+
+        owner_q = Q(order__user=user)
+        email = (getattr(user, "email", "") or "").strip()
+        if email:
+            owner_q |= Q(order__user__isnull=True, order__email__iexact=email)
+
+        eligible_q = (
+            Q(order__payment_status=Order.PaymentStatus.PAID)
+            | Q(order__status=Order.STATUS_COMPLETED)
+        )
+
+        price_fallback = Value(
+            Decimal("0.00"),
+            output_field=DecimalField(max_digits=10, decimal_places=2),
+        )
+        line_expr = ExpressionWrapper(
+            F("qty") * Coalesce(F("price_at_moment"), price_fallback),
+            output_field=DecimalField(max_digits=12, decimal_places=2),
+        )
+
+        total = (
+            OrderItem.objects
+            .filter(owner_q)
+            .exclude(order__status=Order.STATUS_CANCELLED)
+            .filter(eligible_q)
+            .aggregate(
+                s=Coalesce(
+                    Sum(line_expr),
+                    Value(Decimal("0.00"), output_field=DecimalField(max_digits=12, decimal_places=2)),
+                )
+            )["s"]
+        )
+
+        try:
+            return Decimal(total).quantize(Decimal("0.01"))
+        except (InvalidOperation, TypeError):
+            return Decimal("0.00")
+
 
     def _tier_levels_queryset(self):
         return DealerTierLevel.objects.filter(is_active=True).order_by("minimum_spend", "sort_order", "code")
@@ -3308,7 +3589,10 @@ class UserProfile(models.Model):
         return level
 
     def recompute_dealer_tier(self) -> None:
-        spent = Decimal(str(self.total_spent_cad()))
+        try:
+            spent = Decimal(self.total_spent_products_cad())
+        except Exception:
+            spent = Decimal("0.00")
         try:
             tiers = list(self._tier_levels_queryset())
         except Exception:

@@ -18,6 +18,32 @@ def _dec_env(name: str, default: str) -> Decimal:
         return Decimal(default)
 
 
+def _int_env(name: str, default: int) -> int:
+    """
+    Safe int parser for numeric env vars.
+    """
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return default
+
+
+def _float_env(name: str, default: float) -> float:
+    """
+    Safe float parser for numeric env vars.
+    """
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return default
+
+
 def _bool_env(name: str, default: str = "False") -> bool:
     """
     Safe boolean parser for env vars.
@@ -39,7 +65,7 @@ ALLOWED_HOSTS = [
 # ── Бренд и маркетинг ───────────────────────────────────────────────────
 SITE_BRAND_NAME = os.getenv(
     "SITE_BRAND_NAME",
-    "BGM Customs",
+    "BGM",
 )
 SITE_BRAND_TAGLINE = os.getenv(
     "SITE_BRAND_TAGLINE",
@@ -47,7 +73,7 @@ SITE_BRAND_TAGLINE = os.getenv(
 )
 SITE_DEFAULT_DESCRIPTION = os.getenv(
     "SITE_DEFAULT_DESCRIPTION",
-    "BGM Customs delivers bespoke performance builds, detailing and premium parts sourcing for enthusiasts across North America.",
+    "BGM delivers bespoke performance builds, detailing and premium parts sourcing for enthusiasts across North America.",
 )
 SITE_DEFAULT_KEYWORDS = os.getenv(
     "SITE_DEFAULT_KEYWORDS",
@@ -225,7 +251,7 @@ COMPANY_PHONE = os.getenv("COMPANY_PHONE", "(403) 525-0432")
 COMPANY_WEBSITE = os.getenv("COMPANY_WEBSITE", "badguymotors.com")
 COMPANY_HOURS = os.getenv(
     "COMPANY_HOURS",
-    "Mon–Fri: 9:00am–5:30pm\nSat–Sun: Closed",
+    "Monday - Friday: 8:00 AM - 4:30 PM",
 )
 EMAIL_ACCENT_COLOR = os.getenv("EMAIL_ACCENT_COLOR", "#d50000")
 EMAIL_DARK_COLOR = os.getenv("EMAIL_DARK_COLOR", "#0b0b0c")
@@ -256,6 +282,15 @@ SQUARE_FEE_PERCENT = _dec_env("SQUARE_FEE_PERCENT", "0.029")  # 2.9% default
 SQUARE_FEE_FIXED = _dec_env("SQUARE_FEE_FIXED", "0.30")      # $0.30 default
 STORE_GST_RATE = _dec_env("STORE_GST_RATE", "0.05")          # 5% GST
 STORE_PROCESSING_FEE_RATE = _dec_env("STORE_PROCESSING_FEE_RATE", "0.035")  # 3.5% processing fee
+PRINTFUL_TOKEN = os.getenv("PRINTFUL_TOKEN", "")
+PRINTFUL_STORE_ID = os.getenv("PRINTFUL_STORE_ID", "")
+PRINTFUL_API_BASE_URL = os.getenv("PRINTFUL_API_BASE_URL", "https://api.printful.com")
+PRINTFUL_MERCH_CATALOG_URL = os.getenv("PRINTFUL_MERCH_CATALOG_URL", "")
+PRINTFUL_MERCH_PRODUCT_URL_TEMPLATE = os.getenv("PRINTFUL_MERCH_PRODUCT_URL_TEMPLATE", "")
+PRINTFUL_MERCH_LIMIT = max(1, _int_env("PRINTFUL_MERCH_LIMIT", 8))
+PRINTFUL_MERCH_CACHE_SECONDS = max(0, _int_env("PRINTFUL_MERCH_CACHE_SECONDS", 300))
+PRINTFUL_TIMEOUT_SECONDS = max(0.5, _float_env("PRINTFUL_TIMEOUT_SECONDS", 4.0))
+PRINTFUL_MERCH_SHOW_PRICE = _bool_env("PRINTFUL_MERCH_SHOW_PRICE", "True")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "openaicamrose@gmail.com")
 ETRANSFER_EMAIL = os.getenv("ETRANSFER_EMAIL", SUPPORT_EMAIL or "Payments@badguymotors.ca")
 ETRANSFER_MEMO_HINT = os.getenv(
@@ -543,7 +578,13 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "icon": "fas fa-user-shield",
                 "items": [
                     {"model": "core.DealerTierLevel", "label": "Tier Levels"},
-                    {"model": "core.DealerApplication", "label": "Applications"},
+                    {
+                        "model": "core.DealerApplication",
+                        "label": "Applications",
+                        # Dealer applications are created via the public wizard (not via admin),
+                        # so LogEntry won't exist. Use created_at so the admin bell/sidebar can detect new items.
+                        "activity_field": "created_at",
+                    },
                 ],
             },
         ],

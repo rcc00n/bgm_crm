@@ -7,7 +7,7 @@ from core.autocomplete import ServiceAutocomplete
 from core.views import service_search
 from django.conf import settings
 from django.conf.urls.static import static
-from core.views import DealerApplyView, DealerStatusView
+from core.views import DealerApplyWizardView, DealerEntryView, DealerStatusView
 from core import views as core_views
 urlpatterns = [
     path("analytics/collect/", core_views.analytics_collect, name="analytics-collect"),
@@ -29,6 +29,11 @@ urlpatterns = [
         name="admin-analytics-collect",
     ),
     path("admin/ui-check/run/", core_views.admin_ui_check_run, name="admin-ui-check-run"),
+    path(
+        "admin/notifications/read-all/",
+        admin.site.admin_view(core_views.admin_notifications_read_all),
+        name="admin-notifications-read-all",
+    ),
     path(
         "admin/pagecopy/save-field/",
         admin.site.admin_view(core_views.admin_pagecopy_save_field),
@@ -145,7 +150,9 @@ urlpatterns = [
     # Merch (заглушка)
     path("merch/", MerchPlaceholderView.as_view(), name="merch"),
     
-    path("dealer/apply/", DealerApplyView.as_view(), name="dealer-apply"),
+    path("dealer/", DealerEntryView.as_view(), name="dealer-entry"),
+    path("dealer/apply/", DealerApplyWizardView.as_view(), name="dealer-apply"),
+    path("dealer/apply/<slug:step>/", DealerApplyWizardView.as_view(), name="dealer-apply-step"),
     path("dealer/status/", DealerStatusView.as_view(), name="dealer-status"),
     path("financing/", core_views.financing_view, name="financing"),
     path("our-story/", core_views.our_story_view, name="our-story"),

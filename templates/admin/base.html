@@ -158,7 +158,20 @@
                         {% endif %}
                     </a>
                     <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right admin-notify-menu">
-                        <span class="dropdown-header">{% trans 'Notifications' %}</span>
+                        <div class="admin-notify-menu__header">
+                            <span class="dropdown-header">{% trans 'Notifications' %}</span>
+                            <form method="post" action="{% url 'admin-notifications-read-all' %}" class="admin-notify-readall-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button
+                                    type="submit"
+                                    class="btn btn-sm btn-outline-secondary admin-notify-readall-btn"
+                                    {% if not admin_notifications.unseen_count %}disabled aria-disabled="true"{% endif %}
+                                >
+                                    {% trans 'Read all' %}
+                                </button>
+                            </form>
+                        </div>
                         {% if admin_notifications.groups %}
                             {% for group in admin_notifications.groups %}
                                 <div class="dropdown-divider"></div>
