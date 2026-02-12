@@ -2083,6 +2083,11 @@ body.nav-open .contact-fab,
 /* 6) FAB с учётом safe‑area и скрытие, когда открыта любая модалка */
 .contact-fab{ bottom:calc(22px + env(safe-area-inset-bottom)); }
 body.modal-open .contact-fab{ display:none !important; }
+html.modal-open,
+body.modal-open{
+  overflow:hidden !important;
+  overscroll-behavior:none;
+}
 
 /* 7) Mobile density reset for services catalog */
 @media (max-width:760px){
@@ -2186,6 +2191,7 @@ body.modal-open .contact-fab{ display:none !important; }
 @media (min-width:901px){
   #bookModal.book-modal--lk-clone{
     background:rgba(0,0,0,.6);
+    --book-footer-reserve: 92px;
   }
   #bookModal.book-modal--lk-clone .modal__dialog{
     background:linear-gradient(180deg, rgba(15,15,15,.98), rgba(10,10,10,.98));
@@ -2224,7 +2230,7 @@ body.modal-open .contact-fab{ display:none !important; }
   #bookModal.book-modal--lk-clone .book-modal__grid{
     grid-template-columns:minmax(0,1fr);
     gap:1rem;
-    padding:1rem 0;
+    padding:1rem 0 calc(1rem + var(--book-footer-reserve));
   }
   #bookModal.book-modal--lk-clone .book-contact-grid{
     grid-template-columns:repeat(3, minmax(0,1fr));
@@ -2304,7 +2310,7 @@ body.modal-open .contact-fab{ display:none !important; }
     gap:.9rem;
     margin-top:0;
     position:sticky;
-    bottom:0;
+    bottom:-2px;
     z-index:7;
     padding-top:.68rem;
     padding-bottom:max(.2rem, env(safe-area-inset-bottom, 0px));
@@ -2434,7 +2440,9 @@ body.modal-open .contact-fab{ display:none !important; }
   const bookModal = document.getElementById('bookModal');
   if (bookModal){
     const syncModalFlag = () => {
-      document.body.classList.toggle('modal-open', bookModal.classList.contains('modal--open'));
+      const isOpen = bookModal.classList.contains('modal--open');
+      document.body.classList.toggle('modal-open', isOpen);
+      document.documentElement.classList.toggle('modal-open', isOpen);
     };
     syncModalFlag();
     new MutationObserver(syncModalFlag).observe(bookModal, { attributes:true, attributeFilter:['class'] });
