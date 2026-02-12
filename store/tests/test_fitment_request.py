@@ -107,3 +107,18 @@ class ProductDetailQuoteFormTests(TestCase):
         self.assertIn("email", form.errors)
         self.assertIn("Please correct the fields", response.content.decode())
         self.assertEqual(CustomFitmentRequest.objects.count(), 0)
+
+    def test_quote_submission_shows_named_success_message(self):
+        payload = {
+            "form_type": "custom_fitment",
+            "customer_name": "Jane Builder",
+            "email": "jane@example.com",
+            "vehicle": "2020 F-350 crew cab",
+        }
+
+        response = self.client.post(self.url, payload, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Hi Jane Builder, thanks for submitting your custom fitment request. We got it and will reach out soon.",
+        )

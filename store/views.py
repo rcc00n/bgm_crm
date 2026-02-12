@@ -935,9 +935,10 @@ def product_detail(request, slug: str):
             transaction.on_commit(
                 lambda: notification_services.notify_about_fitment_request(fitment_request.pk)
             )
+            customer_name = (fitment_request.customer_name or "").strip() or "there"
             messages.success(
                 request,
-                "Thanks! Your build notes reached our team. Expect a reply within 1-2 business days.",
+                f"Hi {customer_name}, thanks for submitting your custom fitment request. We got it and will reach out soon.",
             )
             return redirect(product.get_absolute_url() + "#quote-request")
         messages.error(request, "Please correct the fields highlighted below.")
