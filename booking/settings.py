@@ -225,7 +225,7 @@ COMPANY_PHONE = os.getenv("COMPANY_PHONE", "(403) 525-0432")
 COMPANY_WEBSITE = os.getenv("COMPANY_WEBSITE", "badguymotors.com")
 COMPANY_HOURS = os.getenv(
     "COMPANY_HOURS",
-    "M-F 8-4:30",
+    "Mon - Fri 8-4:30",
 )
 EMAIL_ACCENT_COLOR = os.getenv("EMAIL_ACCENT_COLOR", "#d50000")
 EMAIL_DARK_COLOR = os.getenv("EMAIL_DARK_COLOR", "#0b0b0c")

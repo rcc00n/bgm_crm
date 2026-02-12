@@ -904,8 +904,9 @@
       .hero__media{
         display:block !important;
         width:100%;
-        order:2;
+        order:1;
       }
+      .mobi-quick{ order:2; }
       .hero__inner{ grid-template-columns: 1fr !important; }
       .hero__media.frame{
         aspect-ratio:auto;
@@ -2248,45 +2249,6 @@
 
   <!-- Unified topbar behavior -->
   <script src="{% static 'js/topbar.js' %}"></script>
-
-  <!-- Mobile layout: replace hero stats with Builds gallery -->
-  <script id="home-mobile-gallery-swap">
-  (function(){
-    const mobileQuery = window.matchMedia('(max-width: 860px)');
-    const gallery = document.querySelector('#services .home-gallery');
-    const servicesIntro = document.querySelector('#services .home-services-intro');
-    const heroStats = document.querySelector('.hero .hero__stats');
-    if (!gallery || !servicesIntro || !heroStats) return;
-
-    const servicesContainer = gallery.parentElement;
-
-    const moveForMobile = () => {
-      if (gallery.parentElement === heroStats.parentElement) return;
-      heroStats.parentElement.insertBefore(gallery, heroStats);
-    };
-
-    const moveForDesktop = () => {
-      if (gallery.parentElement === servicesContainer && servicesIntro.nextElementSibling === gallery) return;
-      servicesContainer.insertBefore(gallery, servicesIntro.nextSibling);
-    };
-
-    const syncLayout = () => {
-      if (mobileQuery.matches) {
-        moveForMobile();
-      } else {
-        moveForDesktop();
-      }
-    };
-
-    if (typeof mobileQuery.addEventListener === 'function') {
-      mobileQuery.addEventListener('change', syncLayout);
-    } else if (typeof mobileQuery.addListener === 'function') {
-      mobileQuery.addListener(syncLayout);
-    }
-
-    syncLayout();
-  })();
-  </script>
 
   <!-- Hero carousel -->
   <script id="hero-carousel-js">

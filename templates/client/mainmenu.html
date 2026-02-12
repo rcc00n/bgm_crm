@@ -903,14 +903,14 @@ main h3{
 {% include "includes/site_footer.html" %}
 
 <!-- Modal -->
-<div class="modal" id="bookModal" aria-hidden="true">
+<div class="modal book-modal--lk-clone" id="bookModal" aria-hidden="true">
   <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
     <div class="modal__header">
       <div class="modal__title" id="bookTitle">{{ services_copy.booking_modal_title_prefix }} <span id="bookServiceName"></span></div>
       <button class="modal__close" id="bookClose" aria-label="{{ services_copy.booking_close_label }}">×</button>
     </div>
 
-    <div class="grid-2">
+    <div class="grid-2 book-modal__grid">
       <div>
         <div class="field">
           <label for="bookMaster">{{ services_copy.booking_staff_label }}</label>
@@ -1343,6 +1343,15 @@ main h3{
       btnSubmit.disabled = !ready;
     }
 
+    function setBookingModalState(isOpen){
+      modal.classList.toggle('modal--open', Boolean(isOpen));
+      modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    }
+
+    function closeBookingModal(){
+      setBookingModalState(false);
+    }
+
     Object.values(contactInputs).forEach(input=>{
       input.addEventListener('input', ()=>{
         const payload = getContactPayload();
@@ -1373,7 +1382,7 @@ main h3{
       setMobileStatus(copy.mobilePickDayLabel, false);
       hydrateContactForm();
       updateSubmitState();
-      modal.classList.add('modal--open');
+      setBookingModalState(true);
       loadMastersAndRender();
     }
 
@@ -1674,9 +1683,12 @@ main h3{
 
     maybeOpenDeepLinkedService();
 
-    btnClose.addEventListener('click',()=>modal.classList.remove('modal--open'));
-    btnCancel.addEventListener('click',()=>modal.classList.remove('modal--open'));
-    modal.addEventListener('click',(e)=>{ if(e.target===modal) modal.classList.remove('modal--open'); });
+    btnClose.addEventListener('click', closeBookingModal);
+    btnCancel.addEventListener('click', closeBookingModal);
+    modal.addEventListener('click',(e)=>{ if(e.target===modal) closeBookingModal(); });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modal.classList.contains('modal--open')) closeBookingModal();
+    });
     btnSubmit.addEventListener('click',submitBooking);
 
     // Горизонтальный скролл
@@ -2075,6 +2087,88 @@ body.modal-open .contact-fab{ display:none !important; }
   .mobile-booking__btn{ width:100%; }
   .mobile-booking__label{ font-size:.75rem; }
   .mobile-booking__meta{ gap:.25rem; }
+}
+
+/* 7c) Desktop booking modal parity with portal reschedule modal (isolated scope) */
+@media (min-width:901px){
+  #bookModal.book-modal--lk-clone{
+    background:rgba(0,0,0,.6);
+  }
+  #bookModal.book-modal--lk-clone .modal__dialog{
+    background:linear-gradient(180deg, rgba(15,15,15,.98), rgba(10,10,10,.98));
+    border:1px solid var(--line);
+    border-radius:16px;
+    width:min(80rem, 98vw);
+    max-height:94vh;
+    overflow:auto;
+    padding:1rem;
+    box-shadow:var(--shadow);
+  }
+  #bookModal.book-modal--lk-clone .modal__header{
+    margin-bottom:0;
+    padding:.25rem .25rem .5rem .25rem;
+    border-bottom:1px solid var(--line);
+  }
+  #bookModal.book-modal--lk-clone .modal__title{
+    font-size:1rem;
+    letter-spacing:.6px;
+    font-family:var(--font-body) !important;
+    text-transform:none !important;
+  }
+  #bookModal.book-modal--lk-clone .modal__title span{
+    color:#fff;
+  }
+  #bookModal.book-modal--lk-clone .modal__close{
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    font-size:1.6rem;
+    line-height:1;
+    width:auto;
+    height:auto;
+    border-radius:0;
+  }
+  #bookModal.book-modal--lk-clone .book-modal__grid{
+    grid-template-columns:minmax(0,1fr);
+    gap:1rem;
+    padding:1rem 0;
+  }
+  #bookModal.book-modal--lk-clone .outlook__toolbar button{
+    text-transform:none !important;
+    letter-spacing:0 !important;
+    color:#fff;
+  }
+  #bookModal.book-modal--lk-clone .outlook__wrap{
+    height:clamp(320px,52vh,560px);
+    max-height:clamp(320px,52vh,560px);
+    min-height:320px;
+  }
+  #bookModal.book-modal--lk-clone .outlook__grid{
+    width:max-content;
+    margin-inline:auto;
+    justify-content:center;
+  }
+  #bookModal.book-modal--lk-clone .modal__footer{
+    justify-content:center;
+    gap:.9rem;
+    margin-top:.75rem;
+    position:sticky;
+    bottom:0;
+    z-index:7;
+    padding-top:.75rem;
+    padding-bottom:max(.2rem, env(safe-area-inset-bottom, 0px));
+    background:linear-gradient(180deg, rgba(12,12,12,0) 0%, rgba(12,12,12,.92) 38%, rgba(12,12,12,.98) 100%);
+  }
+  #bookModal.book-modal--lk-clone .modal__footer .btn{
+    min-height:54px;
+    min-width:180px;
+    padding:.8rem 1.85rem;
+    font-size:1.02rem;
+    font-family:var(--font-body) !important;
+    font-weight:800 !important;
+    text-transform:none !important;
+    letter-spacing:.02em !important;
+  }
 }
 
 /* 8) Меньше анимаций при reduce motion */
