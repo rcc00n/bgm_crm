@@ -31,6 +31,7 @@ from datetime import date, datetime, timedelta
 import json
 import html as py_html
 from django.utils.functional import cached_property
+from PIL import Image, UnidentifiedImageError
 
 from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
@@ -63,6 +64,7 @@ from core.models import (
     EmailCampaign,
     EmailSendLog,
     EmailSubscriber,
+    ClientFile,
 )
 from core.forms import ServiceLeadForm
 from core.services.booking import (
@@ -95,6 +97,52 @@ from notifications.services import (
 )
 
 logger = logging.getLogger(__name__)
+BOOKING_REFERENCE_IMAGE_MAX_MB = int(getattr(settings, "BOOKING_REFERENCE_IMAGE_MAX_MB", 8))
+BOOKING_REFERENCE_IMAGE_MAX_BYTES = BOOKING_REFERENCE_IMAGE_MAX_MB * 1024 * 1024
+
+
+def _validate_booking_reference_image(uploaded_file) -> str:
+    if not uploaded_file:
+        return ""
+    if uploaded_file.size > BOOKING_REFERENCE_IMAGE_MAX_BYTES:
+        return f"Image is too large. Limit: {BOOKING_REFERENCE_IMAGE_MAX_MB} MB."
+    content_type = (uploaded_file.content_type or "").lower()
+    if content_type and not content_type.startswith("image/"):
+        return "Please upload an image file."
+    try:
+        with Image.open(uploaded_file) as img:
+            img.verify()
+        uploaded_file.seek(0)
+    except (UnidentifiedImageError, OSError):
+        return "Unsupported image. Use JPG, PNG, or WEBP."
+    return ""
+
+
+def _store_booking_reference_file(*, owner, uploaded_file, service_name: str, start_dt):
+    if not owner or not uploaded_file:
+        return None
+    when_label = ""
+    try:
+        when_label = timezone.localtime(start_dt).strftime("%Y-%m-%d %H:%M")
+    except Exception:
+        when_label = ""
+    description = f"Appointment reference for {service_name}"
+    if when_label:
+        description += f" ({when_label})"
+    try:
+        uploaded_file.seek(0)
+    except Exception:
+        pass
+    try:
+        return ClientFile.objects.create(
+            user=owner,
+            file=uploaded_file,
+            uploaded_by=ClientFile.USER,
+            description=description[:255],
+        )
+    except Exception:
+        logger.exception("Failed to store appointment reference file for user=%s", getattr(owner, "pk", None))
+    return None
 
 
 @require_http_methods(["GET", "POST"])
@@ -1483,15 +1531,21 @@ def api_availability(request):
 @require_POST
 @csrf_protect
 def api_book(request):
-    try:
-        payload = json.loads(request.body.decode("utf-8"))
-    except Exception:
-        from django.http import HttpResponseBadRequest
-        return HttpResponseBadRequest("invalid json")
+    content_type = (request.content_type or "").lower()
+    is_json = "application/json" in content_type
+    payload = {}
+    if is_json:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except Exception:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest("invalid json")
+    else:
+        payload = request.POST
 
     service_id = payload.get("service")
-    master_id  = payload.get("master")
-    start_iso  = payload.get("start_time")
+    master_id = payload.get("master")
+    start_iso = payload.get("start_time")
 
     if not service_id or not start_iso:
         return HttpResponseBadRequest("service and start_time required")
@@ -1533,10 +1587,35 @@ def api_book(request):
         if not master:
             return JsonResponse({"error": "No staff is available for the selected time."}, status=400)
 
-    contact = payload.get("contact") or {}
-    contact_name = (contact.get("name") or "").strip()
-    contact_email = (contact.get("email") or "").strip()
-    raw_phone = (contact.get("phone") or "").strip()
+    if is_json:
+        contact = payload.get("contact") or {}
+        contact_name = (contact.get("name") or "").strip()
+        contact_email = (contact.get("email") or "").strip()
+        raw_phone = (contact.get("phone") or "").strip()
+    else:
+        contact_name = (
+            payload.get("contact_name")
+            or payload.get("name")
+            or payload.get("contact")
+            or ""
+        ).strip()
+        contact_email = (
+            payload.get("contact_email")
+            or payload.get("email")
+            or ""
+        ).strip()
+        raw_phone = (
+            payload.get("contact_phone")
+            or payload.get("phone")
+            or ""
+        ).strip()
+
+    reference_file = request.FILES.get("reference_image")
+    if reference_file:
+        reference_error = _validate_booking_reference_image(reference_file)
+        if reference_error:
+            return JsonResponse({"errors": {"reference_image": reference_error}}, status=400)
+
     digits_only = "".join(ch for ch in raw_phone if ch.isdigit())
     contact_phone = ""
     if digits_only:
@@ -1595,6 +1674,17 @@ def api_book(request):
         status=initial_status,
         set_by=user,
     )
+
+    file_owner = user
+    if not file_owner and contact_email:
+        file_owner = CustomUserDisplay.objects.filter(email__iexact=contact_email).first()
+    if reference_file and file_owner:
+        _store_booking_reference_file(
+            owner=file_owner,
+            uploaded_file=reference_file,
+            service_name=service.name,
+            start_dt=appt.start_time,
+        )
 
     return JsonResponse({
         "ok": True,
@@ -2638,12 +2728,14 @@ def project_journal_view(request):
     for post in posts:
         photos = list(getattr(post, "photos", []).all()) if hasattr(post, "photos") else []
         before_photos = [p for p in photos if p.kind == "before" and getattr(p, "image", None)]
+        process_photos = [p for p in photos if p.kind == "process" and getattr(p, "image", None)]
         after_photos = [p for p in photos if p.kind == "after" and getattr(p, "image", None)]
 
         legacy_before = _normalize_gallery(getattr(post, "before_gallery", None) or [])
         legacy_after = _normalize_gallery(getattr(post, "after_gallery", None) or [])
 
         post.before_photos = before_photos
+        post.process_photos = process_photos
         post.after_photos = after_photos
         post.legacy_before = legacy_before
         post.legacy_after = legacy_after
@@ -2722,12 +2814,14 @@ def project_journal_post_view(request, slug: str):
 
     photos = list(getattr(post, "photos", []).all()) if hasattr(post, "photos") else []
     before_photos = [p for p in photos if p.kind == "before" and getattr(p, "image", None)]
+    process_photos = [p for p in photos if p.kind == "process" and getattr(p, "image", None)]
     after_photos = [p for p in photos if p.kind == "after" and getattr(p, "image", None)]
 
     legacy_before = _normalize_gallery(getattr(post, "before_gallery", None) or [])
     legacy_after = _normalize_gallery(getattr(post, "after_gallery", None) or [])
 
     post.before_photos = before_photos
+    post.process_photos = process_photos
     post.after_photos = after_photos
     post.legacy_before = legacy_before
     post.legacy_after = legacy_after

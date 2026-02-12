@@ -41,6 +41,7 @@ from core.models import (
 from core.services.fonts import build_page_font_context
 from core.services.email_reporting import describe_email_types
 from core.services.media import build_home_gallery_media, build_merch_gallery_groups
+from core.services.printful import get_printful_merch_feed
 from core.services.page_sections import get_page_sections
 from core.emails import build_email_html, send_html_email
 from core.email_templates import email_brand_name, join_text_sections
@@ -782,9 +783,12 @@ class MerchPlaceholderView(TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         merch_copy = MerchPageCopy.get_solo()
+        printful_feed = get_printful_merch_feed()
         ctx["merch_copy"] = merch_copy
         ctx["header_copy"] = merch_copy
         ctx["merch_gallery_groups"] = build_merch_gallery_groups(merch_copy)
+        ctx["printful_products"] = printful_feed.get("products", [])
+        ctx["printful_catalog_url"] = printful_feed.get("catalog_url", "")
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
         return ctx
 

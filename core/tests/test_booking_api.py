@@ -1,13 +1,17 @@
 import json
+import io
 from datetime import datetime, time, timedelta
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 
 from core.models import (
     Appointment,
+    ClientFile,
     CustomUserDisplay,
     MasterProfile,
     PaymentStatus,
@@ -109,3 +113,48 @@ class BookingApiTests(TestCase):
         self.assertEqual(book_response.status_code, 400)
         payload = book_response.json()
         self.assertIn("No staff is available", payload.get("error", ""))
+
+    def test_api_book_accepts_reference_image_and_stores_client_file(self):
+        client_user = User.objects.create_user(
+            username="booking-client",
+            email="booking.client@example.com",
+            password="pass1234",
+        )
+        self.client.force_login(client_user)
+
+        availability_response = self.client.get(
+            self.availability_url,
+            {"service": str(self.service.pk), "date": self.day.isoformat()},
+        )
+        self.assertEqual(availability_response.status_code, 200)
+        masters = availability_response.json().get("masters", [])
+        open_master = next(
+            (row for row in masters if int(row["id"]) == self.available_master.id),
+            None,
+        )
+        self.assertIsNotNone(open_master)
+        slot_iso = open_master["slots"][0]
+
+        image_buffer = io.BytesIO()
+        Image.new("RGB", (12, 12), color=(32, 120, 180)).save(image_buffer, format="PNG")
+        image_buffer.seek(0)
+        reference = SimpleUploadedFile(
+            "booking-reference.png",
+            image_buffer.read(),
+            content_type="image/png",
+        )
+
+        response = self.client.post(
+            self.book_url,
+            data={
+                "service": str(self.service.pk),
+                "start_time": slot_iso,
+                "contact_name": "Booking Client",
+                "contact_email": "booking.client@example.com",
+                "contact_phone": "+15551234568",
+                "reference_image": reference,
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Appointment.objects.count(), 1)
+        self.assertEqual(ClientFile.objects.filter(user=client_user).count(), 1)

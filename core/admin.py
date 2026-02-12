@@ -5119,6 +5119,9 @@ class _ProjectJournalFixedKindPhotoFormSet(BaseInlineFormSet):
         if any(self.errors):
             return
 
+        if self.fixed_kind not in {ProjectJournalPhoto.Kind.BEFORE, ProjectJournalPhoto.Kind.AFTER}:
+            return
+
         status = (self.data.get("status") or "").strip()
         if status != ProjectJournalEntry.Status.PUBLISHED:
             return
@@ -5170,6 +5173,10 @@ class ProjectJournalAfterPhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
     require_message = "To publish, add at least one AFTER photo."
 
 
+class ProjectJournalProcessPhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
+    fixed_kind = ProjectJournalPhoto.Kind.PROCESS
+
+
 class _ProjectJournalPhotoInline(admin.TabularInline):
     extra = 1
     fields = ("image_preview", "image", "alt_text", "sort_order")
@@ -5208,6 +5215,15 @@ class ProjectJournalAfterPhotoInline(_ProjectJournalPhotoInline):
         return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.AFTER)
 
 
+class ProjectJournalProcessPhotoInline(_ProjectJournalPhotoInline):
+    model = ProjectJournalProcessPhoto
+    formset = ProjectJournalProcessPhotoFormSet
+    verbose_name_plural = "Process media"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.PROCESS)
+
+
 class ProjectJournalEntryAdminForm(forms.ModelForm):
     page_intro_text = forms.CharField(
         required=False,
@@ -5236,7 +5252,7 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
     form = ProjectJournalEntryAdminForm
     change_form_template = "admin/core/projectjournalentry/change_form.html"
     list_display = ("title", "status_badge", "featured", "published_at", "updated_at", "preview_link")
-    list_filter = ("status", "featured", "published_at", "categories")
+    list_filter = ("status", "desktop_media_mode", "featured", "published_at", "categories")
     search_fields = (
         "title",
         "excerpt",
@@ -5253,7 +5269,11 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
     ordering = ("-published_at", "-updated_at")
     readonly_fields = ("created_at", "updated_at", "preview_link")
     prepopulated_fields = {"slug": ("title",)}
-    inlines = (ProjectJournalBeforePhotoInline, ProjectJournalAfterPhotoInline)
+    inlines = (
+        ProjectJournalBeforePhotoInline,
+        ProjectJournalProcessPhotoInline,
+        ProjectJournalAfterPhotoInline,
+    )
     fieldsets = (
         ("Story", {
             "fields": (
@@ -5263,6 +5283,7 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
                 "excerpt",
                 "cover_image",
                 "result_highlight",
+                "desktop_media_mode",
             )
         }),
         ("Page header (shared)", {"fields": ("page_intro_text",)}),

@@ -2835,6 +2835,10 @@ class ProjectJournalEntry(models.Model):
         DRAFT = "draft", "Draft"
         PUBLISHED = "published", "Published"
 
+    class DesktopMediaMode(models.TextChoices):
+        SLIDER = "slider", "Desktop: Drag before/after"
+        ALBUM = "album", "Desktop: Statement photo + click-through album"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=180)
     slug = models.SlugField(max_length=180, unique=True)
@@ -2905,6 +2909,12 @@ class ProjectJournalEntry(models.Model):
         max_length=200,
         blank=True,
         help_text="Single sentence outcome that appears on cards.",
+    )
+    desktop_media_mode = models.CharField(
+        max_length=12,
+        choices=DesktopMediaMode.choices,
+        default=DesktopMediaMode.SLIDER,
+        help_text="Desktop only. Mobile keeps the current compare layout.",
     )
     cta_primary_label = models.CharField(
         max_length=64,
@@ -3039,6 +3049,7 @@ class ProjectJournalEntry(models.Model):
 class ProjectJournalPhoto(models.Model):
     class Kind(models.TextChoices):
         BEFORE = "before", "Before"
+        PROCESS = "process", "Process"
         AFTER = "after", "After"
 
     entry = models.ForeignKey(
@@ -3084,6 +3095,17 @@ class ProjectJournalAfterPhoto(ProjectJournalPhoto):
         proxy = True
         verbose_name = "After photo"
         verbose_name_plural = "After photos"
+
+
+class ProjectJournalProcessPhoto(ProjectJournalPhoto):
+    """
+    Proxy model used only for Django admin UX (separate process inline).
+    """
+
+    class Meta:
+        proxy = True
+        verbose_name = "Process photo"
+        verbose_name_plural = "Process photos"
 
 class HeroImage(models.Model):
     """

@@ -293,6 +293,12 @@
                   {% if it.option %}
                     <div class="section__desc">Option: {{ it.option.name }}{% if it.option.sku %} · SKU: {{ it.option.sku }}{% endif %}</div>
                   {% endif %}
+                  {% if it.has_reference_photo %}
+                    <div class="section__desc">
+                      <span class="badge badge--reference">Reference photo attached</span>
+                      {% if it.reference_file_name %}· {{ it.reference_file_name }}{% endif %}
+                    </div>
+                  {% endif %}
                   <div class="section__desc">
                     Retail {{ it.retail_unit_price|money }}
                     {% if it.discount_percent %}
@@ -565,6 +571,7 @@
     font-size:.8rem;
   }
   .badge--dealer{background:rgba(23,212,91,.12); border-color:rgba(23,212,91,.35); color:#17d45b;}
+  .badge--reference{background:rgba(45,156,219,.14); border-color:rgba(45,156,219,.45); color:#8fd9ff;}
 
   .callout{ border-left:4px solid; background:var(--card-bg); border:1px solid var(--card-border); border-left-color:#d50000; border-radius:.6rem; margin-bottom:1rem; }
   .callout--ok{ border-left-color:#17d45b; }

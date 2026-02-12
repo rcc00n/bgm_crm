@@ -1,6 +1,6 @@
 {% load thumbnail dealer_extras %}
 
-<article class="pj-card" id="build-{{ post.slug }}" data-feed-card>
+<article class="pj-card" id="build-{{ post.slug }}" data-feed-card data-display-mode="{{ post.desktop_media_mode|default:'slider' }}">
   <section class="pj-compare" data-compare aria-label="Before and after comparison">
     <script type="application/json" data-compare-sources>
       {
@@ -144,6 +144,128 @@
     <span class="pj-compare__hint" aria-hidden="true">Drag left/right</span>
     <span class="pj-compare__handle" aria-hidden="true"></span>
     <input class="pj-compare__range" type="range" min="0" max="100" value="50" aria-label="Before and after slider">
+  </section>
+
+  <section class="pj-album-teaser" data-album-card aria-label="Build photo album">
+    <script type="application/json" data-album-sources>
+      {
+        "before": [
+          {% if post.before_photos and post.before_photos.0.image %}
+            {% for p in post.before_photos %}
+              {% thumbnail p.image "1200" quality=74 format="WEBP" as before_album_1x %}
+                {% thumbnail p.image "2000" quality=74 format="WEBP" as before_album_2x %}
+                  {"src":"{{ before_album_1x.url|escapejs }}","srcset":"{{ before_album_1x.url|escapejs }} 1x, {{ before_album_2x.url|escapejs }} 2x","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' before'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+                {% endthumbnail %}
+              {% endthumbnail %}
+            {% endfor %}
+          {% elif post.legacy_before %}
+            {% for item in post.legacy_before %}
+              {"src":"{{ item.url|escapejs }}","alt":"{% if item.alt %}{{ item.alt|escapejs }}{% else %}{{ post.title|add:' before'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          {% endif %}
+        ],
+        "process": [
+          {% if post.process_photos and post.process_photos.0.image %}
+            {% for p in post.process_photos %}
+              {% thumbnail p.image "1200" quality=74 format="WEBP" as process_album_1x %}
+                {% thumbnail p.image "2000" quality=74 format="WEBP" as process_album_2x %}
+                  {"src":"{{ process_album_1x.url|escapejs }}","srcset":"{{ process_album_1x.url|escapejs }} 1x, {{ process_album_2x.url|escapejs }} 2x","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' process'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+                {% endthumbnail %}
+              {% endthumbnail %}
+            {% endfor %}
+          {% endif %}
+        ],
+        "after": [
+          {% if post.after_photos and post.after_photos.0.image %}
+            {% for p in post.after_photos %}
+              {% thumbnail p.image "1200" quality=74 format="WEBP" as after_album_1x %}
+                {% thumbnail p.image "2000" quality=74 format="WEBP" as after_album_2x %}
+                  {"src":"{{ after_album_1x.url|escapejs }}","srcset":"{{ after_album_1x.url|escapejs }} 1x, {{ after_album_2x.url|escapejs }} 2x","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' after'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+                {% endthumbnail %}
+              {% endthumbnail %}
+            {% endfor %}
+          {% elif post.legacy_after %}
+            {% for item in post.legacy_after %}
+              {"src":"{{ item.url|escapejs }}","alt":"{% if item.alt %}{{ item.alt|escapejs }}{% else %}{{ post.title|add:' after'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          {% endif %}
+        ]
+      }
+    </script>
+
+    <button class="pj-album-teaser__button" type="button" data-album-open aria-label="Open build album">
+      <div class="pj-media pj-album-teaser__media" data-skeleton>
+        {% if post.after_photos and post.after_photos.0.image %}
+          {% thumbnail post.after_photos.0.image "1200" quality=74 format="WEBP" as statement_1x %}
+            {% thumbnail post.after_photos.0.image "2000" quality=74 format="WEBP" as statement_2x %}
+              <img
+                src="{{ statement_1x.url }}"
+                srcset="{{ statement_1x.url }} 1x, {{ statement_2x.url }} 2x"
+                alt="{% firstof post.after_photos.0.alt_text post.title|add:' statement photo' %}"
+                loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                decoding="async"
+              >
+            {% endthumbnail %}
+          {% endthumbnail %}
+        {% elif post.legacy_after %}
+          <img
+            src="{{ post.legacy_after.0.url }}"
+            alt="{% firstof post.legacy_after.0.alt post.title|add:' statement photo' %}"
+            loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+            decoding="async"
+          >
+        {% elif post.process_photos and post.process_photos.0.image %}
+          {% thumbnail post.process_photos.0.image "1200" quality=74 format="WEBP" as statement_process_1x %}
+            {% thumbnail post.process_photos.0.image "2000" quality=74 format="WEBP" as statement_process_2x %}
+              <img
+                src="{{ statement_process_1x.url }}"
+                srcset="{{ statement_process_1x.url }} 1x, {{ statement_process_2x.url }} 2x"
+                alt="{% firstof post.process_photos.0.alt_text post.title|add:' process photo' %}"
+                loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                decoding="async"
+              >
+            {% endthumbnail %}
+          {% endthumbnail %}
+        {% elif post.before_photos and post.before_photos.0.image %}
+          {% thumbnail post.before_photos.0.image "1200" quality=74 format="WEBP" as statement_before_1x %}
+            {% thumbnail post.before_photos.0.image "2000" quality=74 format="WEBP" as statement_before_2x %}
+              <img
+                src="{{ statement_before_1x.url }}"
+                srcset="{{ statement_before_1x.url }} 1x, {{ statement_before_2x.url }} 2x"
+                alt="{% firstof post.before_photos.0.alt_text post.title|add:' build photo' %}"
+                loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                decoding="async"
+              >
+            {% endthumbnail %}
+          {% endthumbnail %}
+        {% elif post.legacy_before %}
+          <img
+            src="{{ post.legacy_before.0.url }}"
+            alt="{% firstof post.legacy_before.0.alt post.title|add:' build photo' %}"
+            loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+            decoding="async"
+          >
+        {% elif post.cover_image %}
+          {% thumbnail post.cover_image "1200" quality=74 format="WEBP" as statement_cover_1x %}
+            {% thumbnail post.cover_image "2000" quality=74 format="WEBP" as statement_cover_2x %}
+              <img
+                src="{{ statement_cover_1x.url }}"
+                srcset="{{ statement_cover_1x.url }} 1x, {{ statement_cover_2x.url }} 2x"
+                alt="{{ post.title }} build photo"
+                loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                decoding="async"
+              >
+            {% endthumbnail %}
+          {% endthumbnail %}
+        {% endif %}
+      </div>
+
+      <span class="pj-album-teaser__overlay">
+        <span class="pj-album-teaser__title">{{ post.hero_title }}</span>
+        <span class="pj-album-teaser__meta">Click to view album + details</span>
+        <span class="pj-album-teaser__count" data-album-count></span>
+      </span>
+    </button>
   </section>
 
   <section aria-label="Post summary">

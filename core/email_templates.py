@@ -270,6 +270,22 @@ EMAIL_TEMPLATE_DEFINITIONS: dict[str, EmailTemplateDefinition] = {
             "source_url",
         ],
     ),
+    "fitment_request_received": EmailTemplateDefinition(
+        slug="fitment_request_received",
+        name="Custom fitment request (customer)",
+        description="Sent to customers after a fitment request is submitted.",
+        subject="{brand} custom fitment request received",
+        preheader="We got your request and will reach out soon.",
+        title="Request received",
+        greeting="Hi {customer_name},",
+        intro_lines=[
+            "We got your custom fitment request and will reach out soon.",
+            "Our team reviews each request manually to confirm compatibility and next steps.",
+        ],
+        footer_lines=NO_REPLY_FOOTER_LINES,
+        cta_label="Visit {brand}",
+        tokens=["brand", "customer_name", "product_name", "timeline", "company_website"],
+    ),
     "dealer_application_submitted": EmailTemplateDefinition(
         slug="dealer_application_submitted",
         name="Dealer application: submitted",

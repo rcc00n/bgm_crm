@@ -1,10 +1,15 @@
 from decimal import Decimal
+import io
 
 from django.core import mail
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 
 from store.models import Category, Product, CustomFitmentRequest
+from core.models import ClientFile
 
 
 class ProductDetailQuoteFormTests(TestCase):
@@ -46,9 +51,48 @@ class ProductDetailQuoteFormTests(TestCase):
         self.assertEqual(req.budget, payload["budget"])
         self.assertEqual(req.status, CustomFitmentRequest.Status.NEW)
 
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertIn("Custom fitment request", mail.outbox[0].subject)
         self.assertIn(self.product.name, mail.outbox[0].body)
+        self.assertIn("request received", mail.outbox[1].subject.lower())
+        self.assertIn("will reach out soon", mail.outbox[1].body.lower())
+
+    def test_quote_submission_with_reference_photo_syncs_to_client_files(self):
+        user = User.objects.create_user(
+            username="fitment-client",
+            email="fitment.client@example.com",
+            password="pass12345",
+        )
+        self.client.force_login(user)
+
+        image_buffer = io.BytesIO()
+        Image.new("RGB", (12, 12), color=(220, 10, 10)).save(image_buffer, format="PNG")
+        image_buffer.seek(0)
+        upload = SimpleUploadedFile(
+            "fitment.png",
+            image_buffer.read(),
+            content_type="image/png",
+        )
+
+        payload = {
+            "form_type": "custom_fitment",
+            "customer_name": "Fitment Client",
+            "email": "fitment.client@example.com",
+            "phone": "+1 555 0111",
+            "vehicle": "2023 Ram 2500",
+            "message": "Need custom offset.",
+        }
+
+        response = self.client.post(self.url, payload | {"reference_image": upload}, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(CustomFitmentRequest.objects.count(), 1)
+        req = CustomFitmentRequest.objects.get()
+        self.assertTrue(bool(req.reference_image))
+
+        self.assertEqual(ClientFile.objects.filter(user=user).count(), 1)
+        saved = ClientFile.objects.filter(user=user).first()
+        self.assertIsNotNone(saved)
+        self.assertIn("Custom fitment reference", saved.description)
 
     def test_invalid_submission_shows_errors(self):
         payload = {

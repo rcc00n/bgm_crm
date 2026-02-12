@@ -167,9 +167,9 @@ def marketing_tags(request):
     """
     config = getattr(settings, "MARKETING", {})
     raw_site_name = (config.get("site_name") or "").strip()
-    # Keep legacy defaults from leaking into share cards.
-    if not raw_site_name or raw_site_name.lower() == "bgm customs":
-        site_name = "BGM"
+    # Keep shorthand/legacy defaults from leaking into share cards.
+    if not raw_site_name or raw_site_name.lower() in {"bgm", "bgm customs"}:
+        site_name = "Bad Guy Motors"
     else:
         site_name = raw_site_name
     default_description = config.get("default_description") or ""

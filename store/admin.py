@@ -1371,11 +1371,40 @@ class CustomFitmentRequestAdmin(admin.ModelAdmin):
         "performance_goals",
         "budget",
     )
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at", "reference_image_preview")
     autocomplete_fields = ("product",)
     fieldsets = (
         ("Request", {"fields": ("status", "product", "product_name", "source_url")}),
         ("Customer", {"fields": ("customer_name", "email", "phone")}),
-        ("Build details", {"fields": ("vehicle", "submodel", "performance_goals", "budget", "timeline", "message")}),
+        (
+            "Build details",
+            {
+                "fields": (
+                    "vehicle",
+                    "submodel",
+                    "performance_goals",
+                    "budget",
+                    "timeline",
+                    "message",
+                    "reference_image",
+                    "reference_image_preview",
+                )
+            },
+        ),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
+
+    @admin.display(description="Reference preview")
+    def reference_image_preview(self, obj):
+        image = getattr(obj, "reference_image", None)
+        if not image:
+            return "—"
+        try:
+            return format_html(
+                '<a href="{0}" target="_blank" rel="noopener">'
+                '<img src="{0}" style="max-height:160px;border-radius:10px;border:1px solid rgba(255,255,255,.2)"/>'
+                "</a>",
+                image.url,
+            )
+        except Exception:
+            return "—"

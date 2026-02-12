@@ -10,16 +10,16 @@ class MarketingTagsTests(SimpleTestCase):
         self.factory = RequestFactory()
 
     @override_settings(MARKETING={})
-    def test_site_name_defaults_to_bgm(self):
+    def test_site_name_defaults_to_bad_guy_motors(self):
         request = self.factory.get("/")
         payload = marketing_tags(request)
-        self.assertEqual(payload["marketing"]["site_name"], "BGM")
+        self.assertEqual(payload["marketing"]["site_name"], "Bad Guy Motors")
 
     @override_settings(MARKETING={"site_name": "BGM Customs"})
     def test_site_name_normalizes_legacy_default(self):
         request = self.factory.get("/")
         payload = marketing_tags(request)
-        self.assertEqual(payload["marketing"]["site_name"], "BGM")
+        self.assertEqual(payload["marketing"]["site_name"], "Bad Guy Motors")
 
 
 class MarketingHeadTemplateTests(SimpleTestCase):

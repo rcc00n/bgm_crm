@@ -5,6 +5,7 @@ from django.conf import settings
 from typing import Any
 import json
 import re
+from PIL import Image, UnidentifiedImageError
 
 from .models import (
     Product,
@@ -229,6 +230,7 @@ class CustomFitmentRequestForm(forms.ModelForm):
             "budget",
             "timeline",
             "message",
+            "reference_image",
             "source_url",
         ]
         labels = {
@@ -238,6 +240,7 @@ class CustomFitmentRequestForm(forms.ModelForm):
             "budget": "Budget",
             "timeline": "Timeline",
             "message": "Notes",
+            "reference_image": "Photo reference",
         }
         widgets = {
             "customer_name": forms.TextInput(
@@ -271,6 +274,9 @@ class CustomFitmentRequestForm(forms.ModelForm):
                     "class": "field",
                 }
             ),
+            "reference_image": forms.ClearableFileInput(
+                attrs={"accept": "image/*", "class": "field"}
+            ),
         }
 
     def clean_phone(self):
@@ -280,6 +286,28 @@ class CustomFitmentRequestForm(forms.ModelForm):
         # keep digits, plus, and separators minimal to avoid user errors
         cleaned = "".join(ch for ch in phone if ch.isdigit() or ch in "+-() ")
         return cleaned.strip()
+
+    def clean_reference_image(self):
+        image = self.cleaned_data.get("reference_image")
+        if not image:
+            return image
+
+        max_mb = int(getattr(settings, "STORE_REFERENCE_IMAGE_MAX_MB", 8))
+        max_bytes = max_mb * 1024 * 1024
+        if image.size > max_bytes:
+            raise forms.ValidationError(f"Image is too large. Limit: {max_mb} MB.")
+
+        content_type = (getattr(image, "content_type", "") or "").lower()
+        if content_type and not content_type.startswith("image/"):
+            raise forms.ValidationError("Please upload an image file.")
+
+        try:
+            with Image.open(image) as img:
+                img.verify()
+            image.seek(0)
+        except (UnidentifiedImageError, OSError):
+            raise forms.ValidationError("Unsupported image. Use JPG, PNG, or WEBP.")
+        return image
 
 
 # =========================

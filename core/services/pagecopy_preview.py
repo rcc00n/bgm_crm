@@ -1554,6 +1554,8 @@ def build_merch_context(request: HttpRequest) -> Dict[str, Any]:
     return {
         "font_settings": build_page_font_context(PageFontSetting.Page.MERCH),
         "merch_gallery_groups": build_merch_gallery_groups(),
+        "printful_products": [],
+        "printful_catalog_url": "",
     }
 
 

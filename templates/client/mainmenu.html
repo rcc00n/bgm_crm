@@ -257,6 +257,30 @@
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:var(--muted)}
     .field input,.field select{padding:.6rem .8rem;border:1px solid var(--line);border-radius:.6rem;font-size:.95rem;background:#0a0a0a;color:var(--ink)}
+    .booking-photo-preview{
+      display:flex;
+      align-items:center;
+      gap:.6rem;
+      margin-top:.4rem;
+      border:1px solid var(--line);
+      border-radius:.6rem;
+      padding:.45rem .55rem;
+      background:#0d0d0d;
+    }
+    .booking-photo-preview img{
+      width:52px;
+      height:52px;
+      object-fit:cover;
+      border-radius:.45rem;
+      border:1px solid rgba(255,255,255,.18);
+    }
+    .booking-photo-preview__meta{
+      display:flex;
+      flex-direction:column;
+      gap:.15rem;
+      font-size:.82rem;
+    }
+    .booking-photo-preview__meta small{color:var(--muted);}
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
     .hint{font-size:.85rem;color:var(--muted)}
     .error{color:#ff5c72;font-size:.9rem;margin-top:.5rem}
@@ -945,6 +969,17 @@ main h3{
                      pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}"
                      required placeholder="{{ services_copy.booking_phone_placeholder }}">
             </div>
+            <div class="field">
+              <label for="contactReferenceImage">Reference photo (optional)</label>
+              <input id="contactReferenceImage" name="contact_reference_image" type="file" accept="image/*" class="input">
+              <div id="contactReferencePreview" class="booking-photo-preview" hidden>
+                <img id="contactReferencePreviewImg" alt="Reference preview">
+                <div class="booking-photo-preview__meta">
+                  <strong id="contactReferencePreviewName"></strong>
+                  <small id="contactReferencePreviewSize"></small>
+                </div>
+              </div>
+            </div>
           </div>
 
           <p class="hint">{{ services_copy.booking_confirmation_hint }}</p>
@@ -1054,6 +1089,11 @@ main h3{
       email: document.getElementById('contactEmail'),
       phone: document.getElementById('contactPhone'),
     };
+    const contactReferenceInput = document.getElementById('contactReferenceImage');
+    const contactReferencePreview = document.getElementById('contactReferencePreview');
+    const contactReferencePreviewImg = document.getElementById('contactReferencePreviewImg');
+    const contactReferencePreviewName = document.getElementById('contactReferencePreviewName');
+    const contactReferencePreviewSize = document.getElementById('contactReferencePreviewSize');
 
     const olGrid=document.getElementById('olGrid');
     const olWrap=document.getElementById('olWrap');
@@ -1175,6 +1215,40 @@ main h3{
         email: contactInputs.email.value.trim(),
         phone: contactInputs.phone.value.trim(),
       };
+    }
+
+    function bytesToText(bytes){
+      if (!bytes && bytes !== 0) return '';
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1048576).toFixed(1)} MB`;
+    }
+
+    function resetReferencePreview(){
+      if (!contactReferencePreview) return;
+      contactReferencePreview.setAttribute('hidden', '');
+      if (contactReferencePreviewImg) contactReferencePreviewImg.removeAttribute('src');
+      if (contactReferencePreviewName) contactReferencePreviewName.textContent = '';
+      if (contactReferencePreviewSize) contactReferencePreviewSize.textContent = '';
+    }
+
+    function syncReferencePreview(){
+      if (!contactReferenceInput || !contactReferencePreview) return;
+      const file = contactReferenceInput.files && contactReferenceInput.files[0];
+      if (!file){
+        resetReferencePreview();
+        return;
+      }
+      contactReferencePreview.removeAttribute('hidden');
+      if (contactReferencePreviewName) contactReferencePreviewName.textContent = file.name || 'Selected image';
+      if (contactReferencePreviewSize) contactReferencePreviewSize.textContent = bytesToText(file.size);
+      if (contactReferencePreviewImg){
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          contactReferencePreviewImg.src = event.target && event.target.result ? event.target.result : '';
+        };
+        reader.readAsDataURL(file);
+      }
     }
 
     function contactIsComplete(){
@@ -1420,8 +1494,12 @@ main h3{
         updateSubmitState();
       });
     });
+    if (contactReferenceInput){
+      contactReferenceInput.addEventListener('change', syncReferencePreview);
+    }
 
     hydrateContactForm();
+    resetReferencePreview();
     updateSubmitState();
 
     function openModal(serviceId, serviceName){
@@ -1439,6 +1517,8 @@ main h3{
       clearMobileTimeInput();
       setMobileStatus(copy.mobilePickDayLabel, false);
       hydrateContactForm();
+      if (contactReferenceInput) contactReferenceInput.value = '';
+      resetReferencePreview();
       updateSubmitState();
       setBookingModalState(true);
       scheduleMobileDateInputWidthSync();
@@ -1677,21 +1757,33 @@ main h3{
       const contact = getContactPayload();
       btnSubmit.disabled=true; elError.style.display='none'; elSuccess.style.display='none';
       try{
+        const payload = new FormData();
+        payload.append('service', current.serviceId);
+        payload.append('master', current.masterId);
+        payload.append('start_time', current.slot);
+        payload.append('contact_name', contact.name);
+        payload.append('contact_email', contact.email);
+        payload.append('contact_phone', contact.phone);
+        if (contactReferenceInput && contactReferenceInput.files && contactReferenceInput.files[0]){
+          payload.append('reference_image', contactReferenceInput.files[0]);
+        }
         const resp=await fetch(apiBook,{
           method:'POST',
-          headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
+          headers:{'X-CSRFToken':getCookie('csrftoken')},
           credentials:'same-origin',
-          body:JSON.stringify({
-            service:current.serviceId,
-            master:current.masterId,
-            start_time:current.slot,
-            contact
-          })
+          body:payload
         });
         const data=await resp.json().catch(()=>({}));
         if(!resp.ok){
           const contactErrors = data?.errors?.contact;
-          let message = (contactErrors && Object.values(contactErrors).find(Boolean)) || data?.error || data?.detail || copy.createErrorLabel;
+          const generalErrors = data?.errors;
+          let message =
+            (contactErrors && Object.values(contactErrors).find(Boolean))
+            || (generalErrors && generalErrors.reference_image)
+            || (generalErrors && Object.values(generalErrors).find(Boolean))
+            || data?.error
+            || data?.detail
+            || copy.createErrorLabel;
           if (Array.isArray(message)) message = message[0];
           throw new Error(message);
         }
