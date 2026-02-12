@@ -246,8 +246,8 @@
       background:linear-gradient(180deg,var(--panel),var(--panel-2));
       border:1px solid var(--line); border-radius:1rem; padding:1rem; box-shadow:var(--shadow);
     }
-    .card--quick-checkout{ cursor:pointer; }
-    .card--quick-checkout:focus-visible{
+    .card--product-link{ cursor:pointer; }
+    .card--product-link:focus-visible{
       outline:2px solid rgba(255,255,255,.75);
       outline-offset:3px;
     }
@@ -267,26 +267,25 @@
     }
     .card__meta dd{ margin:0; color:var(--fg); font-weight:700; }
 
-    .coming-soon{
+    .status-banner{
       display:grid; gap:.55rem; margin:1.8rem 0 0;
       padding:1rem 1.1rem; border-radius:1rem;
       border:1px solid rgba(213,0,0,.35); background:rgba(213,0,0,.08);
       box-shadow:0 14px 26px rgba(213,0,0,.18);
     }
-    .coming-soon--live{
+    .status-banner--live{
       border-color:rgba(23,212,91,.35);
       background:rgba(23,212,91,.09);
       box-shadow:0 14px 26px rgba(23,212,91,.16);
     }
-    .coming-soon__title{ font-family:var(--font-head); font-size:1.25rem; font-weight:900; }
-    .section--coming-soon .card{ border-style:dashed; }
+    .status-banner__title{ font-family:var(--font-head); font-size:1.25rem; font-weight:900; }
+    .section--preview .card{ border-style:dashed; }
     .card__price{
       font-size:1.05rem;
       font-weight:900;
       color:#fff;
       letter-spacing:.01em;
     }
-    .card__checkout-form{ margin-top:.25rem; }
     .card__cta{ margin-top:.25rem; width:fit-content; }
     .card__cta[aria-disabled="true"]{
       opacity:.6;
@@ -540,7 +539,7 @@ body.nav-open .contact-fab,
     box-shadow: 0 8px 24px rgba(0,0,0,.35); /* subtle lift */
   }
 
-  /* Keep the "Soon" badge tidy inside the pill */
+  /* Keep the badge tidy inside the pill */
   .site-header nav a .badge{
     margin-left: .6rem;
     vertical-align: middle;
@@ -599,7 +598,7 @@ body.nav-open .contact-fab,
   </section>
 
   <main id="main">
-    <section class="section{% if merch_copy.coming_soon_enabled and not printful_products %} section--coming-soon{% endif %}">
+    <section class="section{% if merch_copy.coming_soon_enabled and not printful_products %} section--preview{% endif %}">
       <div class="container">
         <div class="section__head">
           <div>
@@ -632,17 +631,17 @@ body.nav-open .contact-fab,
         {% endif %}
 
         {% if printful_products %}
-          <div class="coming-soon coming-soon--live">
+          <div class="status-banner status-banner--live">
             <span class="badge">Live now</span>
             <div>
-              <div class="coming-soon__title">Fulfilled by Printful</div>
+              <div class="status-banner__title">Fulfilled by Printful</div>
               <p class="section__desc">Merch inventory and fulfillment are synced from Printful in real time.</p>
             </div>
           </div>
 
           <div class="grid grid--cards" style="margin-top:1rem">
             {% for item in printful_products %}
-              <article class="card{% if item.checkout_action %} card--quick-checkout{% endif %}"{% if item.checkout_action %} data-quick-checkout-card{% endif %}>
+              <article class="card{% if item.url %} card--product-link{% endif %}"{% if item.url %} data-merch-product-card data-product-url="{{ item.url }}"{% endif %}>
                 <div class="card__media">
                   {% if item.image_url %}
                     <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy" decoding="async">
@@ -658,18 +657,8 @@ body.nav-open .contact-fab,
                   {% if item.variant_label %}
                     <p class="section__desc">{{ item.variant_label }}</p>
                   {% endif %}
-                  {% if item.checkout_action %}
-                    <form method="post" action="{{ item.checkout_action }}" class="card__checkout-form" data-quick-checkout-form>
-                      {% csrf_token %}
-                      <input type="hidden" name="qty" value="1">
-                      <input type="hidden" name="buy_now" value="1">
-                      {% if item.checkout_option_id %}
-                        <input type="hidden" name="option_id" value="{{ item.checkout_option_id }}">
-                      {% endif %}
-                      <button type="submit" class="btn btn--primary card__cta">{{ item.checkout_label|default:"Checkout now" }}</button>
-                    </form>
-                  {% elif item.url %}
-                    <a class="btn btn--ghost card__cta" href="{{ item.url }}">{{ item.checkout_label|default:"Shop now" }}</a>
+                  {% if item.url %}
+                    <a class="btn btn--primary card__cta" href="{{ item.url }}">{{ item.checkout_label|default:"Choose options" }}</a>
                   {% else %}
                     <span class="btn btn--ghost card__cta" aria-disabled="true">Available on request</span>
                   {% endif %}
@@ -807,10 +796,10 @@ body.nav-open .contact-fab,
         </div>
 
         {% if merch_copy.coming_soon_enabled %}
-          <div class="coming-soon">
+          <div class="status-banner">
             <span class="badge">{{ merch_copy.coming_soon_badge }}</span>
             <div>
-              <div class="coming-soon__title">{{ merch_copy.coming_soon_title }}</div>
+              <div class="status-banner__title">{{ merch_copy.coming_soon_title }}</div>
               <p class="section__desc">{{ merch_copy.coming_soon_desc|striptags|safe }}</p>
             </div>
           </div>
@@ -887,21 +876,21 @@ body.nav-open .contact-fab,
 
   <script>
     (function () {
-      const cards = document.querySelectorAll("[data-quick-checkout-card]");
+      const cards = document.querySelectorAll("[data-merch-product-card]");
       cards.forEach((card) => {
-        const form = card.querySelector("[data-quick-checkout-form]");
-        if (!form || typeof form.requestSubmit !== "function") {
+        const url = card.getAttribute("data-product-url");
+        if (!url) {
           return;
         }
 
-        card.setAttribute("role", "button");
+        card.setAttribute("role", "link");
         card.setAttribute("tabindex", "0");
 
         card.addEventListener("click", (event) => {
           if (event.target.closest("a,button,input,select,textarea,label,form")) {
             return;
           }
-          form.requestSubmit();
+          window.location.href = url;
         });
 
         card.addEventListener("keydown", (event) => {
@@ -912,7 +901,7 @@ body.nav-open .contact-fab,
             return;
           }
           event.preventDefault();
-          form.requestSubmit();
+          window.location.href = url;
         });
       });
     })();

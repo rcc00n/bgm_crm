@@ -69,6 +69,25 @@ class CleanupStatusFilter(admin.SimpleListFilter):
         return queryset.filter(cleanup_batch__isnull=True)
 
 
+class PrintfulMerchFilter(admin.SimpleListFilter):
+    title = "Printful merch"
+    parameter_name = "printful_merch"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("yes", "Printful merch"),
+            ("no", "Non-merch"),
+        )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == "yes":
+            return queryset.filter(sku__startswith="PF-")
+        if value == "no":
+            return queryset.exclude(sku__startswith="PF-")
+        return queryset
+
+
 class ProductOptionInline(admin.TabularInline):
     model = ProductOption
     extra = 1
@@ -152,6 +171,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "sku",
+        "printful_merch",
         "category_short",
         "price",
         "currency",
@@ -163,6 +183,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ("is_active",)
     list_filter = (
         "is_active",
+        PrintfulMerchFilter,
         "is_in_house",
         "category",
         "currency",
@@ -175,6 +196,7 @@ class ProductAdmin(admin.ModelAdmin):
     inlines = [ProductOptionInline, ProductImageInline]
     filter_horizontal = ("compatible_models",)
     readonly_fields = ("created_at", "updated_at", "specs_preview")
+    actions = ("hide_selected_products", "show_selected_products")
 
     fields = (
         "name", "slug", "sku", "category",
@@ -402,6 +424,21 @@ class ProductAdmin(admin.ModelAdmin):
             short = name.split(">")[-1].strip()
             return format_html('<span title="{}">{}</span>', name, short)
         return name
+
+    @admin.display(description="Printful", boolean=True)
+    def printful_merch(self, obj):
+        sku = (getattr(obj, "sku", "") or "").upper()
+        return sku.startswith("PF-")
+
+    @admin.action(description="Hide selected products from storefront")
+    def hide_selected_products(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"Hidden {updated} product(s) from storefront.", level=messages.SUCCESS)
+
+    @admin.action(description="Show selected products on storefront")
+    def show_selected_products(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f"Published {updated} product(s) on storefront.", level=messages.SUCCESS)
 
     def _junk_queryset(self):
         return Product.objects.filter(

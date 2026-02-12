@@ -835,6 +835,16 @@ def _build_printful_product_sku(product_id: int) -> str:
     return f"PF-{product_id}"
 
 
+def _parse_printful_product_id_from_sku(value: str) -> int:
+    raw = (value or "").strip().upper()
+    if not raw.startswith("PF-"):
+        return 0
+    try:
+        return int(raw[3:])
+    except (TypeError, ValueError):
+        return 0
+
+
 def _build_printful_product_slug(product_id: int, name: str) -> str:
     base = slugify(name or "")[:140] or "item"
     return f"merch-{product_id}-{base}"[:200]
@@ -946,6 +956,7 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
 
         currency = (str(item.get("currency") or "") or default_currency).strip().upper() or default_currency
         image_url = (str(item.get("image_url") or "") or "").strip()
+        existing = Product.objects.filter(sku=sku).only("id", "is_active").first()
         defaults = {
             "slug": slug,
             "name": name,
@@ -954,7 +965,8 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
             "is_in_house": True,
             "currency": currency,
             "inventory": 9999,
-            "is_active": True,
+            # Preserve manual visibility toggles from admin.
+            "is_active": existing.is_active if existing is not None else True,
             "short_description": "Fulfilled by Printful.",
             "description": f"Printful product #{product_id}",
             "contact_for_estimate": False,
@@ -965,7 +977,7 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
         _sync_printful_options_for_product(product, variants)
 
 
-def _build_synced_printful_merch_map(products: list[dict]) -> dict[int, dict]:
+def _build_synced_printful_merch_map(products: list[dict]) -> tuple[dict[int, dict], set[int]]:
     ids: list[int] = []
     for item in products:
         try:
@@ -975,7 +987,7 @@ def _build_synced_printful_merch_map(products: list[dict]) -> dict[int, dict]:
         if product_id > 0:
             ids.append(product_id)
     if not ids:
-        return {}
+        return {}, set()
 
     ids = sorted(set(ids))
     sync_key = f"{PRINTFUL_MERCH_SYNC_KEY_PREFIX}:{','.join(str(pid) for pid in ids)}"
@@ -988,14 +1000,17 @@ def _build_synced_printful_merch_map(products: list[dict]) -> dict[int, dict]:
             sync_ttl = 60
         cache.set(sync_key, True, sync_ttl)
 
+    resolved: dict[int, dict] = {}
+    hidden_ids: set[int] = set()
+
     skus = [_build_printful_product_sku(product_id) for product_id in ids]
     store_products = Product.objects.filter(sku__in=skus).prefetch_related("options")
-    by_sku = {product.sku: product for product in store_products}
-
-    resolved: dict[int, dict] = {}
-    for product_id in ids:
-        product = by_sku.get(_build_printful_product_sku(product_id))
-        if not product:
+    for product in store_products:
+        product_id = _parse_printful_product_id_from_sku(product.sku)
+        if not product_id:
+            continue
+        if not product.is_active:
+            hidden_ids.add(product_id)
             continue
         selectable = product.get_selectable_options()
         default_option_id = selectable[0].id if selectable else None
@@ -1003,14 +1018,14 @@ def _build_synced_printful_merch_map(products: list[dict]) -> dict[int, dict]:
             "product": product,
             "default_option_id": default_option_id,
         }
-    return resolved
+    return resolved, hidden_ids
 
 
 def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
     if not products:
         return []
 
-    synced = _build_synced_printful_merch_map(products)
+    synced, hidden_ids = _build_synced_printful_merch_map(products)
     enriched: list[dict] = []
     for item in products:
         row = dict(item or {})
@@ -1019,18 +1034,17 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
         except (TypeError, ValueError):
             product_id = 0
 
+        if product_id in hidden_ids:
+            continue
+
         matched = synced.get(product_id)
-        if matched:
-            product = matched["product"]
-            row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
-            row["checkout_action"] = reverse("store:store-cart-add", kwargs={"slug": product.slug})
-            row["checkout_option_id"] = matched.get("default_option_id")
-            row["checkout_label"] = "Checkout now"
-            row["url"] = row["store_product_url"]
-        else:
-            row.setdefault("checkout_action", "")
-            row.setdefault("checkout_option_id", None)
-            row.setdefault("checkout_label", "Shop now")
+        if not matched:
+            continue
+
+        product = matched["product"]
+        row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
+        row["checkout_label"] = "Choose options"
+        row["url"] = row["store_product_url"]
         enriched.append(row)
     return enriched
 
