@@ -25,13 +25,11 @@ from core.models import (
     HomePageCopy,
     MerchPageCopy,
     PageFontSetting,
-    ProjectJournalPageCopy,
     ServicesPageCopy,
     StorePageCopy,
     Service,
 )
 from core.services.fonts import build_page_font_context
-from core.services.media import build_merch_gallery_groups
 from core.services.page_layout import build_layout_styles, layout_config_for_model, normalize_layout_overrides
 from core.services.page_sections import get_page_sections
 
@@ -1553,7 +1551,6 @@ def build_store_context(request: HttpRequest) -> Dict[str, Any]:
 def build_merch_context(request: HttpRequest) -> Dict[str, Any]:
     return {
         "font_settings": build_page_font_context(PageFontSetting.Page.MERCH),
-        "merch_gallery_groups": build_merch_gallery_groups(),
         "printful_products": [],
         "printful_catalog_url": "",
     }
@@ -1568,22 +1565,6 @@ def build_financing_context(request: HttpRequest) -> Dict[str, Any]:
 def build_about_context(request: HttpRequest) -> Dict[str, Any]:
     return {
         "font_settings": build_page_font_context(PageFontSetting.Page.ABOUT),
-    }
-
-
-def build_project_journal_context(request: HttpRequest) -> Dict[str, Any]:
-    return {
-        "page_title": "Builds",
-        "meta_description": "Before-and-after build highlights from Bad Guy Motors. Fast scans, clean comparisons, zero fluff.",
-        "show_filters": False,
-        "available_categories": [],
-        "active_categories": [],
-        "q": "",
-        "sort": "featured",
-        "has_posts": False,
-        "next_page_url": "",
-        "next_page_fragment_url": "",
-        "font_settings": build_page_font_context(PageFontSetting.Page.PROJECT_JOURNAL),
     }
 
 
@@ -1655,11 +1636,6 @@ PREVIEW_CONFIG: Dict[type, PreviewConfig] = {
         copy_key="about_copy",
         header_key="header_copy",
         context_builder=build_about_context,
-    ),
-    ProjectJournalPageCopy: PreviewConfig(
-        template="client/project_journal.html",
-        copy_key="project_journal_copy",
-        context_builder=build_project_journal_context,
     ),
     ClientPortalPageCopy: PreviewConfig(
         template="client/dashboard.html",

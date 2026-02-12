@@ -244,7 +244,9 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
     }
 
     try:
-        listing_payload = _api_get("/store/products", query={"limit": limit, "offset": 0})
+        # /sync/products works across connected platforms (Wix/Shopify/etc).
+        # /store/products is limited to Manual Order / API stores.
+        listing_payload = _api_get("/sync/products", query={"limit": limit, "offset": 0})
         items = _extract_result_items(listing_payload)
 
         products: list[dict[str, Any]] = []

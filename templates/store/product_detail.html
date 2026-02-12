@@ -689,6 +689,49 @@
         });
       })();
     </script>
+    <script>
+      (function () {
+        var form = document.querySelector('.product-form');
+        if (!form) return;
+
+        var referenceTextRegex = /(reference photo|photo reference|cart item.*optional)/i;
+
+        var removeReferenceUploadBlocks = function () {
+          var targets = new Set();
+
+          form.querySelectorAll('input[type="file"]').forEach(function (input) {
+            var fingerprint = ((input.name || '') + ' ' + (input.id || '')).toLowerCase();
+            if (!fingerprint.includes('reference') && !fingerprint.includes('photo')) return;
+
+            var block = input.closest(
+              '[data-reference-upload], [data-cart-reference-upload], .reference-upload, .upload-card, section'
+            ) || input;
+            if (block && block !== form) {
+              targets.add(block);
+            }
+          });
+
+          form.querySelectorAll('section, div').forEach(function (node) {
+            if (!referenceTextRegex.test(node.textContent || '')) return;
+            if (!node.querySelector('input[type="file"]')) return;
+            targets.add(node);
+          });
+
+          targets.forEach(function (node) {
+            if (node && node.parentNode) {
+              node.parentNode.removeChild(node);
+            }
+          });
+        };
+
+        removeReferenceUploadBlocks();
+
+        var observer = new MutationObserver(function () {
+          removeReferenceUploadBlocks();
+        });
+        observer.observe(form, { childList: true, subtree: true });
+      })();
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
