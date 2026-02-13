@@ -564,7 +564,13 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "items": [
                     {"model": "core.UserProfile", "label": "Client Profiles"},
                     {"model": "core.ClientFile", "label": "Client Files"},
-                    {"model": "core.ClientReview", "label": "Reviews"},
+                    {
+                        "model": "core.ClientReview",
+                        "label": "Reviews",
+                        # Reviews are created via the public site (no LogEntry), so use created_at
+                        # for admin sidebar + bell notifications.
+                        "activity_field": "created_at",
+                    },
                     {"model": "core.ClientSource", "label": "Lead Sources"},
                 ],
             },

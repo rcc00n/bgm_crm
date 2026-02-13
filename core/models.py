@@ -4232,7 +4232,7 @@ class MasterAvailability(models.Model):
                 })
 
 
-class ClientReview(models.Model):
+class AppointmentReview(models.Model):
     appointment = models.OneToOneField(
         Appointment,
         on_delete=models.CASCADE,
@@ -4250,8 +4250,24 @@ class ClientReview(models.Model):
         return f"Review {self.rating}★ for {self.appointment}"
 
     class Meta:
-        verbose_name = "Client Review"
-        verbose_name_plural = "Client Reviews"
+        db_table = "core_clientreview"
+        verbose_name = "Appointment review"
+        verbose_name_plural = "Appointment reviews"
+
+
+from store.models import StoreReview
+
+
+class ClientReview(StoreReview):
+    """
+    Proxy to store reviews so all inbound reviews are moderated at:
+    /admin/core/clientreview/
+    """
+
+    class Meta:
+        proxy = True
+        verbose_name = "Client review"
+        verbose_name_plural = "Client reviews"
 
 
 class ServiceDiscount(models.Model):

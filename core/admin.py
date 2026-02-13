@@ -1135,12 +1135,13 @@ class ClientFileAdmin(admin.ModelAdmin):
 # -----------------------------
 # Client Review Admin
 # -----------------------------
-@admin.register(ClientReview)
-class ClientReviewAdmin(ExportCsvMixin ,admin.ModelAdmin):
+@admin.register(AppointmentReview)
+class AppointmentReviewAdmin(ExportCsvMixin, admin.ModelAdmin):
     list_display = ("appointment", "get_client", "get_master", "rating", "created_at")
     search_fields = ("appointment__client__first_name", "appointment__client__last_name", "comment")
     list_filter = ("rating", "created_at")
     export_fields = ["appointment", "get_client", "get_master", "rating", "created_at"]
+
     @admin.display(description="Client")
     def get_client(self, obj):
         appt = obj.appointment
@@ -1151,6 +1152,106 @@ class ClientReviewAdmin(ExportCsvMixin ,admin.ModelAdmin):
     @admin.display(description="Staff")
     def get_master(self, obj):
         return obj.appointment.master.get_full_name()
+
+
+@admin.register(ClientReview)
+class ClientReviewAdmin(admin.ModelAdmin):
+    """
+    Review moderation inbox (proxy of store.StoreReview).
+    All public review submissions land here for approval/publishing.
+    """
+
+    list_display = (
+        "created_at",
+        "status",
+        "rating",
+        "reviewer_name",
+        "product",
+        "reviewer_email",
+    )
+    list_filter = ("status", "rating", "created_at")
+    search_fields = (
+        "reviewer_name",
+        "reviewer_email",
+        "reviewer_title",
+        "title",
+        "body",
+        "product__name",
+    )
+    autocomplete_fields = ("product", "user", "approved_by")
+    readonly_fields = ("approved_at", "approved_by", "created_at", "updated_at")
+    fields = (
+        "status",
+        "product",
+        "user",
+        "reviewer_name",
+        "reviewer_email",
+        "reviewer_title",
+        "rating",
+        "title",
+        "body",
+        "source_url",
+        "approved_at",
+        "approved_by",
+        "created_at",
+        "updated_at",
+    )
+    ordering = ("-created_at",)
+    actions = ("mark_approved", "mark_rejected", "mark_pending")
+
+    def save_model(self, request, obj, form, change):
+        previous_status = None
+        if change and obj.pk:
+            previous_status = (
+                ClientReview.objects.filter(pk=obj.pk)
+                .values_list("status", flat=True)
+                .first()
+            )
+
+        # Keep approval metadata in sync with status.
+        if obj.status == ClientReview.Status.APPROVED:
+            if previous_status != ClientReview.Status.APPROVED:
+                obj.approved_at = timezone.now()
+                obj.approved_by = request.user
+        else:
+            obj.approved_at = None
+            obj.approved_by = None
+
+        super().save_model(request, obj, form, change)
+
+    @admin.action(description="Approve selected reviews")
+    def mark_approved(self, request, queryset):
+        now = timezone.now()
+        updated = 0
+        for review in queryset:
+            review.status = ClientReview.Status.APPROVED
+            review.approved_at = now
+            review.approved_by = request.user
+            review.save()
+            updated += 1
+        self.message_user(request, f"Approved {updated} review(s).", messages.SUCCESS)
+
+    @admin.action(description="Reject selected reviews")
+    def mark_rejected(self, request, queryset):
+        updated = 0
+        for review in queryset:
+            review.status = ClientReview.Status.REJECTED
+            review.approved_at = None
+            review.approved_by = None
+            review.save()
+            updated += 1
+        self.message_user(request, f"Rejected {updated} review(s).", messages.SUCCESS)
+
+    @admin.action(description="Mark selected reviews as pending")
+    def mark_pending(self, request, queryset):
+        updated = 0
+        for review in queryset:
+            review.status = ClientReview.Status.PENDING
+            review.approved_at = None
+            review.approved_by = None
+            review.save()
+            updated += 1
+        self.message_user(request, f"Marked {updated} review(s) as pending.", messages.SUCCESS)
 
 
 # -----------------------------

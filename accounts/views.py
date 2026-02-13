@@ -672,47 +672,38 @@ def _select_home_products(
 
 
 def _build_home_reviews(*, limit: int | None = None):
+    # Home carousel should be bounded even when called without an explicit limit.
+    limit = 12 if limit is None else max(1, int(limit))
+
     landing_qs = LandingPageReview.objects.filter(
         is_published=True,
-    ).order_by("page", "display_order", "-created_at")
-    if limit:
-        landing_qs = landing_qs[:limit]
+    ).order_by("page", "display_order", "-created_at")[:limit]
     landing_reviews = list(landing_qs)
     if landing_reviews:
         return landing_reviews
 
+    # Fallback to approved public reviews (store.StoreReview via core.ClientReview proxy).
     reviews = []
-    client_reviews = (
-        ClientReview.objects.select_related(
-            "appointment",
-            "appointment__client",
-            "appointment__service",
+    approved_reviews = (
+        ClientReview.objects.filter(
+            product__isnull=True,
+            status=ClientReview.Status.APPROVED,
         )
-        .exclude(comment__isnull=True)
-        .exclude(comment__exact="")
-        .order_by("-created_at")
+        .order_by("-approved_at", "-created_at")[:limit]
     )
-    for review in client_reviews:
-        comment = (review.comment or "").strip()
-        if not comment:
+    for review in approved_reviews:
+        quote = (review.body or "").strip()
+        if not quote:
             continue
-        appt = review.appointment
-        reviewer_name = appt.contact_name
-        if not reviewer_name and appt.client_id:
-            reviewer_name = appt.client.get_full_name() or appt.client.username
-        reviewer_name = reviewer_name or "BGM Client"
-        reviewer_title = appt.service.name if getattr(appt, "service_id", None) else ""
         reviews.append(
             {
                 "rating": review.rating,
-                "quote": comment,
-                "reviewer_name": reviewer_name,
-                "reviewer_title": reviewer_title,
+                "quote": quote,
+                "reviewer_name": (review.reviewer_name or "").strip() or "BGM Client",
+                "reviewer_title": (review.reviewer_title or "").strip(),
                 "star_range": range(review.rating or 0),
             }
         )
-        if len(reviews) >= limit:
-            break
     return reviews
 
 class HomeView(TemplateView):

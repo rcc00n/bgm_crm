@@ -3064,7 +3064,7 @@ def analytics_collect(request):
 
 # core/views.py
 from datetime import datetime, timedelta
-from django.db.models import Sum, Count, F
+from django.db.models import Sum, Count, F, Avg
 from django.utils import timezone
 from django.shortcuts import render
 
@@ -3144,8 +3144,12 @@ def admin_dashboard(request):
         .order_by("-total")[:5]
     )
 
-    # 6. Средняя оценка клиентов
-    avg_rating = ClientReview.objects.aggregate(avg=Sum("rating") * 1.0 / Count("rating"))["avg"]
+    # 6. Средняя оценка клиентов (только опубликованные/одобренные отзывы)
+    avg_rating = (
+        ClientReview.objects.filter(status=ClientReview.Status.APPROVED)
+        .aggregate(avg=Avg("rating"))
+        .get("avg")
+    )
 
     # 7. Статистика магазина: общая выручка и количество заказов
     orders_completed = Order.objects.filter(status=Order.STATUS_COMPLETED)
