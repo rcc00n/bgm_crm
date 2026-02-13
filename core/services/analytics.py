@@ -740,55 +740,121 @@ def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) 
     window_days = max(1, min(window_days, 90))
     day_list = _day_range(window_days)
     start_date = day_list[0]
-    start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+    window_start = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+    window_end = timezone.now()
 
-    admin_filter = Q(pk__isnull=True)
-    admin_prefixes = []
+    # Staff often keeps admin pages open for long periods, which means a PageView can start
+    # outside the requested window yet still be active within it (updated_at keeps moving).
+    # We therefore filter by updated_at and estimate the portion of duration that overlaps
+    # the requested window.
+
+    admin_prefixes: List[str] = []
     try:
         admin_prefixes.append(reverse("admin:index"))
     except Exception:
-        admin_prefixes = []
+        pass
     configured_prefixes = getattr(settings, "ADMIN_USAGE_PATH_PREFIXES", None) or []
     for prefix in configured_prefixes:
         if prefix:
-            admin_prefixes.append(prefix)
+            admin_prefixes.append(str(prefix))
     admin_prefixes.extend(["/admin/", "/admin"])
-    normalized_prefixes = []
+
+    normalized_prefixes: List[str] = []
     for prefix in admin_prefixes:
+        prefix = (prefix or "").strip()
         if not prefix:
             continue
         if not prefix.startswith("/"):
             prefix = f"/{prefix}"
         normalized_prefixes.append(prefix)
+    normalized_prefixes = list(dict.fromkeys(normalized_prefixes))
 
-    for prefix in dict.fromkeys(normalized_prefixes):
-        admin_filter |= (
-            Q(path__startswith=prefix)
-            | Q(path__contains=prefix)
-            | Q(full_path__startswith=prefix)
-            | Q(full_path__contains=prefix)
+    def _is_admin_path(path: str, full_path: str) -> bool:
+        path = path or ""
+        full_path = full_path or ""
+        for prefix in normalized_prefixes:
+            if (
+                path.startswith(prefix)
+                or prefix in path
+                or full_path.startswith(prefix)
+                or prefix in full_path
+            ):
+                return True
+        return False
+
+    def _overlap_ms(a_start, a_end, b_start, b_end) -> int:
+        start = max(a_start, b_start)
+        end = min(a_end, b_end)
+        if end <= start:
+            return 0
+        return int(round((end - start).total_seconds() * 1000))
+
+    def _window_duration_ms(started_at, updated_at, duration_ms: int) -> int:
+        """
+        Estimate how much of the recorded visible time fell within [window_start, window_end].
+
+        We treat the recorded visible time as a contiguous block ending at updated_at.
+        This avoids dropping long-lived PageViews that started before the window.
+        """
+        try:
+            duration_ms = int(duration_ms or 0)
+        except (TypeError, ValueError):
+            duration_ms = 0
+        if duration_ms <= 0:
+            return 0
+        if not started_at or not updated_at:
+            return 0
+        if updated_at <= window_start:
+            return 0
+        if updated_at < started_at:
+            return 0
+
+        active_end = min(updated_at, window_end)
+        active_start = updated_at - timedelta(milliseconds=duration_ms)
+        if active_start < started_at:
+            active_start = started_at
+
+        return _overlap_ms(active_start, active_end, window_start, window_end)
+
+    view_rows = (
+        PageView.objects.filter(
+            updated_at__gte=window_start,
+            user__isnull=False,
+            user__is_staff=True,
         )
-    client_filter = ~Q(path__startswith="/admin")
-
-    base_views = PageView.objects.filter(
-        started_at__gte=start_dt,
-        user__isnull=False,
-        user__is_staff=True,
+        .values("user_id", "path", "full_path", "started_at", "updated_at", "duration_ms")
+        .iterator()
     )
 
-    aggregates = base_views.values("user_id").annotate(
-        admin_duration_ms=Sum(
-            Case(When(admin_filter, then="duration_ms"), default=0, output_field=IntegerField())
-        ),
-        client_duration_ms=Sum(
-            Case(When(client_filter, then="duration_ms"), default=0, output_field=IntegerField())
-        ),
-        admin_views=Count("id", filter=admin_filter),
-        client_views=Count("id", filter=client_filter),
-        total_views=Count("id"),
-        last_seen=Max("updated_at"),
-    )
-    by_user = {row["user_id"]: row for row in aggregates}
+    admin_ms_by_user: Dict[int, int] = defaultdict(int)
+    client_ms_by_user: Dict[int, int] = defaultdict(int)
+    admin_views_by_user: Dict[int, int] = defaultdict(int)
+    client_views_by_user: Dict[int, int] = defaultdict(int)
+    last_seen_by_user: Dict[int, datetime] = {}
+
+    for row in view_rows:
+        user_id = row.get("user_id")
+        if not user_id:
+            continue
+
+        updated_at = row.get("updated_at")
+        if updated_at:
+            current_last = last_seen_by_user.get(user_id)
+            if not current_last or updated_at > current_last:
+                last_seen_by_user[user_id] = updated_at
+
+        window_ms = _window_duration_ms(
+            started_at=row.get("started_at"),
+            updated_at=updated_at,
+            duration_ms=row.get("duration_ms") or 0,
+        )
+
+        if _is_admin_path(row.get("path") or "", row.get("full_path") or ""):
+            admin_views_by_user[user_id] += 1
+            admin_ms_by_user[user_id] += window_ms
+        else:
+            client_views_by_user[user_id] += 1
+            client_ms_by_user[user_id] += window_ms
 
     User = get_user_model()
     staff_qs = User.objects.filter(is_staff=True)
@@ -803,11 +869,10 @@ def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) 
     total_client_views = 0
 
     for user in staff_list:
-        data = by_user.get(user.id, {})
-        admin_ms = int(data.get("admin_duration_ms") or 0)
-        client_ms = int(data.get("client_duration_ms") or 0)
-        admin_views = int(data.get("admin_views") or 0)
-        client_views = int(data.get("client_views") or 0)
+        admin_ms = int(admin_ms_by_user.get(user.id, 0) or 0)
+        client_ms = int(client_ms_by_user.get(user.id, 0) or 0)
+        admin_views = int(admin_views_by_user.get(user.id, 0) or 0)
+        client_views = int(client_views_by_user.get(user.id, 0) or 0)
         total_ms = admin_ms + client_ms
 
         admin_seconds = int(round(admin_ms / 1000))
@@ -835,7 +900,7 @@ def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) 
                 "admin_views": admin_views,
                 "client_views": client_views,
                 "total_views": admin_views + client_views,
-                "last_seen": data.get("last_seen"),
+                "last_seen": last_seen_by_user.get(user.id),
             }
         )
 

@@ -187,6 +187,36 @@ class StaffUsageSummaryTests(TestCase):
         self.assertEqual(idle_row["total_seconds"], 0)
         self.assertEqual(idle_row["admin_views"], 0)
 
+    def test_staff_usage_includes_long_lived_views_updated_within_window(self):
+        staff = User.objects.create_user("staffer2", password="pass1234", is_staff=True)
+        session = VisitorSession.objects.create(
+            session_key="staff-session-2",
+            user=staff,
+            landing_path="/admin/",
+            user_agent="pytest",
+        )
+
+        # Simulate a tab that was opened long ago but is still active now.
+        PageView.objects.create(
+            session=session,
+            user=staff,
+            page_instance_id="staff-admin-long",
+            path="/admin/",
+            full_path="/admin/",
+            page_title="Admin",
+            referrer="",
+            started_at=timezone.now() - timedelta(days=10),
+            duration_ms=60000,
+        )
+
+        summary = summarize_staff_usage(window_days=7)
+        rows = {row["user_id"]: row for row in summary["rows"]}
+        staff_row = rows[staff.id]
+
+        # Older implementation filtered by started_at and would have dropped this.
+        self.assertEqual(staff_row["admin_seconds"], 60)
+        self.assertEqual(staff_row["admin_views"], 1)
+
 
 class AnalyticsInsightsSummaryTests(TestCase):
     def test_insights_summary_includes_breakdowns(self):
