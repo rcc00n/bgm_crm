@@ -702,10 +702,7 @@
 
 	        var total = pills.length;
 	        if (toolbar) toolbar.hidden = false;
-	        if (countWrap && matchCountEl && totalCountEl) {
-	          countWrap.hidden = false;
-	          totalCountEl.textContent = String(total);
-	        }
+	        if (totalCountEl) totalCountEl.textContent = String(total);
 
 	        var getPillText = function (pill) {
 	          if (!pill) return '';
@@ -792,6 +789,7 @@
 	        var searchThreshold = 8;
 	        if (searchWrap && searchInput && total > searchThreshold) {
 	          searchWrap.hidden = false;
+	          if (countWrap) countWrap.hidden = false;
 	          searchInput.addEventListener('input', applyFilter);
 	          searchInput.addEventListener('search', applyFilter);
 	        }
