@@ -133,17 +133,17 @@
   {
     "@context": "https://schema.org",
     "@type": "{{ meta_schema_type_resolved }}",
-    "name": "{{ meta_site_name_clean|escapejs }}",
+    "name": "{{ marketing.site_name|meta_text|escapejs }}",
     "url": "{{ meta_url_resolved|default:marketing.canonical_url }}",
-    "description": "{{ meta_description_clean|escapejs }}",
+    "description": "{{ meta_description_resolved|meta_text|escapejs }}",
     "publisher": {
       "@type": "Organization",
-      "name": "{{ meta_site_name_clean|escapejs }}",
-      "legalName": "{{ meta_site_name_clean|escapejs }}",
+      "name": "{{ marketing.site_name|meta_text|escapejs }}",
+      "legalName": "{{ marketing.site_name|meta_text|escapejs }}",
       "url": "{{ marketing.canonical_url|default:marketing.page_url }}",
       "logo": {
         "@type": "ImageObject",
-        "url": "{{ marketing.organization_logo_absolute|default:meta_image_absolute }}"
+        "url": "{{ marketing.organization_logo_absolute|default:meta_image_resolved|default:marketing.default_image|absolute_url:marketing.origin|default:marketing.default_image_absolute }}"
       }{% if marketing.organization_same_as %},
       "sameAs": [{% for url in marketing.organization_same_as %}"{{ url|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %}]
       {% endif %}
@@ -156,7 +156,7 @@
     window.dataLayer.push({
       event: "page_view",
       page: {
-        title: "{{ meta_title_clean|escapejs }}",
+        title: "{{ meta_title_resolved|meta_text|escapejs }}",
         url: "{{ meta_url_resolved|default:marketing.page_url|escapejs }}",
         type: "{{ meta_type_resolved|escapejs }}",
         section: "{{ meta_section_resolved|escapejs }}",
@@ -268,3 +268,4 @@
       })(window, document);
     </script>
   {% endif %}
+  {% endwith %}
