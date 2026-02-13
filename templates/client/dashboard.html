@@ -134,6 +134,51 @@
 	      width:36px;
 	      height:36px;
 	    }
+	    /* Reschedule modal: match Services booking modal colors (buttons + "today" header). */
+	    #resModal{
+	      /* Services booking modal overlay shade */
+	      background:rgba(0,0,0,.72);
+	      /* Services booking modal palette */
+	      --ink:#f2f2f2;
+	      --muted:#b9b9b9;
+	      --line:rgba(255,255,255,.12);
+	      --red-dark:#b60000;
+	    }
+	    #resModal .btn-ghost{
+	      background:transparent;
+	      color:var(--ink);
+	      border:1px solid var(--red);
+	    }
+	    #resModal .btn-ghost:hover{
+	      box-shadow:0 0 18px rgba(213,0,0,.35);
+	      transform:translateY(-1px);
+	    }
+	    #resModal .btn-primary{
+	      background:linear-gradient(180deg, var(--red) 0%, var(--red-dark) 100%);
+	      color:#fff;
+	      border:1px solid rgba(255,255,255,.08);
+	      box-shadow:
+	        0 0 0 0 rgba(213,0,0,0),
+	        0 0 24px rgba(213,0,0,.35),
+	        0 0 48px rgba(213,0,0,.18);
+	    }
+	    #resModal .btn-primary:hover{
+	      transform:translateY(-1px);
+	      filter:brightness(1.02);
+	    }
+	    #resModal .modal__close{border-color:var(--line);}
+	    #resModal .outlook,
+	    #resModal .mobile-booking{
+	      border-color:var(--line);
+	    }
+	    #resModal .outlook__toolbar{border-bottom:1px solid var(--line);}
+	    #resModal .outlook__cell{border-bottom:1px solid var(--line);border-right:1px solid var(--line);}
+	    #resModal .outlook__head{border-bottom:2px solid var(--line);}
+	    #resModal .outlook__head.day--today{
+	      background:linear-gradient(180deg,#3a0b0b 0%,#240808 100%);
+	    }
+	    #resModal .mobile-booking__btn{border-color:var(--line);}
+	    #resModal .mobile-booking__status[data-state="error"]{color:#ff5c72;}
 	    /* Services booking modal parity (layout + mobile controls). */
 	    .grid-2{
 	      display:grid;
