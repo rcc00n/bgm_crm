@@ -302,123 +302,10 @@
       </div>
     </div>
 
-    <div id="reviews" class="card card--reviews" style="margin-top:1rem">
-      <div class="reviews-head">
-        <div>
-          <h3 class="reviews-title">Reviews</h3>
-          {% if reviews_count %}
-            <p class="section__desc">
-              Average {{ reviews_avg|floatformat:1 }}/5 from {{ reviews_count }} review{{ reviews_count|pluralize }}.
-            </p>
-          {% else %}
-            <p class="section__desc">No reviews yet. Be the first to leave one.</p>
-          {% endif %}
-        </div>
-      </div>
-
-      {% if approved_reviews %}
-        <div class="reviews-list" role="list">
-          {% for r in approved_reviews %}
-            <article class="review" role="listitem">
-              <div class="review__stars" aria-hidden="true">
-                {% for _ in r.star_range %}★{% endfor %}
-              </div>
-              {% if r.title %}
-                <h4 class="review__title">{{ r.title }}</h4>
-              {% endif %}
-              <div class="review__body">{{ r.body|linebreaksbr }}</div>
-              <div class="review__author">
-                {{ r.reviewer_name }}{% if r.reviewer_title %} &mdash; {{ r.reviewer_title }}{% endif %}
-              </div>
-            </article>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      <hr class="catalog-divider" aria-hidden="true">
-
-      <div class="reviews-form-head">
-        <h3 class="reviews-title" style="margin:0">Leave a review</h3>
-        <p class="section__desc" style="margin:.25rem 0 0 0">Reviews are published after staff approval.</p>
-      </div>
-
-      {% if review_submitted %}
-        <div class="quote-alert quote-alert--success" style="margin-top:1rem">
-          Thanks for the review. It's in the approval queue now.
-        </div>
-      {% endif %}
-      {% if review_form.non_field_errors %}
-        <div class="quote-alert quote-alert--error" style="margin-top:1rem">
-          {% for err in review_form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
-        </div>
-      {% endif %}
-
-      <form method="post" action="#reviews" class="reviews-form" novalidate>
-        {% csrf_token %}
-        <input type="hidden" name="form_type" value="product_review">
-        {{ review_form.website }}
-
-        <div class="reviews-grid">
-          <div class="quote-field{% if review_form.reviewer_name.errors %} quote-field--error{% endif %}">
-            <label for="{{ review_form.reviewer_name.id_for_label }}">Name *</label>
-            {{ review_form.reviewer_name }}
-            {% if review_form.reviewer_name.errors %}
-              <p class="quote-field__error">{{ review_form.reviewer_name.errors.0 }}</p>
-            {% endif %}
-          </div>
-
-          <div class="quote-field{% if review_form.reviewer_email.errors %} quote-field--error{% endif %}">
-            <label for="{{ review_form.reviewer_email.id_for_label }}">Email</label>
-            {{ review_form.reviewer_email }}
-            {% if review_form.reviewer_email.errors %}
-              <p class="quote-field__error">{{ review_form.reviewer_email.errors.0 }}</p>
-            {% endif %}
-          </div>
-
-          <div class="quote-field{% if review_form.reviewer_title.errors %} quote-field--error{% endif %}">
-            <label for="{{ review_form.reviewer_title.id_for_label }}">Vehicle / context</label>
-            {{ review_form.reviewer_title }}
-            {% if review_form.reviewer_title.errors %}
-              <p class="quote-field__error">{{ review_form.reviewer_title.errors.0 }}</p>
-            {% endif %}
-          </div>
-
-          <div class="quote-field{% if review_form.rating.errors %} quote-field--error{% endif %}">
-            <label for="{{ review_form.rating.id_for_label }}">Rating *</label>
-            {{ review_form.rating }}
-            {% if review_form.rating.errors %}
-              <p class="quote-field__error">{{ review_form.rating.errors.0 }}</p>
-            {% endif %}
-          </div>
-
-          <div class="quote-field quote-field--full{% if review_form.title.errors %} quote-field--error{% endif %}">
-            <label for="{{ review_form.title.id_for_label }}">Title</label>
-            {{ review_form.title }}
-            {% if review_form.title.errors %}
-              <p class="quote-field__error">{{ review_form.title.errors.0 }}</p>
-            {% endif %}
-          </div>
-
-          <div class="quote-field quote-field--full{% if review_form.body.errors %} quote-field--error{% endif %}">
-            <label for="{{ review_form.body.id_for_label }}">Review *</label>
-            {{ review_form.body }}
-            {% if review_form.body.errors %}
-              <p class="quote-field__error">{{ review_form.body.errors.0 }}</p>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="quote-actions" style="margin-top:1rem">
-          <button class="btn btn--primary" type="submit">Submit review</button>
-          <p class="quote-footnote">We may lightly edit for clarity before publishing.</p>
-        </div>
-      </form>
-    </div>
-
-    <div id="quote-request" class="card card--quote">
-      <div class="quote-card__intro">
-        <p class="cta__eyebrow">Custom fitment brief</p>
-        <h3 class="cta__title">Share the inputs, we’ll send the plan</h3>
+	    <div id="quote-request" class="card card--quote">
+	      <div class="quote-card__intro">
+	        <p class="cta__eyebrow">Custom fitment brief</p>
+	        <h3 class="cta__title">Share the inputs, we’ll send the plan</h3>
         <p class="section__desc cta__copy">
           Outline your vehicle, performance targets, and timeline. The build desk will confirm availability,
           pricing, and next steps in writing.
@@ -584,10 +471,10 @@
       </div>
     {% endif %}
 
-    {% if related %}
-      <div class="section__head" style="margin-top:1.6rem">
-        <h3 class="section__title">Related products</h3>
-      </div>
+	    {% if related %}
+	      <div class="section__head" style="margin-top:1.6rem">
+	        <h3 class="section__title">Related products</h3>
+	      </div>
       <div class="grid grid--cards">
         {% for p in related %}
           <article class="card">
@@ -619,13 +506,124 @@
             </a>
           </article>
         {% endfor %}
-      </div>
-    {% endif %}
+	      </div>
+	    {% endif %}
 
-	    <script>
-	      (function () {
-	        var retailEl = document.querySelector('[data-product-price-retail]');
-	        var dealerEl = document.querySelector('[data-product-price-dealer]');
+	    <div id="reviews" class="card card--reviews" style="margin-top:1.6rem">
+	      <div class="reviews-head">
+	        <div>
+	          <h3 class="reviews-title">Reviews</h3>
+	          {% if reviews_count %}
+	            <p class="section__desc">
+	              Average {{ reviews_avg|floatformat:1 }}/5 from {{ reviews_count }} review{{ reviews_count|pluralize }}.
+	            </p>
+	          {% else %}
+	            <p class="section__desc">No reviews yet. Be the first to leave one.</p>
+	          {% endif %}
+	        </div>
+	      </div>
+
+	      {% if approved_reviews %}
+	        <div class="reviews-list" role="list">
+	          {% for r in approved_reviews %}
+	            <article class="review" role="listitem">
+	              <div class="review__stars" aria-hidden="true">
+	                {% for _ in r.star_range %}★{% endfor %}
+	              </div>
+	              {% if r.title %}
+	                <h4 class="review__title">{{ r.title }}</h4>
+	              {% endif %}
+	              <div class="review__body">{{ r.body|linebreaksbr }}</div>
+	              <div class="review__author">
+	                {{ r.reviewer_name }}{% if r.reviewer_title %} &mdash; {{ r.reviewer_title }}{% endif %}
+	              </div>
+	            </article>
+	          {% endfor %}
+	        </div>
+	      {% endif %}
+
+	      <hr class="catalog-divider" aria-hidden="true">
+
+	      <div class="reviews-form-head">
+	        <h3 class="reviews-title" style="margin:0">Leave a review</h3>
+	      </div>
+
+	      {% if review_submitted %}
+	        <div class="quote-alert quote-alert--success" style="margin-top:1rem">
+	          Thanks for the review. It's in the approval queue now.
+	        </div>
+	      {% endif %}
+	      {% if review_form.non_field_errors %}
+	        <div class="quote-alert quote-alert--error" style="margin-top:1rem">
+	          {% for err in review_form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
+	        </div>
+	      {% endif %}
+
+	      <form method="post" action="#reviews" class="reviews-form" novalidate>
+	        {% csrf_token %}
+	        <input type="hidden" name="form_type" value="product_review">
+	        {{ review_form.website }}
+
+	        <div class="reviews-grid">
+	          <div class="quote-field{% if review_form.reviewer_name.errors %} quote-field--error{% endif %}">
+	            <label for="{{ review_form.reviewer_name.id_for_label }}">Name *</label>
+	            {{ review_form.reviewer_name }}
+	            {% if review_form.reviewer_name.errors %}
+	              <p class="quote-field__error">{{ review_form.reviewer_name.errors.0 }}</p>
+	            {% endif %}
+	          </div>
+
+	          <div class="quote-field{% if review_form.reviewer_email.errors %} quote-field--error{% endif %}">
+	            <label for="{{ review_form.reviewer_email.id_for_label }}">Email</label>
+	            {{ review_form.reviewer_email }}
+	            {% if review_form.reviewer_email.errors %}
+	              <p class="quote-field__error">{{ review_form.reviewer_email.errors.0 }}</p>
+	            {% endif %}
+	          </div>
+
+	          <div class="quote-field{% if review_form.reviewer_title.errors %} quote-field--error{% endif %}">
+	            <label for="{{ review_form.reviewer_title.id_for_label }}">Vehicle / context</label>
+	            {{ review_form.reviewer_title }}
+	            {% if review_form.reviewer_title.errors %}
+	              <p class="quote-field__error">{{ review_form.reviewer_title.errors.0 }}</p>
+	            {% endif %}
+	          </div>
+
+	          <div class="quote-field{% if review_form.rating.errors %} quote-field--error{% endif %}">
+	            <label for="{{ review_form.rating.id_for_label }}">Rating *</label>
+	            {{ review_form.rating }}
+	            {% if review_form.rating.errors %}
+	              <p class="quote-field__error">{{ review_form.rating.errors.0 }}</p>
+	            {% endif %}
+	          </div>
+
+	          <div class="quote-field quote-field--full{% if review_form.title.errors %} quote-field--error{% endif %}">
+	            <label for="{{ review_form.title.id_for_label }}">Title</label>
+	            {{ review_form.title }}
+	            {% if review_form.title.errors %}
+	              <p class="quote-field__error">{{ review_form.title.errors.0 }}</p>
+	            {% endif %}
+	          </div>
+
+	          <div class="quote-field quote-field--full{% if review_form.body.errors %} quote-field--error{% endif %}">
+	            <label for="{{ review_form.body.id_for_label }}">Review *</label>
+	            {{ review_form.body }}
+	            {% if review_form.body.errors %}
+	              <p class="quote-field__error">{{ review_form.body.errors.0 }}</p>
+	            {% endif %}
+	          </div>
+	        </div>
+
+	        <div class="quote-actions" style="margin-top:1rem">
+	          <button class="btn btn--primary" type="submit">Submit review</button>
+	        </div>
+	      </form>
+	    </div>
+
+		    <script>
+		      (function () {
+		        var retailEl = document.querySelector('[data-product-price-retail]');
+		        var dealerEl = document.querySelector('[data-product-price-dealer]');
 	        var savingsEl = document.querySelector('[data-product-price-savings]');
 	        var optionInputs = document.querySelectorAll('#product-options input[name="option_id"]');
 	        if (!retailEl || !optionInputs.length) return;
