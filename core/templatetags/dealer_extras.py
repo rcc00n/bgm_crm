@@ -12,6 +12,22 @@ register = template.Library()
 
 
 @register.filter
+def trim(value):
+    """
+    Strips leading/trailing whitespace.
+
+    Django templates don't ship a built-in `trim` filter, but we need one to
+    treat "   " (admin whitespace) as empty and fall back to defaults.
+    """
+    if value is None:
+        return ""
+    try:
+        return str(value).strip()
+    except Exception:
+        return ""
+
+
+@register.filter
 def dealer_price(value, percent):
     """
     Returns the discounted price for the provided percent. Falls back to the original value if no discount.
