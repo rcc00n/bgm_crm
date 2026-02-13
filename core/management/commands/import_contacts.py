@@ -3,6 +3,8 @@ from __future__ import annotations
 import csv
 import io
 import sys
+import base64
+import gzip
 from collections import Counter
 from email.utils import parseaddr
 
@@ -161,6 +163,12 @@ class Command(BaseCommand):
             help="Read CSV content from stdin.",
         )
         parser.add_argument(
+            "--gz-base64",
+            dest="gz_base64",
+            default=None,
+            help="Base64-encoded *gzipped* CSV payload (avoids stdin/tty issues on some hosts).",
+        )
+        parser.add_argument(
             "--apply",
             action="store_true",
             help="Apply changes to the database. Without this flag, runs as a dry-run.",
@@ -169,14 +177,18 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         path = options.get("path")
         use_stdin = bool(options.get("stdin"))
+        gz_base64 = options.get("gz_base64")
         apply_changes = bool(options.get("apply"))
 
-        if not path and not use_stdin:
-            raise SystemExit("Provide --path or --stdin.")
-        if path and use_stdin:
-            raise SystemExit("Use only one of --path or --stdin.")
+        sources = [bool(path), use_stdin, bool(gz_base64)]
+        if sum(1 for x in sources if x) != 1:
+            raise SystemExit("Provide exactly one input source: --path, --stdin, or --gz-base64.")
 
-        if use_stdin:
+        if gz_base64:
+            raw = base64.b64decode(gz_base64.encode("utf-8"), validate=False)
+            text = gzip.decompress(raw).decode("utf-8-sig", errors="ignore")
+            fp = io.StringIO(text)
+        elif use_stdin:
             data = sys.stdin.buffer.read()
             text = data.decode("utf-8-sig", errors="ignore")
             fp = io.StringIO(text)
