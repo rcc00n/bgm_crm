@@ -2231,27 +2231,20 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
             if update_fields:
                 up.save(update_fields=update_fields)
 
-        # If the account is already a dealer, keep the profile tier at least as high as
-        # the tier granted by staff (assigned_tier). This protects against stale profile
-        # data when staff update tiers in admin.
+        # Keep dealer pricing in sync with the staff-assigned tier.
+        # If staff explicitly set assigned_tier, treat it as authoritative (even if
+        # it's lower than the current profile tier). This avoids mismatches where the
+        # portal/catalog show a different discount than what ops configured in admin.
         if (
             dealer_app
             and up
             and getattr(up, "is_dealer", False)
             and dealer_app.status == DealerApplication.Status.APPROVED
         ):
-            granted_tier = dealer_app.resolved_tier()
-            tier_rank = {
-                DealerTier.NONE: 0,
-                DealerTier.TIER_5: 1,
-                DealerTier.TIER_10: 2,
-                DealerTier.TIER_15: 3,
-            }
-            current_rank = tier_rank.get(getattr(up, "dealer_tier", DealerTier.NONE), 0)
-            granted_rank = tier_rank.get(granted_tier, 0)
-            if granted_tier and granted_tier != DealerTier.NONE and granted_rank > current_rank:
+            assigned_tier = str(getattr(dealer_app, "assigned_tier", "") or "").strip()
+            if assigned_tier and assigned_tier != getattr(up, "dealer_tier", ""):
                 update_fields = ["dealer_tier"]
-                up.dealer_tier = granted_tier
+                up.dealer_tier = assigned_tier
                 if not getattr(up, "dealer_since", None):
                     up.dealer_since = dealer_app.reviewed_at or timezone.now()
                     update_fields.append("dealer_since")
