@@ -15,22 +15,22 @@
       <a class="btn btn--ghost" href="{% url 'store-cart' %}">Cart</a>
     </div>
 
-    <div class="grid product-detail__grid" style="grid-template-columns:1fr 1fr;gap:1.25rem">
-      <div class="product-detail__media">
-        {% if product.main_image %}
-          <img class="card__img product-main__img" src="{{ product.main_image_url }}" alt="{{ product.name }}">
-        {% else %}
-          <div class="card__img product-main__img product-main__img--placeholder"></div>
-        {% endif %}
+	    <div class="grid product-detail__grid" style="grid-template-columns:1fr 1fr;gap:1.25rem">
+	      <div class="product-detail__media">
+	        {% if product.main_image %}
+	          <img class="card__img product-main__img" src="{{ product.main_image_url }}" alt="{{ product.name }}" loading="eager" decoding="async">
+	        {% else %}
+	          <div class="card__img product-main__img product-main__img--placeholder"></div>
+	        {% endif %}
 
         {# галерея; если есть свой related_name=gallery — он сработает; иначе просто не отрисуется #}
-        {% if product.gallery.all %}
-          <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin-top:.8rem;gap:.6rem">
-            {% for img in product.gallery.all %}
-              <img class="card__img" style="aspect-ratio:1;border-radius:.6rem" src="{{ img.image.url }}" alt="{{ product.name }} photo {{ forloop.counter }}">
-            {% endfor %}
-          </div>
-        {% endif %}
+	        {% if product.gallery.all %}
+	          <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin-top:.8rem;gap:.6rem">
+	            {% for img in product.gallery.all %}
+	              <img class="card__img" style="aspect-ratio:1;border-radius:.6rem" src="{{ img.image.url }}" alt="{{ product.name }} photo {{ forloop.counter }}" loading="lazy" decoding="async">
+	            {% endfor %}
+	          </div>
+	        {% endif %}
       </div>
 
       <div class="product-detail__panel">
@@ -439,13 +439,13 @@
 	      </div>
       <div class="grid grid--cards">
         {% for p in go_along %}
-          <article class="card">
-            <a href="{% url 'store-product' slug=p.slug %}">
-              {% if p.main_image %}
-                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}">
-              {% else %}
-                <div class="card__img" style="aspect-ratio:16/9"></div>
-              {% endif %}
+	          <article class="card">
+	            <a href="{% url 'store-product' slug=p.slug %}">
+	              {% if p.main_image %}
+	                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	              {% else %}
+	                <div class="card__img" style="aspect-ratio:16/9"></div>
+	              {% endif %}
               <div class="card__body" style="padding:.6rem .8rem">
                 <h4>{{ p.name }}</h4>
                 <p class="section__desc">{{ p.short_description|default:p.category.display_name }}</p>
@@ -480,13 +480,13 @@
 	      </div>
       <div class="grid grid--cards">
         {% for p in related %}
-          <article class="card">
-            <a href="{% url 'store-product' slug=p.slug %}">
-              {% if p.main_image %}
-                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}">
-              {% else %}
-                <div class="card__img" style="aspect-ratio:16/9"></div>
-              {% endif %}
+	          <article class="card">
+	            <a href="{% url 'store-product' slug=p.slug %}">
+	              {% if p.main_image %}
+	                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	              {% else %}
+	                <div class="card__img" style="aspect-ratio:16/9"></div>
+	              {% endif %}
               <h4 style="margin-top:.6rem">{{ p.name }}</h4>
               <div class="price price--stacked" style="margin-top:.2rem">
                 {% if p.contact_for_estimate %}
