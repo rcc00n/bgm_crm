@@ -1254,9 +1254,9 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
                   {% if a.service.image %}
                     <img class="appt-card__image" src="{{ a.service.image.url }}" alt="{{ a.service.name }}">
                   {% endif %}
-                </div>
+                </li>
               {% endfor %}
-            </div>
+            </ul>
           {% else %}
             <p class="muted-2">{{ portal_copy.upcoming_empty_label }}</p>
           {% endif %}
