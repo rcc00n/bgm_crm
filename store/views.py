@@ -738,7 +738,8 @@ def store_home(request):
         Product.objects.filter(is_active=True)
         .select_related("category")
         .prefetch_related("compatible_models", "options")
-        .order_by("-created_at")
+        # Show in-house products first across the storefront.
+        .order_by("-is_in_house", "-created_at")
     )
 
     filtered_qs = _apply_filters(base_qs, form)
@@ -766,7 +767,8 @@ def store_home(request):
             Product.objects.filter(is_active=True, category=c)
             .select_related("category")
             .prefetch_related("options")
-            .order_by("-created_at")
+            # Show in-house products first inside each category preview.
+            .order_by("-is_in_house", "-created_at")
         )
         if cat_base.exists():
             sections.append((c, cat_base[:8]))
@@ -872,7 +874,7 @@ def category_list(request, slug):
         Product.objects.filter(is_active=True, category=category)
         .select_related("category")
         .prefetch_related("compatible_models", "options")
-        .order_by("-created_at")
+        .order_by("-is_in_house", "-created_at")
     )
     products = _apply_filters(base_qs, form)
 
