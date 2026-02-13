@@ -270,15 +270,19 @@
 .bgm-topbar__search-input{
   width: 100%;
   min-height: 40px;
-  padding: .55rem 2.45rem .55rem 2.25rem;
+  /* Extra padding so text never sits under the icon/clear button (desktop + mobile). */
+  padding: .55rem 3.1rem .55rem 2.6rem;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(255,255,255,.06);
   color: #fff;
   outline: none;
-  font-family: var(--topbar-nav-font, var(--font-ui, var(--font-body))) !important;
+  /* Use a readable UI font here (nav may use a stylized display face). */
+  font-family: var(--font-ui, var(--font-body, "Inter", system-ui, sans-serif)) !important;
   font-weight: 800;
-  letter-spacing: .02em;
+  letter-spacing: .04em;
+  line-height: 1.1;
+  text-transform: uppercase;
 }
 
 .bgm-topbar__search-input::placeholder{
@@ -305,11 +309,19 @@
   background: rgba(255,255,255,.10);
   color: rgba(255,255,255,.84);
   cursor: pointer;
-  display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
   font-size: 18px;
   line-height: 1;
+}
+
+.bgm-topbar__search-clear:not([hidden]){
+  display: inline-flex;
+}
+
+.bgm-topbar__search-menu[hidden]{
+  display: none !important;
 }
 
 .bgm-topbar__search-clear:hover{
