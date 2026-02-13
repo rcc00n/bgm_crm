@@ -1,5 +1,5 @@
 
-{% load static dealer_extras thumbnail marketing_extras %}
+{% load static dealer_extras thumbnail marketing_extras copy_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1367,7 +1367,7 @@
             {% for slide in hero_carousel %}
               <div class="hero__slide {% if forloop.first %}is-active{% endif %}"
                    data-hero-slide
-                   data-caption="{{ slide.caption|default:hero_media.caption }}"
+                   data-caption="{{ slide.caption|suppress_placeholder_disclaimer|default:hero_media.caption|suppress_placeholder_disclaimer }}"
                    aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
                 {% if slide.image %}
                   {% thumbnail slide.image "560" quality=62 format="WEBP" as hero_sm %}
@@ -1413,7 +1413,7 @@
               </div>
             {% endfor %}
           {% else %}
-            <div class="hero__slide is-active" data-hero-slide data-caption="{{ hero_media.caption }}" aria-hidden="false">
+            <div class="hero__slide is-active" data-hero-slide data-caption="{{ hero_media.caption|suppress_placeholder_disclaimer }}" aria-hidden="false">
               {% if hero_media.image %}
                 {% thumbnail hero_media.image "560" quality=62 format="WEBP" as hero_sm %}
                   {% thumbnail hero_media.image "960" quality=62 format="WEBP" as hero_md %}
@@ -1459,13 +1459,15 @@
           {% endif %}
         </div>
 
-        <div class="hero__disclaimer" data-hero-caption>
+        {% with hero_caption=hero_media.caption|suppress_placeholder_disclaimer %}
           {% if hero_carousel %}
-            {{ hero_carousel.0.caption|default:hero_media.caption }}
+            {% with hero_caption=hero_carousel.0.caption|suppress_placeholder_disclaimer|default:hero_caption %}
+              <div class="hero__disclaimer" data-hero-caption{% if not hero_caption %} style="display:none"{% endif %}>{{ hero_caption }}</div>
+            {% endwith %}
           {% else %}
-            {{ hero_media.caption }}
+            <div class="hero__disclaimer" data-hero-caption{% if not hero_caption %} style="display:none"{% endif %}>{{ hero_caption }}</div>
           {% endif %}
-        </div>
+        {% endwith %}
       </div>
 
       <!-- Mobile quick actions -->
@@ -2377,8 +2379,9 @@
 
       const setCaption = (slide) => {
         if (!captionEl) return;
-        const caption = slide.getAttribute('data-caption') || captionEl.textContent;
+        const caption = (slide.getAttribute('data-caption') || '').trim();
         captionEl.textContent = caption;
+        captionEl.style.display = caption ? '' : 'none';
       };
 
       const showSlide = (nextIndex) => {
@@ -2408,6 +2411,9 @@
         stopTimer();
         startTimer();
       };
+
+      // Apply initial caption visibility state.
+      setCaption(slides[index]);
 
       if (prevBtn) {
         prevBtn.addEventListener('click', () => {

@@ -1,5 +1,5 @@
 {% extends "store/_base_store.html" %}
-{% load dealer_extras thumbnail %}
+{% load dealer_extras thumbnail copy_extras %}
 {% block title %}{{ store_copy.page_title|default:"BGM — Products" }}{% endblock %}
 
 {% block marketing_meta %}
@@ -43,7 +43,9 @@
       {% else %}
         <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Products hero' }}" loading="eager" fetchpriority="high" decoding="async">
       {% endif %}
-      <p class="hero__disclaimer">{{ hero_media.caption|default:store_copy.hero_disclaimer_fallback|default:"Product may not appear exactly as shown." }}</p>
+      {% with disclaimer=hero_media.caption|suppress_placeholder_disclaimer|default:store_copy.hero_disclaimer_fallback|suppress_placeholder_disclaimer %}
+        {% if disclaimer %}<p class="hero__disclaimer">{{ disclaimer }}</p>{% endif %}
+      {% endwith %}
     </div>
   </div>
 <section class="section" data-search-root>

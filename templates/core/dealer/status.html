@@ -1,4 +1,4 @@
-{% load static dealer_extras thumbnail %}
+{% load static dealer_extras thumbnail copy_extras %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -506,7 +506,9 @@
         {% else %}
           <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Dealer hero' }}" loading="eager" fetchpriority="high" decoding="async">
         {% endif %}
-        <p class="hero__disclaimer">{{ hero_media.caption|default:dealer_copy.hero_disclaimer }}</p>
+        {% with disclaimer=hero_media.caption|suppress_placeholder_disclaimer|default:dealer_copy.hero_disclaimer|suppress_placeholder_disclaimer %}
+          {% if disclaimer %}<p class="hero__disclaimer">{{ disclaimer }}</p>{% endif %}
+        {% endwith %}
       </div>
     </section>
 

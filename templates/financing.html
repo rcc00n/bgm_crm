@@ -1,4 +1,4 @@
-{% load static %}
+{% load static copy_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -690,7 +690,9 @@ html{ font-size: 17px; }                      /* было 16px */
 
     <div class="hero__media frame frame--media">
       <img src="{% static 'img/hero-services.jpg' %}" alt="{{ financing_copy.hero_image_alt }}" loading="lazy" decoding="async">
-      <p class="hero__disclaimer">{{ financing_copy.hero_disclaimer }}</p>
+      {% with disclaimer=financing_copy.hero_disclaimer|suppress_placeholder_disclaimer %}
+        {% if disclaimer %}<p class="hero__disclaimer">{{ disclaimer }}</p>{% endif %}
+      {% endwith %}
     </div>
   </div>
 </section>

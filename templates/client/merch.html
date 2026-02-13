@@ -1,4 +1,4 @@
-{% load static thumbnail %}
+{% load static thumbnail copy_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -629,10 +629,12 @@ body.nav-open .contact-fab,
                 decoding="async">
             {% endthumbnail %}
           {% endthumbnail %}
-        {% else %}
+      {% else %}
           <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Merch hero' }}" loading="eager" fetchpriority="high" decoding="async">
         {% endif %}
-        <p class="hero__disclaimer">{{ hero_media.caption|default:merch_copy.hero_disclaimer_fallback }}</p>
+        {% with disclaimer=hero_media.caption|suppress_placeholder_disclaimer|default:merch_copy.hero_disclaimer_fallback|suppress_placeholder_disclaimer %}
+          {% if disclaimer %}<p class="hero__disclaimer">{{ disclaimer }}</p>{% endif %}
+        {% endwith %}
       </div>
     </div>
   </section>
