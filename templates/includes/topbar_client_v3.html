@@ -58,6 +58,38 @@
     </button>
 
     <div id="bgmSiteNav" class="bgm-topbar__nav bgm-topbar__slot bgm-topbar__slot--nav" role="navigation" aria-label="Main navigation">
+      <form
+        class="bgm-topbar__search"
+        role="search"
+        method="get"
+        action="{% url 'store' %}"
+        data-site-search
+        data-products-url="{% url 'store:product-search' %}"
+        data-services-url="{% url 'service-search' %}"
+        data-products-page="{% url 'store' %}"
+        data-services-page="{% url 'client-dashboard' %}#services"
+      >
+        <label class="visually-hidden" for="bgmSiteSearch">Search</label>
+        <span class="bgm-topbar__search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
+            <path d="M10.5 3.5a7 7 0 1 1 0 14a7 7 0 0 1 0-14Zm0 2a5 5 0 1 0 0 10a5 5 0 0 0 0-10Zm8.6 12.2l2.9 2.9a1 1 0 0 1-1.4 1.4l-2.9-2.9a1 1 0 0 1 1.4-1.4Z" fill="currentColor"/>
+          </svg>
+        </span>
+        <input
+          id="bgmSiteSearch"
+          class="bgm-topbar__search-input"
+          type="search"
+          name="q"
+          placeholder="Search parts & services"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Search parts and services"
+          aria-expanded="false"
+          aria-controls="bgmSiteSearchMenu"
+        >
+        <button class="bgm-topbar__search-clear" type="button" aria-label="Clear search" data-site-search-clear hidden>×</button>
+        <div id="bgmSiteSearchMenu" class="bgm-topbar__search-menu" data-site-search-menu role="listbox" hidden></div>
+      </form>
       <ul class="bgm-topbar__nav-list">
         {% with nav_template=topbar_nav_template|default:"includes/topbar_nav_default.html" %}
           {% include nav_template %}
@@ -102,6 +134,7 @@
   }
 </style>
 <script src="{% static 'js/topbar.js' %}"></script>
+<script src="{% static 'js/site-search.js' %}"></script>
 <a
   class="bgm-cart-fab"
   href="{% url 'store-cart' %}"
