@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load static dealer_extras %}
+{% load static dealer_extras duration_extras %}
 
 {% block bodyclass %}admin-dashboard{% endblock %}
 
@@ -159,7 +159,7 @@
               <tr>
                 <td><code>{{ page.path }}</code></td>
                 <td>{{ page.views }}</td>
-                <td>{{ page.avg_seconds }}s</td>
+                <td>{{ page.avg_seconds|hms }}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -232,7 +232,7 @@
             {% for page in web_analytics.slow_pages %}
               <tr>
                 <td><code>{{ page.path }}</code></td>
-                <td>{{ page.avg_seconds }}s</td>
+                <td>{{ page.avg_seconds|hms }}</td>
                 <td>{{ page.views }}</td>
               </tr>
             {% endfor %}
@@ -277,7 +277,7 @@
         </div>
         <div class="analytics-kpi">
           <span>Average dwell time</span>
-          <strong>{{ web_analytics.totals.avg_duration_seconds }}s</strong>
+          <strong>{{ web_analytics.totals.avg_duration_seconds|hms }}</strong>
           <small>Active time per page</small>
         </div>
         <div class="analytics-kpi">
@@ -290,11 +290,11 @@
         <div class="engagement-column">
           <div class="engagement-highlight">
             <div class="eyebrow">Average dwell time</div>
-            <div class="engagement-value">{{ web_analytics.engagement.average_seconds }}s</div>
+            <div class="engagement-value">{{ web_analytics.engagement.average_seconds|hms }}</div>
             <p class="engagement-lede">Active seconds per page view in the last {{ web_analytics.window_days }} days.</p>
             <div class="engagement-chips">
-              <span class="chip">Signed-in avg {{ web_analytics.engagement.avg_signed_in_seconds }}s</span>
-              <span class="chip">Guest avg {{ web_analytics.engagement.avg_anonymous_seconds }}s</span>
+              <span class="chip">Signed-in avg {{ web_analytics.engagement.avg_signed_in_seconds|hms }}</span>
+              <span class="chip">Guest avg {{ web_analytics.engagement.avg_anonymous_seconds|hms }}</span>
               <span class="chip">Pages per visit {{ web_analytics.engagement.avg_pages_per_visit }}</span>
               <span class="chip">Views analysed {{ web_analytics.engagement.sample_size }}</span>
             </div>
@@ -303,17 +303,17 @@
           <div class="engagement-stats-grid">
             <div class="engagement-stat">
               <span>Median dwell time</span>
-              <strong>{{ web_analytics.engagement.median_seconds }}s</strong>
+              <strong>{{ web_analytics.engagement.median_seconds|hms }}</strong>
               <p>Half of page views reach at least this reading time.</p>
             </div>
             <div class="engagement-stat">
               <span>90th percentile</span>
-              <strong>{{ web_analytics.engagement.p90_seconds }}s</strong>
+              <strong>{{ web_analytics.engagement.p90_seconds|hms }}</strong>
               <p>The top 10% of page views stay this long or longer.</p>
             </div>
             <div class="engagement-stat">
               <span>Longest read</span>
-              <strong>{{ web_analytics.engagement.max_seconds }}s</strong>
+              <strong>{{ web_analytics.engagement.max_seconds|hms }}</strong>
               <p>Single heaviest session in the selected window.</p>
             </div>
           </div>
@@ -359,7 +359,7 @@
                     <span>Highest engagement</span>
                     <div>
                       <strong>{{ highlights.best_engagement_day.label }}</strong>
-                      <small>{{ highlights.best_engagement_day.avg }}s avg · {{ highlights.best_engagement_day.views }} views</small>
+                      <small>{{ highlights.best_engagement_day.avg|hms }} avg · {{ highlights.best_engagement_day.views }} views</small>
                     </div>
                   </li>
                 {% endif %}
@@ -393,19 +393,19 @@
                   </div>
                   <div class="period-row">
                     <span>Engagement</span>
-                    <div>{{ period.engagement.average_seconds }}s avg · median {{ period.engagement.median_seconds }}s · p90 {{ period.engagement.p90_seconds }}s</div>
+                    <div>{{ period.engagement.average_seconds|hms }} avg · median {{ period.engagement.median_seconds|hms }} · p90 {{ period.engagement.p90_seconds|hms }}</div>
                   </div>
                   <div class="period-row">
                     <span>Depth</span>
-                    <div>{{ period.engagement.avg_pages_per_visit }} pages/visit · longest {{ period.engagement.max_seconds }}s</div>
+                    <div>{{ period.engagement.avg_pages_per_visit }} pages/visit · longest {{ period.engagement.max_seconds|hms }}</div>
                   </div>
                   <div class="period-row">
                     <span>Signed-in</span>
-                    <div>{{ period.totals.signed_in }} sessions · {{ period.totals.signed_in_pct }}% of visits · avg {{ period.engagement.avg_signed_in_seconds }}s</div>
+                    <div>{{ period.totals.signed_in }} sessions · {{ period.totals.signed_in_pct }}% of visits · avg {{ period.engagement.avg_signed_in_seconds|hms }}</div>
                   </div>
                   <div class="period-row">
                     <span>Guests</span>
-                    <div>{{ period.engagement.avg_anonymous_seconds }}s avg · Views analysed {{ period.engagement.sample_size }}</div>
+                    <div>{{ period.engagement.avg_anonymous_seconds|hms }} avg · Views analysed {{ period.engagement.sample_size }}</div>
                   </div>
                 </div>
               </div>

@@ -9,6 +9,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from core.views import DealerApplyWizardView, DealerEntryView, DealerStatusView
 from core import views as core_views
+from store import views as store_views
 urlpatterns = [
     path("analytics/collect/", core_views.analytics_collect, name="analytics-collect"),
     path("site-notice/signup/", core_views.site_notice_signup, name="site-notice-signup"),
@@ -108,6 +109,7 @@ urlpatterns = [
 
     # Home
     path("", HomeView.as_view(), name="home"),
+    path("review/", store_views.leave_review, name="leave-review"),
 
     # Autocomplete & API
     path("autocomplete/service/", ServiceAutocomplete.as_view(), name="service-autocomplete"),

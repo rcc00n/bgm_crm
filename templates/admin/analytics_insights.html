@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
+{% load static duration_extras %}
 
 {% block extrahead %}
   {{ block.super }}
@@ -33,8 +33,8 @@
         </div>
         <div class="hero-stat">
           <span>Avg session time</span>
-          <strong>{{ analytics.sessions.avg_seconds }}s</strong>
-          <small>Median {{ analytics.sessions.median_seconds }}s</small>
+          <strong>{{ analytics.sessions.avg_seconds|hms }}</strong>
+          <small>Median {{ analytics.sessions.median_seconds|hms }}</small>
         </div>
       </div>
     </section>
@@ -57,8 +57,8 @@
       </article>
       <article class="kpi-card">
         <small>Avg time on page</small>
-        <div class="kpi-value">{{ analytics.totals.avg_duration_seconds }}s</div>
-        <div class="kpi-trend neutral">Median {{ analytics.totals.median_duration_seconds }}s</div>
+        <div class="kpi-value">{{ analytics.totals.avg_duration_seconds|hms }}</div>
+        <div class="kpi-trend neutral">Median {{ analytics.totals.median_duration_seconds|hms }}</div>
       </article>
       <article class="kpi-card">
         <small>Bounce rate</small>
@@ -72,8 +72,8 @@
       </article>
       <article class="kpi-card">
         <small>Session 90th pct</small>
-        <div class="kpi-value">{{ analytics.sessions.p90_seconds }}s</div>
-        <div class="kpi-trend neutral">Max {{ analytics.sessions.max_seconds }}s</div>
+        <div class="kpi-value">{{ analytics.sessions.p90_seconds|hms }}</div>
+        <div class="kpi-trend neutral">Max {{ analytics.sessions.max_seconds|hms }}</div>
       </article>
       <article class="kpi-card">
         <small>Time zones</small>
@@ -128,17 +128,17 @@
                   <th class="numeric">Visits</th>
                   <th class="numeric">Bounce</th>
                   <th class="numeric">Avg pages</th>
-                  <th class="numeric">Avg session</th>
-                </tr>
-              </thead>
-              <tbody>
+                <th class="numeric">Avg session</th>
+              </tr>
+            </thead>
+            <tbody>
                 {% for row in analytics.landing_pages %}
                   <tr>
                     <td><code>{{ row.path }}</code></td>
                     <td class="numeric">{{ row.visits }}</td>
                     <td class="numeric">{{ row.bounce_pct }}%</td>
                     <td class="numeric">{{ row.avg_pages }}</td>
-                    <td class="numeric">{{ row.avg_seconds }}s</td>
+                    <td class="numeric">{{ row.avg_seconds|hms }}</td>
                   </tr>
                 {% endfor %}
               </tbody>
@@ -182,7 +182,7 @@
             <thead>
               <tr>
                 <th>Page</th>
-                <th class="numeric">Avg seconds</th>
+                <th class="numeric">Avg time</th>
                 <th class="numeric">Views</th>
               </tr>
             </thead>
@@ -190,7 +190,7 @@
               {% for row in analytics.top_pages_by_duration %}
                 <tr>
                   <td><code>{{ row.path }}</code></td>
-                  <td class="numeric">{{ row.avg_seconds }}</td>
+                  <td class="numeric">{{ row.avg_seconds|hms }}</td>
                   <td class="numeric">{{ row.views }}</td>
                 </tr>
               {% endfor %}
@@ -278,7 +278,7 @@
                   </td>
                   <td><code>{{ row.landing_path }}</code></td>
                   <td class="numeric">{{ row.views }}</td>
-                  <td class="numeric">{{ row.total_seconds }}s</td>
+                  <td class="numeric">{{ row.total_seconds|hms }}</td>
                   <td class="numeric">{{ row.last_seen|date:"M d · H:i" }}</td>
                 </tr>
               {% endfor %}

@@ -1,0 +1,159 @@
+{% extends "store/_base_store.html" %}
+{% block title %}Leave a review - BGM{% endblock %}
+
+{% block body %}
+<div id="bg"></div>
+
+<section class="section">
+  <div class="container">
+    <div class="section__head">
+      <div>
+        <h1 class="section__title">Leave a review</h1>
+        <p class="section__desc">We read every review. Reviews are published after staff approval.</p>
+      </div>
+      <a class="btn btn--ghost" href="{% url 'store' %}">Back to store</a>
+    </div>
+
+    {% if submitted %}
+      <div class="review-alert review-alert--success">
+        Thanks for the review. It's in the approval queue now.
+      </div>
+    {% endif %}
+
+    <div class="card" style="padding:1.2rem">
+      {% if form.non_field_errors %}
+        <div class="review-alert review-alert--error">
+          {% for err in form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="#review-form" id="review-form" class="review-form" novalidate>
+        {% csrf_token %}
+        {{ form.website }}
+
+        <div class="review-grid">
+          <div class="review-field{% if form.reviewer_name.errors %} review-field--error{% endif %}">
+            <label for="{{ form.reviewer_name.id_for_label }}">Name *</label>
+            {{ form.reviewer_name }}
+            {% if form.reviewer_name.errors %}
+              <p class="review-field__error">{{ form.reviewer_name.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="review-field{% if form.reviewer_email.errors %} review-field--error{% endif %}">
+            <label for="{{ form.reviewer_email.id_for_label }}">Email</label>
+            {{ form.reviewer_email }}
+            {% if form.reviewer_email.errors %}
+              <p class="review-field__error">{{ form.reviewer_email.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="review-field{% if form.reviewer_title.errors %} review-field--error{% endif %}">
+            <label for="{{ form.reviewer_title.id_for_label }}">Vehicle / context</label>
+            {{ form.reviewer_title }}
+            {% if form.reviewer_title.errors %}
+              <p class="review-field__error">{{ form.reviewer_title.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="review-field{% if form.rating.errors %} review-field--error{% endif %}">
+            <label for="{{ form.rating.id_for_label }}">Rating *</label>
+            {{ form.rating }}
+            {% if form.rating.errors %}
+              <p class="review-field__error">{{ form.rating.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="review-field review-field--full{% if form.title.errors %} review-field--error{% endif %}">
+            <label for="{{ form.title.id_for_label }}">Title</label>
+            {{ form.title }}
+            {% if form.title.errors %}
+              <p class="review-field__error">{{ form.title.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="review-field review-field--full{% if form.body.errors %} review-field--error{% endif %}">
+            <label for="{{ form.body.id_for_label }}">Review *</label>
+            {{ form.body }}
+            {% if form.body.errors %}
+              <p class="review-field__error">{{ form.body.errors.0 }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="review-actions">
+          <button class="btn btn--primary" type="submit">Submit review</button>
+          <p class="review-footnote">We may lightly edit for clarity before publishing.</p>
+        </div>
+      </form>
+    </div>
+
+    {% if approved_reviews %}
+      <div class="section__head" style="margin-top:1.6rem">
+        <div>
+          <h2 class="section__title">Recent reviews</h2>
+          <p class="section__desc">Approved reviews from customers.</p>
+        </div>
+      </div>
+
+      <div class="grid grid--cards">
+        {% for r in approved_reviews %}
+          <article class="card review-card">
+            <div class="review-stars" aria-hidden="true">
+              {% for _ in r.star_range %}★{% endfor %}
+            </div>
+            <p class="review-quote">&ldquo;{{ r.body }}&rdquo;</p>
+            <p class="review-author">
+              {{ r.reviewer_name }}{% if r.reviewer_title %} &mdash; {{ r.reviewer_title }}{% endif %}
+            </p>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+  .review-alert{
+    margin: 0 0 1rem 0;
+    padding: .85rem 1rem;
+    border-radius: .9rem;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.03);
+  }
+  .review-alert--success{
+    border-color: rgba(33,150,83,.55);
+    background: rgba(33,150,83,.15);
+    color: #b9f6ca;
+  }
+  .review-alert--error{
+    border-color: rgba(255,138,128,.6);
+    background: rgba(59,0,0,.8);
+  }
+
+  .review-form{ display:flex; flex-direction:column; gap:1rem; }
+  .review-grid{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .review-field{ display:flex; flex-direction:column; gap:.35rem; }
+  .review-field label{ font-weight:800; font-size:.85rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .review-field--full{ grid-column: 1 / -1; }
+  .review-field__error{ margin-top:.25rem; color:#ffb4b4; font-size:.85rem; }
+  .review-field--error .field{ border-color: rgba(255,138,128,.55); box-shadow: 0 0 0 2px rgba(255,138,128,.12); }
+
+  .review-actions{ display:flex; flex-direction:column; gap:.45rem; }
+  .review-footnote{ margin: 0; color: var(--muted); font-size: .85rem; }
+
+  .review-card{ padding: 1.1rem; }
+  .review-stars{ color:#ffd166; letter-spacing:.12em; font-size:.95rem; font-weight:900; margin-bottom:.5rem; }
+  .review-quote{ color: rgba(255,255,255,.92); margin: 0 0 .7rem 0; }
+  .review-author{ color: var(--muted); font-weight: 700; margin: 0; font-size: .9rem; }
+
+  @media (max-width: 900px){
+    .review-grid{ grid-template-columns: 1fr; }
+    .review-actions .btn{ width: 100%; justify-content: center; }
+  }
+</style>
+{% endblock %}

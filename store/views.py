@@ -16,10 +16,11 @@ from core.email_templates import base_email_context, email_brand_name, join_text
 from core.emails import build_email_html, send_html_email
 from django.core.validators import validate_email
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Avg, Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import Http404, JsonResponse
-from django.views.decorators.http import require_GET, require_POST
+from django.urls import reverse
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from PIL import Image, UnidentifiedImageError
 from square.client import Square, SquareEnvironment
 
@@ -30,10 +31,11 @@ from .models import (
     OrderItem,
     Product,
     ProductOption,
+    StoreReview,
     CarMake,
     CarModel,
 )
-from .forms_store import ProductFilterForm, CustomFitmentRequestForm
+from .forms_store import ProductFilterForm, CustomFitmentRequestForm, StoreReviewForm
 from core.models import ClientFile, Payment, PaymentMethod, StorePageCopy, PageFontSetting
 from core.services.page_sections import get_page_sections
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
@@ -898,6 +900,14 @@ def product_detail(request, slug: str):
     options_col_1 = [opt for opt in options if getattr(opt, "option_column", 1) == 1]
     options_col_2 = [opt for opt in options if getattr(opt, "option_column", 1) == 2]
     options_two_column = bool(options_col_1) and bool(options_col_2)
+
+    auto_split_threshold = 10
+    selectable_option_count = sum(1 for opt in options if not getattr(opt, "is_separator", False))
+    if not options_two_column and selectable_option_count >= auto_split_threshold:
+        midpoint = max(1, (len(options) + 1) // 2)
+        options_col_1 = options[:midpoint]
+        options_col_2 = options[midpoint:]
+        options_two_column = bool(options_col_2)
     default_option = next((opt for opt in options if not getattr(opt, "is_separator", False)), None)
     related = (
         Product.objects.filter(is_active=True, category=product.category)
@@ -910,38 +920,76 @@ def product_detail(request, slug: str):
         "source_url": request.build_absolute_uri(),
     }
     quote_form = CustomFitmentRequestForm(initial=quote_initial)
+    store_copy = StorePageCopy.get_solo()
 
-    if request.method == "POST" and request.POST.get("form_type") == "custom_fitment":
-        form_data = request.POST.copy()
-        form_data["product"] = product.pk
-        form_data.setdefault("source_url", request.build_absolute_uri())
-        quote_form = CustomFitmentRequestForm(form_data, request.FILES)
-        if quote_form.is_valid():
-            fitment_request = quote_form.save(commit=False)
-            fitment_request._skip_telegram_notify = True  # avoid duplicate signal send
-            fitment_request.save()
-            fitment_owner = _resolve_client_file_owner(
-                request_user=request.user,
-                email=fitment_request.email,
-            )
-            if fitment_owner and getattr(fitment_request, "reference_image", None):
-                _copy_saved_image_to_client_portal(
-                    owner=fitment_owner,
-                    image_field=fitment_request.reference_image,
-                    description=f"Custom fitment reference for {fitment_request.product_name or 'custom build'}",
+    review_initial = {}
+    if request.user.is_authenticated:
+        review_initial = {
+            "reviewer_name": request.user.get_full_name() or request.user.username or "",
+            "reviewer_email": request.user.email or "",
+        }
+    review_form = StoreReviewForm(initial=review_initial)
+    approved_reviews_qs = StoreReview.objects.filter(
+        product=product,
+        status=StoreReview.Status.APPROVED,
+    ).order_by("-approved_at", "-created_at")
+    review_stats = approved_reviews_qs.aggregate(avg=Avg("rating"), count=Count("id"))
+    approved_reviews = list(approved_reviews_qs[:12])
+    review_submitted = request.GET.get("review_submitted") == "1"
+
+    if request.method == "POST":
+        form_type = (request.POST.get("form_type") or "").strip()
+        if form_type == "custom_fitment":
+            form_data = request.POST.copy()
+            form_data["product"] = product.pk
+            form_data.setdefault("source_url", request.build_absolute_uri())
+            quote_form = CustomFitmentRequestForm(form_data, request.FILES)
+            if quote_form.is_valid():
+                fitment_request = quote_form.save(commit=False)
+                fitment_request._skip_telegram_notify = True  # avoid duplicate signal send
+                fitment_request.save()
+                fitment_owner = _resolve_client_file_owner(
+                    request_user=request.user,
+                    email=fitment_request.email,
                 )
-            _notify_fitment_request(fitment_request)
-            _send_fitment_request_received_email(fitment_request)
-            transaction.on_commit(
-                lambda: notification_services.notify_about_fitment_request(fitment_request.pk)
-            )
-            customer_name = (fitment_request.customer_name or "").strip() or "there"
-            messages.success(
-                request,
-                f"Hi {customer_name}, thanks for submitting your custom fitment request. We got it and will reach out soon.",
-            )
-            return redirect(product.get_absolute_url() + "#quote-request")
-        messages.error(request, "Please correct the fields highlighted below.")
+                if fitment_owner and getattr(fitment_request, "reference_image", None):
+                    _copy_saved_image_to_client_portal(
+                        owner=fitment_owner,
+                        image_field=fitment_request.reference_image,
+                        description=f"Custom fitment reference for {fitment_request.product_name or 'custom build'}",
+                    )
+                _notify_fitment_request(fitment_request)
+                _send_fitment_request_received_email(fitment_request)
+                transaction.on_commit(
+                    lambda: notification_services.notify_about_fitment_request(fitment_request.pk)
+                )
+                customer_name = (fitment_request.customer_name or "").strip() or "there"
+                success_template = (
+                    getattr(store_copy, "fitment_success_message", "") or ""
+                ).strip()
+                if not success_template:
+                    success_template = (
+                        "Hi {customer_name}, thanks for submitting your custom fitment request. "
+                        "We got it and will reach out soon."
+                    )
+                success_text = success_template.replace("{customer_name}", customer_name).replace("{name}", customer_name)
+                messages.success(
+                    request,
+                    success_text,
+                )
+                return redirect(product.get_absolute_url() + "#quote-request")
+            messages.error(request, "Please correct the fields highlighted below.")
+        elif form_type == "product_review":
+            review_form = StoreReviewForm(request.POST)
+            if review_form.is_valid():
+                review = review_form.save(commit=False)
+                review.product = product
+                review.status = StoreReview.Status.PENDING
+                review.source_url = request.build_absolute_uri()
+                if request.user.is_authenticated:
+                    review.user = request.user
+                review.save()
+                return redirect(product.get_absolute_url() + "?review_submitted=1#reviews")
 
     return render(
         request,
@@ -956,7 +1004,60 @@ def product_detail(request, slug: str):
             "default_option_id": default_option.id if default_option else None,
             "go_along": go_along,
             "quote_form": quote_form,
-            "store_copy": StorePageCopy.get_solo(),
+            "store_copy": store_copy,
+            "review_form": review_form,
+            "approved_reviews": approved_reviews,
+            "reviews_avg": review_stats.get("avg"),
+            "reviews_count": review_stats.get("count") or 0,
+            "review_submitted": review_submitted,
+        },
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def leave_review(request):
+    """
+    Public review intake page. Reviews are stored as pending and require staff approval.
+    """
+    store_copy = StorePageCopy.get_solo()
+    submitted = request.GET.get("submitted") == "1"
+
+    review_initial = {}
+    if request.user.is_authenticated:
+        review_initial = {
+            "reviewer_name": request.user.get_full_name() or request.user.username or "",
+            "reviewer_email": request.user.email or "",
+        }
+    form = StoreReviewForm(initial=review_initial)
+
+    if request.method == "POST":
+        form = StoreReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.status = StoreReview.Status.PENDING
+            review.source_url = request.build_absolute_uri()
+            if request.user.is_authenticated:
+                review.user = request.user
+            review.save()
+            return redirect(f"{reverse('leave-review')}?submitted=1")
+
+    approved_reviews = list(
+        StoreReview.objects.filter(
+            product__isnull=True,
+            status=StoreReview.Status.APPROVED,
+        )
+        .order_by("-approved_at", "-created_at")[:24]
+    )
+
+    return render(
+        request,
+        "store/leave_review.html",
+        {
+            "store_copy": store_copy,
+            "current": "reviews",
+            "form": form,
+            "approved_reviews": approved_reviews,
+            "submitted": submitted,
         },
     )
 

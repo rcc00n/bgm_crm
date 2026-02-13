@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, timedelta
+from decimal import Decimal, InvalidOperation
+from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.tokens import default_token_generator
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, get_object_or_404
@@ -20,7 +22,8 @@ from django.views.generic.edit import CreateView
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.db.models import OuterRef, Subquery, Count, Q
+from django.utils.text import slugify
+from django.db.models import OuterRef, Subquery, Count
 from django.db.models.functions import TruncMonth
 from django.conf import settings
 from django.template.defaultfilters import filesizeformat
@@ -39,21 +42,19 @@ from core.models import (
     PageFontSetting,
 )
 from core.services.fonts import build_page_font_context
-from core.services.email_reporting import describe_email_types
-from core.services.media import build_home_gallery_media, build_merch_gallery_groups
-from core.services.printful import get_printful_merch_feed
+from core.services.media import build_home_gallery_media
 from core.services.page_sections import get_page_sections
 from core.services.email_reporting import describe_email_types
+from core.services.printful import get_printful_merch_feed
 from core.emails import build_email_html, send_html_email
 from core.email_templates import email_brand_name, join_text_sections
-from store.models import Order
 
 from .forms import (
     ClientRegistrationForm,
     ClientProfileForm,
     VerifiedLoginForm,
 )
-from store.models import Order
+from store.models import Category, Order, Product, ProductOption
 
 CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
 CLIENT_PORTAL_FILE_MAX_BYTES = CLIENT_PORTAL_FILE_MAX_MB * 1024 * 1024
@@ -292,10 +293,8 @@ class ClientDashboardView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
         now = timezone.now()
-        local_today = timezone.localdate()
 
         ctx["portal_copy"] = ClientPortalPageCopy.get_solo()
-        ctx["now"] = now
         # профиль может отсутствовать → None
         ctx["profile"] = getattr(user, "userprofile", None)
 
@@ -819,23 +818,303 @@ class StoreView(TemplateView):
         return ctx
 
 
+PRINTFUL_MERCH_SYNC_KEY_PREFIX = "printful_merch_store_sync_v2"
+
+
+def _parse_merch_decimal(value) -> Decimal | None:
+    if value in (None, ""):
+        return None
+    try:
+        parsed = Decimal(str(value).strip())
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0 else None
+
+
+def _build_printful_product_sku(product_id: int) -> str:
+    return f"PF-{product_id}"
+
+
+def _parse_printful_product_id_from_sku(value: str) -> int:
+    raw = (value or "").strip().upper()
+    if not raw.startswith("PF-"):
+        return 0
+    try:
+        return int(raw[3:])
+    except (TypeError, ValueError):
+        return 0
+
+
+def _build_printful_product_slug(product_id: int, name: str) -> str:
+    base = slugify(name or "")[:140] or "item"
+    return f"merch-{product_id}-{base}"[:200]
+
+
+def _get_or_create_merch_category() -> Category:
+    existing = Category.objects.filter(name__iexact="Merch").first() or Category.objects.filter(slug="merch").first()
+    if existing:
+        return existing
+    return Category.objects.create(
+        name="Merch",
+        slug="merch",
+        description="Printful merchandise catalog.",
+    )
+
+
+def _dedupe_option_name(name: str, *, index: int, used: set[str]) -> str:
+    clean = (name or "").strip()[:120] or f"Option {index}"
+    if clean not in used:
+        used.add(clean)
+        return clean
+
+    attempt = 2
+    while True:
+        suffix = f" ({attempt})"
+        candidate = f"{clean[: max(1, 120 - len(suffix))]}{suffix}"
+        if candidate not in used:
+            used.add(candidate)
+            return candidate
+        attempt += 1
+
+
+def _sync_printful_options_for_product(product: Product, variants: list[dict]) -> int | None:
+    if not variants:
+        ProductOption.objects.filter(product=product).update(is_active=False)
+        return None
+
+    seen_skus: list[str] = []
+    used_names: set[str] = set()
+    default_option_id = None
+
+    for index, variant in enumerate(variants, start=1):
+        raw_sku = str(variant.get("sku") or "").strip()[:64]
+        variant_id = 0
+        try:
+            variant_id = int(variant.get("id") or 0)
+        except (TypeError, ValueError):
+            variant_id = 0
+
+        option_sku = raw_sku or f"{product.sku}-VAR-{variant_id or index}"
+        if option_sku in seen_skus:
+            option_sku = f"{option_sku[:56]}-{index}"[:64]
+        seen_skus.append(option_sku)
+
+        option_name = _dedupe_option_name(str(variant.get("name") or ""), index=index, used=used_names)
+        option_price = _parse_merch_decimal(variant.get("price"))
+
+        option, _ = ProductOption.objects.update_or_create(
+            sku=option_sku,
+            defaults={
+                "product": product,
+                "name": option_name,
+                "description": "",
+                "is_separator": False,
+                "option_column": 1,
+                "price": option_price,
+                "is_active": True,
+                "sort_order": index,
+            },
+        )
+        if default_option_id is None:
+            default_option_id = option.id
+
+    ProductOption.objects.filter(product=product).exclude(sku__in=seen_skus).update(is_active=False)
+    return default_option_id
+
+
+def _sync_printful_merch_products(products: list[dict]) -> None:
+    if not products:
+        return
+
+    category = _get_or_create_merch_category()
+    default_currency = (getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD") or "CAD").upper()
+
+    for item in products:
+        try:
+            product_id = int(item.get("id") or 0)
+        except (TypeError, ValueError):
+            product_id = 0
+        if product_id <= 0:
+            continue
+
+        name = (str(item.get("name") or "") or f"Merch item {product_id}").strip()[:180]
+        sku = _build_printful_product_sku(product_id)
+        slug = _build_printful_product_slug(product_id, name)
+        variants = [row for row in item.get("variants", []) if isinstance(row, dict)]
+
+        variant_prices = []
+        for variant in variants:
+            price = _parse_merch_decimal(variant.get("price"))
+            if price is not None:
+                variant_prices.append(price)
+
+        base_price = _parse_merch_decimal(item.get("base_price"))
+        if base_price is None and variant_prices:
+            base_price = min(variant_prices)
+        if base_price is None:
+            base_price = Decimal("0.00")
+
+        currency = (str(item.get("currency") or "") or default_currency).strip().upper() or default_currency
+        image_url = (str(item.get("image_url") or "") or "").strip()
+        existing = Product.objects.filter(sku=sku).only("id", "is_active").first()
+        defaults = {
+            "slug": slug,
+            "name": name,
+            "category": category,
+            "price": base_price,
+            "is_in_house": True,
+            "currency": currency,
+            "inventory": 9999,
+            # Preserve manual visibility toggles from admin.
+            "is_active": existing.is_active if existing is not None else True,
+            "short_description": "Fulfilled by Printful.",
+            "description": f"Printful product #{product_id}",
+            "contact_for_estimate": False,
+            "estimate_from_price": None,
+            "main_image": image_url,
+        }
+        product, _ = Product.objects.update_or_create(sku=sku, defaults=defaults)
+        _sync_printful_options_for_product(product, variants)
+
+
+def _build_synced_printful_merch_map(products: list[dict]) -> tuple[dict[int, dict], set[int]]:
+    ids: list[int] = []
+    for item in products:
+        try:
+            product_id = int(item.get("id") or 0)
+        except (TypeError, ValueError):
+            product_id = 0
+        if product_id > 0:
+            ids.append(product_id)
+    if not ids:
+        return {}, set()
+
+    ids = sorted(set(ids))
+    sync_key = f"{PRINTFUL_MERCH_SYNC_KEY_PREFIX}:{','.join(str(pid) for pid in ids)}"
+    if not cache.get(sync_key):
+        sync_ttl = 900
+        try:
+            _sync_printful_merch_products(products)
+        except Exception:
+            logger.exception("Failed to sync Printful merch catalog to store products.")
+            sync_ttl = 60
+        cache.set(sync_key, True, sync_ttl)
+
+    resolved: dict[int, dict] = {}
+    hidden_ids: set[int] = set()
+
+    skus = [_build_printful_product_sku(product_id) for product_id in ids]
+    store_products = Product.objects.filter(sku__in=skus).prefetch_related("options")
+    for product in store_products:
+        product_id = _parse_printful_product_id_from_sku(product.sku)
+        if not product_id:
+            continue
+        if not product.is_active:
+            hidden_ids.add(product_id)
+            continue
+        selectable = product.get_selectable_options()
+        default_option_id = selectable[0].id if selectable else None
+        resolved[product_id] = {
+            "product": product,
+            "default_option_id": default_option_id,
+        }
+    return resolved, hidden_ids
+
+
+def _extract_printful_category_label(item: dict) -> str:
+    candidates = [
+        item.get("category_label"),
+        item.get("main_category"),
+        item.get("main_category_name"),
+        item.get("category_name"),
+        item.get("type_name"),
+        item.get("product_type_name"),
+        item.get("type"),
+        item.get("category"),
+    ]
+    for raw in candidates:
+        if isinstance(raw, dict):
+            raw = raw.get("name") or raw.get("title") or ""
+        text = " ".join(str(raw or "").strip().split())
+        if text:
+            return text[:80]
+    return ""
+
+
+def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
+    if not products:
+        return []
+
+    synced, hidden_ids = _build_synced_printful_merch_map(products)
+    enriched: list[dict] = []
+    for item in products:
+        row = dict(item or {})
+        try:
+            product_id = int(row.get("id") or 0)
+        except (TypeError, ValueError):
+            product_id = 0
+
+        if product_id in hidden_ids:
+            continue
+
+        matched = synced.get(product_id)
+        if not matched:
+            continue
+
+        product = matched["product"]
+        category_label = _extract_printful_category_label(row)
+        if category_label:
+            row["category_label"] = category_label
+            row["category_key"] = slugify(category_label)[:64] or f"category-{product_id}"
+        row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
+        row["checkout_label"] = "Choose options"
+        row["url"] = row["store_product_url"]
+        enriched.append(row)
+    return enriched
+
+
 class MerchPlaceholderView(TemplateView):
     template_name = "client/merch.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        merch_copy = MerchPageCopy.get_solo()
+        ctx["merch_copy"] = MerchPageCopy.get_solo()
         printful_feed = get_printful_merch_feed()
-        ctx["merch_copy"] = merch_copy
-        ctx["header_copy"] = merch_copy
-        ctx["merch_gallery_groups"] = build_merch_gallery_groups(merch_copy)
-        ctx["printful_products"] = printful_feed.get("products", [])
+        all_products = _enrich_printful_merch_products(printful_feed.get("products", []))
+
+        category_map: dict[str, str] = {}
+        for row in all_products:
+            key = (row.get("category_key") or "").strip()
+            label = (row.get("category_label") or "").strip()
+            if key and label and key not in category_map:
+                category_map[key] = label
+
+        merch_categories = [
+            {"key": key, "label": label}
+            for key, label in sorted(category_map.items(), key=lambda pair: pair[1].lower())
+        ]
+
+        selected_merch_category = (self.request.GET.get("category") or "").strip()
+        if selected_merch_category and selected_merch_category in category_map:
+            printful_products = [
+                row for row in all_products if row.get("category_key") == selected_merch_category
+            ]
+        else:
+            selected_merch_category = ""
+            printful_products = all_products
+
+        ctx["header_copy"] = ctx["merch_copy"]
+        ctx["printful_products"] = printful_products
         ctx["printful_catalog_url"] = printful_feed.get("catalog_url", "")
+        ctx["merch_categories"] = merch_categories
+        ctx["selected_merch_category"] = selected_merch_category
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
         return ctx
 
 # accounts/views.py
-from django.views.generic import DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import ListView, DetailView
+from store.models import Order
 
 class OrdersListView(LoginRequiredMixin, ListView):
     template_name = "client/orders_list.html"
@@ -843,7 +1122,7 @@ class OrdersListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        qs = Order.objects.select_related("user").prefetch_related("items__product").order_by("-id")
+        qs = Order.objects.select_related("user").prefetch_related("orderitem_set__product").order_by("-created_at")
         # лучший вариант — по FK на пользователя
         qs_user = qs.filter(user=self.request.user)
         if qs_user.exists():
@@ -860,6 +1139,6 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
     pk_url_kwarg = "pk"
 
     def get_queryset(self):
-        qs = super().get_queryset().select_related("user").prefetch_related("items__product")
+        qs = super().get_queryset().select_related("user").prefetch_related("orderitem_set__product")
         # та же защита доступа
-        return qs.filter(Q(user=self.request.user) | Q(email__iexact=self.request.user.email))
+        return qs.filter(models.Q(user=self.request.user) | models.Q(email__iexact=self.request.user.email))

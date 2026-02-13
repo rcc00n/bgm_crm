@@ -40,9 +40,9 @@ body.pj a{ color:inherit; }
 }
 
 .pj-page{
-  max-width:1160px;
+  max-width:1060px;
   margin:0 auto;
-  padding:2.2rem 1.2rem 4rem;
+  padding:2rem 1.1rem 3.6rem;
   display:grid;
   gap:1.4rem;
 }
@@ -280,9 +280,9 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   border:1px solid var(--pj-line);
   border-radius:var(--pj-radius-lg);
   box-shadow:var(--pj-shadow);
-  padding:1.05rem;
+  padding:.92rem;
   display:grid;
-  gap:1rem;
+  gap:.82rem;
 }
 
 .pj-card__head{
@@ -348,7 +348,7 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 
 .pj-card__title{
   margin:0;
-  font-size:1.45rem;
+  font-size:1.3rem;
   letter-spacing:-.01em;
 }
 .pj-card__title,
@@ -481,8 +481,8 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 .pj-album-teaser__media.pj-media{
   position:relative;
   inset:auto;
-  aspect-ratio:16/9;
-  min-height:320px;
+  aspect-ratio:2.25/1;
+  min-height:260px;
 }
 
 .pj-album-teaser__media img{
@@ -701,7 +701,7 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 
 .pj-compare--slider{
   /* Clamp height so feed cards fit on a single desktop viewport. */
-  height:clamp(320px, 44vh, 440px);
+  height:clamp(280px, 38vh, 380px);
   width:100%;
   max-width:100%;
   justify-self:stretch;
@@ -714,14 +714,14 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   width:100%;
   justify-self:center;
   margin-inline:auto;
-  height:clamp(330px, 47vh, 500px);
+  height:clamp(300px, 42vh, 430px);
 }
 .pj-compare--slider.pj-compare--ratio-portrait{
   max-width:min(760px, 100%);
   width:100%;
   justify-self:center;
   margin-inline:auto;
-  height:clamp(360px, 56vh, 540px);
+  height:clamp(320px, 48vh, 470px);
 }
 .pj-compare--slider.pj-compare--ratio-mixed .pj-media img,
 .pj-compare--slider.pj-compare--ratio-portrait .pj-media img{

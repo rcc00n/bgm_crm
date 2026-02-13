@@ -143,13 +143,71 @@ def _extract_product(row: dict[str, Any]) -> dict[str, Any]:
     sync_product = row.get("sync_product")
     if isinstance(sync_product, dict):
         merged = dict(sync_product)
-        for key in ("thumbnail_url", "external_id", "name", "id", "variants", "synced", "is_ignored"):
+        for key in (
+            "thumbnail_url",
+            "external_id",
+            "name",
+            "id",
+            "variants",
+            "synced",
+            "is_ignored",
+            "category_label",
+            "main_category_name",
+            "category_name",
+            "main_category",
+            "type_name",
+            "product_type_name",
+            "type",
+            "category",
+            "product",
+        ):
             if key not in merged and key in row:
                 merged[key] = row.get(key)
         if "sync_variants" not in merged and isinstance(row.get("sync_variants"), list):
             merged["sync_variants"] = row.get("sync_variants")
         return merged
     return row
+
+
+def _clean_category_label(value: Any) -> str:
+    text = " ".join(str(value or "").strip().split())
+    if not text:
+        return ""
+    return text[:80]
+
+
+def _extract_product_category_label(product: dict[str, Any]) -> str:
+    candidates: list[Any] = [
+        product.get("category_label"),
+        product.get("main_category_name"),
+        product.get("category_name"),
+        product.get("type_name"),
+        product.get("product_type_name"),
+        product.get("type"),
+        product.get("category"),
+    ]
+
+    main_category = product.get("main_category")
+    if isinstance(main_category, dict):
+        candidates.insert(0, main_category.get("name"))
+        candidates.append(main_category.get("title"))
+
+    nested_product = product.get("product")
+    if isinstance(nested_product, dict):
+        candidates.extend(
+            [
+                nested_product.get("type_name"),
+                nested_product.get("product_type_name"),
+                nested_product.get("type"),
+                nested_product.get("category"),
+            ]
+        )
+
+    for raw in candidates:
+        label = _clean_category_label(raw)
+        if label:
+            return label
+    return ""
 
 
 def _extract_variants(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -182,6 +240,69 @@ def _build_price_label(variants: list[dict[str, Any]]) -> str:
     if low == high:
         return format_currency(low, include_code=False)
     return f"From {format_currency(low, include_code=False)}"
+
+
+def _build_base_price(variants: list[dict[str, Any]]) -> str:
+    prices: list[Decimal] = []
+    for variant in variants:
+        price = _coerce_decimal(variant.get("retail_price") or variant.get("price"))
+        if price is not None:
+            prices.append(price)
+    if not prices:
+        return ""
+    return str(min(prices))
+
+
+def _variant_option_name(product_name: str, variant_name: str, index: int) -> str:
+    source = (variant_name or "").strip()
+    if not source:
+        return f"Option {index}"
+
+    product = (product_name or "").strip()
+    if product and source.lower().startswith(product.lower()):
+        trimmed = source[len(product):].strip(" /-")
+        if trimmed:
+            return trimmed[:120]
+    return source[:120]
+
+
+def _build_variants_payload(variants: list[dict[str, Any]], *, product_name: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index, variant in enumerate(variants, start=1):
+        price = _coerce_decimal(variant.get("retail_price") or variant.get("price"))
+        sku = (variant.get("sku") or "").strip()
+        row = {
+            "id": _coerce_int(variant.get("id")),
+            "name": _variant_option_name(product_name, str(variant.get("name") or ""), index),
+            "sku": sku,
+            "price": str(price) if price is not None else "",
+            "currency": (variant.get("currency") or "").strip().upper(),
+        }
+        rows.append(row)
+    return rows
+
+
+def _variant_currency(variants: list[dict[str, Any]]) -> str:
+    for variant in variants:
+        code = (variant.get("currency") or "").strip().upper()
+        if code:
+            return code
+    return ""
+
+
+def _build_variant_skus(variants: list[dict[str, Any]]) -> list[str]:
+    skus: list[str] = []
+    seen: set[str] = set()
+    for variant in variants:
+        raw = (variant.get("sku") or "").strip()
+        if not raw:
+            continue
+        key = raw.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        skus.append(raw)
+    return skus
 
 
 def _build_product_url(*, product_id: int, name: str, external_id: str, catalog_url: str) -> str:
@@ -244,7 +365,9 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
     }
 
     try:
-        listing_payload = _api_get("/store/products", query={"limit": limit, "offset": 0})
+        # /sync/products works across connected platforms (Wix/Shopify/etc).
+        # /store/products is limited to Manual Order / API stores.
+        listing_payload = _api_get("/sync/products", query={"limit": limit, "offset": 0})
         items = _extract_result_items(listing_payload)
 
         products: list[dict[str, Any]] = []
@@ -261,7 +384,7 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
                 continue
 
             variants = _extract_variants(item)
-            if show_prices and not variants:
+            if not variants:
                 try:
                     variants = _fetch_product_detail_variants(product_id)
                 except PrintfulAPIError:
@@ -275,9 +398,14 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
                 {
                     "id": product_id,
                     "name": name,
+                    "category_label": _extract_product_category_label(item),
                     "image_url": (item.get("thumbnail_url") or "").strip(),
                     "price_label": _build_price_label(variants) if show_prices else "",
+                    "base_price": _build_base_price(variants),
                     "variant_label": f"{variant_count} variants" if variant_count > 1 else "",
+                    "currency": _variant_currency(variants),
+                    "skus": _build_variant_skus(variants),
+                    "variants": _build_variants_payload(variants, product_name=name),
                     "url": _build_product_url(
                         product_id=product_id,
                         name=name,

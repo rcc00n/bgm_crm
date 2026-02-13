@@ -282,6 +282,24 @@
     }
     .booking-photo-preview__meta small{color:var(--muted);}
     .modal__footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
+    /* Booking modal: keep actions pinned at the bottom without covering the calendar */
+    #bookModal .modal__header{flex:0 0 auto}
+    #bookModal .grid-2{
+      flex:1 1 auto;
+      min-height:0;
+      overflow-y:auto;
+      overscroll-behavior:contain;
+      padding-right:.1rem;
+    }
+    #bookModal .modal__footer{
+      flex:0 0 auto;
+      margin-top:0;
+      padding-top:.75rem;
+      border-top:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(12,12,12,.06) 0%, rgba(12,12,12,.92) 40%, rgba(12,12,12,.98) 100%);
+      position:relative;
+      z-index:4;
+    }
     .hint{font-size:.85rem;color:var(--muted)}
     .error{color:#ff5c72;font-size:.9rem;margin-top:.5rem}
     .success{color:#17d45b;font-size:.95rem;margin-top:.5rem}
@@ -2197,6 +2215,10 @@ body.nav-open .contact-fab,
     position:sticky; bottom:0;
     background:linear-gradient(180deg, rgba(0,0,0,0), #0c0c0c);
     padding-top:.75rem;
+  }
+  #bookModal .modal__footer{
+    position:relative;
+    bottom:auto;
   }
 }
 
