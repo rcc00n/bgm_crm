@@ -185,15 +185,15 @@
         {% for p in products %}
           <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
             <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
-              <div class="card__img">
-                {% if p.main_image %}
-                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
-                {% elif p.image %}
-                  <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
-                {% else %}
-                  <div class="ph" aria-hidden="true"></div>
-                {% endif %}
-              </div>
+	              <div class="card__img">
+	                {% if p.main_image %}
+	                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
+	                {% elif p.image %}
+	                  <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
+	                {% else %}
+	                  <div class="ph" aria-hidden="true"></div>
+	                {% endif %}
+	              </div>
               <div class="product__meta">
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
@@ -236,15 +236,15 @@
         {% for p in new_arrivals %}
           <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
             <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
-              <div class="card__img">
-                {% if p.main_image %}
-                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
-                {% elif p.image %}
-                  <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
-                {% else %}
-                  <div class="ph" aria-hidden="true"></div>
-                {% endif %}
-              </div>
+	              <div class="card__img">
+	                {% if p.main_image %}
+	                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
+	                {% elif p.image %}
+	                  <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
+	                {% else %}
+	                  <div class="ph" aria-hidden="true"></div>
+	                {% endif %}
+	              </div>
               <div class="product__meta">
                 <h3 class="product__title">{{ p.name }}</h3>
                 <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
@@ -294,15 +294,15 @@
             {% for p in items %}
             <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
               <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
-                <div class="card__img">
-                    {% if p.main_image %}
-                      <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
-                    {% elif p.image %}
-                      <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" class="img-fit">
-                    {% else %}
-                      <div class="ph" aria-hidden="true"></div>
-                    {% endif %}
-                  </div>
+	                <div class="card__img">
+	                    {% if p.main_image %}
+	                      <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
+	                    {% elif p.image %}
+	                      <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
+	                    {% else %}
+	                      <div class="ph" aria-hidden="true"></div>
+	                    {% endif %}
+	                  </div>
                   <div class="product__meta">
                     <h3 class="product__title">{{ p.name }}</h3>
                     <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>

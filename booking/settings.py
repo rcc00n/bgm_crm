@@ -438,7 +438,9 @@ CKEDITOR_CONFIGS = {
 }
 
 STORAGES = {
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    # Manifest storage has been causing 404s in production when the manifest and
+    # collected files get out of sync. Prefer non-manifest storage for uptime.
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
 }
 
@@ -887,7 +889,7 @@ LOGGING = {
 
 
 # Use non-manifest storage to avoid hard failures on missing manifest entries.
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 # карта sourcemap .css.map по-прежнему может отсутствовать — это ок:
 WHITENOISE_IGNORE_MISSING_FILES = True
 WHITENOISE_MANIFEST_STRICT = False
