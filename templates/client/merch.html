@@ -240,36 +240,16 @@
 
     .grid{ display:grid; gap:1rem; }
     .grid--cards{ grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); }
-    .grid--cards h3, .grid--cards h4{ margin-top:.6rem; }
-
-    .merch-gallery{ display:grid; gap:1.25rem; }
-    .gallery-group{
-      display:grid; gap:.85rem;
-      padding:.95rem;
-      border:1px solid rgba(255,255,255,.1);
-      border-radius:1rem;
-      background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));
-    }
-    .gallery-group__head{ display:flex; align-items:center; gap:.7rem; }
-    .gallery-group__title{
-      margin:0;
-      font-size:.95rem;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      color:rgba(255,255,255,.88);
-      font-family:var(--font-head);
-      font-weight:900;
-      white-space:nowrap;
-    }
-    .gallery-group__line{
-      flex:1;
-      min-height:1px;
-      background:linear-gradient(90deg, rgba(213,0,0,.48), rgba(255,255,255,.06));
-    }
+    .grid--cards h3{ margin-top:.6rem; }
 
     .card{
       background:linear-gradient(180deg,var(--panel),var(--panel-2));
       border:1px solid var(--line); border-radius:1rem; padding:1rem; box-shadow:var(--shadow);
+    }
+    .card--product-link{ cursor:pointer; }
+    .card--product-link:focus-visible{
+      outline:2px solid rgba(255,255,255,.75);
+      outline-offset:3px;
     }
     .card__media{
       border-radius:.85rem; overflow:hidden; border:1px solid rgba(255,255,255,.08);
@@ -287,19 +267,19 @@
     }
     .card__meta dd{ margin:0; color:var(--fg); font-weight:700; }
 
-    .coming-soon{
+    .status-banner{
       display:grid; gap:.55rem; margin:1.8rem 0 0;
       padding:1rem 1.1rem; border-radius:1rem;
       border:1px solid rgba(213,0,0,.35); background:rgba(213,0,0,.08);
       box-shadow:0 14px 26px rgba(213,0,0,.18);
     }
-    .coming-soon--live{
+    .status-banner--live{
       border-color:rgba(23,212,91,.35);
       background:rgba(23,212,91,.09);
       box-shadow:0 14px 26px rgba(23,212,91,.16);
     }
-    .coming-soon__title{ font-family:var(--font-head); font-size:1.25rem; font-weight:900; }
-    .section--coming-soon .card{ border-style:dashed; }
+    .status-banner__title{ font-family:var(--font-head); font-size:1.25rem; font-weight:900; }
+    .section--preview .card{ border-style:dashed; }
     .card__price{
       font-size:1.05rem;
       font-weight:900;
@@ -311,6 +291,46 @@
       opacity:.6;
       pointer-events:none;
       border-color:rgba(255,255,255,.16);
+    }
+    .card__category{
+      font-size:.72rem;
+      font-weight:800;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--muted-2);
+    }
+
+    .merch-categories{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.55rem;
+      margin:0 0 1rem;
+    }
+    .merch-categories__chip{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:36px;
+      padding:.35rem .85rem;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.2);
+      background:rgba(255,255,255,.03);
+      color:rgba(255,255,255,.86);
+      font-size:.78rem;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      transition:.2s ease;
+    }
+    .merch-categories__chip:hover{
+      border-color:rgba(255,255,255,.45);
+      color:#fff;
+    }
+    .merch-categories__chip.is-active{
+      border-color:rgba(213,0,0,.6);
+      background:rgba(213,0,0,.18);
+      color:#fff;
+      box-shadow:0 0 18px rgba(213,0,0,.22);
     }
 
     .social{
@@ -559,7 +579,7 @@ body.nav-open .contact-fab,
     box-shadow: 0 8px 24px rgba(0,0,0,.35); /* subtle lift */
   }
 
-  /* Keep the "Soon" badge tidy inside the pill */
+  /* Keep the badge tidy inside the pill */
   .site-header nav a .badge{
     margin-left: .6rem;
     vertical-align: middle;
@@ -618,7 +638,7 @@ body.nav-open .contact-fab,
   </section>
 
   <main id="main">
-    <section class="section{% if merch_copy.coming_soon_enabled and not printful_products %} section--coming-soon{% endif %}">
+    <section class="section{% if merch_copy.coming_soon_enabled and not printful_products %} section--preview{% endif %}">
       <div class="container">
         <div class="section__head">
           <div>
@@ -626,16 +646,6 @@ body.nav-open .contact-fab,
             <p class="section__desc">{{ merch_copy.section_desc|striptags|safe }}</p>
           </div>
         </div>
-
-        {% if merch_copy.coming_soon_enabled and not printful_products %}
-          <div class="coming-soon">
-            <span class="badge">{{ merch_copy.coming_soon_badge }}</span>
-            <div>
-              <div class="coming-soon__title">{{ merch_copy.coming_soon_title }}</div>
-              <p class="section__desc">{{ merch_copy.coming_soon_desc|striptags|safe }}</p>
-            </div>
-          </div>
-        {% endif %}
 
         {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
           <div class="social">
@@ -661,17 +671,28 @@ body.nav-open .contact-fab,
         {% endif %}
 
         {% if printful_products %}
-          <div class="coming-soon coming-soon--live">
-            <span class="badge">Live now</span>
-            <div>
-              <div class="coming-soon__title">Fulfilled by Printful</div>
-              <p class="section__desc">Merch inventory and fulfillment are synced from Printful in real time.</p>
+          {% if merch_categories %}
+            <div class="merch-categories" aria-label="Filter merch by category">
+              <a
+                class="merch-categories__chip{% if not selected_merch_category %} is-active{% endif %}"
+                href="{% url 'merch' %}"
+              >
+                All
+              </a>
+              {% for category in merch_categories %}
+                <a
+                  class="merch-categories__chip{% if selected_merch_category == category.key %} is-active{% endif %}"
+                  href="{% url 'merch' %}?category={{ category.key|urlencode }}"
+                >
+                  {{ category.label }}
+                </a>
+              {% endfor %}
             </div>
-          </div>
+          {% endif %}
 
           <div class="grid grid--cards" style="margin-top:1rem">
             {% for item in printful_products %}
-              <article class="card">
+              <article class="card{% if item.url %} card--product-link{% endif %}"{% if item.url %} data-merch-product-card data-product-url="{{ item.url }}"{% endif %}>
                 <div class="card__media">
                   {% if item.image_url %}
                     <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy" decoding="async">
@@ -680,6 +701,9 @@ body.nav-open .contact-fab,
                   {% endif %}
                 </div>
                 <div class="card__body">
+                  {% if item.category_label %}
+                    <p class="card__category">{{ item.category_label }}</p>
+                  {% endif %}
                   <h3 class="diesel">{{ item.name }}</h3>
                   {% if item.price_label %}
                     <p class="card__price">{{ item.price_label }}</p>
@@ -688,7 +712,7 @@ body.nav-open .contact-fab,
                     <p class="section__desc">{{ item.variant_label }}</p>
                   {% endif %}
                   {% if item.url %}
-                    <a class="btn btn--ghost card__cta" href="{{ item.url }}" target="_blank" rel="noopener">Shop now</a>
+                    <a class="btn btn--primary card__cta" href="{{ item.url }}">{{ item.checkout_label|default:"Choose options" }}</a>
                   {% else %}
                     <span class="btn btn--ghost card__cta" aria-disabled="true">Available on request</span>
                   {% endif %}
@@ -696,184 +720,138 @@ body.nav-open .contact-fab,
               </article>
             {% endfor %}
           </div>
-
-          {% if printful_catalog_url %}
-            <div class="btn-row" style="margin-top:1.1rem">
-              <a class="btn btn--primary" href="{{ printful_catalog_url }}" target="_blank" rel="noopener">Browse full catalog</a>
-            </div>
-          {% endif %}
-        {% elif merch_gallery_groups %}
-          <div class="merch-gallery">
-            {% for group in merch_gallery_groups %}
-              <section class="gallery-group" aria-label="{{ group.title }}">
-                <header class="gallery-group__head">
-                  <h3 class="gallery-group__title">{{ group.title }}</h3>
-                  <span class="gallery-group__line" aria-hidden="true"></span>
-                </header>
-                <div class="grid grid--cards">
-                  {% for item in group.items %}
-                    <article class="card">
-                      <div class="card__media">
-                        {% thumbnail item.photo "720x540" crop="center" quality=74 format="WEBP" as merch_thumb %}
-                          <img
-                            src="{{ merch_thumb.url }}"
-                            width="{{ merch_thumb.width }}"
-                            height="{{ merch_thumb.height }}"
-                            alt="{{ item.photo_alt|default:item.title }}"
-                            loading="lazy"
-                            decoding="async">
-                        {% endthumbnail %}
-                      </div>
-                      <div class="card__body">
-                        <h4 class="diesel">{{ item.title }}</h4>
-                        {% if item.description %}
-                          <p class="section__desc">{{ item.description|striptags|safe }}</p>
-                        {% endif %}
-                        {% if item.colors or item.sizes %}
-                          <dl class="card__meta">
-                            {% if item.colors %}
-                              <div class="card__meta-row">
-                                <dt>{{ merch_copy.card_colors_label }}</dt>
-                                <dd>{{ item.colors }}</dd>
-                              </div>
-                            {% endif %}
-                            {% if item.sizes %}
-                              <div class="card__meta-row">
-                                <dt>{{ merch_copy.card_sizes_label }}</dt>
-                                <dd>{{ item.sizes }}</dd>
-                              </div>
-                            {% endif %}
-                          </dl>
-                        {% endif %}
-                      </div>
-                    </article>
-                  {% endfor %}
-                </div>
-              </section>
-            {% endfor %}
-          </div>
         {% else %}
-          <div class="grid grid--cards">
-            <article class="card">
-              {% if merch_copy.card_1_photo %}
-                <div class="card__media">
-                  <img src="{{ merch_copy.card_1_photo.url }}" alt="{{ merch_copy.card_1_photo_alt|default:merch_copy.card_1_title }}" loading="lazy" decoding="async">
-                </div>
-              {% else %}
-                <div class="sk"></div>
-              {% endif %}
-              <div class="card__body">
-                <h3 class="diesel">{{ merch_copy.card_1_title }}</h3>
-                <p class="section__desc">{{ merch_copy.card_1_desc|striptags|safe }}</p>
-                {% if merch_copy.card_1_colors or merch_copy.card_1_sizes %}
-                  <dl class="card__meta">
-                    {% if merch_copy.card_1_colors %}
-                      <div class="card__meta-row">
-                        <dt>{{ merch_copy.card_colors_label }}</dt>
-                        <dd>{{ merch_copy.card_1_colors }}</dd>
-                      </div>
-                    {% endif %}
-                    {% if merch_copy.card_1_sizes %}
-                      <div class="card__meta-row">
-                        <dt>{{ merch_copy.card_sizes_label }}</dt>
-                        <dd>{{ merch_copy.card_1_sizes }}</dd>
-                      </div>
-                    {% endif %}
-                  </dl>
-                {% endif %}
+        <div class="grid grid--cards">
+          <article class="card">
+            {% if merch_copy.card_1_photo %}
+              <div class="card__media">
+                <img src="{{ merch_copy.card_1_photo.url }}" alt="{{ merch_copy.card_1_photo_alt|default:merch_copy.card_1_title }}" loading="lazy" decoding="async">
               </div>
-            </article>
+            {% else %}
+              <div class="sk"></div>
+            {% endif %}
+            <div class="card__body">
+              <h3 class="diesel">{{ merch_copy.card_1_title }}</h3>
+              <p class="section__desc">{{ merch_copy.card_1_desc|striptags|safe }}</p>
+              {% if merch_copy.card_1_colors or merch_copy.card_1_sizes %}
+                <dl class="card__meta">
+                  {% if merch_copy.card_1_colors %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_colors_label }}</dt>
+                      <dd>{{ merch_copy.card_1_colors }}</dd>
+                    </div>
+                  {% endif %}
+                  {% if merch_copy.card_1_sizes %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_sizes_label }}</dt>
+                      <dd>{{ merch_copy.card_1_sizes }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              {% endif %}
+            </div>
+          </article>
 
-            <article class="card">
-              {% if merch_copy.card_2_photo %}
-                <div class="card__media">
-                  <img src="{{ merch_copy.card_2_photo.url }}" alt="{{ merch_copy.card_2_photo_alt|default:merch_copy.card_2_title }}" loading="lazy" decoding="async">
-                </div>
-              {% else %}
-                <div class="sk"></div>
-              {% endif %}
-              <div class="card__body">
-                <h3 class="diesel">{{ merch_copy.card_2_title }}</h3>
-                <p class="section__desc">{{ merch_copy.card_2_desc|striptags|safe }}</p>
-                {% if merch_copy.card_2_colors or merch_copy.card_2_sizes %}
-                  <dl class="card__meta">
-                    {% if merch_copy.card_2_colors %}
-                      <div class="card__meta-row">
-                        <dt>{{ merch_copy.card_colors_label }}</dt>
-                        <dd>{{ merch_copy.card_2_colors }}</dd>
-                      </div>
-                    {% endif %}
-                    {% if merch_copy.card_2_sizes %}
-                      <div class="card__meta-row">
-                        <dt>{{ merch_copy.card_sizes_label }}</dt>
-                        <dd>{{ merch_copy.card_2_sizes }}</dd>
-                      </div>
-                    {% endif %}
-                  </dl>
-                {% endif %}
+          <article class="card">
+            {% if merch_copy.card_2_photo %}
+              <div class="card__media">
+                <img src="{{ merch_copy.card_2_photo.url }}" alt="{{ merch_copy.card_2_photo_alt|default:merch_copy.card_2_title }}" loading="lazy" decoding="async">
               </div>
-            </article>
+            {% else %}
+              <div class="sk"></div>
+            {% endif %}
+            <div class="card__body">
+              <h3 class="diesel">{{ merch_copy.card_2_title }}</h3>
+              <p class="section__desc">{{ merch_copy.card_2_desc|striptags|safe }}</p>
+              {% if merch_copy.card_2_colors or merch_copy.card_2_sizes %}
+                <dl class="card__meta">
+                  {% if merch_copy.card_2_colors %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_colors_label }}</dt>
+                      <dd>{{ merch_copy.card_2_colors }}</dd>
+                    </div>
+                  {% endif %}
+                  {% if merch_copy.card_2_sizes %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_sizes_label }}</dt>
+                      <dd>{{ merch_copy.card_2_sizes }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              {% endif %}
+            </div>
+          </article>
 
-            <article class="card">
-              {% if merch_copy.card_3_photo %}
-                <div class="card__media">
-                  <img src="{{ merch_copy.card_3_photo.url }}" alt="{{ merch_copy.card_3_photo_alt|default:merch_copy.card_3_title }}" loading="lazy" decoding="async">
-                </div>
-              {% else %}
-                <div class="sk"></div>
-              {% endif %}
-              <div class="card__body">
-                <h3 class="diesel">{{ merch_copy.card_3_title }}</h3>
-                <p class="section__desc">{{ merch_copy.card_3_desc|striptags|safe }}</p>
-                {% if merch_copy.card_3_colors or merch_copy.card_3_sizes %}
-                  <dl class="card__meta">
-                    {% if merch_copy.card_3_colors %}
-                      <div class="card__meta-row">
-                        <dt>{{ merch_copy.card_colors_label }}</dt>
-                        <dd>{{ merch_copy.card_3_colors }}</dd>
-                      </div>
-                    {% endif %}
-                    {% if merch_copy.card_3_sizes %}
-                      <div class="card__meta-row">
-                        <dt>{{ merch_copy.card_sizes_label }}</dt>
-                        <dd>{{ merch_copy.card_3_sizes }}</dd>
-                      </div>
-                    {% endif %}
-                  </dl>
-                {% endif %}
+          <article class="card">
+            {% if merch_copy.card_3_photo %}
+              <div class="card__media">
+                <img src="{{ merch_copy.card_3_photo.url }}" alt="{{ merch_copy.card_3_photo_alt|default:merch_copy.card_3_title }}" loading="lazy" decoding="async">
               </div>
-            </article>
+            {% else %}
+              <div class="sk"></div>
+            {% endif %}
+            <div class="card__body">
+              <h3 class="diesel">{{ merch_copy.card_3_title }}</h3>
+              <p class="section__desc">{{ merch_copy.card_3_desc|striptags|safe }}</p>
+              {% if merch_copy.card_3_colors or merch_copy.card_3_sizes %}
+                <dl class="card__meta">
+                  {% if merch_copy.card_3_colors %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_colors_label }}</dt>
+                      <dd>{{ merch_copy.card_3_colors }}</dd>
+                    </div>
+                  {% endif %}
+                  {% if merch_copy.card_3_sizes %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_sizes_label }}</dt>
+                      <dd>{{ merch_copy.card_3_sizes }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              {% endif %}
+            </div>
+          </article>
 
-            <article class="card">
-              {% if merch_copy.card_4_photo %}
-                <div class="card__media">
-                  <img src="{{ merch_copy.card_4_photo.url }}" alt="{{ merch_copy.card_4_photo_alt|default:merch_copy.card_4_title }}" loading="lazy" decoding="async">
-                </div>
-              {% else %}
-                <div class="sk"></div>
-              {% endif %}
-              <div class="card__body">
-                <h3 class="diesel">{{ merch_copy.card_4_title }}</h3>
-                <p class="section__desc">{{ merch_copy.card_4_desc|striptags|safe }}</p>
-                {% if merch_copy.card_4_colors or merch_copy.card_4_sizes %}
-                  <dl class="card__meta">
-                    {% if merch_copy.card_4_colors %}
-                      <div class="card__meta-row">
-                        <dt>{{ merch_copy.card_colors_label }}</dt>
-                        <dd>{{ merch_copy.card_4_colors }}</dd>
-                      </div>
-                    {% endif %}
-                    {% if merch_copy.card_4_sizes %}
-                      <div class="card__meta-row">
-                        <dt>{{ merch_copy.card_sizes_label }}</dt>
-                        <dd>{{ merch_copy.card_4_sizes }}</dd>
-                      </div>
-                    {% endif %}
-                  </dl>
-                {% endif %}
+          <article class="card">
+            {% if merch_copy.card_4_photo %}
+              <div class="card__media">
+                <img src="{{ merch_copy.card_4_photo.url }}" alt="{{ merch_copy.card_4_photo_alt|default:merch_copy.card_4_title }}" loading="lazy" decoding="async">
               </div>
-            </article>
+            {% else %}
+              <div class="sk"></div>
+            {% endif %}
+            <div class="card__body">
+              <h3 class="diesel">{{ merch_copy.card_4_title }}</h3>
+              <p class="section__desc">{{ merch_copy.card_4_desc|striptags|safe }}</p>
+              {% if merch_copy.card_4_colors or merch_copy.card_4_sizes %}
+                <dl class="card__meta">
+                  {% if merch_copy.card_4_colors %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_colors_label }}</dt>
+                      <dd>{{ merch_copy.card_4_colors }}</dd>
+                    </div>
+                  {% endif %}
+                  {% if merch_copy.card_4_sizes %}
+                    <div class="card__meta-row">
+                      <dt>{{ merch_copy.card_sizes_label }}</dt>
+                      <dd>{{ merch_copy.card_4_sizes }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              {% endif %}
+            </div>
+          </article>
+        </div>
+
+        {% if merch_copy.coming_soon_enabled %}
+          <div class="status-banner">
+            <span class="badge">{{ merch_copy.coming_soon_badge }}</span>
+            <div>
+              <div class="status-banner__title">{{ merch_copy.coming_soon_title }}</div>
+              <p class="section__desc">{{ merch_copy.coming_soon_desc|striptags|safe }}</p>
+            </div>
           </div>
+        {% endif %}
         {% endif %}
 
         <div class="btn-row" style="margin-top:1.5rem">
@@ -945,6 +923,37 @@ body.nav-open .contact-fab,
   <script src="{% static 'js/topbar.js' %}"></script>
 
   <script>
+    (function () {
+      const cards = document.querySelectorAll("[data-merch-product-card]");
+      cards.forEach((card) => {
+        const url = card.getAttribute("data-product-url");
+        if (!url) {
+          return;
+        }
+
+        card.setAttribute("role", "link");
+        card.setAttribute("tabindex", "0");
+
+        card.addEventListener("click", (event) => {
+          if (event.target.closest("a,button,input,select,textarea,label,form")) {
+            return;
+          }
+          window.location.href = url;
+        });
+
+        card.addEventListener("keydown", (event) => {
+          if (event.target !== card) {
+            return;
+          }
+          if (event.key !== "Enter" && event.key !== " ") {
+            return;
+          }
+          event.preventDefault();
+          window.location.href = url;
+        });
+      });
+    })();
+
     /* Contact modal & clipboard (unchanged behavior, cleaned scope) */
     (function(){
       const fab   = document.getElementById('contactFab');

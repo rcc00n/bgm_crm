@@ -1733,7 +1733,9 @@
               {% endfor %}
             </div>
           {% elif not search_results and not has_any_services %}
-            <div class="empty">{{ home_copy.services_empty_label }}</div>
+            {% with services_empty_label=home_copy.services_empty_label|default:"" %}
+              <div class="empty">{% if "soon" in services_empty_label|lower %}Catalog is being updated.{% else %}{{ services_empty_label }}{% endif %}</div>
+            {% endwith %}
           {% endif %}
         </div>
       </div>
@@ -1757,7 +1759,10 @@
 	              <b>{{ home_copy.products_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_1_subtitle }}</span>
 	            </a>
 	            <a class="mobi-action" href="{% url 'merch' %}">
-	              <b>{{ home_copy.products_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.products_mobile_action_2_subtitle }}</span>
+	              <b>{{ home_copy.products_mobile_action_2_title }}</b>
+                {% with merch_mobile_subtitle=home_copy.products_mobile_action_2_subtitle|default:"" %}
+                  <span class="mobi-sub">{% if "soon" in merch_mobile_subtitle|lower %}Shop merch{% else %}{{ merch_mobile_subtitle }}{% endif %}</span>
+                {% endwith %}
 	            </a>
 	          </div>
             <form class="filters home-search home-search--mobile" role="search" method="get" action="{% url 'store' %}">
@@ -1880,8 +1885,13 @@
     <section class="section">
       <div class="container">
         <div class="section__head">
-          <h2 class="section__title">{{ home_copy.why_title }}</h2>
-          <p class="section__desc">{{ home_copy.why_desc }}</p>
+          <div>
+            <h2 class="section__title">{{ home_copy.why_title }}</h2>
+            <p class="section__desc">{{ home_copy.why_desc }}</p>
+          </div>
+          <div>
+            <a class="btn btn--ghost" href="{% url 'leave-review' %}">Leave a review</a>
+          </div>
         </div>
         {% if home_reviews %}
           <div class="review-carousel" data-review-carousel data-review-count="{{ home_reviews|length }}">
@@ -1969,7 +1979,12 @@
             <div class="grid">
               <details><summary>{{ home_copy.faq_1_question }}</summary><p>{{ home_copy.faq_1_answer }}</p></details>
               <details><summary>{{ home_copy.faq_2_question }}</summary><p>{{ home_copy.faq_2_answer }}</p></details>
-              <details><summary>{{ home_copy.faq_3_question }}</summary><p>{{ home_copy.faq_3_answer }}</p></details>
+              {% with faq_3_answer=home_copy.faq_3_answer|default:"" %}
+                <details>
+                  <summary>{{ home_copy.faq_3_question }}</summary>
+                  <p>{% if "soon" in faq_3_answer|lower %}Yes. Dealer applications are open. Leave a request via the contact form.{% else %}{{ faq_3_answer }}{% endif %}</p>
+                </details>
+              {% endwith %}
             </div>
           </div>
         </section>
@@ -1982,7 +1997,12 @@
             </div>
             <div class="grid">
               {% for item in home_faq_items %}
-                <details><summary>{{ item.question }}</summary><p>{{ item.answer }}</p></details>
+                {% with faq_answer=item.answer|default:"" %}
+                  <details>
+                    <summary>{{ item.question }}</summary>
+                    <p>{% if "soon" in faq_answer|lower %}Yes. Dealer applications are open. Leave a request via the contact form.{% else %}{{ faq_answer }}{% endif %}</p>
+                  </details>
+                {% endwith %}
               {% endfor %}
             </div>
           </div>

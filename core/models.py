@@ -1035,6 +1035,11 @@ class StorePageCopy(models.Model):
     from_label = models.CharField(max_length=40, default="From")
     dealer_label = models.CharField(max_length=40, default="Dealer")
     save_label = models.CharField(max_length=40, default="Save")
+    fitment_success_message = models.CharField(
+        max_length=280,
+        default="Hi {customer_name}, thanks for submitting your custom fitment request. We got it and will reach out soon.",
+        help_text="Green success message on product page after fitment form submit. Use {customer_name} token.",
+    )
 
     contact_fab_label = models.CharField(max_length=60, default="Contact us")
     contact_modal_title = models.CharField(max_length=60, default="Contact us")

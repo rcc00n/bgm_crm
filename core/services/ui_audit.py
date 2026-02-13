@@ -18,6 +18,7 @@ from django.urls import Resolver404, get_resolver, resolve
 from django.utils import timezone
 
 from core.models import ClientUiCheckRun, UserRole
+from core.utils_durations import format_hms_ms
 from notifications import services as telegram_services
 from notifications.models import TelegramMessageLog
 
@@ -426,7 +427,7 @@ def _telegram_report(run: ClientUiCheckRun) -> str:
 
     duration_ms = run.duration_ms or 0
     if duration_ms:
-        lines.append(f"Duration: {duration_ms / 1000:.1f}s")
+        lines.append(f"Duration: {format_hms_ms(duration_ms)}")
 
     if error_message:
         lines.append(f"Error: {html.escape(str(error_message)[:400])}")

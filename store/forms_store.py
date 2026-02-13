@@ -14,6 +14,7 @@ from .models import (
     CarMake,
     CarModel,
     CustomFitmentRequest,
+    StoreReview,
 )
 
 # =========================
@@ -203,6 +204,9 @@ class OrderCreateForm(forms.ModelForm):
             "notes": "Notes",
             "reference_image": "Photo reference",
         }
+        help_texts = {
+            "reference_image": "Optional: upload logos, artwork, inspiration, or fitment photos.",
+        }
 
 
 # =========================
@@ -308,6 +312,64 @@ class CustomFitmentRequestForm(forms.ModelForm):
         except (UnidentifiedImageError, OSError):
             raise forms.ValidationError("Unsupported image. Use JPG, PNG, or WEBP.")
         return image
+
+
+# =========================
+# Store reviews (public)
+# =========================
+
+class StoreReviewForm(forms.ModelForm):
+    # Honeypot for bots. Keep it hidden and require it to be empty.
+    website = forms.CharField(required=False, widget=forms.HiddenInput)
+    rating = forms.TypedChoiceField(
+        choices=[(i, f"{i} ★") for i in range(5, 0, -1)],
+        coerce=int,
+        widget=forms.Select(attrs={"class": "field"}),
+    )
+
+    class Meta:
+        model = StoreReview
+        fields = [
+            "reviewer_name",
+            "reviewer_email",
+            "reviewer_title",
+            "rating",
+            "title",
+            "body",
+        ]
+        labels = {
+            "reviewer_name": "Name",
+            "reviewer_email": "Email (optional)",
+            "reviewer_title": "Vehicle / context (optional)",
+            "rating": "Rating",
+            "title": "Title (optional)",
+            "body": "Review",
+        }
+        widgets = {
+            "reviewer_name": forms.TextInput(
+                attrs={"placeholder": "Your name", "class": "field", "autocomplete": "name"}
+            ),
+            "reviewer_email": forms.EmailInput(
+                attrs={"placeholder": "name@example.com", "class": "field", "autocomplete": "email"}
+            ),
+            "reviewer_title": forms.TextInput(
+                attrs={"placeholder": "E.g. BMW E90 335i", "class": "field"}
+            ),
+            "title": forms.TextInput(attrs={"placeholder": "Optional title", "class": "field"}),
+            "body": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "placeholder": "What was your experience like?",
+                    "class": "field",
+                }
+            ),
+        }
+
+    def clean_website(self):
+        value = (self.cleaned_data.get("website") or "").strip()
+        if value:
+            raise forms.ValidationError("Invalid submission.")
+        return ""
 
 
 # =========================
