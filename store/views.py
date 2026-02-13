@@ -1054,6 +1054,7 @@ def leave_review(request):
         "store/leave_review.html",
         {
             "store_copy": store_copy,
+            "current": "reviews",
             "form": form,
             "approved_reviews": approved_reviews,
             "submitted": submitted,

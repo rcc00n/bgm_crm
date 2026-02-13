@@ -321,6 +321,11 @@ class CustomFitmentRequestForm(forms.ModelForm):
 class StoreReviewForm(forms.ModelForm):
     # Honeypot for bots. Keep it hidden and require it to be empty.
     website = forms.CharField(required=False, widget=forms.HiddenInput)
+    rating = forms.TypedChoiceField(
+        choices=[(i, f"{i} ★") for i in range(5, 0, -1)],
+        coerce=int,
+        widget=forms.Select(attrs={"class": "field"}),
+    )
 
     class Meta:
         model = StoreReview
@@ -350,7 +355,6 @@ class StoreReviewForm(forms.ModelForm):
             "reviewer_title": forms.TextInput(
                 attrs={"placeholder": "E.g. BMW E90 335i", "class": "field"}
             ),
-            "rating": forms.Select(attrs={"class": "field"}),
             "title": forms.TextInput(attrs={"placeholder": "Optional title", "class": "field"}),
             "body": forms.Textarea(
                 attrs={
@@ -360,10 +364,6 @@ class StoreReviewForm(forms.ModelForm):
                 }
             ),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["rating"].choices = [(i, f"{i} ★") for i in range(5, 0, -1)]
 
     def clean_website(self):
         value = (self.cleaned_data.get("website") or "").strip()
