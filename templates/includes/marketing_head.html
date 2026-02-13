@@ -34,14 +34,34 @@
   <meta name="twitter:title" content="{{ meta_title_clean }}">
   <meta name="twitter:description" content="{{ meta_description_clean }}">
   <meta name="twitter:image" content="{{ meta_image_absolute }}">
-  {% with site_icon=marketing.organization_logo|default:marketing.default_image %}
-    {% with site_icon_abs=site_icon|absolute_url:marketing.origin %}
-      <link rel="icon" href="{{ site_icon_abs }}" type="image/png">
-      <link rel="apple-touch-icon" href="{{ site_icon_abs }}">
-    {% endwith %}
-  {% endwith %}
-  <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
+  <style id="topbar-critical-fallback">
+    .bgm-topbar{
+      position:fixed !important;
+      inset:0 0 auto 0 !important;
+      z-index:3900 !important;
+      background:rgba(6,6,6,.92) !important;
+      border-bottom:1px solid rgba(255,255,255,.12) !important;
+      backdrop-filter:blur(10px) saturate(1.1) !important;
+    }
+    .bgm-topbar__inner{
+      display:flex !important;
+      align-items:center !important;
+      min-height:var(--site-header-height,72px) !important;
+      padding:.75rem 1rem !important;
+      gap:.9rem !important;
+    }
+    .bgm-topbar__nav-list{
+      display:flex !important;
+      align-items:center !important;
+      gap:.75rem !important;
+      margin:0 !important;
+      padding:0 !important;
+      list-style:none !important;
+    }
+  </style>
+  <link rel="preload" href="{% safe_static 'fonts/Diesel.woff2' 'fonts/Diesel.ttf' %}" as="font" type="font/woff2" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -51,13 +71,19 @@
   {% if topbar_settings %}
     <style id="topbar-style">
       {% for font in topbar_settings.fonts %}
+      {% with font_url=font.url|default:'' font_url_woff2=font.url_woff2|default:'' %}
       @font-face{
         font-family:"{{ font.family }}";
-        src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+        src:
+          {% if font_url_woff2 %}
+            url("{{ font_url_woff2 }}") format("woff2"),
+          {% endif %}
+          url("{{ font_url }}") format("{{ font.format|default:'truetype' }}");
         font-weight:{{ font.weight|default:"400" }};
         font-style:{{ font.style|default:"normal" }};
         font-display:{{ font.display|default:"swap" }};
       }
+      {% endwith %}
       {% endfor %}
       :root{
         {% if topbar_settings.brand.stack %}--topbar-brand-font: {{ topbar_settings.brand.stack|safe }};{% endif %}
@@ -146,46 +172,104 @@
   </script>
 
   {% with marketing.google_tag_manager_id|default:"GTM-M7FTNXV6" as gtm_id %}
-  {% if gtm_id %}
+  {% if gtm_id or marketing.google_ads_id %}
     <script>
-      (function(w,d,s,l,i){
-        w[l]=w[l]||[];
-        w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
-        var f=d.getElementsByTagName(s)[0],
-            j=d.createElement(s),
-            dl=l!='dataLayer'?'&l='+l:'';
-        j.async=true;
-        j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-        f.parentNode.insertBefore(j,f);
-      })(window,document,'script','dataLayer','{{ gtm_id }}');
-    </script>
-  {% endif %}
-  {% endwith %}
-
-  {% if marketing.google_ads_id %}
-    <script async src="https://www.googletagmanager.com/gtag/js?id={{ marketing.google_ads_id }}"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', '{{ marketing.google_ads_id }}', {
-        'allow_enhanced_conversions': true,
-        'send_page_view': {{ marketing.google_ads_send_page_view|yesno:"true,false" }}
-      });
-    </script>
-    {% if marketing.google_ads_conversion_label %}
-      <script>
-        window.__bgmConversion = function(details){
-          details = details || {};
-          if (typeof gtag !== "function") {
+      (function(w,d){
+        function once(fn){
+          var fired = false;
+          return function(){
+            if (fired) return;
+            fired = true;
+            fn();
+          };
+        }
+        function loadScriptOnce(key, src, onload){
+          w.__bgmScriptState = w.__bgmScriptState || {};
+          if (w.__bgmScriptState[key] === "loaded") {
+            if (typeof onload === "function") onload();
             return;
           }
-          gtag('event', 'conversion', Object.assign({
-            'send_to': '{{ marketing.google_ads_id }}/{{ marketing.google_ads_conversion_label }}'
-          }, details));
-        };
-      </script>
-    {% endif %}
+          if (w.__bgmScriptState[key] === "loading") return;
+          w.__bgmScriptState[key] = "loading";
+          var script = d.createElement("script");
+          script.async = true;
+          script.src = src;
+          script.onload = function(){
+            w.__bgmScriptState[key] = "loaded";
+            if (typeof onload === "function") onload();
+          };
+          script.onerror = function(){
+            w.__bgmScriptState[key] = "error";
+          };
+          d.head.appendChild(script);
+        }
+        function scheduleDeferredStart(startFn, timeoutMs){
+          var run = once(startFn);
+          var opts = { passive: true, once: true };
+          ["pointerdown", "keydown", "touchstart", "scroll"].forEach(function(evt){
+            w.addEventListener(evt, run, opts);
+          });
+          w.addEventListener("load", function(){ w.setTimeout(run, 1200); }, { once: true });
+          w.setTimeout(run, timeoutMs || 7000);
+        }
+
+        var gtmId = "{{ gtm_id|escapejs }}";
+        if (gtmId) {
+          w.__bgmLoadGtm = once(function(){
+            w.dataLayer = w.dataLayer || [];
+            w.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
+            loadScriptOnce("gtm", "https://www.googletagmanager.com/gtm.js?id=" + encodeURIComponent(gtmId));
+          });
+          scheduleDeferredStart(w.__bgmLoadGtm, 7000);
+        }
+
+        var adsId = "{{ marketing.google_ads_id|default:''|escapejs }}";
+        if (adsId) {
+          w.__bgmAdsReady = false;
+          w.__bgmAdsQueue = w.__bgmAdsQueue || [];
+
+          function bootAds(){
+            w.dataLayer = w.dataLayer || [];
+            w.gtag = w.gtag || function(){ w.dataLayer.push(arguments); };
+            w.gtag("js", new Date());
+            w.gtag("config", adsId, {
+              "allow_enhanced_conversions": true,
+              "send_page_view": {{ marketing.google_ads_send_page_view|yesno:"true,false" }}
+            });
+            w.__bgmAdsReady = true;
+            while (w.__bgmAdsQueue.length) {
+              try {
+                w.gtag.apply(null, w.__bgmAdsQueue.shift());
+              } catch (err) {
+                break;
+              }
+            }
+          }
+
+          w.__bgmLoadAds = once(function(){
+            loadScriptOnce("gtag_ads", "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(adsId), bootAds);
+          });
+          scheduleDeferredStart(w.__bgmLoadAds, 8000);
+
+          {% if marketing.google_ads_conversion_label %}
+          w.__bgmConversion = function(details){
+            details = details || {};
+            var payload = Object.assign({
+              "send_to": adsId + "/{{ marketing.google_ads_conversion_label|escapejs }}"
+            }, details);
+            if (!w.__bgmAdsReady) {
+              w.__bgmLoadAds();
+              w.__bgmAdsQueue.push(["event", "conversion", payload]);
+              return;
+            }
+            if (typeof w.gtag === "function") {
+              w.gtag("event", "conversion", payload);
+            }
+          };
+          {% endif %}
+        }
+      })(window, document);
+    </script>
   {% endif %}
   {% endwith %}
 {% endwith %}

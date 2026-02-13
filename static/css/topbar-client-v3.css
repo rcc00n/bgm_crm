@@ -1,13 +1,17 @@
 /* Client topbar v3 (desktop + mobile). */
 @font-face{
   font-family:"Diesel";
-  src:url("../fonts/Diesel.ttf") format("truetype");
+  src:
+    url("../fonts/Diesel.woff2") format("woff2"),
+    url("../fonts/Diesel.ttf") format("truetype");
   font-display:swap;
 }
 
 @font-face{
   font-family:"Ford";
-  src:url("../fonts/Ford.ttf") format("truetype");
+  src:
+    url("../fonts/Ford.woff2") format("woff2"),
+    url("../fonts/Ford.ttf") format("truetype");
   font-display:swap;
 }
 

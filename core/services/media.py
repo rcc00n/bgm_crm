@@ -14,6 +14,48 @@ DEFAULT_MEDIA_CAPTION = "Product may not appear exactly as shown."
 
 logger = logging.getLogger(__name__)
 
+FALLBACK_RESPONSIVE_IMAGES = {
+    "img/hero-home.jpg": {
+        "width": 987,
+        "height": 581,
+        "avif": (
+            ("img/hero-home-640.avif", 640),
+            ("img/hero-home-987.avif", 987),
+        ),
+        "webp": (
+            ("img/hero-home-640.webp", 640),
+            ("img/hero-home-987.webp", 987),
+        ),
+        "jpg": (("img/hero-home.jpg", 987),),
+    },
+    "img/hero-services.jpg": {
+        "width": 1280,
+        "height": 1280,
+        "avif": (
+            ("img/hero-services-420.avif", 420),
+            ("img/hero-services-840.avif", 840),
+        ),
+        "webp": (
+            ("img/hero-services-420.webp", 420),
+            ("img/hero-services-840.webp", 840),
+        ),
+        "jpg": (("img/hero-services.jpg", 1280),),
+    },
+    "img/hero-products.jpg": {
+        "width": 960,
+        "height": 1280,
+        "avif": (
+            ("img/hero-products-420.avif", 420),
+            ("img/hero-products-840.avif", 840),
+        ),
+        "webp": (
+            ("img/hero-products-420.webp", 420),
+            ("img/hero-products-840.webp", 840),
+        ),
+        "jpg": (("img/hero-products.jpg", 960),),
+    },
+}
+
 
 @lru_cache(maxsize=64)
 def _safe_static(path: str) -> str:
@@ -30,6 +72,25 @@ def _safe_static(path: str) -> str:
         logger.warning("Static asset missing from manifest: %s (%s)", path, exc)
         static_url = getattr(settings, "STATIC_URL", "/static/")
         return f"{static_url.rstrip('/')}/{path.lstrip('/')}"
+
+
+def _build_srcset(entries: tuple[tuple[str, int], ...]) -> str:
+    if not entries:
+        return ""
+    return ", ".join(f"{_safe_static(path)} {width}w" for path, width in entries)
+
+
+def _fallback_responsive_payload(fallback_path: str) -> Dict[str, Any]:
+    spec = FALLBACK_RESPONSIVE_IMAGES.get(fallback_path)
+    if not spec:
+        return {}
+    return {
+        "fallback_width": spec.get("width"),
+        "fallback_height": spec.get("height"),
+        "fallback_srcset_avif": _build_srcset(tuple(spec.get("avif", ()))),
+        "fallback_srcset_webp": _build_srcset(tuple(spec.get("webp", ()))),
+        "fallback_srcset_jpg": _build_srcset(tuple(spec.get("jpg", ()))),
+    }
 
 
 def resolve_media_asset(
@@ -53,6 +114,7 @@ def resolve_media_asset(
         "title": "",
         "image": None,  # ImageFieldFile when the source is a DB upload.
     }
+    payload.update(_fallback_responsive_payload(fallback_path))
 
     hero = asset
     if hero is None and not location:

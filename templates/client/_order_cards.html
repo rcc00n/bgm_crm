@@ -1,19 +1,22 @@
-{% load dealer_extras %}
+{% load dealer_extras static %}
 {% if orders %}
   <div class="space-y-3">
     {% for o in orders %}
-      <div class="panel panel-pad is-clickable order-open"
-           tabindex="0"
-           role="button"
-           aria-label="Open order details"
-           data-order-id="{{ o.id }}"
-           data-order-status="{{ o.status_label|default:o.get_status_display|default:o.status|escape }}"
-           data-order-total="{{ o.total|money }}"
-           data-order-image="{% if o.portal_image_url %}{{ o.portal_image_url }}{% elif o.reference_image %}{{ o.reference_image.url }}{% endif %}">
-        <div class="flex flex-wrap items-center gap-3">
+      <article class="panel panel-pad order-card"
+               data-order-modal-trigger
+               data-order-id="{{ o.id }}"
+               data-order-status-class="st-{{ o.status|default:'processing' }}"
+               data-order-status-label="{{ o.status_label|default:o.get_status_display|default:o.status|escape }}"
+               data-order-total="{{ o.total|money|escape }}"
+               data-order-cover="{% if o.preview_image_url %}{{ o.preview_image_url|escape }}{% else %}{% static 'img/hero-products.jpg' %}{% endif %}"
+               tabindex="0"
+               role="button"
+               aria-label="Open order #{{ o.id }} details">
+        <div class="order-card__summary">
           <div class="text-sm muted">Order</div>
           <div class="font-bold">#{{ o.id }}</div>
-          <div class="ml-auto flex items-center gap-3">
+          <span class="order-card__open-hint" aria-hidden="true">View</span>
+          <div class="order-card__meta">
             <span class="badge st-{{ o.status|default:'processing' }}">
               {{ o.status_label|default:o.get_status_display|default:o.status }}
             </span>
@@ -21,41 +24,52 @@
           </div>
         </div>
 
-        {% with items=o.items.all %}
-          {% if items %}
-            <div class="mt-3 border-t border-[color:var(--grid)] pt-3">
-              {% for it in items %}
-                <div class="flex items-center justify-between py-1 text-sm js-order-item"
-                     data-item-name="{{ it.product.name|escape }}"
-                     data-item-qty="{{ it.qty }}"
-                     data-item-subtotal="{{ it.subtotal|money }}">
-                  <div class="truncate">
-                    <span class="font-semibold">{{ it.product.name }}</span>
-                    {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
+        <div class="order-card__details">
+          {% with items=o.items.all %}
+            {% if items %}
+              <div class="order-card__items border-t border-[color:var(--grid)] pt-3">
+                {% for it in items %}
+                  <div class="order-card__item flex items-center justify-between py-1 text-sm">
+                    <div class="order-card__item-main">
+                      <img
+                        class="order-item-media"
+                        src="{% if it.product.main_image_url %}{{ it.product.main_image_url }}{% else %}{% static 'img/hero-products.jpg' %}{% endif %}"
+                        alt="{{ it.product.name }}"
+                        loading="lazy"
+                        decoding="async"
+                      >
+                      <div class="truncate">
+                        <span class="font-semibold">{{ it.product.name }}</span>
+                        {% if it.product.sku %}<span class="muted-2"> · SKU: {{ it.product.sku }}</span>{% endif %}
+                      </div>
+                    </div>
+                    <div class="muted-2">x {{ it.qty }}</div>
+                    <div class="font-semibold">{{ it.subtotal|money }}</div>
                   </div>
-                  <div class="muted-2">x {{ it.qty }}</div>
-                  <div class="font-semibold">{{ it.subtotal|money }}</div>
-                </div>
-              {% endfor %}
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endwith %}
+
+          {% if o.reference_image %}
+            <div class="order-card__reference mt-3 flex items-center gap-4 rounded-xl border border-[color:var(--grid)] bg-[rgba(255,255,255,.03)] p-3">
+              <img src="{{ o.reference_image.url }}" alt="Reference image"
+                   class="h-16 w-16 rounded-lg border border-[color:var(--grid)] object-cover">
+              <div class="flex-1">
+                <p class="font-semibold text-sm">Photo reference attached</p>
+                <p class="text-xs muted-2">Uploaded during checkout</p>
+                <a class="link text-sm inline-flex items-center gap-1 mt-1"
+                   href="{{ o.reference_image.url }}"
+                   target="_blank"
+                   rel="noopener"
+                   data-order-ignore-modal>
+                  View image →
+                </a>
+              </div>
             </div>
           {% endif %}
-        {% endwith %}
-
-        {% if o.reference_image %}
-          <div class="mt-3 flex items-center gap-4 rounded-xl border border-[color:var(--grid)] bg-[rgba(255,255,255,.03)] p-3">
-            <img src="{{ o.reference_image.url }}" alt="Reference image"
-                 class="h-16 w-16 rounded-lg border border-[color:var(--grid)] object-cover">
-            <div class="flex-1">
-              <p class="font-semibold text-sm">Photo reference attached</p>
-              <p class="text-xs muted-2">Uploaded during checkout</p>
-              <a class="link text-sm inline-flex items-center gap-1 mt-1" href="{{ o.reference_image.url }}" target="_blank" rel="noopener">
-                View image →
-              </a>
-            </div>
-          </div>
-        {% endif %}
-        <p class="click-hint mt-3">Tap to view details</p>
-      </div>
+        </div>
+      </article>
     {% endfor %}
   </div>
 {% endif %}

@@ -1,5 +1,5 @@
 
-{% load static dealer_extras thumbnail %}
+{% load static dealer_extras thumbnail marketing_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1370,47 +1370,90 @@
                    data-caption="{{ slide.caption|default:hero_media.caption }}"
                    aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
                 {% if slide.image %}
-                  {% thumbnail slide.image "1200" quality=74 format="WEBP" as hero_1x %}
-                    {% thumbnail slide.image "2000" quality=74 format="WEBP" as hero_2x %}
+                  {% thumbnail slide.image "560" quality=62 format="WEBP" as hero_sm %}
+                    {% thumbnail slide.image "960" quality=62 format="WEBP" as hero_md %}
+                      {% thumbnail slide.image "1280" quality=62 format="WEBP" as hero_lg %}
                       <img
-                        src="{{ hero_1x.url }}"
-                        srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
-                        width="{{ hero_1x.width }}"
-                        height="{{ hero_1x.height }}"
+                        src="{{ hero_md.url }}"
+                        srcset="{{ hero_sm.url }} 560w, {{ hero_md.url }} 960w, {{ hero_lg.url }} 1280w"
+                        sizes="(max-width: 860px) 100vw, (max-width: 1280px) 46vw, 560px"
+                        width="{{ hero_md.width }}"
+                        height="{{ hero_md.height }}"
                         alt="{{ slide.alt }}"
                         loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
                         decoding="async"
                         {% if forloop.first %}fetchpriority="high"{% endif %}>
+                      {% endthumbnail %}
                     {% endthumbnail %}
                   {% endthumbnail %}
                 {% else %}
-                  <img
-                    src="{{ slide.src }}"
-                    alt="{{ slide.alt }}"
-                    loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
-                    decoding="async"
-                    {% if forloop.first %}fetchpriority="high"{% endif %}>
+                  <picture>
+                    {% if slide.fallback_srcset_avif %}
+                      <source
+                        type="image/avif"
+                        srcset="{{ slide.fallback_srcset_avif }}"
+                        sizes="(max-width: 860px) 100vw, (max-width: 1280px) 46vw, 560px">
+                    {% endif %}
+                    {% if slide.fallback_srcset_webp %}
+                      <source
+                        type="image/webp"
+                        srcset="{{ slide.fallback_srcset_webp }}"
+                        sizes="(max-width: 860px) 100vw, (max-width: 1280px) 46vw, 560px">
+                    {% endif %}
+                    <img
+                      src="{{ slide.src }}"
+                      {% if slide.fallback_srcset_jpg %}srcset="{{ slide.fallback_srcset_jpg }}" sizes="(max-width: 860px) 100vw, (max-width: 1280px) 46vw, 560px"{% endif %}
+                      {% if slide.fallback_width and slide.fallback_height %}width="{{ slide.fallback_width }}" height="{{ slide.fallback_height }}"{% endif %}
+                      alt="{{ slide.alt }}"
+                      loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                      decoding="async"
+                      {% if forloop.first %}fetchpriority="high"{% endif %}>
+                  </picture>
                 {% endif %}
               </div>
             {% endfor %}
           {% else %}
             <div class="hero__slide is-active" data-hero-slide data-caption="{{ hero_media.caption }}" aria-hidden="false">
               {% if hero_media.image %}
-                {% thumbnail hero_media.image "1200" quality=74 format="WEBP" as hero_1x %}
-                  {% thumbnail hero_media.image "2000" quality=74 format="WEBP" as hero_2x %}
+                {% thumbnail hero_media.image "560" quality=62 format="WEBP" as hero_sm %}
+                  {% thumbnail hero_media.image "960" quality=62 format="WEBP" as hero_md %}
+                    {% thumbnail hero_media.image "1280" quality=62 format="WEBP" as hero_lg %}
                     <img
-                      src="{{ hero_1x.url }}"
-                      srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
-                      width="{{ hero_1x.width }}"
-                      height="{{ hero_1x.height }}"
+                      src="{{ hero_md.url }}"
+                      srcset="{{ hero_sm.url }} 560w, {{ hero_md.url }} 960w, {{ hero_lg.url }} 1280w"
+                      sizes="(max-width: 860px) 100vw, (max-width: 1280px) 46vw, 560px"
+                      width="{{ hero_md.width }}"
+                      height="{{ hero_md.height }}"
                       alt="{{ hero_media.alt }}"
                       loading="eager"
                       decoding="async"
                       fetchpriority="high">
+                    {% endthumbnail %}
                   {% endthumbnail %}
                 {% endthumbnail %}
               {% else %}
-                <img src="{{ hero_media.src }}" alt="{{ hero_media.alt }}" loading="eager" decoding="async" fetchpriority="high">
+                <picture>
+                  {% if hero_media.fallback_srcset_avif %}
+                    <source
+                      type="image/avif"
+                      srcset="{{ hero_media.fallback_srcset_avif }}"
+                      sizes="(max-width: 860px) 100vw, (max-width: 1280px) 46vw, 560px">
+                  {% endif %}
+                  {% if hero_media.fallback_srcset_webp %}
+                    <source
+                      type="image/webp"
+                      srcset="{{ hero_media.fallback_srcset_webp }}"
+                      sizes="(max-width: 860px) 100vw, (max-width: 1280px) 46vw, 560px">
+                  {% endif %}
+                  <img
+                    src="{{ hero_media.src }}"
+                    {% if hero_media.fallback_srcset_jpg %}srcset="{{ hero_media.fallback_srcset_jpg }}" sizes="(max-width: 860px) 100vw, (max-width: 1280px) 46vw, 560px"{% endif %}
+                    {% if hero_media.fallback_width and hero_media.fallback_height %}width="{{ hero_media.fallback_width }}" height="{{ hero_media.fallback_height }}"{% endif %}
+                    alt="{{ hero_media.alt }}"
+                    loading="eager"
+                    decoding="async"
+                    fetchpriority="high">
+                </picture>
               {% endif %}
             </div>
           {% endif %}
@@ -1461,7 +1504,7 @@
 	        <div class="home-gallery" aria-label="{{ home_copy.gallery_title }}">
 	          <div class="section__head home-gallery__head">
 	            <div>
-	              <h3 class="section__title section__title--compact home-builds-title">{{ home_copy.gallery_title }}</h3>
+	              <h2 class="section__title section__title--compact home-builds-title">{{ home_copy.gallery_title }}</h2>
 	              <p class="section__desc">{{ home_copy.gallery_desc|safe }}</p>
 	            </div>
 	            <div><a class="btn btn--ghost" href="{{ home_gallery_url }}">{{ home_copy.gallery_cta_label }}</a></div>
@@ -1475,23 +1518,44 @@
 	            {% for item in home_gallery_items %}
 	              <a class="gallery-card" href="{{ home_gallery_url }}" aria-label="{{ item.title|default:home_copy.gallery_cta_label }}">
 	                <div class="frame frame--media">
-	                  {% if item.image %}
-	                    {% thumbnail item.image "420" quality=72 format="WEBP" as gallery_1x %}
-	                      {% thumbnail item.image "840" quality=72 format="WEBP" as gallery_2x %}
-	                        <img
-	                          src="{{ gallery_1x.url }}"
-	                          srcset="{{ gallery_1x.url }} 1x, {{ gallery_2x.url }} 2x"
-	                          width="{{ gallery_1x.width }}"
-	                          height="{{ gallery_1x.height }}"
-	                          alt="{{ item.alt }}"
+		                  {% if item.image %}
+		                    {% thumbnail item.image "320" quality=62 format="WEBP" as gallery_1x %}
+		                      {% thumbnail item.image "640" quality=62 format="WEBP" as gallery_2x %}
+		                        <img
+		                          src="{{ gallery_1x.url }}"
+		                          srcset="{{ gallery_1x.url }} 320w, {{ gallery_2x.url }} 640w"
+                              sizes="(max-width: 600px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 25vw, 300px"
+		                          width="{{ gallery_1x.width }}"
+		                          height="{{ gallery_1x.height }}"
+		                          alt="{{ item.alt }}"
 	                          loading="lazy"
 	                          decoding="async">
-	                      {% endthumbnail %}
-	                    {% endthumbnail %}
-	                  {% else %}
-	                    <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy" decoding="async">
-	                  {% endif %}
-	                </div>
+		                      {% endthumbnail %}
+		                    {% endthumbnail %}
+		                  {% else %}
+                        <picture>
+                          {% if item.fallback_srcset_avif %}
+                            <source
+                              type="image/avif"
+                              srcset="{{ item.fallback_srcset_avif }}"
+                              sizes="(max-width: 600px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 25vw, 300px">
+                          {% endif %}
+                          {% if item.fallback_srcset_webp %}
+                            <source
+                              type="image/webp"
+                              srcset="{{ item.fallback_srcset_webp }}"
+                              sizes="(max-width: 600px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 25vw, 300px">
+                          {% endif %}
+                          <img
+                            src="{{ item.src }}"
+                            {% if item.fallback_srcset_jpg %}srcset="{{ item.fallback_srcset_jpg }}" sizes="(max-width: 600px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 25vw, 300px"{% endif %}
+                            {% if item.fallback_width and item.fallback_height %}width="{{ item.fallback_width }}" height="{{ item.fallback_height }}"{% endif %}
+                            alt="{{ item.alt }}"
+                            loading="lazy"
+                            decoding="async">
+                        </picture>
+		                  {% endif %}
+		                </div>
 	                {% if item.title or item.caption %}
 	                  <div class="gallery-card__meta">
                     {% if item.title %}<span class="gallery-card__title">{{ item.title }}</span>{% endif %}
@@ -1563,8 +1627,8 @@
                 <article class="card">
                   <div class="card__img">
                     {% if s.image %}
-                      {% thumbnail s.image "320" quality=72 format="WEBP" as service_1x %}
-                        {% thumbnail s.image "640" quality=72 format="WEBP" as service_2x %}
+                      {% thumbnail s.image "320" quality=66 format="WEBP" as service_1x %}
+                        {% thumbnail s.image "640" quality=66 format="WEBP" as service_2x %}
                           <img
                             src="{{ service_1x.url }}"
                             srcset="{{ service_1x.url }} 1x, {{ service_2x.url }} 2x"
@@ -1621,8 +1685,8 @@
 		                <article class="card">
 		                  <div class="card__img">
 	                    {% if s.image %}
-	                      {% thumbnail s.image "320" quality=72 format="WEBP" as service_1x %}
-	                        {% thumbnail s.image "640" quality=72 format="WEBP" as service_2x %}
+	                      {% thumbnail s.image "320" quality=66 format="WEBP" as service_1x %}
+	                        {% thumbnail s.image "640" quality=66 format="WEBP" as service_2x %}
 	                          <img
 	                            src="{{ service_1x.url }}"
 	                            srcset="{{ service_1x.url }} 1x, {{ service_2x.url }} 2x"
@@ -1737,8 +1801,8 @@
 	                  <a href="{% url 'store-product' slug=p.slug %}">
 	                    <div class="card__img">
 	                      {% if p.main_image_local %}
-	                        {% thumbnail p.main_image_local "320" quality=72 format="WEBP" as product_1x %}
-	                          {% thumbnail p.main_image_local "640" quality=72 format="WEBP" as product_2x %}
+	                        {% thumbnail p.main_image_local "320" quality=66 format="WEBP" as product_1x %}
+	                          {% thumbnail p.main_image_local "640" quality=66 format="WEBP" as product_2x %}
 	                            <img
 	                              src="{{ product_1x.url }}"
 	                              srcset="{{ product_1x.url }} 1x, {{ product_2x.url }} 2x"
@@ -1752,8 +1816,8 @@
 	                      {% elif p.main_image_url %}
 	                        <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
 	                      {% elif p.image %}
-	                        {% thumbnail p.image "320" quality=72 format="WEBP" as product_fallback_1x %}
-	                          {% thumbnail p.image "640" quality=72 format="WEBP" as product_fallback_2x %}
+	                        {% thumbnail p.image "320" quality=66 format="WEBP" as product_fallback_1x %}
+	                          {% thumbnail p.image "640" quality=66 format="WEBP" as product_fallback_2x %}
 	                            <img
 	                              src="{{ product_fallback_1x.url }}"
 	                              srcset="{{ product_fallback_1x.url }} 1x, {{ product_fallback_2x.url }} 2x"
@@ -1949,7 +2013,10 @@
 
   {% include "includes/site_footer.html" %}
 
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script>
+    window.__bgmSmokeThreeSrc = "{% safe_static 'vendor/three-r160.min.js' '' %}";
+    window.__bgmSmokeThreeFallbackSrc = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js";
+  </script>
   <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 
   <!-- Live search -->
