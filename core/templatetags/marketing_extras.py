@@ -7,6 +7,9 @@ from django.templatetags.static import static
 
 register = template.Library()
 
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+_WS_RE = re.compile(r"\s+")
+
 
 @register.filter
 def absolute_url(value: str, origin: str = "") -> str:
@@ -24,6 +27,22 @@ def absolute_url(value: str, origin: str = "") -> str:
     if text.startswith("/"):
         return f"{origin}{text}"
     return f"{origin}/{text}"
+
+
+@register.filter
+def meta_text(value: str) -> str:
+    """
+    Normalizes arbitrary text for safe use inside meta tag attributes.
+    - strips HTML tags
+    - collapses whitespace
+    - unescapes entities (then Django will escape as needed in templates)
+    """
+    if value is None:
+        return ""
+    text = html.unescape(str(value))
+    text = _HTML_TAG_RE.sub(" ", text)
+    text = _WS_RE.sub(" ", text).strip()
+    return text
 
 
 @register.simple_tag
