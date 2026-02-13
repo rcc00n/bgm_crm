@@ -205,10 +205,27 @@ class Command(BaseCommand):
         planned_updates: List[Tuple[Product, str]] = []
         missing: List[Tuple[str, str, str]] = []  # (handle, slug, sku_sample)
 
-        # Preload all products by slug for fast lookups.
-        products_by_slug: Dict[str, Product] = {
-            p.slug: p for p in Product.objects.select_related("category").all()
-        }
+        # Preload for fast lookups (command is intended for one-off imports).
+        products = list(Product.objects.select_related("category").all())
+        products_by_id: Dict[int, Product] = {p.id: p for p in products}
+        products_by_slug: Dict[str, Product] = {p.slug: p for p in products if getattr(p, "slug", "")}
+        products_by_sku_cf: Dict[str, Product] = {}
+        for p in products:
+            sku = (getattr(p, "sku", "") or "").strip()
+            if sku:
+                products_by_sku_cf[sku.casefold()] = p
+
+        option_products_by_sku_cf: Dict[str, Product] = {}
+        for sku, product_id in (
+            ProductOption.objects.exclude(sku__isnull=True)
+            .exclude(sku="")
+            .values_list("sku", "product_id")
+        ):
+            if not sku:
+                continue
+            product = products_by_id.get(int(product_id))
+            if product:
+                option_products_by_sku_cf[str(sku).strip().casefold()] = product
 
         for handle, group in _iter_shopify_groups(reader):
             if limit and len(planned_updates) >= limit:
@@ -223,30 +240,43 @@ class Command(BaseCommand):
             product = products_by_slug.get(handle_slug)
 
             if not product:
-                candidate_skus = _iter_candidate_skus(group)
-                sku_sample = candidate_skus[0] if candidate_skus else ""
+                # Some imports use "handle" as an SKU-like field.
+                product = (
+                    products_by_sku_cf.get(handle.casefold())
+                    or products_by_sku_cf.get(handle_slug.casefold())
+                )
 
-                # Fallback 1: try product SKU directly.
-                if candidate_skus:
-                    product = (
-                        Product.objects.select_related("category")
-                        .filter(sku__in=candidate_skus)
-                        .first()
-                    )
+            candidate_skus = _iter_candidate_skus(group)
+            sku_sample = candidate_skus[0] if candidate_skus else ""
 
-                # Fallback 2: try option SKU -> product.
-                if not product and candidate_skus:
-                    opt = (
-                        ProductOption.objects.select_related("product__category")
-                        .filter(sku__in=candidate_skus)
-                        .first()
-                    )
-                    product = getattr(opt, "product", None)
+            if not product and candidate_skus:
+                # Some imports store the part number as Product.slug.
+                for sku in candidate_skus:
+                    sku_slug = slugify(sku)
+                    if not sku_slug:
+                        continue
+                    product = products_by_slug.get(sku_slug)
+                    if product:
+                        break
 
-                if not product:
-                    stats.skipped_missing += 1
-                    missing.append((handle, handle_slug, sku_sample))
-                    continue
+            if not product and candidate_skus:
+                # Product.sku matching (case-insensitive).
+                for sku in candidate_skus:
+                    product = products_by_sku_cf.get(sku.casefold())
+                    if product:
+                        break
+
+            if not product and candidate_skus:
+                # Option.sku -> Product fallback (case-insensitive).
+                for sku in candidate_skus:
+                    product = option_products_by_sku_cf.get(sku.casefold())
+                    if product:
+                        break
+
+            if not product:
+                stats.skipped_missing += 1
+                missing.append((handle, handle_slug, sku_sample))
+                continue
 
             if _is_merch_product(product):
                 stats.skipped_merch += 1
