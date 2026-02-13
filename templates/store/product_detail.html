@@ -302,15 +302,17 @@
       </div>
     </div>
 
-	    <div id="quote-request" class="card card--quote">
-	      <div class="quote-card__intro">
-	        <p class="cta__eyebrow">Custom fitment brief</p>
-	        <h3 class="cta__title">Share the inputs, we’ll send the plan</h3>
-        <p class="section__desc cta__copy">
-          Outline your vehicle, performance targets, and timeline. The build desk will confirm availability,
-          pricing, and next steps in writing.
-        </p>
-      </div>
+		    {# Hide the custom fitment brief for merch (Printful + merch catalog). #}
+		    {% if product.sku|slice:":3" != "PF-" and product.slug|slice:":6" != "merch-" and product.category.slug != "merch" %}
+		    <div id="quote-request" class="card card--quote">
+		      <div class="quote-card__intro">
+		        <p class="cta__eyebrow">Custom fitment brief</p>
+		        <h3 class="cta__title">Share the inputs, we’ll send the plan</h3>
+	        <p class="section__desc cta__copy">
+	          Outline your vehicle, performance targets, and timeline. The build desk will confirm availability,
+	          pricing, and next steps in writing.
+	        </p>
+	      </div>
 
       {% if messages %}
         <div class="quote-alerts">
@@ -427,13 +429,14 @@
           <button class="btn btn--primary" type="submit">Submit request</button>
           <p class="quote-footnote">Response time: 1-2 business days to reply.</p>
         </div>
-      </form>
-    </div>
+	      </form>
+	    </div>
+	    {% endif %}
 
-{% if go_along %}
-  <div class="section__head" style="margin-top:1.6rem">
-    <h3 class="section__title">Items that go along to complete your build</h3>
-      </div>
+	{% if go_along %}
+	  <div class="section__head" style="margin-top:1.6rem">
+	    <h3 class="section__title">Items that go along to complete your build</h3>
+	      </div>
       <div class="grid grid--cards">
         {% for p in go_along %}
           <article class="card">
