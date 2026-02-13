@@ -2600,21 +2600,16 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       if (active) active.setAttribute('aria-pressed', 'true');
     }
 
-    async function renderWindow(){
-      await ensureRangeLoaded(resState.baseStart, WINDOW_DAYS);
-      const days = Array.from({length: WINDOW_DAYS}, (_, index) => {
-        const day = new Date(resState.baseStart);
-        day.setDate(day.getDate() + index);
-        return day;
-      });
-      const dayKeys = days.map(ymd);
-      const dayData = dayKeys.map((key) => resState.cache.get(key));
-      const timeRows = buildTimeRows(dayData.map((item) => item?.set));
-
-      const days = Array.from({length:WINDOW_DAYS}, (_,i)=>{ const d=new Date(resState.baseStart); d.setDate(d.getDate()+i); return d;});
-      const dayStrs = days.map(ymd);
-      const dayData = dayStrs.map(ds => resState.cache.get(ds));
-      const timeRows = buildTimeRows(dayData.map(item => (item && item.set) ? item.set : null));
+	    async function renderWindow(){
+	      await ensureRangeLoaded(resState.baseStart, WINDOW_DAYS);
+	      const days = Array.from({length: WINDOW_DAYS}, (_, index) => {
+	        const day = new Date(resState.baseStart);
+	        day.setDate(day.getDate() + index);
+	        return day;
+	      });
+	      const dayKeys = days.map(ymd);
+	      const dayData = dayKeys.map((key) => resState.cache.get(key));
+	      const timeRows = buildTimeRows(dayData.map((item) => item?.set));
 
       const from = fmtMonthDay(days[0]);
       const to   = fmtMonthDay(days[days.length-1]);
@@ -2628,12 +2623,12 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         const h=document.createElement('div');
         h.className='ol2__cell ol2__head';
         const today = (new Date()).toDateString()===d.toDateString();
-        h.innerHTML = `<div class="ol2__day ${today?'today':''}">
-          <div class="t">${fmtWeekday(d)}</div>
-          <div class="s">${fmtMonthDay(d)}</div>
-        </div>`;
-        rsGrid.appendChild(head);
-      });
+	        h.innerHTML = `<div class="ol2__day ${today?'today':''}">
+	          <div class="t">${fmtWeekday(d)}</div>
+	          <div class="s">${fmtMonthDay(d)}</div>
+	        </div>`;
+	        rsGrid.appendChild(h);
+	      });
 
       timeRows.forEach((timeValue) => {
         const [hours, minutes] = timeValue.split(':').map((part) => parseInt(part, 10));
@@ -2770,32 +2765,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     rsNext.addEventListener('click', ()=>shiftWindow(WINDOW_DAYS));
     rsToday.addEventListener('click', async ()=>{ const d=new Date(); d.setHours(0,0,0,0); resState.baseStart=d; await renderWindow(); });
 
-    // Shift+Wheel — горизонтальный скролл
-    rsWrap.addEventListener('wheel', (e)=>{ if(e.shiftKey && Math.abs(e.deltaY)>Math.abs(e.deltaX)){ e.preventDefault(); rsWrap.scrollLeft += e.deltaY; } }, {passive:false});
-
-    async function submitRes(){
-      if(!resState.apptId || !resState.slot) return;
-      resSubmit.disabled = true; resErr.style.display='none'; resOk.style.display='none';
-      const r = await fetch(`/accounts/api/appointment/${resState.apptId}/reschedule/`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRFToken': csrftoken},
-        credentials:'same-origin',
-        body: JSON.stringify({ start_time: resState.slot, master: resState.masterId })
-      });
-      const data = await r.json().catch(()=> ({}));
-      if(r.ok){
-        const appointmentStart = (data && data.appointment && data.appointment.start_time) ? data.appointment.start_time : '';
-        resOk.textContent = portalCopy.rescheduleSuccessPrefix + (appointmentStart || '');
-        resOk.style.display='block';
-        if (appointmentStart) {
-          document.querySelectorAll(`[data-appt-id="${resState.apptId}"] .appt-dt`).forEach(dt=>{
-            try{ dt.textContent = fmtDateTime(new Date(appointmentStart)); }catch(_){}
-          });
-        }
-        const iso = mobileState.isoMap.get(selected);
-        if (iso) selectSlot(iso);
-      });
-    }
+	    // Shift+Wheel — горизонтальный скролл
+	    rsWrap.addEventListener('wheel', (e)=>{ if(e.shiftKey && Math.abs(e.deltaY)>Math.abs(e.deltaX)){ e.preventDefault(); rsWrap.scrollLeft += e.deltaY; } }, {passive:false});
     if (rsMobileToday){
       rsMobileToday.addEventListener('click', () => {
         if (!rsMobileDate) return;
@@ -2806,15 +2777,8 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       });
     }
 
-    rsWrap.addEventListener('wheel', (event) => {
-      if (event.shiftKey && Math.abs(event.deltaY) > Math.abs(event.deltaX)){
-        event.preventDefault();
-        rsWrap.scrollLeft += event.deltaY;
-      }
-    }, {passive: false});
-
-    resClose.addEventListener('click', () => closeModal(resModal));
-    resCancel.addEventListener('click', () => closeModal(resModal));
+	    resClose.addEventListener('click', () => closeModal(resModal));
+	    resCancel.addEventListener('click', () => closeModal(resModal));
     resModal.addEventListener('click', (event) => {
       if (event.target === resModal) closeModal(resModal);
     });
