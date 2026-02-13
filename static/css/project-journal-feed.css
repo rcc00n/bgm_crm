@@ -27,6 +27,205 @@ body.pj{
 
 body.pj a{ color:inherit; }
 
+/* Smoke layer: bgm-smoke.js injects #bg on pages that don't include it. */
+body.pj #bg{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+}
+body.pj #bg canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+  pointer-events:none;
+}
+
+/* Keep page content above the smoke layer. */
+body.pj .pj-page,
+body.pj .site-footer{
+  position:relative;
+  z-index:1;
+}
+
+/* Contact FAB + modal (Project Journal only). */
+body.pj.modal-open{
+  overflow:hidden;
+}
+
+body.pj .contact-fab{
+  position:fixed;
+  right:22px;
+  bottom:22px;
+  z-index:3100;
+  display:inline-flex;
+  align-items:center;
+  gap:.6em;
+  padding:.9rem 1.15rem;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(180deg, var(--pj-accent) 0%, var(--pj-accent-dark) 100%);
+  color:#fff;
+  font-weight:900;
+  letter-spacing:.02em;
+  line-height:1;
+  cursor:pointer;
+  text-decoration:none;
+  box-shadow:0 12px 26px rgba(255,59,48,.22), 0 0 26px rgba(255,59,48,.14);
+  transition:transform .18s ease, filter .18s ease, box-shadow .18s ease;
+  font-family:var(--font-ui, var(--font-body,"Inter",system-ui,-apple-system,"Segoe UI",sans-serif));
+  font-style:normal;
+}
+
+body.pj .contact-fab:hover{
+  transform:translateY(-2px);
+  filter:saturate(1.05);
+}
+
+body.pj .contact-fab:focus-visible{
+  outline:2px solid #fff;
+  outline-offset:3px;
+}
+
+body.pj .contact-fab svg{
+  width:20px;
+  height:20px;
+  fill:currentColor;
+  opacity:.95;
+}
+
+body.pj.nav-open .contact-fab{
+  display:none !important;
+}
+
+body.pj .contact-modal{
+  position:fixed;
+  inset:0;
+  z-index:5000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:1rem;
+  background:rgba(0,0,0,.65);
+  backdrop-filter:blur(2px);
+}
+
+body.pj .contact-modal[open]{
+  display:flex;
+}
+
+body.pj .contact-dialog{
+  width:min(560px, 92vw);
+  background:linear-gradient(180deg, #0c0c0c, #121212);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:1rem;
+  padding:1.1rem 1.1rem .95rem;
+  color:var(--pj-ink);
+  box-shadow:0 18px 44px rgba(0,0,0,.55), 0 0 32px rgba(255,59,48,.16);
+  position:relative;
+}
+
+body.pj .contact-title{
+  font-family:var(--font-head,"Diesel",system-ui,-apple-system,"Segoe UI",sans-serif);
+  font-weight:900;
+  letter-spacing:.005em;
+  line-height:1.15;
+  font-size:1.6rem;
+  margin:.2rem 2.2rem 1rem .2rem;
+  color:#fff;
+  text-transform:none;
+}
+
+body.pj .contact-close{
+  position:absolute;
+  right:12px;
+  top:10px;
+  width:36px;
+  height:36px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:.5rem;
+  background:#0f0f0f;
+  color:#bdbdbd;
+  cursor:pointer;
+  font-size:20px;
+  line-height:1;
+}
+
+body.pj .contact-body{
+  display:grid;
+  gap:.75rem;
+}
+
+body.pj .contact-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.6rem;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:.7rem;
+  padding:.7rem .8rem;
+  font-family:var(--font-ui, var(--font-body,"Inter",system-ui,-apple-system,"Segoe UI",sans-serif));
+  font-style:normal;
+}
+
+body.pj .contact-row a{
+  color:#fff;
+  font-weight:800;
+  text-decoration:none;
+}
+
+body.pj .contact-row__actions{
+  display:flex;
+  gap:.5rem;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+body.pj .contact-sub{
+  color:rgba(255,255,255,.72);
+  font-size:.95rem;
+}
+
+body.pj .contact-actions{
+  display:flex;
+  gap:.6rem;
+  margin-top:.9rem;
+  flex-wrap:wrap;
+}
+
+body.pj .contact-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:.5em;
+  padding:.7rem 1rem;
+  border-radius:.55rem;
+  border:1px solid rgba(255,255,255,.12);
+  background:#0f0f0f;
+  color:#fff;
+  cursor:pointer;
+  font-family:var(--font-ui, var(--font-body,"Inter",system-ui,-apple-system,"Segoe UI",sans-serif));
+  font-weight:800;
+  font-style:normal;
+}
+
+body.pj .contact-btn:hover{
+  border-color:rgba(255,59,48,.45);
+  box-shadow:0 0 16px rgba(255,59,48,.20);
+}
+
+@media (max-width:640px){
+  body.pj .contact-fab{
+    right:14px;
+    bottom:14px;
+  }
+  body.pj .contact-title{
+    font-size:1.45rem;
+  }
+}
+
 .pj-sr-only{
   position:absolute;
   width:1px;

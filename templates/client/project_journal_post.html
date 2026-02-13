@@ -91,6 +91,53 @@
 
   {% include "includes/site_footer.html" %}
 
+  <button
+    type="button"
+    id="contactFab"
+    class="contact-fab"
+    aria-haspopup="dialog"
+    aria-controls="contactModal"
+    aria-expanded="false"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M6.6 10.8c1.5 2.9 3.7 5.1 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1 .3 2.1.5 3.2.5.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C9.8 21.5 2.5 14.2 2.5 4.2c0-.7.5-1.2 1.2-1.2H7c.7 0 1.2.5 1.2 1.2 0 1.1.2 2.2.5 3.2.1.4 0 .9-.3 1.2L6.6 10.8z"/>
+    </svg>
+    Contact us
+  </button>
+
+  <div id="contactModal" class="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
+    <div class="contact-dialog">
+      <button class="contact-close" type="button" aria-label="Close">×</button>
+      <h2 id="contactTitle" class="contact-title">Contact Bad Guy Motors</h2>
+
+      <div class="contact-body">
+        <div class="contact-row">
+          <div>
+            <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
+            <div class="contact-sub">Email</div>
+          </div>
+          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+        </div>
+
+        <div class="contact-row">
+          <div>
+            <div><a href="tel:+14035250432">(403) 525-0432</a></div>
+            <div class="contact-sub">Phone</div>
+          </div>
+          <div class="contact-row__actions">
+            <a class="contact-btn" href="tel:+14035250432">Call</a>
+            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
+          </div>
+        </div>
+
+        <div class="contact-actions">
+          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write email</a>
+          <a class="contact-btn" href="sms:+14035250432">Text</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="{% static 'js/topbar.js' %}"></script>
   {% get_static_prefix as STATIC_PREFIX %}
   <script src="{{ STATIC_PREFIX }}js/project-journal-feed.js" defer></script>

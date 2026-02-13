@@ -656,11 +656,99 @@
     }
   };
 
+  const initContactFab = () => {
+    const fab = document.getElementById('contactFab');
+    const modal = document.getElementById('contactModal');
+    if (!fab || !modal) return;
+    if (fab.dataset.contactInit === '1') return;
+    fab.dataset.contactInit = '1';
+
+    const closeBtn = modal.querySelector('.contact-close');
+    if (!closeBtn) return;
+
+    const copyLabel = 'Copy';
+    const copySuccess = 'Copied';
+    const copyFailed = 'Copy failed';
+    let lastFocus = null;
+
+    const getFocusable = () =>
+      modal.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+
+    const closeModal = () => {
+      if (!modal.hasAttribute('open')) return;
+      modal.removeAttribute('open');
+      fab.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('modal-open');
+      document.removeEventListener('keydown', onKey, true);
+      if (lastFocus && typeof lastFocus.focus === 'function') {
+        try { lastFocus.focus(); } catch (_) {}
+      }
+    };
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeModal();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+
+      const list = Array.from(getFocusable()).filter((el) => el.offsetParent !== null);
+      if (!list.length) return;
+      const first = list[0];
+      const last = list[list.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    const openModal = () => {
+      if (modal.hasAttribute('open')) return;
+      lastFocus = document.activeElement;
+      modal.setAttribute('open', '');
+      fab.setAttribute('aria-expanded', 'true');
+      document.body.classList.add('modal-open');
+      window.setTimeout(() => closeBtn.focus(), 0);
+      document.addEventListener('keydown', onKey, true);
+    };
+
+    fab.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    modal.querySelectorAll('[data-copy]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const value = btn.dataset.copy || '';
+        if (!value) return;
+        const original = btn.textContent || copyLabel;
+
+        try {
+          await navigator.clipboard.writeText(value);
+          btn.textContent = copySuccess;
+        } catch (err) {
+          btn.textContent = copyFailed;
+        }
+
+        window.setTimeout(() => {
+          btn.textContent = original;
+        }, 1200);
+      });
+    });
+  };
+
   const boot = () => {
     initSkeleton();
     initCompare();
     initAlbum();
     initLoadMore();
+    initContactFab();
   };
 
   if (document.readyState === 'loading') {
