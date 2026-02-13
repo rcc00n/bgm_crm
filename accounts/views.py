@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from decimal import Decimal, InvalidOperation
 from datetime import timedelta
+from collections import OrderedDict
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -1032,6 +1033,148 @@ def _extract_printful_category_label(item: dict) -> str:
     return ""
 
 
+def _normalize_merch_color_label(value: str) -> str:
+    """
+    Keep swatch labels stable and short.
+    """
+    text = " ".join(str(value or "").strip().split())
+    return text[:60]
+
+
+def _guess_merch_color_from_variant_name(value: str) -> str:
+    """
+    Printful variant names are often like: "Black / M" or "Sport Grey / XL".
+    Extract the best guess of the color segment.
+    """
+    text = " ".join(str(value or "").strip().split())
+    if not text:
+        return ""
+
+    parts = [p.strip() for p in text.split("/") if p.strip()]
+    if not parts:
+        return ""
+
+    size_tokens = {
+        "xs", "s", "m", "l", "xl", "xxl",
+        "2xl", "3xl", "4xl", "5xl",
+        "small", "medium", "large",
+        "x-large", "xx-large", "xxx-large",
+    }
+
+    for part in parts:
+        low = part.lower()
+        if low in size_tokens:
+            continue
+        if low.isdigit():
+            continue
+        if low.endswith("xl") and low[:-2].isdigit():
+            continue
+        return part[:60]
+
+    return parts[0][:60]
+
+
+def _merch_color_to_hex(label: str) -> str:
+    low = (label or "").lower()
+    if "black" in low:
+        return "#101010"
+    if "white" in low:
+        return "#f3f3f3"
+    if "grey" in low or "gray" in low:
+        return "#bdbdbd"
+    if "heather" in low or "charcoal" in low:
+        return "#8f949a"
+    if "navy" in low:
+        return "#0b1b3a"
+    if "blue" in low:
+        return "#1f3b7a"
+    if "red" in low or "scarlet" in low:
+        return "#d50000"
+    if "maroon" in low or "burgundy" in low:
+        return "#5b0a0a"
+    if "green" in low:
+        return "#1f8a4c"
+    if "olive" in low:
+        return "#556b2f"
+    if "tan" in low or "khaki" in low:
+        return "#c2b280"
+    if "brown" in low:
+        return "#5c4033"
+    if "orange" in low:
+        return "#ff7a00"
+    if "yellow" in low:
+        return "#f4c430"
+    if "purple" in low:
+        return "#5b3fd6"
+    if "pink" in low:
+        return "#ff5ca8"
+    if "cream" in low or "natural" in low:
+        return "#e9dec8"
+    return "#6c6c6c"
+
+
+def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
+    """
+    Returns (carousel_images, color_swatches).
+    Swatches are derived from variant names when Printful doesn't provide structured color fields.
+    """
+    fallback_image = (row.get("image_url") or "").strip()
+    variants = row.get("variants") if isinstance(row.get("variants"), list) else []
+
+    swatches: "OrderedDict[str, dict]" = OrderedDict()
+    for variant in variants:
+        if not isinstance(variant, dict):
+            continue
+        raw_color = variant.get("color") or ""
+        color = _normalize_merch_color_label(raw_color) if raw_color else ""
+        if not color:
+            color = _normalize_merch_color_label(
+                _guess_merch_color_from_variant_name(str(variant.get("name") or ""))
+            )
+        if not color:
+            continue
+
+        key = color.lower()
+        if key in swatches:
+            continue
+
+        image_url = (
+            (variant.get("image_url") or "").strip()
+            or (variant.get("preview_url") or "").strip()
+            or (variant.get("thumbnail_url") or "").strip()
+            or fallback_image
+        )
+        swatches[key] = {
+            "label": color,
+            "hex": _merch_color_to_hex(color),
+            "image_url": image_url,
+        }
+
+    # Build unique carousel images in the same order as swatches.
+    carousel_images: list[str] = []
+    seen: set[str] = set()
+    for swatch in swatches.values():
+        url = (swatch.get("image_url") or "").strip()
+        if not url:
+            continue
+        if url in seen:
+            continue
+        seen.add(url)
+        carousel_images.append(url)
+
+    if not carousel_images and fallback_image:
+        carousel_images = [fallback_image]
+
+    # Store an index per swatch so the template can jump the carousel.
+    for swatch in swatches.values():
+        url = (swatch.get("image_url") or "").strip()
+        swatch["carousel_index"] = carousel_images.index(url) if url in carousel_images else 0
+
+    # Keep the UI compact; merch variants can be large.
+    swatch_list = list(swatches.values())[:8]
+    return carousel_images[:8], swatch_list
+
+
 def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
     if not products:
         return []
@@ -1060,6 +1203,9 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
         row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
         row["checkout_label"] = "Choose options"
         row["url"] = row["store_product_url"]
+        carousel_images, color_swatches = _build_merch_listing_media(row)
+        row["carousel_images"] = carousel_images
+        row["color_swatches"] = color_swatches
         enriched.append(row)
     return enriched
 
@@ -1090,15 +1236,18 @@ class MerchPlaceholderView(TemplateView):
             printful_products = [
                 row for row in all_products if row.get("category_key") == selected_merch_category
             ]
+            selected_merch_category_label = category_map.get(selected_merch_category, "")
         else:
             selected_merch_category = ""
             printful_products = all_products
+            selected_merch_category_label = ""
 
         ctx["header_copy"] = ctx["merch_copy"]
         ctx["printful_products"] = printful_products
         ctx["printful_catalog_url"] = printful_feed.get("catalog_url", "")
         ctx["merch_categories"] = merch_categories
         ctx["selected_merch_category"] = selected_merch_category
+        ctx["selected_merch_category_label"] = selected_merch_category_label
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
         return ctx
 

@@ -266,6 +266,52 @@ def _variant_option_name(product_name: str, variant_name: str, index: int) -> st
     return source[:120]
 
 
+def _extract_variant_image_url(variant: dict[str, Any]) -> str:
+    """
+    Best-effort extraction for a variant preview image URL.
+    Printful payload shapes vary depending on endpoint/store type, so this is intentionally defensive.
+    """
+    for key in (
+        "thumbnail_url",
+        "image_url",
+        "preview_url",
+        "mockup_url",
+        "url",
+    ):
+        candidate = (variant.get(key) or "").strip()
+        if candidate:
+            return candidate
+
+    files = variant.get("files")
+    if isinstance(files, list):
+        for file_row in files:
+            if not isinstance(file_row, dict):
+                continue
+            for key in ("preview_url", "thumbnail_url", "url"):
+                candidate = (file_row.get(key) or "").strip()
+                if candidate:
+                    return candidate
+    return ""
+
+
+def _extract_variant_color_label(variant: dict[str, Any]) -> str:
+    for key in ("color", "colour", "color_name", "colour_name"):
+        candidate = " ".join(str(variant.get(key) or "").strip().split())
+        if candidate:
+            return candidate[:60]
+
+    for nested_key in ("options", "variant"):
+        nested = variant.get(nested_key)
+        if not isinstance(nested, dict):
+            continue
+        for option_key, option_value in nested.items():
+            if "color" in str(option_key).lower() or "colour" in str(option_key).lower():
+                candidate = " ".join(str(option_value or "").strip().split())
+                if candidate:
+                    return candidate[:60]
+    return ""
+
+
 def _build_variants_payload(variants: list[dict[str, Any]], *, product_name: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for index, variant in enumerate(variants, start=1):
@@ -277,6 +323,9 @@ def _build_variants_payload(variants: list[dict[str, Any]], *, product_name: str
             "sku": sku,
             "price": str(price) if price is not None else "",
             "currency": (variant.get("currency") or "").strip().upper(),
+            # Optional extra metadata for richer merch listing UI.
+            "image_url": _extract_variant_image_url(variant),
+            "color": _extract_variant_color_label(variant),
         }
         rows.append(row)
     return rows
