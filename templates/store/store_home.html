@@ -64,7 +64,18 @@
             <a class="card cat" href="{% url 'store-category' slug=c.slug %}" title="{{ c.name }}">
               <div class="card__img cat__img">
                 {% if c.image %}
-                  <img src="{{ c.image.url }}" alt="{{ c.display_name }}" loading="lazy">
+                  {% thumbnail c.image "420" quality=70 format="WEBP" as cat_1x %}
+                    {% thumbnail c.image "840" quality=70 format="WEBP" as cat_2x %}
+                      <img
+                        src="{{ cat_1x.url }}"
+                        srcset="{{ cat_1x.url }} 1x, {{ cat_2x.url }} 2x"
+                        width="{{ cat_1x.width }}"
+                        height="{{ cat_1x.height }}"
+                        alt="{{ c.display_name }}"
+                        loading="lazy"
+                        decoding="async">
+                    {% endthumbnail %}
+                  {% endthumbnail %}
                 {% else %}
                   <div class="ph" aria-hidden="true"></div>
                 {% endif %}
