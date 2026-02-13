@@ -431,16 +431,16 @@
     {% endif %}
     <section class="hero">
       <div>
-        <p class="hero__eyebrow">{{ dealer_copy.hero_eyebrow|default:"BGM Customs" }}</p>
-        <h1 class="hero__title">{{ dealer_copy.hero_title|default:"Dealer workspace" }}</h1>
+        <p class="hero__eyebrow">{{ dealer_copy.hero_eyebrow|trim|default:"BGM Customs" }}</p>
+        <h1 class="hero__title">{{ dealer_copy.hero_title|trim|default:"Dealer workspace" }}</h1>
         <p class="hero__lead">
-          {{ dealer_copy.hero_lead|default:"Track your approval status, understand the tier ladder, and jump straight into the catalog with your negotiated pricing." }}
+          {{ dealer_copy.hero_lead|trim|default:"Track your approval status, understand the tier ladder, and jump straight into the catalog with your negotiated pricing." }}
         </p>
         <div class="hero__meta">
-          <span class="badge">{{ dealer_copy.hero_tier_label_prefix }} {{ portal_display.tier_label|default:portal.tier_label|default:dealer_copy.tier_default_label|normalize_tier_label }}</span>
+          <span class="badge">{{ dealer_copy.hero_tier_label_prefix|trim|default:"Tier:" }} {{ portal_display.tier_label|default:portal.tier_label|default:dealer_copy.tier_default_label|normalize_tier_label }}</span>
           {% if portal_display.discount_percent %}
             <span class="badge badge--accent">
-              {{ portal_display.discount_percent }}% {{ dealer_copy.hero_discount_suffix }}
+              {{ portal_display.discount_percent }}% {{ dealer_copy.hero_discount_suffix|trim|default:"off catalog" }}
               {% if portal_display.note %}
                 <span style="opacity:.75;font-weight:700;margin-left:.35rem">{{ portal_display.note }}</span>
               {% endif %}
@@ -448,8 +448,8 @@
           {% endif %}
         </div>
         <div class="hero__actions" style="display:flex;gap:.6rem;flex-wrap:wrap">
-          <a class="btn btn--primary" href="{% url 'store' %}">{{ dealer_copy.hero_primary_cta_label }}</a>
-          <a class="btn btn--ghost" href="{% url 'store-cart' %}">{{ dealer_copy.hero_secondary_cta_label }}</a>
+          <a class="btn btn--primary" href="{% url 'store' %}">{{ dealer_copy.hero_primary_cta_label|trim|default:"Browse catalog" }}</a>
+          <a class="btn btn--ghost" href="{% url 'store-cart' %}">{{ dealer_copy.hero_secondary_cta_label|trim|default:"Open cart" }}</a>
         </div>
       </div>
       <div class="hero__card">

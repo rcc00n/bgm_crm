@@ -2231,6 +2231,32 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
             if update_fields:
                 up.save(update_fields=update_fields)
 
+        # If the account is already a dealer, keep the profile tier at least as high as
+        # the tier granted by staff (assigned_tier). This protects against stale profile
+        # data when staff update tiers in admin.
+        if (
+            dealer_app
+            and up
+            and getattr(up, "is_dealer", False)
+            and dealer_app.status == DealerApplication.Status.APPROVED
+        ):
+            granted_tier = dealer_app.resolved_tier()
+            tier_rank = {
+                DealerTier.NONE: 0,
+                DealerTier.TIER_5: 1,
+                DealerTier.TIER_10: 2,
+                DealerTier.TIER_15: 3,
+            }
+            current_rank = tier_rank.get(getattr(up, "dealer_tier", DealerTier.NONE), 0)
+            granted_rank = tier_rank.get(granted_tier, 0)
+            if granted_tier and granted_tier != DealerTier.NONE and granted_rank > current_rank:
+                update_fields = ["dealer_tier"]
+                up.dealer_tier = granted_tier
+                if not getattr(up, "dealer_since", None):
+                    up.dealer_since = dealer_app.reviewed_at or timezone.now()
+                    update_fields.append("dealer_since")
+                up.save(update_fields=update_fields)
+
         # флаг доступа и snapshot для портала
         portal_snapshot = build_portal_snapshot(self.request.user)
         ctx["portal"] = portal_snapshot
