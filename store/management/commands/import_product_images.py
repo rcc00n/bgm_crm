@@ -159,20 +159,23 @@ class Command(BaseCommand):
         if not use_stdin and not csv_path:
             raise CommandError("Provide --csv PATH or use --stdin.")
 
+        raw = ""
         if use_stdin:
             raw = sys.stdin.read()
             if not raw.strip():
                 raise CommandError("No CSV data on stdin.")
-            # csv.DictReader expects a file-like object.
-            fp = raw.splitlines(True)
-            reader = csv.DictReader(fp)
         else:
             try:
-                f = open(csv_path, "r", encoding="utf-8-sig", newline="")
+                with open(csv_path, "r", encoding="utf-8-sig", newline="") as f:
+                    raw = f.read()
             except FileNotFoundError as exc:
                 raise CommandError(str(exc)) from exc
-            with f:
-                reader = csv.DictReader(f)
+            if not raw.strip():
+                raise CommandError(f"CSV file is empty: {csv_path}")
+
+        # csv.DictReader expects a file-like object.
+        fp = raw.splitlines(True)
+        reader = csv.DictReader(fp)
 
         fieldnames = [str(n).strip() for n in (reader.fieldnames or [])]
         if "Handle" not in fieldnames and "Title" not in fieldnames:
@@ -270,4 +273,3 @@ class Command(BaseCommand):
         self.stdout.write(f"- skipped_merch: {stats.skipped_merch}")
         self.stdout.write(f"- skipped_no_image: {stats.skipped_no_image}")
         self.stdout.write(f"- skipped_missing_product: {stats.skipped_missing}")
-
