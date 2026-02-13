@@ -556,22 +556,30 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       overflow-y:auto;
       height:100svh;
     }
-    .tab{
-      display:block;
-      max-width:1150px;
-      margin-inline:auto;
-    }
-    .panel{
-      border-radius:var(--radius);
-      overflow:hidden;
-    }
-    .panel table{
-      width:100%;
-    }
-    .panel table th,
-    .panel table td{
-      padding:.65rem .75rem;
-    }
+	    .tab{
+	      display:block;
+	      max-width:1150px;
+	      margin-inline:auto;
+	    }
+	    /* Tailwind fallback: tabs are toggled via `.hidden` */
+	    .app-wrap .hidden{display:none !important;}
+	    .panel{
+	      border-radius:var(--radius);
+	      overflow:hidden;
+	    }
+	    .panel table{
+	      width:100%;
+	    }
+	    .panel table th,
+	    .panel table td{
+	      padding:.65rem .75rem;
+	    }
+	    #stats_chart{
+	      display:block;
+	      width:100%;
+	      height:clamp(190px, 26vh, 240px);
+	      max-height:240px;
+	    }
     .btn,
     button.btn,
     a.btn{
@@ -596,9 +604,11 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       min-height:44px;
       font-weight:700;
     }
-    .upcoming-list{
-      padding-right:.15rem;
-    }
+	    .upcoming-list{
+	      max-height:16rem;
+	      overflow:auto;
+	      padding-right:.15rem;
+	    }
     .upcoming-item{
       border:1px solid rgba(255,255,255,.14);
       border-radius:12px;
@@ -646,17 +656,19 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       box-shadow:0 12px 26px rgba(0,0,0,.32), 0 0 18px rgba(213,0,0,.14);
       transform:translateY(-1px);
     }
-    .appt-card__media{
-      width:74px;
-      height:74px;
-      border-radius:14px;
-      object-fit:cover;
-      border:1px solid rgba(255,255,255,.15);
-      box-shadow:0 10px 20px rgba(0,0,0,.34);
-      background:#101010;
-      flex-shrink:0;
-    }
-    .appt-main{min-width:0}
+	    .appt-card__media{
+	      width:74px;
+	      height:74px;
+	      border-radius:14px;
+	      object-fit:cover;
+	      border:1px solid rgba(255,255,255,.15);
+	      box-shadow:0 10px 20px rgba(0,0,0,.34);
+	      background:#101010;
+	      flex-shrink:0;
+	    }
+	    /* Prevent unstyled full-width images from blowing up cards. */
+	    .appt-card__image{display:none;}
+	    .appt-main{min-width:0}
     .appt-main .muted{
       overflow:hidden;
       text-overflow:ellipsis;
@@ -1840,16 +1852,26 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     const tab = link.dataset.tab; if(!tab) return; e.preventDefault(); activate(tab); history.replaceState(null, '', '#'+tab);
   }));
 
-  /* ==== helpers ==== */
-  const LOCALE = 'en-US';
-  const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
-  const fmtHM = d => d.toLocaleTimeString(LOCALE, {hour:'numeric', minute:'2-digit'});
-  const ymd = d => { const m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
-  const parseISO = (iso) => {
-    const parsed = new Date(iso);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  };
-  const hmValue = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+	  /* ==== helpers ==== */
+	  const LOCALE = 'en-GB';
+	  const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
+	  const fmtHM = d => d.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit', hour12: false });
+	  const fmtMonthDay = d => d.toLocaleDateString(LOCALE, { month: 'short', day: 'numeric' });
+	  const fmtWeekday = d => d.toLocaleDateString(LOCALE, { weekday: 'long' });
+	  const fmtDateTime = d => d.toLocaleString(LOCALE, {
+	    year: 'numeric',
+	    month: 'short',
+	    day: '2-digit',
+	    hour: '2-digit',
+	    minute: '2-digit',
+	    hour12: false,
+	  });
+	  const ymd = d => { const m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
+	  const parseISO = (iso) => {
+	    const parsed = new Date(iso);
+	    return Number.isNaN(parsed.getTime()) ? null : parsed;
+	  };
+	  const hmValue = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
   function setDetailsImage(container, url, altText){
     if (!container) return;
@@ -1938,6 +1960,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
         ]
       },
       options: {
+        maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -1951,32 +1974,16 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
             suggestedMax: yMax + 1,
             ticks: { stepSize: 1, color: '#ccc' },
             grid: { color: 'rgba(255,255,255,.06)' },
-          }
-        }
+          },
+        },
       }
     });
-  });
+	  });
 
-  /* ==== helpers ==== */
-  const csrftoken = (document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)')||[])[2] || '';
-  const PORTAL_LOCALE = 'en-GB';
-  const fmtHM = d => d.toLocaleTimeString(PORTAL_LOCALE, { hour: 'numeric', minute: '2-digit', hour12: false });
-  const fmtMonthDay = d => d.toLocaleDateString(PORTAL_LOCALE, { month: 'short', day: 'numeric' });
-  const fmtWeekday = d => d.toLocaleDateString(PORTAL_LOCALE, { weekday: 'long' });
-  const fmtDateTime = d => d.toLocaleString(PORTAL_LOCALE, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  const ymd = d => { const m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; };
-
-  /* ==== Cancel ==== */
-  async function cancelAppointment(id){
-    if (!confirm(portalCopy.cancelConfirmMessage)) return;
-    const response = await fetch(`/accounts/api/appointment/${id}/cancel/`, {
+	  /* ==== Cancel ==== */
+	  async function cancelAppointment(id){
+	    if (!confirm(portalCopy.cancelConfirmMessage)) return;
+	    const response = await fetch(`/accounts/api/appointment/${id}/cancel/`, {
       method: 'POST',
       headers: {'X-CSRFToken': csrftoken},
       credentials: 'same-origin',
