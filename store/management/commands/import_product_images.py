@@ -10,7 +10,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils.text import slugify
 
-from store.models import Product
+from store.models import Product, ProductOption
 
 
 MERCH_CATEGORY_SLUGS = {
@@ -90,6 +90,24 @@ def _pick_primary_image_url(group: List[Dict[str, str]]) -> str:
         return ""
     best_url, _key = min(best_by_url.items(), key=lambda kv: kv[1])
     return best_url
+
+
+def _iter_candidate_skus(group: List[Dict[str, str]], *, limit: int = 50) -> List[str]:
+    """
+    Return unique SKU candidates from Shopify-like rows in stable order.
+    We use these for fallback matching against Product.sku and ProductOption.sku.
+    """
+    out: List[str] = []
+    seen = set()
+    for row in group:
+        sku = (row.get("SKU") or row.get("Variant SKU") or "").strip()
+        if not sku or sku in seen:
+            continue
+        out.append(sku)
+        seen.add(sku)
+        if len(out) >= limit:
+            break
+    return out
 
 
 def _iter_shopify_groups(rows: Iterable[Dict[str, str]]):
@@ -205,18 +223,26 @@ class Command(BaseCommand):
             product = products_by_slug.get(handle_slug)
 
             if not product:
-                # Fallback: try any SKU within the group.
-                sku_sample = ""
-                for row in group:
-                    sku_sample = (row.get("SKU") or row.get("Variant SKU") or "").strip()
-                    if sku_sample:
-                        break
-                if sku_sample:
+                candidate_skus = _iter_candidate_skus(group)
+                sku_sample = candidate_skus[0] if candidate_skus else ""
+
+                # Fallback 1: try product SKU directly.
+                if candidate_skus:
                     product = (
                         Product.objects.select_related("category")
-                        .filter(sku=sku_sample)
+                        .filter(sku__in=candidate_skus)
                         .first()
                     )
+
+                # Fallback 2: try option SKU -> product.
+                if not product and candidate_skus:
+                    opt = (
+                        ProductOption.objects.select_related("product__category")
+                        .filter(sku__in=candidate_skus)
+                        .first()
+                    )
+                    product = getattr(opt, "product", None)
+
                 if not product:
                     stats.skipped_missing += 1
                     missing.append((handle, handle_slug, sku_sample))
