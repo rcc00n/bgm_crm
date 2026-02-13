@@ -3208,9 +3208,10 @@ from django.core.validators import MinLengthValidator
 
 class DealerTier(models.TextChoices):
     NONE = "NONE", "None"
-    TIER_5 = "TIER_5", "Dealer 5% tier"
-    TIER_10 = "TIER_10", "Dealer 10% tier"
-    TIER_15 = "TIER_15", "Dealer 15% tier"
+    # Keep display labels generic so ops can control discount % via DealerTierLevel rows.
+    TIER_5 = "TIER_5", "Tier 1"
+    TIER_10 = "TIER_10", "Tier 2"
+    TIER_15 = "TIER_15", "Tier 3"
 
 
 class DealerTierLevel(models.Model):

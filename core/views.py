@@ -2157,21 +2157,43 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         ctx["dealer_application"] = dealer_app
         ctx["submitted"] = str(self.request.GET.get("submitted") or "").strip() in {"1", "true", "yes"}
 
-        # If staff reset an approved application back to pending/rejected (or a stale app exists),
-        # ensure we don't keep wholesale access enabled on the profile.
-        if (
-            dealer_app
-            and dealer_app.status != DealerApplication.Status.APPROVED
-            and up
-            and getattr(up, "is_dealer", False)
-        ):
-            up.is_dealer = False
-            up.dealer_tier = DealerTier.NONE
-            update_fields = ["is_dealer", "dealer_tier"]
-            if hasattr(up, "dealer_welcome_seen"):
-                up.dealer_welcome_seen = True
-                update_fields.append("dealer_welcome_seen")
-            up.save(update_fields=update_fields)
+        # Keep profile flags consistent with application status, but avoid revoking
+        # wholesale access just because a record is "pending" (e.g. dealer resubmitted info).
+        if dealer_app and up:
+            if (
+                dealer_app.status == DealerApplication.Status.REJECTED
+                and getattr(up, "is_dealer", False)
+            ):
+                up.is_dealer = False
+                up.dealer_tier = DealerTier.NONE
+                update_fields = ["is_dealer", "dealer_tier"]
+                if hasattr(up, "dealer_welcome_seen"):
+                    up.dealer_welcome_seen = True
+                    update_fields.append("dealer_welcome_seen")
+                up.save(update_fields=update_fields)
+
+            # Auto-heal: if we have a historical activation timestamp but access was
+            # accidentally flipped off, restore access on the dealer status page.
+            if (
+                dealer_app.status == DealerApplication.Status.PENDING
+                and (not getattr(up, "is_dealer", False))
+                and getattr(up, "dealer_since", None)
+            ):
+                update_fields = []
+                up.is_dealer = True
+                update_fields.append("is_dealer")
+
+                final_tier = dealer_app.resolved_tier()
+                if final_tier and final_tier != DealerTier.NONE and up.dealer_tier != final_tier:
+                    up.dealer_tier = final_tier
+                    update_fields.append("dealer_tier")
+
+                if hasattr(up, "dealer_welcome_seen") and not up.dealer_welcome_seen:
+                    up.dealer_welcome_seen = True
+                    update_fields.append("dealer_welcome_seen")
+
+                if update_fields:
+                    up.save(update_fields=update_fields)
 
         # Backfill: if an application is marked approved but the profile was not upgraded
         # (e.g. staff changed status in admin form), upgrade the profile here so the dealer
@@ -2222,6 +2244,41 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
 
         is_dealer = portal_snapshot.get("is_dealer", False)
         ctx["is_dealer"] = is_dealer
+
+        # UI-only tier/discount display. For non-dealers, show the requested tier's
+        # configured discount percent (without enabling wholesale pricing).
+        tier_levels = ctx.get("tier_levels") or []
+        tier_map = {getattr(t, "code", None): t for t in tier_levels if getattr(t, "code", None)}
+
+        portal_display = {
+            "tier_code": portal_snapshot.get("tier_code"),
+            "tier_label": portal_snapshot.get("tier_label"),
+            "discount_percent": portal_snapshot.get("discount_percent") or 0,
+            "note": "",
+        }
+        if (not is_dealer) and dealer_app:
+            requested_code = dealer_app.resolved_tier() or dealer_app.preferred_tier or DealerTier.NONE
+            requested_level = tier_map.get(requested_code)
+            if requested_level:
+                portal_display.update(
+                    {
+                        "tier_code": requested_code,
+                        "tier_label": requested_level.label,
+                        "discount_percent": requested_level.discount_percent or 0,
+                        "note": "after approval",
+                    }
+                )
+        ctx["portal_display"] = portal_display
+
+        if dealer_app:
+            application_code = dealer_app.resolved_tier() or dealer_app.preferred_tier or DealerTier.NONE
+            application_level = tier_map.get(application_code)
+            if application_level:
+                ctx["application_tier_label"] = application_level.label
+                ctx["application_tier_discount_percent"] = application_level.discount_percent or 0
+            else:
+                ctx["application_tier_label"] = dealer_app.get_preferred_tier_display() or application_code
+                ctx["application_tier_discount_percent"] = 0
 
         # One-time success banner: show once after approval, then mark as seen.
         show_welcome = bool(is_dealer and up and hasattr(up, "dealer_welcome_seen") and not up.dealer_welcome_seen)
