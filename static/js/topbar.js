@@ -4,9 +4,19 @@
   if (window.__bgmTopbarInit) return;
   window.__bgmTopbarInit = true;
 
-  if (document.querySelector('.contact-fab')) {
-    document.body.classList.add('has-contact-fab');
+  const syncContactFabClass = () => {
+    if (!document.body) return;
+    const hasContactFab = Boolean(document.querySelector('.contact-fab'));
+    document.body.classList.toggle('has-contact-fab', hasContactFab);
+  };
+
+  // The Contact FAB is rendered later in the markup than this script tag on
+  // most pages, so check again once parsing is complete.
+  syncContactFabClass();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', syncContactFabClass, { once: true });
   }
+  window.addEventListener('pageshow', syncContactFabClass);
 
   const header = document.querySelector('.bgm-topbar');
   const toggle = document.querySelector('.bgm-topbar__toggle');

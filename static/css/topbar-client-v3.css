@@ -574,7 +574,13 @@
 }
 
 body.has-contact-fab{
-  --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+  --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 6.6rem);
+}
+
+@supports selector(body:has(.contact-fab)){
+  body:has(.contact-fab){
+    --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 6.6rem);
+  }
 }
 
 .bgm-cart-fab:hover{
@@ -634,7 +640,13 @@ body.has-contact-fab{
 
 @media (max-width: 720px){
   body.has-contact-fab{
-    --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.1rem);
+    --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.8rem);
+  }
+
+  @supports selector(body:has(.contact-fab)){
+    body:has(.contact-fab){
+      --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.8rem);
+    }
   }
   .bgm-cart-fab{
     padding: .6rem;
