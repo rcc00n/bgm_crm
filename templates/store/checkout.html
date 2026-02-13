@@ -292,7 +292,7 @@
                   <div class="summary__title">{{ it.product.name }}</div>
                   <div class="section__desc">x{{ it.qty }} • {{ it.product.category.display_name }}</div>
                   {% if it.option %}
-                    <div class="section__desc">Option: {{ it.option.name }}{% if it.option.sku %} · SKU: {{ it.option.sku }}{% endif %}</div>
+                    <div class="section__desc">Option: {{ it.option.name }}</div>
                   {% endif %}
                   {% if it.has_reference_photo %}
                     <div class="section__desc">

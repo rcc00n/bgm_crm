@@ -71,14 +71,8 @@
               {% endif %}
             </div>
             {% if not product_options %}
-              {% if product.sku or product.category %}
+              {% if product.category %}
                 <div class="product-simple__meta">
-                  {% if product.sku %}
-                    <div class="product-simple__item">
-                      <span>SKU</span>
-                      <strong>{{ product.sku }}</strong>
-                    </div>
-                  {% endif %}
                   {% if product.category %}
                     <div class="product-simple__item">
                       <span>Category</span>
@@ -137,9 +131,6 @@
                                     <span class="option-pill__top">
                                       <span class="option-pill__meta">
                                         <span class="option-pill__name">{{ opt.name }}</span>
-                                        {% if opt.sku %}
-                                          <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
-                                        {% endif %}
                                       </span>
                                       {% if not product.contact_for_estimate %}
                                         <span class="option-pill__price">
@@ -184,9 +175,6 @@
                                     <span class="option-pill__top">
                                       <span class="option-pill__meta">
                                         <span class="option-pill__name">{{ opt.name }}</span>
-                                        {% if opt.sku %}
-                                          <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
-                                        {% endif %}
                                       </span>
                                       {% if not product.contact_for_estimate %}
                                         <span class="option-pill__price">
@@ -230,9 +218,6 @@
                                 <span class="option-pill__top">
                                   <span class="option-pill__meta">
                                     <span class="option-pill__name">{{ opt.name }}</span>
-                                    {% if opt.sku %}
-                                      <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
-                                    {% endif %}
                                   </span>
                                   {% if not product.contact_for_estimate %}
                                     <span class="option-pill__price">

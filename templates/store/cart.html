@@ -41,17 +41,14 @@
 	                {% else %}
 	                  <div class="thumb-ph" aria-hidden="true"></div>
 	                {% endif %}
-	              </a>
+              </a>
               <div class="cart__meta">
                 <a class="cart__title" href="{% url 'store-product' slug=row.product.slug %}">{{ row.product.name }}</a>
-                {% if row.product.sku %}
-                  <div class="section__desc">SKU: {{ row.product.sku }}</div>
-                {% endif %}
                 {% if row.product.category %}
                   <div class="section__desc">Category: {{ row.product.category.display_name }}</div>
                 {% endif %}
                 {% if row.option %}
-                  <div class="section__desc">Option: {{ row.option.name }}{% if row.option.sku %} · SKU: {{ row.option.sku }}{% endif %}</div>
+                  <div class="section__desc">Option: {{ row.option.name }}</div>
                 {% endif %}
                 {% if row.has_reference_photo %}
                   <div class="section__desc">
