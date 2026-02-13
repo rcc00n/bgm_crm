@@ -4,6 +4,7 @@ import re
 from django import template
 from django.conf import settings
 from django.templatetags.static import static
+from django.utils.html import strip_tags
 
 register = template.Library()
 
@@ -46,3 +47,28 @@ def safe_static(path: str, fallback_path: str = "") -> str:
                     candidate = fallback_candidate
         static_url = getattr(settings, "STATIC_URL", "/static/")
         return f"{static_url.rstrip('/')}/{candidate.lstrip('/')}"
+
+
+@register.filter
+def meta_text(value) -> str:
+    """
+    Normalize user/content-managed HTML into a safe, single-line plain-text
+    string suitable for meta tags (title/description/site_name).
+    """
+    if value is None:
+        return ""
+    text = str(value)
+
+    # Treat common line-break / block end tags as whitespace separators so
+    # adjacent words don't get concatenated when tags are stripped.
+    text = re.sub(r"(?i)<\s*br\s*/?\s*>", " ", text)
+    text = re.sub(r"(?i)</\s*(p|li|div|h[1-6])\s*>", " ", text)
+    text = strip_tags(text)
+
+    # Decode entities (twice to handle double-encoded input like &amp;amp;).
+    text = html.unescape(text)
+    text = html.unescape(text)
+
+    # Collapse whitespace into a single line.
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
