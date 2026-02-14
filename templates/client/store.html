@@ -28,7 +28,7 @@
             {% else %}
               <p>
                 <strong>{% if product.has_option_price_overrides %}From {% endif %}{{ product.display_price|money }}</strong>
-                {% if dealer_portal.show_discount %}
+                {% if dealer_portal.show_discount and not product|is_merch_product %}
                   <span style="display:block;color:var(--muted);font-size:.9rem;">
                     Dealer {{ product.display_price|dealer_price:dealer_portal.discount_percent|money }} · Save {{ product.display_price|dealer_savings:dealer_portal.discount_percent|money }}
                   </span>

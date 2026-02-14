@@ -1846,13 +1846,13 @@
 	                            <strong>{{ p.display_price|money }}</strong>
 	                            {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
 	                          </div>
-	                          {% if dealer_portal.show_discount %}
-	                            <div class="price__dealer-row">
-	                              <span class="price__hint">{{ home_copy.products_dealer_label }} {{ dealer_portal.discount_percent }}%</span>
-	                              <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-	                              <span class="price__save">{{ home_copy.products_save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
-	                            </div>
-	                          {% endif %}
+		                          {% if dealer_portal.show_discount and not p|is_merch_product %}
+		                            <div class="price__dealer-row">
+		                              <span class="price__hint">{{ home_copy.products_dealer_label }} {{ dealer_portal.discount_percent }}%</span>
+		                              <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+		                              <span class="price__save">{{ home_copy.products_save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+		                            </div>
+		                          {% endif %}
 	                        {% endif %}
 	                      </div>
 	                    </div>
