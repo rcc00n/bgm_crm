@@ -42,6 +42,10 @@
       border-bottom:1px solid rgba(255,255,255,.12) !important;
       backdrop-filter:blur(10px) saturate(1.1) !important;
     }
+    /* Prevent "content jumps under the header" before topbar-client-v3.css loads. */
+    .bgm-topbar__spacer{
+      height:var(--bgm-topbar-height, var(--site-header-height, 72px)) !important;
+    }
     .bgm-topbar__inner{
       display:flex !important;
       align-items:center !important;
