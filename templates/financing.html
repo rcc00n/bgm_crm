@@ -566,6 +566,17 @@ html{ font-size: 17px; }                      /* было 16px */
 .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted-2);font-size:.95rem}
 
 </style>
+  <style id="financing-desktop-grid-balance">
+    /* Laptop/desktop: keep the 4-card sections balanced (2x2) instead of 3+1. */
+    @media (min-width: 901px){
+      #steps .grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+      }
+      #faq .grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
   <style id="financing-mobile-density">
     @media (max-width: 900px){
       .container{ padding-inline:1.1rem; }
