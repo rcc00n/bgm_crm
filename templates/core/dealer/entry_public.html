@@ -1,0 +1,454 @@
+{% load static dealer_extras thumbnail copy_extras %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Become a Dealer — Bad Guy Motors</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with meta_title="Become a Dealer — Bad Guy Motors" meta_description="Apply for wholesale pricing and tier-based discounts with the Bad Guy Motors dealer program." meta_section="dealer" meta_type="article" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+
+  <style>
+    :root{
+      --bg:#050505;
+      --ink:#f2f2f2;
+      --muted:#b9b9b9;
+      --line:rgba(255,255,255,.12);
+      --card-bg:rgba(15,15,15,.86);
+      --card-border:rgba(255,255,255,.10);
+      --red:#d50000;
+      --red-bright:#ff2d2d;
+      --shadow:0 18px 60px rgba(0,0,0,.45);
+      --radius-lg:1.35rem;
+      --radius-sm:.85rem;
+      --container:clamp(320px, 92vw, 1120px);
+      --font-body: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --font-head: "Diesel", Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:
+        radial-gradient(900px 420px at 12% 8%, rgba(213,0,0,.15), transparent 62%),
+        radial-gradient(700px 420px at 88% 20%, rgba(255,77,77,.08), transparent 58%),
+        var(--bg);
+      color:var(--ink);
+      font-family:var(--font-body);
+      line-height:1.55;
+      min-height:100vh;
+    }
+    a{color:inherit;text-decoration:none}
+    img{display:block;max-width:100%}
+
+    /* smoke layer (same as other marketing pages) */
+    #bg{position:fixed; inset:0; z-index:0; pointer-events:none;}
+    #bg canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
+
+    main, footer{position:relative; z-index:1;}
+    .container{width:var(--container);margin-inline:auto;padding-inline:clamp(1rem,3vw,2rem)}
+
+    .btn{
+      position:relative;
+      overflow:hidden;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:.6rem;
+      padding:.9rem 1.25rem;
+      border-radius:var(--radius-sm);
+      font-weight:900;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      border:1px solid transparent;
+      cursor:pointer;
+      transition:.18s;
+      min-height:44px;
+      line-height:1.1;
+      font-family:var(--font-head);
+    }
+    .btn--primary{
+      background:linear-gradient(180deg, var(--red-bright) 0%, var(--red) 60%, #b60000 100%);
+      color:#fff;
+      box-shadow:0 18px 44px rgba(213,0,0,.18);
+    }
+    .btn--primary:hover{transform:translateY(-2px);box-shadow:0 22px 60px rgba(213,0,0,.26)}
+    .btn--ghost{
+      background:rgba(255,255,255,.04);
+      border-color:rgba(255,255,255,.14);
+      color:#fff;
+    }
+    .btn--ghost:hover{border-color:rgba(255,77,77,.38);background:rgba(255,255,255,.06);transform:translateY(-1px)}
+    .link{color:rgba(255,255,255,.92);text-decoration:underline;text-decoration-color:rgba(255,77,77,.6);text-underline-offset:3px}
+    .link:hover{color:#fff;text-decoration-color:rgba(255,77,77,.9)}
+
+    main{padding:clamp(1.6rem,3.2vw,2.4rem) 0 3rem}
+    .hero{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:1.3rem;
+      align-items:stretch;
+    }
+    .card{
+      position:relative;
+      overflow:hidden;
+      background:linear-gradient(180deg, rgba(18,18,18,.92), rgba(10,10,10,.86));
+      border:1px solid var(--card-border);
+      border-radius:var(--radius-lg);
+      padding:1.6rem;
+      box-shadow:var(--shadow);
+      min-height:0;
+    }
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background:
+        radial-gradient(520px 280px at 14% 18%, rgba(213,0,0,.20), transparent 65%),
+        radial-gradient(520px 280px at 86% 0%, rgba(255,77,77,.10), transparent 66%);
+      opacity:.78;
+      pointer-events:none;
+    }
+    .card > *{position:relative;z-index:1}
+
+    .eyebrow{
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      font-size:.78rem;
+      color:rgba(255,255,255,.72);
+      font-weight:900;
+      margin-bottom:.45rem;
+    }
+    .title{
+      font-family:var(--font-head);
+      font-weight:900;
+      letter-spacing:.04em;
+      font-size:clamp(2rem,4.4vw,2.9rem);
+      line-height:1.05;
+      margin:0;
+    }
+    .lead{
+      color:var(--muted);
+      margin-top:.6rem;
+      max-width:56ch;
+      font-size:1.03rem;
+    }
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.7rem;
+      margin-top:1.15rem;
+      align-items:center;
+    }
+    .note{
+      margin-top:.9rem;
+      color:rgba(255,255,255,.74);
+      font-size:.92rem;
+    }
+
+    .hero-media{
+      border-radius:var(--radius-lg);
+      border:1px solid var(--card-border);
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      background:linear-gradient(180deg,rgba(12,12,12,.95),rgba(5,5,5,.95));
+      display:grid;
+      align-content:start;
+    }
+    .hero-media img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      aspect-ratio:16/9;
+      display:block;
+    }
+    .hero-media__caption{
+      padding:1rem 1.1rem 1.15rem;
+      color:rgba(255,255,255,.78);
+      font-size:.95rem;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+
+    .section{
+      margin-top:1.35rem;
+      padding-top:1.35rem;
+      border-top:1px solid rgba(255,255,255,.10);
+    }
+    .section__head{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.8rem 1.2rem;
+      align-items:baseline;
+      justify-content:space-between;
+      margin-bottom:.9rem;
+    }
+    .section__title{
+      font-family:var(--font-head);
+      font-weight:900;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      font-size:1.25rem;
+      margin:0;
+    }
+    .section__desc{
+      color:rgba(255,255,255,.66);
+      font-size:.96rem;
+      margin:0;
+      max-width:70ch;
+    }
+
+    .grid{
+      display:grid;
+      gap:1rem;
+    }
+    .grid--3{grid-template-columns:repeat(auto-fit, minmax(240px, 1fr))}
+
+    .perk{
+      padding:1.2rem 1.15rem;
+      border-radius:1.15rem;
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(180deg, rgba(0,0,0,.40), rgba(0,0,0,.28));
+      box-shadow:0 18px 54px rgba(0,0,0,.34);
+      min-height:0;
+    }
+    .perk__kicker{
+      color:rgba(255,255,255,.62);
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      font-size:.72rem;
+      font-weight:900;
+    }
+    .perk__title{
+      font-family:var(--font-head);
+      font-weight:900;
+      letter-spacing:.04em;
+      margin-top:.35rem;
+      font-size:1.05rem;
+      text-transform:uppercase;
+    }
+    .perk__desc{
+      color:rgba(255,255,255,.72);
+      margin-top:.55rem;
+      font-size:.95rem;
+    }
+
+    .table-wrap{
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      border-radius:var(--radius-lg);
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(180deg, rgba(0,0,0,.34), rgba(0,0,0,.22));
+    }
+    table{width:100%;border-collapse:collapse;min-width:660px}
+    th,td{padding:.75rem .85rem;text-align:left;border-bottom:1px solid rgba(255,255,255,.08)}
+    th{
+      color:rgba(255,255,255,.6);
+      font-size:.78rem;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      font-weight:900;
+      background:rgba(255,255,255,.03);
+    }
+    tr:last-child td{border-bottom:0}
+    td{color:rgba(255,255,255,.88);font-weight:700}
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:.4rem;
+      padding:.25rem .6rem;
+      border-radius:999px;
+      border:1px solid rgba(255,77,77,.28);
+      background:rgba(213,0,0,.12);
+      color:#fff;
+      font-size:.85rem;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .how{
+      display:grid;
+      gap:.85rem;
+    }
+    .how__step{
+      display:flex;
+      gap:.85rem;
+      align-items:flex-start;
+      padding:1.05rem 1.1rem;
+      border-radius:1.15rem;
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(180deg, rgba(0,0,0,.40), rgba(0,0,0,.28));
+    }
+    .how__num{
+      width:34px;height:34px;border-radius:999px;
+      display:grid;place-items:center;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      font-family:var(--font-head);
+      font-weight:900;
+      flex:0 0 auto;
+    }
+    .how__label{font-weight:900;letter-spacing:.04em}
+    .how__text{color:rgba(255,255,255,.70);margin-top:.15rem}
+
+  </style>
+</head>
+<body>
+  {% include "includes/marketing_body.html" %}
+  <div id="bg"></div>
+
+  {% include "includes/topbar_client_v3.html" with current="dealer" topbar_badge_label="Dealer Program" %}
+
+  <main>
+    <div class="container">
+      <section class="hero" aria-label="Dealer program intro">
+        <div class="card">
+          <div class="eyebrow">Wholesale pricing • Tier-based discounts</div>
+          <h1 class="title">Become a Bad Guy Motors Dealer</h1>
+          <p class="lead">
+            Join the dealer program to unlock volume-based pricing, faster quoting, and direct access to the BGM catalog.
+          </p>
+          <div class="actions">
+            <a class="btn btn--primary" href="{% url 'dealer-apply' %}">Apply</a>
+            <a class="btn btn--ghost" href="{% url 'home' %}" data-back-link>Go Back</a>
+          </div>
+          <p class="note">
+            Applying requires an account. Already have one?
+            <a class="link" href="{% url 'login' %}?next={% url 'dealer-apply' %}">Sign in to apply</a>.
+          </p>
+        </div>
+
+        <aside class="hero-media" aria-label="Dealer program highlight">
+          {% if hero_media.image %}
+            {% thumbnail hero_media.image "900" quality=72 format="WEBP" as hero_1x %}
+              {% thumbnail hero_media.image "1600" quality=72 format="WEBP" as hero_2x %}
+                <img
+                  src="{{ hero_1x.url }}"
+                  srcset="{{ hero_1x.url }} 1x, {{ hero_2x.url }} 2x"
+                  width="{{ hero_1x.width }}"
+                  height="{{ hero_1x.height }}"
+                  alt="{{ hero_media.alt|default:'Dealer program' }}"
+                  loading="eager"
+                  fetchpriority="high"
+                  decoding="async">
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% else %}
+            <img src="{{ hero_media.src }}" alt="{{ hero_media.alt|default:'Dealer program' }}" loading="eager" fetchpriority="high" decoding="async">
+          {% endif %}
+          <div class="hero-media__caption">
+            <span class="pill">Fast approval</span>
+            <span class="pill">Transparent tiers</span>
+            <span class="pill">Real support</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="section" aria-label="Dealer perks">
+        <div class="section__head">
+          <h2 class="section__title">Program Perks</h2>
+          <p class="section__desc">Built for shops, builders, and resellers that move volume.</p>
+        </div>
+
+        <div class="grid grid--3">
+          <div class="perk">
+            <div class="perk__kicker">Pricing</div>
+            <div class="perk__title">Wholesale discounts</div>
+            <p class="perk__desc">Tier-based pricing that improves as your lifetime spend grows.</p>
+          </div>
+          <div class="perk">
+            <div class="perk__kicker">Speed</div>
+            <div class="perk__title">Faster quoting</div>
+            <p class="perk__desc">Get prioritized responses on fitment, availability, and lead times.</p>
+          </div>
+          <div class="perk">
+            <div class="perk__kicker">Access</div>
+            <div class="perk__title">Catalog + cart</div>
+            <p class="perk__desc">Browse the full catalog and place orders with your negotiated pricing.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Tier ladder">
+        <div class="section__head">
+          <h2 class="section__title">Tier Ladder</h2>
+          <p class="section__desc">Clear thresholds, no surprises. Amounts are denominated in {{ currency.code|default:"CAD" }}.</p>
+        </div>
+
+        {% if tier_levels %}
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tier</th>
+                  <th>Minimum Spend</th>
+                  <th>Discount</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for tier in tier_levels %}
+                  <tr>
+                    <td>{{ tier.label|normalize_tier_label }}</td>
+                    <td>{{ tier.minimum_spend|money }}</td>
+                    <td>{{ tier.discount_percent }}%</td>
+                    <td>{% if tier.description %}{{ tier.description }}{% else %}—{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="section__desc">Tier configuration is coming soon.</p>
+        {% endif %}
+      </section>
+
+      <section class="section" aria-label="How it works">
+        <div class="section__head">
+          <h2 class="section__title">How It Works</h2>
+          <p class="section__desc">A simple review flow so we can keep pricing fair across partners.</p>
+        </div>
+
+        <div class="how">
+          <div class="how__step">
+            <div class="how__num">1</div>
+            <div>
+              <div class="how__label">Apply</div>
+              <div class="how__text">Tell us about your business and projected volume. Takes a couple minutes.</div>
+            </div>
+          </div>
+          <div class="how__step">
+            <div class="how__num">2</div>
+            <div>
+              <div class="how__label">Review</div>
+              <div class="how__text">Our team reviews details and confirms the right tier for your volume.</div>
+            </div>
+          </div>
+          <div class="how__step">
+            <div class="how__num">3</div>
+            <div>
+              <div class="how__label">Activate</div>
+              <div class="how__text">Once approved, dealer pricing is enabled automatically for your account.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  {% include "includes/site_footer.html" %}
+
+  <script>
+    (function(){
+      var link = document.querySelector('[data-back-link]');
+      if (!link) return;
+      link.addEventListener('click', function(ev){
+        ev.preventDefault();
+        if (window.history && window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+        var href = link.getAttribute('href') || '/';
+        window.location.assign(href);
+      });
+    })();
+  </script>
+</body>
+</html>

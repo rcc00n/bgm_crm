@@ -1,0 +1,148 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<div class="col-12">
+  <div class="dashboard-shell">
+    <section class="dashboard-hero">
+      <div class="dashboard-hero-content">
+        <div>
+          <p class="panel-subtitle">Merch profitability + shipping rule</p>
+          <h1>Merch economics</h1>
+          <p>Set internal unit cost/value, review profit margin, and control the Canada free shipping threshold shown to customers.</p>
+        </div>
+        <div class="hero-stat">
+          <span>Merch products</span>
+          <strong>{{ summary.count }}</strong>
+          <small>{{ summary.active_count }} active · {{ summary.missing_cost_count }} missing cost</small>
+        </div>
+        <div class="hero-stat">
+          <span>Avg margin</span>
+          <strong>{% if summary.avg_margin_pct != None %}{{ summary.avg_margin_pct }}%{% else %}—{% endif %}</strong>
+          <small>Based on products with cost set</small>
+        </div>
+        <div class="hero-stat">
+          <span>CA free ship over</span>
+          <strong>{% if summary.threshold_label %}{{ summary.threshold_label }}{% else %}Off{% endif %}</strong>
+          <small>
+            Visible on merch + checkout{% if summary.delivery_cost_label %} · Delivery under: {{ summary.delivery_cost_label }}{% endif %}
+          </small>
+        </div>
+      </div>
+    </section>
+
+    <div class="kpi-grid">
+      <article class="kpi-card">
+        <small>Filters</small>
+        <form method="get" class="action-history-controls" style="margin-top:.6rem; justify-content:flex-start; gap:10px;">
+          <input type="text" name="q" placeholder="Search name / SKU" value="{{ q }}" style="min-width:240px;">
+          <label style="display:inline-flex;align-items:center;gap:8px;margin:0;">
+            <input type="checkbox" name="missing_cost" value="1"{% if missing_cost %} checked{% endif %}>
+            Missing cost
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:8px;margin:0;">
+            <input type="checkbox" name="inactive" value="1"{% if show_inactive %} checked{% endif %}>
+            Include inactive
+          </label>
+          <button class="button" type="submit">Apply</button>
+          <a class="button" href="{% url 'admin-merch-economics' %}">Reset</a>
+        </form>
+        <div class="kpi-trend neutral" style="margin-top:.65rem;">
+          Tip: you can set unit cost quickly from the <a href="{% url 'admin:store_product_changelist' %}?printful_merch=1">Products list</a>
+          (inline edit column “Cost / value”).
+        </div>
+      </article>
+
+      <article class="kpi-card">
+        <small>Canada merch shipping rules (CAD)</small>
+        <form method="post" style="margin-top:.6rem; display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+          {% csrf_token %}
+          <div style="min-width:260px;">
+            {{ shipping_form.free_shipping_threshold_cad.label_tag }}
+            {{ shipping_form.free_shipping_threshold_cad }}
+            {% if shipping_form.free_shipping_threshold_cad.help_text %}
+              <div class="panel-subtitle" style="margin-top:.4rem;">{{ shipping_form.free_shipping_threshold_cad.help_text }}</div>
+            {% endif %}
+            {% if shipping_form.free_shipping_threshold_cad.errors %}
+              <div class="errornote" style="margin-top:.4rem;">{{ shipping_form.free_shipping_threshold_cad.errors|striptags }}</div>
+            {% endif %}
+          </div>
+          <div style="min-width:260px;">
+            {{ shipping_form.delivery_cost_under_threshold_cad.label_tag }}
+            {{ shipping_form.delivery_cost_under_threshold_cad }}
+            {% if shipping_form.delivery_cost_under_threshold_cad.help_text %}
+              <div class="panel-subtitle" style="margin-top:.4rem;">{{ shipping_form.delivery_cost_under_threshold_cad.help_text }}</div>
+            {% endif %}
+            {% if shipping_form.delivery_cost_under_threshold_cad.errors %}
+              <div class="errornote" style="margin-top:.4rem;">{{ shipping_form.delivery_cost_under_threshold_cad.errors|striptags }}</div>
+            {% endif %}
+          </div>
+          <button class="button" type="submit">Save</button>
+        </form>
+      </article>
+    </div>
+
+    <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Merch margin table</div>
+      <div class="panel-subtitle">Price is the storefront price. Cost/value is internal (not shown to customers).</div>
+
+      {% if rows %}
+        <div class="table-scroll">
+          <table class="analytics-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>SKU</th>
+                <th class="numeric">Price</th>
+                <th class="numeric">Cost</th>
+                <th class="numeric">Profit</th>
+                <th class="numeric">Margin</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                <tr>
+                  <td>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                      <a href="{{ row.change_url }}"><strong>{{ row.name }}</strong></a>
+                      {% if row.public_url %}
+                        <a class="pill muted" href="{{ row.public_url }}" target="_blank" rel="noopener">View</a>
+                      {% endif %}
+                    </div>
+                    {% if row.category %}
+                      <div class="panel-subtitle" style="margin-top:.25rem;">{{ row.category }}</div>
+                    {% endif %}
+                  </td>
+                  <td><code>{{ row.sku|default:"—" }}</code></td>
+                  <td class="numeric"><strong>{{ row.price_label }}</strong></td>
+                  <td class="numeric">{{ row.cost_label }}</td>
+                  <td class="numeric">{{ row.profit_label }}</td>
+                  <td class="numeric">
+                    {% if row.margin_pct != None %}
+                      <span class="action-pill {% if row.margin_pct >= 0 %}added{% else %}deleted{% endif %}">{{ row.margin_pct }}%</span>
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if row.is_active %}
+                      <span class="pill">Active</span>
+                    {% else %}
+                      <span class="pill muted">Inactive</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <p>No merch products match the current filters.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

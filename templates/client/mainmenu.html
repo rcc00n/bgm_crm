@@ -1039,7 +1039,6 @@ main h3{
             </div>
           </div>
 
-          <div class="hint" style="margin-top:.5rem">{{ services_copy.booking_scroll_hint_desktop }}</div>
         </div>
       </div>
     </div>
@@ -2635,20 +2634,7 @@ body.modal-open{
     new MutationObserver(syncModalFlag).observe(bookModal, { attributes:true, attributeFilter:['class'] });
   }
 
-  /* 2) Подсказка для тач‑устройств: меняем текст про скролл */
-  const hintEl = document.querySelector('.hint');
-  const hintMobile = "{{ services_copy.booking_scroll_hint_mobile|escapejs }}";
-  const hintDesktop = "{{ services_copy.booking_scroll_hint_desktop|escapejs }}";
-  if (hintEl){
-    const mq = window.matchMedia('(pointer: coarse)');
-    const setHint = () => {
-      hintEl.textContent = mq.matches ? hintMobile : hintDesktop;
-    };
-    setHint();
-    try{ mq.addEventListener('change', setHint); }catch(_){ mq.onchange = setHint; }
-  }
-
-  /* 3) Drag‑scroll для сетки расписания на трекпадах/тачпадах */
+  /* 2) Drag‑scroll for the schedule grid (trackpads/touchpads). */
   const wrap = document.getElementById('olWrap');
   if (wrap){
     let down=false, startX=0, base=0, pointerId=null;

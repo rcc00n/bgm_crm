@@ -41,17 +41,14 @@
 	                {% else %}
 	                  <div class="thumb-ph" aria-hidden="true"></div>
 	                {% endif %}
-	              </a>
+              </a>
               <div class="cart__meta">
                 <a class="cart__title" href="{% url 'store-product' slug=row.product.slug %}">{{ row.product.name }}</a>
-                {% if row.product.sku %}
-                  <div class="section__desc">SKU: {{ row.product.sku }}</div>
-                {% endif %}
                 {% if row.product.category %}
                   <div class="section__desc">Category: {{ row.product.category.display_name }}</div>
                 {% endif %}
                 {% if row.option %}
-                  <div class="section__desc">Option: {{ row.option.name }}{% if row.option.sku %} · SKU: {{ row.option.sku }}{% endif %}</div>
+                  <div class="section__desc">Option: {{ row.option.name }}</div>
                 {% endif %}
                 {% if row.has_reference_photo %}
                   <div class="section__desc">
@@ -99,6 +96,11 @@
         <div class="cart__foot">
           <div>
             <div class="cart__note section__desc">Estimated shipping & taxes are calculated at checkout.</div>
+            {% if cart_has_merch and store_shipping.free_shipping_threshold_cad %}
+              <div class="cart__note section__desc">
+                Canada free shipping over <strong>{{ store_shipping.free_shipping_threshold_cad|money }}</strong>.
+              </div>
+            {% endif %}
             {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
               <div class="cart__note section__desc">Retail: {{ retail_total|money }} · You save {{ cart_savings|money }} via dealer pricing.</div>
             {% endif %}

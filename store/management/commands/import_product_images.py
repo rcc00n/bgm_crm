@@ -10,7 +10,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils.text import slugify
 
-from store.models import Product
+from store.models import Product, ProductOption
 
 
 MERCH_CATEGORY_SLUGS = {
@@ -92,6 +92,24 @@ def _pick_primary_image_url(group: List[Dict[str, str]]) -> str:
     return best_url
 
 
+def _iter_candidate_skus(group: List[Dict[str, str]], *, limit: int = 50) -> List[str]:
+    """
+    Return unique SKU candidates from Shopify-like rows in stable order.
+    We use these for fallback matching against Product.sku and ProductOption.sku.
+    """
+    out: List[str] = []
+    seen = set()
+    for row in group:
+        sku = (row.get("SKU") or row.get("Variant SKU") or "").strip()
+        if not sku or sku in seen:
+            continue
+        out.append(sku)
+        seen.add(sku)
+        if len(out) >= limit:
+            break
+    return out
+
+
 def _iter_shopify_groups(rows: Iterable[Dict[str, str]]):
     grouped: Dict[str, List[Dict[str, str]]] = defaultdict(list)
     for row in rows:
@@ -159,20 +177,23 @@ class Command(BaseCommand):
         if not use_stdin and not csv_path:
             raise CommandError("Provide --csv PATH or use --stdin.")
 
+        raw = ""
         if use_stdin:
             raw = sys.stdin.read()
             if not raw.strip():
                 raise CommandError("No CSV data on stdin.")
-            # csv.DictReader expects a file-like object.
-            fp = raw.splitlines(True)
-            reader = csv.DictReader(fp)
         else:
             try:
-                f = open(csv_path, "r", encoding="utf-8-sig", newline="")
+                with open(csv_path, "r", encoding="utf-8-sig", newline="") as f:
+                    raw = f.read()
             except FileNotFoundError as exc:
                 raise CommandError(str(exc)) from exc
-            with f:
-                reader = csv.DictReader(f)
+            if not raw.strip():
+                raise CommandError(f"CSV file is empty: {csv_path}")
+
+        # csv.DictReader expects a file-like object.
+        fp = raw.splitlines(True)
+        reader = csv.DictReader(fp)
 
         fieldnames = [str(n).strip() for n in (reader.fieldnames or [])]
         if "Handle" not in fieldnames and "Title" not in fieldnames:
@@ -184,10 +205,27 @@ class Command(BaseCommand):
         planned_updates: List[Tuple[Product, str]] = []
         missing: List[Tuple[str, str, str]] = []  # (handle, slug, sku_sample)
 
-        # Preload all products by slug for fast lookups.
-        products_by_slug: Dict[str, Product] = {
-            p.slug: p for p in Product.objects.select_related("category").all()
-        }
+        # Preload for fast lookups (command is intended for one-off imports).
+        products = list(Product.objects.select_related("category").all())
+        products_by_id: Dict[int, Product] = {p.id: p for p in products}
+        products_by_slug: Dict[str, Product] = {p.slug: p for p in products if getattr(p, "slug", "")}
+        products_by_sku_cf: Dict[str, Product] = {}
+        for p in products:
+            sku = (getattr(p, "sku", "") or "").strip()
+            if sku:
+                products_by_sku_cf[sku.casefold()] = p
+
+        option_products_by_sku_cf: Dict[str, Product] = {}
+        for sku, product_id in (
+            ProductOption.objects.exclude(sku__isnull=True)
+            .exclude(sku="")
+            .values_list("sku", "product_id")
+        ):
+            if not sku:
+                continue
+            product = products_by_id.get(int(product_id))
+            if product:
+                option_products_by_sku_cf[str(sku).strip().casefold()] = product
 
         for handle, group in _iter_shopify_groups(reader):
             if limit and len(planned_updates) >= limit:
@@ -202,22 +240,43 @@ class Command(BaseCommand):
             product = products_by_slug.get(handle_slug)
 
             if not product:
-                # Fallback: try any SKU within the group.
-                sku_sample = ""
-                for row in group:
-                    sku_sample = (row.get("SKU") or row.get("Variant SKU") or "").strip()
-                    if sku_sample:
+                # Some imports use "handle" as an SKU-like field.
+                product = (
+                    products_by_sku_cf.get(handle.casefold())
+                    or products_by_sku_cf.get(handle_slug.casefold())
+                )
+
+            candidate_skus = _iter_candidate_skus(group)
+            sku_sample = candidate_skus[0] if candidate_skus else ""
+
+            if not product and candidate_skus:
+                # Some imports store the part number as Product.slug.
+                for sku in candidate_skus:
+                    sku_slug = slugify(sku)
+                    if not sku_slug:
+                        continue
+                    product = products_by_slug.get(sku_slug)
+                    if product:
                         break
-                if sku_sample:
-                    product = (
-                        Product.objects.select_related("category")
-                        .filter(sku=sku_sample)
-                        .first()
-                    )
-                if not product:
-                    stats.skipped_missing += 1
-                    missing.append((handle, handle_slug, sku_sample))
-                    continue
+
+            if not product and candidate_skus:
+                # Product.sku matching (case-insensitive).
+                for sku in candidate_skus:
+                    product = products_by_sku_cf.get(sku.casefold())
+                    if product:
+                        break
+
+            if not product and candidate_skus:
+                # Option.sku -> Product fallback (case-insensitive).
+                for sku in candidate_skus:
+                    product = option_products_by_sku_cf.get(sku.casefold())
+                    if product:
+                        break
+
+            if not product:
+                stats.skipped_missing += 1
+                missing.append((handle, handle_slug, sku_sample))
+                continue
 
             if _is_merch_product(product):
                 stats.skipped_merch += 1
@@ -270,4 +329,3 @@ class Command(BaseCommand):
         self.stdout.write(f"- skipped_merch: {stats.skipped_merch}")
         self.stdout.write(f"- skipped_no_image: {stats.skipped_no_image}")
         self.stdout.write(f"- skipped_missing_product: {stats.skipped_missing}")
-

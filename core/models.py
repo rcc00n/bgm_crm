@@ -50,6 +50,14 @@ class Role(models.Model):
     notify_on_fitment_request = models.BooleanField(default=False)
     notify_on_site_notice_signup = models.BooleanField(default=False)
     notify_on_order_review_request = models.BooleanField(default=False)
+    admin_sidebar_visible_groups = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            "Optional: limit which admin sidebar sections are visible for this role. "
+            "Leave empty to show everything."
+        ),
+    )
 
     def __str__(self):
         return self.name
@@ -3208,9 +3216,10 @@ from django.core.validators import MinLengthValidator
 
 class DealerTier(models.TextChoices):
     NONE = "NONE", "None"
-    TIER_5 = "TIER_5", "Dealer 5% tier"
-    TIER_10 = "TIER_10", "Dealer 10% tier"
-    TIER_15 = "TIER_15", "Dealer 15% tier"
+    # Keep display labels generic so ops can control discount % via DealerTierLevel rows.
+    TIER_5 = "TIER_5", "Tier 1"
+    TIER_10 = "TIER_10", "Tier 2"
+    TIER_15 = "TIER_15", "Tier 3"
 
 
 class DealerTierLevel(models.Model):
@@ -4231,7 +4240,7 @@ class MasterAvailability(models.Model):
                 })
 
 
-class ClientReview(models.Model):
+class AppointmentReview(models.Model):
     appointment = models.OneToOneField(
         Appointment,
         on_delete=models.CASCADE,
@@ -4249,8 +4258,24 @@ class ClientReview(models.Model):
         return f"Review {self.rating}★ for {self.appointment}"
 
     class Meta:
-        verbose_name = "Client Review"
-        verbose_name_plural = "Client Reviews"
+        db_table = "core_clientreview"
+        verbose_name = "Appointment review"
+        verbose_name_plural = "Appointment reviews"
+
+
+from store.models import StoreReview
+
+
+class ClientReview(StoreReview):
+    """
+    Proxy to store reviews so all inbound reviews are moderated at:
+    /admin/core/clientreview/
+    """
+
+    class Meta:
+        proxy = True
+        verbose_name = "Client review"
+        verbose_name_plural = "Client reviews"
 
 
 class ServiceDiscount(models.Model):

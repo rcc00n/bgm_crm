@@ -1,6 +1,7 @@
 # store/admin.py
 import os
 import re
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib import admin, messages
@@ -15,6 +16,8 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils import timezone
 
+from core.utils import format_currency
+
 from .models import (
     CarMake,
     CarModel,
@@ -22,6 +25,7 @@ from .models import (
     CleanupBatch,
     ImportBatch,
     StorePricingSettings,
+    StoreShippingSettings,
     Product,
     ProductImage,
     ProductOption,
@@ -89,6 +93,25 @@ class PrintfulMerchFilter(admin.SimpleListFilter):
         return queryset
 
 
+class CostStatusFilter(admin.SimpleListFilter):
+    title = "Cost/value"
+    parameter_name = "unit_cost"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("missing", "Missing value"),
+            ("set", "Value set"),
+        )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == "missing":
+            return queryset.filter(unit_cost__isnull=True)
+        if value == "set":
+            return queryset.filter(unit_cost__isnull=False)
+        return queryset
+
+
 class ProductOptionInline(admin.TabularInline):
     model = ProductOption
     extra = 1
@@ -135,6 +158,39 @@ class StorePricingSettingsAdmin(admin.ModelAdmin):
         return super().has_add_permission(request)
 
 
+@admin.register(StoreShippingSettings)
+class StoreShippingSettingsAdmin(admin.ModelAdmin):
+    list_display = ("free_shipping_threshold_cad", "delivery_cost_under_threshold_cad", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (
+            "Merch shipping (Canada)",
+            {
+                "description": (
+                    "Set the subtotal threshold (CAD) for free shipping in Canada. "
+                    "This value is shown to customers when browsing merch."
+                ),
+                "fields": ("free_shipping_threshold_cad", "delivery_cost_under_threshold_cad"),
+            },
+        ),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if StoreShippingSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        try:
+            from django.core.cache import cache
+
+            cache.delete("bgm:store_shipping:v1")
+        except Exception:
+            pass
+
+
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "image_preview")
@@ -175,16 +231,19 @@ class ProductAdmin(admin.ModelAdmin):
         "printful_merch",
         "category_short",
         "price",
+        "unit_cost",
+        "margin_preview",
         "currency",
         "inventory",
         "is_in_house",
         "is_active",
         "contact_for_estimate",
     )
-    list_editable = ("is_active",)
+    list_editable = ("unit_cost", "is_active")
     list_filter = (
         "is_active",
         PrintfulMerchFilter,
+        CostStatusFilter,
         "is_in_house",
         "category",
         "currency",
@@ -201,7 +260,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     fields = (
         "name", "slug", "sku", "category",
-        ("price", "contact_for_estimate"),
+        ("price", "unit_cost", "contact_for_estimate"),
         "is_in_house",
         "estimate_from_price",
         ("option_column_1_label", "option_column_2_label"),
@@ -212,6 +271,43 @@ class ProductAdmin(admin.ModelAdmin):
         "specs_text", "specs_preview",
         "created_at", "updated_at",
     )
+
+    def margin_preview(self, obj):
+        """
+        Profit margin for the lowest selectable retail price (best-effort).
+        Cost is internal and optional.
+        """
+        try:
+            price = obj.display_price
+        except Exception:
+            price = None
+        cost = getattr(obj, "unit_cost", None)
+        if cost in (None, "") or price in (None, ""):
+            return "—"
+        try:
+            price_val = Decimal(price)
+            cost_val = Decimal(cost)
+        except Exception:
+            return "—"
+        if price_val <= 0:
+            return "—"
+        profit = price_val - cost_val
+        margin = (profit / price_val) * Decimal("100")
+        try:
+            margin_pct = float(margin)
+        except Exception:
+            margin_pct = 0.0
+
+        profit_label = format_currency(profit, include_code=False)
+        css = "color:#17d45b;font-weight:800;" if margin_pct >= 0 else "color:#ff8a80;font-weight:800;"
+        return format_html(
+            '<span style="{}">{:.1f}%</span> <span style="opacity:.75;">({})</span>',
+            css,
+            margin_pct,
+            profit_label,
+        )
+
+    margin_preview.short_description = "Margin"
 
     def get_urls(self):
         urls = super().get_urls()

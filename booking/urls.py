@@ -81,6 +81,11 @@ urlpatterns = [
         name="admin-analytics-insights",
     ),
     path(
+        "admin/storefront/merch/economics/",
+        admin.site.admin_view(core_views.admin_merch_economics),
+        name="admin-merch-economics",
+    ),
+    path(
         "admin/email/overview/",
         admin.site.admin_view(core_views.admin_email_overview),
         name="admin-email-overview",

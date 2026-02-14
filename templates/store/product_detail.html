@@ -33,11 +33,11 @@
 	        {% endif %}
       </div>
 
-      <div class="product-detail__panel">
-        <div class="card product-detail__options-card{% if not product_options %} product-detail__options-card--simple{% endif %}" style="padding:1.2rem">
-          <form class="product-form" method="post" action="{% url 'store-cart-add' slug=product.slug %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="price price--detail{% if not product_options %} price--hero{% endif %}">
+	      <div class="product-detail__panel">
+	        <div class="card product-detail__options-card{% if not product_options and product.contact_for_estimate %} product-detail__options-card--simple{% endif %}" style="padding:1.2rem">
+	          <form class="product-form" method="post" action="{% url 'store-cart-add' slug=product.slug %}" enctype="multipart/form-data">
+	            {% csrf_token %}
+	            <div class="price price--detail{% if not product_options and product.contact_for_estimate %} price--hero{% endif %}">
               {% if product.contact_for_estimate %}
                 <strong>Contact for estimate</strong>
                 {% if product.estimate_from_price %}<span class="price__hint">From {{ product.estimate_from_price|money }}</span>{% endif %}
@@ -57,7 +57,7 @@
                   </strong>
                   {% if product.old_price %}<span class="old">{{ product.old_price|money }}</span>{% endif %}
                 </div>
-                {% if dealer_portal.show_discount %}
+                {% if dealer_portal.show_discount and not product|is_merch_product %}
                   <div class="price__dealer-row" data-dealer-price-wrapper>
                     <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
                     <strong class="price__value" data-product-price-dealer>
@@ -68,34 +68,33 @@
                     </span>
                   </div>
                 {% endif %}
+                {% if store_shipping.free_shipping_threshold_cad and product.category and product.category.slug == 'merch' %}
+                  <div class="price__hint" style="margin-top:.35rem;">
+                    Canada free shipping over {{ store_shipping.free_shipping_threshold_cad|money }}.
+                  </div>
+                {% endif %}
               {% endif %}
             </div>
-            {% if not product_options %}
-              {% if product.sku or product.category %}
-                <div class="product-simple__meta">
-                  {% if product.sku %}
-                    <div class="product-simple__item">
-                      <span>SKU</span>
-                      <strong>{{ product.sku }}</strong>
-                    </div>
-                  {% endif %}
-                  {% if product.category %}
-                    <div class="product-simple__item">
-                      <span>Category</span>
-                      <strong>{{ product.category.display_name }}</strong>
-                    </div>
-                  {% endif %}
-                </div>
-              {% endif %}
-            {% endif %}
+	            {% if not product_options and product.contact_for_estimate %}
+	              {% if product.category %}
+	                <div class="product-simple__meta">
+	                  {% if product.category %}
+	                    <div class="product-simple__item">
+	                      <span>Category</span>
+	                      <strong>{{ product.category.display_name }}</strong>
+	                    </div>
+	                  {% endif %}
+	                </div>
+	              {% endif %}
+	            {% endif %}
             {% if product.contact_for_estimate %}
               <div class="quote-note">Custom builds are quoted individually. Tell us what you’re building — we’ll take it from there.</div>
             {% endif %}
 
-            {% if product_options %}
-              <div class="options-collapse" data-options-collapse>
-                <div class="options-preview" data-options-preview>
-                  <fieldset class="option-picker{% if options_two_column %} option-picker--split{% endif %}" id="product-options">
+	            {% if product_options %}
+	              <div class="options-collapse" data-options-collapse>
+	                <div class="options-preview" data-options-preview>
+	                  <fieldset class="option-picker{% if options_two_column %} option-picker--split{% endif %}" id="product-options">
                     <legend>Options</legend>
                     <div class="option-picker__toolbar" data-option-toolbar hidden>
                       <div class="option-picker__selected" aria-live="polite">
@@ -137,14 +136,11 @@
                                     <span class="option-pill__top">
                                       <span class="option-pill__meta">
                                         <span class="option-pill__name">{{ opt.name }}</span>
-                                        {% if opt.sku %}
-                                          <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
-                                        {% endif %}
                                       </span>
                                       {% if not product.contact_for_estimate %}
                                         <span class="option-pill__price">
                                           {{ opt.unit_price|money }}
-                                          {% if dealer_portal.show_discount %}
+                                          {% if dealer_portal.show_discount and not product|is_merch_product %}
                                             <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
                                           {% endif %}
                                         </span>
@@ -184,14 +180,11 @@
                                     <span class="option-pill__top">
                                       <span class="option-pill__meta">
                                         <span class="option-pill__name">{{ opt.name }}</span>
-                                        {% if opt.sku %}
-                                          <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
-                                        {% endif %}
                                       </span>
                                       {% if not product.contact_for_estimate %}
                                         <span class="option-pill__price">
                                           {{ opt.unit_price|money }}
-                                          {% if dealer_portal.show_discount %}
+                                          {% if dealer_portal.show_discount and not product|is_merch_product %}
                                             <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
                                           {% endif %}
                                         </span>
@@ -230,14 +223,11 @@
                                 <span class="option-pill__top">
                                   <span class="option-pill__meta">
                                     <span class="option-pill__name">{{ opt.name }}</span>
-                                    {% if opt.sku %}
-                                      <span class="option-pill__sku">SKU: {{ opt.sku }}</span>
-                                    {% endif %}
                                   </span>
                                   {% if not product.contact_for_estimate %}
                                     <span class="option-pill__price">
                                       {{ opt.unit_price|money }}
-                                      {% if dealer_portal.show_discount %}
+                                      {% if dealer_portal.show_discount and not product|is_merch_product %}
                                         <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
                                       {% endif %}
                                     </span>
@@ -252,10 +242,42 @@
                         {% endfor %}
                       </div>
                     {% endif %}
-                  </fieldset>
-                </div>
-              </div>
-            {% endif %}
+	                  </fieldset>
+	                </div>
+	              </div>
+	            {% elif not product.contact_for_estimate %}
+	              <div class="options-collapse" data-options-collapse>
+	                <div class="options-preview" data-options-preview>
+	                  <fieldset class="option-picker" id="product-options">
+	                    <legend>Options</legend>
+	                    <div class="option-picker__grid">
+	                      <label class="option-pill" aria-disabled="true">
+	                        <input type="radio" checked disabled>
+	                        <span class="option-pill__inner">
+	                          <span class="option-pill__top">
+	                            <span class="option-pill__meta">
+	                              <span class="option-pill__name">Standard</span>
+	                              {% if product.sku %}
+	                                <span class="option-pill__sku">{{ product.sku }}</span>
+	                              {% endif %}
+	                            </span>
+	                            <span class="option-pill__price">
+	                              {{ product.display_price|money }}
+	                              {% if dealer_portal.show_discount and not product|is_merch_product %}
+	                                <span class="option-pill__dealer">Dealer {{ product.display_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+	                              {% endif %}
+	                            </span>
+	                          </span>
+	                          {% if product.category %}
+	                            <span class="option-pill__desc">{{ product.category.display_name }}</span>
+	                          {% endif %}
+	                        </span>
+	                      </label>
+	                    </div>
+	                  </fieldset>
+	                </div>
+	              </div>
+	            {% endif %}
 
             {% if not product.contact_for_estimate %}
               <label class="section__desc" for="qty">Quantity</label>
@@ -433,12 +455,13 @@
 	    </div>
 	    {% endif %}
 
-	{% if go_along %}
-	  <div class="section__head" style="margin-top:1.6rem">
-	    <h3 class="section__title">Items that go along to complete your build</h3>
-	      </div>
-      <div class="grid grid--cards">
-        {% for p in go_along %}
+		{# Hide "Items that go along..." cross-sell for merch only. #}
+		{% if go_along and product.sku|slice:":3" != "PF-" and product.slug|slice:":6" != "merch-" and product.category.slug != "merch" %}
+		  <div class="section__head" style="margin-top:1.6rem">
+		    <h3 class="section__title">Items that go along to complete your build</h3>
+		      </div>
+	      <div class="grid grid--cards">
+	        {% for p in go_along %}
 	          <article class="card">
 	            <a href="{% url 'store-product' slug=p.slug %}">
 	              {% if p.main_image %}
@@ -458,7 +481,7 @@
                     {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
                     <strong>{{ p.display_price|money }}</strong>
                   </div>
-                  {% if dealer_portal.show_discount %}
+                  {% if dealer_portal.show_discount and not p|is_merch_product %}
                     <div class="price__dealer-row">
                       <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
                       <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
@@ -497,7 +520,7 @@
                     {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
                     <strong>{{ p.display_price|money }}</strong>
                   </div>
-                  {% if dealer_portal.show_discount %}
+                  {% if dealer_portal.show_discount and not p|is_merch_product %}
                     <div class="price__dealer-row">
                       <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
                       <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>

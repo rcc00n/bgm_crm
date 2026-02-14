@@ -1,5 +1,6 @@
 # core/context_processors_core.py
 from django.conf import settings
+from django.core.cache import cache
 from django.urls import resolve, reverse
 
 from core.services.media import (
@@ -10,6 +11,8 @@ from core.services.media import (
 
 from .models import HeroImage, TopbarSettings, HomePageCopy, ServicesPageCopy, StorePageCopy
 from core.services.fonts import serialize_font_preset
+from core.utils import format_currency
+from store.models import StoreShippingSettings
 
 # Default static fallbacks for every public route that expects a hero.
 DEFAULT_CAPTION = DEFAULT_MEDIA_CAPTION
@@ -23,6 +26,7 @@ HERO_FALLBACKS = {
     "store-cart": {"path": "img/hero-products.jpg", "alt": "Products hero"},
     "store-checkout": {"path": "img/hero-products.jpg", "alt": "Products hero"},
     "merch": {"path": "img/hero-merch.jpg", "alt": "Merch hero"},
+    "dealer-entry": {"path": "img/hero-dealers.jpg", "alt": "Dealer banner"},
     "dealer-status": {"path": "img/hero-dealers.jpg", "alt": "Dealer banner"},
     # Keep financing resilient until a dedicated asset is added.
     "financing": {"path": "img/hero-services.jpg", "alt": "Financing hero"},
@@ -47,6 +51,7 @@ FALLBACK = {"path": "img/hero-home.jpg", "alt": "BGM hero"}
 # Bind URL names to HeroImage placements for DB lookups.
 HERO_DB_BINDINGS = {
     "home": HeroImage.Location.HOME,
+    "dealer-entry": HeroImage.Location.DEALER_STATUS,
     "dealer-status": HeroImage.Location.DEALER_STATUS,
     "store": HeroImage.Location.STORE,
     "merch": HeroImage.Location.MERCH,
@@ -258,6 +263,28 @@ def currency(request):
             "symbol": getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$"),
         }
     }
+
+
+def store_shipping(request):
+    """
+    Storefront shipping flags/settings (currently: Canada free shipping threshold for merch).
+    Kept in a singleton model so staff can change it from /admin without code deploys.
+    """
+    cache_key = "bgm:store_shipping:v1"
+    cached = cache.get(cache_key)
+    if isinstance(cached, dict):
+        return {"store_shipping": cached}
+
+    threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
+    delivery_cost = StoreShippingSettings.get_delivery_cost_under_threshold_cad()
+    payload = {
+        "free_shipping_threshold_cad": threshold,
+        "free_shipping_threshold_label": format_currency(threshold) if threshold else "",
+        "delivery_cost_under_threshold_cad": delivery_cost,
+        "delivery_cost_under_threshold_label": format_currency(delivery_cost) if delivery_cost else "",
+    }
+    cache.set(cache_key, payload, 60)
+    return {"store_shipping": payload}
 
 
 def topbar_style(request):

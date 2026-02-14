@@ -1,4 +1,4 @@
-{% load static %}
+{% load static copy_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -566,6 +566,17 @@ html{ font-size: 17px; }                      /* было 16px */
 .site-footer{border-top:1px solid var(--line);padding:1.6rem 0;color:var(--muted-2);font-size:.95rem}
 
 </style>
+  <style id="financing-desktop-grid-balance">
+    /* Laptop/desktop: keep the 4-card sections balanced (2x2) instead of 3+1. */
+    @media (min-width: 901px){
+      #steps .grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+      }
+      #faq .grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
   <style id="financing-mobile-density">
     @media (max-width: 900px){
       .container{ padding-inline:1.1rem; }
@@ -690,7 +701,9 @@ html{ font-size: 17px; }                      /* было 16px */
 
     <div class="hero__media frame frame--media">
       <img src="{% static 'img/hero-services.jpg' %}" alt="{{ financing_copy.hero_image_alt }}" loading="lazy" decoding="async">
-      <p class="hero__disclaimer">{{ financing_copy.hero_disclaimer }}</p>
+      {% with disclaimer=financing_copy.hero_disclaimer|suppress_placeholder_disclaimer %}
+        {% if disclaimer %}<p class="hero__disclaimer">{{ disclaimer }}</p>{% endif %}
+      {% endwith %}
     </div>
   </div>
 </section>

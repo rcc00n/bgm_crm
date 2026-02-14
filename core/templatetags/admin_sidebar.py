@@ -20,6 +20,38 @@ from core.services.admin_notifications import (
 )
 register = template.Library()
 
+def _visible_group_keys_for_user(user) -> Optional[set[str]]:
+    """
+    Role-based sidebar visibility.
+
+    - If no roles are configured (or roles have no visible groups set), do not restrict.
+    - If at least one role has visible groups set, restrict to the union of those groups.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return None
+    if getattr(user, "is_superuser", False):
+        return None
+    try:
+        links = user.userrole_set.select_related("role").all()
+    except Exception:
+        return None
+
+    configured: list[set[str]] = []
+    for link in links:
+        role = getattr(link, "role", None)
+        raw = getattr(role, "admin_sidebar_visible_groups", None) or []
+        if isinstance(raw, str):
+            raw = [raw]
+        values = {val for val in raw if isinstance(val, str) and val}
+        if values:
+            configured.append(values)
+    if not configured:
+        return None
+    allowed: set[str] = set()
+    for values in configured:
+        allowed |= values
+    return allowed
+
 
 def _as_list(value: Optional[Iterable[str]]) -> List[str]:
     if not value:
@@ -274,6 +306,7 @@ def build_admin_sidebar(context) -> List[Dict[str, Any]]:
         "custom_sidebar", []
     )
     disabled_sections = get_disabled_notification_sections(user)
+    visible_group_keys = _visible_group_keys_for_user(user)
     view_name = getattr(getattr(request, "resolver_match", None), "view_name", "") or ""
     path = request.path
 
@@ -282,14 +315,17 @@ def build_admin_sidebar(context) -> List[Dict[str, Any]]:
         groups_payload = []
         section_label = section.get("label", "") or ""
         for group in section.get("groups", []):
+            group_label = group.get("label", "") or ""
+            notification_key = make_notification_group_key(section_label, group_label)
+            if visible_group_keys is not None and notification_key not in visible_group_keys:
+                continue
+
             items_payload = []
             for item in group.get("items", []):
                 rendered = _build_item(item, user, view_name, path)
                 if rendered:
                     items_payload.append(rendered)
             if items_payload:
-                group_label = group.get("label", "") or ""
-                notification_key = make_notification_group_key(section_label, group_label)
                 notifications_enabled = notification_key not in disabled_sections
                 groups_payload.append(
                     {

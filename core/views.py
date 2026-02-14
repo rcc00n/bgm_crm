@@ -1,6 +1,7 @@
 # core/views.py
 import logging
 import re
+from decimal import Decimal, InvalidOperation
 
 from django.apps import apps
 from django import forms
@@ -9,6 +10,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.db.models import Prefetch, Q
 from django.contrib import admin, messages
+from django.contrib.admin.models import ADDITION, CHANGE, DELETION
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -95,6 +97,8 @@ from notifications.services import (
     notify_about_dealer_application,
     queue_lead_digest,
 )
+from core.utils import format_currency
+from store.models import Product as StoreProduct, StoreShippingSettings
 
 logger = logging.getLogger(__name__)
 BOOKING_REFERENCE_IMAGE_MAX_MB = int(getattr(settings, "BOOKING_REFERENCE_IMAGE_MAX_MB", 8))
@@ -962,18 +966,139 @@ def admin_staff_usage(request):
     except (TypeError, ValueError):
         per_page = 50
 
+    user_raw = (request.GET.get("user") or "").strip()
+    action_raw = (request.GET.get("action") or "").strip().lower()
+    model_raw = (request.GET.get("model") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    start_raw = (request.GET.get("start") or "").strip()
+    end_raw = (request.GET.get("end") or "").strip()
+
+    user_id = None
+    if user_raw:
+        try:
+            user_id = int(user_raw)
+        except (TypeError, ValueError):
+            user_id = None
+
+    action_map = {
+        "1": ADDITION,
+        "add": ADDITION,
+        "added": ADDITION,
+        "addition": ADDITION,
+        "2": CHANGE,
+        "change": CHANGE,
+        "changed": CHANGE,
+        "3": DELETION,
+        "delete": DELETION,
+        "deleted": DELETION,
+        "deletion": DELETION,
+    }
+    action_flag = action_map.get(action_raw) if action_raw else None
+    action_choice = ""
+    if action_flag == ADDITION:
+        action_choice = "added"
+    elif action_flag == CHANGE:
+        action_choice = "changed"
+    elif action_flag == DELETION:
+        action_choice = "deleted"
+
+    content_type_id = None
+    if model_raw:
+        try:
+            content_type_id = int(model_raw)
+        except (TypeError, ValueError):
+            content_type_id = None
+
+    # Default to last 30 days unless a date range is provided.
+    window_days = 30
+    start_date = parse_date(start_raw) if start_raw else None
+    end_date = parse_date(end_raw) if end_raw else None
+    today = timezone.localdate()
+    if not start_date and not end_date:
+        end_date = today
+        start_date = today - timedelta(days=window_days - 1)
+    else:
+        if start_date and not end_date:
+            end_date = start_date
+        if end_date and not start_date:
+            start_date = end_date
+        if start_date and end_date and end_date < start_date:
+            start_date, end_date = end_date, start_date
+        if start_date and end_date and (end_date - start_date).days > 364:
+            start_date = end_date - timedelta(days=364)
+
     staff_usage_periods = summarize_staff_usage_periods(windows=[1, 7, 30])
     staff_action_history = summarize_staff_action_history(
-        window_days=30,
+        window_days=window_days,
         page=page,
         per_page=per_page,
+        user_id=user_id,
+        action_flag=action_flag,
+        content_type_id=content_type_id,
+        start_date=start_date,
+        end_date=end_date,
+        query=q,
     )
+
+    staff_users = list(
+        CustomUserDisplay.objects.filter(is_staff=True)
+        .order_by("first_name", "last_name", "username", "email")
+        .only("id", "first_name", "last_name", "username", "email", "is_active")
+    )
+    staff_user_options = []
+    for staff_user in staff_users:
+        label = (
+            (staff_user.get_full_name() or "").strip()
+            or (staff_user.username or "").strip()
+            or (staff_user.email or "").strip()
+            or f"User {staff_user.pk}"
+        )
+        staff_user_options.append(
+            {
+                "id": staff_user.pk,
+                "label": label,
+                "email": (staff_user.email or "").strip(),
+                "is_active": bool(staff_user.is_active),
+            }
+        )
+
+    filter_state = {
+        "user": str(user_id) if user_id else "",
+        "action": action_choice,
+        "model": str(content_type_id) if content_type_id else "",
+        "q": q,
+        "start": start_date.isoformat() if start_date else "",
+        "end": end_date.isoformat() if end_date else "",
+    }
+
+    def _qs(**overrides) -> str:
+        from urllib.parse import urlencode
+
+        params = {k: v for k, v in filter_state.items() if v}
+        params["per_page"] = str(per_page)
+        params.update({k: str(v) for k, v in overrides.items() if v is not None and v != ""})
+        encoded = urlencode(params)
+        return f"?{encoded}" if encoded else ""
+    staff_action_links = {
+        "per_page_25": _qs(per_page=25, page=1),
+        "per_page_50": _qs(per_page=50, page=1),
+        "prev": _qs(page=staff_action_history.get("prev_page") or 1) if staff_action_history.get("has_previous") else "",
+        "next": _qs(page=staff_action_history.get("next_page") or 1) if staff_action_history.get("has_next") else "",
+        "reset": reverse("admin-staff-usage"),
+    }
+
+    for row in staff_action_history.get("totals_by_user", []) or []:
+        row["filter_url"] = _qs(user=row.get("user_id"), page=1)
+
     context = admin.site.each_context(request)
     context.update(
         {
             "title": "Staff time tracking",
             "staff_usage_periods": staff_usage_periods,
             "staff_action_history": staff_action_history,
+            "staff_action_filters": filter_state,
+            "staff_action_staff_options": staff_user_options,
+            "staff_action_links": staff_action_links,
         }
     )
     return TemplateResponse(request, "admin/staff_usage.html", context)
@@ -1008,6 +1133,180 @@ def admin_web_analytics_insights(request):
         }
     )
     return TemplateResponse(request, "admin/analytics_insights.html", context)
+
+
+class MerchEconomicsSettingsForm(forms.Form):
+    free_shipping_threshold_cad = forms.DecimalField(
+        label="Free shipping threshold (Canada, CAD)",
+        required=False,
+        min_value=0,
+        decimal_places=2,
+        max_digits=10,
+        help_text="Shown to customers on the merch + checkout pages. Leave blank (or 0) to disable.",
+        widget=forms.NumberInput(attrs={"step": "0.01", "placeholder": "e.g. 150.00"}),
+    )
+    delivery_cost_under_threshold_cad = forms.DecimalField(
+        label="Delivery cost under threshold (Canada, CAD)",
+        required=False,
+        min_value=0,
+        decimal_places=2,
+        max_digits=10,
+        help_text="Charged in checkout when shipping to Canada and the cart subtotal is below the free shipping threshold. Leave blank (or 0) to disable.",
+        widget=forms.NumberInput(attrs={"step": "0.01", "placeholder": "e.g. 25.00"}),
+    )
+
+
+def admin_merch_economics(request):
+    user = request.user
+    is_master = user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
+    if is_master:
+        raise PermissionDenied
+    if not user.has_perm("store.view_product"):
+        raise PermissionDenied
+
+    # Filters
+    q = (request.GET.get("q") or "").strip()
+    missing_cost = (request.GET.get("missing_cost") or "").strip() in {"1", "true", "yes", "on"}
+    show_inactive = (request.GET.get("inactive") or "").strip() in {"1", "true", "yes", "on"}
+
+    # Shipping settings
+    settings_obj = StoreShippingSettings.load()
+    initial_threshold = getattr(settings_obj, "free_shipping_threshold_cad", None) if settings_obj else None
+    initial_delivery_cost = getattr(settings_obj, "delivery_cost_under_threshold_cad", None) if settings_obj else None
+    shipping_form = MerchEconomicsSettingsForm(
+        request.POST or None,
+        initial={
+            "free_shipping_threshold_cad": initial_threshold,
+            "delivery_cost_under_threshold_cad": initial_delivery_cost,
+        },
+    )
+
+    if request.method == "POST":
+        if not user.has_perm("store.change_storeshippingsettings"):
+            raise PermissionDenied
+        if shipping_form.is_valid():
+            threshold = shipping_form.cleaned_data.get("free_shipping_threshold_cad")
+            delivery_cost = shipping_form.cleaned_data.get("delivery_cost_under_threshold_cad")
+            if threshold is not None:
+                try:
+                    threshold = Decimal(str(threshold))
+                except (InvalidOperation, TypeError, ValueError):
+                    threshold = None
+            if threshold is not None and threshold <= 0:
+                threshold = None
+            if delivery_cost is not None:
+                try:
+                    delivery_cost = Decimal(str(delivery_cost))
+                except (InvalidOperation, TypeError, ValueError):
+                    delivery_cost = None
+            if delivery_cost is not None and delivery_cost <= 0:
+                delivery_cost = None
+
+            if settings_obj:
+                settings_obj.free_shipping_threshold_cad = threshold
+                settings_obj.delivery_cost_under_threshold_cad = delivery_cost
+                settings_obj.save(
+                    update_fields=[
+                        "free_shipping_threshold_cad",
+                        "delivery_cost_under_threshold_cad",
+                        "updated_at",
+                    ]
+                )
+            else:
+                StoreShippingSettings.objects.create(
+                    free_shipping_threshold_cad=threshold,
+                    delivery_cost_under_threshold_cad=delivery_cost,
+                )
+
+            try:
+                from django.core.cache import cache
+
+                cache.delete("bgm:store_shipping:v1")
+            except Exception:
+                pass
+
+            messages.success(request, "Saved merch shipping settings.")
+            return redirect(reverse("admin-merch-economics"))
+
+    merch_qs = StoreProduct.objects.select_related("category").all()
+    merch_qs = merch_qs.filter(
+        Q(category__slug="merch")
+        | Q(sku__startswith="PF-")
+        | Q(slug__startswith="merch-")
+    )
+    if not show_inactive:
+        merch_qs = merch_qs.filter(is_active=True)
+    if q:
+        merch_qs = merch_qs.filter(Q(name__icontains=q) | Q(sku__icontains=q))
+    if missing_cost:
+        merch_qs = merch_qs.filter(unit_cost__isnull=True)
+
+    merch_products = list(merch_qs.order_by("name", "sku"))
+
+    rows = []
+    margin_values = []
+    for product in merch_products:
+        price = None
+        try:
+            price = product.display_price
+        except Exception:
+            price = None
+        cost = getattr(product, "unit_cost", None)
+
+        profit = None
+        margin_pct = None
+        if price is not None and cost is not None:
+            try:
+                price_val = Decimal(price)
+                cost_val = Decimal(cost)
+            except (InvalidOperation, TypeError, ValueError):
+                price_val = None
+                cost_val = None
+            if price_val is not None and price_val > 0:
+                profit = (price_val - cost_val).quantize(Decimal("0.01"))
+                margin_pct = float(((profit / price_val) * Decimal("100")).quantize(Decimal("0.1")))
+                margin_values.append(margin_pct)
+
+        rows.append(
+            {
+                "id": product.id,
+                "name": product.name,
+                "sku": product.sku,
+                "is_active": bool(product.is_active),
+                "category": getattr(getattr(product, "category", None), "display_name", "") or "",
+                "price_label": format_currency(price) if price is not None else "—",
+                "cost_label": format_currency(cost) if cost is not None else "—",
+                "profit_label": format_currency(profit) if profit is not None else "—",
+                "margin_pct": margin_pct,
+                "change_url": reverse("admin:store_product_change", args=[product.id]),
+                "public_url": product.get_absolute_url() if hasattr(product, "get_absolute_url") else "",
+            }
+        )
+
+    threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
+    delivery_cost = StoreShippingSettings.get_delivery_cost_under_threshold_cad()
+    summary = {
+        "count": len(merch_products),
+        "active_count": sum(1 for p in merch_products if p.is_active),
+        "missing_cost_count": sum(1 for p in merch_products if getattr(p, "unit_cost", None) is None),
+        "avg_margin_pct": round(sum(margin_values) / len(margin_values), 1) if margin_values else None,
+        "threshold_label": format_currency(threshold) if threshold else "",
+        "delivery_cost_label": format_currency(delivery_cost) if delivery_cost else "",
+    }
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Merch economics",
+            "q": q,
+            "missing_cost": missing_cost,
+            "show_inactive": show_inactive,
+            "shipping_form": shipping_form,
+            "summary": summary,
+            "rows": rows,
+        }
+    )
+    return TemplateResponse(request, "admin/merch_economics.html", context)
 
 
 def _summarize_email_logs(queryset):
@@ -1904,11 +2203,16 @@ class DealerEntryView(View):
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
-            messages.info(
-                request,
-                "Dealer access: sign in or create an account to apply.",
+            tier_levels = DealerTierLevel.objects.filter(is_active=True).order_by(
+                "minimum_spend",
+                "sort_order",
+                "code",
             )
-            return redirect(f"{reverse('login')}?next={reverse('dealer-entry')}")
+            return render(
+                request,
+                "core/dealer/entry_public.html",
+                {"tier_levels": tier_levels},
+            )
 
         profile = getattr(request.user, "userprofile", None)
         if profile and profile.is_dealer:
@@ -2157,21 +2461,43 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         ctx["dealer_application"] = dealer_app
         ctx["submitted"] = str(self.request.GET.get("submitted") or "").strip() in {"1", "true", "yes"}
 
-        # If staff reset an approved application back to pending/rejected (or a stale app exists),
-        # ensure we don't keep wholesale access enabled on the profile.
-        if (
-            dealer_app
-            and dealer_app.status != DealerApplication.Status.APPROVED
-            and up
-            and getattr(up, "is_dealer", False)
-        ):
-            up.is_dealer = False
-            up.dealer_tier = DealerTier.NONE
-            update_fields = ["is_dealer", "dealer_tier"]
-            if hasattr(up, "dealer_welcome_seen"):
-                up.dealer_welcome_seen = True
-                update_fields.append("dealer_welcome_seen")
-            up.save(update_fields=update_fields)
+        # Keep profile flags consistent with application status, but avoid revoking
+        # wholesale access just because a record is "pending" (e.g. dealer resubmitted info).
+        if dealer_app and up:
+            if (
+                dealer_app.status == DealerApplication.Status.REJECTED
+                and getattr(up, "is_dealer", False)
+            ):
+                up.is_dealer = False
+                up.dealer_tier = DealerTier.NONE
+                update_fields = ["is_dealer", "dealer_tier"]
+                if hasattr(up, "dealer_welcome_seen"):
+                    up.dealer_welcome_seen = True
+                    update_fields.append("dealer_welcome_seen")
+                up.save(update_fields=update_fields)
+
+            # Auto-heal: if we have a historical activation timestamp but access was
+            # accidentally flipped off, restore access on the dealer status page.
+            if (
+                dealer_app.status == DealerApplication.Status.PENDING
+                and (not getattr(up, "is_dealer", False))
+                and getattr(up, "dealer_since", None)
+            ):
+                update_fields = []
+                up.is_dealer = True
+                update_fields.append("is_dealer")
+
+                final_tier = dealer_app.resolved_tier()
+                if final_tier and final_tier != DealerTier.NONE and up.dealer_tier != final_tier:
+                    up.dealer_tier = final_tier
+                    update_fields.append("dealer_tier")
+
+                if hasattr(up, "dealer_welcome_seen") and not up.dealer_welcome_seen:
+                    up.dealer_welcome_seen = True
+                    update_fields.append("dealer_welcome_seen")
+
+                if update_fields:
+                    up.save(update_fields=update_fields)
 
         # Backfill: if an application is marked approved but the profile was not upgraded
         # (e.g. staff changed status in admin form), upgrade the profile here so the dealer
@@ -2209,6 +2535,25 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
             if update_fields:
                 up.save(update_fields=update_fields)
 
+        # Keep dealer pricing in sync with the staff-assigned tier.
+        # If staff explicitly set assigned_tier, treat it as authoritative (even if
+        # it's lower than the current profile tier). This avoids mismatches where the
+        # portal/catalog show a different discount than what ops configured in admin.
+        if (
+            dealer_app
+            and up
+            and getattr(up, "is_dealer", False)
+            and dealer_app.status == DealerApplication.Status.APPROVED
+        ):
+            assigned_tier = str(getattr(dealer_app, "assigned_tier", "") or "").strip()
+            if assigned_tier and assigned_tier != getattr(up, "dealer_tier", ""):
+                update_fields = ["dealer_tier"]
+                up.dealer_tier = assigned_tier
+                if not getattr(up, "dealer_since", None):
+                    up.dealer_since = dealer_app.reviewed_at or timezone.now()
+                    update_fields.append("dealer_since")
+                up.save(update_fields=update_fields)
+
         # флаг доступа и snapshot для портала
         portal_snapshot = build_portal_snapshot(self.request.user)
         ctx["portal"] = portal_snapshot
@@ -2222,6 +2567,41 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
 
         is_dealer = portal_snapshot.get("is_dealer", False)
         ctx["is_dealer"] = is_dealer
+
+        # UI-only tier/discount display. For non-dealers, show the requested tier's
+        # configured discount percent (without enabling wholesale pricing).
+        tier_levels = ctx.get("tier_levels") or []
+        tier_map = {getattr(t, "code", None): t for t in tier_levels if getattr(t, "code", None)}
+
+        portal_display = {
+            "tier_code": portal_snapshot.get("tier_code"),
+            "tier_label": portal_snapshot.get("tier_label"),
+            "discount_percent": portal_snapshot.get("discount_percent") or 0,
+            "note": "",
+        }
+        if (not is_dealer) and dealer_app:
+            requested_code = dealer_app.resolved_tier() or dealer_app.preferred_tier or DealerTier.NONE
+            requested_level = tier_map.get(requested_code)
+            if requested_level:
+                portal_display.update(
+                    {
+                        "tier_code": requested_code,
+                        "tier_label": requested_level.label,
+                        "discount_percent": requested_level.discount_percent or 0,
+                        "note": "after approval",
+                    }
+                )
+        ctx["portal_display"] = portal_display
+
+        if dealer_app:
+            application_code = dealer_app.resolved_tier() or dealer_app.preferred_tier or DealerTier.NONE
+            application_level = tier_map.get(application_code)
+            if application_level:
+                ctx["application_tier_label"] = application_level.label
+                ctx["application_tier_discount_percent"] = application_level.discount_percent or 0
+            else:
+                ctx["application_tier_label"] = dealer_app.get_preferred_tier_display() or application_code
+                ctx["application_tier_discount_percent"] = 0
 
         # One-time success banner: show once after approval, then mark as seen.
         show_welcome = bool(is_dealer and up and hasattr(up, "dealer_welcome_seen") and not up.dealer_welcome_seen)
@@ -2981,6 +3361,10 @@ def analytics_collect(request):
             page_view.page_title = base_defaults["page_title"]
             dirty.append("page_title")
         if dirty:
+            # Ensure `updated_at` reflects the latest heartbeat. With `auto_now=True`,
+            # Django will only bump the timestamp if it's included in `update_fields`.
+            if "updated_at" not in dirty:
+                dirty.append("updated_at")
             page_view.save(update_fields=dirty)
 
     status = 201 if created else 200
@@ -2988,7 +3372,7 @@ def analytics_collect(request):
 
 # core/views.py
 from datetime import datetime, timedelta
-from django.db.models import Sum, Count, F
+from django.db.models import Sum, Count, F, Avg
 from django.utils import timezone
 from django.shortcuts import render
 
@@ -3068,8 +3452,12 @@ def admin_dashboard(request):
         .order_by("-total")[:5]
     )
 
-    # 6. Средняя оценка клиентов
-    avg_rating = ClientReview.objects.aggregate(avg=Sum("rating") * 1.0 / Count("rating"))["avg"]
+    # 6. Средняя оценка клиентов (только опубликованные/одобренные отзывы)
+    avg_rating = (
+        ClientReview.objects.filter(status=ClientReview.Status.APPROVED)
+        .aggregate(avg=Avg("rating"))
+        .get("avg")
+    )
 
     # 7. Статистика магазина: общая выручка и количество заказов
     orders_completed = Order.objects.filter(status=Order.STATUS_COMPLETED)

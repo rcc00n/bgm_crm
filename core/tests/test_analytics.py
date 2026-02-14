@@ -46,6 +46,12 @@ class AnalyticsCollectViewTests(TestCase):
 
     def test_updates_existing_page_view(self):
         self.client.post(self.url, data=json.dumps(self.payload), content_type="application/json")
+        # Simulate a long-lived tab where the row's timestamp has fallen behind. We expect
+        # any subsequent heartbeat to bump `updated_at` even when using `update_fields`.
+        stale = timezone.now() - timedelta(days=2)
+        PageView.objects.filter(page_instance_id=self.payload["page_instance_id"]).update(updated_at=stale)
+        before = PageView.objects.get(page_instance_id=self.payload["page_instance_id"]).updated_at
+
         updated_payload = dict(self.payload)
         updated_payload["duration_ms"] = 6400
         response = self.client.post(
@@ -56,6 +62,7 @@ class AnalyticsCollectViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         page_view = PageView.objects.get(page_instance_id=self.payload["page_instance_id"])
         self.assertEqual(page_view.duration_ms, 6400)
+        self.assertGreater(page_view.updated_at, before)
 
     def test_attaches_user_when_authenticated(self):
         user = User.objects.create_user("tester", email="tester@example.com", password="pass1234")
@@ -186,6 +193,36 @@ class StaffUsageSummaryTests(TestCase):
         idle_row = rows[idle_staff.id]
         self.assertEqual(idle_row["total_seconds"], 0)
         self.assertEqual(idle_row["admin_views"], 0)
+
+    def test_staff_usage_includes_long_lived_views_updated_within_window(self):
+        staff = User.objects.create_user("staffer2", password="pass1234", is_staff=True)
+        session = VisitorSession.objects.create(
+            session_key="staff-session-2",
+            user=staff,
+            landing_path="/admin/",
+            user_agent="pytest",
+        )
+
+        # Simulate a tab that was opened long ago but is still active now.
+        PageView.objects.create(
+            session=session,
+            user=staff,
+            page_instance_id="staff-admin-long",
+            path="/admin/",
+            full_path="/admin/",
+            page_title="Admin",
+            referrer="",
+            started_at=timezone.now() - timedelta(days=10),
+            duration_ms=60000,
+        )
+
+        summary = summarize_staff_usage(window_days=7)
+        rows = {row["user_id"]: row for row in summary["rows"]}
+        staff_row = rows[staff.id]
+
+        # Older implementation filtered by started_at and would have dropped this.
+        self.assertEqual(staff_row["admin_seconds"], 60)
+        self.assertEqual(staff_row["admin_views"], 1)
 
 
 class AnalyticsInsightsSummaryTests(TestCase):

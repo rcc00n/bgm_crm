@@ -80,6 +80,14 @@
               </label>
             </fieldset>
 
+            {% if cart_has_merch and store_shipping.free_shipping_threshold_cad %}
+              <div class="callout callout--ok" style="margin-top:.8rem;">
+                <div class="callout__body">
+                  Free shipping in Canada on orders over <strong>{{ store_shipping.free_shipping_threshold_cad|money }}</strong>.
+                </div>
+              </div>
+            {% endif %}
+
             <!-- Address -->
             <div id="addr" class="addr">
               <div class="fields-2">
@@ -144,31 +152,39 @@
           <section>
             <div class="section__head" style="margin-bottom:.45rem;">
               <h3 class="block-title">Payment</h3>
-              <p class="section__desc">Pick a 50% deposit or pay in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee — nothing else.</p>
+              {% if cart_is_merch_checkout %}
+                <p class="section__desc">Merch orders are paid in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee. Delivery (if applicable) is shown in the order summary.</p>
+              {% else %}
+                <p class="section__desc">Pick a 50% deposit or pay in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee. Delivery (if applicable) is shown in the order summary.</p>
+              {% endif %}
             </div>
 
-            <fieldset class="options options--pay">
-              <label class="opt opt--wide">
-                <input type="radio" name="pay_mode" value="deposit_50" {% if pay_mode == 'deposit_50' %}checked{% endif %}>
-                <div>
-                  <div class="opt__title">Pay 50% now</div>
-                  <div class="opt__sub">
-                    Charge now {{ payment_options.deposit_50.charge|money }} (items {{ payment_options.deposit_50.base|money }} + GST {{ payment_options.deposit_50.gst|money }} + processing {{ payment_options.deposit_50.processing_fee|money }}).
-                    Balance later {{ payment_options.deposit_50.balance_due|money }} (remaining items + GST/processing).
+            {% if not cart_is_merch_checkout %}
+              <fieldset class="options options--pay">
+                <label class="opt opt--wide">
+                  <input type="radio" name="pay_mode" value="deposit_50" {% if pay_mode == 'deposit_50' %}checked{% endif %}>
+                  <div>
+                    <div class="opt__title">Pay 50% now</div>
+                    <div class="opt__sub" data-pay-copy="deposit_50">
+                      Charge now {{ payment_options.deposit_50.charge|money }} (subtotal {{ payment_options.deposit_50.base|money }} + GST {{ payment_options.deposit_50.gst|money }} + processing {{ payment_options.deposit_50.processing_fee|money }}).
+                      Balance later {{ payment_options.deposit_50.balance_due|money }} (remaining subtotal + GST/processing).
+                    </div>
                   </div>
-                </div>
-              </label>
-              <label class="opt opt--wide">
-                <input type="radio" name="pay_mode" value="full" {% if pay_mode != 'deposit_50' %}checked{% endif %}>
-                <div>
-                  <div class="opt__title">Pay 100% now</div>
-                  <div class="opt__sub">
-                    Charge now {{ payment_options.full.charge|money }} (items {{ payment_options.full.base|money }} + GST {{ payment_options.full.gst|money }} + processing {{ payment_options.full.processing_fee|money }}).
-                    Balance later {{ payment_options.full.balance_due|money }}.
+                </label>
+                <label class="opt opt--wide">
+                  <input type="radio" name="pay_mode" value="full" {% if pay_mode != 'deposit_50' %}checked{% endif %}>
+                  <div>
+                    <div class="opt__title">Pay 100% now</div>
+                    <div class="opt__sub" data-pay-copy="full">
+                      Charge now {{ payment_options.full.charge|money }} (subtotal {{ payment_options.full.base|money }} + GST {{ payment_options.full.gst|money }} + processing {{ payment_options.full.processing_fee|money }}).
+                      Balance later {{ payment_options.full.balance_due|money }}.
+                    </div>
                   </div>
-                </div>
-              </label>
-            </fieldset>
+                </label>
+              </fieldset>
+            {% else %}
+              <input type="hidden" name="pay_mode" value="full">
+            {% endif %}
 
             <div class="section__head" style="margin-bottom:.3rem;">
               <h4 class="block-title" style="margin:0;">How would you like to pay?</h4>
@@ -236,35 +252,37 @@
             <textarea class="input" name="comment" rows="4" placeholder="Anything we should know?">{{ form.comment|default_if_none:'' }}</textarea>
           </section>
 
-          <!-- Reference photo -->
-          <section>
-            <h3 class="block-title">Photo reference <span class="section__desc" style="font-size:.9rem;">(optional)</span></h3>
-            <div class="upload-card {% if errors.reference_image %}upload-card--invalid{% endif %}">
-              <input type="file" id="reference_image" name="reference_image" accept="image/*" hidden>
-              <div id="referenceDropzone" class="upload-drop">
-                <div class="upload-graphic">📷</div>
-                <div class="upload-copy">
-                  <p class="upload-title">Drop an image or click to upload</p>
-                  <p class="upload-subtitle">JPG, PNG, or WEBP — up to {{ reference_image_limit_mb }} MB.</p>
-                  <p class="upload-subtitle">Use for logos, artwork, inspiration, or fitment examples.</p>
+          {% if not cart_is_merch_checkout %}
+            <!-- Reference photo -->
+            <section>
+              <h3 class="block-title">Photo reference <span class="section__desc" style="font-size:.9rem;">(optional)</span></h3>
+              <div class="upload-card {% if errors.reference_image %}upload-card--invalid{% endif %}">
+                <input type="file" id="reference_image" name="reference_image" accept="image/*" hidden>
+                <div id="referenceDropzone" class="upload-drop">
+                  <div class="upload-graphic">📷</div>
+                  <div class="upload-copy">
+                    <p class="upload-title">Drop an image or click to upload</p>
+                    <p class="upload-subtitle">JPG, PNG, or WEBP — up to {{ reference_image_limit_mb }} MB.</p>
+                    <p class="upload-subtitle">Use for logos, artwork, inspiration, or fitment examples.</p>
+                  </div>
+                  <button type="button" id="uploadPick" class="btn btn--ghost btn--small">Browse</button>
                 </div>
-                <button type="button" id="uploadPick" class="btn btn--ghost btn--small">Browse</button>
-              </div>
-              <div id="referencePreview" class="upload-preview" hidden>
-                <img id="referencePreviewImg" alt="Reference preview">
-                <div>
-                  <p id="referencePreviewName" class="upload-title"></p>
-                  <p id="referencePreviewMeta" class="upload-subtitle"></p>
+                <div id="referencePreview" class="upload-preview" hidden>
+                  <img id="referencePreviewImg" alt="Reference preview">
+                  <div>
+                    <p id="referencePreviewName" class="upload-title"></p>
+                    <p id="referencePreviewMeta" class="upload-subtitle"></p>
+                  </div>
+                  <button type="button" id="uploadClear" class="btn btn--ghost btn--small" hidden>Remove</button>
                 </div>
-                <button type="button" id="uploadClear" class="btn btn--ghost btn--small" hidden>Remove</button>
+                {% if errors.reference_image %}
+                  <div class="err">{{ errors.reference_image }}</div>
+                {% else %}
+                  <p class="section__desc text-xs">If the form reloads you'll need to pick the file again.</p>
+                {% endif %}
               </div>
-              {% if errors.reference_image %}
-                <div class="err">{{ errors.reference_image }}</div>
-              {% else %}
-                <p class="section__desc text-xs">If the form reloads you'll need to pick the file again.</p>
-              {% endif %}
-            </div>
-          </section>
+            </section>
+          {% endif %}
 
           <!-- Consent + actions -->
           <label class="check">
@@ -292,7 +310,7 @@
                   <div class="summary__title">{{ it.product.name }}</div>
                   <div class="section__desc">x{{ it.qty }} • {{ it.product.category.display_name }}</div>
                   {% if it.option %}
-                    <div class="section__desc">Option: {{ it.option.name }}{% if it.option.sku %} · SKU: {{ it.option.sku }}{% endif %}</div>
+                    <div class="section__desc">Option: {{ it.option.name }}</div>
                   {% endif %}
                   {% if it.has_reference_photo %}
                     <div class="section__desc">
@@ -316,7 +334,7 @@
           </ul>
           <div class="summary__total">
             <div>
-              <span class="summary__total-label">{% if dealer_discount_percent %}Dealer total{% else %}Total{% endif %}</span>
+              <span class="summary__total-label">{% if dealer_discount_percent %}Dealer subtotal{% else %}Subtotal{% endif %}</span>
               <span class="summary__total-sum">{{ total|money }}</span>
             </div>
             {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
@@ -332,6 +350,10 @@
 
           <div class="summary__divider"></div>
           <div class="summary__charges">
+            <div class="summary__row" id="orderShippingRow" {% if not shipping_cost or shipping_cost|floatformat:2 == '0.00' %}hidden{% endif %}>
+              <span class="section__desc">Delivery</span>
+              <span id="orderShipping">{{ shipping_cost|money }}</span>
+            </div>
             <div class="summary__row">
               <span class="section__desc">GST ({{ gst_rate_percent }}%)</span>
               <span id="orderGst">{{ order_gst|money }}</span>
@@ -361,7 +383,7 @@
               <span id="summaryProcessing">{{ selected_payment.processing_fee|money }}</span>
             </div>
             <div class="summary__row">
-              <span class="section__desc">Item subtotal covered now</span>
+              <span class="section__desc">Subtotal covered now</span>
               <span id="summaryBase">{{ selected_payment.base|money }}</span>
             </div>
             <div class="summary__row" id="balanceRow" {% if selected_payment.balance_due <= 0 %}hidden{% endif %}>
@@ -624,6 +646,12 @@
     const etransferEmailValue = "{{ etransfer_email|default:'Payments@badguymotors.ca'|escapejs }}";
     const paymentOptions = JSON.parse('{{ payment_options_json|escapejs }}' || '{}');
     const currencySymbol = "{{ currency_symbol }}";
+    const cartHasMerch = {{ cart_has_merch|yesno:"true,false" }};
+    const itemsSubtotal = Number('{{ total|floatformat:2 }}') || 0;
+    const merchFreeShipThreshold = {{ store_shipping.free_shipping_threshold_cad|default:"null" }};
+    const merchDeliveryCost = {{ store_shipping.delivery_cost_under_threshold_cad|default:"null" }};
+    const gstRate = (Number('{{ gst_rate_percent|floatformat:2 }}') || 0) / 100;
+    const processingRate = (Number('{{ processing_rate_percent|floatformat:2 }}') || 0) / 100;
     const squareReady = {{ square_ready|yesno:"true,false" }};
     const squareAppId = "{{ square_application_id }}";
     const squareLocationId = "{{ square_location_id }}";
@@ -637,15 +665,110 @@
     const summaryBase = document.getElementById('summaryBase');
     const summaryBalance = document.getElementById('summaryBalance');
     const balanceRow = document.getElementById('balanceRow');
+    const countryInput = document.getElementById('country');
+    const orderShippingRow = document.getElementById('orderShippingRow');
+    const orderShipping = document.getElementById('orderShipping');
+    const orderGst = document.getElementById('orderGst');
+    const orderProcessing = document.getElementById('orderProcessing');
+    const orderTotalWithFees = document.getElementById('orderTotalWithFees');
+    const payCopyDeposit = document.querySelector('[data-pay-copy="deposit_50"]');
+    const payCopyFull = document.querySelector('[data-pay-copy="full"]');
     const serverPaymentError = "{{ errors.payment|default_if_none:'' }}";
     let cardInstance = squareState.cardInstance || null;
     let processingPayment = false;
+
+    function round2(value){
+      const num = Number(value || 0);
+      return Math.round((num + Number.EPSILON) * 100) / 100;
+    }
 
     function syncDelivery(){
       const val = document.querySelector('input[name="delivery_method"]:checked')?.value;
       const ship = val !== 'pickup';
       addr.style.display   = ship ? 'block' : 'none';
       pickup.style.display = ship ? 'none'  : 'block';
+    }
+
+    function isCanada(raw){
+      const c = String(raw || '').trim().toLowerCase();
+      if (!c) return false;
+      return c === 'canada' || c === 'ca' || c.startsWith('canada');
+    }
+
+    function computeShippingCost(){
+      if (!cartHasMerch) return 0;
+      const method = document.querySelector('input[name="delivery_method"]:checked')?.value || 'shipping';
+      if (method === 'pickup') return 0;
+      const country = (countryInput?.value || 'Canada').trim();
+      if (!isCanada(country)) return 0;
+      const deliveryCost = (typeof merchDeliveryCost === 'number') ? merchDeliveryCost : Number(merchDeliveryCost);
+      if (!deliveryCost || deliveryCost <= 0) return 0;
+      const threshold = (typeof merchFreeShipThreshold === 'number') ? merchFreeShipThreshold : Number(merchFreeShipThreshold);
+      if (threshold && threshold > 0 && itemsSubtotal >= threshold) return 0;
+      return round2(deliveryCost);
+    }
+
+    function buildPlan(label, portion, orderSubtotal, orderGstValue, orderProcessingValue, orderTotalWithFeesValue){
+      const base = round2(orderSubtotal * portion);
+      const gst = round2(base * gstRate);
+      const processing = round2(base * processingRate);
+      const charge = round2(base + gst + processing);
+      let balance = round2(orderTotalWithFeesValue - charge);
+      if (balance < 0) balance = 0;
+      return {
+        label,
+        base,
+        gst,
+        processing_fee: processing,
+        charge,
+        balance_due: balance,
+        order_subtotal: orderSubtotal,
+        order_gst: orderGstValue,
+        order_processing: orderProcessingValue,
+        order_total_with_fees: orderTotalWithFeesValue,
+      };
+    }
+
+    function syncTotals(){
+      const shipping = computeShippingCost();
+      const orderSubtotal = round2(itemsSubtotal + shipping);
+      const gst = round2(orderSubtotal * gstRate);
+      const processing = round2(orderSubtotal * processingRate);
+      const totalWithFees = round2(orderSubtotal + gst + processing);
+
+      if (orderShippingRow){
+        orderShippingRow.hidden = !(shipping > 0.009);
+      }
+      if (orderShipping){
+        orderShipping.textContent = formatMoney(shipping);
+      }
+      if (orderGst){
+        orderGst.textContent = formatMoney(gst);
+      }
+      if (orderProcessing){
+        orderProcessing.textContent = formatMoney(processing);
+      }
+      if (orderTotalWithFees){
+        orderTotalWithFees.textContent = formatMoney(totalWithFees);
+      }
+
+      paymentOptions.full = buildPlan('Pay 100% now', 1.0, orderSubtotal, gst, processing, totalWithFees);
+      paymentOptions.deposit_50 = buildPlan('Pay 50% deposit', 0.5, orderSubtotal, gst, processing, totalWithFees);
+
+      if (payCopyDeposit){
+        const dep = paymentOptions.deposit_50;
+        payCopyDeposit.textContent =
+          `Charge now ${formatMoney(dep.charge)} (subtotal ${formatMoney(dep.base)} + GST ${formatMoney(dep.gst)} + processing ${formatMoney(dep.processing_fee)}). ` +
+          `Balance later ${formatMoney(dep.balance_due)} (remaining subtotal + GST/processing).`;
+      }
+      if (payCopyFull){
+        const full = paymentOptions.full;
+        payCopyFull.textContent =
+          `Charge now ${formatMoney(full.charge)} (subtotal ${formatMoney(full.base)} + GST ${formatMoney(full.gst)} + processing ${formatMoney(full.processing_fee)}). ` +
+          `Balance later ${formatMoney(full.balance_due)}.`;
+      }
+
+      updatePaymentSummary();
     }
     function syncAgree(){
       if (!submit) return;
@@ -903,7 +1026,8 @@
       }
     }
 
-    methodInputs.forEach(i => i.addEventListener('change', syncDelivery));
+    methodInputs.forEach(i => i.addEventListener('change', () => { syncDelivery(); syncTotals(); }));
+    if (countryInput) countryInput.addEventListener('blur', syncTotals);
     if (agree)  agree.addEventListener('change', syncAgree);
     if (postal) postal.addEventListener('blur', normalizePostal);
     payRadios.forEach(r => r.addEventListener('change', updatePaymentSummary));
@@ -931,6 +1055,7 @@
       syncDelivery();
       syncAgree();
       syncPaymentMethod();
+      syncTotals();
       if (serverPaymentError && cardErrors && getPaymentMethod() === 'card'){ cardErrors.textContent = serverPaymentError; }
     });
   })();

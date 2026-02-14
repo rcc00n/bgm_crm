@@ -1135,12 +1135,13 @@ class ClientFileAdmin(admin.ModelAdmin):
 # -----------------------------
 # Client Review Admin
 # -----------------------------
-@admin.register(ClientReview)
-class ClientReviewAdmin(ExportCsvMixin ,admin.ModelAdmin):
+@admin.register(AppointmentReview)
+class AppointmentReviewAdmin(ExportCsvMixin, admin.ModelAdmin):
     list_display = ("appointment", "get_client", "get_master", "rating", "created_at")
     search_fields = ("appointment__client__first_name", "appointment__client__last_name", "comment")
     list_filter = ("rating", "created_at")
     export_fields = ["appointment", "get_client", "get_master", "rating", "created_at"]
+
     @admin.display(description="Client")
     def get_client(self, obj):
         appt = obj.appointment
@@ -1151,6 +1152,106 @@ class ClientReviewAdmin(ExportCsvMixin ,admin.ModelAdmin):
     @admin.display(description="Staff")
     def get_master(self, obj):
         return obj.appointment.master.get_full_name()
+
+
+@admin.register(ClientReview)
+class ClientReviewAdmin(admin.ModelAdmin):
+    """
+    Review moderation inbox (proxy of store.StoreReview).
+    All public review submissions land here for approval/publishing.
+    """
+
+    list_display = (
+        "created_at",
+        "status",
+        "rating",
+        "reviewer_name",
+        "product",
+        "reviewer_email",
+    )
+    list_filter = ("status", "rating", "created_at")
+    search_fields = (
+        "reviewer_name",
+        "reviewer_email",
+        "reviewer_title",
+        "title",
+        "body",
+        "product__name",
+    )
+    autocomplete_fields = ("product", "user", "approved_by")
+    readonly_fields = ("approved_at", "approved_by", "created_at", "updated_at")
+    fields = (
+        "status",
+        "product",
+        "user",
+        "reviewer_name",
+        "reviewer_email",
+        "reviewer_title",
+        "rating",
+        "title",
+        "body",
+        "source_url",
+        "approved_at",
+        "approved_by",
+        "created_at",
+        "updated_at",
+    )
+    ordering = ("-created_at",)
+    actions = ("mark_approved", "mark_rejected", "mark_pending")
+
+    def save_model(self, request, obj, form, change):
+        previous_status = None
+        if change and obj.pk:
+            previous_status = (
+                ClientReview.objects.filter(pk=obj.pk)
+                .values_list("status", flat=True)
+                .first()
+            )
+
+        # Keep approval metadata in sync with status.
+        if obj.status == ClientReview.Status.APPROVED:
+            if previous_status != ClientReview.Status.APPROVED:
+                obj.approved_at = timezone.now()
+                obj.approved_by = request.user
+        else:
+            obj.approved_at = None
+            obj.approved_by = None
+
+        super().save_model(request, obj, form, change)
+
+    @admin.action(description="Approve selected reviews")
+    def mark_approved(self, request, queryset):
+        now = timezone.now()
+        updated = 0
+        for review in queryset:
+            review.status = ClientReview.Status.APPROVED
+            review.approved_at = now
+            review.approved_by = request.user
+            review.save()
+            updated += 1
+        self.message_user(request, f"Approved {updated} review(s).", messages.SUCCESS)
+
+    @admin.action(description="Reject selected reviews")
+    def mark_rejected(self, request, queryset):
+        updated = 0
+        for review in queryset:
+            review.status = ClientReview.Status.REJECTED
+            review.approved_at = None
+            review.approved_by = None
+            review.save()
+            updated += 1
+        self.message_user(request, f"Rejected {updated} review(s).", messages.SUCCESS)
+
+    @admin.action(description="Mark selected reviews as pending")
+    def mark_pending(self, request, queryset):
+        updated = 0
+        for review in queryset:
+            review.status = ClientReview.Status.PENDING
+            review.approved_at = None
+            review.approved_by = None
+            review.save()
+            updated += 1
+        self.message_user(request, f"Marked {updated} review(s) as pending.", messages.SUCCESS)
 
 
 # -----------------------------
@@ -1220,9 +1321,91 @@ class PromoCodeAdmin(ExportCsvMixin ,admin.ModelAdmin):
 
 
 # -----------------------------
+# Roles
+# -----------------------------
+
+class RoleAdminForm(forms.ModelForm):
+    admin_sidebar_visible_groups = forms.MultipleChoiceField(
+        label="Admin sidebar sections",
+        required=False,
+        choices=[],
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Leave empty to show everything. If set, only selected sidebar sections will be shown for users with this role.",
+    )
+
+    class Meta:
+        model = Role
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            from core.services.admin_notifications import iter_notification_groups
+
+            choices = [(group["key"], group["label"]) for group in iter_notification_groups()]
+        except Exception:
+            choices = []
+
+        current: set[str] = set()
+        raw = getattr(self.instance, "admin_sidebar_visible_groups", None) or []
+        if isinstance(raw, str):
+            raw = [raw]
+        current = {val for val in raw if isinstance(val, str) and val}
+
+        # Preserve unknown keys if the sidebar config changed.
+        existing_keys = {key for key, _ in choices}
+        for missing in sorted(current - existing_keys):
+            choices.append((missing, f"Unknown: {missing}"))
+
+        self.fields["admin_sidebar_visible_groups"].choices = choices
+        self.fields["admin_sidebar_visible_groups"].initial = sorted(current)
+
+    def clean_admin_sidebar_visible_groups(self):
+        values = self.cleaned_data.get("admin_sidebar_visible_groups") or []
+        return [val for val in values if isinstance(val, str) and val]
+
+
+@admin.register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    form = RoleAdminForm
+    list_display = (
+        "name",
+        "notify_on_new_appointment",
+        "notify_on_new_order",
+        "notify_on_service_lead",
+        "notify_on_fitment_request",
+        "notify_on_site_notice_signup",
+        "notify_on_order_review_request",
+    )
+    search_fields = ("name",)
+    fieldsets = (
+        (None, {"fields": ("name",)}),
+        (
+            "Notifications",
+            {
+                "fields": (
+                    "notify_on_new_appointment",
+                    "notify_on_new_order",
+                    "notify_on_service_lead",
+                    "notify_on_fitment_request",
+                    "notify_on_site_notice_signup",
+                    "notify_on_order_review_request",
+                ),
+            },
+        ),
+        (
+            "Admin sidebar visibility",
+            {
+                "fields": ("admin_sidebar_visible_groups",),
+                "description": "Controls which sidebar sections are visible in the admin UI for users with this role.",
+            },
+        ),
+    )
+
+
+# -----------------------------
 # Register remaining models directly
 # -----------------------------
-admin.site.register(Role)
 admin.site.register(UserRole)
 admin.site.register(AppointmentStatus)
 admin.site.register(PaymentMethod)
@@ -4666,6 +4849,18 @@ class EmailTemplateAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
         extra_context["email_preview_defaults"] = self._email_preview_defaults()
         extra_context["email_settings_url"] = reverse("admin:core_emailtemplate_changelist")
+        # Show template-specific placeholders as a clickable list in the change form UI.
+        obj = None
+        if object_id:
+            try:
+                obj = self.get_object(request, object_id)
+            except Exception:
+                obj = None
+        if obj:
+            tokens = template_tokens(obj.slug)
+            extra_context["email_placeholders"] = [f"{{{token}}}" for token in tokens]
+        else:
+            extra_context["email_placeholders"] = []
         return super().changeform_view(
             request,
             object_id=object_id,

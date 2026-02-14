@@ -12,6 +12,22 @@ register = template.Library()
 
 
 @register.filter
+def trim(value):
+    """
+    Strips leading/trailing whitespace.
+
+    Django templates don't ship a built-in `trim` filter, but we need one to
+    treat "   " (admin whitespace) as empty and fall back to defaults.
+    """
+    if value is None:
+        return ""
+    try:
+        return str(value).strip()
+    except Exception:
+        return ""
+
+
+@register.filter
 def dealer_price(value, percent):
     """
     Returns the discounted price for the provided percent. Falls back to the original value if no discount.
@@ -34,6 +50,22 @@ def dealer_savings(value, percent):
     if pct <= 0:
         return Decimal("0.00")
     return dealer_discount_savings(value, pct)
+
+@register.filter
+def is_merch_product(product) -> bool:
+    """
+    Returns True if the product is treated as merch (Printful) and should NOT
+    receive dealer discounts.
+    """
+    if not product:
+        return False
+    try:
+        category_slug = (getattr(getattr(product, "category", None), "slug", "") or "").strip().lower()
+        sku = (getattr(product, "sku", "") or "").strip().upper()
+        slug = (getattr(product, "slug", "") or "").strip().lower()
+    except Exception:
+        return False
+    return category_slug == "merch" or sku.startswith("PF-") or slug.startswith("merch-")
 
 
 @register.filter

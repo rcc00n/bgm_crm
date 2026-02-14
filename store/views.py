@@ -31,6 +31,7 @@ from .models import (
     OrderItem,
     Product,
     ProductOption,
+    StoreShippingSettings,
     StoreReview,
     CarMake,
     CarModel,
@@ -373,19 +374,9 @@ def _quote_notification_recipients() -> list[str]:
     """
     Resolve the notification list for custom fitment requests with sensible fallbacks.
     """
-    recipients = getattr(settings, "STORE_QUOTE_RECIPIENTS", None)
-    if isinstance(recipients, str):
-        return [recipients]
-    if recipients:
-        return list(recipients)
-
-    support_email = getattr(settings, "SUPPORT_EMAIL", None)
-    if support_email:
-        return [support_email]
-    default = getattr(settings, "DEFAULT_FROM_EMAIL", None)
-    if default:
-        return [default]
-    return ["support@badguymotors.com"]
+    # Internal notifications should always land in the support inbox.
+    support_email = (getattr(settings, "SUPPORT_EMAIL", "") or "").strip()
+    return [support_email] if support_email else ["support@badguymotors.com"]
 
 
 def _notify_fitment_request(request_obj):
@@ -738,7 +729,8 @@ def store_home(request):
         Product.objects.filter(is_active=True)
         .select_related("category")
         .prefetch_related("compatible_models", "options")
-        .order_by("-created_at")
+        # Show in-house products first across the storefront.
+        .order_by("-is_in_house", "-created_at")
     )
 
     filtered_qs = _apply_filters(base_qs, form)
@@ -766,7 +758,8 @@ def store_home(request):
             Product.objects.filter(is_active=True, category=c)
             .select_related("category")
             .prefetch_related("options")
-            .order_by("-created_at")
+            # Show in-house products first inside each category preview.
+            .order_by("-is_in_house", "-created_at")
         )
         if cat_base.exists():
             sections.append((c, cat_base[:8]))
@@ -872,7 +865,7 @@ def category_list(request, slug):
         Product.objects.filter(is_active=True, category=category)
         .select_related("category")
         .prefetch_related("compatible_models", "options")
-        .order_by("-created_at")
+        .order_by("-is_in_house", "-created_at")
     )
     products = _apply_filters(base_qs, form)
 
@@ -1160,6 +1153,19 @@ def _cart_add_item(
     return cart
 
 
+def _is_merch_product(product) -> bool:
+    """
+    Merch items (Printful) are excluded from dealer discounts and may follow
+    different checkout rules (shipping, uploads, etc).
+    """
+    if not product:
+        return False
+    category_slug = (getattr(getattr(product, "category", None), "slug", "") or "").strip().lower()
+    sku = (getattr(product, "sku", "") or "").strip().upper()
+    slug = (getattr(product, "slug", "") or "").strip().lower()
+    return category_slug == "merch" or sku.startswith("PF-") or slug.startswith("merch-")
+
+
 def _cart_positions(session, *, dealer_discount: int = 0, user=None):
     """
     Build hydrated cart positions for rendering/checkout.
@@ -1213,9 +1219,9 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None):
         retail_unit = unit
         retail_line = (retail_unit * qty).quantize(quant)
 
-        discounted_unit = retail_unit
-        if dealer_discount:
-            discounted_unit = apply_dealer_discount(retail_unit, dealer_discount)
+        # Dealer discounts never apply to merch products.
+        line_discount_percent = dealer_discount if (dealer_discount and not _is_merch_product(product)) else 0
+        discounted_unit = apply_dealer_discount(retail_unit, line_discount_percent) if line_discount_percent else retail_unit
         line_total = (discounted_unit * qty).quantize(quant)
 
         reference_client_file_id = entry.get("reference_client_file_id") or None
@@ -1242,7 +1248,7 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None):
                 "line_total": line_total,
                 "retail_line_total": retail_line,
                 "savings": (retail_line - line_total).quantize(quant),
-                "discount_percent": dealer_discount if dealer_discount else 0,
+                "discount_percent": line_discount_percent,
                 "option_id": entry["option_id"],
                 "reference_client_file_id": reference_client_file_id,
                 "reference_file_name": reference_file_name,
@@ -1426,13 +1432,17 @@ def cart_view(request):
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
     )
+    cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
+    any_discounted = any(int(entry.get("discount_percent") or 0) > 0 for entry in (positions or []))
+    effective_dealer_discount = int(dealer_discount or 0) if any_discounted else 0
     savings = (retail_total - total) if retail_total and total else Decimal("0.00")
     context = {
         "positions": positions,
         "total": total,
         "retail_total": retail_total,
         "cart_savings": savings,
-        "dealer_discount_percent": dealer_discount,
+        "dealer_discount_percent": effective_dealer_discount,
+        "cart_has_merch": cart_has_merch,
         "store_copy": StorePageCopy.get_solo(),
     }
     return render(request, "store/cart.html", context)
@@ -1499,6 +1509,15 @@ def checkout(request):
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
     )
+    cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
+    cart_has_non_merch = any(
+        (entry.get("product") is not None) and (not _is_merch_product(entry.get("product")))
+        for entry in (positions or [])
+    )
+    any_discounted = any(int(entry.get("discount_percent") or 0) > 0 for entry in (positions or []))
+    effective_dealer_discount = int(dealer_discount or 0) if any_discounted else 0
+    # Merch checkout should not allow an order-level reference photo upload.
+    cart_is_merch_checkout = cart_has_merch and not cart_has_non_merch
 
     gst_rate = _get_decimal_setting("STORE_GST_RATE", "0.05")
     processing_rate = _get_decimal_setting("STORE_PROCESSING_FEE_RATE", "0.035")
@@ -1507,42 +1526,16 @@ def checkout(request):
     if processing_rate >= 1:
         processing_rate = processing_rate / Decimal("100")
 
-    order_gst = (total * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
-    order_processing = (total * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
-    order_total_with_fees = (total + order_gst + order_processing).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
     currency_code = getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD")
     currency_symbol = getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$")
     etransfer_email = _normalize_etransfer_email(getattr(settings, "ETRANSFER_EMAIL", "")) or "Payments@badguymotors.ca"
     etransfer_memo_hint = getattr(settings, "ETRANSFER_MEMO_HINT", "")
 
-    def payment_plan(label: str, portion: Decimal):
-        base_portion = (total * portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
-        gst_portion = (base_portion * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
-        processing_portion = (base_portion * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
-        charge_amount = (base_portion + gst_portion + processing_portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
-        balance_due = (order_total_with_fees - charge_amount).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
-        if balance_due < 0:
-            balance_due = Decimal("0.00")
-        return {
-            "label": label,
-            "base": base_portion,
-            "gst": gst_portion,
-            "processing_fee": processing_portion,
-            "charge": charge_amount,
-            "balance_due": balance_due,
-            "order_subtotal": total,
-            "order_gst": order_gst,
-            "order_processing": order_processing,
-            "order_total_with_fees": order_total_with_fees,
-        }
-
-    payment_options = {
-        "full": payment_plan("Pay 100% now", Decimal("1.0")),
-        "deposit_50": payment_plan("Pay 50% deposit", Decimal("0.5")),
-    }
-
     pay_mode = request.POST.get("pay_mode") or request.GET.get("pay_mode") or "full"
-    if pay_mode not in payment_options:
+    if pay_mode not in ("full", "deposit_50"):
+        pay_mode = "full"
+    if cart_is_merch_checkout:
+        # Merch is paid in full only.
         pay_mode = "full"
     payment_method = request.POST.get("payment_method") or request.GET.get("payment_method") or "card"
     if payment_method not in ("card", "etransfer"):
@@ -1553,8 +1546,91 @@ def checkout(request):
         messages.error(request, "The cart is empty.")
         return redirect("store:store-cart")
 
-    form = {"delivery_method": "shipping", "pay_mode": pay_mode, "payment_method": payment_method}
+    form = {"delivery_method": "shipping", "country": "Canada", "pay_mode": pay_mode, "payment_method": payment_method}
     errors: Dict[str, str] = {}
+
+    def _is_canada(country: str) -> bool:
+        c = (country or "").strip().lower()
+        if not c:
+            return False
+        return c in {"canada", "ca"} or c.startswith("canada")
+
+    def _compute_merch_delivery_cost(*, delivery_method: str, country: str) -> Decimal:
+        if not cart_has_merch:
+            return Decimal("0.00")
+        if (delivery_method or "").strip().lower() == "pickup":
+            return Decimal("0.00")
+        if not _is_canada(country):
+            return Decimal("0.00")
+
+        delivery_cost = StoreShippingSettings.get_delivery_cost_under_threshold_cad()
+        if not delivery_cost:
+            return Decimal("0.00")
+
+        threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
+        if threshold and total and total >= threshold:
+            return Decimal("0.00")
+        return delivery_cost
+
+    def _build_payment_options(
+        *,
+        order_subtotal: Decimal,
+        order_gst: Decimal,
+        order_processing: Decimal,
+        order_total_with_fees: Decimal,
+    ):
+        def payment_plan(label: str, portion: Decimal):
+            base_portion = (order_subtotal * portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if order_subtotal else Decimal("0.00")
+            gst_portion = (base_portion * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
+            processing_portion = (base_portion * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
+            charge_amount = (base_portion + gst_portion + processing_portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+            balance_due = (order_total_with_fees - charge_amount).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+            if balance_due < 0:
+                balance_due = Decimal("0.00")
+            return {
+                "label": label,
+                "base": base_portion,
+                "gst": gst_portion,
+                "processing_fee": processing_portion,
+                "charge": charge_amount,
+                "balance_due": balance_due,
+                "order_subtotal": order_subtotal,
+                "order_gst": order_gst,
+                "order_processing": order_processing,
+                "order_total_with_fees": order_total_with_fees,
+            }
+
+        return {
+            "full": payment_plan("Pay 100% now", Decimal("1.0")),
+            "deposit_50": payment_plan("Pay 50% deposit", Decimal("0.5")),
+        }
+
+    def _recompute_totals_for_form(form_payload: dict):
+        delivery_method = (form_payload.get("delivery_method") or "shipping").strip()
+        country = (form_payload.get("country") or "Canada").strip()
+
+        shipping_cost = _compute_merch_delivery_cost(delivery_method=delivery_method, country=country).quantize(
+            PAYMENT_QUANT, rounding=ROUND_HALF_UP
+        )
+        order_subtotal = (total + shipping_cost).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else shipping_cost
+        order_gst = (order_subtotal * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if order_subtotal else Decimal("0.00")
+        order_processing = (order_subtotal * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if order_subtotal else Decimal("0.00")
+        order_total_with_fees = (order_subtotal + order_gst + order_processing).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+        return (
+            shipping_cost,
+            order_subtotal,
+            order_gst,
+            order_processing,
+            order_total_with_fees,
+            _build_payment_options(
+                order_subtotal=order_subtotal,
+                order_gst=order_gst,
+                order_processing=order_processing,
+                order_total_with_fees=order_total_with_fees,
+            ),
+        )
+
+    shipping_cost, order_subtotal, order_gst, order_processing, order_total_with_fees, payment_options = _recompute_totals_for_form(form)
 
     if request.method == "POST":
         def val(name, default=""):
@@ -1568,6 +1644,8 @@ def checkout(request):
             return cleaned
 
         reference_file = request.FILES.get("reference_image")
+        if cart_is_merch_checkout:
+            reference_file = None
         form = {
             "customer_name": val("customer_name"),
             "email": val("email"),
@@ -1589,6 +1667,7 @@ def checkout(request):
         if payment_method not in ("card", "etransfer"):
             payment_method = "card"
         form["payment_method"] = payment_method
+        shipping_cost, order_subtotal, order_gst, order_processing, order_total_with_fees, payment_options = _recompute_totals_for_form(form)
 
         # валидация
         if not form["customer_name"]:
@@ -1675,6 +1754,8 @@ def checkout(request):
             # Если в модели есть поле total — положим туда сумму (иначе total будет считаться @property)
             if "total" in o_fields:
                 order_kwargs["total"] = total
+            if "shipping_cost" in o_fields:
+                order_kwargs["shipping_cost"] = shipping_cost
             if "payment_mode" in o_fields:
                 order_kwargs["payment_mode"] = pay_mode
             if "payment_amount" in o_fields:
@@ -1897,7 +1978,7 @@ def checkout(request):
             request,
             email=form.get("email", ""),
             positions=positions,
-            total=total,
+            total=order_subtotal,
         )
 
     return render(
@@ -1906,12 +1987,16 @@ def checkout(request):
         {
             "positions": positions,
             "total": total,
+            "shipping_cost": shipping_cost,
+            "order_subtotal": order_subtotal,
             "form": form,
             "errors": errors,
             "reference_image_limit_mb": REFERENCE_IMAGE_MAX_MB,
             "retail_total": retail_total,
             "cart_savings": (retail_total - total) if retail_total and total else Decimal("0.00"),
-            "dealer_discount_percent": dealer_discount,
+            "dealer_discount_percent": effective_dealer_discount,
+            "cart_has_merch": cart_has_merch,
+            "cart_is_merch_checkout": cart_is_merch_checkout,
             "pay_mode": pay_mode,
             "payment_method": payment_method,
             "payment_options": payment_options,

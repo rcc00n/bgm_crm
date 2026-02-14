@@ -336,101 +336,213 @@
         min-width: auto;
       }
     }
+
+    /* Two-column editor: preview left, placeholders right */
+    .email-editor-grid{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) 320px;
+      gap:18px;
+      align-items:start;
+    }
+
+    .email-placeholder-panel{
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      background:#ffffff;
+      padding:14px 16px;
+      position:sticky;
+      top:12px;
+    }
+
+    .email-placeholder-panel__title{
+      margin:0 0 6px 0;
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:0.12em;
+      text-transform:uppercase;
+      color:#111827;
+    }
+
+    .email-placeholder-panel__help{
+      margin:0;
+      color:#6b7280;
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    .email-placeholder-list{
+      margin-top:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .email-placeholder-chip{
+      appearance:none;
+      border:1px solid #e5e7eb;
+      background:#f9fafb;
+      border-radius:999px;
+      padding:6px 10px;
+      cursor:pointer;
+      font-size:12px;
+      line-height:1.1;
+      color:#111827;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      transition:background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+
+    .email-placeholder-chip code{
+      font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;
+      font-size:12px;
+      background:transparent;
+      padding:0;
+    }
+
+    .email-placeholder-chip:hover{
+      background:#fff7f7;
+      border-color:#fca5a5;
+      transform:translateY(-1px);
+    }
+
+    .email-placeholder-chip:focus-visible{
+      outline:2px solid #d50000;
+      outline-offset:2px;
+      border-color:#d50000;
+    }
+
+    .email-placeholder-toast{
+      margin-top:10px;
+      font-size:12px;
+      color:#6b7280;
+      min-height:16px;
+    }
+
+    @media (max-width: 1100px) {
+      .email-editor-grid{
+        grid-template-columns:1fr;
+      }
+      .email-placeholder-panel{
+        position:static;
+      }
+    }
   </style>
 {% endblock %}
 
 {% block after_field_sets %}
   {{ block.super }}
   <div class="module email-preview-module">
-    <h2 style="margin-top: 0;">Email preview</h2>
-    <p class="help">Click any text in the preview to edit it. Tokens like <code>{brand}</code> stay visible here.</p>
-    <p class="help">Global branding/colors live in the “Email settings (global)” section (also in <a href="{{ email_settings_url }}">Email settings</a>).</p>
-    <div class="email-preview"
-         data-email-preview-root
-         data-email-brand="{{ email_preview_defaults.brand_name|default_if_none:''|escape }}"
-         data-email-tagline="{{ email_preview_defaults.brand_tagline|default_if_none:''|escape }}"
-         data-email-logo="{{ email_preview_defaults.brand_logo_url|default_if_none:''|escape }}"
-         data-email-logo-alt="{{ email_preview_defaults.brand_logo_alt|default_if_none:''|escape }}"
-         data-email-address="{{ email_preview_defaults.company_address|default_if_none:''|escape }}"
-         data-email-phone="{{ email_preview_defaults.company_phone|default_if_none:''|escape }}"
-         data-email-website="{{ email_preview_defaults.company_website|default_if_none:''|escape }}"
-         data-email-accent="{{ email_preview_defaults.accent_color|default_if_none:''|escape }}"
-         data-email-dark="{{ email_preview_defaults.dark_color|default_if_none:''|escape }}"
-         data-email-bg="{{ email_preview_defaults.bg_color|default_if_none:''|escape }}">
-      <div class="email-preview__meta">
-        <div class="email-preview__meta-row">
-          <span class="email-preview__meta-label">Subject</span>
-          <div class="email-preview__meta-value" data-preview-field="subject" contenteditable="true" data-placeholder="Subject line"></div>
-        </div>
-        <div class="email-preview__meta-row">
-          <span class="email-preview__meta-label">Preheader</span>
-          <div class="email-preview__meta-value" data-preview-field="preheader" contenteditable="true" data-placeholder="Preheader text"></div>
-        </div>
-      </div>
-      <div class="email-preview__canvas">
-        <div class="email-preview__frame">
-          <div class="email-preview__brand-row">
-            <img class="email-preview__logo" data-preview-logo alt="">
-            <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
+    <div class="email-editor-grid">
+      <div>
+        <h2 style="margin-top: 0;">Email preview</h2>
+        <p class="help">Click any text in the preview to edit it. Tokens like <code>{brand}</code> stay visible here.</p>
+        <p class="help">Global branding/colors live in the “Email settings (global)” section (also in <a href="{{ email_settings_url }}">Email settings</a>).</p>
+        <div class="email-preview"
+             data-email-preview-root
+             data-email-brand="{{ email_preview_defaults.brand_name|default_if_none:''|escape }}"
+             data-email-tagline="{{ email_preview_defaults.brand_tagline|default_if_none:''|escape }}"
+             data-email-logo="{{ email_preview_defaults.brand_logo_url|default_if_none:''|escape }}"
+             data-email-logo-alt="{{ email_preview_defaults.brand_logo_alt|default_if_none:''|escape }}"
+             data-email-address="{{ email_preview_defaults.company_address|default_if_none:''|escape }}"
+             data-email-phone="{{ email_preview_defaults.company_phone|default_if_none:''|escape }}"
+             data-email-website="{{ email_preview_defaults.company_website|default_if_none:''|escape }}"
+             data-email-accent="{{ email_preview_defaults.accent_color|default_if_none:''|escape }}"
+             data-email-dark="{{ email_preview_defaults.dark_color|default_if_none:''|escape }}"
+             data-email-bg="{{ email_preview_defaults.bg_color|default_if_none:''|escape }}">
+          <div class="email-preview__meta">
+            <div class="email-preview__meta-row">
+              <span class="email-preview__meta-label">Subject</span>
+              <div class="email-preview__meta-value" data-preview-field="subject" contenteditable="true" data-placeholder="Subject line"></div>
+            </div>
+            <div class="email-preview__meta-row">
+              <span class="email-preview__meta-label">Preheader</span>
+              <div class="email-preview__meta-value" data-preview-field="preheader" contenteditable="true" data-placeholder="Preheader text"></div>
+            </div>
           </div>
-          <div class="email-preview__tagline" data-preview-field="brand_tagline" contenteditable="true" data-placeholder="Brand tagline"></div>
-          <div class="email-preview__card">
-            <div class="email-preview__accent"></div>
-            <div class="email-preview__content">
-              <div class="email-preview__title" data-preview-field="title" contenteditable="true" data-placeholder="Title"></div>
-              <div class="email-preview__greeting" data-preview-field="greeting" contenteditable="true" data-placeholder="Greeting"></div>
-              <div class="email-preview__intro" data-preview-field="intro" data-multiline="1" contenteditable="true" data-placeholder="Intro lines"></div>
-
-              <div class="email-preview__section-label">Details</div>
-              <div class="email-preview__table">
-                <div class="email-preview__row"><span>Order #</span><strong>12345</strong></div>
-                <div class="email-preview__row"><span>Total</span><strong>$1,250.00</strong></div>
-                <div class="email-preview__row"><span>Status</span><strong>Processing</strong></div>
+          <div class="email-preview__canvas">
+            <div class="email-preview__frame">
+              <div class="email-preview__brand-row">
+                <img class="email-preview__logo" data-preview-logo alt="">
+                <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
               </div>
+              <div class="email-preview__tagline" data-preview-field="brand_tagline" contenteditable="true" data-placeholder="Brand tagline"></div>
+              <div class="email-preview__card">
+                <div class="email-preview__accent"></div>
+                <div class="email-preview__content">
+                  <div class="email-preview__title" data-preview-field="title" contenteditable="true" data-placeholder="Title"></div>
+                  <div class="email-preview__greeting" data-preview-field="greeting" contenteditable="true" data-placeholder="Greeting"></div>
+                  <div class="email-preview__intro" data-preview-field="intro" data-multiline="1" contenteditable="true" data-placeholder="Intro lines"></div>
 
-              <div class="email-preview__notice" data-preview-section="notice">
-                <div class="email-preview__notice-title" data-preview-field="notice_title" contenteditable="true" data-placeholder="Callout title"></div>
-                <div class="email-preview__notice-body" data-preview-field="notice" data-multiline="1" contenteditable="true" data-placeholder="Callout lines"></div>
-              </div>
+                  <div class="email-preview__section-label">Details</div>
+                  <div class="email-preview__table">
+                    <div class="email-preview__row"><span>Order #</span><strong>12345</strong></div>
+                    <div class="email-preview__row"><span>Total</span><strong>$1,250.00</strong></div>
+                    <div class="email-preview__row"><span>Status</span><strong>Processing</strong></div>
+                  </div>
 
-              <div class="email-preview__items">
-                <div class="email-preview__section-label">Items</div>
-                <div class="email-preview__item-row"><span>Wheel Set</span><strong>4</strong></div>
-                <div class="email-preview__item-row"><span>Brake Kit</span><strong>1</strong></div>
-              </div>
+                  <div class="email-preview__notice" data-preview-section="notice">
+                    <div class="email-preview__notice-title" data-preview-field="notice_title" contenteditable="true" data-placeholder="Callout title"></div>
+                    <div class="email-preview__notice-body" data-preview-field="notice" data-multiline="1" contenteditable="true" data-placeholder="Callout lines"></div>
+                  </div>
 
-              <div class="email-preview__summary">
-                <div class="email-preview__section-label">Summary</div>
-                <div class="email-preview__summary-box">
-                  <div class="email-preview__row"><span>Subtotal</span><strong>$1,100.00</strong></div>
-                  <div class="email-preview__row"><span>Tax</span><strong>$150.00</strong></div>
+                  <div class="email-preview__items">
+                    <div class="email-preview__section-label">Items</div>
+                    <div class="email-preview__item-row"><span>Wheel Set</span><strong>4</strong></div>
+                    <div class="email-preview__item-row"><span>Brake Kit</span><strong>1</strong></div>
+                  </div>
+
+                  <div class="email-preview__summary">
+                    <div class="email-preview__section-label">Summary</div>
+                    <div class="email-preview__summary-box">
+                      <div class="email-preview__row"><span>Subtotal</span><strong>$1,100.00</strong></div>
+                      <div class="email-preview__row"><span>Tax</span><strong>$150.00</strong></div>
+                    </div>
+                  </div>
+
+                  <div class="email-preview__links">
+                    <div class="email-preview__section-label">Quick links</div>
+                    <div class="email-preview__link-row"><a href="#" tabindex="-1">Shop</a></div>
+                    <div class="email-preview__link-row"><a href="#" tabindex="-1">Book</a></div>
+                  </div>
+
+                  <div class="email-preview__cta" data-preview-section="cta">
+                    <a class="email-preview__button" href="#" data-preview-field="cta_label" contenteditable="true" data-placeholder="Button label"></a>
+                    <div class="email-preview__cta-url" data-preview-field="cta_url" contenteditable="true" data-placeholder="Button link (optional)"></div>
+                  </div>
+
+                  <div class="email-preview__footer" data-preview-field="footer" data-multiline="1" contenteditable="true" data-placeholder="Footer lines"></div>
                 </div>
               </div>
-
-              <div class="email-preview__links">
-                <div class="email-preview__section-label">Quick links</div>
-                <div class="email-preview__link-row"><a href="#" tabindex="-1">Shop</a></div>
-                <div class="email-preview__link-row"><a href="#" tabindex="-1">Book</a></div>
+              <div class="email-preview__contact">
+                <div class="email-preview__brand-row">
+                  <img class="email-preview__logo" data-preview-logo alt="">
+                  <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
+                </div>
+                <div data-preview-field="contact_line"></div>
               </div>
-
-              <div class="email-preview__cta" data-preview-section="cta">
-                <a class="email-preview__button" href="#" data-preview-field="cta_label" contenteditable="true" data-placeholder="Button label"></a>
-                <div class="email-preview__cta-url" data-preview-field="cta_url" contenteditable="true" data-placeholder="Button link (optional)"></div>
-              </div>
-
-              <div class="email-preview__footer" data-preview-field="footer" data-multiline="1" contenteditable="true" data-placeholder="Footer lines"></div>
+              <div class="email-preview__note">Sample rows (details/items/links) are for layout only.</div>
             </div>
           </div>
-          <div class="email-preview__contact">
-            <div class="email-preview__brand-row">
-              <img class="email-preview__logo" data-preview-logo alt="">
-              <div class="email-preview__brand" data-preview-field="brand_name" contenteditable="true" data-placeholder="Brand name"></div>
-            </div>
-            <div data-preview-field="contact_line"></div>
-          </div>
-          <div class="email-preview__note">Sample rows (details/items/links) are for layout only.</div>
         </div>
       </div>
+
+      <aside class="email-placeholder-panel" data-email-placeholders>
+        <div class="email-placeholder-panel__title">Placeholders</div>
+        <p class="email-placeholder-panel__help">Click a placeholder to copy it.</p>
+        {% if email_placeholders %}
+          <div class="email-placeholder-list">
+            {% for token in email_placeholders %}
+              <button type="button" class="email-placeholder-chip" data-copy-token="{{ token|escape }}">
+                <code>{{ token }}</code>
+              </button>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="help" style="margin-top:10px;">No placeholders for this template.</div>
+        {% endif %}
+        <div class="email-placeholder-toast" role="status" aria-live="polite" data-email-placeholder-toast></div>
+      </aside>
     </div>
   </div>
   <script>
@@ -673,6 +785,64 @@
         if (link && root.contains(link)) {
           event.preventDefault();
         }
+      });
+    })();
+  </script>
+  <script>
+    (function() {
+      const panel = document.querySelector('[data-email-placeholders]');
+      if (!panel) return;
+
+      const toast = panel.querySelector('[data-email-placeholder-toast]');
+      let toastTimer = 0;
+      const flash = (message) => {
+        if (!toast) return;
+        toast.textContent = message || '';
+        if (toastTimer) window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => {
+          toast.textContent = '';
+        }, 1400);
+      };
+
+      const fallbackCopy = (text) => {
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.setAttribute('readonly', 'readonly');
+        el.style.position = 'fixed';
+        el.style.left = '-9999px';
+        el.style.top = '0';
+        document.body.appendChild(el);
+        el.select();
+        try {
+          return document.execCommand('copy');
+        } catch (err) {
+          return false;
+        } finally {
+          document.body.removeChild(el);
+        }
+      };
+
+      const copyToClipboard = async (text) => {
+        const value = (text || '').trim();
+        if (!value) return false;
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          try {
+            await navigator.clipboard.writeText(value);
+            return true;
+          } catch (err) {
+            // Fall back below.
+          }
+        }
+        return fallbackCopy(value);
+      };
+
+      panel.addEventListener('click', async (event) => {
+        const btn = event.target.closest('[data-copy-token]');
+        if (!btn) return;
+        event.preventDefault();
+        const token = btn.dataset.copyToken || btn.textContent || '';
+        const ok = await copyToClipboard(token);
+        flash(ok ? `Copied ${token.trim()}` : 'Copy failed');
       });
     })();
   </script>

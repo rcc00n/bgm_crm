@@ -22,9 +22,9 @@
           </div>
         </div>
         <div class="hero-stat">
-          <span>Total visits</span>
-          <strong>{{ analytics.totals.visits }}</strong>
-          <small>{{ analytics.totals.page_views }} page views</small>
+          <span>Unique visitors</span>
+          <strong>{{ analytics.totals.unique_visitors|default:analytics.totals.visits }}</strong>
+          <small>{{ analytics.totals.new_visitors }} new · {{ analytics.totals.returning_visitors }} returning</small>
         </div>
         <div class="hero-stat">
           <span>Returning sessions</span>
@@ -44,6 +44,9 @@
         <small>Page views</small>
         <div class="kpi-value">{{ analytics.totals.page_views }}</div>
         <div class="kpi-trend neutral">Avg {{ analytics.totals.avg_pages_per_visit }} pages / visit</div>
+        <div class="kpi-trend neutral">
+          Members {{ analytics.totals.member_page_views }} · Guests {{ analytics.totals.guest_page_views }} · Admin {{ analytics.totals.admin_page_views }}
+        </div>
       </article>
       <article class="kpi-card">
         <small>Signed-in sessions</small>

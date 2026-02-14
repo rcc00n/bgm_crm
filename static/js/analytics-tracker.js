@@ -21,6 +21,12 @@
     Math.max(0, parseFloat(scriptEl?.dataset?.sampleRate || "1"))
   );
   const flushInterval = parseInt(scriptEl?.dataset?.flushInterval || "15000", 10);
+  const countHidden = String(scriptEl?.dataset?.countHidden || "").trim().toLowerCase() in {
+    "1": true,
+    "true": true,
+    "yes": true,
+    "on": true,
+  };
 
   if (!endpoint || Math.random() > sampleRate || typeof fetch !== "function") {
     return;
@@ -34,7 +40,7 @@
 
   const startedAt = new Date();
   let accumulated = 0;
-  let lastVisibilityMark = document.visibilityState === "visible" ? now() : null;
+  let lastVisibilityMark = countHidden || document.visibilityState === "visible" ? now() : null;
   let lastReported = 0;
   let finalized = false;
 
@@ -123,10 +129,17 @@
     () => {
       if (document.visibilityState === "hidden") {
         captureVisibleTime();
-        lastVisibilityMark = null;
+        if (!countHidden) {
+          lastVisibilityMark = null;
+        }
         flush("hidden", { force: true });
       } else {
-        lastVisibilityMark = now();
+        if (countHidden) {
+          // Capture the (previously hidden) gap if the browser throttled heartbeats.
+          captureVisibleTime();
+        } else {
+          lastVisibilityMark = now();
+        }
       }
     },
     true

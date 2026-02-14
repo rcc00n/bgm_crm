@@ -5,7 +5,7 @@
   <div class="dashboard-shell">
     <section class="data-panel">
       <div class="panel-title">Employee time tracking</div>
-      <div class="panel-subtitle">Active time on admin panel vs client site. Time counts only while the tab is visible.</div>
+      <div class="panel-subtitle">Active time on admin panel vs client site. Admin time counts while the tab is open (not just visible).</div>
 
       {% if staff_usage_periods %}
         <div class="period-grid staff-usage-grid">
@@ -78,17 +78,90 @@
     <section class="data-panel analytics-table-panel">
       <div class="panel-title">Staff action history</div>
       <div class="panel-subtitle">
-        Admin add/change/delete actions · last {{ staff_action_history.window_days }} days ·
+        Admin add/change/delete actions ·
+        {% if staff_action_history.start_date and staff_action_history.end_date %}
+          {{ staff_action_history.start_date|date:"M d, Y" }} – {{ staff_action_history.end_date|date:"M d, Y" }} ·
+        {% else %}
+          last {{ staff_action_history.window_days }} days ·
+        {% endif %}
         {{ staff_action_history.total_count }} total · page {{ staff_action_history.page }} of {{ staff_action_history.total_pages }}
       </div>
 
+      <form method="get" class="action-history-controls" style="flex-wrap:wrap; gap:12px;">
+        <input type="hidden" name="per_page" value="{{ staff_action_history.per_page }}">
+        <input type="hidden" name="page" value="1">
+        <select name="user">
+          <option value="">All employees</option>
+          {% for opt in staff_action_staff_options %}
+            <option value="{{ opt.id }}"{% if staff_action_filters.user == opt.id|stringformat:'s' %} selected{% endif %}>
+              {{ opt.label }}{% if not opt.is_active %} (inactive){% endif %}
+            </option>
+          {% endfor %}
+        </select>
+        <select name="action">
+          <option value="">All actions</option>
+          <option value="added"{% if staff_action_filters.action == 'added' %} selected{% endif %}>Added</option>
+          <option value="changed"{% if staff_action_filters.action == 'changed' %} selected{% endif %}>Changed</option>
+          <option value="deleted"{% if staff_action_filters.action == 'deleted' %} selected{% endif %}>Deleted</option>
+        </select>
+        <select name="model">
+          <option value="">All models</option>
+          {% for opt in staff_action_history.model_totals %}
+            <option value="{{ opt.content_type_id }}"{% if staff_action_filters.model == opt.content_type_id|stringformat:'s' %} selected{% endif %}>
+              {{ opt.label }} ({{ opt.total }})
+            </option>
+          {% endfor %}
+        </select>
+        <input type="text" name="q" placeholder="Object / details" value="{{ staff_action_filters.q }}" style="min-width:220px;">
+        <input type="date" name="start" value="{{ staff_action_filters.start }}">
+        <input type="date" name="end" value="{{ staff_action_filters.end }}">
+        <button class="button" type="submit">Apply</button>
+        <a class="button" href="{{ staff_action_links.reset }}">Reset</a>
+      </form>
+
       <div class="action-history-controls">
-        <div class="action-history-meta">Rows per page</div>
-        <div class="action-history-actions">
-          <a class="pill{% if staff_action_history.per_page == 25 %} active{% endif %}" href="?per_page=25&page=1">25</a>
-          <a class="pill{% if staff_action_history.per_page == 50 %} active{% endif %}" href="?per_page=50&page=1">50</a>
+        <div>
+          <div class="action-history-meta">Totals (filtered)</div>
+          <div class="action-history-actions">
+            {% for item in staff_action_history.action_totals %}
+              <span class="action-pill {{ item.css }}">{{ item.label }} · {{ item.total }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        <div>
+          <div class="action-history-meta">Rows per page</div>
+          <div class="action-history-actions">
+            <a class="pill{% if staff_action_history.per_page == 25 %} active{% endif %}" href="{{ staff_action_links.per_page_25 }}">25</a>
+            <a class="pill{% if staff_action_history.per_page == 50 %} active{% endif %}" href="{{ staff_action_links.per_page_50 }}">50</a>
+          </div>
         </div>
       </div>
+
+      {% if staff_action_history.totals_by_user %}
+        <div class="table-scroll">
+          <table class="analytics-table" style="max-width:560px;margin-top:0;">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th class="numeric">Total actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in staff_action_history.totals_by_user|slice:":12" %}
+                <tr>
+                  <td>
+                    <a href="{{ row.filter_url }}"><strong>{{ row.user_name }}</strong></a>
+                    {% if row.user_email %}
+                      <div class="staff-usage-email">{{ row.user_email }}</div>
+                    {% endif %}
+                  </td>
+                  <td class="numeric"><strong>{{ row.total }}</strong></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
 
       {% if staff_action_history.entries %}
         <div class="table-scroll">
@@ -133,13 +206,13 @@
 
         <div class="action-history-pagination">
           {% if staff_action_history.has_previous %}
-            <a class="page-link" href="?page={{ staff_action_history.prev_page }}&per_page={{ staff_action_history.per_page }}">Prev</a>
+            <a class="page-link" href="{{ staff_action_links.prev }}">Prev</a>
           {% else %}
             <span class="page-link disabled">Prev</span>
           {% endif %}
           <span class="page-status">Page {{ staff_action_history.page }} of {{ staff_action_history.total_pages }}</span>
           {% if staff_action_history.has_next %}
-            <a class="page-link" href="?page={{ staff_action_history.next_page }}&per_page={{ staff_action_history.per_page }}">Next</a>
+            <a class="page-link" href="{{ staff_action_links.next }}">Next</a>
           {% else %}
             <span class="page-link disabled">Next</span>
           {% endif %}

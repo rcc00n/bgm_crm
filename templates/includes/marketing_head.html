@@ -31,8 +31,6 @@
   <meta name="twitter:title" content="{{ meta_title_resolved|meta_text }}">
   <meta name="twitter:description" content="{{ meta_description_resolved|meta_text }}">
   <meta name="twitter:image" content="{{ meta_image_resolved|default:marketing.default_image|absolute_url:marketing.origin|default:marketing.default_image_absolute }}">
-  <link rel="stylesheet" href="{% static 'css/site.css' %}">
-  <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
   <style id="topbar-critical-fallback">
     .bgm-topbar{
       position:fixed !important;
@@ -41,6 +39,10 @@
       background:rgba(6,6,6,.92) !important;
       border-bottom:1px solid rgba(255,255,255,.12) !important;
       backdrop-filter:blur(10px) saturate(1.1) !important;
+    }
+    /* Prevent "content jumps under the header" before topbar-client-v3.css loads. */
+    .bgm-topbar__spacer{
+      height:var(--bgm-topbar-height, var(--site-header-height, 72px)) !important;
     }
     .bgm-topbar__inner{
       display:flex !important;
@@ -57,7 +59,45 @@
       padding:0 !important;
       list-style:none !important;
     }
+    /* Keep the initial (pre-CSS) mobile header from overflowing. */
+    .bgm-topbar__toggle{ display:none !important; }
+    .bgm-topbar__slot--search{ display:none !important; }
+    @media (max-width: 960px){
+      .bgm-topbar__inner{
+        display:grid !important;
+        grid-template-columns:max-content minmax(0, 1fr) max-content !important;
+        align-items:center !important;
+        gap:clamp(12px, 3vw, 20px) !important;
+      }
+      .bgm-topbar__toggle{
+        display:inline-flex !important;
+        width:var(--site-header-toggle-size, 46px) !important;
+        height:var(--site-header-toggle-size, 46px) !important;
+        border-radius:.85rem !important;
+        border:1px solid rgba(255,255,255,.16) !important;
+        background:rgba(255,255,255,.06) !important;
+        color:#fff !important;
+        grid-column:1;
+        justify-self:start;
+      }
+      .bgm-topbar__slot--brand{
+        grid-column:2;
+        min-width:0;
+        overflow:hidden;
+      }
+      .bgm-topbar__brand{ max-width:100%; }
+      .bgm-topbar__slot--search{
+        display:flex !important;
+        grid-column:3;
+        min-width:0;
+        justify-self:end;
+      }
+      .bgm-topbar__slot--tagline,
+      .bgm-topbar__nav{ display:none !important; }
+    }
   </style>
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
   <link rel="preload" href="{% safe_static 'fonts/Diesel.woff2' 'fonts/Diesel.ttf' %}" as="font" type="font/woff2" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

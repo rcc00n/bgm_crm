@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional
 
 from django.contrib.auth import get_user_model
@@ -45,19 +45,35 @@ def _format_duration(seconds: int) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 
-def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
+def summarize_web_analytics(window_days: int = 7, *, include_admin: bool = False) -> Dict[str, object]:
     window_days = max(1, min(window_days, 31))
     day_list = _day_range(window_days)
     start_date = day_list[0]
     start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
 
     recent_views = PageView.objects.filter(started_at__gte=start_dt)
+    if not include_admin:
+        recent_views = recent_views.exclude(path__startswith="/admin")
     session_ids = recent_views.values_list("session_id", flat=True).distinct()
     recent_sessions = VisitorSession.objects.filter(id__in=session_ids)
 
     visits = recent_sessions.count()
     signed_in = recent_sessions.filter(user__isnull=False).count()
     total_page_views = recent_views.count()
+    new_visitors = recent_sessions.filter(created_at__gte=start_dt).count()
+    returning_visitors = max(0, visits - new_visitors)
+    new_visitors_pct = round((new_visitors / visits) * 100, 1) if visits else 0.0
+
+    admin_visits = recent_sessions.filter(user__is_staff=True).count()
+    member_visits = recent_sessions.filter(user__is_staff=False, user__isnull=False).count()
+    guest_visits = max(0, visits - admin_visits - member_visits)
+
+    admin_page_views = recent_views.filter(user__is_staff=True).count()
+    member_page_views = recent_views.filter(user__is_staff=False, user__isnull=False).count()
+    guest_page_views = max(0, total_page_views - admin_page_views - member_page_views)
+    admin_page_views_pct = round((admin_page_views / total_page_views) * 100, 1) if total_page_views else 0.0
+    member_page_views_pct = round((member_page_views / total_page_views) * 100, 1) if total_page_views else 0.0
+    guest_page_views_pct = round((guest_page_views / total_page_views) * 100, 1) if total_page_views else 0.0
 
     avg_duration_ms = recent_views.aggregate(avg=Avg("duration_ms"))["avg"] or 0
     avg_duration_seconds = round(avg_duration_ms / 1000, 1)
@@ -165,11 +181,24 @@ def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
         "has_data": bool(visits or total_page_views),
         "totals": {
             "visits": visits,
+            "unique_visitors": visits,
+            "new_visitors": new_visitors,
+            "returning_visitors": returning_visitors,
+            "new_visitors_pct": new_visitors_pct,
             "signed_in": signed_in,
             "signed_in_pct": signed_in_pct,
             "avg_duration_seconds": avg_duration_seconds,
             "avg_pages_per_visit": avg_pages_per_visit,
             "page_views": total_page_views,
+            "admin_visits": admin_visits,
+            "member_visits": member_visits,
+            "guest_visits": guest_visits,
+            "admin_page_views": admin_page_views,
+            "member_page_views": member_page_views,
+            "guest_page_views": guest_page_views,
+            "admin_page_views_pct": admin_page_views_pct,
+            "member_page_views_pct": member_page_views_pct,
+            "guest_page_views_pct": guest_page_views_pct,
         },
         "top_pages": top_pages,
         "slow_pages": slow_pages,
@@ -327,6 +356,12 @@ def summarize_web_analytics_insights(
         views = views.exclude(path__startswith="/admin")
 
     page_views = views.count()
+    admin_page_views = views.filter(user__is_staff=True).count()
+    member_page_views = views.filter(user__is_staff=False, user__isnull=False).count()
+    guest_page_views = max(0, page_views - admin_page_views - member_page_views)
+    admin_page_views_pct = round((admin_page_views / page_views) * 100, 1) if page_views else 0.0
+    member_page_views_pct = round((member_page_views / page_views) * 100, 1) if page_views else 0.0
+    guest_page_views_pct = round((guest_page_views / page_views) * 100, 1) if page_views else 0.0
     avg_duration_ms = views.aggregate(avg=Avg("duration_ms"))["avg"] or 0
     avg_duration_seconds = round(avg_duration_ms / 1000, 1)
 
@@ -500,6 +535,14 @@ def summarize_web_analytics_insights(
     signed_in_pct = round((signed_in / visits) * 100, 1) if visits else 0.0
     returning_sessions = max(0, visits - new_sessions)
     returning_pct = round((returning_sessions / visits) * 100, 1) if visits else 0.0
+    new_visitors_pct = round((new_sessions / visits) * 100, 1) if visits else 0.0
+
+    admin_visits = sessions.filter(user__is_staff=True).count()
+    member_visits = sessions.filter(user__is_staff=False, user__isnull=False).count()
+    guest_visits = max(0, visits - admin_visits - member_visits)
+    admin_visits_pct = round((admin_visits / visits) * 100, 1) if visits else 0.0
+    member_visits_pct = round((member_visits / visits) * 100, 1) if visits else 0.0
+    guest_visits_pct = round((guest_visits / visits) * 100, 1) if visits else 0.0
 
     landing_pages = []
     for path, stats in landing_stats.items():
@@ -685,9 +728,25 @@ def summarize_web_analytics_insights(
         "has_data": bool(visits or page_views),
         "totals": {
             "visits": visits,
+            "unique_visitors": visits,
+            "new_visitors": new_sessions,
+            "new_visitors_pct": new_visitors_pct,
+            "returning_visitors": returning_sessions,
             "page_views": page_views,
             "signed_in": signed_in,
             "signed_in_pct": signed_in_pct,
+            "admin_visits": admin_visits,
+            "admin_visits_pct": admin_visits_pct,
+            "member_visits": member_visits,
+            "member_visits_pct": member_visits_pct,
+            "guest_visits": guest_visits,
+            "guest_visits_pct": guest_visits_pct,
+            "admin_page_views": admin_page_views,
+            "admin_page_views_pct": admin_page_views_pct,
+            "member_page_views": member_page_views,
+            "member_page_views_pct": member_page_views_pct,
+            "guest_page_views": guest_page_views,
+            "guest_page_views_pct": guest_page_views_pct,
             "unique_ips": len(ip_stats),
             "avg_duration_seconds": avg_duration_seconds,
             "median_duration_seconds": median_seconds,
@@ -740,55 +799,121 @@ def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) 
     window_days = max(1, min(window_days, 90))
     day_list = _day_range(window_days)
     start_date = day_list[0]
-    start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+    window_start = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+    window_end = timezone.now()
 
-    admin_filter = Q(pk__isnull=True)
-    admin_prefixes = []
+    # Staff often keeps admin pages open for long periods, which means a PageView can start
+    # outside the requested window yet still be active within it (updated_at keeps moving).
+    # We therefore filter by updated_at and estimate the portion of duration that overlaps
+    # the requested window.
+
+    admin_prefixes: List[str] = []
     try:
         admin_prefixes.append(reverse("admin:index"))
     except Exception:
-        admin_prefixes = []
+        pass
     configured_prefixes = getattr(settings, "ADMIN_USAGE_PATH_PREFIXES", None) or []
     for prefix in configured_prefixes:
         if prefix:
-            admin_prefixes.append(prefix)
+            admin_prefixes.append(str(prefix))
     admin_prefixes.extend(["/admin/", "/admin"])
-    normalized_prefixes = []
+
+    normalized_prefixes: List[str] = []
     for prefix in admin_prefixes:
+        prefix = (prefix or "").strip()
         if not prefix:
             continue
         if not prefix.startswith("/"):
             prefix = f"/{prefix}"
         normalized_prefixes.append(prefix)
+    normalized_prefixes = list(dict.fromkeys(normalized_prefixes))
 
-    for prefix in dict.fromkeys(normalized_prefixes):
-        admin_filter |= (
-            Q(path__startswith=prefix)
-            | Q(path__contains=prefix)
-            | Q(full_path__startswith=prefix)
-            | Q(full_path__contains=prefix)
+    def _is_admin_path(path: str, full_path: str) -> bool:
+        path = path or ""
+        full_path = full_path or ""
+        for prefix in normalized_prefixes:
+            if (
+                path.startswith(prefix)
+                or prefix in path
+                or full_path.startswith(prefix)
+                or prefix in full_path
+            ):
+                return True
+        return False
+
+    def _overlap_ms(a_start, a_end, b_start, b_end) -> int:
+        start = max(a_start, b_start)
+        end = min(a_end, b_end)
+        if end <= start:
+            return 0
+        return int(round((end - start).total_seconds() * 1000))
+
+    def _window_duration_ms(started_at, updated_at, duration_ms: int) -> int:
+        """
+        Estimate how much of the recorded visible time fell within [window_start, window_end].
+
+        We treat the recorded visible time as a contiguous block ending at updated_at.
+        This avoids dropping long-lived PageViews that started before the window.
+        """
+        try:
+            duration_ms = int(duration_ms or 0)
+        except (TypeError, ValueError):
+            duration_ms = 0
+        if duration_ms <= 0:
+            return 0
+        if not started_at or not updated_at:
+            return 0
+        if updated_at <= window_start:
+            return 0
+        if updated_at < started_at:
+            return 0
+
+        active_end = min(updated_at, window_end)
+        active_start = updated_at - timedelta(milliseconds=duration_ms)
+        if active_start < started_at:
+            active_start = started_at
+
+        return _overlap_ms(active_start, active_end, window_start, window_end)
+
+    view_rows = (
+        PageView.objects.filter(
+            updated_at__gte=window_start,
+            user__isnull=False,
+            user__is_staff=True,
         )
-    client_filter = ~Q(path__startswith="/admin")
-
-    base_views = PageView.objects.filter(
-        started_at__gte=start_dt,
-        user__isnull=False,
-        user__is_staff=True,
+        .values("user_id", "path", "full_path", "started_at", "updated_at", "duration_ms")
+        .iterator()
     )
 
-    aggregates = base_views.values("user_id").annotate(
-        admin_duration_ms=Sum(
-            Case(When(admin_filter, then="duration_ms"), default=0, output_field=IntegerField())
-        ),
-        client_duration_ms=Sum(
-            Case(When(client_filter, then="duration_ms"), default=0, output_field=IntegerField())
-        ),
-        admin_views=Count("id", filter=admin_filter),
-        client_views=Count("id", filter=client_filter),
-        total_views=Count("id"),
-        last_seen=Max("updated_at"),
-    )
-    by_user = {row["user_id"]: row for row in aggregates}
+    admin_ms_by_user: Dict[int, int] = defaultdict(int)
+    client_ms_by_user: Dict[int, int] = defaultdict(int)
+    admin_views_by_user: Dict[int, int] = defaultdict(int)
+    client_views_by_user: Dict[int, int] = defaultdict(int)
+    last_seen_by_user: Dict[int, datetime] = {}
+
+    for row in view_rows:
+        user_id = row.get("user_id")
+        if not user_id:
+            continue
+
+        updated_at = row.get("updated_at")
+        if updated_at:
+            current_last = last_seen_by_user.get(user_id)
+            if not current_last or updated_at > current_last:
+                last_seen_by_user[user_id] = updated_at
+
+        window_ms = _window_duration_ms(
+            started_at=row.get("started_at"),
+            updated_at=updated_at,
+            duration_ms=row.get("duration_ms") or 0,
+        )
+
+        if _is_admin_path(row.get("path") or "", row.get("full_path") or ""):
+            admin_views_by_user[user_id] += 1
+            admin_ms_by_user[user_id] += window_ms
+        else:
+            client_views_by_user[user_id] += 1
+            client_ms_by_user[user_id] += window_ms
 
     User = get_user_model()
     staff_qs = User.objects.filter(is_staff=True)
@@ -803,11 +928,10 @@ def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) 
     total_client_views = 0
 
     for user in staff_list:
-        data = by_user.get(user.id, {})
-        admin_ms = int(data.get("admin_duration_ms") or 0)
-        client_ms = int(data.get("client_duration_ms") or 0)
-        admin_views = int(data.get("admin_views") or 0)
-        client_views = int(data.get("client_views") or 0)
+        admin_ms = int(admin_ms_by_user.get(user.id, 0) or 0)
+        client_ms = int(client_ms_by_user.get(user.id, 0) or 0)
+        admin_views = int(admin_views_by_user.get(user.id, 0) or 0)
+        client_views = int(client_views_by_user.get(user.id, 0) or 0)
         total_ms = admin_ms + client_ms
 
         admin_seconds = int(round(admin_ms / 1000))
@@ -835,7 +959,7 @@ def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) 
                 "admin_views": admin_views,
                 "client_views": client_views,
                 "total_views": admin_views + client_views,
-                "last_seen": data.get("last_seen"),
+                "last_seen": last_seen_by_user.get(user.id),
             }
         )
 
@@ -914,6 +1038,12 @@ def summarize_staff_action_history(
     page: int = 1,
     per_page: int = 50,
     include_inactive: bool = False,
+    user_id: Optional[int] = None,
+    action_flag: Optional[int] = None,
+    content_type_id: Optional[int] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    query: str = "",
 ) -> Dict[str, object]:
     """
     Recent admin actions (add/change/delete) performed by staff users.
@@ -931,15 +1061,123 @@ def summarize_staff_action_history(
         page = int(page or 1)
     except (TypeError, ValueError):
         page = 1
-    since = timezone.now() - timedelta(days=window_days)
 
-    entries_qs = (
-        LogEntry.objects.select_related("user", "content_type")
-        .filter(action_time__gte=since, user__is_staff=True)
-        .order_by("-action_time")
-    )
+    today = timezone.localdate()
+    # Date range filter wins; otherwise fall back to "last N days".
+    if start_date or end_date:
+        if start_date is None:
+            start_date = end_date
+        if end_date is None:
+            end_date = start_date
+        if start_date and end_date and end_date < start_date:
+            start_date, end_date = end_date, start_date
+        # Keep queries bounded.
+        if start_date and end_date and (end_date - start_date).days > 364:
+            start_date = end_date - timedelta(days=364)
+
+        window_days = max(1, int((end_date - start_date).days) + 1) if start_date and end_date else window_days
+        start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+        end_dt = timezone.make_aware(datetime.combine(end_date, datetime.max.time()))
+        entries_qs = (
+            LogEntry.objects.select_related("user", "content_type")
+            .filter(action_time__range=(start_dt, end_dt), user__is_staff=True)
+            .order_by("-action_time")
+        )
+    else:
+        since = timezone.now() - timedelta(days=window_days)
+        start_date = today - timedelta(days=window_days - 1)
+        end_date = today
+        entries_qs = (
+            LogEntry.objects.select_related("user", "content_type")
+            .filter(action_time__gte=since, user__is_staff=True)
+            .order_by("-action_time")
+        )
     if not include_inactive:
         entries_qs = entries_qs.filter(user__is_active=True)
+
+    if user_id:
+        entries_qs = entries_qs.filter(user_id=int(user_id))
+
+    if action_flag in {ADDITION, CHANGE, DELETION}:
+        entries_qs = entries_qs.filter(action_flag=int(action_flag))
+
+    if content_type_id:
+        entries_qs = entries_qs.filter(content_type_id=int(content_type_id))
+
+    query = (query or "").strip()
+    if query:
+        q_filter = Q(object_repr__icontains=query) | Q(change_message__icontains=query)
+        if query.isdigit():
+            q_filter = q_filter | Q(object_id=query)
+        entries_qs = entries_qs.filter(q_filter)
+
+    totals_by_user_raw = list(
+        entries_qs.values(
+            "user_id",
+            "user__first_name",
+            "user__last_name",
+            "user__username",
+            "user__email",
+        )
+        .annotate(total=Count("id"))
+        .order_by("-total", "user__username")[:50]
+    )
+    totals_by_user = []
+    for row in totals_by_user_raw:
+        first = (row.get("user__first_name") or "").strip()
+        last = (row.get("user__last_name") or "").strip()
+        username = (row.get("user__username") or "").strip()
+        email = (row.get("user__email") or "").strip()
+        label = f"{first} {last}".strip() or username or email or f"User {row.get('user_id')}"
+        totals_by_user.append(
+            {
+                "user_id": row.get("user_id"),
+                "user_name": label,
+                "user_email": email,
+                "total": row.get("total") or 0,
+            }
+        )
+
+    action_totals_raw = list(
+        entries_qs.values("action_flag").annotate(total=Count("id")).order_by("action_flag")
+    )
+    action_totals_map = {row["action_flag"]: row["total"] for row in action_totals_raw}
+    action_totals = []
+    for flag in (ADDITION, CHANGE, DELETION):
+        meta = _staff_action_meta(flag)
+        action_totals.append(
+            {
+                "flag": flag,
+                "label": meta["label"],
+                "css": meta["css"],
+                "total": int(action_totals_map.get(flag, 0) or 0),
+            }
+        )
+
+    model_totals_raw = list(
+        entries_qs.exclude(content_type__isnull=True)
+        .values(
+            "content_type_id",
+            "content_type__app_label",
+            "content_type__model",
+        )
+        .annotate(total=Count("id"))
+        .order_by("-total", "content_type__model")[:80]
+    )
+    model_totals = []
+    for row in model_totals_raw:
+        # ContentType "name" isn't a DB field in modern Django; build a readable label from the model slug.
+        label = capfirst((row.get("content_type__model") or "").replace("_", " "))
+        if label:
+            model_totals.append(
+                {
+                    "content_type_id": row.get("content_type_id"),
+                    "label": label,
+                    "app_label": row.get("content_type__app_label") or "",
+                    "model": row.get("content_type__model") or "",
+                    "total": row.get("total") or 0,
+                }
+            )
 
     paginator = Paginator(entries_qs, per_page)
     page_obj = paginator.get_page(page)
@@ -984,6 +1222,8 @@ def summarize_staff_action_history(
 
     return {
         "window_days": window_days,
+        "start_date": start_date,
+        "end_date": end_date,
         "per_page": per_page,
         "page": page_obj.number,
         "total_pages": total_pages,
@@ -993,4 +1233,13 @@ def summarize_staff_action_history(
         "next_page": page_obj.next_page_number() if page_obj.has_next() else None,
         "prev_page": page_obj.previous_page_number() if page_obj.has_previous() else None,
         "entries": entries,
+        "totals_by_user": totals_by_user,
+        "action_totals": action_totals,
+        "model_totals": model_totals,
+        "filters": {
+            "user_id": int(user_id) if user_id else None,
+            "action_flag": int(action_flag) if action_flag else None,
+            "content_type_id": int(content_type_id) if content_type_id else None,
+            "query": query,
+        },
     }

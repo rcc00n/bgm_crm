@@ -82,7 +82,18 @@
     .btn-ghost:hover{background:rgba(255,255,255,.06)}
     .link{color:#fff; text-underline-offset:4px} .link:hover{color:var(--red); text-decoration:underline}
 
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:1rem;z-index:50}
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.6);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:1rem;
+      /* Needs to sit above floating FABs (contact/cart). */
+      z-index:2150;
+      overscroll-behavior:contain;
+    }
     .modal--open{display:flex}
     .modal__dialog{
       background:linear-gradient(180deg,#0c0c0c,#121212);
@@ -112,21 +123,153 @@
       letter-spacing:.04em;
       text-transform:none;
     }
-    .modal__close{
-      background:transparent;
-      border:1px solid var(--grid);
-      font-size:1.2rem;
+	    .modal__close{
+	      background:transparent;
+	      border:1px solid var(--grid);
+	      font-size:1.2rem;
       line-height:1;
       cursor:pointer;
       color:var(--muted);
       border-radius:.5rem;
-      width:36px;
-      height:36px;
-    }
-    .res-grid{
-      display:grid;
-      grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
-      gap:1rem;
+	      width:36px;
+	      height:36px;
+	    }
+	    /* Reschedule modal: match Services booking modal colors (buttons + "today" header). */
+	    #resModal{
+	      /* Services booking modal overlay shade */
+	      background:rgba(0,0,0,.72);
+	      /* Services booking modal palette */
+	      --ink:#f2f2f2;
+	      --muted:#b9b9b9;
+	      --line:rgba(255,255,255,.12);
+	      --red-dark:#b60000;
+	    }
+	    #resModal .btn-ghost{
+	      background:transparent;
+	      color:var(--ink);
+	      border:1px solid var(--red);
+	    }
+	    #resModal .btn-ghost:hover{
+	      box-shadow:0 0 18px rgba(213,0,0,.35);
+	      transform:translateY(-1px);
+	    }
+	    #resModal .btn-primary{
+	      background:linear-gradient(180deg, var(--red) 0%, var(--red-dark) 100%);
+	      color:#fff;
+	      border:1px solid rgba(255,255,255,.08);
+	      box-shadow:
+	        0 0 0 0 rgba(213,0,0,0),
+	        0 0 24px rgba(213,0,0,.35),
+	        0 0 48px rgba(213,0,0,.18);
+	    }
+	    #resModal .btn-primary:hover{
+	      transform:translateY(-1px);
+	      filter:brightness(1.02);
+	    }
+	    #resModal .modal__close{border-color:var(--line);}
+	    #resModal .outlook,
+	    #resModal .mobile-booking{
+	      border-color:var(--line);
+	    }
+	    #resModal .outlook__toolbar{border-bottom:1px solid var(--line);}
+	    #resModal .outlook__cell{border-bottom:1px solid var(--line);border-right:1px solid var(--line);}
+	    #resModal .outlook__head{border-bottom:2px solid var(--line);}
+	    #resModal .outlook__head.day--today{
+	      background:linear-gradient(180deg,#3a0b0b 0%,#240808 100%);
+	    }
+	    #resModal .mobile-booking__btn{border-color:var(--line);}
+	    #resModal .mobile-booking__status[data-state="error"]{color:#ff5c72;}
+	    /* Services booking modal parity (layout + mobile controls). */
+	    .grid-2{
+	      display:grid;
+	      grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);
+	      gap:1rem;
+	      flex:1 1 auto;
+	      min-height:0;
+	    }
+	    .grid-2>div{min-height:0}
+	    /* Reschedule modal: keep actions pinned at the bottom without covering the calendar. */
+	    #resModal .modal__header{flex:0 0 auto}
+	    #resModal .grid-2{
+	      flex:1 1 auto;
+	      min-height:0;
+	      overflow-y:auto;
+	      overscroll-behavior:contain;
+	      padding-right:.1rem;
+	      /* Booking modal effectively renders single-column on desktop too. */
+	      grid-template-columns:minmax(0,1fr);
+	    }
+	    #resModal .modal__footer{
+	      flex:0 0 auto;
+	      margin-top:0;
+	      padding-top:.75rem;
+	      border-top:1px solid var(--grid);
+	      background:linear-gradient(180deg, rgba(12,12,12,.06) 0%, rgba(12,12,12,.92) 40%, rgba(12,12,12,.98) 100%);
+	      position:relative;
+	      z-index:4;
+	    }
+	    .mobile-booking{
+	      display:none;
+	      flex-direction:column;
+	      gap:.85rem;
+	      margin-top:.75rem;
+	      border:1px solid var(--grid);
+	      border-radius:12px;
+	      padding:1rem;
+	      background:#0b0b0b;
+	    }
+	    .mobile-booking__row{display:flex;flex-direction:column;gap:.45rem}
+	    .mobile-booking__label{font-size:.8rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+	    .mobile-booking__control{display:flex;gap:.5rem;align-items:center}
+	    .mobile-booking__input{
+	      display:block;
+	      width:100%;
+	      max-width:100%;
+	      min-width:0;
+	      min-inline-size:0;
+	      padding:.75rem .9rem;
+	      border-radius:.75rem;
+	      border:1px solid rgba(255,255,255,.18);
+	      background:#0f0f0f;
+	      color:#fff;
+	      font-weight:800;
+	      font-size:1rem;
+	      box-sizing:border-box;
+	    }
+	    .mobile-booking__btn{
+	      border:1px solid var(--grid);
+	      background:#111;
+	      border-radius:.7rem;
+	      padding:.6rem .8rem;
+	      font-size:.82rem;
+	      font-weight:800;
+	      text-transform:uppercase;
+	      letter-spacing:.06em;
+	      color:var(--ink);
+	      cursor:pointer;
+	      white-space:nowrap;
+	    }
+	    .mobile-booking__btn:active{transform:scale(.98)}
+	    .mobile-booking__meta{display:flex;flex-direction:column;gap:.35rem;margin-top:.25rem}
+	    .mobile-booking__status{font-size:.9rem;color:var(--muted);font-weight:600}
+	    .mobile-booking__status[data-state="error"]{color:#ff6b6b}
+	    /* Hide floating FABs and lock background scroll when modal is open. */
+	    body.modal-open .contact-fab,
+	    body.modal-open .bgm-cart-fab{display:none !important;}
+	    html.modal-open,
+	    body.modal-open{
+	      overflow:hidden !important;
+	      overscroll-behavior:none;
+	    }
+	    @media (max-width:768px){
+	      #resModal .outlook{display:none;}
+	      #resModal .hint{display:none;}
+	      #resModal .mobile-booking{display:flex;}
+	    }
+	    .res-grid{
+	      display:grid;
+	      grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
+	      gap:1rem;
       flex:1 1 auto;
       min-height:0;
     }
@@ -1254,9 +1397,9 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
                   {% if a.service.image %}
                     <img class="appt-card__image" src="{{ a.service.image.url }}" alt="{{ a.service.name }}">
                   {% endif %}
-                </div>
+                </li>
               {% endfor %}
-            </div>
+            </ul>
           {% else %}
             <p class="muted-2">{{ portal_copy.upcoming_empty_label }}</p>
           {% endif %}
@@ -1629,7 +1772,7 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 </div>
 
 <!-- ===== MODAL: Reschedule ===== -->
-<div id="resModal" class="modal">
+	<div id="resModal" class="modal" aria-hidden="true">
   <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="resTitle">
     <div class="modal__header">
       <h3 id="resTitle" class="modal__title">{{ portal_copy.reschedule_modal_title }}</h3>
@@ -1679,7 +1822,6 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
 
           <div id="resSummary" class="sr-only" aria-live="polite">Choose staff and time.</div>
           <div class="res-modal__meta">
-            <p class="hint">{{ portal_copy.reschedule_shift_scroll_hint }}</p>
             <p class="error" id="resErr" style="display:none"></p>
             <p class="success" id="resOk" style="display:none"></p>
           </div>
@@ -1889,14 +2031,18 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     container.textContent = 'No image';
   }
 
-  function closeModal(modal){
+  function setModalState(modal, isOpen){
     if (!modal) return;
-    modal.classList.remove('modal--open');
+    modal.classList.toggle('modal--open', Boolean(isOpen));
+    modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+  }
+
+  function closeModal(modal){
+    setModalState(modal, false);
   }
 
   function openModal(modal){
-    if (!modal) return;
-    modal.classList.add('modal--open');
+    setModalState(modal, true);
   }
 
   /* ==== Chart.js (6 months + baseline) ==== */
@@ -2243,10 +2389,19 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
   const rsMobileStatus = document.getElementById('rsMobileStatus');
   const rsMobileQuery = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
 
-  if (resModal) {
-    const WINDOW_DAYS = 5;
-    const DEFAULT_START_HOUR = 6;
-    const DEFAULT_END_HOUR = 23;
+	  if (resModal) {
+	    // Match Services booking modal: lock scroll + hide FAB while the modal is open.
+	    const syncResModalFlag = () => {
+	      const isOpen = resModal.classList.contains('modal--open');
+	      document.body.classList.toggle('modal-open', isOpen);
+	      document.documentElement.classList.toggle('modal-open', isOpen);
+	    };
+	    syncResModalFlag();
+	    new MutationObserver(syncResModalFlag).observe(resModal, { attributes:true, attributeFilter:['class'] });
+
+	    const WINDOW_DAYS = 5;
+	    const DEFAULT_START_HOUR = 6;
+	    const DEFAULT_END_HOUR = 23;
     const GRID_STEP_MIN = 30;
     const EDGE_BUFFER_MIN = 60;
     const LAST_ROW_MINUTES = (23 * 60) + 45;
@@ -2360,25 +2515,91 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       }
     }
 
-    function syncMobileVisibility(){
-      const active = rsMobileQuery ? rsMobileQuery.matches : false;
-      mobileState.active = active;
-      if (rsMobileBooking){
-        rsMobileBooking.setAttribute('aria-hidden', active ? 'false' : 'true');
-      }
-    }
+	    function syncMobileVisibility(){
+	      const active = rsMobileQuery ? rsMobileQuery.matches : false;
+	      mobileState.active = active;
+	      if (rsMobileBooking){
+	        rsMobileBooking.setAttribute('aria-hidden', active ? 'false' : 'true');
+	      }
+	    }
 
-    syncMobileVisibility();
-    if (rsMobileQuery){
-      try { rsMobileQuery.addEventListener('change', syncMobileVisibility); }
-      catch (_) { rsMobileQuery.addListener(syncMobileVisibility); }
-    }
+	    syncMobileVisibility();
+	    function syncRsMobileDateInputWidth(){
+	      if (!rsMobileDate || !rsMobileTime) return;
+	      const target = rsMobileTime.getBoundingClientRect().width
+	        || (rsMobileTime.parentElement && rsMobileTime.parentElement.getBoundingClientRect().width)
+	        || 0;
+	      if (!target) return;
+	      const px = `${Math.round(target)}px`;
+	      rsMobileDate.style.width = px;
+	      rsMobileDate.style.maxWidth = px;
+	      rsMobileDate.style.inlineSize = px;
+	    }
 
-    function getActiveMasterName(){
-      return resMaster.selectedOptions[0]?.text?.trim()
-        || resMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent?.trim()
-        || '—';
-    }
+	    function scheduleRsMobileDateInputWidthSync(){
+	      window.requestAnimationFrame(syncRsMobileDateInputWidth);
+	    }
+
+	    scheduleRsMobileDateInputWidthSync();
+	    if (rsMobileQuery){
+	      const onMobileChange = () => {
+	        syncMobileVisibility();
+	        scheduleRsMobileDateInputWidthSync();
+	      };
+	      try { rsMobileQuery.addEventListener('change', onMobileChange); }
+	      catch (_) { rsMobileQuery.addListener(onMobileChange); }
+	    }
+	    if (window.ResizeObserver && rsMobileBooking){
+	      const mobileWidthObserver = new ResizeObserver(scheduleRsMobileDateInputWidthSync);
+	      mobileWidthObserver.observe(rsMobileBooking);
+	    }
+	    window.addEventListener('resize', scheduleRsMobileDateInputWidthSync, {passive:true});
+	    window.addEventListener('orientationchange', scheduleRsMobileDateInputWidthSync);
+
+	    function formatTimeLabel(timeValue){
+	      if (!timeValue) return '';
+	      const [hours, minutes] = timeValue.split(':').map((part) => parseInt(part, 10));
+	      const fake = new Date();
+	      fake.setHours(hours, minutes, 0, 0);
+	      return fmtHM(fake);
+	    }
+
+	    if (rsMobileDate){
+	      rsMobileDate.addEventListener('change', () => {
+	        loadMobileTimesForDay(rsMobileDate.value);
+	      });
+	    }
+	    if (rsMobileTime){
+	      rsMobileTime.addEventListener('change', () => {
+	        const timeValue = rsMobileTime.value;
+	        if (!timeValue){
+	          resState.slot = null;
+	          setSummaryDefault();
+	          updateSubmitState();
+	          rsMobileTime.setCustomValidity('');
+	          return;
+	        }
+	        const iso = mobileState.isoMap.get(timeValue);
+	        if (iso){
+	          rsMobileTime.setCustomValidity('');
+	          const preview = mobileState.times.slice(0, 5).map(formatTimeLabel).join(', ');
+	          setMobileStatus(preview || portalCopy.rescheduleNoAvailabilityLabel, false);
+	          selectSlot(iso);
+	        } else {
+	          resState.slot = null;
+	          setSummaryDefault();
+	          updateSubmitState();
+	          rsMobileTime.setCustomValidity(portalCopy.rescheduleNoAvailabilityLabel);
+	          setMobileStatus(portalCopy.rescheduleNoAvailabilityLabel, true);
+	        }
+	      });
+	    }
+
+	    function getActiveMasterName(){
+	      return resMaster.selectedOptions[0]?.text?.trim()
+	        || resMasterPicker.querySelector('.master-pill[aria-pressed="true"] .master-name')?.textContent?.trim()
+	        || '—';
+	    }
 
     function syncSelectedSlotUI(){
       const slot = resState.slot;
@@ -2742,11 +2963,12 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
       clearMobileTimeInput();
       setMobileStatus('Pick a day first', false);
       resErr.style.display = 'none';
-      resOk.style.display = 'none';
-      updateSubmitState();
-      openModal(resModal);
-      loadMastersAndRender();
-    }
+	      resOk.style.display = 'none';
+	      updateSubmitState();
+	      openModal(resModal);
+	      scheduleRsMobileDateInputWidthSync();
+	      loadMastersAndRender();
+	    }
 
     resMaster.addEventListener('change', async () => {
       const selected = Number(resMaster.value);

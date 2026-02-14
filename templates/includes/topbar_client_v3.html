@@ -18,6 +18,22 @@
       {% endif %}
     </div>
 
+    <div class="bgm-topbar__slot bgm-topbar__slot--search" aria-label="Site search">
+      <button
+        class="bgm-topbar__search-launch"
+        type="button"
+        aria-label="Search"
+        aria-haspopup="dialog"
+        aria-controls="bgmSearchOverlay"
+        aria-expanded="false"
+        data-bgm-search-open
+      >
+        <svg viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
+          <path d="M10.5 3.5a7 7 0 1 1 0 14a7 7 0 0 1 0-14Zm0 2a5 5 0 1 0 0 10a5 5 0 0 0 0-10Zm8.6 12.2l2.9 2.9a1 1 0 0 1-1.4 1.4l-2.9-2.9a1 1 0 0 1 1.4-1.4Z" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+
     <div class="bgm-topbar__slot bgm-topbar__slot--tagline">
       <span class="bgm-topbar__tagline">
         {% if tagline_override_1 or tagline_override_2 or tagline_override_3 %}
@@ -58,6 +74,38 @@
     </button>
 
     <div id="bgmSiteNav" class="bgm-topbar__nav bgm-topbar__slot bgm-topbar__slot--nav" role="navigation" aria-label="Main navigation">
+      <form
+        class="bgm-topbar__search bgm-topbar__search--nav"
+        role="search"
+        method="get"
+        action="{% url 'store' %}"
+        data-site-search
+        data-products-url="{% url 'store:product-search' %}"
+        data-services-url="{% url 'service-search' %}"
+        data-products-page="{% url 'store' %}"
+        data-services-page="{% url 'client-dashboard' %}#services"
+      >
+        <label class="visually-hidden" for="bgmSiteSearch">Search</label>
+        <span class="bgm-topbar__search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
+            <path d="M10.5 3.5a7 7 0 1 1 0 14a7 7 0 0 1 0-14Zm0 2a5 5 0 1 0 0 10a5 5 0 0 0 0-10Zm8.6 12.2l2.9 2.9a1 1 0 0 1-1.4 1.4l-2.9-2.9a1 1 0 0 1 1.4-1.4Z" fill="currentColor"/>
+          </svg>
+        </span>
+        <input
+          id="bgmSiteSearch"
+          class="bgm-topbar__search-input"
+          type="search"
+          name="q"
+          placeholder=""
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Search parts and services"
+          aria-expanded="false"
+          aria-controls="bgmSiteSearchMenu"
+        >
+        <button class="bgm-topbar__search-clear" type="button" aria-label="Clear search" data-site-search-clear hidden>×</button>
+        <div id="bgmSiteSearchMenu" class="bgm-topbar__search-menu" data-site-search-menu role="listbox" hidden></div>
+      </form>
       <ul class="bgm-topbar__nav-list">
         {% with nav_template=topbar_nav_template|default:"includes/topbar_nav_default.html" %}
           {% include nav_template %}
@@ -67,6 +115,45 @@
   </div>
 </header>
 <div class="bgm-topbar__spacer" aria-hidden="true"></div>
+<div id="bgmSearchOverlay" class="bgm-search-overlay" hidden>
+  <div class="bgm-search-overlay__backdrop" data-bgm-search-close></div>
+  <div class="bgm-search-overlay__panel" role="dialog" aria-modal="true" aria-label="Search">
+    <div
+      class="bgm-search-overlay__widget"
+      data-site-search
+      data-products-url="{% url 'store:product-search' %}"
+      data-services-url="{% url 'service-search' %}"
+      data-products-page="{% url 'store' %}"
+      data-services-page="{% url 'client-dashboard' %}#services"
+    >
+      <div class="bgm-search-overlay__bar">
+        <form class="bgm-topbar__search bgm-topbar__search--overlay" role="search" method="get" action="{% url 'store' %}">
+          <label class="visually-hidden" for="bgmSiteSearchMobile">Search</label>
+          <span class="bgm-topbar__search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
+              <path d="M10.5 3.5a7 7 0 1 1 0 14a7 7 0 0 1 0-14Zm0 2a5 5 0 1 0 0 10a5 5 0 0 0 0-10Zm8.6 12.2l2.9 2.9a1 1 0 0 1-1.4 1.4l-2.9-2.9a1 1 0 0 1 1.4-1.4Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <input
+            id="bgmSiteSearchMobile"
+            class="bgm-topbar__search-input"
+            type="search"
+            name="q"
+            placeholder=""
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Search parts and services"
+            aria-expanded="false"
+            aria-controls="bgmSiteSearchMenuMobile"
+          >
+          <button class="bgm-topbar__search-clear" type="button" aria-label="Clear search" data-site-search-clear hidden>×</button>
+        </form>
+        <button class="bgm-search-overlay__close" type="button" aria-label="Close search" data-bgm-search-close>×</button>
+      </div>
+      <div id="bgmSiteSearchMenuMobile" class="bgm-topbar__search-menu bgm-search-overlay__menu" data-site-search-menu role="listbox" hidden></div>
+    </div>
+  </div>
+</div>
 <style id="bgm-topbar-mobile-hardfix">
   @media (max-width: 960px){
     .bgm-topbar{
@@ -102,6 +189,66 @@
   }
 </style>
 <script src="{% static 'js/topbar.js' %}"></script>
+<script src="{% static 'js/site-search.js' %}"></script>
+<script>
+  (() => {
+    if (window.__bgmSearchOverlayInit) return;
+    window.__bgmSearchOverlayInit = true;
+
+    const openBtn = document.querySelector('[data-bgm-search-open]');
+    const overlay = document.getElementById('bgmSearchOverlay');
+    if (!openBtn || !overlay) return;
+
+    const closeEls = overlay.querySelectorAll('[data-bgm-search-close]');
+    const input = overlay.querySelector('.bgm-topbar__search-input');
+    const menu = overlay.querySelector('[data-site-search-menu]');
+    const clearBtn = overlay.querySelector('[data-site-search-clear]');
+    const navToggle = document.querySelector('.bgm-topbar__toggle');
+
+    let lastFocused = null;
+
+    const setOverlayOpen = (open) => {
+      if (open) {
+        if (document.body && document.body.classList.contains('nav-open') && navToggle) {
+          navToggle.click();
+        }
+        lastFocused = document.activeElement;
+        overlay.removeAttribute('hidden');
+        if (document.body) document.body.classList.add('bgm-search-open');
+        openBtn.setAttribute('aria-expanded', 'true');
+        if (input) {
+          input.focus({ preventScroll: true });
+        }
+      } else {
+        overlay.setAttribute('hidden', '');
+        if (document.body) document.body.classList.remove('bgm-search-open');
+        openBtn.setAttribute('aria-expanded', 'false');
+        if (input) {
+          input.value = '';
+          input.setAttribute('aria-expanded', 'false');
+        }
+        if (menu) menu.setAttribute('hidden', '');
+        if (clearBtn) clearBtn.setAttribute('hidden', '');
+        (lastFocused || openBtn).focus({ preventScroll: true });
+      }
+    };
+
+    openBtn.addEventListener('click', () => setOverlayOpen(true));
+    closeEls.forEach((el) => el.addEventListener('click', () => setOverlayOpen(false)));
+
+    document.addEventListener(
+      'keydown',
+      (e) => {
+        if (overlay.hasAttribute('hidden')) return;
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setOverlayOpen(false);
+        }
+      },
+      true
+    );
+  })();
+</script>
 <a
   class="bgm-cart-fab"
   href="{% url 'store-cart' %}"

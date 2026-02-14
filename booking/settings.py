@@ -291,8 +291,10 @@ PRINTFUL_MERCH_LIMIT = max(1, _int_env("PRINTFUL_MERCH_LIMIT", 8))
 PRINTFUL_MERCH_CACHE_SECONDS = max(0, _int_env("PRINTFUL_MERCH_CACHE_SECONDS", 300))
 PRINTFUL_TIMEOUT_SECONDS = max(0.5, _float_env("PRINTFUL_TIMEOUT_SECONDS", 4.0))
 PRINTFUL_MERCH_SHOW_PRICE = _bool_env("PRINTFUL_MERCH_SHOW_PRICE", "True")
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "openaicamrose@gmail.com")
-ETRANSFER_EMAIL = os.getenv("ETRANSFER_EMAIL", SUPPORT_EMAIL or "Payments@badguymotors.ca")
+# Internal inbox for staff notifications (fallback when per-feature recipients are not configured).
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@badguymotors.com")
+# e-Transfer instructions should default to the payments inbox, not the support inbox.
+ETRANSFER_EMAIL = os.getenv("ETRANSFER_EMAIL", "Payments@badguymotors.ca")
 ETRANSFER_MEMO_HINT = os.getenv(
     "ETRANSFER_MEMO_HINT",
     "Include your order number and phone in the transfer message.",
@@ -370,6 +372,7 @@ TEMPLATES = [
                 "core.context_processors_core.hero_media",
                 "core.context_processors_core.dealer_portal",
                 "core.context_processors_core.currency",
+                "core.context_processors_core.store_shipping",
                 "core.context_processors_core.marketing_tags",
                 "core.context_processors_core.company_info",
                 "core.context_processors_core.topbar_style",
@@ -564,7 +567,13 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "items": [
                     {"model": "core.UserProfile", "label": "Client Profiles"},
                     {"model": "core.ClientFile", "label": "Client Files"},
-                    {"model": "core.ClientReview", "label": "Reviews"},
+                    {
+                        "model": "core.ClientReview",
+                        "label": "Reviews",
+                        # Reviews are created via the public site (no LogEntry), so use created_at
+                        # for admin sidebar + bell notifications.
+                        "activity_field": "created_at",
+                    },
                     {"model": "core.ClientSource", "label": "Lead Sources"},
                 ],
             },
@@ -600,6 +609,14 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "icon": "fas fa-box-open",
                 "items": [
                     {"model": "store.StorePricingSettings", "label": "Pricing Settings"},
+                    {"model": "store.StoreShippingSettings", "label": "Shipping Settings"},
+                    {
+                        "label": "Merch economics",
+                        "url": "admin-merch-economics",
+                        "icon": "fas fa-chart-line",
+                        "active_patterns": ["admin-merch-economics"],
+                        "permissions": ["store.view_product"],
+                    },
                     {"model": "store.Category", "label": "Product Categories"},
                     {"model": "store.Product"},
                     {"model": "store.ProductImage", "label": "Product Gallery"},
@@ -823,6 +840,7 @@ JAZZMIN_SETTINGS = {
         "store.Order": "fas fa-shopping-cart",
         "store.OrderItem": "fas fa-receipt",
         "store.StorePricingSettings": "fas fa-percent",
+        "store.StoreShippingSettings": "fas fa-shipping-fast",
         "store.Product": "fas fa-box-open",
         "store.ProductImage": "fas fa-images",
         "store.ProductOption": "fas fa-sliders-h",

@@ -680,8 +680,10 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 .pj-album-teaser__media.pj-media{
   position:relative;
   inset:auto;
-  aspect-ratio:2.25/1;
-  min-height:260px;
+  /* Keep album cards closer to "one post per screen" on desktop. */
+  height:clamp(200px, 30vh, 300px);
+  min-height:200px;
+  aspect-ratio:auto;
 }
 
 .pj-album-teaser__media img{
@@ -900,7 +902,7 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 
 .pj-compare--slider{
   /* Clamp height so feed cards fit on a single desktop viewport. */
-  height:clamp(280px, 38vh, 380px);
+  height:clamp(240px, 32vh, 340px);
   width:100%;
   max-width:100%;
   justify-self:stretch;
@@ -913,14 +915,14 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   width:100%;
   justify-self:center;
   margin-inline:auto;
-  height:clamp(300px, 42vh, 430px);
+  height:clamp(260px, 36vh, 380px);
 }
 .pj-compare--slider.pj-compare--ratio-portrait{
   max-width:min(760px, 100%);
   width:100%;
   justify-self:center;
   margin-inline:auto;
-  height:clamp(320px, 48vh, 470px);
+  height:clamp(280px, 40vh, 420px);
 }
 .pj-compare--slider.pj-compare--ratio-mixed .pj-media img,
 .pj-compare--slider.pj-compare--ratio-portrait .pj-media img{
@@ -1117,11 +1119,16 @@ body.pj.pj-album-open{
   inset:0;
   z-index:2600;
   display:none;
-  align-items:center;
+  /* Keep the dialog clear of the sticky topbar (topbar stays above the modal). */
+  align-items:flex-start;
   justify-content:center;
-  padding:2rem;
+  padding:
+    calc(var(--bgm-topbar-height, var(--site-header-height, 72px)) + 1.25rem)
+    clamp(1rem, 3vw, 2rem)
+    2rem;
   background:rgba(0,0,0,.74);
   backdrop-filter:blur(2px);
+  overflow:auto;
 }
 
 .pj-album-modal.is-open{
@@ -1130,7 +1137,8 @@ body.pj.pj-album-open{
 
 .pj-album-modal__dialog{
   width:min(1120px, 94vw);
-  max-height:90vh;
+  /* Constrain to the overlay's padded viewport so the title never tucks under the topbar. */
+  max-height:100%;
   background:#0b0d14;
   border:1px solid rgba(255,255,255,.16);
   border-radius:16px;
@@ -1203,7 +1211,7 @@ body.pj.pj-album-open{
 
 .pj-album-modal__image{
   max-width:100%;
-  max-height:62vh;
+  max-height:min(60vh, 100%);
   object-fit:contain;
   display:block;
 }

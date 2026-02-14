@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import logging
+import re
 from decimal import Decimal, InvalidOperation
 from datetime import timedelta
+from collections import OrderedDict
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -672,48 +674,137 @@ def _select_home_products(
 
 
 def _build_home_reviews(*, limit: int | None = None):
+    # Home carousel should be bounded even when called without an explicit limit.
+    limit = 12 if limit is None else max(1, int(limit))
+
     landing_qs = LandingPageReview.objects.filter(
         is_published=True,
-    ).order_by("page", "display_order", "-created_at")
-    if limit:
-        landing_qs = landing_qs[:limit]
+    ).order_by("page", "display_order", "-created_at")[:limit]
     landing_reviews = list(landing_qs)
     if landing_reviews:
         return landing_reviews
 
+    # Fallback to approved public reviews (store.StoreReview via core.ClientReview proxy).
     reviews = []
-    client_reviews = (
-        ClientReview.objects.select_related(
-            "appointment",
-            "appointment__client",
-            "appointment__service",
+    approved_reviews = (
+        ClientReview.objects.filter(
+            product__isnull=True,
+            status=ClientReview.Status.APPROVED,
         )
-        .exclude(comment__isnull=True)
-        .exclude(comment__exact="")
-        .order_by("-created_at")
+        .order_by("-approved_at", "-created_at")[:limit]
     )
-    for review in client_reviews:
-        comment = (review.comment or "").strip()
-        if not comment:
+    for review in approved_reviews:
+        quote = (review.body or "").strip()
+        if not quote:
             continue
-        appt = review.appointment
-        reviewer_name = appt.contact_name
-        if not reviewer_name and appt.client_id:
-            reviewer_name = appt.client.get_full_name() or appt.client.username
-        reviewer_name = reviewer_name or "BGM Client"
-        reviewer_title = appt.service.name if getattr(appt, "service_id", None) else ""
         reviews.append(
             {
                 "rating": review.rating,
-                "quote": comment,
-                "reviewer_name": reviewer_name,
-                "reviewer_title": reviewer_title,
+                "quote": quote,
+                "reviewer_name": (review.reviewer_name or "").strip() or "BGM Client",
+                "reviewer_title": (review.reviewer_title or "").strip(),
                 "star_range": range(review.rating or 0),
             }
         )
-        if len(reviews) >= limit:
-            break
     return reviews
+
+
+_HOME_QUICK_PICK_SPLIT_RE = re.compile(r"(?:\\s*(?:,|&|\\+|/|\\||•)\\s*|\\s+and\\s+)", re.IGNORECASE)
+
+
+def _home_quick_pick_candidates(title: str, subtitle: str, *, hint: str = "") -> list[str]:
+    # Build a small ordered list of phrases we can use to locate an existing Service.
+    raw = " ".join([str(subtitle or "").strip(), str(title or "").strip(), str(hint or "").strip()]).strip()
+    if not raw:
+        return []
+
+    parts: list[str] = []
+    if subtitle:
+        parts.extend([p.strip() for p in _HOME_QUICK_PICK_SPLIT_RE.split(str(subtitle)) if str(p or "").strip()])
+
+    # Include title/hint as fallbacks when subtitle is generic (e.g. "Lift kits & 4-links").
+    if title:
+        parts.append(str(title).strip())
+    if hint and hint.lower() not in str(title or "").lower():
+        parts.append(str(hint).strip())
+
+    expanded: list[str] = []
+    for part in parts:
+        cleaned = str(part or "").strip()
+        if not cleaned:
+            continue
+
+        expanded.append(cleaned)
+
+        normalized = re.sub(r"[^a-z0-9]+", " ", cleaned.lower()).strip()
+        if not normalized:
+            continue
+
+        # Known abbreviations / common short-hands used in marketing copy.
+        if normalized in {"scl"} or " scl " in f" {normalized} ":
+            expanded.extend(["Smooth Criminal", "Smooth Criminal Liner"])
+        if "armadillo" in normalized:
+            expanded.extend(["Armadillo", "Armadillo Liner"])
+        if normalized in {"ecu", "ecm"} or "ecu" in normalized or "ecm" in normalized:
+            expanded.extend(["tuning", "ECU", "ECM"])
+        if "4" in normalized and "link" in normalized:
+            expanded.extend(["4 link", "4-link", "four link", "four-link"])
+
+    # De-dupe while preserving order and ignore very short tokens.
+    out: list[str] = []
+    seen = set()
+    for item in expanded:
+        token = str(item or "").strip()
+        if len(token) < 3:
+            continue
+        key = token.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(token)
+    return out
+
+
+def _home_quick_pick_service_id(*, title: str, subtitle: str, hint: str = "") -> str:
+    """
+    Attempts to pick a Service UUID (as string) that matches the mobile "Quick picks" copy.
+    Returns "" when no match can be found.
+    """
+    candidates = _home_quick_pick_candidates(title, subtitle, hint=hint)
+    if not candidates:
+        return ""
+
+    category = None
+    for needle in [title, hint]:
+        needle = (needle or "").strip()
+        if not needle:
+            continue
+        category = ServiceCategory.objects.filter(name__icontains=needle).order_by("id").first()
+        if category:
+            break
+
+    scoped_qs = Service.objects.all()
+    if category:
+        scoped_qs = scoped_qs.filter(category=category)
+
+    for phrase in candidates:
+        match = scoped_qs.filter(name__icontains=phrase).order_by("name", "id").first()
+        if match:
+            return str(match.id)
+
+    # If we found a category but none of the phrases match, still deep-link to a stable service inside it.
+    if category:
+        match = scoped_qs.order_by("name", "id").first()
+        if match:
+            return str(match.id)
+
+    # Last resort: global phrase match.
+    for phrase in candidates:
+        match = Service.objects.filter(name__icontains=phrase).order_by("name", "id").first()
+        if match:
+            return str(match.id)
+
+    return ""
 
 class HomeView(TemplateView):
     template_name = "client/bgm_home.html"
@@ -723,6 +814,44 @@ class HomeView(TemplateView):
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
         home_copy = HomePageCopy.get_solo()
         ctx["home_copy"] = home_copy
+        # Mobile "Quick picks": deep-link each tile to a real Service (opens booking modal) when possible.
+        base_services_url = reverse("client-dashboard")
+        ctx["services_mobile_action_1_url"] = f"{base_services_url}?q=fabrication#services"
+        ctx["services_mobile_action_2_url"] = f"{base_services_url}?q=suspension#services"
+        ctx["services_mobile_action_3_url"] = f"{base_services_url}?q=tuning#services"
+        ctx["services_mobile_action_4_url"] = f"{base_services_url}?q=coating#services"
+        try:
+            s1 = _home_quick_pick_service_id(
+                title=home_copy.services_mobile_action_1_title,
+                subtitle=home_copy.services_mobile_action_1_subtitle,
+                hint="fabrication",
+            )
+            s2 = _home_quick_pick_service_id(
+                title=home_copy.services_mobile_action_2_title,
+                subtitle=home_copy.services_mobile_action_2_subtitle,
+                hint="suspension",
+            )
+            s3 = _home_quick_pick_service_id(
+                title=home_copy.services_mobile_action_3_title,
+                subtitle=home_copy.services_mobile_action_3_subtitle,
+                hint="tuning",
+            )
+            s4 = _home_quick_pick_service_id(
+                title=home_copy.services_mobile_action_4_title,
+                subtitle=home_copy.services_mobile_action_4_subtitle,
+                hint="coating",
+            )
+        except Exception:
+            logger.exception("Failed to resolve home quick picks to service deep links.")
+        else:
+            if s1:
+                ctx["services_mobile_action_1_url"] = f"{base_services_url}?q=fabrication&book={s1}#services"
+            if s2:
+                ctx["services_mobile_action_2_url"] = f"{base_services_url}?q=suspension&book={s2}#services"
+            if s3:
+                ctx["services_mobile_action_3_url"] = f"{base_services_url}?q=tuning&book={s3}#services"
+            if s4:
+                ctx["services_mobile_action_4_url"] = f"{base_services_url}?q=coating&book={s4}#services"
         from django.db.utils import OperationalError, ProgrammingError
         try:
             all_faq_items = list(
@@ -1041,6 +1170,241 @@ def _extract_printful_category_label(item: dict) -> str:
     return ""
 
 
+def _normalize_merch_category(label: str) -> tuple[str, str]:
+    """
+    Printful category labels vary a lot ("Unisex hoodie", "Hoodies & Sweatshirts", etc).
+    For the merch landing page we want a clean, one-word category UX (Hoodies, Stickers, ...).
+    Returns (category_key, category_label).
+    """
+    clean = " ".join(str(label or "").strip().split())[:80]
+    if not clean:
+        return "", ""
+
+    low = clean.lower()
+    # Common, high-signal groupings (ordered).
+    rules: list[tuple[tuple[str, ...], str]] = [
+        (("hoodie", "sweatshirt", "crewneck"), "Hoodies"),
+        (("sticker", "decal"), "Stickers"),
+        (("hat", "cap", "snapback", "trucker"), "Hats"),
+        (("beanie",), "Beanies"),
+        (("mug", "cup"), "Mugs"),
+        (("shirt", "tee", "t-shirt", "tshirt"), "Tees"),
+        (("tank",), "Tanks"),
+        (("poster", "print"), "Posters"),
+        (("bag", "tote", "backpack"), "Bags"),
+        (("case",), "Cases"),
+        (("sock",), "Socks"),
+    ]
+    for needles, normalized in rules:
+        if any(needle in low for needle in needles):
+            key = slugify(normalized)[:64]
+            return key or (slugify(clean)[:64] or "merch"), normalized
+
+    # Fallback: pick a meaningful word from the label.
+    stopwords = {
+        "unisex",
+        "men",
+        "mens",
+        "women",
+        "womens",
+        "kids",
+        "youth",
+        "adult",
+        "basic",
+        "classic",
+        "premium",
+        "and",
+        "the",
+        "for",
+        "with",
+        "of",
+    }
+    words = [w for w in re.split(r"[^a-z0-9]+", low) if w]
+    chosen = ""
+    for word in words:
+        if word in stopwords:
+            continue
+        if len(word) < 3:
+            continue
+        chosen = word
+        break
+    if not chosen and words:
+        chosen = words[0]
+
+    if not chosen:
+        key = slugify(clean)[:64] or "merch"
+        return key, clean
+
+    normalized_label = chosen.upper() if chosen in {"pf"} else chosen.title()
+    # Light pluralization so categories feel natural.
+    if not normalized_label.endswith("s") and normalized_label.lower() not in {"merch"}:
+        normalized_label = f"{normalized_label}s"
+    key = slugify(normalized_label)[:64] or (slugify(clean)[:64] or "merch")
+    return key, normalized_label
+
+
+def _normalize_merch_color_label(value: str) -> str:
+    """
+    Keep swatch labels stable and short.
+    """
+    text = " ".join(str(value or "").strip().split())
+    return text[:60]
+
+
+def _guess_merch_color_from_variant_name(value: str) -> str:
+    """
+    Printful variant names are often like: "Black / M" or "Sport Grey / XL".
+    Extract the best guess of the color segment.
+    """
+    text = " ".join(str(value or "").strip().split())
+    if not text:
+        return ""
+
+    parts = [p.strip() for p in text.split("/") if p.strip()]
+    if not parts:
+        return ""
+
+    size_tokens = {
+        "xs", "s", "m", "l", "xl", "xxl",
+        "2xl", "3xl", "4xl", "5xl",
+        "small", "medium", "large",
+        "x-large", "xx-large", "xxx-large",
+    }
+
+    for part in parts:
+        low = part.lower()
+        if low in size_tokens:
+            continue
+        if low.isdigit():
+            continue
+        if low.endswith("xl") and low[:-2].isdigit():
+            continue
+        return part[:60]
+
+    return parts[0][:60]
+
+
+def _merch_color_to_hex(label: str) -> str:
+    low = (label or "").lower()
+    if "black" in low:
+        return "#101010"
+    if "white" in low:
+        return "#f3f3f3"
+    if "grey" in low or "gray" in low:
+        return "#bdbdbd"
+    if "heather" in low or "charcoal" in low:
+        return "#8f949a"
+    if "navy" in low:
+        return "#0b1b3a"
+    if "blue" in low:
+        return "#1f3b7a"
+    if "red" in low or "scarlet" in low:
+        return "#d50000"
+    if "maroon" in low or "burgundy" in low:
+        return "#5b0a0a"
+    if "green" in low:
+        return "#1f8a4c"
+    if "olive" in low:
+        return "#556b2f"
+    if "tan" in low or "khaki" in low:
+        return "#c2b280"
+    if "brown" in low:
+        return "#5c4033"
+    if "orange" in low:
+        return "#ff7a00"
+    if "yellow" in low:
+        return "#f4c430"
+    if "purple" in low:
+        return "#5b3fd6"
+    if "pink" in low:
+        return "#ff5ca8"
+    if "cream" in low or "natural" in low:
+        return "#e9dec8"
+    return "#6c6c6c"
+
+
+def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
+    """
+    Returns (carousel_images, color_swatches).
+    Swatches are derived from variant names when Printful doesn't provide structured color fields.
+    """
+    fallback_image = ""
+    # Prefer the product-level thumbnail (Printful "thumbnail_url") so we show the actual item
+    # mockup in listings instead of a print-file preview when variant payloads vary.
+    for key in ("image_url", "thumbnail_url", "thumbnail", "photo_url"):
+        candidate = (row.get(key) or "").strip()
+        if candidate:
+            fallback_image = candidate
+            break
+    variants = row.get("variants") if isinstance(row.get("variants"), list) else []
+
+    swatches: "OrderedDict[str, dict]" = OrderedDict()
+    for variant in variants:
+        if not isinstance(variant, dict):
+            continue
+        raw_color = variant.get("color") or ""
+        color = _normalize_merch_color_label(raw_color) if raw_color else ""
+        if not color:
+            color = _normalize_merch_color_label(
+                _guess_merch_color_from_variant_name(str(variant.get("name") or ""))
+            )
+        if not color:
+            continue
+
+        key = color.lower()
+        if key in swatches:
+            continue
+
+        # `core.services.printful` normalizes variant images into `image_url`.
+        # Keep extra keys as defensive fallbacks because Printful payloads vary by store type.
+        image_url = ""
+        for key in ("image_url", "thumbnail_url", "preview_url"):
+            candidate = (variant.get(key) or "").strip()
+            if candidate:
+                image_url = candidate
+                break
+        if not image_url:
+            image_url = fallback_image
+        swatches[key] = {
+            "label": color,
+            "hex": _merch_color_to_hex(color),
+            "image_url": image_url,
+        }
+
+    # Build unique carousel images.
+    # Always lead with the product thumbnail when available (prevents "blank black" print previews).
+    carousel_images: list[str] = []
+    seen: set[str] = set()
+    if fallback_image:
+        seen.add(fallback_image)
+        carousel_images.append(fallback_image)
+    for swatch in swatches.values():
+        url = (swatch.get("image_url") or "").strip()
+        if not url:
+            continue
+        if url in seen:
+            continue
+        seen.add(url)
+        carousel_images.append(url)
+
+    # Last-ditch: pick any variant image if both swatches and product thumbnail are empty.
+    if not carousel_images:
+        for variant in variants:
+            candidate = (variant.get("image_url") or "").strip()
+            if candidate:
+                carousel_images = [candidate]
+                break
+
+    # Store an index per swatch so the template can jump the carousel.
+    for swatch in swatches.values():
+        url = (swatch.get("image_url") or "").strip()
+        swatch["carousel_index"] = carousel_images.index(url) if url in carousel_images else 0
+
+    # Keep the UI compact; merch variants can be large.
+    swatch_list = list(swatches.values())[:8]
+    return carousel_images[:8], swatch_list
+
+
 def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
     if not products:
         return []
@@ -1062,13 +1426,17 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
             continue
 
         product = matched["product"]
-        category_label = _extract_printful_category_label(row)
-        if category_label:
-            row["category_label"] = category_label
-            row["category_key"] = slugify(category_label)[:64] or f"category-{product_id}"
+        raw_category_label = _extract_printful_category_label(row)
+        if raw_category_label:
+            category_key, category_label = _normalize_merch_category(raw_category_label)
+            row["category_label"] = category_label or raw_category_label
+            row["category_key"] = category_key or (slugify(raw_category_label)[:64] or f"category-{product_id}")
         row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
         row["checkout_label"] = "Choose options"
         row["url"] = row["store_product_url"]
+        carousel_images, color_swatches = _build_merch_listing_media(row)
+        row["carousel_images"] = carousel_images
+        row["color_swatches"] = color_swatches
         enriched.append(row)
     return enriched
 
@@ -1099,16 +1467,36 @@ class MerchPlaceholderView(TemplateView):
             printful_products = [
                 row for row in all_products if row.get("category_key") == selected_merch_category
             ]
+            selected_merch_category_label = category_map.get(selected_merch_category, "")
         else:
             selected_merch_category = ""
             printful_products = all_products
+            selected_merch_category_label = ""
 
         ctx["header_copy"] = ctx["merch_copy"]
         ctx["printful_products"] = printful_products
         ctx["printful_catalog_url"] = printful_feed.get("catalog_url", "")
         ctx["merch_categories"] = merch_categories
         ctx["selected_merch_category"] = selected_merch_category
+        ctx["selected_merch_category_label"] = selected_merch_category_label
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
+
+        # If a category is selected, prefer using an actual product mockup from that category
+        # for the hero media instead of the static fallback image.
+        if selected_merch_category and printful_products:
+            first = printful_products[0] or {}
+            hero_src = ""
+            if isinstance(first.get("carousel_images"), list) and first["carousel_images"]:
+                hero_src = str(first["carousel_images"][0] or "").strip()
+            if not hero_src:
+                hero_src = str(first.get("image_url") or "").strip()
+            if hero_src:
+                ctx["hero_media"] = {
+                    "src": hero_src,
+                    "alt": str(first.get("name") or "Merch").strip() or "Merch",
+                    "caption": "",
+                    "location": "merch",
+                }
         return ctx
 
 # accounts/views.py
