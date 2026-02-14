@@ -9,6 +9,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.db.models import Prefetch, Q
 from django.contrib import admin, messages
+from django.contrib.admin.models import ADDITION, CHANGE, DELETION
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -962,18 +963,139 @@ def admin_staff_usage(request):
     except (TypeError, ValueError):
         per_page = 50
 
+    user_raw = (request.GET.get("user") or "").strip()
+    action_raw = (request.GET.get("action") or "").strip().lower()
+    model_raw = (request.GET.get("model") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    start_raw = (request.GET.get("start") or "").strip()
+    end_raw = (request.GET.get("end") or "").strip()
+
+    user_id = None
+    if user_raw:
+        try:
+            user_id = int(user_raw)
+        except (TypeError, ValueError):
+            user_id = None
+
+    action_map = {
+        "1": ADDITION,
+        "add": ADDITION,
+        "added": ADDITION,
+        "addition": ADDITION,
+        "2": CHANGE,
+        "change": CHANGE,
+        "changed": CHANGE,
+        "3": DELETION,
+        "delete": DELETION,
+        "deleted": DELETION,
+        "deletion": DELETION,
+    }
+    action_flag = action_map.get(action_raw) if action_raw else None
+    action_choice = ""
+    if action_flag == ADDITION:
+        action_choice = "added"
+    elif action_flag == CHANGE:
+        action_choice = "changed"
+    elif action_flag == DELETION:
+        action_choice = "deleted"
+
+    content_type_id = None
+    if model_raw:
+        try:
+            content_type_id = int(model_raw)
+        except (TypeError, ValueError):
+            content_type_id = None
+
+    # Default to last 30 days unless a date range is provided.
+    window_days = 30
+    start_date = parse_date(start_raw) if start_raw else None
+    end_date = parse_date(end_raw) if end_raw else None
+    today = timezone.localdate()
+    if not start_date and not end_date:
+        end_date = today
+        start_date = today - timedelta(days=window_days - 1)
+    else:
+        if start_date and not end_date:
+            end_date = start_date
+        if end_date and not start_date:
+            start_date = end_date
+        if start_date and end_date and end_date < start_date:
+            start_date, end_date = end_date, start_date
+        if start_date and end_date and (end_date - start_date).days > 364:
+            start_date = end_date - timedelta(days=364)
+
     staff_usage_periods = summarize_staff_usage_periods(windows=[1, 7, 30])
     staff_action_history = summarize_staff_action_history(
-        window_days=30,
+        window_days=window_days,
         page=page,
         per_page=per_page,
+        user_id=user_id,
+        action_flag=action_flag,
+        content_type_id=content_type_id,
+        start_date=start_date,
+        end_date=end_date,
+        query=q,
     )
+
+    staff_users = list(
+        CustomUserDisplay.objects.filter(is_staff=True)
+        .order_by("first_name", "last_name", "username", "email")
+        .only("id", "first_name", "last_name", "username", "email", "is_active")
+    )
+    staff_user_options = []
+    for staff_user in staff_users:
+        label = (
+            (staff_user.get_full_name() or "").strip()
+            or (staff_user.username or "").strip()
+            or (staff_user.email or "").strip()
+            or f"User {staff_user.pk}"
+        )
+        staff_user_options.append(
+            {
+                "id": staff_user.pk,
+                "label": label,
+                "email": (staff_user.email or "").strip(),
+                "is_active": bool(staff_user.is_active),
+            }
+        )
+
+    filter_state = {
+        "user": str(user_id) if user_id else "",
+        "action": action_choice,
+        "model": str(content_type_id) if content_type_id else "",
+        "q": q,
+        "start": start_date.isoformat() if start_date else "",
+        "end": end_date.isoformat() if end_date else "",
+    }
+
+    def _qs(**overrides) -> str:
+        from urllib.parse import urlencode
+
+        params = {k: v for k, v in filter_state.items() if v}
+        params["per_page"] = str(per_page)
+        params.update({k: str(v) for k, v in overrides.items() if v is not None and v != ""})
+        encoded = urlencode(params)
+        return f"?{encoded}" if encoded else ""
+    staff_action_links = {
+        "per_page_25": _qs(per_page=25, page=1),
+        "per_page_50": _qs(per_page=50, page=1),
+        "prev": _qs(page=staff_action_history.get("prev_page") or 1) if staff_action_history.get("has_previous") else "",
+        "next": _qs(page=staff_action_history.get("next_page") or 1) if staff_action_history.get("has_next") else "",
+        "reset": reverse("admin-staff-usage"),
+    }
+
+    for row in staff_action_history.get("totals_by_user", []) or []:
+        row["filter_url"] = _qs(user=row.get("user_id"), page=1)
+
     context = admin.site.each_context(request)
     context.update(
         {
             "title": "Staff time tracking",
             "staff_usage_periods": staff_usage_periods,
             "staff_action_history": staff_action_history,
+            "staff_action_filters": filter_state,
+            "staff_action_staff_options": staff_user_options,
+            "staff_action_links": staff_action_links,
         }
     )
     return TemplateResponse(request, "admin/staff_usage.html", context)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional
 
 from django.contrib.auth import get_user_model
@@ -979,6 +979,12 @@ def summarize_staff_action_history(
     page: int = 1,
     per_page: int = 50,
     include_inactive: bool = False,
+    user_id: Optional[int] = None,
+    action_flag: Optional[int] = None,
+    content_type_id: Optional[int] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    query: str = "",
 ) -> Dict[str, object]:
     """
     Recent admin actions (add/change/delete) performed by staff users.
@@ -996,15 +1002,123 @@ def summarize_staff_action_history(
         page = int(page or 1)
     except (TypeError, ValueError):
         page = 1
-    since = timezone.now() - timedelta(days=window_days)
 
-    entries_qs = (
-        LogEntry.objects.select_related("user", "content_type")
-        .filter(action_time__gte=since, user__is_staff=True)
-        .order_by("-action_time")
-    )
+    today = timezone.localdate()
+    # Date range filter wins; otherwise fall back to "last N days".
+    if start_date or end_date:
+        if start_date is None:
+            start_date = end_date
+        if end_date is None:
+            end_date = start_date
+        if start_date and end_date and end_date < start_date:
+            start_date, end_date = end_date, start_date
+        # Keep queries bounded.
+        if start_date and end_date and (end_date - start_date).days > 364:
+            start_date = end_date - timedelta(days=364)
+
+        window_days = max(1, int((end_date - start_date).days) + 1) if start_date and end_date else window_days
+        start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+        end_dt = timezone.make_aware(datetime.combine(end_date, datetime.max.time()))
+        entries_qs = (
+            LogEntry.objects.select_related("user", "content_type")
+            .filter(action_time__range=(start_dt, end_dt), user__is_staff=True)
+            .order_by("-action_time")
+        )
+    else:
+        since = timezone.now() - timedelta(days=window_days)
+        start_date = today - timedelta(days=window_days - 1)
+        end_date = today
+        entries_qs = (
+            LogEntry.objects.select_related("user", "content_type")
+            .filter(action_time__gte=since, user__is_staff=True)
+            .order_by("-action_time")
+        )
     if not include_inactive:
         entries_qs = entries_qs.filter(user__is_active=True)
+
+    if user_id:
+        entries_qs = entries_qs.filter(user_id=int(user_id))
+
+    if action_flag in {ADDITION, CHANGE, DELETION}:
+        entries_qs = entries_qs.filter(action_flag=int(action_flag))
+
+    if content_type_id:
+        entries_qs = entries_qs.filter(content_type_id=int(content_type_id))
+
+    query = (query or "").strip()
+    if query:
+        q_filter = Q(object_repr__icontains=query) | Q(change_message__icontains=query)
+        if query.isdigit():
+            q_filter = q_filter | Q(object_id=query)
+        entries_qs = entries_qs.filter(q_filter)
+
+    totals_by_user_raw = list(
+        entries_qs.values(
+            "user_id",
+            "user__first_name",
+            "user__last_name",
+            "user__username",
+            "user__email",
+        )
+        .annotate(total=Count("id"))
+        .order_by("-total", "user__username")[:50]
+    )
+    totals_by_user = []
+    for row in totals_by_user_raw:
+        first = (row.get("user__first_name") or "").strip()
+        last = (row.get("user__last_name") or "").strip()
+        username = (row.get("user__username") or "").strip()
+        email = (row.get("user__email") or "").strip()
+        label = f"{first} {last}".strip() or username or email or f"User {row.get('user_id')}"
+        totals_by_user.append(
+            {
+                "user_id": row.get("user_id"),
+                "user_name": label,
+                "user_email": email,
+                "total": row.get("total") or 0,
+            }
+        )
+
+    action_totals_raw = list(
+        entries_qs.values("action_flag").annotate(total=Count("id")).order_by("action_flag")
+    )
+    action_totals_map = {row["action_flag"]: row["total"] for row in action_totals_raw}
+    action_totals = []
+    for flag in (ADDITION, CHANGE, DELETION):
+        meta = _staff_action_meta(flag)
+        action_totals.append(
+            {
+                "flag": flag,
+                "label": meta["label"],
+                "css": meta["css"],
+                "total": int(action_totals_map.get(flag, 0) or 0),
+            }
+        )
+
+    model_totals_raw = list(
+        entries_qs.exclude(content_type__isnull=True)
+        .values(
+            "content_type_id",
+            "content_type__app_label",
+            "content_type__model",
+            "content_type__name",
+        )
+        .annotate(total=Count("id"))
+        .order_by("-total", "content_type__name")[:80]
+    )
+    model_totals = []
+    for row in model_totals_raw:
+        label = capfirst(row.get("content_type__name") or "")
+        if label:
+            model_totals.append(
+                {
+                    "content_type_id": row.get("content_type_id"),
+                    "label": label,
+                    "app_label": row.get("content_type__app_label") or "",
+                    "model": row.get("content_type__model") or "",
+                    "total": row.get("total") or 0,
+                }
+            )
 
     paginator = Paginator(entries_qs, per_page)
     page_obj = paginator.get_page(page)
@@ -1049,6 +1163,8 @@ def summarize_staff_action_history(
 
     return {
         "window_days": window_days,
+        "start_date": start_date,
+        "end_date": end_date,
         "per_page": per_page,
         "page": page_obj.number,
         "total_pages": total_pages,
@@ -1058,4 +1174,13 @@ def summarize_staff_action_history(
         "next_page": page_obj.next_page_number() if page_obj.has_next() else None,
         "prev_page": page_obj.previous_page_number() if page_obj.has_previous() else None,
         "entries": entries,
+        "totals_by_user": totals_by_user,
+        "action_totals": action_totals,
+        "model_totals": model_totals,
+        "filters": {
+            "user_id": int(user_id) if user_id else None,
+            "action_flag": int(action_flag) if action_flag else None,
+            "content_type_id": int(content_type_id) if content_type_id else None,
+            "query": query,
+        },
     }
