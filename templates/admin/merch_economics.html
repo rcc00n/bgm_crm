@@ -24,7 +24,9 @@
         <div class="hero-stat">
           <span>CA free ship over</span>
           <strong>{% if summary.threshold_label %}{{ summary.threshold_label }}{% else %}Off{% endif %}</strong>
-          <small>Visible on merch + checkout</small>
+          <small>
+            Visible on merch + checkout{% if summary.delivery_cost_label %} · Delivery under: {{ summary.delivery_cost_label }}{% endif %}
+          </small>
         </div>
       </div>
     </section>
@@ -52,7 +54,7 @@
       </article>
 
       <article class="kpi-card">
-        <small>Canada free shipping threshold (CAD)</small>
+        <small>Canada merch shipping rules (CAD)</small>
         <form method="post" style="margin-top:.6rem; display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
           {% csrf_token %}
           <div style="min-width:260px;">
@@ -63,6 +65,16 @@
             {% endif %}
             {% if shipping_form.free_shipping_threshold_cad.errors %}
               <div class="errornote" style="margin-top:.4rem;">{{ shipping_form.free_shipping_threshold_cad.errors|striptags }}</div>
+            {% endif %}
+          </div>
+          <div style="min-width:260px;">
+            {{ shipping_form.delivery_cost_under_threshold_cad.label_tag }}
+            {{ shipping_form.delivery_cost_under_threshold_cad }}
+            {% if shipping_form.delivery_cost_under_threshold_cad.help_text %}
+              <div class="panel-subtitle" style="margin-top:.4rem;">{{ shipping_form.delivery_cost_under_threshold_cad.help_text }}</div>
+            {% endif %}
+            {% if shipping_form.delivery_cost_under_threshold_cad.errors %}
+              <div class="errornote" style="margin-top:.4rem;">{{ shipping_form.delivery_cost_under_threshold_cad.errors|striptags }}</div>
             {% endif %}
           </div>
           <button class="button" type="submit">Save</button>
@@ -134,4 +146,3 @@
   </div>
 </div>
 {% endblock %}
-

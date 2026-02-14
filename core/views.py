@@ -1145,6 +1145,15 @@ class MerchEconomicsSettingsForm(forms.Form):
         help_text="Shown to customers on the merch + checkout pages. Leave blank (or 0) to disable.",
         widget=forms.NumberInput(attrs={"step": "0.01", "placeholder": "e.g. 150.00"}),
     )
+    delivery_cost_under_threshold_cad = forms.DecimalField(
+        label="Delivery cost under threshold (Canada, CAD)",
+        required=False,
+        min_value=0,
+        decimal_places=2,
+        max_digits=10,
+        help_text="Charged in checkout when shipping to Canada and the cart subtotal is below the free shipping threshold. Leave blank (or 0) to disable.",
+        widget=forms.NumberInput(attrs={"step": "0.01", "placeholder": "e.g. 25.00"}),
+    )
 
 
 def admin_merch_economics(request):
@@ -1163,9 +1172,13 @@ def admin_merch_economics(request):
     # Shipping settings
     settings_obj = StoreShippingSettings.load()
     initial_threshold = getattr(settings_obj, "free_shipping_threshold_cad", None) if settings_obj else None
+    initial_delivery_cost = getattr(settings_obj, "delivery_cost_under_threshold_cad", None) if settings_obj else None
     shipping_form = MerchEconomicsSettingsForm(
         request.POST or None,
-        initial={"free_shipping_threshold_cad": initial_threshold},
+        initial={
+            "free_shipping_threshold_cad": initial_threshold,
+            "delivery_cost_under_threshold_cad": initial_delivery_cost,
+        },
     )
 
     if request.method == "POST":
@@ -1173,6 +1186,7 @@ def admin_merch_economics(request):
             raise PermissionDenied
         if shipping_form.is_valid():
             threshold = shipping_form.cleaned_data.get("free_shipping_threshold_cad")
+            delivery_cost = shipping_form.cleaned_data.get("delivery_cost_under_threshold_cad")
             if threshold is not None:
                 try:
                     threshold = Decimal(str(threshold))
@@ -1180,12 +1194,29 @@ def admin_merch_economics(request):
                     threshold = None
             if threshold is not None and threshold <= 0:
                 threshold = None
+            if delivery_cost is not None:
+                try:
+                    delivery_cost = Decimal(str(delivery_cost))
+                except (InvalidOperation, TypeError, ValueError):
+                    delivery_cost = None
+            if delivery_cost is not None and delivery_cost <= 0:
+                delivery_cost = None
 
             if settings_obj:
                 settings_obj.free_shipping_threshold_cad = threshold
-                settings_obj.save(update_fields=["free_shipping_threshold_cad", "updated_at"])
+                settings_obj.delivery_cost_under_threshold_cad = delivery_cost
+                settings_obj.save(
+                    update_fields=[
+                        "free_shipping_threshold_cad",
+                        "delivery_cost_under_threshold_cad",
+                        "updated_at",
+                    ]
+                )
             else:
-                StoreShippingSettings.objects.create(free_shipping_threshold_cad=threshold)
+                StoreShippingSettings.objects.create(
+                    free_shipping_threshold_cad=threshold,
+                    delivery_cost_under_threshold_cad=delivery_cost,
+                )
 
             try:
                 from django.core.cache import cache
@@ -1194,7 +1225,7 @@ def admin_merch_economics(request):
             except Exception:
                 pass
 
-            messages.success(request, "Saved merch free shipping threshold.")
+            messages.success(request, "Saved merch shipping settings.")
             return redirect(reverse("admin-merch-economics"))
 
     merch_qs = StoreProduct.objects.select_related("category").all()
@@ -1253,12 +1284,14 @@ def admin_merch_economics(request):
         )
 
     threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
+    delivery_cost = StoreShippingSettings.get_delivery_cost_under_threshold_cad()
     summary = {
         "count": len(merch_products),
         "active_count": sum(1 for p in merch_products if p.is_active),
         "missing_cost_count": sum(1 for p in merch_products if getattr(p, "unit_cost", None) is None),
         "avg_margin_pct": round(sum(margin_values) / len(margin_values), 1) if margin_values else None,
         "threshold_label": format_currency(threshold) if threshold else "",
+        "delivery_cost_label": format_currency(delivery_cost) if delivery_cost else "",
     }
 
     context = admin.site.each_context(request)

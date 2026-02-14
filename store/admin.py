@@ -160,17 +160,17 @@ class StorePricingSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(StoreShippingSettings)
 class StoreShippingSettingsAdmin(admin.ModelAdmin):
-    list_display = ("free_shipping_threshold_cad", "updated_at")
+    list_display = ("free_shipping_threshold_cad", "delivery_cost_under_threshold_cad", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
         (
-            "Free shipping (Canada)",
+            "Merch shipping (Canada)",
             {
                 "description": (
                     "Set the subtotal threshold (CAD) for free shipping in Canada. "
                     "This value is shown to customers when browsing merch."
                 ),
-                "fields": ("free_shipping_threshold_cad",),
+                "fields": ("free_shipping_threshold_cad", "delivery_cost_under_threshold_cad"),
             },
         ),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),

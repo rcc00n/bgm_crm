@@ -120,6 +120,18 @@ class StoreShippingSettings(models.Model):
             "Leave blank (or set to 0) to disable."
         ),
     )
+    delivery_cost_under_threshold_cad = models.DecimalField(
+        "Delivery cost under free-shipping threshold (Canada, CAD)",
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text=(
+            "Charged at checkout when shipping merch to Canada and the cart subtotal is below the free shipping threshold. "
+            "Leave blank (or set to 0) to disable."
+        ),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -147,6 +159,22 @@ class StoreShippingSettings(models.Model):
         if not obj:
             return None
         value = obj.free_shipping_threshold_cad
+        if value is None:
+            return None
+        try:
+            parsed = Decimal(value)
+        except (InvalidOperation, TypeError):
+            return None
+        if parsed <= 0:
+            return None
+        return parsed.quantize(PRICE_QUANT)
+
+    @classmethod
+    def get_delivery_cost_under_threshold_cad(cls) -> Decimal | None:
+        obj = cls.load()
+        if not obj:
+            return None
+        value = obj.delivery_cost_under_threshold_cad
         if value is None:
             return None
         try:
@@ -635,6 +663,16 @@ class Order(models.Model):
     payment_card_brand = models.CharField(max_length=40, blank=True, default="")
     payment_last4 = models.CharField(max_length=8, blank=True, default="")
 
+    # totals
+    shipping_cost = models.DecimalField(
+        "Shipping / delivery cost",
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0)],
+        help_text="Delivery cost applied at checkout (before GST/fees).",
+    )
+
     # who created
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
@@ -654,6 +692,10 @@ class Order(models.Model):
             except Exception:
                 # если вдруг какая-то позиция битая — не валим всё
                 pass
+        try:
+            total += Decimal(str(getattr(self, "shipping_cost", None) or "0"))
+        except Exception:
+            pass
         return total.quantize(Decimal("0.01"))
 
     def set_status(self, new_status: str, *, save=True):

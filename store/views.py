@@ -31,6 +31,7 @@ from .models import (
     OrderItem,
     Product,
     ProductOption,
+    StoreShippingSettings,
     StoreReview,
     CarMake,
     CarModel,
@@ -1510,6 +1511,14 @@ def checkout(request):
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
     )
+    cart_has_merch = any(
+        (
+            (getattr(getattr(entry.get("product"), "category", None), "slug", "") or "").strip().lower() == "merch"
+            or (getattr(entry.get("product"), "sku", "") or "").strip().upper().startswith("PF-")
+            or (getattr(entry.get("product"), "slug", "") or "").strip().lower().startswith("merch-")
+        )
+        for entry in (positions or [])
+    )
 
     gst_rate = _get_decimal_setting("STORE_GST_RATE", "0.05")
     processing_rate = _get_decimal_setting("STORE_PROCESSING_FEE_RATE", "0.035")
@@ -1518,42 +1527,13 @@ def checkout(request):
     if processing_rate >= 1:
         processing_rate = processing_rate / Decimal("100")
 
-    order_gst = (total * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
-    order_processing = (total * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
-    order_total_with_fees = (total + order_gst + order_processing).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
     currency_code = getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD")
     currency_symbol = getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$")
     etransfer_email = _normalize_etransfer_email(getattr(settings, "ETRANSFER_EMAIL", "")) or "Payments@badguymotors.ca"
     etransfer_memo_hint = getattr(settings, "ETRANSFER_MEMO_HINT", "")
 
-    def payment_plan(label: str, portion: Decimal):
-        base_portion = (total * portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else Decimal("0.00")
-        gst_portion = (base_portion * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
-        processing_portion = (base_portion * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
-        charge_amount = (base_portion + gst_portion + processing_portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
-        balance_due = (order_total_with_fees - charge_amount).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
-        if balance_due < 0:
-            balance_due = Decimal("0.00")
-        return {
-            "label": label,
-            "base": base_portion,
-            "gst": gst_portion,
-            "processing_fee": processing_portion,
-            "charge": charge_amount,
-            "balance_due": balance_due,
-            "order_subtotal": total,
-            "order_gst": order_gst,
-            "order_processing": order_processing,
-            "order_total_with_fees": order_total_with_fees,
-        }
-
-    payment_options = {
-        "full": payment_plan("Pay 100% now", Decimal("1.0")),
-        "deposit_50": payment_plan("Pay 50% deposit", Decimal("0.5")),
-    }
-
     pay_mode = request.POST.get("pay_mode") or request.GET.get("pay_mode") or "full"
-    if pay_mode not in payment_options:
+    if pay_mode not in ("full", "deposit_50"):
         pay_mode = "full"
     payment_method = request.POST.get("payment_method") or request.GET.get("payment_method") or "card"
     if payment_method not in ("card", "etransfer"):
@@ -1564,8 +1544,91 @@ def checkout(request):
         messages.error(request, "The cart is empty.")
         return redirect("store:store-cart")
 
-    form = {"delivery_method": "shipping", "pay_mode": pay_mode, "payment_method": payment_method}
+    form = {"delivery_method": "shipping", "country": "Canada", "pay_mode": pay_mode, "payment_method": payment_method}
     errors: Dict[str, str] = {}
+
+    def _is_canada(country: str) -> bool:
+        c = (country or "").strip().lower()
+        if not c:
+            return False
+        return c in {"canada", "ca"} or c.startswith("canada")
+
+    def _compute_merch_delivery_cost(*, delivery_method: str, country: str) -> Decimal:
+        if not cart_has_merch:
+            return Decimal("0.00")
+        if (delivery_method or "").strip().lower() == "pickup":
+            return Decimal("0.00")
+        if not _is_canada(country):
+            return Decimal("0.00")
+
+        delivery_cost = StoreShippingSettings.get_delivery_cost_under_threshold_cad()
+        if not delivery_cost:
+            return Decimal("0.00")
+
+        threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
+        if threshold and total and total >= threshold:
+            return Decimal("0.00")
+        return delivery_cost
+
+    def _build_payment_options(
+        *,
+        order_subtotal: Decimal,
+        order_gst: Decimal,
+        order_processing: Decimal,
+        order_total_with_fees: Decimal,
+    ):
+        def payment_plan(label: str, portion: Decimal):
+            base_portion = (order_subtotal * portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if order_subtotal else Decimal("0.00")
+            gst_portion = (base_portion * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
+            processing_portion = (base_portion * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
+            charge_amount = (base_portion + gst_portion + processing_portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+            balance_due = (order_total_with_fees - charge_amount).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+            if balance_due < 0:
+                balance_due = Decimal("0.00")
+            return {
+                "label": label,
+                "base": base_portion,
+                "gst": gst_portion,
+                "processing_fee": processing_portion,
+                "charge": charge_amount,
+                "balance_due": balance_due,
+                "order_subtotal": order_subtotal,
+                "order_gst": order_gst,
+                "order_processing": order_processing,
+                "order_total_with_fees": order_total_with_fees,
+            }
+
+        return {
+            "full": payment_plan("Pay 100% now", Decimal("1.0")),
+            "deposit_50": payment_plan("Pay 50% deposit", Decimal("0.5")),
+        }
+
+    def _recompute_totals_for_form(form_payload: dict):
+        delivery_method = (form_payload.get("delivery_method") or "shipping").strip()
+        country = (form_payload.get("country") or "Canada").strip()
+
+        shipping_cost = _compute_merch_delivery_cost(delivery_method=delivery_method, country=country).quantize(
+            PAYMENT_QUANT, rounding=ROUND_HALF_UP
+        )
+        order_subtotal = (total + shipping_cost).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else shipping_cost
+        order_gst = (order_subtotal * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if order_subtotal else Decimal("0.00")
+        order_processing = (order_subtotal * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if order_subtotal else Decimal("0.00")
+        order_total_with_fees = (order_subtotal + order_gst + order_processing).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+        return (
+            shipping_cost,
+            order_subtotal,
+            order_gst,
+            order_processing,
+            order_total_with_fees,
+            _build_payment_options(
+                order_subtotal=order_subtotal,
+                order_gst=order_gst,
+                order_processing=order_processing,
+                order_total_with_fees=order_total_with_fees,
+            ),
+        )
+
+    shipping_cost, order_subtotal, order_gst, order_processing, order_total_with_fees, payment_options = _recompute_totals_for_form(form)
 
     if request.method == "POST":
         def val(name, default=""):
@@ -1600,6 +1663,7 @@ def checkout(request):
         if payment_method not in ("card", "etransfer"):
             payment_method = "card"
         form["payment_method"] = payment_method
+        shipping_cost, order_subtotal, order_gst, order_processing, order_total_with_fees, payment_options = _recompute_totals_for_form(form)
 
         # валидация
         if not form["customer_name"]:
@@ -1686,6 +1750,8 @@ def checkout(request):
             # Если в модели есть поле total — положим туда сумму (иначе total будет считаться @property)
             if "total" in o_fields:
                 order_kwargs["total"] = total
+            if "shipping_cost" in o_fields:
+                order_kwargs["shipping_cost"] = shipping_cost
             if "payment_mode" in o_fields:
                 order_kwargs["payment_mode"] = pay_mode
             if "payment_amount" in o_fields:
@@ -1908,17 +1974,8 @@ def checkout(request):
             request,
             email=form.get("email", ""),
             positions=positions,
-            total=total,
+            total=order_subtotal,
         )
-
-    cart_has_merch = any(
-        (
-            (getattr(getattr(entry.get("product"), "category", None), "slug", "") or "").strip().lower() == "merch"
-            or (getattr(entry.get("product"), "sku", "") or "").strip().upper().startswith("PF-")
-            or (getattr(entry.get("product"), "slug", "") or "").strip().lower().startswith("merch-")
-        )
-        for entry in (positions or [])
-    )
 
     return render(
         request,
@@ -1926,6 +1983,8 @@ def checkout(request):
         {
             "positions": positions,
             "total": total,
+            "shipping_cost": shipping_cost,
+            "order_subtotal": order_subtotal,
             "form": form,
             "errors": errors,
             "reference_image_limit_mb": REFERENCE_IMAGE_MAX_MB,

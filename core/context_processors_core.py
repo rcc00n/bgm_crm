@@ -276,9 +276,12 @@ def store_shipping(request):
         return {"store_shipping": cached}
 
     threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
+    delivery_cost = StoreShippingSettings.get_delivery_cost_under_threshold_cad()
     payload = {
         "free_shipping_threshold_cad": threshold,
         "free_shipping_threshold_label": format_currency(threshold) if threshold else "",
+        "delivery_cost_under_threshold_cad": delivery_cost,
+        "delivery_cost_under_threshold_label": format_currency(delivery_cost) if delivery_cost else "",
     }
     cache.set(cache_key, payload, 60)
     return {"store_shipping": payload}

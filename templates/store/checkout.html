@@ -152,7 +152,7 @@
           <section>
             <div class="section__head" style="margin-bottom:.45rem;">
               <h3 class="block-title">Payment</h3>
-              <p class="section__desc">Pick a 50% deposit or pay in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee — nothing else.</p>
+              <p class="section__desc">Pick a 50% deposit or pay in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee. Delivery (if applicable) is shown in the order summary.</p>
             </div>
 
             <fieldset class="options options--pay">
@@ -161,8 +161,8 @@
                 <div>
                   <div class="opt__title">Pay 50% now</div>
                   <div class="opt__sub">
-                    Charge now {{ payment_options.deposit_50.charge|money }} (items {{ payment_options.deposit_50.base|money }} + GST {{ payment_options.deposit_50.gst|money }} + processing {{ payment_options.deposit_50.processing_fee|money }}).
-                    Balance later {{ payment_options.deposit_50.balance_due|money }} (remaining items + GST/processing).
+                    Charge now {{ payment_options.deposit_50.charge|money }} (subtotal {{ payment_options.deposit_50.base|money }} + GST {{ payment_options.deposit_50.gst|money }} + processing {{ payment_options.deposit_50.processing_fee|money }}).
+                    Balance later {{ payment_options.deposit_50.balance_due|money }} (remaining subtotal + GST/processing).
                   </div>
                 </div>
               </label>
@@ -171,7 +171,7 @@
                 <div>
                   <div class="opt__title">Pay 100% now</div>
                   <div class="opt__sub">
-                    Charge now {{ payment_options.full.charge|money }} (items {{ payment_options.full.base|money }} + GST {{ payment_options.full.gst|money }} + processing {{ payment_options.full.processing_fee|money }}).
+                    Charge now {{ payment_options.full.charge|money }} (subtotal {{ payment_options.full.base|money }} + GST {{ payment_options.full.gst|money }} + processing {{ payment_options.full.processing_fee|money }}).
                     Balance later {{ payment_options.full.balance_due|money }}.
                   </div>
                 </div>
@@ -324,7 +324,7 @@
           </ul>
           <div class="summary__total">
             <div>
-              <span class="summary__total-label">{% if dealer_discount_percent %}Dealer total{% else %}Total{% endif %}</span>
+              <span class="summary__total-label">{% if dealer_discount_percent %}Dealer subtotal{% else %}Subtotal{% endif %}</span>
               <span class="summary__total-sum">{{ total|money }}</span>
             </div>
             {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
@@ -340,6 +340,12 @@
 
           <div class="summary__divider"></div>
           <div class="summary__charges">
+            {% if shipping_cost and shipping_cost|floatformat:2 != '0.00' %}
+              <div class="summary__row">
+                <span class="section__desc">Delivery</span>
+                <span id="orderShipping">{{ shipping_cost|money }}</span>
+              </div>
+            {% endif %}
             <div class="summary__row">
               <span class="section__desc">GST ({{ gst_rate_percent }}%)</span>
               <span id="orderGst">{{ order_gst|money }}</span>
@@ -369,7 +375,7 @@
               <span id="summaryProcessing">{{ selected_payment.processing_fee|money }}</span>
             </div>
             <div class="summary__row">
-              <span class="section__desc">Item subtotal covered now</span>
+              <span class="section__desc">Subtotal covered now</span>
               <span id="summaryBase">{{ selected_payment.base|money }}</span>
             </div>
             <div class="summary__row" id="balanceRow" {% if selected_payment.balance_due <= 0 %}hidden{% endif %}>
