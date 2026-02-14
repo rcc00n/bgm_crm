@@ -31,8 +31,6 @@
   <meta name="twitter:title" content="{{ meta_title_resolved|meta_text }}">
   <meta name="twitter:description" content="{{ meta_description_resolved|meta_text }}">
   <meta name="twitter:image" content="{{ meta_image_resolved|default:marketing.default_image|absolute_url:marketing.origin|default:marketing.default_image_absolute }}">
-  <link rel="stylesheet" href="{% static 'css/site.css' %}">
-  <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
   <style id="topbar-critical-fallback">
     .bgm-topbar{
       position:fixed !important;
@@ -62,6 +60,8 @@
       list-style:none !important;
     }
   </style>
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">
   <link rel="preload" href="{% safe_static 'fonts/Diesel.woff2' 'fonts/Diesel.ttf' %}" as="font" type="font/woff2" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

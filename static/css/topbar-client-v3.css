@@ -249,9 +249,8 @@
 
 .bgm-topbar__search-icon{
   position: absolute;
-  left: auto;
-  /* Keep to the left of the clear button. */
-  right: 2.95rem;
+  left: 1.05rem;
+  right: auto;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
@@ -272,8 +271,8 @@
 .bgm-topbar__search-input{
   width: 100%;
   min-height: 40px;
-  /* Extra padding so text never sits under the icon/clear button (desktop + mobile). */
-  padding: .55rem 4.9rem .55rem 1.1rem;
+  /* Pad for the left icon + right clear button (desktop + mobile). */
+  padding: .55rem 3.35rem .55rem 2.8rem;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(255,255,255,.06);
@@ -768,15 +767,15 @@
 
   .bgm-topbar__search-input{
     min-height: 44px;
-    padding: .75rem 5.25rem .75rem 1.1rem;
+    padding: .75rem 3.7rem .75rem 2.95rem;
     border-radius: 999px;
     box-shadow: 0 8px 24px rgba(0,0,0,.28);
     border-color: rgba(255,255,255,.12);
   }
 
   .bgm-topbar__search-icon{
-    left: auto;
-    right: 3.35rem;
+    left: 1.15rem;
+    right: auto;
   }
 
   .bgm-topbar__search-clear{
