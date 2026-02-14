@@ -77,3 +77,63 @@ class CheckoutReferenceFileTests(TestCase):
         order = Order.objects.first()
         self.assertTrue(bool(order.reference_image))
         self.assertEqual(ClientFile.objects.filter(user=user).count(), 1)
+
+    def test_checkout_reference_photo_is_ignored_for_merch(self):
+        merch_category = Category.objects.create(name="Merch", slug="merch")
+        merch_product = Product.objects.create(
+            name="BGM Hoodie",
+            slug="bgm-hoodie",
+            sku="PF-HOODIE-1",
+            category=merch_category,
+            price=Decimal("85.00"),
+            is_active=True,
+        )
+
+        user = User.objects.create_user(
+            username="checkout-merch-client",
+            email="checkout.merch@example.com",
+            password="pass12345",
+        )
+        self.client.force_login(user)
+
+        session = self.client.session
+        session["cart_items"] = {
+            "items": [
+                {
+                    "product_id": merch_product.id,
+                    "option_id": None,
+                    "qty": 1,
+                }
+            ]
+        }
+        session.save()
+
+        image_buffer = io.BytesIO()
+        Image.new("RGB", (20, 20), color=(20, 120, 200)).save(image_buffer, format="PNG")
+        image_buffer.seek(0)
+        upload = SimpleUploadedFile(
+            "checkout-merch-reference.png",
+            image_buffer.read(),
+            content_type="image/png",
+        )
+
+        response = self.client.post(
+            self.checkout_url,
+            data={
+                "customer_name": "Checkout Merch Client",
+                "email": "checkout.merch@example.com",
+                "phone": "+1 555 222 3333",
+                "delivery_method": "pickup",
+                "pay_mode": "full",
+                "payment_method": "etransfer",
+                "agree": "1",
+                "reference_image": upload,
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Order.objects.count(), 1)
+        order = Order.objects.first()
+        self.assertFalse(bool(order.reference_image))
+        self.assertEqual(ClientFile.objects.filter(user=user).count(), 0)

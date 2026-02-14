@@ -244,35 +244,37 @@
             <textarea class="input" name="comment" rows="4" placeholder="Anything we should know?">{{ form.comment|default_if_none:'' }}</textarea>
           </section>
 
-          <!-- Reference photo -->
-          <section>
-            <h3 class="block-title">Photo reference <span class="section__desc" style="font-size:.9rem;">(optional)</span></h3>
-            <div class="upload-card {% if errors.reference_image %}upload-card--invalid{% endif %}">
-              <input type="file" id="reference_image" name="reference_image" accept="image/*" hidden>
-              <div id="referenceDropzone" class="upload-drop">
-                <div class="upload-graphic">📷</div>
-                <div class="upload-copy">
-                  <p class="upload-title">Drop an image or click to upload</p>
-                  <p class="upload-subtitle">JPG, PNG, or WEBP — up to {{ reference_image_limit_mb }} MB.</p>
-                  <p class="upload-subtitle">Use for logos, artwork, inspiration, or fitment examples.</p>
+          {% if not cart_is_merch_checkout %}
+            <!-- Reference photo -->
+            <section>
+              <h3 class="block-title">Photo reference <span class="section__desc" style="font-size:.9rem;">(optional)</span></h3>
+              <div class="upload-card {% if errors.reference_image %}upload-card--invalid{% endif %}">
+                <input type="file" id="reference_image" name="reference_image" accept="image/*" hidden>
+                <div id="referenceDropzone" class="upload-drop">
+                  <div class="upload-graphic">📷</div>
+                  <div class="upload-copy">
+                    <p class="upload-title">Drop an image or click to upload</p>
+                    <p class="upload-subtitle">JPG, PNG, or WEBP — up to {{ reference_image_limit_mb }} MB.</p>
+                    <p class="upload-subtitle">Use for logos, artwork, inspiration, or fitment examples.</p>
+                  </div>
+                  <button type="button" id="uploadPick" class="btn btn--ghost btn--small">Browse</button>
                 </div>
-                <button type="button" id="uploadPick" class="btn btn--ghost btn--small">Browse</button>
-              </div>
-              <div id="referencePreview" class="upload-preview" hidden>
-                <img id="referencePreviewImg" alt="Reference preview">
-                <div>
-                  <p id="referencePreviewName" class="upload-title"></p>
-                  <p id="referencePreviewMeta" class="upload-subtitle"></p>
+                <div id="referencePreview" class="upload-preview" hidden>
+                  <img id="referencePreviewImg" alt="Reference preview">
+                  <div>
+                    <p id="referencePreviewName" class="upload-title"></p>
+                    <p id="referencePreviewMeta" class="upload-subtitle"></p>
+                  </div>
+                  <button type="button" id="uploadClear" class="btn btn--ghost btn--small" hidden>Remove</button>
                 </div>
-                <button type="button" id="uploadClear" class="btn btn--ghost btn--small" hidden>Remove</button>
+                {% if errors.reference_image %}
+                  <div class="err">{{ errors.reference_image }}</div>
+                {% else %}
+                  <p class="section__desc text-xs">If the form reloads you'll need to pick the file again.</p>
+                {% endif %}
               </div>
-              {% if errors.reference_image %}
-                <div class="err">{{ errors.reference_image }}</div>
-              {% else %}
-                <p class="section__desc text-xs">If the form reloads you'll need to pick the file again.</p>
-              {% endif %}
-            </div>
-          </section>
+            </section>
+          {% endif %}
 
           <!-- Consent + actions -->
           <label class="check">

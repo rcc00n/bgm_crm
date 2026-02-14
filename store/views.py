@@ -1501,14 +1501,25 @@ def checkout(request):
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
     )
-    cart_has_merch = any(
-        (
-            (getattr(getattr(entry.get("product"), "category", None), "slug", "") or "").strip().lower() == "merch"
-            or (getattr(entry.get("product"), "sku", "") or "").strip().upper().startswith("PF-")
-            or (getattr(entry.get("product"), "slug", "") or "").strip().lower().startswith("merch-")
+    def _is_merch_product(product) -> bool:
+        if not product:
+            return False
+        category_slug = (getattr(getattr(product, "category", None), "slug", "") or "").strip().lower()
+        sku = (getattr(product, "sku", "") or "").strip().upper()
+        slug = (getattr(product, "slug", "") or "").strip().lower()
+        return (
+            category_slug == "merch"
+            or sku.startswith("PF-")
+            or slug.startswith("merch-")
         )
+
+    cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
+    cart_has_non_merch = any(
+        (entry.get("product") is not None) and (not _is_merch_product(entry.get("product")))
         for entry in (positions or [])
     )
+    # Merch checkout should not allow an order-level reference photo upload.
+    cart_is_merch_checkout = cart_has_merch and not cart_has_non_merch
 
     gst_rate = _get_decimal_setting("STORE_GST_RATE", "0.05")
     processing_rate = _get_decimal_setting("STORE_PROCESSING_FEE_RATE", "0.035")
@@ -1632,6 +1643,8 @@ def checkout(request):
             return cleaned
 
         reference_file = request.FILES.get("reference_image")
+        if cart_is_merch_checkout:
+            reference_file = None
         form = {
             "customer_name": val("customer_name"),
             "email": val("email"),
@@ -1982,6 +1995,7 @@ def checkout(request):
             "cart_savings": (retail_total - total) if retail_total and total else Decimal("0.00"),
             "dealer_discount_percent": dealer_discount,
             "cart_has_merch": cart_has_merch,
+            "cart_is_merch_checkout": cart_is_merch_checkout,
             "pay_mode": pay_mode,
             "payment_method": payment_method,
             "payment_options": payment_options,
