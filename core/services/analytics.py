@@ -1160,14 +1160,14 @@ def summarize_staff_action_history(
             "content_type_id",
             "content_type__app_label",
             "content_type__model",
-            "content_type__name",
         )
         .annotate(total=Count("id"))
-        .order_by("-total", "content_type__name")[:80]
+        .order_by("-total", "content_type__model")[:80]
     )
     model_totals = []
     for row in model_totals_raw:
-        label = capfirst(row.get("content_type__name") or "")
+        # ContentType "name" isn't a DB field in modern Django; build a readable label from the model slug.
+        label = capfirst((row.get("content_type__model") or "").replace("_", " "))
         if label:
             model_totals.append(
                 {
