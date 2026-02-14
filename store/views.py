@@ -374,19 +374,9 @@ def _quote_notification_recipients() -> list[str]:
     """
     Resolve the notification list for custom fitment requests with sensible fallbacks.
     """
-    recipients = getattr(settings, "STORE_QUOTE_RECIPIENTS", None)
-    if isinstance(recipients, str):
-        return [recipients]
-    if recipients:
-        return list(recipients)
-
-    support_email = getattr(settings, "SUPPORT_EMAIL", None)
-    if support_email:
-        return [support_email]
-    default = getattr(settings, "DEFAULT_FROM_EMAIL", None)
-    if default:
-        return [default]
-    return ["support@badguymotors.com"]
+    # Internal notifications should always land in the support inbox.
+    support_email = (getattr(settings, "SUPPORT_EMAIL", "") or "").strip()
+    return [support_email] if support_email else ["support@badguymotors.com"]
 
 
 def _notify_fitment_request(request_obj):

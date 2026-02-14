@@ -134,9 +134,10 @@ def send_staff_email_notification(
     item_rows: Sequence[tuple[object, object]] | None = None,
     notice_lines: Sequence[str] | None = None,
 ) -> int:
-    recipients = _staff_recipients_for_event(event_type)
-    if not recipients:
-        return 0
+    # Internal notifications should always land in the support inbox (single source of truth).
+    recipient = (getattr(settings, "SUPPORT_EMAIL", "") or "").strip()
+    if not recipient:
+        recipient = "support@badguymotors.com"
     sender = (
         getattr(settings, "DEFAULT_FROM_EMAIL", None)
         or getattr(settings, "SUPPORT_EMAIL", None)
@@ -168,21 +169,18 @@ def send_staff_email_notification(
         list(notice_lines or []),
     )
 
-    sent = 0
-    for recipient in recipients:
-        try:
-            send_html_email(
-                subject=subject,
-                text_body=text_body,
-                html_body=html_body,
-                from_email=sender,
-                recipient_list=[recipient],
-                email_type=f"staff_{event_type}",
-            )
-            sent += 1
-        except Exception:
-            pass
-    return sent
+    try:
+        send_html_email(
+            subject=subject,
+            text_body=text_body,
+            html_body=html_body,
+            from_email=sender,
+            recipient_list=[recipient],
+            email_type=f"staff_{event_type}",
+        )
+        return 1
+    except Exception:
+        return 0
 
 
 def _format_digest_counts(items: dict[str, int], limit: int = 3) -> str:

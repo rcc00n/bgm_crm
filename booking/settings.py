@@ -291,8 +291,10 @@ PRINTFUL_MERCH_LIMIT = max(1, _int_env("PRINTFUL_MERCH_LIMIT", 8))
 PRINTFUL_MERCH_CACHE_SECONDS = max(0, _int_env("PRINTFUL_MERCH_CACHE_SECONDS", 300))
 PRINTFUL_TIMEOUT_SECONDS = max(0.5, _float_env("PRINTFUL_TIMEOUT_SECONDS", 4.0))
 PRINTFUL_MERCH_SHOW_PRICE = _bool_env("PRINTFUL_MERCH_SHOW_PRICE", "True")
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "openaicamrose@gmail.com")
-ETRANSFER_EMAIL = os.getenv("ETRANSFER_EMAIL", SUPPORT_EMAIL or "Payments@badguymotors.ca")
+# Internal inbox for staff notifications (fallback when per-feature recipients are not configured).
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@badguymotors.com")
+# e-Transfer instructions should default to the payments inbox, not the support inbox.
+ETRANSFER_EMAIL = os.getenv("ETRANSFER_EMAIL", "Payments@badguymotors.ca")
 ETRANSFER_MEMO_HINT = os.getenv(
     "ETRANSFER_MEMO_HINT",
     "Include your order number and phone in the transfer message.",
