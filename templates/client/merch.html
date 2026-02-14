@@ -320,6 +320,16 @@
     .merch-card{
       padding:0;
       overflow:hidden;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .merch-card.card--product-link:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,77,77,.28);
+      box-shadow: 0 22px 60px rgba(0,0,0,.55);
+    }
+    .merch-card.card--product-link:focus-within{
+      border-color: rgba(255,255,255,.26);
+      box-shadow: 0 22px 60px rgba(0,0,0,.55);
     }
     .merch-card .card__media{
       border-radius:0;
@@ -363,6 +373,20 @@
       color:rgba(255,255,255,.9);
       line-height:1;
       box-shadow:0 10px 18px rgba(0,0,0,.25);
+      padding:0;
+      appearance:none;
+      cursor:pointer;
+      transition:transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .merch-card__plus:hover{
+      border-color: rgba(213,0,0,.55);
+      background: rgba(213,0,0,.14);
+      transform: translateY(-1px);
+      box-shadow:0 14px 22px rgba(0,0,0,.35);
+    }
+    .merch-card__plus:focus-visible{
+      outline:2px solid rgba(255,255,255,.92);
+      outline-offset:3px;
     }
     .merch-card__price{
       font-size:1.05rem;
@@ -401,6 +425,7 @@
       background:
         radial-gradient(120% 100% at 50% 12%, rgba(255,255,255,.12), rgba(255,255,255,.03) 55%, rgba(0,0,0,0) 100%),
         #0a0a0a;
+      touch-action: pan-y;
     }
     .merch-carousel__img{
       width:100%;
@@ -881,7 +906,19 @@ body.nav-open .contact-fab,
                 <div class="merch-card__body">
                   <div class="merch-card__title-row">
                     <h3 class="merch-card__title">{{ item.name }}</h3>
-                    <span class="merch-card__plus" aria-hidden="true">+</span>
+                    {% if item.url %}
+                      <button
+                        class="merch-card__plus"
+                        type="button"
+                        data-merch-open
+                        aria-label="Open {{ item.name }}"
+                        title="Open {{ item.name }}"
+                      >
+                        <span aria-hidden="true">+</span>
+                      </button>
+                    {% else %}
+                      <span class="merch-card__plus" aria-hidden="true">+</span>
+                    {% endif %}
                   </div>
                   {% if item.price_label %}
                     <div class="merch-card__price">{{ item.price_label }}</div>
@@ -1164,6 +1201,48 @@ body.nav-open .contact-fab,
             setIndex(target);
           });
         });
+
+        // Touch swipe (mobile): swipe left/right to cycle.
+        let startX = 0;
+        let startY = 0;
+        let moved = false;
+        carousel.addEventListener(
+          "touchstart",
+          (e) => {
+            if (!e.touches || e.touches.length !== 1) return;
+            const t = e.touches[0];
+            startX = t.clientX;
+            startY = t.clientY;
+            moved = false;
+          },
+          { passive: true }
+        );
+        carousel.addEventListener(
+          "touchmove",
+          (e) => {
+            if (!e.touches || e.touches.length !== 1) return;
+            const t = e.touches[0];
+            const dx = t.clientX - startX;
+            const dy = t.clientY - startY;
+            if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) moved = true;
+          },
+          { passive: true }
+        );
+        carousel.addEventListener(
+          "touchend",
+          (e) => {
+            if (!moved) return;
+            const t = (e.changedTouches && e.changedTouches[0]) || null;
+            if (!t) return;
+            const dx = t.clientX - startX;
+            const dy = t.clientY - startY;
+            if (Math.abs(dx) < 32 || Math.abs(dx) < Math.abs(dy)) return;
+            carousel.dataset.bgmSwipeAt = String(Date.now());
+            if (dx < 0) setIndex(index + 1);
+            else setIndex(index - 1);
+          },
+          { passive: true }
+        );
       });
     })();
 
@@ -1178,9 +1257,25 @@ body.nav-open .contact-fab,
         card.setAttribute("role", "link");
         card.setAttribute("tabindex", "0");
 
+        const openBtn = card.querySelector("[data-merch-open]");
+        if (openBtn) {
+          openBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            window.location.href = url;
+          });
+        }
+
         card.addEventListener("click", (event) => {
           if (event.target.closest("a,button,input,select,textarea,label,form")) {
             return;
+          }
+          const swipeHost = event.target.closest("[data-merch-carousel]");
+          if (swipeHost) {
+            const at = parseInt(swipeHost.dataset.bgmSwipeAt || "0", 10) || 0;
+            if (at && Date.now() - at < 650) {
+              return;
+            }
           }
           window.location.href = url;
         });
