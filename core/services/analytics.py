@@ -45,19 +45,35 @@ def _format_duration(seconds: int) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 
-def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
+def summarize_web_analytics(window_days: int = 7, *, include_admin: bool = False) -> Dict[str, object]:
     window_days = max(1, min(window_days, 31))
     day_list = _day_range(window_days)
     start_date = day_list[0]
     start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
 
     recent_views = PageView.objects.filter(started_at__gte=start_dt)
+    if not include_admin:
+        recent_views = recent_views.exclude(path__startswith="/admin")
     session_ids = recent_views.values_list("session_id", flat=True).distinct()
     recent_sessions = VisitorSession.objects.filter(id__in=session_ids)
 
     visits = recent_sessions.count()
     signed_in = recent_sessions.filter(user__isnull=False).count()
     total_page_views = recent_views.count()
+    new_visitors = recent_sessions.filter(created_at__gte=start_dt).count()
+    returning_visitors = max(0, visits - new_visitors)
+    new_visitors_pct = round((new_visitors / visits) * 100, 1) if visits else 0.0
+
+    admin_visits = recent_sessions.filter(user__is_staff=True).count()
+    member_visits = recent_sessions.filter(user__is_staff=False, user__isnull=False).count()
+    guest_visits = max(0, visits - admin_visits - member_visits)
+
+    admin_page_views = recent_views.filter(user__is_staff=True).count()
+    member_page_views = recent_views.filter(user__is_staff=False, user__isnull=False).count()
+    guest_page_views = max(0, total_page_views - admin_page_views - member_page_views)
+    admin_page_views_pct = round((admin_page_views / total_page_views) * 100, 1) if total_page_views else 0.0
+    member_page_views_pct = round((member_page_views / total_page_views) * 100, 1) if total_page_views else 0.0
+    guest_page_views_pct = round((guest_page_views / total_page_views) * 100, 1) if total_page_views else 0.0
 
     avg_duration_ms = recent_views.aggregate(avg=Avg("duration_ms"))["avg"] or 0
     avg_duration_seconds = round(avg_duration_ms / 1000, 1)
@@ -165,11 +181,24 @@ def summarize_web_analytics(window_days: int = 7) -> Dict[str, object]:
         "has_data": bool(visits or total_page_views),
         "totals": {
             "visits": visits,
+            "unique_visitors": visits,
+            "new_visitors": new_visitors,
+            "returning_visitors": returning_visitors,
+            "new_visitors_pct": new_visitors_pct,
             "signed_in": signed_in,
             "signed_in_pct": signed_in_pct,
             "avg_duration_seconds": avg_duration_seconds,
             "avg_pages_per_visit": avg_pages_per_visit,
             "page_views": total_page_views,
+            "admin_visits": admin_visits,
+            "member_visits": member_visits,
+            "guest_visits": guest_visits,
+            "admin_page_views": admin_page_views,
+            "member_page_views": member_page_views,
+            "guest_page_views": guest_page_views,
+            "admin_page_views_pct": admin_page_views_pct,
+            "member_page_views_pct": member_page_views_pct,
+            "guest_page_views_pct": guest_page_views_pct,
         },
         "top_pages": top_pages,
         "slow_pages": slow_pages,
@@ -327,6 +356,12 @@ def summarize_web_analytics_insights(
         views = views.exclude(path__startswith="/admin")
 
     page_views = views.count()
+    admin_page_views = views.filter(user__is_staff=True).count()
+    member_page_views = views.filter(user__is_staff=False, user__isnull=False).count()
+    guest_page_views = max(0, page_views - admin_page_views - member_page_views)
+    admin_page_views_pct = round((admin_page_views / page_views) * 100, 1) if page_views else 0.0
+    member_page_views_pct = round((member_page_views / page_views) * 100, 1) if page_views else 0.0
+    guest_page_views_pct = round((guest_page_views / page_views) * 100, 1) if page_views else 0.0
     avg_duration_ms = views.aggregate(avg=Avg("duration_ms"))["avg"] or 0
     avg_duration_seconds = round(avg_duration_ms / 1000, 1)
 
@@ -500,6 +535,14 @@ def summarize_web_analytics_insights(
     signed_in_pct = round((signed_in / visits) * 100, 1) if visits else 0.0
     returning_sessions = max(0, visits - new_sessions)
     returning_pct = round((returning_sessions / visits) * 100, 1) if visits else 0.0
+    new_visitors_pct = round((new_sessions / visits) * 100, 1) if visits else 0.0
+
+    admin_visits = sessions.filter(user__is_staff=True).count()
+    member_visits = sessions.filter(user__is_staff=False, user__isnull=False).count()
+    guest_visits = max(0, visits - admin_visits - member_visits)
+    admin_visits_pct = round((admin_visits / visits) * 100, 1) if visits else 0.0
+    member_visits_pct = round((member_visits / visits) * 100, 1) if visits else 0.0
+    guest_visits_pct = round((guest_visits / visits) * 100, 1) if visits else 0.0
 
     landing_pages = []
     for path, stats in landing_stats.items():
@@ -685,9 +728,25 @@ def summarize_web_analytics_insights(
         "has_data": bool(visits or page_views),
         "totals": {
             "visits": visits,
+            "unique_visitors": visits,
+            "new_visitors": new_sessions,
+            "new_visitors_pct": new_visitors_pct,
+            "returning_visitors": returning_sessions,
             "page_views": page_views,
             "signed_in": signed_in,
             "signed_in_pct": signed_in_pct,
+            "admin_visits": admin_visits,
+            "admin_visits_pct": admin_visits_pct,
+            "member_visits": member_visits,
+            "member_visits_pct": member_visits_pct,
+            "guest_visits": guest_visits,
+            "guest_visits_pct": guest_visits_pct,
+            "admin_page_views": admin_page_views,
+            "admin_page_views_pct": admin_page_views_pct,
+            "member_page_views": member_page_views,
+            "member_page_views_pct": member_page_views_pct,
+            "guest_page_views": guest_page_views,
+            "guest_page_views_pct": guest_page_views_pct,
             "unique_ips": len(ip_stats),
             "avg_duration_seconds": avg_duration_seconds,
             "median_duration_seconds": median_seconds,

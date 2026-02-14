@@ -266,14 +266,16 @@
       <div class="panel-subtitle">Last {{ web_analytics.window_days }} days · public website</div>
       <div class="analytics-kpi-grid">
         <div class="analytics-kpi">
-          <span>Total visits</span>
-          <strong>{{ web_analytics.totals.visits }}</strong>
-          <small>{{ web_analytics.totals.page_views }} page views</small>
+          <span>Unique visitors</span>
+          <strong>{{ web_analytics.totals.unique_visitors|default:web_analytics.totals.visits }}</strong>
+          <small>{{ web_analytics.totals.new_visitors }} new · {{ web_analytics.totals.returning_visitors }} returning</small>
         </div>
         <div class="analytics-kpi">
-          <span>Signed-in sessions</span>
-          <strong>{{ web_analytics.totals.signed_in }}</strong>
-          <small>{{ web_analytics.totals.signed_in_pct }}% with accounts</small>
+          <span>Page views</span>
+          <strong>{{ web_analytics.totals.page_views }}</strong>
+          <small>
+            Members {{ web_analytics.totals.member_page_views }} · Guests {{ web_analytics.totals.guest_page_views }} · Admin {{ web_analytics.totals.admin_page_views }}
+          </small>
         </div>
         <div class="analytics-kpi">
           <span>Average dwell time</span>
