@@ -243,3 +243,62 @@ body {
     font-size: 14.5px !important;
   }
 }
+
+/* ==========================================================================
+   BGM Logo Pattern Layer (Over Smoke)
+   - Renders above #bg canvas smoke, but below all UI (UI should stay at z-index >= 1).
+   - Uses a single repeating tile background (no DOM image spam).
+   - Extremely low opacity to avoid impacting readability/contrast.
+   ========================================================================== */
+
+:root{
+  --bgm-logo-pattern-tile: clamp(320px, 26vw, 520px);
+  --bgm-logo-pattern-offset: clamp(160px, 13vw, 260px);
+  --bgm-logo-pattern-opacity: 0.045;
+}
+
+#bg{
+  isolation: isolate;
+}
+
+#bg::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:1; /* above smoke canvas, still within #bg's z-index=0 stacking context */
+
+  opacity: var(--bgm-logo-pattern-opacity);
+  background-repeat: repeat;
+  background-size: var(--bgm-logo-pattern-tile) var(--bgm-logo-pattern-tile);
+  background-position:
+    0 0,
+    var(--bgm-logo-pattern-offset) var(--bgm-logo-pattern-offset);
+
+  /* Fallback (no image-set support): PNG tile. */
+  background-image:
+    url("../img/bgm-logo-mark-tile.png"),
+    url("../img/bgm-logo-mark-tile.png");
+
+  /* Fade the pattern down in the center where content is usually concentrated. */
+  -webkit-mask-image: radial-gradient(circle at 50% 38%, rgba(0,0,0,.16) 0%, rgba(0,0,0,.55) 40%, rgba(0,0,0,1) 72%);
+  mask-image: radial-gradient(circle at 50% 38%, rgba(0,0,0,.16) 0%, rgba(0,0,0,.55) 40%, rgba(0,0,0,1) 72%);
+}
+
+@supports (background-image: image-set(url("../img/bgm-logo-mark-tile.webp") type("image/webp") 1x)) {
+  #bg::after{
+    background-image:
+      image-set(
+        url("../img/bgm-logo-mark-tile.webp") type("image/webp") 1x,
+        url("../img/bgm-logo-mark-tile.png") type("image/png") 1x
+      ),
+      image-set(
+        url("../img/bgm-logo-mark-tile.webp") type("image/webp") 1x,
+        url("../img/bgm-logo-mark-tile.png") type("image/png") 1x
+      );
+  }
+}
+
+@media (forced-colors: active) {
+  #bg::after{ display:none; }
+}
