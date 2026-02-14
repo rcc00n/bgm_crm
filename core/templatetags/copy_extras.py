@@ -13,6 +13,8 @@ _PLACEHOLDER_DISCLAIMER_NORMALIZED = {
     "product may not appear exactly as shown",
     "product may not be exactly as shown",
     "product may not look exactly as shown",
+    # Legacy hero caption label we don't want visible on the homepage carousel.
+    "outlaw series",
 }
 
 _DISCLAIMER_PHRASE_RE = re.compile(
