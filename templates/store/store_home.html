@@ -490,10 +490,18 @@
     const mq = window.matchMedia('(max-width: 900px)');
     const blocks = document.querySelectorAll('.categories-collapse');
     if (!blocks.length) return;
+    // Mobile UX:
+    // - Keep the main "Categories" grid open by default.
+    // - Keep heavier sections collapsed unless the user opens them.
+    const keepOpenOnMobile = new Set(['categoriesCollapse']);
     const sync = () => {
       blocks.forEach((el) => {
         if (mq.matches) {
-          el.removeAttribute('open');
+          if (keepOpenOnMobile.has(el.id)) {
+            el.setAttribute('open', '');
+          } else {
+            el.removeAttribute('open');
+          }
         } else {
           el.setAttribute('open', '');
         }
@@ -626,7 +634,9 @@
 
   .grid--cards{--min:220px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--min),1fr));gap:.85rem}
   .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:transform .18s ease, box-shadow .18s ease}
-  .card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.33)}
+  @media (hover: hover) and (pointer: fine){
+    .card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.33)}
+  }
   .card__img{position:relative;overflow:hidden;border-radius:.9rem}
   .img-fit{width:100%;height:100%;object-fit:cover;aspect-ratio:16/9;display:block}
 
@@ -812,7 +822,9 @@
   }
   .cat__title{font-weight:700;color:var(--ink)}
   .cat__arrow{opacity:.9;transform:translateX(0);transition:transform .18s ease}
-  .cat:hover .cat__arrow{transform:translateX(3px)}
+  @media (hover: hover) and (pointer: fine){
+    .cat:hover .cat__arrow{transform:translateX(3px)}
+  }
   .cat__desc{margin:.5rem .25rem 0}
   .categories-collapse{margin-top:.6rem}
   .categories-toggle{
