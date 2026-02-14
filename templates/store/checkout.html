@@ -152,31 +152,39 @@
           <section>
             <div class="section__head" style="margin-bottom:.45rem;">
               <h3 class="block-title">Payment</h3>
-              <p class="section__desc">Pick a 50% deposit or pay in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee. Delivery (if applicable) is shown in the order summary.</p>
+              {% if cart_is_merch_checkout %}
+                <p class="section__desc">Merch orders are paid in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee. Delivery (if applicable) is shown in the order summary.</p>
+              {% else %}
+                <p class="section__desc">Pick a 50% deposit or pay in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee. Delivery (if applicable) is shown in the order summary.</p>
+              {% endif %}
             </div>
 
-            <fieldset class="options options--pay">
-              <label class="opt opt--wide">
-                <input type="radio" name="pay_mode" value="deposit_50" {% if pay_mode == 'deposit_50' %}checked{% endif %}>
-                <div>
-                  <div class="opt__title">Pay 50% now</div>
-                  <div class="opt__sub" data-pay-copy="deposit_50">
-                    Charge now {{ payment_options.deposit_50.charge|money }} (subtotal {{ payment_options.deposit_50.base|money }} + GST {{ payment_options.deposit_50.gst|money }} + processing {{ payment_options.deposit_50.processing_fee|money }}).
-                    Balance later {{ payment_options.deposit_50.balance_due|money }} (remaining subtotal + GST/processing).
+            {% if not cart_is_merch_checkout %}
+              <fieldset class="options options--pay">
+                <label class="opt opt--wide">
+                  <input type="radio" name="pay_mode" value="deposit_50" {% if pay_mode == 'deposit_50' %}checked{% endif %}>
+                  <div>
+                    <div class="opt__title">Pay 50% now</div>
+                    <div class="opt__sub" data-pay-copy="deposit_50">
+                      Charge now {{ payment_options.deposit_50.charge|money }} (subtotal {{ payment_options.deposit_50.base|money }} + GST {{ payment_options.deposit_50.gst|money }} + processing {{ payment_options.deposit_50.processing_fee|money }}).
+                      Balance later {{ payment_options.deposit_50.balance_due|money }} (remaining subtotal + GST/processing).
+                    </div>
                   </div>
-                </div>
-              </label>
-              <label class="opt opt--wide">
-                <input type="radio" name="pay_mode" value="full" {% if pay_mode != 'deposit_50' %}checked{% endif %}>
-                <div>
-                  <div class="opt__title">Pay 100% now</div>
-                  <div class="opt__sub" data-pay-copy="full">
-                    Charge now {{ payment_options.full.charge|money }} (subtotal {{ payment_options.full.base|money }} + GST {{ payment_options.full.gst|money }} + processing {{ payment_options.full.processing_fee|money }}).
-                    Balance later {{ payment_options.full.balance_due|money }}.
+                </label>
+                <label class="opt opt--wide">
+                  <input type="radio" name="pay_mode" value="full" {% if pay_mode != 'deposit_50' %}checked{% endif %}>
+                  <div>
+                    <div class="opt__title">Pay 100% now</div>
+                    <div class="opt__sub" data-pay-copy="full">
+                      Charge now {{ payment_options.full.charge|money }} (subtotal {{ payment_options.full.base|money }} + GST {{ payment_options.full.gst|money }} + processing {{ payment_options.full.processing_fee|money }}).
+                      Balance later {{ payment_options.full.balance_due|money }}.
+                    </div>
                   </div>
-                </div>
-              </label>
-            </fieldset>
+                </label>
+              </fieldset>
+            {% else %}
+              <input type="hidden" name="pay_mode" value="full">
+            {% endif %}
 
             <div class="section__head" style="margin-bottom:.3rem;">
               <h4 class="block-title" style="margin:0;">How would you like to pay?</h4>

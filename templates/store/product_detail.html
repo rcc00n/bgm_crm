@@ -57,7 +57,7 @@
                   </strong>
                   {% if product.old_price %}<span class="old">{{ product.old_price|money }}</span>{% endif %}
                 </div>
-                {% if dealer_portal.show_discount %}
+                {% if dealer_portal.show_discount and not product|is_merch_product %}
                   <div class="price__dealer-row" data-dealer-price-wrapper>
                     <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
                     <strong class="price__value" data-product-price-dealer>
@@ -140,7 +140,7 @@
                                       {% if not product.contact_for_estimate %}
                                         <span class="option-pill__price">
                                           {{ opt.unit_price|money }}
-                                          {% if dealer_portal.show_discount %}
+                                          {% if dealer_portal.show_discount and not product|is_merch_product %}
                                             <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
                                           {% endif %}
                                         </span>
@@ -184,7 +184,7 @@
                                       {% if not product.contact_for_estimate %}
                                         <span class="option-pill__price">
                                           {{ opt.unit_price|money }}
-                                          {% if dealer_portal.show_discount %}
+                                          {% if dealer_portal.show_discount and not product|is_merch_product %}
                                             <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
                                           {% endif %}
                                         </span>
@@ -227,7 +227,7 @@
                                   {% if not product.contact_for_estimate %}
                                     <span class="option-pill__price">
                                       {{ opt.unit_price|money }}
-                                      {% if dealer_portal.show_discount %}
+                                      {% if dealer_portal.show_discount and not product|is_merch_product %}
                                         <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
                                       {% endif %}
                                     </span>
@@ -263,7 +263,7 @@
 	                            </span>
 	                            <span class="option-pill__price">
 	                              {{ product.display_price|money }}
-	                              {% if dealer_portal.show_discount %}
+	                              {% if dealer_portal.show_discount and not product|is_merch_product %}
 	                                <span class="option-pill__dealer">Dealer {{ product.display_price|dealer_price:dealer_portal.discount_percent|money }}</span>
 	                              {% endif %}
 	                            </span>
@@ -481,7 +481,7 @@
                     {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
                     <strong>{{ p.display_price|money }}</strong>
                   </div>
-                  {% if dealer_portal.show_discount %}
+                  {% if dealer_portal.show_discount and not p|is_merch_product %}
                     <div class="price__dealer-row">
                       <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
                       <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
@@ -520,7 +520,7 @@
                     {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
                     <strong>{{ p.display_price|money }}</strong>
                   </div>
-                  {% if dealer_portal.show_discount %}
+                  {% if dealer_portal.show_discount and not p|is_merch_product %}
                     <div class="price__dealer-row">
                       <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
                       <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>

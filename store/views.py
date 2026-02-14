@@ -1153,6 +1153,19 @@ def _cart_add_item(
     return cart
 
 
+def _is_merch_product(product) -> bool:
+    """
+    Merch items (Printful) are excluded from dealer discounts and may follow
+    different checkout rules (shipping, uploads, etc).
+    """
+    if not product:
+        return False
+    category_slug = (getattr(getattr(product, "category", None), "slug", "") or "").strip().lower()
+    sku = (getattr(product, "sku", "") or "").strip().upper()
+    slug = (getattr(product, "slug", "") or "").strip().lower()
+    return category_slug == "merch" or sku.startswith("PF-") or slug.startswith("merch-")
+
+
 def _cart_positions(session, *, dealer_discount: int = 0, user=None):
     """
     Build hydrated cart positions for rendering/checkout.
@@ -1206,9 +1219,9 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None):
         retail_unit = unit
         retail_line = (retail_unit * qty).quantize(quant)
 
-        discounted_unit = retail_unit
-        if dealer_discount:
-            discounted_unit = apply_dealer_discount(retail_unit, dealer_discount)
+        # Dealer discounts never apply to merch products.
+        line_discount_percent = dealer_discount if (dealer_discount and not _is_merch_product(product)) else 0
+        discounted_unit = apply_dealer_discount(retail_unit, line_discount_percent) if line_discount_percent else retail_unit
         line_total = (discounted_unit * qty).quantize(quant)
 
         reference_client_file_id = entry.get("reference_client_file_id") or None
@@ -1235,7 +1248,7 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None):
                 "line_total": line_total,
                 "retail_line_total": retail_line,
                 "savings": (retail_line - line_total).quantize(quant),
-                "discount_percent": dealer_discount if dealer_discount else 0,
+                "discount_percent": line_discount_percent,
                 "option_id": entry["option_id"],
                 "reference_client_file_id": reference_client_file_id,
                 "reference_file_name": reference_file_name,
@@ -1419,21 +1432,16 @@ def cart_view(request):
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
     )
-    cart_has_merch = any(
-        (
-            (getattr(getattr(entry.get("product"), "category", None), "slug", "") or "").strip().lower() == "merch"
-            or (getattr(entry.get("product"), "sku", "") or "").strip().upper().startswith("PF-")
-            or (getattr(entry.get("product"), "slug", "") or "").strip().lower().startswith("merch-")
-        )
-        for entry in (positions or [])
-    )
+    cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
+    any_discounted = any(int(entry.get("discount_percent") or 0) > 0 for entry in (positions or []))
+    effective_dealer_discount = int(dealer_discount or 0) if any_discounted else 0
     savings = (retail_total - total) if retail_total and total else Decimal("0.00")
     context = {
         "positions": positions,
         "total": total,
         "retail_total": retail_total,
         "cart_savings": savings,
-        "dealer_discount_percent": dealer_discount,
+        "dealer_discount_percent": effective_dealer_discount,
         "cart_has_merch": cart_has_merch,
         "store_copy": StorePageCopy.get_solo(),
     }
@@ -1501,23 +1509,13 @@ def checkout(request):
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
     )
-    def _is_merch_product(product) -> bool:
-        if not product:
-            return False
-        category_slug = (getattr(getattr(product, "category", None), "slug", "") or "").strip().lower()
-        sku = (getattr(product, "sku", "") or "").strip().upper()
-        slug = (getattr(product, "slug", "") or "").strip().lower()
-        return (
-            category_slug == "merch"
-            or sku.startswith("PF-")
-            or slug.startswith("merch-")
-        )
-
     cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
     cart_has_non_merch = any(
         (entry.get("product") is not None) and (not _is_merch_product(entry.get("product")))
         for entry in (positions or [])
     )
+    any_discounted = any(int(entry.get("discount_percent") or 0) > 0 for entry in (positions or []))
+    effective_dealer_discount = int(dealer_discount or 0) if any_discounted else 0
     # Merch checkout should not allow an order-level reference photo upload.
     cart_is_merch_checkout = cart_has_merch and not cart_has_non_merch
 
@@ -1535,6 +1533,9 @@ def checkout(request):
 
     pay_mode = request.POST.get("pay_mode") or request.GET.get("pay_mode") or "full"
     if pay_mode not in ("full", "deposit_50"):
+        pay_mode = "full"
+    if cart_is_merch_checkout:
+        # Merch is paid in full only.
         pay_mode = "full"
     payment_method = request.POST.get("payment_method") or request.GET.get("payment_method") or "card"
     if payment_method not in ("card", "etransfer"):
@@ -1993,7 +1994,7 @@ def checkout(request):
             "reference_image_limit_mb": REFERENCE_IMAGE_MAX_MB,
             "retail_total": retail_total,
             "cart_savings": (retail_total - total) if retail_total and total else Decimal("0.00"),
-            "dealer_discount_percent": dealer_discount,
+            "dealer_discount_percent": effective_dealer_discount,
             "cart_has_merch": cart_has_merch,
             "cart_is_merch_checkout": cart_is_merch_checkout,
             "pay_mode": pay_mode,
