@@ -272,7 +272,7 @@
   width: 100%;
   min-height: 40px;
   /* Pad for the left icon + right clear button (desktop + mobile). */
-  padding: .55rem 3.35rem .55rem 2.8rem;
+  padding: .55rem 3.35rem .55rem 3.15rem;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(255,255,255,.06);
@@ -284,6 +284,22 @@
   letter-spacing: .04em;
   line-height: 1.1;
   text-transform: uppercase;
+}
+
+.bgm-topbar__search-input::-webkit-search-decoration,
+.bgm-topbar__search-input::-webkit-search-cancel-button,
+.bgm-topbar__search-input::-webkit-search-results-button,
+.bgm-topbar__search-input::-webkit-search-results-decoration{
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+.bgm-topbar__search-input::-ms-clear,
+.bgm-topbar__search-input::-ms-reveal{
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .bgm-topbar__search-input::placeholder{
@@ -774,7 +790,7 @@
 
   .bgm-topbar__search-input{
     min-height: 44px;
-    padding: .75rem 3.7rem .75rem 2.95rem;
+    padding: .75rem 3.7rem .75rem 3.25rem;
     border-radius: 999px;
     box-shadow: 0 8px 24px rgba(0,0,0,.28);
     border-color: rgba(255,255,255,.12);
