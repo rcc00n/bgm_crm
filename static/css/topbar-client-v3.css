@@ -270,9 +270,9 @@
 
 .bgm-topbar__search-input{
   width: 100%;
-  min-height: 40px;
+  min-height: 40px !important;
   /* Pad for the left icon + right clear button (desktop + mobile). */
-  padding: .55rem 3.35rem .55rem 3.15rem;
+  padding: .55rem 3.35rem .55rem 3.15rem !important;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(255,255,255,.06);
@@ -789,8 +789,8 @@
   }
 
   .bgm-topbar__search-input{
-    min-height: 44px;
-    padding: .75rem 3.7rem .75rem 3.25rem;
+    min-height: 44px !important;
+    padding: .75rem 3.7rem .75rem 3.25rem !important;
     border-radius: 999px;
     box-shadow: 0 8px 24px rgba(0,0,0,.28);
     border-color: rgba(255,255,255,.12);
