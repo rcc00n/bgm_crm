@@ -772,6 +772,18 @@ body.bgm-search-open{
     gap: clamp(12px, 3vw, 24px) !important;
     padding-block: .7rem !important;
   }
+  /* Keep mobile header in a single row. The fixed nav container can otherwise
+     create an implicit 2nd grid row (browser-dependent), which lifts the search
+     icon above the logo. */
+  .bgm-topbar__toggle,
+  .bgm-topbar__slot--brand,
+  .bgm-topbar__slot--search,
+  .bgm-topbar__nav{
+    grid-row: 1 !important;
+  }
+  .bgm-topbar__nav{
+    grid-column: 1 / -1 !important;
+  }
   .bgm-topbar__slot--tagline{ display: none !important; }
   .bgm-topbar__toggle{ display: inline-flex !important; }
   .bgm-topbar__toggle{ grid-column: 1; justify-self: start; }
