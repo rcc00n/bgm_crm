@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from decimal import Decimal, InvalidOperation
 from datetime import timedelta
 from collections import OrderedDict
@@ -707,6 +708,104 @@ def _build_home_reviews(*, limit: int | None = None):
         )
     return reviews
 
+
+_HOME_QUICK_PICK_SPLIT_RE = re.compile(r"(?:\\s*(?:,|&|\\+|/|\\||•)\\s*|\\s+and\\s+)", re.IGNORECASE)
+
+
+def _home_quick_pick_candidates(title: str, subtitle: str, *, hint: str = "") -> list[str]:
+    # Build a small ordered list of phrases we can use to locate an existing Service.
+    raw = " ".join([str(subtitle or "").strip(), str(title or "").strip(), str(hint or "").strip()]).strip()
+    if not raw:
+        return []
+
+    parts: list[str] = []
+    if subtitle:
+        parts.extend([p.strip() for p in _HOME_QUICK_PICK_SPLIT_RE.split(str(subtitle)) if str(p or "").strip()])
+
+    # Include title/hint as fallbacks when subtitle is generic (e.g. "Lift kits & 4-links").
+    if title:
+        parts.append(str(title).strip())
+    if hint and hint.lower() not in str(title or "").lower():
+        parts.append(str(hint).strip())
+
+    expanded: list[str] = []
+    for part in parts:
+        cleaned = str(part or "").strip()
+        if not cleaned:
+            continue
+
+        expanded.append(cleaned)
+
+        normalized = re.sub(r"[^a-z0-9]+", " ", cleaned.lower()).strip()
+        if not normalized:
+            continue
+
+        # Known abbreviations / common short-hands used in marketing copy.
+        if normalized in {"scl"} or " scl " in f" {normalized} ":
+            expanded.extend(["Smooth Criminal", "Smooth Criminal Liner"])
+        if "armadillo" in normalized:
+            expanded.extend(["Armadillo", "Armadillo Liner"])
+        if normalized in {"ecu", "ecm"} or "ecu" in normalized or "ecm" in normalized:
+            expanded.extend(["tuning", "ECU", "ECM"])
+        if "4" in normalized and "link" in normalized:
+            expanded.extend(["4 link", "4-link", "four link", "four-link"])
+
+    # De-dupe while preserving order and ignore very short tokens.
+    out: list[str] = []
+    seen = set()
+    for item in expanded:
+        token = str(item or "").strip()
+        if len(token) < 3:
+            continue
+        key = token.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(token)
+    return out
+
+
+def _home_quick_pick_service_id(*, title: str, subtitle: str, hint: str = "") -> str:
+    """
+    Attempts to pick a Service UUID (as string) that matches the mobile "Quick picks" copy.
+    Returns "" when no match can be found.
+    """
+    candidates = _home_quick_pick_candidates(title, subtitle, hint=hint)
+    if not candidates:
+        return ""
+
+    category = None
+    for needle in [title, hint]:
+        needle = (needle or "").strip()
+        if not needle:
+            continue
+        category = ServiceCategory.objects.filter(name__icontains=needle).order_by("id").first()
+        if category:
+            break
+
+    scoped_qs = Service.objects.all()
+    if category:
+        scoped_qs = scoped_qs.filter(category=category)
+
+    for phrase in candidates:
+        match = scoped_qs.filter(name__icontains=phrase).order_by("name", "id").first()
+        if match:
+            return str(match.id)
+
+    # If we found a category but none of the phrases match, still deep-link to a stable service inside it.
+    if category:
+        match = scoped_qs.order_by("name", "id").first()
+        if match:
+            return str(match.id)
+
+    # Last resort: global phrase match.
+    for phrase in candidates:
+        match = Service.objects.filter(name__icontains=phrase).order_by("name", "id").first()
+        if match:
+            return str(match.id)
+
+    return ""
+
 class HomeView(TemplateView):
     template_name = "client/bgm_home.html"
 
@@ -715,6 +814,44 @@ class HomeView(TemplateView):
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.HOME)
         home_copy = HomePageCopy.get_solo()
         ctx["home_copy"] = home_copy
+        # Mobile "Quick picks": deep-link each tile to a real Service (opens booking modal) when possible.
+        base_services_url = reverse("client-dashboard")
+        ctx["services_mobile_action_1_url"] = f"{base_services_url}?q=fabrication#services"
+        ctx["services_mobile_action_2_url"] = f"{base_services_url}?q=suspension#services"
+        ctx["services_mobile_action_3_url"] = f"{base_services_url}?q=tuning#services"
+        ctx["services_mobile_action_4_url"] = f"{base_services_url}?q=coating#services"
+        try:
+            s1 = _home_quick_pick_service_id(
+                title=home_copy.services_mobile_action_1_title,
+                subtitle=home_copy.services_mobile_action_1_subtitle,
+                hint="fabrication",
+            )
+            s2 = _home_quick_pick_service_id(
+                title=home_copy.services_mobile_action_2_title,
+                subtitle=home_copy.services_mobile_action_2_subtitle,
+                hint="suspension",
+            )
+            s3 = _home_quick_pick_service_id(
+                title=home_copy.services_mobile_action_3_title,
+                subtitle=home_copy.services_mobile_action_3_subtitle,
+                hint="tuning",
+            )
+            s4 = _home_quick_pick_service_id(
+                title=home_copy.services_mobile_action_4_title,
+                subtitle=home_copy.services_mobile_action_4_subtitle,
+                hint="coating",
+            )
+        except Exception:
+            logger.exception("Failed to resolve home quick picks to service deep links.")
+        else:
+            if s1:
+                ctx["services_mobile_action_1_url"] = f"{base_services_url}?q=fabrication&book={s1}#services"
+            if s2:
+                ctx["services_mobile_action_2_url"] = f"{base_services_url}?q=suspension&book={s2}#services"
+            if s3:
+                ctx["services_mobile_action_3_url"] = f"{base_services_url}?q=tuning&book={s3}#services"
+            if s4:
+                ctx["services_mobile_action_4_url"] = f"{base_services_url}?q=coating&book={s4}#services"
         from django.db.utils import OperationalError, ProgrammingError
         try:
             all_faq_items = list(

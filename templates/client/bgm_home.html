@@ -1573,18 +1573,18 @@
 
 	        <!-- Mobile services lite -->
 	        <div id="mobileServices" class="only-mobile" aria-labelledby="servicesMobileTitle">
-	          <h3 id="servicesMobileTitle" class="kicker">{{ home_copy.services_mobile_kicker }}</h3>
+          <h3 id="servicesMobileTitle" class="kicker">{{ home_copy.services_mobile_kicker }}</h3>
           <div class="mobi-actions" style="margin-bottom:.6rem">
-            <a class="mobi-action" href="{% url 'client-dashboard' %}?q=fabrication#services">
+            <a class="mobi-action" href="{{ services_mobile_action_1_url }}">
               <b>{{ home_copy.services_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_1_subtitle }}</span>
             </a>
-            <a class="mobi-action" href="{% url 'client-dashboard' %}?q=suspension#services">
+            <a class="mobi-action" href="{{ services_mobile_action_2_url }}">
               <b>{{ home_copy.services_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_2_subtitle }}</span>
             </a>
-            <a class="mobi-action" href="{% url 'client-dashboard' %}?q=tuning#services">
+            <a class="mobi-action" href="{{ services_mobile_action_3_url }}">
               <b>{{ home_copy.services_mobile_action_3_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_3_subtitle }}</span>
             </a>
-            <a class="mobi-action" href="{% url 'client-dashboard' %}?q=coating#services">
+            <a class="mobi-action" href="{{ services_mobile_action_4_url }}">
               <b>{{ home_copy.services_mobile_action_4_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_4_subtitle }}</span>
             </a>
           </div>
