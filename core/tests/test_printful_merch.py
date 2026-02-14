@@ -47,7 +47,7 @@ class PrintfulMerchFeedTests(SimpleTestCase):
     )
     def test_builds_products_with_price_from_sync_product_details(self):
         def _urlopen(req, timeout=0):
-            if req.full_url.endswith("/store/products?limit=8&offset=0"):
+            if req.full_url.endswith("/sync/products?limit=8&offset=0"):
                 return _FakeResponse(
                     {
                         "code": 200,

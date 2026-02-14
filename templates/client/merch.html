@@ -217,7 +217,7 @@
     .hero__media{ justify-self:start; max-width:min(52vw, 720px); position:relative; }
     .hero__media img{
       width:100%; aspect-ratio:16/9; max-height:clamp(220px, 42vh, 420px);
-      object-fit:cover; border-radius:1rem;
+      object-fit:contain; border-radius:1rem;
     }
     .hero__disclaimer{
       position:absolute; left:1.1rem; bottom:1.1rem; padding:.35rem .9rem; border-radius:.85rem;
@@ -397,12 +397,15 @@
 
     .merch-carousel{
       position:relative;
-      background:#0c0c0c;
+      /* Slightly brighter center so dark/transparent mockups (eg. black hoodies) don't disappear. */
+      background:
+        radial-gradient(120% 100% at 50% 12%, rgba(255,255,255,.12), rgba(255,255,255,.03) 55%, rgba(0,0,0,0) 100%),
+        #0a0a0a;
     }
     .merch-carousel__img{
       width:100%;
       height:100%;
-      object-fit:cover;
+      object-fit:contain;
       aspect-ratio:4/3;
       display:none;
     }

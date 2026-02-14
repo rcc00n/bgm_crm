@@ -1118,7 +1118,14 @@ def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
     Returns (carousel_images, color_swatches).
     Swatches are derived from variant names when Printful doesn't provide structured color fields.
     """
-    fallback_image = (row.get("image_url") or "").strip()
+    fallback_image = ""
+    # Prefer the product-level thumbnail (Printful "thumbnail_url") so we show the actual item
+    # mockup in listings instead of a print-file preview when variant payloads vary.
+    for key in ("image_url", "thumbnail_url", "thumbnail", "photo_url"):
+        candidate = (row.get(key) or "").strip()
+        if candidate:
+            fallback_image = candidate
+            break
     variants = row.get("variants") if isinstance(row.get("variants"), list) else []
 
     swatches: "OrderedDict[str, dict]" = OrderedDict()
@@ -1138,21 +1145,29 @@ def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
         if key in swatches:
             continue
 
-        image_url = (
-            (variant.get("image_url") or "").strip()
-            or (variant.get("preview_url") or "").strip()
-            or (variant.get("thumbnail_url") or "").strip()
-            or fallback_image
-        )
+        # `core.services.printful` normalizes variant images into `image_url`.
+        # Keep extra keys as defensive fallbacks because Printful payloads vary by store type.
+        image_url = ""
+        for key in ("image_url", "thumbnail_url", "preview_url"):
+            candidate = (variant.get(key) or "").strip()
+            if candidate:
+                image_url = candidate
+                break
+        if not image_url:
+            image_url = fallback_image
         swatches[key] = {
             "label": color,
             "hex": _merch_color_to_hex(color),
             "image_url": image_url,
         }
 
-    # Build unique carousel images in the same order as swatches.
+    # Build unique carousel images.
+    # Always lead with the product thumbnail when available (prevents "blank black" print previews).
     carousel_images: list[str] = []
     seen: set[str] = set()
+    if fallback_image:
+        seen.add(fallback_image)
+        carousel_images.append(fallback_image)
     for swatch in swatches.values():
         url = (swatch.get("image_url") or "").strip()
         if not url:
@@ -1162,8 +1177,13 @@ def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
         seen.add(url)
         carousel_images.append(url)
 
-    if not carousel_images and fallback_image:
-        carousel_images = [fallback_image]
+    # Last-ditch: pick any variant image if both swatches and product thumbnail are empty.
+    if not carousel_images:
+        for variant in variants:
+            candidate = (variant.get("image_url") or "").strip()
+            if candidate:
+                carousel_images = [candidate]
+                break
 
     # Store an index per swatch so the template can jump the carousel.
     for swatch in swatches.values():
@@ -1249,6 +1269,23 @@ class MerchPlaceholderView(TemplateView):
         ctx["selected_merch_category"] = selected_merch_category
         ctx["selected_merch_category_label"] = selected_merch_category_label
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
+
+        # If a category is selected, prefer using an actual product mockup from that category
+        # for the hero media instead of the static fallback image.
+        if selected_merch_category and printful_products:
+            first = printful_products[0] or {}
+            hero_src = ""
+            if isinstance(first.get("carousel_images"), list) and first["carousel_images"]:
+                hero_src = str(first["carousel_images"][0] or "").strip()
+            if not hero_src:
+                hero_src = str(first.get("image_url") or "").strip()
+            if hero_src:
+                ctx["hero_media"] = {
+                    "src": hero_src,
+                    "alt": str(first.get("name") or "Merch").strip() or "Merch",
+                    "caption": "",
+                    "location": "merch",
+                }
         return ctx
 
 # accounts/views.py
