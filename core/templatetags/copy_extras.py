@@ -55,6 +55,10 @@ def suppress_placeholder_disclaimer(value: Any) -> str:
         cleaned = re.sub(r"[\s\-–—|•:]+$", "", cleaned).strip()
         if not cleaned:
             return ""
+        # If removing the boilerplate leaves us with a legacy label we also
+        # want hidden (e.g. "Outlaw Series"), suppress it.
+        if _normalize_disclaimer(cleaned) in _PLACEHOLDER_DISCLAIMER_NORMALIZED:
+            return ""
         return cleaned
 
     return text
