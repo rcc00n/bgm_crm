@@ -3361,6 +3361,10 @@ def analytics_collect(request):
             page_view.page_title = base_defaults["page_title"]
             dirty.append("page_title")
         if dirty:
+            # Ensure `updated_at` reflects the latest heartbeat. With `auto_now=True`,
+            # Django will only bump the timestamp if it's included in `update_fields`.
+            if "updated_at" not in dirty:
+                dirty.append("updated_at")
             page_view.save(update_fields=dirty)
 
     status = 201 if created else 200

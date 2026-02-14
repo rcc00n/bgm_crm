@@ -46,6 +46,12 @@ class AnalyticsCollectViewTests(TestCase):
 
     def test_updates_existing_page_view(self):
         self.client.post(self.url, data=json.dumps(self.payload), content_type="application/json")
+        # Simulate a long-lived tab where the row's timestamp has fallen behind. We expect
+        # any subsequent heartbeat to bump `updated_at` even when using `update_fields`.
+        stale = timezone.now() - timedelta(days=2)
+        PageView.objects.filter(page_instance_id=self.payload["page_instance_id"]).update(updated_at=stale)
+        before = PageView.objects.get(page_instance_id=self.payload["page_instance_id"]).updated_at
+
         updated_payload = dict(self.payload)
         updated_payload["duration_ms"] = 6400
         response = self.client.post(
@@ -56,6 +62,7 @@ class AnalyticsCollectViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         page_view = PageView.objects.get(page_instance_id=self.payload["page_instance_id"])
         self.assertEqual(page_view.duration_ms, 6400)
+        self.assertGreater(page_view.updated_at, before)
 
     def test_attaches_user_when_authenticated(self):
         user = User.objects.create_user("tester", email="tester@example.com", password="pass1234")
