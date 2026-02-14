@@ -65,7 +65,7 @@
     @media (max-width: 960px){
       .bgm-topbar__inner{
         display:grid !important;
-        grid-template-columns:max-content minmax(0, 1fr) minmax(0, 1fr) !important;
+        grid-template-columns:max-content minmax(0, 1fr) max-content !important;
         align-items:center !important;
         gap:clamp(12px, 3vw, 20px) !important;
       }
@@ -90,6 +90,7 @@
         display:flex !important;
         grid-column:3;
         min-width:0;
+        justify-self:end;
       }
       .bgm-topbar__slot--tagline,
       .bgm-topbar__nav{ display:none !important; }
