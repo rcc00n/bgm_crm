@@ -1904,11 +1904,16 @@ class DealerEntryView(View):
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
-            messages.info(
-                request,
-                "Dealer access: sign in or create an account to apply.",
+            tier_levels = DealerTierLevel.objects.filter(is_active=True).order_by(
+                "minimum_spend",
+                "sort_order",
+                "code",
             )
-            return redirect(f"{reverse('login')}?next={reverse('dealer-entry')}")
+            return render(
+                request,
+                "core/dealer/entry_public.html",
+                {"tier_levels": tier_levels},
+            )
 
         profile = getattr(request.user, "userprofile", None)
         if profile and profile.is_dealer:

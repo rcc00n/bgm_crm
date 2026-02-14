@@ -23,6 +23,7 @@ HERO_FALLBACKS = {
     "store-cart": {"path": "img/hero-products.jpg", "alt": "Products hero"},
     "store-checkout": {"path": "img/hero-products.jpg", "alt": "Products hero"},
     "merch": {"path": "img/hero-merch.jpg", "alt": "Merch hero"},
+    "dealer-entry": {"path": "img/hero-dealers.jpg", "alt": "Dealer banner"},
     "dealer-status": {"path": "img/hero-dealers.jpg", "alt": "Dealer banner"},
     # Keep financing resilient until a dedicated asset is added.
     "financing": {"path": "img/hero-services.jpg", "alt": "Financing hero"},
@@ -47,6 +48,7 @@ FALLBACK = {"path": "img/hero-home.jpg", "alt": "BGM hero"}
 # Bind URL names to HeroImage placements for DB lookups.
 HERO_DB_BINDINGS = {
     "home": HeroImage.Location.HOME,
+    "dealer-entry": HeroImage.Location.DEALER_STATUS,
     "dealer-status": HeroImage.Location.DEALER_STATUS,
     "store": HeroImage.Location.STORE,
     "merch": HeroImage.Location.MERCH,
