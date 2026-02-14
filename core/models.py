@@ -50,6 +50,14 @@ class Role(models.Model):
     notify_on_fitment_request = models.BooleanField(default=False)
     notify_on_site_notice_signup = models.BooleanField(default=False)
     notify_on_order_review_request = models.BooleanField(default=False)
+    admin_sidebar_visible_groups = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            "Optional: limit which admin sidebar sections are visible for this role. "
+            "Leave empty to show everything."
+        ),
+    )
 
     def __str__(self):
         return self.name

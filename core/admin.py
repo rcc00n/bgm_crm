@@ -1321,9 +1321,91 @@ class PromoCodeAdmin(ExportCsvMixin ,admin.ModelAdmin):
 
 
 # -----------------------------
+# Roles
+# -----------------------------
+
+class RoleAdminForm(forms.ModelForm):
+    admin_sidebar_visible_groups = forms.MultipleChoiceField(
+        label="Admin sidebar sections",
+        required=False,
+        choices=[],
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Leave empty to show everything. If set, only selected sidebar sections will be shown for users with this role.",
+    )
+
+    class Meta:
+        model = Role
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            from core.services.admin_notifications import iter_notification_groups
+
+            choices = [(group["key"], group["label"]) for group in iter_notification_groups()]
+        except Exception:
+            choices = []
+
+        current: set[str] = set()
+        raw = getattr(self.instance, "admin_sidebar_visible_groups", None) or []
+        if isinstance(raw, str):
+            raw = [raw]
+        current = {val for val in raw if isinstance(val, str) and val}
+
+        # Preserve unknown keys if the sidebar config changed.
+        existing_keys = {key for key, _ in choices}
+        for missing in sorted(current - existing_keys):
+            choices.append((missing, f"Unknown: {missing}"))
+
+        self.fields["admin_sidebar_visible_groups"].choices = choices
+        self.fields["admin_sidebar_visible_groups"].initial = sorted(current)
+
+    def clean_admin_sidebar_visible_groups(self):
+        values = self.cleaned_data.get("admin_sidebar_visible_groups") or []
+        return [val for val in values if isinstance(val, str) and val]
+
+
+@admin.register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    form = RoleAdminForm
+    list_display = (
+        "name",
+        "notify_on_new_appointment",
+        "notify_on_new_order",
+        "notify_on_service_lead",
+        "notify_on_fitment_request",
+        "notify_on_site_notice_signup",
+        "notify_on_order_review_request",
+    )
+    search_fields = ("name",)
+    fieldsets = (
+        (None, {"fields": ("name",)}),
+        (
+            "Notifications",
+            {
+                "fields": (
+                    "notify_on_new_appointment",
+                    "notify_on_new_order",
+                    "notify_on_service_lead",
+                    "notify_on_fitment_request",
+                    "notify_on_site_notice_signup",
+                    "notify_on_order_review_request",
+                ),
+            },
+        ),
+        (
+            "Admin sidebar visibility",
+            {
+                "fields": ("admin_sidebar_visible_groups",),
+                "description": "Controls which sidebar sections are visible in the admin UI for users with this role.",
+            },
+        ),
+    )
+
+
+# -----------------------------
 # Register remaining models directly
 # -----------------------------
-admin.site.register(Role)
 admin.site.register(UserRole)
 admin.site.register(AppointmentStatus)
 admin.site.register(PaymentMethod)
