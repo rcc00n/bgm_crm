@@ -254,7 +254,7 @@ body {
 :root{
   --bgm-logo-pattern-tile: clamp(320px, 26vw, 520px);
   --bgm-logo-pattern-offset: clamp(160px, 13vw, 260px);
-  --bgm-logo-pattern-opacity: 0.045;
+  --bgm-logo-pattern-opacity: 0.065;
 }
 
 #bg{
