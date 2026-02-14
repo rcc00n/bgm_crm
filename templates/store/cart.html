@@ -96,6 +96,11 @@
         <div class="cart__foot">
           <div>
             <div class="cart__note section__desc">Estimated shipping & taxes are calculated at checkout.</div>
+            {% if cart_has_merch and store_shipping.free_shipping_threshold_cad %}
+              <div class="cart__note section__desc">
+                Canada free shipping over <strong>{{ store_shipping.free_shipping_threshold_cad|money }}</strong>.
+              </div>
+            {% endif %}
             {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
               <div class="cart__note section__desc">Retail: {{ retail_total|money }} · You save {{ cart_savings|money }} via dealer pricing.</div>
             {% endif %}

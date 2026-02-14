@@ -237,6 +237,30 @@
     .section__head{ display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1.1rem; }
     .section__title{ font-size:1.6rem; font-weight:900; }
     .section__desc{ color:var(--muted-2); }
+    .merch-shipping-banner{
+      margin-top:.85rem;
+      display:inline-flex;
+      align-items:center;
+      gap:.55rem;
+      padding:.48rem .75rem;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.86);
+      font-size:.78rem;
+      font-weight:900;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      box-shadow:0 10px 22px rgba(0,0,0,.24);
+    }
+    .merch-shipping-banner strong{ color:#fff; letter-spacing:.02em; }
+    .merch-shipping-banner::before{
+      content:"";
+      width:18px;
+      height:1px;
+      background:rgba(255,255,255,.45);
+      flex-shrink:0;
+    }
 
     .grid{ display:grid; gap:1rem; }
     .grid--cards{ grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); }
@@ -811,6 +835,11 @@ body.nav-open .contact-fab,
           <div>
             <h2 class="section__title">{{ merch_copy.section_title }}</h2>
             <p class="section__desc">{{ merch_copy.section_desc|striptags|safe }}</p>
+            {% if store_shipping.free_shipping_threshold_label %}
+              <div class="merch-shipping-banner">
+                Canada free shipping over <strong>{{ store_shipping.free_shipping_threshold_label }}</strong>
+              </div>
+            {% endif %}
           </div>
         </div>
 

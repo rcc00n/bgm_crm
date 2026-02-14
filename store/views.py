@@ -1428,6 +1428,14 @@ def cart_view(request):
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
     )
+    cart_has_merch = any(
+        (
+            (getattr(getattr(entry.get("product"), "category", None), "slug", "") or "").strip().lower() == "merch"
+            or (getattr(entry.get("product"), "sku", "") or "").strip().upper().startswith("PF-")
+            or (getattr(entry.get("product"), "slug", "") or "").strip().lower().startswith("merch-")
+        )
+        for entry in (positions or [])
+    )
     savings = (retail_total - total) if retail_total and total else Decimal("0.00")
     context = {
         "positions": positions,
@@ -1435,6 +1443,7 @@ def cart_view(request):
         "retail_total": retail_total,
         "cart_savings": savings,
         "dealer_discount_percent": dealer_discount,
+        "cart_has_merch": cart_has_merch,
         "store_copy": StorePageCopy.get_solo(),
     }
     return render(request, "store/cart.html", context)
@@ -1902,6 +1911,15 @@ def checkout(request):
             total=total,
         )
 
+    cart_has_merch = any(
+        (
+            (getattr(getattr(entry.get("product"), "category", None), "slug", "") or "").strip().lower() == "merch"
+            or (getattr(entry.get("product"), "sku", "") or "").strip().upper().startswith("PF-")
+            or (getattr(entry.get("product"), "slug", "") or "").strip().lower().startswith("merch-")
+        )
+        for entry in (positions or [])
+    )
+
     return render(
         request,
         "store/checkout.html",
@@ -1914,6 +1932,7 @@ def checkout(request):
             "retail_total": retail_total,
             "cart_savings": (retail_total - total) if retail_total and total else Decimal("0.00"),
             "dealer_discount_percent": dealer_discount,
+            "cart_has_merch": cart_has_merch,
             "pay_mode": pay_mode,
             "payment_method": payment_method,
             "payment_options": payment_options,

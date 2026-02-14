@@ -1,6 +1,7 @@
 # core/views.py
 import logging
 import re
+from decimal import Decimal, InvalidOperation
 
 from django.apps import apps
 from django import forms
@@ -96,6 +97,8 @@ from notifications.services import (
     notify_about_dealer_application,
     queue_lead_digest,
 )
+from core.utils import format_currency
+from store.models import Product as StoreProduct, StoreShippingSettings
 
 logger = logging.getLogger(__name__)
 BOOKING_REFERENCE_IMAGE_MAX_MB = int(getattr(settings, "BOOKING_REFERENCE_IMAGE_MAX_MB", 8))
@@ -1130,6 +1133,147 @@ def admin_web_analytics_insights(request):
         }
     )
     return TemplateResponse(request, "admin/analytics_insights.html", context)
+
+
+class MerchEconomicsSettingsForm(forms.Form):
+    free_shipping_threshold_cad = forms.DecimalField(
+        label="Free shipping threshold (Canada, CAD)",
+        required=False,
+        min_value=0,
+        decimal_places=2,
+        max_digits=10,
+        help_text="Shown to customers on the merch + checkout pages. Leave blank (or 0) to disable.",
+        widget=forms.NumberInput(attrs={"step": "0.01", "placeholder": "e.g. 150.00"}),
+    )
+
+
+def admin_merch_economics(request):
+    user = request.user
+    is_master = user.userrole_set.filter(role__name="Master", user__is_superuser=False).exists()
+    if is_master:
+        raise PermissionDenied
+    if not user.has_perm("store.view_product"):
+        raise PermissionDenied
+
+    # Filters
+    q = (request.GET.get("q") or "").strip()
+    missing_cost = (request.GET.get("missing_cost") or "").strip() in {"1", "true", "yes", "on"}
+    show_inactive = (request.GET.get("inactive") or "").strip() in {"1", "true", "yes", "on"}
+
+    # Shipping settings
+    settings_obj = StoreShippingSettings.load()
+    initial_threshold = getattr(settings_obj, "free_shipping_threshold_cad", None) if settings_obj else None
+    shipping_form = MerchEconomicsSettingsForm(
+        request.POST or None,
+        initial={"free_shipping_threshold_cad": initial_threshold},
+    )
+
+    if request.method == "POST":
+        if not user.has_perm("store.change_storeshippingsettings"):
+            raise PermissionDenied
+        if shipping_form.is_valid():
+            threshold = shipping_form.cleaned_data.get("free_shipping_threshold_cad")
+            if threshold is not None:
+                try:
+                    threshold = Decimal(str(threshold))
+                except (InvalidOperation, TypeError, ValueError):
+                    threshold = None
+            if threshold is not None and threshold <= 0:
+                threshold = None
+
+            if settings_obj:
+                settings_obj.free_shipping_threshold_cad = threshold
+                settings_obj.save(update_fields=["free_shipping_threshold_cad", "updated_at"])
+            else:
+                StoreShippingSettings.objects.create(free_shipping_threshold_cad=threshold)
+
+            try:
+                from django.core.cache import cache
+
+                cache.delete("bgm:store_shipping:v1")
+            except Exception:
+                pass
+
+            messages.success(request, "Saved merch free shipping threshold.")
+            return redirect(reverse("admin-merch-economics"))
+
+    merch_qs = StoreProduct.objects.select_related("category").all()
+    merch_qs = merch_qs.filter(
+        Q(category__slug="merch")
+        | Q(sku__startswith="PF-")
+        | Q(slug__startswith="merch-")
+    )
+    if not show_inactive:
+        merch_qs = merch_qs.filter(is_active=True)
+    if q:
+        merch_qs = merch_qs.filter(Q(name__icontains=q) | Q(sku__icontains=q))
+    if missing_cost:
+        merch_qs = merch_qs.filter(unit_cost__isnull=True)
+
+    merch_products = list(merch_qs.order_by("name", "sku"))
+
+    rows = []
+    margin_values = []
+    for product in merch_products:
+        price = None
+        try:
+            price = product.display_price
+        except Exception:
+            price = None
+        cost = getattr(product, "unit_cost", None)
+
+        profit = None
+        margin_pct = None
+        if price is not None and cost is not None:
+            try:
+                price_val = Decimal(price)
+                cost_val = Decimal(cost)
+            except (InvalidOperation, TypeError, ValueError):
+                price_val = None
+                cost_val = None
+            if price_val is not None and price_val > 0:
+                profit = (price_val - cost_val).quantize(Decimal("0.01"))
+                margin_pct = float(((profit / price_val) * Decimal("100")).quantize(Decimal("0.1")))
+                margin_values.append(margin_pct)
+
+        rows.append(
+            {
+                "id": product.id,
+                "name": product.name,
+                "sku": product.sku,
+                "is_active": bool(product.is_active),
+                "category": getattr(getattr(product, "category", None), "display_name", "") or "",
+                "price_label": format_currency(price) if price is not None else "—",
+                "cost_label": format_currency(cost) if cost is not None else "—",
+                "profit_label": format_currency(profit) if profit is not None else "—",
+                "margin_pct": margin_pct,
+                "change_url": reverse("admin:store_product_change", args=[product.id]),
+                "public_url": product.get_absolute_url() if hasattr(product, "get_absolute_url") else "",
+            }
+        )
+
+    threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
+    summary = {
+        "count": len(merch_products),
+        "active_count": sum(1 for p in merch_products if p.is_active),
+        "missing_cost_count": sum(1 for p in merch_products if getattr(p, "unit_cost", None) is None),
+        "avg_margin_pct": round(sum(margin_values) / len(margin_values), 1) if margin_values else None,
+        "threshold_label": format_currency(threshold) if threshold else "",
+    }
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Merch economics",
+            "q": q,
+            "missing_cost": missing_cost,
+            "show_inactive": show_inactive,
+            "shipping_form": shipping_form,
+            "summary": summary,
+            "rows": rows,
+        }
+    )
+    return TemplateResponse(request, "admin/merch_economics.html", context)
 
 
 def _summarize_email_logs(queryset):

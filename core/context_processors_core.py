@@ -1,5 +1,6 @@
 # core/context_processors_core.py
 from django.conf import settings
+from django.core.cache import cache
 from django.urls import resolve, reverse
 
 from core.services.media import (
@@ -10,6 +11,8 @@ from core.services.media import (
 
 from .models import HeroImage, TopbarSettings, HomePageCopy, ServicesPageCopy, StorePageCopy
 from core.services.fonts import serialize_font_preset
+from core.utils import format_currency
+from store.models import StoreShippingSettings
 
 # Default static fallbacks for every public route that expects a hero.
 DEFAULT_CAPTION = DEFAULT_MEDIA_CAPTION
@@ -260,6 +263,25 @@ def currency(request):
             "symbol": getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$"),
         }
     }
+
+
+def store_shipping(request):
+    """
+    Storefront shipping flags/settings (currently: Canada free shipping threshold for merch).
+    Kept in a singleton model so staff can change it from /admin without code deploys.
+    """
+    cache_key = "bgm:store_shipping:v1"
+    cached = cache.get(cache_key)
+    if isinstance(cached, dict):
+        return {"store_shipping": cached}
+
+    threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
+    payload = {
+        "free_shipping_threshold_cad": threshold,
+        "free_shipping_threshold_label": format_currency(threshold) if threshold else "",
+    }
+    cache.set(cache_key, payload, 60)
+    return {"store_shipping": payload}
 
 
 def topbar_style(request):

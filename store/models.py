@@ -107,6 +107,57 @@ def apply_store_price_multiplier(amount: Decimal, *, apply_multiplier: bool = Tr
         return Decimal("0.00")
 
 
+class StoreShippingSettings(models.Model):
+    free_shipping_threshold_cad = models.DecimalField(
+        "Free shipping threshold (Canada, CAD)",
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text=(
+            "Orders shipping to Canada at or above this subtotal are eligible for free shipping. "
+            "Leave blank (or set to 0) to disable."
+        ),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Store shipping settings"
+        verbose_name_plural = "Store shipping settings"
+
+    def __str__(self) -> str:
+        threshold = self.free_shipping_threshold_cad
+        if threshold:
+            return f"Store shipping (free over CAD {threshold})"
+        return "Store shipping"
+
+    def clean(self):
+        if StoreShippingSettings.objects.exclude(pk=self.pk).exists():
+            raise ValidationError("Only one store shipping settings record is allowed.")
+
+    @classmethod
+    def load(cls) -> "StoreShippingSettings | None":
+        return cls.objects.first()
+
+    @classmethod
+    def get_free_shipping_threshold_cad(cls) -> Decimal | None:
+        obj = cls.load()
+        if not obj:
+            return None
+        value = obj.free_shipping_threshold_cad
+        if value is None:
+            return None
+        try:
+            parsed = Decimal(value)
+        except (InvalidOperation, TypeError):
+            return None
+        if parsed <= 0:
+            return None
+        return parsed.quantize(PRICE_QUANT)
+
+
 # ─────────────────────────── Store: categories / products ───────────────────────────
 
 class Category(models.Model):
@@ -205,6 +256,15 @@ class Product(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(0)],
         help_text="Base price before the global multiplier.",
+    )
+    unit_cost = models.DecimalField(
+        "Cost / value (per unit)",
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Optional internal cost used for margin reporting (not shown to customers).",
     )
     is_in_house = models.BooleanField(
         "In-house product",

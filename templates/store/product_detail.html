@@ -68,6 +68,11 @@
                     </span>
                   </div>
                 {% endif %}
+                {% if store_shipping.free_shipping_threshold_cad and product.category and product.category.slug == 'merch' %}
+                  <div class="price__hint" style="margin-top:.35rem;">
+                    Canada free shipping over {{ store_shipping.free_shipping_threshold_cad|money }}.
+                  </div>
+                {% endif %}
               {% endif %}
             </div>
             {% if not product_options %}
