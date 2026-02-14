@@ -11,10 +11,12 @@ register = template.Library()
 # Site-wide placeholder copy that should not render on public pages.
 _PLACEHOLDER_DISCLAIMER_NORMALIZED = {
     "product may not appear exactly as shown",
+    "product may not be exactly as shown",
+    "product may not look exactly as shown",
 }
 
 _DISCLAIMER_PHRASE_RE = re.compile(
-    r"(?i)\\bproduct\\s+may\\s+not\\s+appear\\s+exactly\\s+as\\s+shown\\b\\.?\\s*"
+    r"(?i)\bproduct\s+may\s+not\s+(?:appear|be|look)\s+exactly\s+as\s+shown\b\.?\s*"
 )
 
 
@@ -46,9 +48,9 @@ def suppress_placeholder_disclaimer(value: Any) -> str:
     # e.g. "OUTLAW SERIES - PRODUCT MAY NOT APPEAR EXACTLY AS SHOWN".
     if _DISCLAIMER_PHRASE_RE.search(text):
         cleaned = _DISCLAIMER_PHRASE_RE.sub("", text)
-        cleaned = re.sub(r"\\s+", " ", cleaned).strip()
-        cleaned = re.sub(r"^[\\s\\-–—|•:]+", "", cleaned).strip()
-        cleaned = re.sub(r"[\\s\\-–—|•:]+$", "", cleaned).strip()
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        cleaned = re.sub(r"^[\s\-–—|•:]+", "", cleaned).strip()
+        cleaned = re.sub(r"[\s\-–—|•:]+$", "", cleaned).strip()
         if not cleaned:
             return ""
         return cleaned
