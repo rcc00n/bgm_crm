@@ -4849,6 +4849,18 @@ class EmailTemplateAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
         extra_context["email_preview_defaults"] = self._email_preview_defaults()
         extra_context["email_settings_url"] = reverse("admin:core_emailtemplate_changelist")
+        # Show template-specific placeholders as a clickable list in the change form UI.
+        obj = None
+        if object_id:
+            try:
+                obj = self.get_object(request, object_id)
+            except Exception:
+                obj = None
+        if obj:
+            tokens = template_tokens(obj.slug)
+            extra_context["email_placeholders"] = [f"{{{token}}}" for token in tokens]
+        else:
+            extra_context["email_placeholders"] = []
         return super().changeform_view(
             request,
             object_id=object_id,
