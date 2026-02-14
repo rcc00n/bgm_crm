@@ -59,6 +59,41 @@
       padding:0 !important;
       list-style:none !important;
     }
+    /* Keep the initial (pre-CSS) mobile header from overflowing. */
+    .bgm-topbar__toggle{ display:none !important; }
+    .bgm-topbar__slot--search{ display:none !important; }
+    @media (max-width: 960px){
+      .bgm-topbar__inner{
+        display:grid !important;
+        grid-template-columns:max-content minmax(0, 1fr) minmax(0, 1fr) !important;
+        align-items:center !important;
+        gap:clamp(12px, 3vw, 20px) !important;
+      }
+      .bgm-topbar__toggle{
+        display:inline-flex !important;
+        width:var(--site-header-toggle-size, 46px) !important;
+        height:var(--site-header-toggle-size, 46px) !important;
+        border-radius:.85rem !important;
+        border:1px solid rgba(255,255,255,.16) !important;
+        background:rgba(255,255,255,.06) !important;
+        color:#fff !important;
+        grid-column:1;
+        justify-self:start;
+      }
+      .bgm-topbar__slot--brand{
+        grid-column:2;
+        min-width:0;
+        overflow:hidden;
+      }
+      .bgm-topbar__brand{ max-width:100%; }
+      .bgm-topbar__slot--search{
+        display:flex !important;
+        grid-column:3;
+        min-width:0;
+      }
+      .bgm-topbar__slot--tagline,
+      .bgm-topbar__nav{ display:none !important; }
+    }
   </style>
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
   <link rel="stylesheet" href="{% static 'css/topbar-client-v3.css' %}">

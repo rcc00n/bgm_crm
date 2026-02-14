@@ -631,7 +631,7 @@
   .bgm-topbar__inner{
     display: grid !important;
     /* Mobile order: menu toggle (left) -> brand -> search (right). */
-    grid-template-columns: max-content max-content minmax(0, 1fr) !important;
+    grid-template-columns: max-content minmax(0, 1fr) minmax(0, 1fr) !important;
     align-items: center !important;
     gap: clamp(12px, 3vw, 24px) !important;
     padding-block: .7rem !important;
@@ -639,7 +639,14 @@
   .bgm-topbar__slot--tagline{ display: none !important; }
   .bgm-topbar__toggle{ display: inline-flex !important; }
   .bgm-topbar__toggle{ grid-column: 1; justify-self: start; }
-  .bgm-topbar__slot--brand{ grid-column: 2; }
+  .bgm-topbar__slot--brand{
+    grid-column: 2;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .bgm-topbar__brand{
+    max-width: 100%;
+  }
   .bgm-topbar__slot--search{ display: flex !important; grid-column: 3; min-width: 0; }
   .bgm-topbar__search--nav{ display: none !important; }
 
