@@ -1170,6 +1170,79 @@ def _extract_printful_category_label(item: dict) -> str:
     return ""
 
 
+def _normalize_merch_category(label: str) -> tuple[str, str]:
+    """
+    Printful category labels vary a lot ("Unisex hoodie", "Hoodies & Sweatshirts", etc).
+    For the merch landing page we want a clean, one-word category UX (Hoodies, Stickers, ...).
+    Returns (category_key, category_label).
+    """
+    clean = " ".join(str(label or "").strip().split())[:80]
+    if not clean:
+        return "", ""
+
+    low = clean.lower()
+    # Common, high-signal groupings (ordered).
+    rules: list[tuple[tuple[str, ...], str]] = [
+        (("hoodie", "sweatshirt", "crewneck"), "Hoodies"),
+        (("sticker", "decal"), "Stickers"),
+        (("hat", "cap", "snapback", "trucker"), "Hats"),
+        (("beanie",), "Beanies"),
+        (("mug", "cup"), "Mugs"),
+        (("shirt", "tee", "t-shirt", "tshirt"), "Tees"),
+        (("tank",), "Tanks"),
+        (("poster", "print"), "Posters"),
+        (("bag", "tote", "backpack"), "Bags"),
+        (("case",), "Cases"),
+        (("sock",), "Socks"),
+    ]
+    for needles, normalized in rules:
+        if any(needle in low for needle in needles):
+            key = slugify(normalized)[:64]
+            return key or (slugify(clean)[:64] or "merch"), normalized
+
+    # Fallback: pick a meaningful word from the label.
+    stopwords = {
+        "unisex",
+        "men",
+        "mens",
+        "women",
+        "womens",
+        "kids",
+        "youth",
+        "adult",
+        "basic",
+        "classic",
+        "premium",
+        "and",
+        "the",
+        "for",
+        "with",
+        "of",
+    }
+    words = [w for w in re.split(r"[^a-z0-9]+", low) if w]
+    chosen = ""
+    for word in words:
+        if word in stopwords:
+            continue
+        if len(word) < 3:
+            continue
+        chosen = word
+        break
+    if not chosen and words:
+        chosen = words[0]
+
+    if not chosen:
+        key = slugify(clean)[:64] or "merch"
+        return key, clean
+
+    normalized_label = chosen.upper() if chosen in {"pf"} else chosen.title()
+    # Light pluralization so categories feel natural.
+    if not normalized_label.endswith("s") and normalized_label.lower() not in {"merch"}:
+        normalized_label = f"{normalized_label}s"
+    key = slugify(normalized_label)[:64] or (slugify(clean)[:64] or "merch")
+    return key, normalized_label
+
+
 def _normalize_merch_color_label(value: str) -> str:
     """
     Keep swatch labels stable and short.
@@ -1353,10 +1426,11 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
             continue
 
         product = matched["product"]
-        category_label = _extract_printful_category_label(row)
-        if category_label:
-            row["category_label"] = category_label
-            row["category_key"] = slugify(category_label)[:64] or f"category-{product_id}"
+        raw_category_label = _extract_printful_category_label(row)
+        if raw_category_label:
+            category_key, category_label = _normalize_merch_category(raw_category_label)
+            row["category_label"] = category_label or raw_category_label
+            row["category_key"] = category_key or (slugify(raw_category_label)[:64] or f"category-{product_id}")
         row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
         row["checkout_label"] = "Choose options"
         row["url"] = row["store_product_url"]

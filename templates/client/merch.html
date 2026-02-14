@@ -478,15 +478,28 @@
       transition:.2s ease;
       opacity:.92;
     }
-    .merch-carousel__btn:hover{
-      border-color:rgba(213,0,0,.6);
-      transform:translateY(-50%) scale(1.03);
-    }
-    .merch-carousel__btn svg{ width:22px; height:22px; display:block; }
-    .merch-carousel__btn--prev{ left:.55rem; }
-    .merch-carousel__btn--next{ right:.55rem; }
-    .merch-carousel[data-carousel-ready="0"] .merch-carousel__btn{
-      display:none;
+	    .merch-carousel__btn:hover{
+	      border-color:rgba(213,0,0,.6);
+	      transform:translateY(-50%) scale(1.03);
+	    }
+	    .merch-carousel__btn[disabled],
+	    .merch-carousel__btn[aria-disabled="true"]{
+	      opacity:.45;
+	      cursor:default;
+	      border-color:rgba(255,255,255,.12);
+	      background:rgba(0,0,0,.32);
+	      transform:translateY(-50%);
+	    }
+	    .merch-carousel__btn[disabled]:hover,
+	    .merch-carousel__btn[aria-disabled="true"]:hover{
+	      border-color:rgba(255,255,255,.12);
+	      transform:translateY(-50%);
+	    }
+	    .merch-carousel__btn svg{ width:22px; height:22px; display:block; }
+	    .merch-carousel__btn--prev{ left:.55rem; }
+	    .merch-carousel__btn--next{ right:.55rem; }
+	    .merch-carousel[data-carousel-ready="0"] .merch-carousel__btn{
+	      display:none;
     }
 
     .merch-categories{
@@ -843,60 +856,62 @@ body.nav-open .contact-fab,
           </div>
         </div>
 
-        {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
-          <div class="social">
-            <div>
-              <div class="social__title">{{ merch_copy.social_section_title }}</div>
-              <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
-            </div>
-            <div class="social__links">
-              {% if merch_copy.social_link_1_url %}
-                <a class="social__link social__link--ig" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_2_url %}
-                <a class="social__link social__link--fb" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_3_url %}
-                <a class="social__link social__link--yt" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_4_url %}
-                <a class="social__link social__link--tt" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
-              {% endif %}
-            </div>
-          </div>
-        {% endif %}
+	        {% if printful_products and merch_categories %}
+	          <div class="merch-categories" aria-label="Filter merch by category">
+	            <a
+	              class="merch-categories__chip{% if not selected_merch_category %} is-active{% endif %}"
+	              href="{% url 'merch' %}#merchCatalog"
+	            >
+	              All
+	            </a>
+	            {% for category in merch_categories %}
+	              <a
+	                class="merch-categories__chip{% if selected_merch_category == category.key %} is-active{% endif %}"
+	                href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog"
+	              >
+	                {{ category.label }}
+	              </a>
+	            {% endfor %}
+	          </div>
+	        {% endif %}
 
-        {% if printful_products %}
-          {% if merch_categories %}
-            <div class="merch-categories" aria-label="Filter merch by category">
-              <a
-                class="merch-categories__chip{% if not selected_merch_category %} is-active{% endif %}"
-                href="{% url 'merch' %}"
-              >
-                All
-              </a>
-              {% for category in merch_categories %}
-                <a
-                  class="merch-categories__chip{% if selected_merch_category == category.key %} is-active{% endif %}"
-                  href="{% url 'merch' %}?category={{ category.key|urlencode }}"
-                >
-                  {{ category.label }}
-                </a>
-              {% endfor %}
-            </div>
-          {% endif %}
+	        {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
+	          <div class="social"{% if printful_products and merch_categories %} style="margin-top: 0;"{% endif %}>
+	            <div>
+	              <div class="social__title">{{ merch_copy.social_section_title }}</div>
+	              <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
+	            </div>
+	            <div class="social__links">
+	              {% if merch_copy.social_link_1_url %}
+	                <a class="social__link social__link--ig" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
+	              {% endif %}
+	              {% if merch_copy.social_link_2_url %}
+	                <a class="social__link social__link--fb" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
+	              {% endif %}
+	              {% if merch_copy.social_link_3_url %}
+	                <a class="social__link social__link--yt" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
+	              {% endif %}
+	              {% if merch_copy.social_link_4_url %}
+	                <a class="social__link social__link--tt" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
+	              {% endif %}
+	            </div>
+	          </div>
+	        {% endif %}
 
-          {% if selected_merch_category_label %}
-            <div class="merch-category-head" aria-label="Selected merch category">
-              <h3 class="merch-category-title">{{ selected_merch_category_label }}</h3>
-            </div>
-          {% endif %}
+	        {% if printful_products %}
 
-          <div class="grid grid--cards" style="margin-top:1rem">
-            {% for item in printful_products %}
-              <article
-                class="card merch-card{% if item.url %} card--product-link{% endif %}"
-                data-merch-card
+	          {% if selected_merch_category_label %}
+	            <div class="merch-category-head" aria-label="Selected merch category">
+	              <h3 class="merch-category-title">{{ selected_merch_category_label }}</h3>
+	            </div>
+	          {% endif %}
+
+	          <div id="merchCatalog"></div>
+	          <div class="grid grid--cards" style="margin-top:1rem">
+	            {% for item in printful_products %}
+	              <article
+	                class="card merch-card{% if item.url %} card--product-link{% endif %}"
+	                data-merch-card
                 {% if item.url %}data-merch-product-card data-product-url="{{ item.url }}"{% endif %}
               >
                 <div class="card__media merch-carousel" data-merch-carousel data-carousel-ready="0">
@@ -965,8 +980,8 @@ body.nav-open .contact-fab,
                           title="{{ swatch.label }}"
                         ></button>
                       {% endfor %}
-                    </div>
-                  {% endif %}
+	        </div>
+	        {% endif %}
                 </div>
               </article>
             {% endfor %}
@@ -1173,16 +1188,16 @@ body.nav-open .contact-fab,
 
   <script src="{% static 'js/topbar.js' %}"></script>
 
-  <script>
-    /* Merch listing: per-card carousel + color swatches (simple, no deps). */
-    (function () {
-      const carousels = document.querySelectorAll("[data-merch-carousel]");
-      carousels.forEach((carousel) => {
-        const slides = Array.from(carousel.querySelectorAll("[data-carousel-slide]"));
-        const prevBtn = carousel.querySelector("[data-carousel-prev]");
-        const nextBtn = carousel.querySelector("[data-carousel-next]");
-        const card = carousel.closest("[data-merch-card]");
-        const swatches = card ? Array.from(card.querySelectorAll("[data-merch-swatch]")) : [];
+	  <script>
+	    /* Merch listing: per-card carousel + color swatches (simple, no deps). */
+	    (function () {
+	      const carousels = document.querySelectorAll("[data-merch-carousel]");
+	      carousels.forEach((carousel) => {
+	        const slides = Array.from(carousel.querySelectorAll("[data-carousel-slide]"));
+	        const prevBtn = carousel.querySelector("[data-carousel-prev]");
+	        const nextBtn = carousel.querySelector("[data-carousel-next]");
+	        const card = carousel.closest("[data-merch-card]");
+	        const swatches = card ? Array.from(card.querySelectorAll("[data-merch-swatch]")) : [];
 
         let index = slides.findIndex((node) => node.classList.contains("is-active"));
         if (index < 0) index = 0;
@@ -1195,23 +1210,37 @@ body.nav-open .contact-fab,
           swatches.forEach((btn) => {
             const target = parseInt(btn.getAttribute("data-carousel-index") || "0", 10) || 0;
             btn.classList.toggle("is-active", target === index);
-          });
-        };
+	          });
+	        };
 
-        if (slides.length <= 1) {
-          carousel.setAttribute("data-carousel-ready", "0");
-          if (prevBtn) prevBtn.setAttribute("hidden", "");
-          if (nextBtn) nextBtn.setAttribute("hidden", "");
-          setIndex(0);
-          return;
-        }
+	        if (!slides.length) {
+	          carousel.setAttribute("data-carousel-ready", "0");
+	          return;
+	        }
 
-        carousel.setAttribute("data-carousel-ready", "1");
+	        // Always show arrows for consistency (even if only one slide).
+	        // If there is only a single slide, disable the controls.
+	        carousel.setAttribute("data-carousel-ready", "1");
+	        const hasMultiple = slides.length > 1;
+	        [prevBtn, nextBtn].forEach((btn) => {
+	          if (!btn) return;
+	          if (hasMultiple) {
+	            btn.removeAttribute("disabled");
+	            btn.setAttribute("aria-disabled", "false");
+	          } else {
+	            btn.setAttribute("disabled", "");
+	            btn.setAttribute("aria-disabled", "true");
+	          }
+	        });
+	        setIndex(index);
+	        if (!hasMultiple) {
+	          return;
+	        }
 
-        if (prevBtn) {
-          prevBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+	        if (prevBtn) {
+	          prevBtn.addEventListener("click", (e) => {
+	            e.preventDefault();
+	            e.stopPropagation();
             setIndex(index - 1);
           });
         }
