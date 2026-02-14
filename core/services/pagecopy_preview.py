@@ -1555,6 +1555,12 @@ def build_merch_context(request: HttpRequest) -> Dict[str, Any]:
         "printful_catalog_url": "",
         "merch_categories": [],
         "selected_merch_category": "",
+        "selected_merch_category_label": "",
+        "merch_display_products": [],
+        "merch_category_cards": [],
+        "show_merch_category_grid": False,
+        "show_merch_filters": False,
+        "merch_has_products": False,
     }
 
 

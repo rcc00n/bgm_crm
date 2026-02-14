@@ -529,6 +529,10 @@
           <input id="contactPhone" type="tel" inputmode="tel" autocomplete="tel" pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}" required placeholder="{{ services_copy.booking_phone_placeholder }}">
         </div>
         <div class="field">
+          <label for="contactPromo">{{ services_copy.booking_promocode_label }}</label>
+          <input id="contactPromo" type="text" autocomplete="off" placeholder="{{ services_copy.booking_promocode_placeholder }}">
+        </div>
+        <div class="field">
           <label for="contactReferenceImage">Reference photo (optional)</label>
           <input id="contactReferenceImage" type="file" accept="image/*">
           <div id="contactReferencePreview" class="booking-photo-preview" hidden>
@@ -636,6 +640,7 @@
         email: document.getElementById('contactEmail'),
         phone: document.getElementById('contactPhone'),
       };
+      const promoInput = document.getElementById('contactPromo');
       const contactReferenceInput = document.getElementById('contactReferenceImage');
       const contactReferencePreview = document.getElementById('contactReferencePreview');
       const contactReferencePreviewImg = document.getElementById('contactReferencePreviewImg');
@@ -929,6 +934,9 @@
           payload.append('contact_name', contactInputs.name.value.trim());
           payload.append('contact_email', contactInputs.email.value.trim());
           payload.append('contact_phone', contactInputs.phone.value.trim());
+          if (promoInput && promoInput.value.trim()){
+            payload.append('promocode', promoInput.value.trim());
+          }
           if (state.masterId){
             payload.append('master', state.masterId);
           }

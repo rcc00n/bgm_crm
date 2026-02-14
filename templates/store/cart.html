@@ -22,6 +22,16 @@
       <a class="btn btn--ghost" href="{% url 'store' %}">Continue shopping</a>
     </div>
 
+    {% if messages %}
+      <div aria-live="polite">
+        {% for m in messages %}
+          <div class="callout {% if m.tags == 'success' %}callout--ok{% else %}callout--err{% endif %}">
+            <div class="callout__body">{{ m }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     {% if positions %}
       <div class="card cart">
         <!-- Header row (hidden on small screens) -->
@@ -59,7 +69,7 @@
                 <div class="section__desc">
                   Retail: {{ row.retail_unit_price|money }}
                   {% if row.discount_percent %}
-                    <span class="badge badge--dealer">Dealer {{ row.unit_price|money }}</span>
+                    <span class="badge badge--discount badge--{{ row.discount_type|default:'discount' }}">{{ row.discount_label }} {{ row.unit_price|money }}</span>
                   {% endif %}
                 </div>
               </div>
@@ -95,6 +105,29 @@
 
         <div class="cart__foot">
           <div>
+            <form class="promo-form" method="post" action="{% url 'store-cart-promo' %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'store-cart' %}">
+              <label for="cartPromoCode">Promo code</label>
+              <div class="promo-form__row">
+                <input id="cartPromoCode" class="input" type="text" name="promo_code" value="{{ promo_code }}" placeholder="Enter code">
+                <button class="btn btn--ghost" type="submit">{% if promo_code %}Update{% else %}Apply{% endif %}</button>
+              </div>
+              {% if promo_error %}
+                <div class="promo-form__error">{{ promo_error }}</div>
+              {% endif %}
+              {% if promo_applied %}
+                <div class="promo-form__success">Applied {{ promo_code }} · You save {{ promo_savings|money }}</div>
+              {% endif %}
+            </form>
+            {% if promo_code %}
+              <form class="promo-form promo-form--remove" method="post" action="{% url 'store-cart-promo' %}">
+                {% csrf_token %}
+                <input type="hidden" name="promo_code" value="">
+                <input type="hidden" name="next" value="{% url 'store-cart' %}">
+                <button class="btn btn--ghost" type="submit">Remove promo</button>
+              </form>
+            {% endif %}
             <div class="cart__note section__desc">Estimated shipping & taxes are calculated at checkout.</div>
             {% if cart_has_merch and store_shipping.free_shipping_threshold_cad %}
               <div class="cart__note section__desc">
@@ -102,7 +135,7 @@
               </div>
             {% endif %}
             {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
-              <div class="cart__note section__desc">Retail: {{ retail_total|money }} · You save {{ cart_savings|money }} via dealer pricing.</div>
+              <div class="cart__note section__desc">Retail: {{ retail_total|money }} · You save {{ cart_savings|money }} ({{ cart_savings_label }})</div>
             {% endif %}
           </div>
           <div class="cart__total-group">
@@ -117,7 +150,7 @@
               </div>
             {% endif %}
             <div class="cart__total">
-              <span class="cart__total-label">{% if dealer_discount_percent %}Dealer total{% else %}Total{% endif %}</span>
+              <span class="cart__total-label">{{ cart_total_label }}</span>
               <span class="cart__total-sum">{{ total|money }}</span>
             </div>
           </div>
@@ -199,11 +232,25 @@
     background:var(--field-bg); border:1px solid var(--card-border); color:var(--ink);
   }
   .badge--dealer{background:rgba(23,212,91,.12); border:1px solid rgba(23,212,91,.4); color:#17d45b;}
+  .badge--promo{background:rgba(213,0,0,.14); border:1px solid rgba(213,0,0,.45); color:#ffb3b3;}
+  .badge--sale{background:rgba(255,193,7,.12); border:1px solid rgba(255,193,7,.35); color:#ffd166;}
   .badge--reference{
     background:rgba(45,156,219,.14);
     border:1px solid rgba(45,156,219,.45);
     color:#8fd9ff;
   }
+
+  .callout{ border-left:4px solid; background:var(--card-bg); border:1px solid var(--card-border); border-left-color:#d50000; border-radius:.6rem; margin-bottom:1rem; }
+  .callout--ok{ border-left-color:#17d45b; }
+  .callout__body{ padding:.9rem 1rem; }
+
+  .promo-form{display:flex;flex-direction:column;gap:.35rem;margin-bottom:.6rem;}
+  .promo-form label{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800;}
+  .promo-form__row{display:flex;gap:.5rem;align-items:center;}
+  .promo-form__row .input{flex:1;min-width:0;}
+  .promo-form__error{color:#ff5c72;font-size:.85rem;}
+  .promo-form__success{color:#17d45b;font-size:.85rem;}
+  .promo-form--remove{margin-top:.2rem;}
 
   .cart__remove{ padding:.4rem .6rem; }
   .cart__remove:hover{ transform:translateY(-1px); }
@@ -242,6 +289,10 @@
     .cart__meta .section__desc:not(:last-child){display:none;}
     .cart__actions{flex-direction:column;align-items:stretch;}
     .cart__actions .btn{width:100%;justify-content:center;}
+  }
+  @media (max-width: 640px){
+    .promo-form__row{flex-direction:column;align-items:stretch;}
+    .promo-form__row .btn{width:100%;}
   }
   /* дым — слой позади всего */
 #bg{position:fixed; inset:0; z-index:0; pointer-events:none;}

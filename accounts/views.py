@@ -56,7 +56,7 @@ from .forms import (
     ClientProfileForm,
     VerifiedLoginForm,
 )
-from store.models import Category, Order, Product, ProductOption
+from store.models import Category, MerchCategory, Order, Product, ProductOption
 
 CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
 CLIENT_PORTAL_FILE_MAX_BYTES = CLIENT_PORTAL_FILE_MAX_MB * 1024 * 1024
@@ -886,7 +886,7 @@ class HomeView(TemplateView):
         products_qs = (
             Product.objects.filter(is_active=True)
             .select_related("category")
-            .prefetch_related("options")
+            .prefetch_related("options", "discounts")
             .order_by("-created_at")
         )
         ctx["home_products"] = _select_home_products(products_qs, limit=8, in_house_target=4)
@@ -1133,7 +1133,11 @@ def _build_synced_printful_merch_map(products: list[dict]) -> tuple[dict[int, di
     hidden_ids: set[int] = set()
 
     skus = [_build_printful_product_sku(product_id) for product_id in ids]
-    store_products = Product.objects.filter(sku__in=skus).prefetch_related("options")
+    store_products = (
+        Product.objects.filter(sku__in=skus)
+        .select_related("merch_category")
+        .prefetch_related("options")
+    )
     for product in store_products:
         product_id = _parse_printful_product_id_from_sku(product.sku)
         if not product_id:
@@ -1426,11 +1430,18 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
             continue
 
         product = matched["product"]
-        raw_category_label = _extract_printful_category_label(row)
-        if raw_category_label:
-            category_key, category_label = _normalize_merch_category(raw_category_label)
-            row["category_label"] = category_label or raw_category_label
-            row["category_key"] = category_key or (slugify(raw_category_label)[:64] or f"category-{product_id}")
+        merch_category = getattr(product, "merch_category", None)
+        if merch_category and getattr(merch_category, "is_active", False):
+            row["merch_category_id"] = merch_category.id
+            row["category_label"] = merch_category.name or ""
+            row["category_key"] = merch_category.slug or ""
+        else:
+            row["merch_category_id"] = None
+            raw_category_label = _extract_printful_category_label(row)
+            if raw_category_label:
+                category_key, category_label = _normalize_merch_category(raw_category_label)
+                row["category_label"] = category_label or raw_category_label
+                row["category_key"] = category_key or (slugify(raw_category_label)[:64] or f"category-{product_id}")
         row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
         row["checkout_label"] = "Choose options"
         row["url"] = row["store_product_url"]
@@ -1450,41 +1461,130 @@ class MerchPlaceholderView(TemplateView):
         printful_feed = get_printful_merch_feed()
         all_products = _enrich_printful_merch_products(printful_feed.get("products", []))
 
-        category_map: dict[str, str] = {}
-        for row in all_products:
-            key = (row.get("category_key") or "").strip()
-            label = (row.get("category_label") or "").strip()
-            if key and label and key not in category_map:
-                category_map[key] = label
-
-        merch_categories = [
-            {"key": key, "label": label}
-            for key, label in sorted(category_map.items(), key=lambda pair: pair[1].lower())
-        ]
+        manual_categories = list(
+            MerchCategory.objects.filter(is_active=True).order_by("sort_order", "name")
+        )
 
         selected_merch_category = (self.request.GET.get("category") or "").strip()
-        if selected_merch_category and selected_merch_category in category_map:
-            printful_products = [
-                row for row in all_products if row.get("category_key") == selected_merch_category
+        selected_merch_category_label = ""
+        merch_categories: list[dict] = []
+        merch_category_cards: list[dict] = []
+        merch_display_products: list[dict] = []
+        show_merch_category_grid = False
+        show_merch_filters = False
+
+        def _first_product_image(rows: list[dict]) -> str:
+            for row in rows:
+                carousel = row.get("carousel_images") if isinstance(row.get("carousel_images"), list) else []
+                if carousel:
+                    return str(carousel[0] or "").strip()
+                image = str(row.get("image_url") or "").strip()
+                if image:
+                    return image
+            return ""
+
+        if manual_categories:
+            category_map = {cat.slug: cat for cat in manual_categories if cat.slug}
+            rows_by_category: dict[int, list[dict]] = {}
+            for row in all_products:
+                cat_id = row.get("merch_category_id")
+                if not cat_id:
+                    continue
+                rows_by_category.setdefault(cat_id, []).append(row)
+
+            for rows in rows_by_category.values():
+                rows.sort(key=lambda item: (item.get("name") or "").lower())
+
+            if all_products:
+                merch_category_cards.append({
+                    "key": "all",
+                    "label": "All merch",
+                    "description": "",
+                    "cover_url": _first_product_image(all_products),
+                    "cover_alt": "All merch",
+                    "count": len(all_products),
+                    "is_all": True,
+                })
+
+            for cat in manual_categories:
+                rows = rows_by_category.get(cat.id, [])
+                cover_url = ""
+                if getattr(cat, "cover_image", None):
+                    try:
+                        cover_url = cat.cover_image.url
+                    except Exception:
+                        cover_url = ""
+                if not cover_url:
+                    cover_url = _first_product_image(rows)
+                merch_category_cards.append({
+                    "key": cat.slug,
+                    "label": cat.name,
+                    "description": cat.description or "",
+                    "cover_url": cover_url,
+                    "cover_alt": (cat.cover_image_alt or cat.name or "Merch category").strip(),
+                    "count": len(rows),
+                    "is_all": False,
+                })
+
+            merch_categories = [
+                {"key": cat.slug, "label": cat.name}
+                for cat in manual_categories
             ]
-            selected_merch_category_label = category_map.get(selected_merch_category, "")
+
+            if selected_merch_category == "all":
+                merch_display_products = all_products
+                selected_merch_category_label = "All merch"
+            elif selected_merch_category and selected_merch_category in category_map:
+                cat = category_map[selected_merch_category]
+                merch_display_products = rows_by_category.get(cat.id, [])
+                selected_merch_category_label = cat.name
+            else:
+                selected_merch_category = ""
+                merch_display_products = []
+
+            show_merch_category_grid = not bool(selected_merch_category)
+            show_merch_filters = bool(selected_merch_category)
         else:
-            selected_merch_category = ""
-            printful_products = all_products
-            selected_merch_category_label = ""
+            category_map: dict[str, str] = {}
+            for row in all_products:
+                key = (row.get("category_key") or "").strip()
+                label = (row.get("category_label") or "").strip()
+                if key and label and key not in category_map:
+                    category_map[key] = label
+
+            merch_categories = [
+                {"key": key, "label": label}
+                for key, label in sorted(category_map.items(), key=lambda pair: pair[1].lower())
+            ]
+
+            if selected_merch_category and selected_merch_category in category_map:
+                merch_display_products = [
+                    row for row in all_products if row.get("category_key") == selected_merch_category
+                ]
+                selected_merch_category_label = category_map.get(selected_merch_category, "")
+            else:
+                selected_merch_category = ""
+                merch_display_products = all_products
+                selected_merch_category_label = ""
+            show_merch_filters = bool(merch_categories)
 
         ctx["header_copy"] = ctx["merch_copy"]
-        ctx["printful_products"] = printful_products
+        ctx["printful_products"] = all_products
+        ctx["merch_display_products"] = merch_display_products
+        ctx["merch_has_products"] = bool(all_products)
         ctx["printful_catalog_url"] = printful_feed.get("catalog_url", "")
         ctx["merch_categories"] = merch_categories
+        ctx["merch_category_cards"] = merch_category_cards
+        ctx["show_merch_category_grid"] = show_merch_category_grid
+        ctx["show_merch_filters"] = show_merch_filters
         ctx["selected_merch_category"] = selected_merch_category
         ctx["selected_merch_category_label"] = selected_merch_category_label
         ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
 
         # If a category is selected, prefer using an actual product mockup from that category
         # for the hero media instead of the static fallback image.
-        if selected_merch_category and printful_products:
-            first = printful_products[0] or {}
+        if selected_merch_category and merch_display_products:
+            first = merch_display_products[0] or {}
             hero_src = ""
             if isinstance(first.get("carousel_images"), list) and first["carousel_images"]:
                 hero_src = str(first["carousel_images"][0] or "").strip()

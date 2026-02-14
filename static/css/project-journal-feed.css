@@ -689,7 +689,9 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 .pj-album-teaser__media img{
   width:100%;
   height:100%;
-  object-fit:cover;
+  object-fit:contain;
+  object-position:center;
+  transform:none;
   display:block;
 }
 
@@ -736,7 +738,7 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 }
 
 .pj-album-teaser__button:hover .pj-album-teaser__media img{
-  transform:scale(1.02);
+  transform:none;
 }
 
 .pj-compare__nav{

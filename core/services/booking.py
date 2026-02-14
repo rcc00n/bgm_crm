@@ -138,6 +138,8 @@ def get_available_slots(
     day = day.astimezone(get_current_timezone())
 
     masters = [master] if master else list(get_service_masters(service))
+    if day.weekday() >= 5:
+        return {m.id: [] for m in masters if m}
 
     result: Dict[int, List[datetime]] = {}
     for m in masters:

@@ -508,6 +508,69 @@
       gap:.55rem;
       margin:0 0 1rem;
     }
+
+    .merch-category-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+      gap:1rem;
+      margin:1rem 0 1.6rem;
+    }
+    .merch-category-card{
+      padding:0;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.12);
+      background:linear-gradient(180deg,#0d0d0d,#141414);
+      transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+      text-decoration:none;
+      color:inherit;
+    }
+    .merch-category-card:hover{
+      transform:translateY(-2px);
+      border-color:rgba(255,255,255,.35);
+      box-shadow:0 18px 44px rgba(0,0,0,.45);
+    }
+    .merch-category-card.is-active{
+      border-color:rgba(213,0,0,.6);
+      box-shadow:0 0 22px rgba(213,0,0,.22);
+    }
+    .merch-category-card__media{
+      aspect-ratio:4/3;
+      background:
+        radial-gradient(120% 100% at 50% 10%, rgba(255,255,255,.1), rgba(255,255,255,.02) 60%, rgba(0,0,0,0) 100%),
+        #0a0a0a;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+    }
+    .merch-category-card__media img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .merch-category-card__body{
+      padding:.85rem 1rem 1rem;
+      display:grid;
+      gap:.3rem;
+    }
+    .merch-category-card__title{
+      font-family:var(--font-head);
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-size:.95rem;
+    }
+    .merch-category-card__desc{
+      color:var(--muted-2);
+      font-size:.85rem;
+    }
+    .merch-category-card__count{
+      font-size:.75rem;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.7);
+    }
     .merch-categories__chip{
       display:inline-flex;
       align-items:center;
@@ -842,7 +905,7 @@ body.nav-open .contact-fab,
   </section>
 
   <main id="main">
-    <section class="section{% if merch_copy.coming_soon_enabled and not printful_products %} section--preview{% endif %}">
+    <section class="section{% if merch_copy.coming_soon_enabled and not merch_has_products %} section--preview{% endif %}">
       <div class="container">
         <div class="section__head">
           <div>
@@ -856,11 +919,39 @@ body.nav-open .contact-fab,
           </div>
         </div>
 
-	        {% if printful_products and merch_categories %}
+	        {% if show_merch_category_grid and merch_category_cards %}
+	          <div class="merch-category-grid" aria-label="Merch categories">
+	            {% for category in merch_category_cards %}
+	              <a
+	                class="card merch-category-card{% if selected_merch_category == category.key %} is-active{% endif %}"
+	                href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog"
+	              >
+	                <div class="merch-category-card__media">
+	                  {% if category.cover_url %}
+	                    <img src="{{ category.cover_url }}" alt="{{ category.cover_alt|default:category.label }}" loading="lazy" decoding="async">
+	                  {% else %}
+	                    <div class="sk" style="aspect-ratio:4/3"></div>
+	                  {% endif %}
+	                </div>
+	                <div class="merch-category-card__body">
+	                  <div class="merch-category-card__title">{{ category.label }}</div>
+	                  {% if category.description %}
+	                    <div class="merch-category-card__desc">{{ category.description }}</div>
+	                  {% endif %}
+	                  {% if category.count %}
+	                    <div class="merch-category-card__count">{{ category.count }} items</div>
+	                  {% endif %}
+	                </div>
+	              </a>
+	            {% endfor %}
+	          </div>
+	        {% endif %}
+
+	        {% if show_merch_filters and merch_categories %}
 	          <div class="merch-categories" aria-label="Filter merch by category">
 	            <a
-	              class="merch-categories__chip{% if not selected_merch_category %} is-active{% endif %}"
-	              href="{% url 'merch' %}#merchCatalog"
+	              class="merch-categories__chip{% if selected_merch_category == 'all' %} is-active{% endif %}"
+	              href="{% url 'merch' %}?category=all#merchCatalog"
 	            >
 	              All
 	            </a>
@@ -876,7 +967,7 @@ body.nav-open .contact-fab,
 	        {% endif %}
 
 	        {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
-	          <div class="social"{% if printful_products and merch_categories %} style="margin-top: 0;"{% endif %}>
+	          <div class="social"{% if show_merch_filters %} style="margin-top: 0;"{% endif %}>
 	            <div>
 	              <div class="social__title">{{ merch_copy.social_section_title }}</div>
 	              <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
@@ -898,17 +989,20 @@ body.nav-open .contact-fab,
 	          </div>
 	        {% endif %}
 
-	        {% if printful_products %}
+	        {% if merch_display_products %}
 
 	          {% if selected_merch_category_label %}
 	            <div class="merch-category-head" aria-label="Selected merch category">
 	              <h3 class="merch-category-title">{{ selected_merch_category_label }}</h3>
+	              {% if merch_category_cards %}
+	                <a class="btn btn--ghost" href="{% url 'merch' %}#merchCatalog">Back to categories</a>
+	              {% endif %}
 	            </div>
 	          {% endif %}
 
 	          <div id="merchCatalog"></div>
 	          <div class="grid grid--cards" style="margin-top:1rem">
-	            {% for item in printful_products %}
+	            {% for item in merch_display_products %}
 	              <article
 	                class="card merch-card{% if item.url %} card--product-link{% endif %}"
 	                data-merch-card
@@ -986,7 +1080,15 @@ body.nav-open .contact-fab,
               </article>
             {% endfor %}
           </div>
-        {% else %}
+        {% elif selected_merch_category %}
+          <div class="merch-category-head" aria-label="Selected merch category">
+            <h3 class="merch-category-title">{{ selected_merch_category_label|default:"Merch" }}</h3>
+            {% if merch_category_cards %}
+              <a class="btn btn--ghost" href="{% url 'merch' %}#merchCatalog">Back to categories</a>
+            {% endif %}
+          </div>
+          <div class="empty">No merch items are available in this category yet.</div>
+        {% elif not merch_has_products %}
         <div class="grid grid--cards">
           <article class="card">
             {% if merch_copy.card_1_photo %}

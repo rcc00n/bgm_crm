@@ -23,15 +23,19 @@
                     {% endif %}
                 </td>
                 {% for cell in row.cells %}
-                    <td class="week-cell"
+                    <td class="week-cell{% if cell.is_closed %} week-cell--closed{% endif %}"
                         data-date="{{ cell.date|date:'Y-m-d' }}"
                         data-time24="{{ row.time }}"
-                        data-time-label="{{ row.time|string_to_ampm }}">
-                        <div class="calendar-cell week-slot"
+                        data-time-label="{{ row.time|string_to_ampm }}"
+                        data-closed="{% if cell.is_closed %}1{% else %}0{% endif %}">
+                        <div class="calendar-cell week-slot{% if cell.is_closed %} week-slot--closed{% endif %}"
                              data-date="{{ cell.date|date:'Y-m-d' }}"
                              data-time24="{{ row.time }}"
                              data-time-label="{{ row.time|string_to_ampm }}"
-                             onclick="showAddPopup(event, '{{ row.time }}', '{{ row.time|string_to_ampm }}')"></div>
+                             {% if not cell.is_closed %}onclick="showAddPopup(event, '{{ row.time }}', '{{ row.time|string_to_ampm }}')"{% endif %}></div>
+                        {% if cell.is_closed and forloop.parentloop.first %}
+                            <div class="week-closed-label">Closed</div>
+                        {% endif %}
                         {% for appt in cell.appointments %}
                             <a class="week-event event-card"
                                href="{{ appt.url }}"

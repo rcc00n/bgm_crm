@@ -43,6 +43,7 @@ from core.models import (
     ServiceCategory,
     Service,
     CustomUserDisplay,
+    AppointmentPromoCode,
     AppointmentStatusHistory,
     LegalPage,
     ProjectJournalCategory,
@@ -67,6 +68,7 @@ from core.models import (
     EmailSendLog,
     EmailSubscriber,
     ClientFile,
+    ServiceDiscount,
 )
 from core.forms import ServiceLeadForm
 from core.services.booking import (
@@ -1909,6 +1911,25 @@ def api_book(request):
             or ""
         ).strip()
 
+    promo_raw = (
+        payload.get("promocode")
+        or payload.get("promo_code")
+        or ""
+    )
+    promo_code = promo_raw.strip().upper()
+    promo = None
+    if promo_code:
+        promo = PromoCode.objects.filter(code__iexact=promo_code).first()
+        if not promo or not promo.is_valid_for_service(service):
+            return JsonResponse({"errors": {"promocode": "Promo code not found or not valid for this service."}}, status=400)
+        today = timezone.now().date()
+        if ServiceDiscount.objects.filter(
+            service=service,
+            start_date__lte=today,
+            end_date__gte=today,
+        ).exists():
+            return JsonResponse({"errors": {"promocode": "This service already has a discount. Promo code can't be applied."}}, status=400)
+
     reference_file = request.FILES.get("reference_image")
     if reference_file:
         reference_error = _validate_booking_reference_image(reference_file)
@@ -1973,6 +1994,16 @@ def api_book(request):
         status=initial_status,
         set_by=user,
     )
+
+    if promo:
+        base_amount = appt.service.base_price_amount()
+        percent = Decimal(promo.discount_percent) / Decimal("100")
+        discount = (base_amount * percent).quantize(Decimal("0.01"))
+        AppointmentPromoCode.objects.create(
+            appointment=appt,
+            promocode=promo,
+            discount_applied=discount,
+        )
 
     file_owner = user
     if not file_owner and contact_email:

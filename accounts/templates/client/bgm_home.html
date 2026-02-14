@@ -299,7 +299,7 @@
                     {% else %}
                       <div class="price__retail-row">
                         {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                        <strong>${{ p.display_price|floatformat:2 }}</strong>
+                        <strong>${{ p.public_price|floatformat:2 }}</strong>
                         {% if p.old_price %}<span class="old">${{ p.old_price }}</span>{% endif %}
                       </div>
                       {% if dealer_portal.show_discount %}

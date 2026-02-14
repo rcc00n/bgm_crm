@@ -20,6 +20,7 @@ from django.db.models import Avg, Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import Http404, JsonResponse
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from PIL import Image, UnidentifiedImageError
 from square.client import Square, SquareEnvironment
@@ -28,6 +29,7 @@ from .models import (
     AbandonedCart,
     Category,
     Order,
+    OrderPromoCode,
     OrderItem,
     Product,
     ProductOption,
@@ -37,7 +39,7 @@ from .models import (
     CarModel,
 )
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm, StoreReviewForm
-from core.models import ClientFile, Payment, PaymentMethod, StorePageCopy, PageFontSetting
+from core.models import ClientFile, Payment, PaymentMethod, StorePageCopy, PageFontSetting, PromoCode
 from core.services.page_sections import get_page_sections
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
 from core.services.fonts import build_page_font_context
@@ -728,7 +730,7 @@ def store_home(request):
     base_qs = (
         Product.objects.filter(is_active=True)
         .select_related("category")
-        .prefetch_related("compatible_models", "options")
+        .prefetch_related("compatible_models", "options", "discounts")
         # Show in-house products first across the storefront.
         .order_by("-is_in_house", "-created_at")
     )
@@ -757,7 +759,7 @@ def store_home(request):
         cat_base = (
             Product.objects.filter(is_active=True, category=c)
             .select_related("category")
-            .prefetch_related("options")
+            .prefetch_related("options", "discounts")
             # Show in-house products first inside each category preview.
             .order_by("-is_in_house", "-created_at")
         )
@@ -789,7 +791,7 @@ def product_search(request):
     all_qs = (
         Product.objects.filter(is_active=True)
         .select_related("category")
-        .prefetch_related("options")
+        .prefetch_related("options", "discounts")
     )
     qs = all_qs
     if cat:
@@ -848,7 +850,9 @@ def product_search(request):
                 "short_description": (getattr(p, "short_description", "") or "")[:280],
                 "contact_for_estimate": bool(getattr(p, "contact_for_estimate", False)),
                 "estimate_from_price": str(p.estimate_from_price) if getattr(p, "estimate_from_price", None) is not None else "",
-                "display_price": str(p.display_price),
+                "display_price": str(p.public_price),
+                "old_price": str(p.old_price) if getattr(p, "old_price", None) else "",
+                "discount_percent": int(getattr(p, "active_discount_percent", 0) or 0),
                 "has_option_price_overrides": bool(getattr(p, "has_option_price_overrides", False)),
                 "has_active_options": bool(getattr(p, "has_active_options", False)),
                 "image": image_url,
@@ -864,7 +868,7 @@ def category_list(request, slug):
     base_qs = (
         Product.objects.filter(is_active=True, category=category)
         .select_related("category")
-        .prefetch_related("compatible_models", "options")
+        .prefetch_related("compatible_models", "options", "discounts")
         .order_by("-is_in_house", "-created_at")
     )
     products = _apply_filters(base_qs, form)
@@ -882,7 +886,7 @@ def category_list(request, slug):
 def product_detail(request, slug: str):
     try:
         product = get_object_or_404(
-            Product.objects.select_related("category").prefetch_related("options", "compatible_models"),
+            Product.objects.select_related("category").prefetch_related("options", "compatible_models", "discounts"),
             slug=slug,
             is_active=True
         )
@@ -1058,6 +1062,7 @@ def leave_review(request):
 # ──────────────────────────── Корзина (сессии) ───────────────────────────
 
 CART_KEY = "cart_items"  # backwards-compatible key
+PROMO_CODE_KEY = "store_promo_code"
 
 def _cart(session) -> Dict[str, list]:
     """
@@ -1118,6 +1123,34 @@ def _cart(session) -> Dict[str, list]:
     return data
 
 
+def _normalize_promocode(raw: str) -> str:
+    return (raw or "").strip().upper()
+
+
+def _get_cart_promocode(session) -> str:
+    return _normalize_promocode(session.get(PROMO_CODE_KEY, ""))
+
+
+def _clear_cart_promocode(session):
+    if PROMO_CODE_KEY in session:
+        session.pop(PROMO_CODE_KEY, None)
+        session.modified = True
+
+
+def _resolve_promocode(code: str):
+    code = _normalize_promocode(code)
+    if not code:
+        return None, "Enter a promo code."
+    promo = PromoCode.objects.filter(code__iexact=code).first()
+    if not promo:
+        return None, "Promo code not found."
+    if not promo.is_active():
+        return None, "Promo code is expired or inactive."
+    if not promo.applies_to_products:
+        return None, "This promo code is not valid for store products."
+    return promo, ""
+
+
 def _cart_add_item(
     session,
     *,
@@ -1166,7 +1199,7 @@ def _is_merch_product(product) -> bool:
     return category_slug == "merch" or sku.startswith("PF-") or slug.startswith("merch-")
 
 
-def _cart_positions(session, *, dealer_discount: int = 0, user=None):
+def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: PromoCode | None = None):
     """
     Build hydrated cart positions for rendering/checkout.
     Returns (positions, dealer_total, retail_total).
@@ -1187,7 +1220,9 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None):
 
     products = {
         p.id: p
-        for p in Product.objects.filter(id__in=product_ids).select_related("category")
+        for p in Product.objects.filter(id__in=product_ids)
+        .select_related("category")
+        .prefetch_related("discounts")
     }
     options = {
         opt.id: opt
@@ -1204,6 +1239,16 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None):
     total = Decimal("0.00")
     retail_total = Decimal("0.00")
     dealer_discount = int(dealer_discount or 0)
+    promo = promo if (promo and promo.applies_to_products and promo.is_active()) else None
+    promo_percent = int(getattr(promo, "discount_percent", 0) or 0) if promo else 0
+    promo_applicable_ids = None
+    if promo:
+        try:
+            qs = promo.applicable_products.all()
+            if qs.exists():
+                promo_applicable_ids = set(qs.values_list("id", flat=True))
+        except Exception:
+            promo_applicable_ids = None
 
     for entry in items:
         product = products.get(entry["product_id"])
@@ -1220,9 +1265,31 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None):
         retail_line = (retail_unit * qty).quantize(quant)
 
         # Dealer discounts never apply to merch products.
-        line_discount_percent = dealer_discount if (dealer_discount and not _is_merch_product(product)) else 0
+        dealer_percent = dealer_discount if (dealer_discount and not _is_merch_product(product)) else 0
+        product_percent = product.active_discount_percent if not product.contact_for_estimate else 0
+
+        promo_eligible = False
+        promo_percent_line = 0
+        if promo and not product.contact_for_estimate:
+            promo_eligible = promo_applicable_ids is None or product.id in promo_applicable_ids
+            if promo_eligible:
+                promo_percent_line = promo_percent
+
+        line_discount_percent = max(product_percent, dealer_percent, promo_percent_line)
         discounted_unit = apply_dealer_discount(retail_unit, line_discount_percent) if line_discount_percent else retail_unit
         line_total = (discounted_unit * qty).quantize(quant)
+        discount_type = ""
+        discount_label = ""
+        if line_discount_percent:
+            if promo_percent_line and promo_percent_line == line_discount_percent:
+                discount_type = "promo"
+                discount_label = "Promo"
+            elif product_percent and product_percent == line_discount_percent:
+                discount_type = "sale"
+                discount_label = "Sale"
+            elif dealer_percent and dealer_percent == line_discount_percent:
+                discount_type = "dealer"
+                discount_label = "Dealer"
 
         reference_client_file_id = entry.get("reference_client_file_id") or None
         reference_file_name = (entry.get("reference_file_name") or "").strip()
@@ -1235,6 +1302,10 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None):
                 reference_preview_url = ""
         if reference_file and not reference_file_name:
             reference_file_name = reference_file.filename
+
+        promo_savings = Decimal("0.00")
+        if discount_type == "promo":
+            promo_savings = (retail_line - line_total).quantize(quant)
 
         total += line_total
         retail_total += retail_line
@@ -1249,6 +1320,10 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None):
                 "retail_line_total": retail_line,
                 "savings": (retail_line - line_total).quantize(quant),
                 "discount_percent": line_discount_percent,
+                "discount_type": discount_type,
+                "discount_label": discount_label,
+                "discount_code": promo.code if discount_type == "promo" and promo else "",
+                "promo_savings": promo_savings,
                 "option_id": entry["option_id"],
                 "reference_client_file_id": reference_client_file_id,
                 "reference_file_name": reference_file_name,
@@ -1427,15 +1502,45 @@ def cart_add(request, slug: str):
 
 def cart_view(request):
     dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    promo_code = _get_cart_promocode(request.session)
+    promo = None
+    promo_error = ""
+    if promo_code:
+        promo, promo_error = _resolve_promocode(promo_code)
+        if promo_error:
+            _clear_cart_promocode(request.session)
+            promo_code = ""
+            promo = None
     positions, total, retail_total = _cart_positions(
         request.session,
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
+        promo=promo,
     )
     cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
     any_discounted = any(int(entry.get("discount_percent") or 0) > 0 for entry in (positions or []))
-    effective_dealer_discount = int(dealer_discount or 0) if any_discounted else 0
+    has_dealer_discount = any(entry.get("discount_type") == "dealer" for entry in (positions or []))
+    effective_dealer_discount = int(dealer_discount or 0) if has_dealer_discount else 0
     savings = (retail_total - total) if retail_total and total else Decimal("0.00")
+    promo_applied = any(entry.get("discount_type") == "promo" for entry in (positions or []))
+    promo_savings = sum((entry.get("promo_savings") or Decimal("0.00")) for entry in (positions or []))
+    if promo_savings:
+        promo_savings = promo_savings.quantize(Decimal("0.01"))
+    if promo and not promo_applied:
+        promo_error = "Promo code doesn't apply to items in your cart."
+        _clear_cart_promocode(request.session)
+        promo_code = ""
+        promo = None
+
+    has_product_discount = any(entry.get("discount_type") == "sale" for entry in (positions or []))
+    cart_total_label = "Total"
+    if promo_applied:
+        cart_total_label = "Promo total"
+    elif has_dealer_discount:
+        cart_total_label = "Dealer total"
+    elif has_product_discount:
+        cart_total_label = "Sale total"
+    cart_savings_label = "Includes applied discounts."
     context = {
         "positions": positions,
         "total": total,
@@ -1444,8 +1549,56 @@ def cart_view(request):
         "dealer_discount_percent": effective_dealer_discount,
         "cart_has_merch": cart_has_merch,
         "store_copy": StorePageCopy.get_solo(),
+        "promo_code": promo_code,
+        "promo_savings": promo_savings,
+        "promo_error": promo_error,
+        "promo_applied": promo_applied,
+        "cart_total_label": cart_total_label,
+        "cart_savings_label": cart_savings_label,
     }
     return render(request, "store/cart.html", context)
+
+
+@require_POST
+def cart_promo(request):
+    code = _normalize_promocode(request.POST.get("promo_code", ""))
+    next_url = request.POST.get("next") or reverse("store:store-cart")
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = reverse("store:store-cart")
+
+    if not code:
+        _clear_cart_promocode(request.session)
+        messages.info(request, "Promo code removed.")
+        return redirect(next_url)
+
+    promo, error = _resolve_promocode(code)
+    if error:
+        _clear_cart_promocode(request.session)
+        messages.error(request, error)
+        return redirect(next_url)
+
+    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    positions, _, _ = _cart_positions(
+        request.session,
+        dealer_discount=dealer_discount,
+        user=request.user if request.user.is_authenticated else None,
+        promo=promo,
+    )
+    if not positions:
+        _clear_cart_promocode(request.session)
+        messages.error(request, "Your cart is empty.")
+        return redirect(next_url)
+
+    promo_applied = any(entry.get("discount_type") == "promo" for entry in (positions or []))
+    if not promo_applied:
+        _clear_cart_promocode(request.session)
+        messages.error(request, "Promo code doesn't apply to items in your cart.")
+        return redirect(next_url)
+
+    request.session[PROMO_CODE_KEY] = promo.code
+    request.session.modified = True
+    messages.success(request, f"Promo code {promo.code} applied.")
+    return redirect(next_url)
 
 
 @require_POST
@@ -1480,6 +1633,8 @@ def cart_remove(request, slug: str):
                 option_label = f" ({opt.name})"
         ref_label = " with reference photo" if reference_client_file_id else ""
         messages.info(request, f'Removed from cart: "{product.name}{option_label}"{ref_label}.')
+        if not cart["items"]:
+            _clear_cart_promocode(request.session)
     return redirect("store:store-cart")
 
 
@@ -1504,10 +1659,20 @@ def _first_present(model_fields: set, candidates: Iterable[str]):
 def checkout(request):
     # собрать позиции заказа из корзины
     dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    promo_code = _get_cart_promocode(request.session)
+    promo = None
+    promo_error = ""
+    if promo_code:
+        promo, promo_error = _resolve_promocode(promo_code)
+        if promo_error:
+            _clear_cart_promocode(request.session)
+            promo_code = ""
+            promo = None
     positions, total, retail_total = _cart_positions(
         request.session,
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
+        promo=promo,
     )
     cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
     cart_has_non_merch = any(
@@ -1515,9 +1680,19 @@ def checkout(request):
         for entry in (positions or [])
     )
     any_discounted = any(int(entry.get("discount_percent") or 0) > 0 for entry in (positions or []))
-    effective_dealer_discount = int(dealer_discount or 0) if any_discounted else 0
+    has_dealer_discount = any(entry.get("discount_type") == "dealer" for entry in (positions or []))
+    effective_dealer_discount = int(dealer_discount or 0) if has_dealer_discount else 0
     # Merch checkout should not allow an order-level reference photo upload.
     cart_is_merch_checkout = cart_has_merch and not cart_has_non_merch
+    promo_applied = any(entry.get("discount_type") == "promo" for entry in (positions or []))
+    promo_savings = sum((entry.get("promo_savings") or Decimal("0.00")) for entry in (positions or []))
+    if promo_savings:
+        promo_savings = promo_savings.quantize(Decimal("0.01"))
+    if promo and not promo_applied:
+        promo_error = "Promo code doesn't apply to items in your cart."
+        _clear_cart_promocode(request.session)
+        promo_code = ""
+        promo = None
 
     gst_rate = _get_decimal_setting("STORE_GST_RATE", "0.05")
     processing_rate = _get_decimal_setting("STORE_PROCESSING_FEE_RATE", "0.035")
@@ -1906,6 +2081,14 @@ def checkout(request):
 
                     OrderItem.objects.create(**kwargs)
 
+                if promo and promo_applied:
+                    OrderPromoCode.objects.create(
+                        order=order,
+                        promocode=promo,
+                        discount_percent=int(getattr(promo, "discount_percent", 0) or 0),
+                        discount_amount=(promo_savings or Decimal("0.00")).quantize(PAYMENT_QUANT),
+                    )
+
                 if not is_etransfer:
                     _record_payment_entry(
                         order=order,
@@ -1918,6 +2101,7 @@ def checkout(request):
 
                 # очистить корзину
                 request.session[CART_KEY] = {"items": []}
+                request.session.pop(PROMO_CODE_KEY, None)
                 request.session.modified = True
 
                 transaction.on_commit(lambda: _send_order_confirmation(
@@ -1981,6 +2165,16 @@ def checkout(request):
             total=order_subtotal,
         )
 
+    has_product_discount = any(entry.get("discount_type") == "sale" for entry in (positions or []))
+    cart_total_label = "Subtotal"
+    if promo_applied:
+        cart_total_label = "Promo subtotal"
+    elif has_dealer_discount:
+        cart_total_label = "Dealer subtotal"
+    elif has_product_discount:
+        cart_total_label = "Sale subtotal"
+    cart_savings_label = "Includes applied discounts."
+
     return render(
         request,
         "store/checkout.html",
@@ -1997,6 +2191,12 @@ def checkout(request):
             "dealer_discount_percent": effective_dealer_discount,
             "cart_has_merch": cart_has_merch,
             "cart_is_merch_checkout": cart_is_merch_checkout,
+            "promo_code": promo_code,
+            "promo_savings": promo_savings,
+            "promo_error": promo_error,
+            "promo_applied": promo_applied,
+            "cart_total_label": cart_total_label,
+            "cart_savings_label": cart_savings_label,
             "pay_mode": pay_mode,
             "payment_method": payment_method,
             "payment_options": payment_options,

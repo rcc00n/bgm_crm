@@ -830,6 +830,9 @@ function attachDragAndDropHandlers() {
 
     // Week table cells (drop should work even when dropping over an existing card).
     document.querySelectorAll(".week-cell[data-time24]").forEach(slot => {
+        if (slot.dataset.closed === "1") {
+            return;
+        }
         slot.addEventListener("dragover", onSlotDragOver);
         slot.addEventListener("dragleave", onSlotDragLeave);
         slot.addEventListener("drop", onSlotDrop);

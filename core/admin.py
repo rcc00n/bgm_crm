@@ -546,6 +546,7 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         'contact_phone',
         'master',
         'service',
+        'promocode',
         'start_time',
         'payment_status',
         'status',
@@ -1300,10 +1301,21 @@ class ServiceDiscountAdmin(ExportCsvMixin ,admin.ModelAdmin):
 #-----------------------------
 @admin.register(PromoCode)
 class PromoCodeAdmin(ExportCsvMixin ,admin.ModelAdmin):
-    list_display = ('code', 'discount_percent', 'start_date', 'end_date',)
-    list_filter = ('start_date', 'end_date')
+    list_display = ('code', 'discount_percent', 'applies_to_services', 'applies_to_products', 'start_date', 'end_date')
+    list_filter = ('applies_to_services', 'applies_to_products', 'start_date', 'end_date')
+    search_fields = ('code',)
+    filter_horizontal = ('applicable_services', 'applicable_products')
 
-    export_fields = ['code', 'applicable_services', 'discount_percent', 'start_date', 'end_date']
+    export_fields = [
+        'code',
+        'applies_to_services',
+        'applies_to_products',
+        'applicable_services',
+        'applicable_products',
+        'discount_percent',
+        'start_date',
+        'end_date',
+    ]
 
     @admin.display(boolean=True)
     def is_active(self, obj):
@@ -1314,10 +1326,10 @@ class PromoCodeAdmin(ExportCsvMixin ,admin.ModelAdmin):
 # Appointments Promocode Admin
 #-----------------------------
 @admin.register(AppointmentPromoCode)
-class PromoCodeAdmin(ExportCsvMixin ,admin.ModelAdmin):
-    list_display = ('appointment', 'promocode')
+class AppointmentPromoCodeAdmin(ExportCsvMixin ,admin.ModelAdmin):
+    list_display = ('appointment', 'promocode', 'discount_applied')
 
-    export_fields = ['appointment', 'promocode']
+    export_fields = ['appointment', 'promocode', 'discount_applied']
 
 
 # -----------------------------
@@ -1629,6 +1641,7 @@ def build_week_table(week_dates, slot_times, appointments, masters):
         for day in week_dates:
             row["cells"].append({
                 "date": day,
+                "is_closed": day.weekday() >= 5,
                 "appointments": appointments_by_slot.get(day, {}).get(time_str, []),
             })
         week_table.append(row)
@@ -1659,6 +1672,7 @@ def build_month_grid(range_start_date, range_end_date, focus_month, appointments
             week.append({
                 "date": pointer,
                 "in_month": pointer.month == focus_month,
+                "is_closed": pointer.weekday() >= 5,
                 "appointments": items[:3],
                 "overflow": max(0, len(items) - 3),
             })
@@ -1731,6 +1745,7 @@ def determine_calendar_window(masters, appointments):
 
 def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities):
     MASTER_COLORS = _get_master_colors(masters)
+    is_weekend = selected_date.weekday() >= 5
 
 
     grid_start_dt = time_pointer
@@ -1739,6 +1754,8 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
     while pointer <= end_time:
         slot_times.append(pointer.strftime('%H:%M'))
         pointer += timedelta(minutes=15)
+
+    closed_label_time = slot_times[0] if slot_times else None
 
     slot_map = {}
     skip_map = {}
@@ -1913,6 +1930,18 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
             elif master_id in skip_map and time_str in skip_map[master_id]:
                 row["cells"].append({"skip": True})
             else:
+                if is_weekend:
+                    row["cells"].append({
+                        "html": "Closed (Weekend)" if time_str == closed_label_time else "",
+                        "rowspan": 1,
+                        "unavailable": True,
+                        "reason": "Weekend (closed)",
+                        "start": "Closed",
+                        "end": "All day",
+                        "until": "",
+                        "availability_id": "",
+                    })
+                    continue
                 row["cells"].append({
                     "html": '',
                     "rowspan": 1,
@@ -3596,6 +3625,8 @@ class ServicesPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "booking_phone_label",
                 "booking_phone_placeholder",
                 "booking_phone_title",
+                "booking_promocode_label",
+                "booking_promocode_placeholder",
                 "booking_confirmation_hint",
                 "booking_cancel_label",
                 "booking_confirm_label",
@@ -4397,6 +4428,14 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "build_item_6",
                 "build_item_7",
                 "build_item_8",
+                "build_item_9",
+                "build_item_10",
+                "build_item_11",
+                "build_item_12",
+                "build_item_13",
+                "build_item_14",
+                "build_item_15",
+                "build_item_16",
             )
         }),
         ("How we work", {

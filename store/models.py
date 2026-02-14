@@ -222,6 +222,52 @@ class Category(models.Model):
     image_tag.short_description = "Preview"
 
 
+class MerchCategory(models.Model):
+    """
+    Merch-only categories used on the /merch landing page.
+    """
+    name = models.CharField("Name", max_length=120, unique=True)
+    slug = models.SlugField("Slug", max_length=140, unique=True, blank=True)
+    description = models.TextField("Description", blank=True)
+    cover_image = models.ImageField(
+        "Cover image",
+        upload_to="merch/categories/",
+        blank=True,
+        null=True,
+        max_length=2048,
+        help_text="Optional override. When empty, the first product image is used.",
+    )
+    cover_image_alt = models.CharField("Cover alt text", max_length=140, blank=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = "Merch category"
+        verbose_name_plural = "Merch categories"
+
+    def __str__(self) -> str:
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def cover_preview(self):
+        if getattr(self, "cover_image", None):
+            try:
+                return format_html(
+                    '<img src="{}" style="height:60px;border-radius:8px">', self.cover_image.url
+                )
+            except Exception:
+                return "—"
+        return "—"
+    cover_preview.short_description = "Cover"
+
+
 class ImportBatch(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
@@ -279,6 +325,14 @@ class Product(models.Model):
     slug = models.SlugField(max_length=200, unique=True, blank=True)
     sku = models.CharField(max_length=64, unique=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
+    merch_category = models.ForeignKey(
+        MerchCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="products",
+        help_text="Optional merch category for the /merch landing page.",
+    )
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -460,6 +514,54 @@ class Product(models.Model):
         companions.sort(key=lambda obj: pick_ids.index(obj.id))
         return companions
 
+    def get_active_discount(self, today=None):
+        today = today or timezone.now().date()
+        cache = getattr(self, "_prefetched_objects_cache", {})
+        if cache and "discounts" in cache:
+            for disc in cache["discounts"]:
+                if disc.start_date <= today <= disc.end_date:
+                    return disc
+            return None
+        return self.discounts.filter(start_date__lte=today, end_date__gte=today).first()
+
+    def get_discounted_unit_price(self, option=None) -> Decimal:
+        """
+        Returns the unit price after any active product discount.
+        """
+        base = self.get_unit_price(option)
+        discount = self.get_active_discount()
+        if discount and not self.contact_for_estimate:
+            multiplier = Decimal("1") - (Decimal(discount.discount_percent) / Decimal("100"))
+            return (base * multiplier).quantize(PRICE_QUANT)
+        return base
+
+    def get_discounted_display_price(self) -> Decimal:
+        """
+        Returns the public-facing (discounted) display price.
+        """
+        base = self.display_price
+        discount = self.get_active_discount()
+        if discount and not self.contact_for_estimate:
+            multiplier = Decimal("1") - (Decimal(discount.discount_percent) / Decimal("100"))
+            return (base * multiplier).quantize(PRICE_QUANT)
+        return base
+
+    @property
+    def public_price(self) -> Decimal:
+        return self.get_discounted_display_price()
+
+    @property
+    def old_price(self) -> Decimal | None:
+        discount = self.get_active_discount()
+        if discount and not self.contact_for_estimate:
+            return self.display_price
+        return None
+
+    @property
+    def active_discount_percent(self) -> int:
+        discount = self.get_active_discount()
+        return int(getattr(discount, "discount_percent", 0) or 0)
+
     def get_unit_price(self, option=None) -> Decimal:
         """
         Returns the effective unit price for the product, respecting option overrides.
@@ -503,6 +605,25 @@ class Product(models.Model):
         for _ in self._option_price_values():
             return True
         return False
+
+
+class ProductDiscount(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="discounts")
+    discount_percent = models.PositiveIntegerField(help_text="Percent of discount")
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    class Meta:
+        verbose_name = "Product Discount"
+        verbose_name_plural = "Product Discounts"
+        ordering = ["-start_date"]
+
+    def __str__(self):
+        return f"{self.discount_percent}% off on {self.product.name} ({self.start_date} – {self.end_date})"
+
+    def is_active(self):
+        today = timezone.now().date()
+        return self.start_date <= today <= self.end_date
 
 
 class ProductOption(models.Model):
@@ -572,6 +693,10 @@ class ProductOption(models.Model):
     @property
     def has_custom_price(self) -> bool:
         return self.price is not None
+
+    @property
+    def discounted_price(self) -> Decimal:
+        return self.product.get_discounted_unit_price(self)
 
 
 class ProductImage(models.Model):
@@ -890,6 +1015,30 @@ class Order(models.Model):
     @property
     def status_color(self):
         return self.STATUS_UI.get(self.status, (self.status, "#bbb"))[1]
+
+
+class OrderPromoCode(models.Model):
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="promo",
+    )
+    promocode = models.ForeignKey(
+        "core.PromoCode",
+        on_delete=models.PROTECT,
+        related_name="order_promos",
+    )
+    discount_percent = models.PositiveIntegerField(default=0)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Order Promo Code"
+        verbose_name_plural = "Order Promo Codes"
+
+    def __str__(self):
+        code = getattr(self.promocode, "code", "") or "Promo"
+        return f"{code} for Order #{self.order_id}"
 
 
 class OrderItem(models.Model):

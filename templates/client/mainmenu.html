@@ -988,6 +988,12 @@ main h3{
                      required placeholder="{{ services_copy.booking_phone_placeholder }}">
             </div>
             <div class="field">
+              <label for="contactPromo">{{ services_copy.booking_promocode_label }}</label>
+              <input id="contactPromo" name="promocode" type="text"
+                     class="input" autocomplete="off"
+                     placeholder="{{ services_copy.booking_promocode_placeholder }}">
+            </div>
+            <div class="field">
               <label for="contactReferenceImage">Reference photo (optional)</label>
               <input id="contactReferenceImage" name="contact_reference_image" type="file" accept="image/*" class="input">
               <div id="contactReferencePreview" class="booking-photo-preview" hidden>
@@ -1106,6 +1112,7 @@ main h3{
       email: document.getElementById('contactEmail'),
       phone: document.getElementById('contactPhone'),
     };
+    const promoInput = document.getElementById('contactPromo');
     const contactReferenceInput = document.getElementById('contactReferenceImage');
     const contactReferencePreview = document.getElementById('contactReferencePreview');
     const contactReferencePreviewImg = document.getElementById('contactReferencePreviewImg');
@@ -1781,6 +1788,9 @@ main h3{
         payload.append('contact_name', contact.name);
         payload.append('contact_email', contact.email);
         payload.append('contact_phone', contact.phone);
+        if (promoInput && promoInput.value.trim()){
+          payload.append('promocode', promoInput.value.trim());
+        }
         if (contactReferenceInput && contactReferenceInput.files && contactReferenceInput.files[0]){
           payload.append('reference_image', contactReferenceInput.files[0]);
         }

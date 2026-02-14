@@ -902,6 +902,8 @@ class ServicesPageCopy(models.Model):
     booking_phone_label = models.CharField(max_length=40, default="Phone*")
     booking_phone_placeholder = models.CharField(max_length=120, default="+1 5551234567")
     booking_phone_title = models.CharField(max_length=120, default="Use digits only, optionally starting with +")
+    booking_promocode_label = models.CharField(max_length=60, default="Promo code (optional)")
+    booking_promocode_placeholder = models.CharField(max_length=120, default="Enter code")
     booking_confirmation_hint = models.CharField(
         max_length=160,
         default="No account needed — we confirm bookings by email and phone.",
@@ -1717,6 +1719,14 @@ class AboutPageCopy(models.Model):
     build_item_6 = models.CharField(max_length=140, default="Diesel performance, tuning & hard parts")
     build_item_7 = models.CharField(max_length=120, default="Body swaps & custom fab")
     build_item_8 = models.CharField(max_length=140, default="Coatings & liners (Armadillo, Smooth Criminal)")
+    build_item_9 = models.CharField(max_length=140, blank=True, default="")
+    build_item_10 = models.CharField(max_length=140, blank=True, default="")
+    build_item_11 = models.CharField(max_length=140, blank=True, default="")
+    build_item_12 = models.CharField(max_length=140, blank=True, default="")
+    build_item_13 = models.CharField(max_length=140, blank=True, default="")
+    build_item_14 = models.CharField(max_length=140, blank=True, default="")
+    build_item_15 = models.CharField(max_length=140, blank=True, default="")
+    build_item_16 = models.CharField(max_length=140, blank=True, default="")
 
     how_title = models.CharField(max_length=80, default="How we work")
     how_step_1_title = models.CharField(max_length=80, default="Consult & scope")
@@ -3889,6 +3899,16 @@ class Appointment(models.Model):
         if not self.master or not self.service or not self.start_time:
             return
 
+        local_start_dt = self.start_time
+        if timezone.is_aware(local_start_dt):
+            local_start_dt = timezone.localtime(local_start_dt)
+        else:
+            local_start_dt = timezone.make_aware(local_start_dt, timezone.get_current_timezone())
+        if local_start_dt.weekday() >= 5:
+            raise ValidationError({
+                "start_time": "We are closed on weekends. Please choose a weekday."
+            })
+
         # Контактные данные: либо есть клиент, либо все поля заполнены
         if not self.client:
             err = {}
@@ -4303,14 +4323,48 @@ class PromoCode(models.Model):
     active = models.BooleanField(default=True)
     start_date = models.DateField()
     end_date = models.DateField()
-    applicable_services = models.ManyToManyField(Service, blank=True, help_text="leave empty to apply to all services")
+    applies_to_services = models.BooleanField(
+        default=True,
+        help_text="Enable this promo code for service bookings.",
+    )
+    applies_to_products = models.BooleanField(
+        default=False,
+        help_text="Enable this promo code for store products.",
+    )
+    applicable_services = models.ManyToManyField(
+        Service,
+        blank=True,
+        help_text="Leave empty to apply to all services.",
+    )
+    applicable_products = models.ManyToManyField(
+        "store.Product",
+        blank=True,
+        help_text="Leave empty to apply to all products.",
+    )
+
+    def is_active(self, today=None):
+        today = today or timezone.now().date()
+        return self.active and self.start_date <= today <= self.end_date
 
     def is_valid_for(self, service, today=None):
+        return self.is_valid_for_service(service, today=today)
+
+    def is_valid_for_service(self, service, today=None):
+        if not service or not self.applies_to_services:
+            return False
         today = today or timezone.now().date()
         return (
-                self.active and
-                self.start_date <= today <= self.end_date and
-                (self.applicable_services.count() == 0 or self.applicable_services.filter(pk=service.pk).exists())
+            self.is_active(today) and
+            (not self.applicable_services.exists() or self.applicable_services.filter(pk=service.pk).exists())
+        )
+
+    def is_valid_for_product(self, product, today=None):
+        if not product or not self.applies_to_products:
+            return False
+        today = today or timezone.now().date()
+        return (
+            self.is_active(today) and
+            (not self.applicable_products.exists() or self.applicable_products.filter(pk=product.pk).exists())
         )
 
     def __str__(self):
@@ -4319,11 +4373,20 @@ class PromoCode(models.Model):
 class AppointmentPromoCode(models.Model):
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE)
     promocode = models.ForeignKey(PromoCode, on_delete=models.CASCADE)
+    discount_applied = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Discount amount applied to the appointment.",
+    )
 
     def clean(self):
-        if self.promocode.end_date < timezone.now().date():
+        if not self.promocode or not self.appointment:
+            return
+        today = timezone.now().date()
+        if not self.promocode.is_valid_for_service(self.appointment.service, today=today):
             raise ValidationError({
-                "promocode": "This promocode is expired."
+                "promocode": "This promo code is not valid for the selected service or date."
             })
         now = timezone.now()
         discounts = ServiceDiscount.objects.filter(

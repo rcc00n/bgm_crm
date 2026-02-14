@@ -4,12 +4,15 @@
         {% for day_name in month_day_names %}
             <div class="month-header-cell">{{ day_name|date:"D" }}</div>
         {% endfor %}
-        {% for week in month_grid %}
+            {% for week in month_grid %}
             {% for day in week %}
-                <div class="month-day-cell {% if not day.in_month %}out-month{% endif %}"
+                <div class="month-day-cell {% if not day.in_month %}out-month{% endif %}{% if day.is_closed %} month-day-cell--closed{% endif %}"
                      onclick="openMonthDay('{{ day.date|date:'Y-m-d' }}')">
                     <div class="month-day-top">
                         <span class="month-day-number">{{ day.date|date:"j" }}</span>
+                        {% if day.is_closed %}
+                            <span class="month-day-closed">Closed</span>
+                        {% endif %}
                     </div>
                     <div class="month-events">
                         {% for appt in day.appointments %}

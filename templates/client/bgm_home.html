@@ -1035,6 +1035,7 @@
       .section{ padding:2.2rem 0; }
       .section__head{ flex-direction:column; align-items:flex-start; gap:.6rem; }
       .section__head .btn{ width:100%; justify-content:center; }
+      .section__head--reviews > div:last-child{ width:100%; }
       /* Make the primary "Open Services/Products" CTAs truly full-width on mobile. */
       #services .section__head > div:last-child,
       #products .section__head > div:last-child{
@@ -1843,7 +1844,7 @@
 	                        {% else %}
 	                          <div class="price__retail-row">
 	                            {% if p.has_option_price_overrides %}<span class="price__hint">{{ home_copy.from_label }}</span>{% endif %}
-	                            <strong>{{ p.display_price|money }}</strong>
+	                            <strong>{{ p.public_price|money }}</strong>
 	                            {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
 	                          </div>
 		                          {% if dealer_portal.show_discount and not p|is_merch_product %}
@@ -1886,7 +1887,7 @@
     <!-- ========================= WHY BGM ========================= -->
     <section class="section">
       <div class="container">
-        <div class="section__head">
+        <div class="section__head section__head--reviews">
           <div>
             <h2 class="section__title">{{ home_copy.why_title }}</h2>
             <p class="section__desc">{{ home_copy.why_desc }}</p>
@@ -2198,7 +2199,8 @@
 	      } else {
 	        const fromHint = p.has_option_price_overrides ? `<span class="price__hint">${esc(copy.fromLabel)}</span>` : "";
 	        const main = `<strong>${esc(formatMoney(p.display_price))}</strong>`;
-	        price = `<div class="price__retail-row">${fromHint}${main}</div>`;
+	        const old = p.old_price ? `<span class="old">${esc(formatMoney(p.old_price))}</span>` : "";
+	        price = `<div class="price__retail-row">${fromHint}${main}${old}</div>`;
 	      }
 
 	      return `
