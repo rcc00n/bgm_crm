@@ -13,6 +13,10 @@ _PLACEHOLDER_DISCLAIMER_NORMALIZED = {
     "product may not appear exactly as shown",
 }
 
+_DISCLAIMER_PHRASE_RE = re.compile(
+    r"(?i)\\bproduct\\s+may\\s+not\\s+appear\\s+exactly\\s+as\\s+shown\\b\\.?\\s*"
+)
+
 
 def _normalize_disclaimer(value: str) -> str:
     text = re.sub(r"\s+", " ", (value or "").strip().lower())
@@ -38,5 +42,15 @@ def suppress_placeholder_disclaimer(value: Any) -> str:
     if _normalize_disclaimer(text) in _PLACEHOLDER_DISCLAIMER_NORMALIZED:
         return ""
 
-    return text
+    # Remove the boilerplate phrase even when it's embedded inside a longer caption,
+    # e.g. "OUTLAW SERIES - PRODUCT MAY NOT APPEAR EXACTLY AS SHOWN".
+    if _DISCLAIMER_PHRASE_RE.search(text):
+        cleaned = _DISCLAIMER_PHRASE_RE.sub("", text)
+        cleaned = re.sub(r"\\s+", " ", cleaned).strip()
+        cleaned = re.sub(r"^[\\s\\-–—|•:]+", "", cleaned).strip()
+        cleaned = re.sub(r"[\\s\\-–—|•:]+$", "", cleaned).strip()
+        if not cleaned:
+            return ""
+        return cleaned
 
+    return text
