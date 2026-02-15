@@ -257,6 +257,7 @@
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:var(--muted)}
     .field input,.field select{padding:.6rem .8rem;border:1px solid var(--line);border-radius:.6rem;font-size:.95rem;background:#0a0a0a;color:var(--ink)}
+    .label-placeholder{visibility:hidden}
     .booking-photo-preview{
       display:flex;
       align-items:center;
@@ -266,7 +267,10 @@
       border-radius:.6rem;
       padding:.45rem .55rem;
       background:#0d0d0d;
+      width:100%;
+      min-height:44px;
     }
+    .field--preview .booking-photo-preview{margin-top:0}
     .booking-photo-preview img{
       width:52px;
       height:52px;
@@ -996,6 +1000,9 @@ main h3{
             <div class="field">
               <label for="contactReferenceImage">Reference photo (optional)</label>
               <input id="contactReferenceImage" name="contact_reference_image" type="file" accept="image/*" class="input">
+            </div>
+            <div class="field field--preview">
+              <label class="label-placeholder" aria-hidden="true">Reference preview</label>
               <div id="contactReferencePreview" class="booking-photo-preview" hidden>
                 <img id="contactReferencePreviewImg" alt="Reference preview">
                 <div class="booking-photo-preview__meta">

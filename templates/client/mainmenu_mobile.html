@@ -215,6 +215,7 @@
     }
     .field{display:flex;flex-direction:column;gap:6px;margin-top:12px}
     .field label{color:var(--muted);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+    .label-placeholder{visibility:hidden}
     .field input,.field select{
       display:block;
       width:100%;
@@ -238,7 +239,10 @@
       border-radius:10px;
       padding:.45rem .55rem;
       background:#0d0d0d;
+      width:100%;
+      min-height:44px;
     }
+    .field--preview .booking-photo-preview{margin-top:0}
     .booking-photo-preview img{
       width:48px;
       height:48px;
@@ -535,6 +539,9 @@
         <div class="field">
           <label for="contactReferenceImage">Reference photo (optional)</label>
           <input id="contactReferenceImage" type="file" accept="image/*">
+        </div>
+        <div class="field field--preview">
+          <label class="label-placeholder" aria-hidden="true">Reference preview</label>
           <div id="contactReferencePreview" class="booking-photo-preview" hidden>
             <img id="contactReferencePreviewImg" alt="Reference preview">
             <div class="booking-photo-preview__meta">
