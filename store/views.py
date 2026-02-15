@@ -1518,6 +1518,10 @@ def cart_view(request):
         promo=promo,
     )
     cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
+    cart_has_non_merch = any(
+        (entry.get("product") is not None) and (not _is_merch_product(entry.get("product")))
+        for entry in (positions or [])
+    )
     any_discounted = any(int(entry.get("discount_percent") or 0) > 0 for entry in (positions or []))
     has_dealer_discount = any(entry.get("discount_type") == "dealer" for entry in (positions or []))
     effective_dealer_discount = int(dealer_discount or 0) if has_dealer_discount else 0
@@ -1527,7 +1531,10 @@ def cart_view(request):
     if promo_savings:
         promo_savings = promo_savings.quantize(Decimal("0.01"))
     if promo and not promo_applied:
-        promo_error = "Promo code doesn't apply to items in your cart."
+        if cart_has_merch and not cart_has_non_merch:
+            promo_error = "Promo codes don't apply to merch."
+        else:
+            promo_error = "Promo code doesn't apply to items in your cart."
         _clear_cart_promocode(request.session)
         promo_code = ""
         promo = None
@@ -1591,8 +1598,16 @@ def cart_promo(request):
 
     promo_applied = any(entry.get("discount_type") == "promo" for entry in (positions or []))
     if not promo_applied:
+        cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
+        cart_has_non_merch = any(
+            (entry.get("product") is not None) and (not _is_merch_product(entry.get("product")))
+            for entry in (positions or [])
+        )
         _clear_cart_promocode(request.session)
-        messages.error(request, "Promo code doesn't apply to items in your cart.")
+        if cart_has_merch and not cart_has_non_merch:
+            messages.error(request, "Promo codes don't apply to merch.")
+        else:
+            messages.error(request, "Promo code doesn't apply to items in your cart.")
         return redirect(next_url)
 
     request.session[PROMO_CODE_KEY] = promo.code
@@ -1689,7 +1704,10 @@ def checkout(request):
     if promo_savings:
         promo_savings = promo_savings.quantize(Decimal("0.01"))
     if promo and not promo_applied:
-        promo_error = "Promo code doesn't apply to items in your cart."
+        if cart_is_merch_checkout:
+            promo_error = "Promo codes don't apply to merch."
+        else:
+            promo_error = "Promo code doesn't apply to items in your cart."
         _clear_cart_promocode(request.session)
         promo_code = ""
         promo = None
