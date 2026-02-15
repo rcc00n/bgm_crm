@@ -680,9 +680,9 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
 .pj-album-teaser__media.pj-media{
   position:relative;
   inset:auto;
-  /* Keep album cards closer to "one post per screen" on desktop. */
-  height:clamp(260px, 40vh, 420px);
-  min-height:260px;
+  /* Boost cover photo visibility while staying near a "one screen" card. */
+  height:clamp(320px, 46vh, 520px);
+  min-height:320px;
   aspect-ratio:auto;
 }
 
