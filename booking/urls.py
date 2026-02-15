@@ -128,6 +128,12 @@ urlpatterns = [
     path("store/", RedirectView.as_view(pattern_name="store:store", permanent=False), name="store"),
     # Корзина
     path("store/cart/", RedirectView.as_view(pattern_name="store:store-cart", permanent=False), name="store-cart"),
+    # Промокод в корзине
+    path(
+        "store/cart/promo/",
+        RedirectView.as_view(pattern_name="store:store-cart-promo", permanent=False),
+        name="store-cart-promo",
+    ),
     # Checkout
     path("store/checkout/", RedirectView.as_view(pattern_name="store:store-checkout", permanent=False), name="store-checkout"),
     # Категория
