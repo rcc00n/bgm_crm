@@ -1275,21 +1275,28 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: Prom
             if promo_eligible:
                 promo_percent_line = promo_percent
 
-        line_discount_percent = max(product_percent, dealer_percent, promo_percent_line)
-        discounted_unit = apply_dealer_discount(retail_unit, line_discount_percent) if line_discount_percent else retail_unit
+        base_discount_percent = max(product_percent, dealer_percent)
+        discounted_unit = apply_dealer_discount(retail_unit, base_discount_percent) if base_discount_percent else retail_unit
+        promo_savings_unit = Decimal("0.00")
+        if promo_percent_line:
+            promo_savings_unit = (discounted_unit * (Decimal(promo_percent_line) / Decimal("100"))).quantize(quant)
+            discounted_unit = (discounted_unit - promo_savings_unit).quantize(quant)
         line_total = (discounted_unit * qty).quantize(quant)
         discount_type = ""
         discount_label = ""
-        if line_discount_percent:
-            if promo_percent_line and promo_percent_line == line_discount_percent:
-                discount_type = "promo"
-                discount_label = "Promo"
-            elif product_percent and product_percent == line_discount_percent:
-                discount_type = "sale"
-                discount_label = "Sale"
-            elif dealer_percent and dealer_percent == line_discount_percent:
-                discount_type = "dealer"
-                discount_label = "Dealer"
+        line_discount_percent = 0
+        if promo_percent_line:
+            discount_type = "promo"
+            discount_label = "Promo"
+            line_discount_percent = promo_percent_line
+        elif product_percent and product_percent == base_discount_percent:
+            discount_type = "sale"
+            discount_label = "Sale"
+            line_discount_percent = product_percent
+        elif dealer_percent and dealer_percent == base_discount_percent:
+            discount_type = "dealer"
+            discount_label = "Dealer"
+            line_discount_percent = dealer_percent
 
         reference_client_file_id = entry.get("reference_client_file_id") or None
         reference_file_name = (entry.get("reference_file_name") or "").strip()
@@ -1303,9 +1310,7 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: Prom
         if reference_file and not reference_file_name:
             reference_file_name = reference_file.filename
 
-        promo_savings = Decimal("0.00")
-        if discount_type == "promo":
-            promo_savings = (retail_line - line_total).quantize(quant)
+        promo_savings = (promo_savings_unit * qty).quantize(quant) if promo_percent_line else Decimal("0.00")
 
         total += line_total
         retail_total += retail_line
