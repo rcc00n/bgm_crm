@@ -362,6 +362,12 @@
               <span class="summary__total-label">{{ cart_total_label }}</span>
               <span class="summary__total-sum">{{ total|money }}</span>
             </div>
+            {% if promo_applied and promo_code %}
+              <div class="summary__total-savings summary__total-savings--promo">
+                <span class="summary__total-label">Promo {{ promo_code }}</span>
+                <span class="summary__total-sum">- {{ promo_savings|money }}</span>
+              </div>
+            {% endif %}
             {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
               <div class="summary__total-savings">
                 <span class="summary__total-label">You save</span>
@@ -506,8 +512,9 @@
   .addr, .pickup{ margin-top:.8rem; }
   .pickup{ display:none; }
 
-  .check{ display:flex; align-items:flex-start; gap:.55rem; padding:.6rem .7rem; border:1px solid var(--card-border); border-radius:.6rem; background:var(--field-bg); }
-  .check input{ margin-top:.2rem; accent-color:var(--red); }
+  .check{ display:flex; align-items:center; gap:.55rem; padding:.6rem .7rem; border:1px solid var(--card-border); border-radius:.6rem; background:var(--field-bg); }
+  .check input{ margin-top:0; accent-color:var(--red); }
+  .summary__total-savings--promo .summary__total-label{ font-weight:800; }
 
   .actions{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
   .btn.is-busy{ opacity:.7; cursor:progress; }
