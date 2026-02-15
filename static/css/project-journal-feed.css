@@ -681,15 +681,15 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   position:relative;
   inset:auto;
   /* Keep album cards closer to "one post per screen" on desktop. */
-  height:clamp(200px, 30vh, 300px);
-  min-height:200px;
+  height:clamp(260px, 40vh, 420px);
+  min-height:260px;
   aspect-ratio:auto;
 }
 
 .pj-album-teaser__media img{
   width:100%;
   height:100%;
-  object-fit:contain;
+  object-fit:cover;
   object-position:center;
   transform:none;
   display:block;
