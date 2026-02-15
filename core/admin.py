@@ -1304,7 +1304,7 @@ class PromoCodeAdmin(ExportCsvMixin ,admin.ModelAdmin):
     list_display = ('code', 'discount_percent', 'applies_to_services', 'applies_to_products', 'start_date', 'end_date')
     list_filter = ('applies_to_services', 'applies_to_products', 'start_date', 'end_date')
     search_fields = ('code',)
-    filter_horizontal = ('applicable_services', 'applicable_products')
+    autocomplete_fields = ('applicable_services', 'applicable_products')
 
     export_fields = [
         'code',
