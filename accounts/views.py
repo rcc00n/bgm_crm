@@ -1540,7 +1540,8 @@ class MerchPlaceholderView(TemplateView):
                 selected_merch_category_label = cat.name
             else:
                 selected_merch_category = ""
-                merch_display_products = []
+                merch_display_products = all_products
+                selected_merch_category_label = ""
 
             show_merch_category_grid = not bool(selected_merch_category)
             show_merch_filters = bool(selected_merch_category)
