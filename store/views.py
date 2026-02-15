@@ -1270,7 +1270,7 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: Prom
 
         promo_eligible = False
         promo_percent_line = 0
-        if promo and not product.contact_for_estimate:
+        if promo and not product.contact_for_estimate and not _is_merch_product(product):
             promo_eligible = promo_applicable_ids is None or product.id in promo_applicable_ids
             if promo_eligible:
                 promo_percent_line = promo_percent
