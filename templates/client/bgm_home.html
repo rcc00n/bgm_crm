@@ -69,10 +69,15 @@
     .hero__cta{display:flex;gap:.8rem;margin-top:1.35rem;flex-wrap:wrap}
     /* Desktop: make the two hero CTAs feel more "primary" (bigger tap/click targets). */
     @media (min-width: 861px){
+      .hero__cta{
+        width:100%;
+      }
       .hero__cta .btn{
         min-height:58px;
         padding:1.05rem 1.9rem;
         font-size:1.12rem !important;
+        flex:1 1 0;
+        justify-content:center;
       }
     }
     .hero__logo-block{
