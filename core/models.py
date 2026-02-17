@@ -4488,6 +4488,7 @@ class LeadSubmissionEvent(models.Model):
     class FormType(models.TextChoices):
         SITE_NOTICE = ("site_notice", "Site notice signup")
         SERVICE_LEAD = ("service_lead", "Service lead")
+        FITMENT_REQUEST = ("fitment_request", "Fitment request")
 
     class Outcome(models.TextChoices):
         ACCEPTED = ("accepted", "Accepted")

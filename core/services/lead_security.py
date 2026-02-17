@@ -25,6 +25,13 @@ TOKEN_MAX_AGE_SECONDS = int(
 MIN_AGE_SECONDS_BY_PURPOSE = {
     "site_notice": int(getattr(settings, "LEAD_FORM_MIN_AGE_SECONDS_SITE_NOTICE", 6)),
     "service_lead": int(getattr(settings, "LEAD_FORM_MIN_AGE_SECONDS_SERVICE_LEAD", 6)),
+    "fitment_request": int(
+        getattr(
+            settings,
+            "LEAD_FORM_MIN_AGE_SECONDS_FITMENT_REQUEST",
+            getattr(settings, "LEAD_FORM_MIN_AGE_SECONDS_SERVICE_LEAD", 6),
+        )
+    ),
 }
 
 RATE_WINDOW_SECONDS = int(getattr(settings, "LEAD_RATE_LIMIT_WINDOW_SECONDS", 60 * 10))
@@ -40,6 +47,36 @@ RATE_LIMITS_BY_PURPOSE: dict[str, dict[str, int]] = {
         "subnet": int(getattr(settings, "LEAD_RATE_LIMIT_SERVICE_SUBNET", 40)),
         "session": int(getattr(settings, "LEAD_RATE_LIMIT_SERVICE_SESSION", 2)),
         "asn": int(getattr(settings, "LEAD_RATE_LIMIT_SERVICE_ASN", 50)),
+    },
+    "fitment_request": {
+        "ip": int(
+            getattr(
+                settings,
+                "LEAD_RATE_LIMIT_FITMENT_IP",
+                getattr(settings, "LEAD_RATE_LIMIT_SERVICE_IP", 5),
+            )
+        ),
+        "subnet": int(
+            getattr(
+                settings,
+                "LEAD_RATE_LIMIT_FITMENT_SUBNET",
+                getattr(settings, "LEAD_RATE_LIMIT_SERVICE_SUBNET", 40),
+            )
+        ),
+        "session": int(
+            getattr(
+                settings,
+                "LEAD_RATE_LIMIT_FITMENT_SESSION",
+                getattr(settings, "LEAD_RATE_LIMIT_SERVICE_SESSION", 2),
+            )
+        ),
+        "asn": int(
+            getattr(
+                settings,
+                "LEAD_RATE_LIMIT_FITMENT_ASN",
+                getattr(settings, "LEAD_RATE_LIMIT_SERVICE_ASN", 50),
+            )
+        ),
     },
 }
 

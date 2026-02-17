@@ -43,6 +43,7 @@ from core.models import ClientFile, Payment, PaymentMethod, StorePageCopy, PageF
 from core.services.page_sections import get_page_sections
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
 from core.services.fonts import build_page_font_context
+from core.services.lead_security import evaluate_lead_submission, log_lead_submission
 from notifications import services as notification_services
 
 logger = logging.getLogger(__name__)
@@ -941,6 +942,77 @@ def product_detail(request, slug: str):
             form_data["product"] = product.pk
             form_data.setdefault("source_url", request.build_absolute_uri())
             quote_form = CustomFitmentRequestForm(form_data, request.FILES)
+            lead_email = (form_data.get("email") or "").strip()
+            customer_name = (form_data.get("customer_name") or "").strip() or "there"
+            success_template = (getattr(store_copy, "fitment_success_message", "") or "").strip()
+            if not success_template:
+                success_template = (
+                    "Hi {customer_name}, thanks for submitting your custom fitment request. "
+                    "We got it and will reach out soon."
+                )
+            success_text = success_template.replace("{customer_name}", customer_name).replace("{name}", customer_name)
+
+            evaluation = evaluate_lead_submission(request, purpose="fitment_request", email=lead_email)
+
+            if evaluation.action == "rate_limited":
+                log_lead_submission(
+                    form_type="fitment_request",
+                    evaluation=evaluation,
+                    outcome="rate_limited",
+                    success=False,
+                    validation_errors="rate_limited",
+                )
+                messages.error(request, "Please try again in a few minutes.")
+                return redirect(product.get_absolute_url() + "#quote-request")
+
+            if evaluation.honeypot_hit:
+                log_lead_submission(
+                    form_type="fitment_request",
+                    evaluation=evaluation,
+                    outcome="blocked",
+                    success=False,
+                    validation_errors="honeypot",
+                )
+                notification_services.queue_lead_digest(
+                    form_type="fitment_request",
+                    suspicious=True,
+                    ip_address=evaluation.ip_address,
+                    asn=evaluation.cf_asn,
+                )
+                messages.success(request, success_text)
+                return redirect(product.get_absolute_url() + "#quote-request")
+
+            if not evaluation.token_valid:
+                log_lead_submission(
+                    form_type="fitment_request",
+                    evaluation=evaluation,
+                    outcome="blocked",
+                    success=False,
+                    validation_errors=f"token:{evaluation.token_error or 'invalid'}",
+                )
+                if evaluation.token_error == "too_fast":
+                    messages.error(request, "Please wait a moment and try again.")
+                else:
+                    messages.error(request, "Please refresh the page and try again.")
+                return redirect(product.get_absolute_url() + "#quote-request")
+
+            if evaluation.action == "blocked":
+                log_lead_submission(
+                    form_type="fitment_request",
+                    evaluation=evaluation,
+                    outcome="blocked",
+                    success=False,
+                    validation_errors="score_block",
+                )
+                notification_services.queue_lead_digest(
+                    form_type="fitment_request",
+                    suspicious=True,
+                    ip_address=evaluation.ip_address,
+                    asn=evaluation.cf_asn,
+                )
+                messages.success(request, success_text)
+                return redirect(product.get_absolute_url() + "#quote-request")
+
             if quote_form.is_valid():
                 fitment_request = quote_form.save(commit=False)
                 fitment_request._skip_telegram_notify = True  # avoid duplicate signal send
@@ -955,26 +1027,37 @@ def product_detail(request, slug: str):
                         image_field=fitment_request.reference_image,
                         description=f"Custom fitment reference for {fitment_request.product_name or 'custom build'}",
                     )
-                _notify_fitment_request(fitment_request)
-                _send_fitment_request_received_email(fitment_request)
-                transaction.on_commit(
-                    lambda: notification_services.notify_about_fitment_request(fitment_request.pk)
-                )
-                customer_name = (fitment_request.customer_name or "").strip() or "there"
-                success_template = (
-                    getattr(store_copy, "fitment_success_message", "") or ""
-                ).strip()
-                if not success_template:
-                    success_template = (
-                        "Hi {customer_name}, thanks for submitting your custom fitment request. "
-                        "We got it and will reach out soon."
+                if evaluation.action == "allow":
+                    _notify_fitment_request(fitment_request)
+                    _send_fitment_request_received_email(fitment_request)
+                    transaction.on_commit(
+                        lambda: notification_services.notify_about_fitment_request(fitment_request.pk)
                     )
-                success_text = success_template.replace("{customer_name}", customer_name).replace("{name}", customer_name)
+                else:
+                    notification_services.queue_lead_digest(
+                        form_type="fitment_request",
+                        suspicious=True,
+                        ip_address=evaluation.ip_address,
+                        asn=evaluation.cf_asn,
+                    )
+                log_lead_submission(
+                    form_type="fitment_request",
+                    evaluation=evaluation,
+                    outcome="suspected" if evaluation.action == "suspect" else "accepted",
+                    success=True,
+                )
                 messages.success(
                     request,
                     success_text,
                 )
                 return redirect(product.get_absolute_url() + "#quote-request")
+            log_lead_submission(
+                form_type="fitment_request",
+                evaluation=evaluation,
+                outcome="rejected",
+                success=False,
+                validation_errors=quote_form.errors.as_text(),
+            )
             messages.error(request, "Please correct the fields highlighted below.")
         elif form_type == "product_review":
             review_form = StoreReviewForm(request.POST)

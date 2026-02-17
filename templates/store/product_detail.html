@@ -1,5 +1,5 @@
 {% extends "store/_base_store.html" %}
-{% load dealer_extras %}
+{% load dealer_extras lead_security %}
 {% block title %}{{ product.name }} — BGM Store{% endblock %}
 
 {% block body %}
@@ -350,6 +350,7 @@
       <form method="post" action="" class="quote-form" novalidate enctype="multipart/form-data">
         {% csrf_token %}
         <input type="hidden" name="form_type" value="custom_fitment">
+        {% lead_security_fields "fitment_request" %}
         {{ quote_form.product }}
         {{ quote_form.source_url }}
 
@@ -1386,6 +1387,7 @@
 
 </style>
 
+{% include "includes/lead_security_script.html" %}
 <script>
   (function () {
     var el = document.getElementById('product-specs-json');

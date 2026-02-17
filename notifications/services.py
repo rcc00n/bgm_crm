@@ -258,7 +258,12 @@ def queue_lead_digest(
         top_ips = _format_digest_counts(state.get("ips") or {})
         top_asns = _format_digest_counts(state.get("asns") or {})
 
-        label = "Site notice" if form_type == "site_notice" else "Service leads"
+        label_map = {
+            "site_notice": "Site notice",
+            "service_lead": "Service leads",
+            "fitment_request": "Fitment requests",
+        }
+        label = label_map.get(form_type, "Service leads")
         message = (
             f"<b>Lead digest — {label}</b>\n"
             f"Window: {int(elapsed // 60)} min\n"

@@ -1,15 +1,19 @@
+from datetime import timedelta
 from decimal import Decimal
 import io
 
 from django.core import mail
+from django.core.cache import cache
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 from PIL import Image
 
 from store.models import Category, Product, CustomFitmentRequest
 from core.models import ClientFile
+from core.services.lead_security import build_form_token
 
 
 class ProductDetailQuoteFormTests(TestCase):
@@ -23,6 +27,20 @@ class ProductDetailQuoteFormTests(TestCase):
             price=Decimal("1999.00"),
         )
         self.url = reverse("store:store-product", kwargs={"slug": self.product.slug})
+        cache.clear()
+        session = self.client.session
+        session.save()
+
+    def _token(self):
+        issued_at = timezone.now() - timedelta(seconds=10)
+        return build_form_token(
+            session_key=self.client.session.session_key,
+            purpose="fitment_request",
+            issued_at=issued_at,
+        )
+
+    def _rendered_at(self):
+        return int((timezone.now() - timedelta(seconds=7)).timestamp() * 1000)
 
     def test_quote_submission_creates_request_and_sends_email(self):
         payload = {
@@ -36,6 +54,8 @@ class ProductDetailQuoteFormTests(TestCase):
             "budget": "Up to $15k",
             "timeline": "Need it next month",
             "message": "Also need powder coat.",
+            "form_token": self._token(),
+            "form_rendered_at": self._rendered_at(),
         }
 
         response = self.client.post(self.url, payload, follow=False)
@@ -81,6 +101,8 @@ class ProductDetailQuoteFormTests(TestCase):
             "phone": "+1 555 0111",
             "vehicle": "2023 Ram 2500",
             "message": "Need custom offset.",
+            "form_token": self._token(),
+            "form_rendered_at": self._rendered_at(),
         }
 
         response = self.client.post(self.url, payload | {"reference_image": upload}, follow=False)
@@ -99,6 +121,8 @@ class ProductDetailQuoteFormTests(TestCase):
             "form_type": "custom_fitment",
             "customer_name": "Jane Builder",
             # missing email
+            "form_token": self._token(),
+            "form_rendered_at": self._rendered_at(),
         }
 
         response = self.client.post(self.url, payload)
@@ -114,6 +138,8 @@ class ProductDetailQuoteFormTests(TestCase):
             "customer_name": "Jane Builder",
             "email": "jane@example.com",
             "vehicle": "2020 F-350 crew cab",
+            "form_token": self._token(),
+            "form_rendered_at": self._rendered_at(),
         }
 
         response = self.client.post(self.url, payload, follow=True)
