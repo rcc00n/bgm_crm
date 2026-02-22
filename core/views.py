@@ -2308,7 +2308,6 @@ class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
                 "website",
                 "years_in_business",
                 "business_type",
-                "preferred_tier",
                 "business_address",
                 "city",
                 "province",
@@ -2336,8 +2335,6 @@ class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
             initial.setdefault("email", getattr(self.request.user, "email", "") or "")
             if profile and getattr(profile, "phone", None):
                 initial.setdefault("phone", profile.phone)
-            if not initial.get("preferred_tier"):
-                initial["preferred_tier"] = DealerTier.TIER_5
 
         if step_slug == "address":
             if profile and getattr(profile, "address", None):
@@ -2417,7 +2414,7 @@ class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
         for slug, _form, _label in DEALER_WIZARD_STEPS:
             payload.update(state.get(slug) or {})
 
-        preferred = payload.get("preferred_tier") or DealerTier.TIER_5
+        preferred = DealerTier.TIER_5
         # Bump created_at on submit so admin notifications (which track created_at for public submissions)
         # reflect fresh (re)submissions as "new" work items.
         submitted_at = timezone.now()
@@ -2602,40 +2599,14 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         is_dealer = portal_snapshot.get("is_dealer", False)
         ctx["is_dealer"] = is_dealer
 
-        # UI-only tier/discount display. For non-dealers, show the requested tier's
-        # configured discount percent (without enabling wholesale pricing).
-        tier_levels = ctx.get("tier_levels") or []
-        tier_map = {getattr(t, "code", None): t for t in tier_levels if getattr(t, "code", None)}
-
+        # UI-only tier/discount display.
         portal_display = {
             "tier_code": portal_snapshot.get("tier_code"),
             "tier_label": portal_snapshot.get("tier_label"),
             "discount_percent": portal_snapshot.get("discount_percent") or 0,
             "note": "",
         }
-        if (not is_dealer) and dealer_app:
-            requested_code = dealer_app.resolved_tier() or dealer_app.preferred_tier or DealerTier.NONE
-            requested_level = tier_map.get(requested_code)
-            if requested_level:
-                portal_display.update(
-                    {
-                        "tier_code": requested_code,
-                        "tier_label": requested_level.label,
-                        "discount_percent": requested_level.discount_percent or 0,
-                        "note": "after approval",
-                    }
-                )
         ctx["portal_display"] = portal_display
-
-        if dealer_app:
-            application_code = dealer_app.resolved_tier() or dealer_app.preferred_tier or DealerTier.NONE
-            application_level = tier_map.get(application_code)
-            if application_level:
-                ctx["application_tier_label"] = application_level.label
-                ctx["application_tier_discount_percent"] = application_level.discount_percent or 0
-            else:
-                ctx["application_tier_label"] = dealer_app.get_preferred_tier_display() or application_code
-                ctx["application_tier_discount_percent"] = 0
 
         # One-time success banner: show once after approval, then mark as seen.
         show_welcome = bool(is_dealer and up and hasattr(up, "dealer_welcome_seen") and not up.dealer_welcome_seen)

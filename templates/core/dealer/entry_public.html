@@ -336,7 +336,7 @@
           {% endif %}
           <div class="hero-media__caption">
             <span class="pill">Fast approval</span>
-            <span class="pill">Transparent tiers</span>
+            <span class="pill">Lifetime rewards</span>
             <span class="pill">Real support</span>
           </div>
         </aside>
@@ -352,7 +352,7 @@
           <div class="perk">
             <div class="perk__kicker">Pricing</div>
             <div class="perk__title">Wholesale discounts</div>
-            <p class="perk__desc">Tier-based pricing that improves as your lifetime spend grows.</p>
+            <p class="perk__desc">Tier-based rewards based on lifetime spend. Full tier details unlock after approval.</p>
           </div>
           <div class="perk">
             <div class="perk__kicker">Speed</div>
@@ -365,40 +365,6 @@
             <p class="perk__desc">Browse the full catalog and place orders with your negotiated pricing.</p>
           </div>
         </div>
-      </section>
-
-      <section class="section" aria-label="Tier ladder">
-        <div class="section__head">
-          <h2 class="section__title">Tier Ladder</h2>
-          <p class="section__desc">Clear thresholds, no surprises. Amounts are denominated in {{ currency.code|default:"CAD" }}.</p>
-        </div>
-
-        {% if tier_levels %}
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Tier</th>
-                  <th>Minimum Spend</th>
-                  <th>Discount</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for tier in tier_levels %}
-                  <tr>
-                    <td>{{ tier.label|normalize_tier_label }}</td>
-                    <td>{{ tier.minimum_spend|money }}</td>
-                    <td>{{ tier.discount_percent }}%</td>
-                    <td>{% if tier.description %}{{ tier.description }}{% else %}—{% endif %}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}
-          <p class="section__desc">Tier configuration is coming soon.</p>
-        {% endif %}
       </section>
 
       <section class="section" aria-label="How it works">
@@ -419,7 +385,7 @@
             <div class="how__num">2</div>
             <div>
               <div class="how__label">Review</div>
-              <div class="how__text">Our team reviews details and confirms the right tier for your volume.</div>
+              <div class="how__text">Our team reviews details and confirms eligibility for lifetime-spend rewards.</div>
             </div>
           </div>
           <div class="how__step">

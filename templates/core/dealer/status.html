@@ -439,19 +439,25 @@
         <p class="hero__eyebrow">{{ dealer_copy.hero_eyebrow|trim|default:"BGM Customs" }}</p>
         <h1 class="hero__title">{{ dealer_copy.hero_title|trim|default:"Dealer workspace" }}</h1>
         <p class="hero__lead">
-          {{ dealer_copy.hero_lead|trim|default:"Track your approval status, understand the tier ladder, and jump straight into the catalog with your negotiated pricing." }}
-        </p>
-        <div class="hero__meta">
-          <span class="badge">{{ dealer_copy.hero_tier_label_prefix|trim|default:"Tier:" }} {{ portal_display.tier_label|default:portal.tier_label|default:dealer_copy.tier_default_label|normalize_tier_label }}</span>
-          {% if portal_display.discount_percent %}
-            <span class="badge badge--accent">
-              {{ portal_display.discount_percent }}% {{ dealer_copy.hero_discount_suffix|trim|default:"off catalog" }}
-              {% if portal_display.note %}
-                <span style="opacity:.75;font-weight:700;margin-left:.35rem">{{ portal_display.note }}</span>
-              {% endif %}
-            </span>
+          {% if is_dealer %}
+            {{ dealer_copy.hero_lead|trim|default:"Track rewards based on lifetime spend and jump straight into the catalog with your pricing." }}
+          {% else %}
+            Your application is under review. Tier rewards and discounts appear here after approval.
           {% endif %}
-        </div>
+        </p>
+        {% if is_dealer %}
+          <div class="hero__meta">
+            <span class="badge">{{ dealer_copy.hero_tier_label_prefix|trim|default:"Tier:" }} {{ portal_display.tier_label|default:portal.tier_label|default:dealer_copy.tier_default_label|normalize_tier_label }}</span>
+            {% if portal_display.discount_percent %}
+              <span class="badge badge--accent">
+                {{ portal_display.discount_percent }}% {{ dealer_copy.hero_discount_suffix|trim|default:"off catalog" }}
+                {% if portal_display.note %}
+                  <span style="opacity:.75;font-weight:700;margin-left:.35rem">{{ portal_display.note }}</span>
+                {% endif %}
+              </span>
+            {% endif %}
+          </div>
+        {% endif %}
         <div class="hero__actions" style="display:flex;gap:.6rem;flex-wrap:wrap">
           <a class="btn btn--primary" href="{% url 'store' %}">{{ dealer_copy.hero_primary_cta_label|trim|default:"Browse catalog" }}</a>
           <a class="btn btn--ghost" href="{% url 'store-cart' %}">{{ dealer_copy.hero_secondary_cta_label|trim|default:"Open cart" }}</a>
@@ -472,21 +478,23 @@
           <span class="hero__stat-label">{{ dealer_copy.hero_stat_lifetime_spend_label }}</span>
           <span class="hero__stat-value">{{ lifetime_spent|money }}</span>
         </div>
-        {% if next_tier %}
-          <div class="hero__stat">
-            <span class="hero__stat-label">{{ dealer_copy.hero_stat_next_tier_label }}</span>
-            <span class="hero__stat-value">{{ next_tier.minimum_spend|money }}</span>
-            {% if remaining_to_next %}
-              <span class="hero__lead" style="font-size:.9rem;margin-top:.2rem;color:var(--muted);">
-                {{ remaining_to_next|money }} {{ dealer_copy.hero_stat_next_tier_suffix }} {{ next_tier.label|normalize_tier_label }}
-              </span>
-            {% endif %}
-          </div>
-        {% else %}
-          <div class="hero__stat">
-            <span class="hero__stat-label">{{ dealer_copy.hero_stat_top_tier_label }}</span>
-            <span class="hero__stat-value">{{ dealer_copy.hero_stat_top_tier_value }}</span>
-          </div>
+        {% if is_dealer %}
+          {% if next_tier %}
+            <div class="hero__stat">
+              <span class="hero__stat-label">{{ dealer_copy.hero_stat_next_tier_label }}</span>
+              <span class="hero__stat-value">{{ next_tier.minimum_spend|money }}</span>
+              {% if remaining_to_next %}
+                <span class="hero__lead" style="font-size:.9rem;margin-top:.2rem;color:var(--muted);">
+                  {{ remaining_to_next|money }} {{ dealer_copy.hero_stat_next_tier_suffix }} {{ next_tier.label|normalize_tier_label }}
+                </span>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="hero__stat">
+              <span class="hero__stat-label">{{ dealer_copy.hero_stat_top_tier_label }}</span>
+              <span class="hero__stat-value">{{ dealer_copy.hero_stat_top_tier_value }}</span>
+            </div>
+          {% endif %}
         {% endif %}
       </div>
       <div class="hero__media">
@@ -548,9 +556,14 @@
               <div class="progress__fill" style="width:{{ portal.progress|default:0 }}%"></div>
             </div>
             <div class="progress__meta">
-              <span>{{ current_threshold|money }}</span>
-              <span>{{ portal.progress|default:0 }}%</span>
-              <span>{% if next_tier %}{{ next_tier.minimum_spend|money }}{% else %}{{ dealer_copy.progress_top_tier_label }}{% endif %}</span>
+              <span>{{ dealer_copy.hero_stat_lifetime_spend_label }}: {{ lifetime_spent|money }}</span>
+              {% if next_tier %}
+                <span>{{ portal.progress|default:0 }}% {{ dealer_copy.hero_stat_next_tier_suffix }} {{ next_tier.label|normalize_tier_label }}</span>
+                <span>{{ next_tier.minimum_spend|money }}</span>
+              {% else %}
+                <span>100% {{ dealer_copy.progress_max_tier_badge }}</span>
+                <span>{{ dealer_copy.progress_top_tier_label }}</span>
+              {% endif %}
             </div>
           </div>
         </article>
@@ -621,16 +634,6 @@
           {% endif %}
           <div class="metrics" style="margin-top:.6rem">
             <div class="metric"><span class="metric__label">{{ dealer_copy.application_metric_business_label }}</span><span class="metric__value">{{ dealer_application.business_name }}</span></div>
-            <div class="metric">
-              <span class="metric__label">{{ dealer_copy.application_metric_tier_label }}</span>
-              <span class="metric__value">
-                {% if application_tier_label %}
-                  {{ application_tier_label|normalize_tier_label }}{% if application_tier_discount_percent %} · {{ application_tier_discount_percent }}%{% endif %}
-                {% else %}
-                  {{ dealer_application.get_preferred_tier_display }}
-                {% endif %}
-              </span>
-            </div>
             <div class="metric"><span class="metric__label">{{ dealer_copy.application_metric_submitted_label }}</span><span class="metric__value">{{ dealer_application.created_at|date:"M d, Y" }}</span></div>
           </div>
         {% else %}
@@ -652,38 +655,40 @@
       </section>
     {% endif %}
 
-    <section class="card" style="margin-top:1.6rem">
-      <div class="card__header">
-        <h2 class="card__title">{{ dealer_copy.tier_ladder_title }}</h2>
-        <span class="badge">{{ dealer_copy.tier_ladder_badge_label }}</span>
-      </div>
-      {% if tier_levels %}
-        <div class="table-wrap" role="region" aria-label="Dealer tiers table" tabindex="0">
-          <table class="table" aria-label="Dealer tiers">
-            <thead>
-              <tr>
-                <th scope="col">{{ dealer_copy.tier_table_tier_label }}</th>
-                <th scope="col">{{ dealer_copy.tier_table_min_spend_label }}</th>
-                <th scope="col">{{ dealer_copy.tier_table_discount_label }}</th>
-                <th scope="col">{{ dealer_copy.tier_table_notes_label }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for tier in tier_levels %}
-                <tr {% if tier.code == portal_display.tier_code %}style="background:rgba(213,0,0,.08)"{% endif %}>
-                  <td>{{ tier.label|normalize_tier_label }}</td>
-                  <td>{{ tier.minimum_spend|money }}</td>
-                  <td>{{ tier.discount_percent }}%</td>
-                  <td>{{ tier.description|default:"—" }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    {% if is_dealer %}
+      <section class="card" style="margin-top:1.6rem">
+        <div class="card__header">
+          <h2 class="card__title">{{ dealer_copy.tier_ladder_title }}</h2>
+          <span class="badge">{{ dealer_copy.tier_ladder_badge_label }}</span>
         </div>
-      {% else %}
-        <p class="hero__lead">{{ dealer_copy.tier_empty_label }}</p>
-      {% endif %}
-    </section>
+        {% if tier_levels %}
+          <div class="table-wrap" role="region" aria-label="Dealer tiers table" tabindex="0">
+            <table class="table" aria-label="Dealer tiers">
+              <thead>
+                <tr>
+                  <th scope="col">{{ dealer_copy.tier_table_tier_label }}</th>
+                  <th scope="col">{{ dealer_copy.tier_table_min_spend_label }}</th>
+                  <th scope="col">{{ dealer_copy.tier_table_discount_label }}</th>
+                  <th scope="col">{{ dealer_copy.tier_table_notes_label }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for tier in tier_levels %}
+                  <tr {% if tier.code == portal_display.tier_code %}style="background:rgba(213,0,0,.08)"{% endif %}>
+                    <td>{{ tier.label|normalize_tier_label }}</td>
+                    <td>{{ tier.minimum_spend|money }}</td>
+                    <td>{{ tier.discount_percent }}%</td>
+                    <td>{{ tier.description|default:"—" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="hero__lead">{{ dealer_copy.tier_empty_label }}</p>
+        {% endif %}
+      </section>
+    {% endif %}
 
     <section class="card" style="margin-top:1.6rem">
       <div class="card__header">

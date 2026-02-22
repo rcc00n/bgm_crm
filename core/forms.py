@@ -490,18 +490,16 @@ class MasterCreateFullForm(forms.ModelForm):
             return super().save(commit=commit)
         
 from django import forms
-from core.models import DealerApplication, DealerTierLevel
-from core.utils import format_currency
+from core.models import DealerApplication
 
 class DealerApplicationForm(forms.ModelForm):
     class Meta:
         model = DealerApplication
-        fields = ["business_name", "website", "phone", "preferred_tier", "notes"]
+        fields = ["business_name", "website", "phone", "notes"]
         widgets = {
             "business_name": forms.TextInput(attrs={"placeholder": "Business name"}),
             "website": forms.URLInput(attrs={"placeholder": "Website (optional)"}),
             "phone": forms.TextInput(attrs={"placeholder": "Phone"}),
-            "preferred_tier": forms.Select(attrs={"class": "field"}),
             "notes": forms.Textarea(attrs={"placeholder": "Tell us about your business...", "rows": 4}),
         }
 
@@ -517,24 +515,7 @@ class DealerApplicationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.current_user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        tier_field = self.fields.get("preferred_tier")
-        if tier_field:
-            tier_field.label = "Projected tier"
-            tier_field.help_text = "Select the tier that matches your planned annual CAD volume."
-            try:
-                tiers = list(
-                    DealerTierLevel.objects.filter(is_active=True).order_by("minimum_spend", "sort_order", "code")
-                )
-            except Exception:
-                tiers = []
-            if tiers:
-                tier_field.choices = [
-                    (
-                        tier.code,
-                        f"{tier.label} — {format_currency(tier.minimum_spend)}+ · {tier.discount_percent}% off",
-                    )
-                    for tier in tiers
-                ]
+        # No tier selection at application time; tiers are revealed post-approval.
 
 
 class ServiceLeadForm(forms.ModelForm):
