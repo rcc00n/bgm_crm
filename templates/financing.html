@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ financing_copy.meta_title|default:"BGM Customs — Financing Options" }}</title>
-  {% with meta_title=financing_copy.meta_title|default:"BGM Customs — Financing Options" meta_description=financing_copy.meta_description|default:"Flexible financing partners for builds, parts, and installs including Canadian Financial and Afterpay." meta_section="financing" %}
+  {% with meta_title=financing_copy.meta_title|default:"BGM Customs — Financing Options" meta_description=financing_copy.meta_description|default:"Flexible financing partners for builds, parts, and installs including AutoLogiQ and Afterpay." meta_section="financing" %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
   {% if font_settings.preload_fonts %}
@@ -741,7 +741,7 @@ html{ font-size: 17px; }                      /* было 16px */
         </div>
 
         <div class="grid grid--cards">
-          <!-- Canadian Financial -->
+          <!-- AutoLogiQ -->
           <article class="card">
             <div class="card__head">
               <h3 class="card__title">{{ financing_copy.provider_1_title }}</h3>
@@ -749,7 +749,7 @@ html{ font-size: 17px; }                      /* было 16px */
             </div>
             <p class="section__desc">{{ financing_copy.provider_1_desc }}</p>
             <div class="card__actions">
-              <a class="btn btn--primary btn--diesel" href="https://canadian-financial.ca/" target="_blank" rel="noopener">{{ financing_copy.provider_1_primary_cta_label }}</a>
+              <a class="btn btn--primary btn--diesel" href="https://www.autologiq.ca/easypay/" target="_blank" rel="noopener">{{ financing_copy.provider_1_primary_cta_label }}</a>
               <a class="btn btn--ghost btn--diesel" href="#steps">{{ financing_copy.provider_1_secondary_cta_label }}</a>
             </div>
           </article>

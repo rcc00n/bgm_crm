@@ -1480,7 +1480,7 @@ class FinancingPageCopy(models.Model):
 
     meta_title = models.CharField(max_length=160, default="BGM Customs — Financing Options")
     meta_description = models.TextField(
-        default="Flexible financing partners for builds, parts, and installs including Canadian Financial and Afterpay."
+        default="Flexible financing partners for builds, parts, and installs including AutoLogiQ and Afterpay."
     )
 
     skip_to_main_label = models.CharField(max_length=120, default="Skip to main content")
@@ -1522,12 +1522,17 @@ class FinancingPageCopy(models.Model):
     )
     providers_badge_label = models.CharField(max_length=40, default="Trusted")
 
-    provider_1_title = models.CharField(max_length=80, default="Canadian Financial")
-    provider_1_meta = models.CharField(max_length=120, default="Advisor: Canadian Financial team")
-    provider_1_desc = models.TextField(
-        default="Personalized financing support through Canadian Financial. Great for custom quotes and structured plans."
+    provider_1_title = models.CharField(max_length=80, default="AutoLogiQ")
+    provider_1_meta = models.CharField(
+        max_length=120, default="Credit-based or vehicle-based • Up to $12,500"
     )
-    provider_1_primary_cta_label = models.CharField(max_length=80, default="Apply with Canadian Financial")
+    provider_1_desc = models.TextField(
+        default=(
+            "Existing estimate required to apply. Credit-based or vehicle-based financing available up to $12,500. "
+            "Vehicles older than 10 years: financing limited."
+        )
+    )
+    provider_1_primary_cta_label = models.CharField(max_length=80, default="Apply with AutoLogiQ")
     provider_1_secondary_cta_label = models.CharField(max_length=60, default="How it works")
 
     provider_2_title = models.CharField(max_length=80, default="Afterpay (via Square)")
@@ -1550,7 +1555,7 @@ class FinancingPageCopy(models.Model):
     )
     step_2_title = models.CharField(max_length=80, default="Apply with a provider")
     step_2_desc = models.TextField(
-        default="Use Canadian Financial for larger projects, or Afterpay for smaller purchases."
+        default="Use AutoLogiQ for larger projects, or Afterpay for smaller purchases."
     )
     step_3_title = models.CharField(max_length=80, default="Choose terms & finalize")
     step_3_desc = models.TextField(
@@ -1563,18 +1568,24 @@ class FinancingPageCopy(models.Model):
 
     faq_title = models.CharField(max_length=80, default="Good to know")
     faq_desc = models.CharField(max_length=120, default="Quick answers to common questions.")
-    faq_1_title = models.CharField(max_length=80, default="Credit checks & approvals")
+    faq_1_title = models.CharField(max_length=80, default="Credit-based loans")
     faq_1_desc = models.TextField(
         default=(
-            "Some providers offer soft credit checks for pre-qualification. Final approval may require a "
-            "hard check. Terms and limits depend on your credit profile."
+            "The Max Credit Limit and Estimated Payment shown are for illustration only and are based on a "
+            "13.99% interest rate (lowest applicable rate for 24- and 36-month terms). The final loan amount, "
+            "term, interest rate, and payment are determined by the funder after a credit check and final "
+            "approval. If the client does not qualify or opts out of a credit-based loan, the vehicle may still "
+            "qualify for a loan based on its value. More information is available on the EasyPay FAQ page."
         )
     )
-    faq_2_title = models.CharField(max_length=80, default="Project eligibility")
+    faq_2_title = models.CharField(max_length=80, default="Vehicle-based loans")
     faq_2_desc = models.TextField(
         default=(
-            "Financing can cover parts, labor, coatings, and custom fabrication. We’ll help you structure "
-            "the quote to fit provider requirements."
+            "No credit check is required for loans secured by the vehicle's value in provinces where this type of "
+            "loan is offered. The Maximum Credit Limit is calculated as a percentage of the vehicle's current "
+            "Black Book value. Estimated payment is based on a 24.99% interest rate for a 36-month term. All loans, "
+            "including those subject to a personal credit check, are subject to final approval upon receipt and "
+            "review of the completed loan application."
         )
     )
     faq_3_title = models.CharField(max_length=80, default="Afterpay limits")
