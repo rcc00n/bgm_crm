@@ -255,6 +255,54 @@
       gap:.5rem;
       flex:1;
     }
+
+    #products .products-carousel{
+      position:relative;
+      overflow-x:hidden;
+    }
+    #products .products-carousel__nav{
+      display:flex;
+      gap:.4rem;
+      justify-content:flex-end;
+      margin:.2rem 0 .6rem;
+    }
+    #products .products-carousel__btn{
+      width:38px;
+      height:38px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.45);
+      color:#fff;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      transition:.2s ease;
+    }
+    #products .products-carousel__btn:hover{
+      border-color:rgba(213,0,0,.6);
+      transform:translateY(-1px);
+    }
+    #products .products-carousel__btn:disabled{
+      opacity:.4;
+      cursor:not-allowed;
+      transform:none;
+    }
+    #products .products-carousel__btn svg{ width:20px; height:20px; display:block; }
+    #products .products-carousel__track{
+      display:flex;
+      gap:1rem;
+      overflow-x:auto;
+      scroll-snap-type:x mandatory;
+      scroll-behavior:smooth;
+      padding:.1rem 0 .75rem;
+      scrollbar-width:none;
+    }
+    #products .products-carousel__track::-webkit-scrollbar{ width:0; height:0; display:none; }
+    #products .products-carousel__item{
+      flex:0 0 clamp(240px, 24vw, 300px);
+      scroll-snap-align:start;
+      scroll-snap-stop:always;
+    }
 	    .grid--gallery{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 
 	    .home-gallery{margin:1rem 0 1.6rem}
@@ -511,6 +559,19 @@
       #products .grid--products .price__hint{font-size:.72rem}
       #products .grid--products .old{font-size:.85rem}
       #products .grid--products .btn{padding:.6rem .95rem;font-size:.85rem!important}
+
+      #products .products-carousel__item{
+        flex-basis:clamp(250px, 22vw, 310px);
+      }
+      #products .products-carousel__item.card{
+        padding:.85rem;
+        gap:.6rem;
+      }
+      #products .products-carousel__item .card__img{border-radius:.7rem}
+      #products .products-carousel__item h3{font-size:1rem!important}
+      #products .products-carousel__item .price__hint{font-size:.72rem}
+      #products .products-carousel__item .old{font-size:.85rem}
+      #products .products-carousel__item .btn{padding:.6rem .95rem;font-size:.85rem!important}
     }
 
     @media (min-width: 861px) and (max-width: 1099px){
@@ -1787,13 +1848,22 @@
 		        <div id="productsLiveGrid" class="grid grid--products" style="display:none"></div>
 
 	        <div id="productsServerContent">
-	          {% if home_products %}
-	            <div class="grid grid--products grid--products--limit2">
-	              {% for p in home_products|slice:":8" %}
-	                <article class="card">
-	                  <a href="{% url 'store-product' slug=p.slug %}">
-	                    <div class="card__img">
-	                      {% if p.main_image_local %}
+          {% if home_products %}
+            <div class="products-carousel" data-products-carousel>
+              <div class="products-carousel__nav">
+                <button class="products-carousel__btn" type="button" data-products-prev aria-label="Previous products">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 5.5 9 12l6.5 6.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="products-carousel__btn" type="button" data-products-next aria-label="Next products">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5 15 12l-6.5 6.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+              <div class="products-carousel__track" data-products-track role="list" aria-label="{{ home_copy.products_title }}">
+                {% for p in home_products|slice:":8" %}
+                <article class="card products-carousel__item" role="listitem">
+                  <a href="{% url 'store-product' slug=p.slug %}">
+                    <div class="card__img">
+                      {% if p.main_image_local %}
 	                        {% thumbnail p.main_image_local "320" quality=66 format="WEBP" as product_1x %}
 	                          {% thumbnail p.main_image_local "640" quality=66 format="WEBP" as product_2x %}
 	                            <img
@@ -1859,13 +1929,14 @@
 	                      <form method="post" action="{% url 'store-cart-add' slug=p.slug %}">{% csrf_token %}
 	                        <button class="btn btn--primary" type="submit">{{ home_copy.products_add_to_cart_label }}</button>
 	                      </form>
-	                      <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
-	                    {% endif %}
-	                  </div>
-	                </article>
-	              {% endfor %}
-	            </div>
-	          {% else %}
+                      <a class="btn btn--ghost" href="{% url 'store-product' slug=p.slug %}">{{ home_copy.products_view_label }}</a>
+                    {% endif %}
+                  </div>
+                </article>
+              {% endfor %}
+              </div>
+            </div>
+          {% else %}
 	            <div class="empty">
 	              {{ home_copy.products_empty_label }} <a class="btn btn--link" href="{% url 'store' %}">{{ home_copy.products_empty_cta_label }}</a>
 	            </div>
@@ -2465,6 +2536,58 @@
         if (!track) return;
         const delta = scrollStep() * dir;
         track.scrollBy({ left: delta, behavior: prefersReduced ? 'auto' : 'smooth' });
+      };
+
+      if (prevBtn) prevBtn.addEventListener('click', () => scrollByStep(-1));
+      if (nextBtn) nextBtn.addEventListener('click', () => scrollByStep(1));
+
+      let raf = null;
+      track.addEventListener('scroll', () => {
+        if (raf) return;
+        raf = window.requestAnimationFrame(() => {
+          updateButtons();
+          raf = null;
+        });
+      }, { passive: true });
+
+      window.addEventListener('resize', updateButtons);
+      updateButtons();
+    });
+  })();
+  </script>
+
+  <!-- Products carousel -->
+  <script id="products-carousel-js">
+  (function(){
+    const carousels = document.querySelectorAll('[data-products-carousel]');
+    if (!carousels.length) return;
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    carousels.forEach((carousel) => {
+      const track = carousel.querySelector('[data-products-track]');
+      if (!track) return;
+      const prevBtn = carousel.querySelector('[data-products-prev]');
+      const nextBtn = carousel.querySelector('[data-products-next]');
+
+      const getStep = () => {
+        const item = track.querySelector('.products-carousel__item');
+        if (!item) return track.clientWidth || 0;
+        const gap = parseFloat(getComputedStyle(track).gap || 0) || 0;
+        return item.getBoundingClientRect().width + gap;
+      };
+
+      const updateButtons = () => {
+        if (!prevBtn || !nextBtn) return;
+        const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth - 2);
+        const hasOverflow = track.scrollWidth > track.clientWidth + 2;
+        prevBtn.style.display = hasOverflow ? '' : 'none';
+        nextBtn.style.display = hasOverflow ? '' : 'none';
+        prevBtn.disabled = track.scrollLeft <= 2;
+        nextBtn.disabled = track.scrollLeft >= maxScroll;
+      };
+
+      const scrollByStep = (dir) => {
+        track.scrollBy({ left: getStep() * dir, behavior: prefersReduced ? 'auto' : 'smooth' });
       };
 
       if (prevBtn) prevBtn.addEventListener('click', () => scrollByStep(-1));

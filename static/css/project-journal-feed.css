@@ -1321,6 +1321,7 @@ body.pj.pj-album-open{
 @media (max-width: 960px){
   .pj-page{ padding:1.6rem 1rem 3rem; }
   .pj-social__btn{ padding:0 .8rem; }
+  .pj-compare__label{ display:none; }
   .pj-compare__pair{
     display:flex;
     gap:0;
