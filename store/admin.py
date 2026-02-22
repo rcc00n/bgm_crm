@@ -1505,6 +1505,7 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
         ("Vehicle", {"fields": ("vehicle_make", "vehicle_model", "vehicle_year")}),
         ("Notes", {"fields": ("notes",)}),
         ("Client photo reference", {"fields": ("reference_image", "reference_image_preview")}),
+        ("Shipping", {"fields": ("tracking_numbers", "tracking_url")}),
         ("Timeline", {"fields": ("shipped_at", "completed_at", "cancelled_at")}),
     )
 

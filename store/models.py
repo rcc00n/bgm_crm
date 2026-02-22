@@ -797,6 +797,18 @@ class Order(models.Model):
         validators=[MinValueValidator(0)],
         help_text="Delivery cost applied at checkout (before GST/fees).",
     )
+    tracking_numbers = models.TextField(
+        "Tracking numbers",
+        blank=True,
+        default="",
+        help_text="One per line. Shown in the client portal after shipping.",
+    )
+    tracking_url = models.URLField(
+        "Tracking link",
+        blank=True,
+        default="",
+        help_text="Optional carrier tracking URL shown in the client portal.",
+    )
 
     # who created
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)

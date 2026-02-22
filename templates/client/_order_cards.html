@@ -67,6 +67,26 @@
               </div>
             </div>
           {% endif %}
+
+          {% if o.tracking_numbers or o.tracking_url %}
+            <div class="order-card__tracking">
+              <div class="order-card__tracking-title">Tracking</div>
+              <div class="order-card__tracking-list">
+                {% for entry in o.tracking_numbers|split_lines %}
+                  <span class="tracking-pill">{{ entry }}</span>
+                {% endfor %}
+                {% if o.tracking_url %}
+                  <a class="link text-sm inline-flex items-center gap-1"
+                     href="{{ o.tracking_url }}"
+                     target="_blank"
+                     rel="noopener"
+                     data-order-ignore-modal>
+                    Track package →
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
         </div>
       </article>
     {% endfor %}
