@@ -1276,8 +1276,21 @@ body.pj.pj-album-open{
 @media (max-width: 960px){
   .pj-page{ padding:1.6rem 1rem 3rem; }
   .pj-social__btn{ padding:0 .8rem; }
-  .pj-compare__pair{ grid-template-columns:1fr; }
-  .pj-compare__frame{ margin:0; }
+  .pj-compare__pair{
+    display:flex;
+    gap:0;
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .pj-compare__pair::-webkit-scrollbar{ display:none; }
+  .pj-compare__frame{
+    margin:0;
+    flex:0 0 100%;
+    scroll-snap-align:center;
+    scroll-snap-stop:always;
+  }
   .pj-media{ inset:0; display:flex; align-items:center; justify-content:center; }
   .pj-media img{
     object-position:center center;
