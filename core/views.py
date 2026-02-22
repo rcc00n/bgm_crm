@@ -8,6 +8,7 @@ from django import forms
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
+from django.db.utils import OperationalError, ProgrammingError
 from django.db.models import Prefetch, Q
 from django.contrib import admin, messages
 from django.contrib.admin.models import ADDITION, CHANGE, DELETION
@@ -59,6 +60,8 @@ from core.models import (
     PromoCode,
     SiteNoticeSignup,
     ServicesPageCopy,
+    HomePageCopy,
+    HomePageFAQItem,
     FinancingPageCopy,
     AboutPageCopy,
     DealerApplication,
@@ -2656,6 +2659,32 @@ def financing_view(request):
             "font_settings": font_settings,
             "financing_copy": financing_copy,
             "header_copy": financing_copy,
+        },
+    )
+
+def faq_view(request):
+    font_settings = build_page_font_context(PageFontSetting.Page.HOME)
+    home_copy = HomePageCopy.get_solo()
+    try:
+        all_faq_items = list(
+            HomePageFAQItem.objects.filter(home_page_copy=home_copy).order_by("order", "id")
+        )
+    except (OperationalError, ProgrammingError):
+        home_faq_legacy = True
+        home_faq_items = []
+    else:
+        home_faq_legacy = False
+        home_faq_items = [item for item in all_faq_items if item.is_published]
+
+    return render(
+        request,
+        "client/faq.html",
+        {
+            "font_settings": font_settings,
+            "home_copy": home_copy,
+            "home_faq_legacy": home_faq_legacy,
+            "home_faq_items": home_faq_items,
+            "header_copy": home_copy,
         },
     )
 

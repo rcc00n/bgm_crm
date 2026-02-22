@@ -1,0 +1,238 @@
+{% load static copy_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ home_copy.faq_title|default:"FAQ" }} — Bad Guy Motors</title>
+  {% with meta_title=home_copy.faq_title|default:"FAQ" meta_description=home_copy.faq_desc|default:"Answers to common questions about Bad Guy Motors." meta_section="faq" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+
+  <style>
+    :root{
+      --bg:#050505; --fg:#ffffff; --muted:rgba(255,255,255,.72); --muted-2:rgba(255,255,255,.55);
+      --line:rgba(255,255,255,.12); --panel:#0d0d0f; --panel-2:#121216;
+      --accent:#d50000; --accent-2:#ff1a1a;
+      --radius-lg:1.25rem; --radius-md:.9rem; --radius-sm:.6rem;
+      --shadow:0 18px 38px rgba(0,0,0,.55);
+      --container:clamp(320px,92vw,1200px);
+      --site-header-height:72px;
+      --site-header-toggle-size:46px;
+      --font-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      --font-head:"Diesel",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    }
+
+    {% if font_settings %}
+      {% for font in font_settings.fonts %}
+        {% if font.has_source %}
+    @font-face{
+      font-family:"{{ font.family }}";
+      src:url("{{ font.url }}") format("{{ font.format|default:'truetype' }}");
+      font-weight:{{ font.weight|default:"400" }};
+      font-style:{{ font.style|default:"normal" }};
+      font-display:{{ font.display|default:"swap" }};
+    }
+        {% endif %}
+      {% endfor %}
+      {% with body_stack=font_settings.body.stack|default:'"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif' %}
+      {% with heading_stack=font_settings.heading.stack|default:'"Diesel",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif' %}
+      {% with ui_stack=font_settings.ui.stack|default:body_stack %}
+    :root{
+      --font-body: {{ body_stack|safe }};
+      --font-head: {{ heading_stack|safe }};
+      --font-ui: {{ ui_stack|safe }};
+    }
+      {% endwith %}
+      {% endwith %}
+      {% endwith %}
+    {% endif %}
+
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{ text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
+    body{ background:var(--bg); color:var(--fg); font-family:var(--font-body); line-height:1.6; }
+    a{ color:inherit; text-decoration:none; }
+    img{ max-width:100%; display:block; }
+    .container{ width:var(--container); margin-inline:auto; padding-inline:1rem; }
+
+    .visually-hidden{ position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .visually-hidden:focus{ position:fixed!important; top:12px; left:12px; width:auto; height:auto; padding:.65rem 1rem; background:var(--accent); color:#fff; border-radius:.5rem; z-index:1200; }
+
+    #bg{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+    #bg canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+    .bgm-topbar, main, footer{ position:relative; z-index:1; }
+
+    .hero{
+      background:
+        radial-gradient(1000px 420px at 10% -10%, rgba(255,26,26,.18), transparent 60%),
+        radial-gradient(800px 360px at 90% 0%, rgba(213,0,0,.2), transparent 65%),
+        linear-gradient(180deg, #060606 0%, #000 100%);
+      border-bottom:1px solid var(--line);
+    }
+    .hero__inner{ padding:clamp(2rem,6vw,4.5rem) 0; display:grid; gap:1rem; }
+    .kicker{
+      font-size:.78rem;
+      letter-spacing:.2em;
+      text-transform:uppercase;
+      color:var(--muted-2);
+      font-weight:800;
+    }
+    .title{
+      font-family:var(--font-head);
+      font-size:clamp(2rem,4.6vw,3.4rem);
+      line-height:1.1;
+      font-weight:900;
+      text-transform:uppercase;
+      color:#fff;
+      text-shadow:0 0 18px rgba(213,0,0,.25);
+    }
+    .lead{ color:var(--muted); max-width:60ch; font-size:clamp(1rem,1.2vw,1.15rem); }
+
+    .section{ padding:clamp(2rem,6vw,4rem) 0; }
+    .section__head{ display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .section__title{ font-family:var(--font-head); font-size:1.6rem; font-weight:900; }
+    .section__desc{ color:var(--muted); }
+
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:.6rem;
+      padding:.75rem 1.1rem; border-radius:var(--radius-sm); border:1px solid transparent;
+      font-weight:800; letter-spacing:.02em; cursor:pointer; transition:.2s;
+    }
+    .btn--primary{ background:var(--accent); color:#fff; }
+    .btn--primary:hover{ transform:translateY(-1px); box-shadow:0 12px 24px rgba(213,0,0,.25); }
+    .btn--ghost{ background:transparent; border-color:var(--line); color:var(--fg); }
+    .btn--ghost:hover{ border-color:var(--accent); color:var(--accent); }
+
+    .faq-grid{ display:grid; gap:1rem; }
+    details.faq-item{
+      border:1px solid var(--line);
+      border-radius:var(--radius-md);
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));
+      padding:1rem 1.1rem;
+      box-shadow:var(--shadow);
+    }
+    details.faq-item[open]{ border-color:rgba(213,0,0,.35); }
+    details.faq-item summary{
+      list-style:none;
+      cursor:pointer;
+      font-weight:800;
+      font-size:1rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+    }
+    details.faq-item summary::-webkit-details-marker{ display:none; }
+    details.faq-item summary::after{
+      content:"+";
+      font-size:1.1rem;
+      color:var(--muted-2);
+      transition:transform .2s ease;
+    }
+    details.faq-item[open] summary::after{
+      content:"–";
+      color:#fff;
+    }
+    .faq-item__answer{
+      margin-top:.8rem;
+      color:var(--muted);
+      line-height:1.6;
+    }
+    .faq-empty{
+      border:1px dashed var(--line);
+      border-radius:var(--radius-md);
+      padding:1.5rem;
+      text-align:center;
+      color:var(--muted);
+      background:rgba(255,255,255,.02);
+    }
+
+    @media (max-width: 900px){
+      .section__head{ flex-direction:column; align-items:flex-start; }
+    }
+  </style>
+</head>
+<body>
+  {% include "includes/marketing_body.html" %}
+  {% include "includes/site_notice_markup.html" with site_notice_version="offer-v1" %}
+  <div id="bg"></div>
+
+  <a href="#main" class="visually-hidden">Skip to main content</a>
+
+  {% with current='faq' %}
+    {% include "includes/topbar_client_v3.html" %}
+  {% endwith %}
+
+  <main id="main">
+    <section class="hero">
+      <div class="container hero__inner">
+        <p class="kicker">Help & answers</p>
+        <h1 class="title">{{ home_copy.faq_title|default:"FAQ" }}</h1>
+        <p class="lead">{{ home_copy.faq_desc|default:"Answers to common questions about Bad Guy Motors." }}</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section__head">
+          <div>
+            <h2 class="section__title">Frequently asked questions</h2>
+            <p class="section__desc">Quick answers before you book, order parts, or start a build.</p>
+          </div>
+          <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#contact">Contact us</a>
+        </div>
+
+        <div class="faq-grid">
+          {% if home_faq_legacy %}
+            <details class="faq-item">
+              <summary>{{ home_copy.faq_1_question }}</summary>
+              <div class="faq-item__answer">{{ home_copy.faq_1_answer }}</div>
+            </details>
+            <details class="faq-item">
+              <summary>{{ home_copy.faq_2_question }}</summary>
+              <div class="faq-item__answer">{{ home_copy.faq_2_answer }}</div>
+            </details>
+            {% with faq_3_answer=home_copy.faq_3_answer|default:"" %}
+              <details class="faq-item">
+                <summary>{{ home_copy.faq_3_question }}</summary>
+                <div class="faq-item__answer">
+                  {% if "soon" in faq_3_answer|lower %}
+                    Yes. Dealer applications are open. Leave a request via the contact form.
+                  {% else %}
+                    {{ faq_3_answer }}
+                  {% endif %}
+                </div>
+              </details>
+            {% endwith %}
+          {% elif home_faq_items %}
+            {% for item in home_faq_items %}
+              {% with faq_answer=item.answer|default:"" %}
+                <details class="faq-item">
+                  <summary>{{ item.question }}</summary>
+                  <div class="faq-item__answer">
+                    {% if "soon" in faq_answer|lower %}
+                      Yes. Dealer applications are open. Leave a request via the contact form.
+                    {% else %}
+                      {{ faq_answer }}
+                    {% endif %}
+                  </div>
+                </details>
+              {% endwith %}
+            {% endfor %}
+          {% else %}
+            <div class="faq-empty">FAQs are being updated. Please check back soon.</div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {% include "includes/site_footer.html" %}
+
+  <script>
+    window.__bgmSmokeThreeSrc = "{% safe_static 'vendor/three-r160.min.js' '' %}";
+    window.__bgmSmokeThreeFallbackSrc = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js";
+  </script>
+  <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+</body>
+</html>

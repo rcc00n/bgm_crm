@@ -168,6 +168,7 @@ urlpatterns = [
     path("dealer/apply/<slug:step>/", DealerApplyWizardView.as_view(), name="dealer-apply-step"),
     path("dealer/status/", DealerStatusView.as_view(), name="dealer-status"),
     path("financing/", core_views.financing_view, name="financing"),
+    path("faq/", core_views.faq_view, name="faq"),
     path("our-story/", core_views.our_story_view, name="our-story"),
     # Hidden brake & suspension landing page (direct-link only)
     path("services/brake-suspension/", core_views.brake_suspension_view, name="services-brake-suspension"),

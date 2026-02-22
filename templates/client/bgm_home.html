@@ -1981,8 +1981,11 @@
         <section class="section home-faq">
           <div class="container">
             <div class="section__head">
-              <h2 class="section__title">{{ home_copy.faq_title }}</h2>
-              <p class="section__desc">{{ home_copy.faq_desc }}</p>
+              <div>
+                <h2 class="section__title">{{ home_copy.faq_title }}</h2>
+                <p class="section__desc">{{ home_copy.faq_desc }}</p>
+              </div>
+              <a class="btn btn--ghost" href="{% url 'faq' %}">View all FAQs</a>
             </div>
             <div class="grid">
               <details><summary>{{ home_copy.faq_1_question }}</summary><p>{{ home_copy.faq_1_answer }}</p></details>
@@ -2000,8 +2003,11 @@
         <section class="section home-faq">
           <div class="container">
             <div class="section__head">
-              <h2 class="section__title">{{ home_copy.faq_title }}</h2>
-              <p class="section__desc">{{ home_copy.faq_desc }}</p>
+              <div>
+                <h2 class="section__title">{{ home_copy.faq_title }}</h2>
+                <p class="section__desc">{{ home_copy.faq_desc }}</p>
+              </div>
+              <a class="btn btn--ghost" href="{% url 'faq' %}">View all FAQs</a>
             </div>
             <div class="grid">
               {% for item in home_faq_items %}
