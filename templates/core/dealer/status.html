@@ -215,8 +215,25 @@
     .metric__value{font-weight:900;font-family:var(--font-head);letter-spacing:.02em}
     .progress{margin-top:.8rem}
     .progress__bar{width:100%;height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
-    .progress__fill{height:100%;background:linear-gradient(90deg,#d50000,#ff4d4d)}
+    .progress__fill{height:100%;background:linear-gradient(90deg,#d50000,#ff4d4d);max-width:100%}
     .progress__meta{display:flex;align-items:center;justify-content:space-between;font-size:.9rem;color:var(--muted);margin-top:.35rem}
+    .progress--major{margin-top:.6rem}
+    .progress__head{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;align-items:end;margin-bottom:.6rem}
+    .progress__head-col{display:flex;flex-direction:column;gap:.2rem}
+    .progress__head-col--percent{align-items:flex-end}
+    .progress__head-label{text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;color:var(--muted);font-weight:700}
+    .progress__head-value{font-weight:900;font-family:var(--font-head);font-size:1.05rem;letter-spacing:.02em}
+    .progress__bar--major{height:16px;position:relative}
+    .progress__bar--major .progress__fill{box-shadow:0 0 16px rgba(213,0,0,.35)}
+    .progress__ticks{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 .35rem;pointer-events:none}
+    .progress__tick{width:6px;height:6px;border-radius:999px;background:rgba(255,255,255,.25);box-shadow:0 0 0 2px rgba(0,0,0,.6)}
+    .progress__tick.is-current{background:#fff}
+    .progress__labels{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.55rem;margin-top:.65rem}
+    .progress__label{display:flex;flex-direction:column;gap:.15rem;padding:.45rem .55rem;border-radius:.6rem;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04)}
+    .progress__label-name{font-weight:800;font-size:.82rem;letter-spacing:.06em;text-transform:uppercase}
+    .progress__label-amount{color:var(--muted);font-size:.85rem}
+    .progress__label.is-current{border-color:rgba(255,77,77,.6);background:rgba(213,0,0,.12)}
+    .progress__note{margin-top:.6rem;color:var(--muted);font-size:.92rem;line-height:1.45}
     .timeline{display:flex;flex-direction:column;gap:1rem;margin-top:1.2rem}
     .timeline__step{display:flex;gap:.8rem;align-items:flex-start}
     .timeline__icon{width:32px;height:32px;border-radius:999px;display:grid;place-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);font-size:.85rem}
@@ -269,6 +286,9 @@
       .table{min-width:520px;font-size:.9rem}
       .table th:nth-child(4), .table td:nth-child(4){display:none}
       .resource .btn{width:100%}
+      .progress__head{grid-template-columns:1fr;align-items:flex-start}
+      .progress__head-col--percent{align-items:flex-start}
+      .progress__labels{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
     }
     /* Smoke background (bgm-smoke.js forces #bg z-index=0 inline). */
     #bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
@@ -551,18 +571,53 @@
               <span class="badge">{{ dealer_copy.progress_max_tier_badge }}</span>
             {% endif %}
           </div>
-          <div class="progress">
-            <div class="progress__bar">
-              <div class="progress__fill" style="width:{{ portal.progress|default:0 }}%"></div>
+          <div class="progress progress--major">
+            <div class="progress__head">
+              <div class="progress__head-col">
+                <span class="progress__head-label">{{ dealer_copy.account_metric_tier_label }}</span>
+                <span class="progress__head-value">{{ portal_display.tier_label|default:portal.tier_label|default:dealer_copy.tier_default_label|normalize_tier_label }}</span>
+              </div>
+              <div class="progress__head-col">
+                <span class="progress__head-label">{{ dealer_copy.hero_stat_lifetime_spend_label }}</span>
+                <span class="progress__head-value">{{ lifetime_spent|money }}</span>
+              </div>
+              <div class="progress__head-col progress__head-col--percent">
+                <span class="progress__head-label">Progress</span>
+                {% if next_tier %}
+                  <span class="progress__head-value">{{ portal.progress|default:0 }}%</span>
+                {% else %}
+                  <span class="progress__head-value">100%</span>
+                {% endif %}
+              </div>
             </div>
-            <div class="progress__meta">
-              <span>{{ dealer_copy.hero_stat_lifetime_spend_label }}: {{ lifetime_spent|money }}</span>
+            <div class="progress__bar progress__bar--major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{% if next_tier %}{{ portal.progress|default:0 }}{% else %}100{% endif %}">
+              <div class="progress__fill" style="width:{% if next_tier %}{{ portal.progress|default:0 }}{% else %}100{% endif %}%"></div>
+              {% if tier_levels %}
+                <div class="progress__ticks" aria-hidden="true">
+                  {% for tier in tier_levels %}
+                    <span class="progress__tick {% if tier.code == portal_display.tier_code %}is-current{% endif %}"></span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            {% if tier_levels %}
+              <div class="progress__labels">
+                {% for tier in tier_levels %}
+                  <div class="progress__label {% if tier.code == portal_display.tier_code %}is-current{% endif %}">
+                    <span class="progress__label-name">{{ tier.label|normalize_tier_label }}</span>
+                    <span class="progress__label-amount">{{ tier.minimum_spend|money }}</span>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+            <div class="progress__note">
               {% if next_tier %}
-                <span>{{ portal.progress|default:0 }}% {{ dealer_copy.hero_stat_next_tier_suffix }} {{ next_tier.label|normalize_tier_label }}</span>
-                <span>{{ next_tier.minimum_spend|money }}</span>
+                {% if remaining_to_next %}
+                  {{ remaining_to_next|money }} {{ dealer_copy.hero_stat_next_tier_suffix }} {{ next_tier.label|normalize_tier_label }}.
+                {% endif %}
+                {{ dealer_copy.hero_stat_lifetime_spend_label }}: {{ lifetime_spent|money }}.
               {% else %}
-                <span>100% {{ dealer_copy.progress_max_tier_badge }}</span>
-                <span>{{ dealer_copy.progress_top_tier_label }}</span>
+                {{ dealer_copy.progress_max_tier_badge }}. {{ dealer_copy.hero_stat_lifetime_spend_label }}: {{ lifetime_spent|money }}.
               {% endif %}
             </div>
           </div>
