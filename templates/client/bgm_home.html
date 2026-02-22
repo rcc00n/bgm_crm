@@ -383,6 +383,8 @@
 
     .card{display:flex;flex-direction:column;gap:.75rem;padding:1rem;border-radius:1rem;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .22s ease}
     .card:hover{transform:translateY(-3px)}
+    #services .card--link{ cursor:pointer; }
+    #services .card--link:focus-visible{ outline:2px solid rgba(213,0,0,.6); outline-offset:3px; }
     .card__img{position:relative;aspect-ratio:16/9;border-radius:.8rem;overflow:hidden;background:#0b0b0b;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-size:.95rem}
     .card__img img{width:100%;height:100%;object-fit:cover;display:block}
     .card__head{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap}
@@ -1709,7 +1711,7 @@
             <h3 class="kicker" style="margin:.5rem 0 1rem">{{ home_copy.services_results_label }}</h3>
             <div class="grid grid--services">
               {% for s in search_results|slice:":8" %}
-                <article class="card">
+                <article class="card card--link" data-card-href="{% url 'client-dashboard' %}?book={{ s.id }}#services" tabindex="0">
                   <div class="card__img">
                     {% if s.image %}
                       {% thumbnail s.image "320" quality=66 format="WEBP" as service_1x %}
@@ -1767,7 +1769,7 @@
 		          {% if home_services %}
 		            <div class="grid grid--services grid--services--limit2">
 		              {% for s in home_services|slice:":8" %}
-		                <article class="card">
+		                <article class="card card--link" data-card-href="{% url 'client-dashboard' %}?book={{ s.id }}#services" tabindex="0">
 		                  <div class="card__img">
 	                    {% if s.image %}
 	                      {% thumbnail s.image "320" quality=66 format="WEBP" as service_1x %}
@@ -2199,7 +2201,7 @@
         : "";
       const durationHtml = durationBits ? `<div class="dur">${durationBits}</div>` : "";
       return `
-        <article class="card">
+        <article class="card card--link" data-card-href="${esc(bookingHref)}" tabindex="0">
           <div class="card__img">${media}</div>
           <div class="card__head">
             <h3 style="font-weight:900">${esc(s.name)}</h3>
@@ -2236,6 +2238,31 @@
     catSel.addEventListener('change', run);
 	  })();
 	  </script>
+
+    <script id="services-card-link-js">
+    (function(){
+      const selector = '#services .card--link[data-card-href]';
+      const isInteractive = (el) => !!el.closest('a,button,input,select,textarea,label,summary,details');
+      const go = (card) => {
+        const href = card.dataset.cardHref;
+        if (href) window.location.href = href;
+      };
+
+      document.addEventListener('click', (e) => {
+        const card = e.target.closest(selector);
+        if (!card || isInteractive(e.target)) return;
+        go(card);
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const card = e.target.closest(selector);
+        if (!card || isInteractive(e.target)) return;
+        e.preventDefault();
+        go(card);
+      });
+    })();
+    </script>
 
 	  <script>
 	  /* Live product search (Home) */
