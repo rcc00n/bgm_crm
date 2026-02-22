@@ -2637,6 +2637,20 @@
       if (!track) return;
       const prevBtn = carousel.querySelector('[data-products-prev]');
       const nextBtn = carousel.querySelector('[data-products-next]');
+      let originalWidth = 0;
+      let lastScrollLeft = 0;
+
+      const setupLoop = () => {
+        if (track.dataset.loopReady === 'true') return;
+        const items = Array.from(track.children);
+        if (items.length < 2) return;
+        items.forEach((item) => {
+          track.appendChild(item.cloneNode(true));
+        });
+        track.dataset.loopReady = 'true';
+        originalWidth = track.scrollWidth / 2;
+        lastScrollLeft = track.scrollLeft;
+      };
 
       const getStep = () => {
         const item = track.querySelector('.products-carousel__item');
@@ -2651,14 +2665,23 @@
         const hasOverflow = track.scrollWidth > track.clientWidth + 2;
         prevBtn.style.display = hasOverflow ? '' : 'none';
         nextBtn.style.display = hasOverflow ? '' : 'none';
-        prevBtn.disabled = track.scrollLeft <= 2;
-        nextBtn.disabled = track.scrollLeft >= maxScroll;
+        if (track.dataset.loopReady === 'true') {
+          prevBtn.disabled = false;
+          nextBtn.disabled = false;
+        } else {
+          prevBtn.disabled = track.scrollLeft <= 2;
+          nextBtn.disabled = track.scrollLeft >= maxScroll;
+        }
       };
 
       const scrollByStep = (dir) => {
+        if (dir < 0 && originalWidth && track.scrollLeft <= 1) {
+          track.scrollLeft = track.scrollLeft + originalWidth;
+        }
         track.scrollBy({ left: getStep() * dir, behavior: prefersReduced ? 'auto' : 'smooth' });
       };
 
+      setupLoop();
       if (prevBtn) prevBtn.addEventListener('click', () => scrollByStep(-1));
       if (nextBtn) nextBtn.addEventListener('click', () => scrollByStep(1));
 
@@ -2666,12 +2689,29 @@
       track.addEventListener('scroll', () => {
         if (raf) return;
         raf = window.requestAnimationFrame(() => {
+          if (originalWidth) {
+            const current = track.scrollLeft;
+            if (current >= originalWidth) {
+              track.scrollLeft = current - originalWidth;
+              lastScrollLeft = track.scrollLeft;
+            } else if (current <= 1 && lastScrollLeft > current) {
+              track.scrollLeft = current + originalWidth;
+              lastScrollLeft = track.scrollLeft;
+            } else {
+              lastScrollLeft = current;
+            }
+          }
           updateButtons();
           raf = null;
         });
       }, { passive: true });
 
-      window.addEventListener('resize', updateButtons);
+      window.addEventListener('resize', () => {
+        if (track.dataset.loopReady === 'true') {
+          originalWidth = track.scrollWidth / 2;
+        }
+        updateButtons();
+      });
       updateButtons();
     });
   })();
