@@ -1578,22 +1578,7 @@
 	        <hr class="home-divider" aria-hidden="true">
 
 	        <!-- Mobile services lite -->
-	        <div id="mobileServices" class="only-mobile" aria-labelledby="servicesMobileTitle">
-          <h3 id="servicesMobileTitle" class="kicker">{{ home_copy.services_mobile_kicker }}</h3>
-          <div class="mobi-actions" style="margin-bottom:.6rem">
-            <a class="mobi-action" href="{{ services_mobile_action_1_url }}">
-              <b>{{ home_copy.services_mobile_action_1_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_1_subtitle }}</span>
-            </a>
-            <a class="mobi-action" href="{{ services_mobile_action_2_url }}">
-              <b>{{ home_copy.services_mobile_action_2_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_2_subtitle }}</span>
-            </a>
-            <a class="mobi-action" href="{{ services_mobile_action_3_url }}">
-              <b>{{ home_copy.services_mobile_action_3_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_3_subtitle }}</span>
-            </a>
-            <a class="mobi-action" href="{{ services_mobile_action_4_url }}">
-              <b>{{ home_copy.services_mobile_action_4_title }}</b><span class="mobi-sub">{{ home_copy.services_mobile_action_4_subtitle }}</span>
-            </a>
-          </div>
+	        <div id="mobileServices" class="only-mobile">
           <form class="filters home-search home-search--mobile" role="search" method="get" action="{% url 'client-dashboard' %}">
             <input class="input" type="search" name="q" placeholder="{{ home_copy.services_search_placeholder }}" value="{{ q|default:'' }}">
             <button class="btn btn--primary" type="submit">{{ home_copy.services_search_button_label }}</button>
