@@ -439,6 +439,32 @@
     min-width:9ch;
     margin-right:.5rem;
   }
+  .our-story-page .story-card{
+    gap:.8rem;
+  }
+  .our-story-page .story-card p{
+    font-size:clamp(1rem, 1.1vw, 1.12rem);
+    line-height:1.85;
+    max-width:62ch;
+    color:rgba(255,255,255,.86);
+  }
+  .our-story-page .story-card .muted{
+    color:rgba(255,255,255,.7);
+  }
+  .our-story-page .build-card .list--build{
+    margin-top:.65rem;
+    column-gap:2.3rem;
+  }
+  .our-story-page .build-card .list--build li{
+    line-height:1.7;
+    color:rgba(255,255,255,.88);
+  }
+  .our-story-page .build-card .list--build li::marker{
+    color:rgba(255,255,255,.4);
+  }
+  .our-story-page .build-card .list--build li + li{
+    margin-top:.6rem;
+  }
 
   .our-story-page .list--rates{
     list-style:none;
@@ -537,6 +563,7 @@
     .our-story-page .rate-value{ text-align:left; }
     .our-story-page .contact-fab,
     .our-story-page .bgm-cart-fab{ opacity:.9; }
+    .our-story-page .story-card p{ max-width:100%; }
   }
   @media (max-height:720px){
     .our-story-page .contact-fab,
@@ -585,7 +612,7 @@
     <!-- Row 1 -->
     <section class="section">
       <div class="container grid grid--2">
-	        <article class="card">
+	        <article class="card story-card">
 	          <h2 class="section__title">{{ about_copy.story_title }}</h2>
 	          <p>{{ about_copy.story_paragraph_1|striptags|safe }}</p>
 	          <p class="muted">{{ about_copy.story_paragraph_2|striptags|safe }}</p>
@@ -605,7 +632,7 @@
           </div>
         </article>
 
-        <article class="card">
+        <article class="card build-card">
           <h2 class="section__title">{{ about_copy.build_title }}</h2>
           <ul class="list list--build">
             <li>{{ about_copy.build_item_1 }}</li>
