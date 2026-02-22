@@ -215,6 +215,7 @@
     }
     .field{display:flex;flex-direction:column;gap:6px;margin-top:12px}
     .field label{color:var(--muted);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+    .label-placeholder{visibility:hidden}
     .field input,.field select{
       display:block;
       width:100%;
@@ -238,7 +239,10 @@
       border-radius:10px;
       padding:.45rem .55rem;
       background:#0d0d0d;
+      width:100%;
+      min-height:44px;
     }
+    .field--preview .booking-photo-preview{margin-top:0}
     .booking-photo-preview img{
       width:48px;
       height:48px;
@@ -529,8 +533,15 @@
           <input id="contactPhone" type="tel" inputmode="tel" autocomplete="tel" pattern="\+?\d{10,15}" title="{{ services_copy.booking_phone_title }}" required placeholder="{{ services_copy.booking_phone_placeholder }}">
         </div>
         <div class="field">
+          <label for="contactPromo">{{ services_copy.booking_promocode_label }}</label>
+          <input id="contactPromo" type="text" autocomplete="off" placeholder="{{ services_copy.booking_promocode_placeholder }}">
+        </div>
+        <div class="field">
           <label for="contactReferenceImage">Reference photo (optional)</label>
           <input id="contactReferenceImage" type="file" accept="image/*">
+        </div>
+        <div class="field field--preview">
+          <label class="label-placeholder" aria-hidden="true">Reference preview</label>
           <div id="contactReferencePreview" class="booking-photo-preview" hidden>
             <img id="contactReferencePreviewImg" alt="Reference preview">
             <div class="booking-photo-preview__meta">
@@ -607,6 +618,7 @@
         noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
         noOpenTimesOnPrefix: "{{ services_copy.booking_no_open_times_on_prefix|escapejs }}",
         noOpenTimesOnSuffix: "{{ services_copy.booking_no_open_times_on_suffix|escapejs }}",
+        weekendClosedLabel: "{{ services_copy.booking_weekend_closed_label|escapejs }}",
         failedSlotsLabel: "{{ services_copy.booking_failed_slots_label|escapejs }}",
         availabilityErrorLabel: "{{ services_copy.booking_availability_error_label|escapejs }}",
         missingContactError: "{{ services_copy.booking_missing_contact_error|escapejs }}",
@@ -636,6 +648,7 @@
         email: document.getElementById('contactEmail'),
         phone: document.getElementById('contactPhone'),
       };
+      const promoInput = document.getElementById('contactPromo');
       const contactReferenceInput = document.getElementById('contactReferenceImage');
       const contactReferencePreview = document.getElementById('contactReferencePreview');
       const contactReferencePreviewImg = document.getElementById('contactReferencePreviewImg');
@@ -849,6 +862,7 @@
           const r = await fetch(`${apiAvail}?${params.toString()}`, {credentials:'same-origin'});
           if (!r.ok) throw new Error(copy.failedSlotsLabel);
           const data = await r.json();
+          const dayStatus = data.day_status || {};
           state.masters = data.masters || [];
           if (!state.masters.length){
             state.timeMap = new Map();
@@ -861,7 +875,11 @@
           renderTimeOptions(times);
           if (!times.length){
             const dayLabel = new Date(`${dateKey}T00:00:00`).toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
-            setStatus(`${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`, true);
+            const weekendClosed = dayStatus.is_closed && dayStatus.source === 'weekend';
+            const message = weekendClosed
+              ? (copy.weekendClosedLabel || copy.noOpenTimesLabel)
+              : `${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`;
+            setStatus(message, true);
             return;
           }
           if (times.length === 1){
@@ -929,6 +947,9 @@
           payload.append('contact_name', contactInputs.name.value.trim());
           payload.append('contact_email', contactInputs.email.value.trim());
           payload.append('contact_phone', contactInputs.phone.value.trim());
+          if (promoInput && promoInput.value.trim()){
+            payload.append('promocode', promoInput.value.trim());
+          }
           if (state.masterId){
             payload.append('master', state.masterId);
           }

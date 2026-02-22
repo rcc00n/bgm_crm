@@ -8,6 +8,7 @@ from django import forms
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
+from django.db.utils import OperationalError, ProgrammingError
 from django.db.models import Prefetch, Q
 from django.contrib import admin, messages
 from django.contrib.admin.models import ADDITION, CHANGE, DELETION
@@ -43,6 +44,7 @@ from core.models import (
     ServiceCategory,
     Service,
     CustomUserDisplay,
+    AppointmentPromoCode,
     AppointmentStatusHistory,
     LegalPage,
     ProjectJournalCategory,
@@ -58,6 +60,9 @@ from core.models import (
     PromoCode,
     SiteNoticeSignup,
     ServicesPageCopy,
+    BookingDayOverride,
+    HomePageCopy,
+    HomePageFAQItem,
     FinancingPageCopy,
     AboutPageCopy,
     DealerApplication,
@@ -67,6 +72,7 @@ from core.models import (
     EmailSendLog,
     EmailSubscriber,
     ClientFile,
+    ServiceDiscount,
 )
 from core.forms import ServiceLeadForm
 from core.services.booking import (
@@ -1803,12 +1809,17 @@ def api_availability(request):
 
     day_dt = _tz_aware(datetime(day.year, day.month, day.day, 12, 0))
     master_obj = get_object_or_404(CustomUserDisplay, pk=master_id) if master_id else None
+    day_status = BookingDayOverride.resolve_status(day)
     slots_map = get_available_slots(service, day_dt, master=master_obj)
 
     masters_qs = [master_obj] if master_obj else list(get_service_masters(service))
     resp = {
         "service": {"id": str(service.pk), "name": service.name, "duration": service.duration_min},
         "date": date_str,
+        "day_status": {
+            "is_closed": day_status["is_closed"],
+            "source": day_status["source"],
+        },
         "masters": []
     }
     for m in masters_qs:
@@ -1909,6 +1920,25 @@ def api_book(request):
             or ""
         ).strip()
 
+    promo_raw = (
+        payload.get("promocode")
+        or payload.get("promo_code")
+        or ""
+    )
+    promo_code = promo_raw.strip().upper()
+    promo = None
+    if promo_code:
+        promo = PromoCode.objects.filter(code__iexact=promo_code).first()
+        if not promo or not promo.is_valid_for_service(service):
+            return JsonResponse({"errors": {"promocode": "Promo code not found or not valid for this service."}}, status=400)
+        today = timezone.now().date()
+        if ServiceDiscount.objects.filter(
+            service=service,
+            start_date__lte=today,
+            end_date__gte=today,
+        ).exists():
+            return JsonResponse({"errors": {"promocode": "This service already has a discount. Promo code can't be applied."}}, status=400)
+
     reference_file = request.FILES.get("reference_image")
     if reference_file:
         reference_error = _validate_booking_reference_image(reference_file)
@@ -1973,6 +2003,16 @@ def api_book(request):
         status=initial_status,
         set_by=user,
     )
+
+    if promo:
+        base_amount = appt.service.base_price_amount()
+        percent = Decimal(promo.discount_percent) / Decimal("100")
+        discount = (base_amount * percent).quantize(Decimal("0.01"))
+        AppointmentPromoCode.objects.create(
+            appointment=appt,
+            promocode=promo,
+            discount_applied=discount,
+        )
 
     file_owner = user
     if not file_owner and contact_email:
@@ -2274,7 +2314,6 @@ class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
                 "website",
                 "years_in_business",
                 "business_type",
-                "preferred_tier",
                 "business_address",
                 "city",
                 "province",
@@ -2302,8 +2341,6 @@ class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
             initial.setdefault("email", getattr(self.request.user, "email", "") or "")
             if profile and getattr(profile, "phone", None):
                 initial.setdefault("phone", profile.phone)
-            if not initial.get("preferred_tier"):
-                initial["preferred_tier"] = DealerTier.TIER_5
 
         if step_slug == "address":
             if profile and getattr(profile, "address", None):
@@ -2383,7 +2420,7 @@ class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
         for slug, _form, _label in DEALER_WIZARD_STEPS:
             payload.update(state.get(slug) or {})
 
-        preferred = payload.get("preferred_tier") or DealerTier.TIER_5
+        preferred = DealerTier.TIER_5
         # Bump created_at on submit so admin notifications (which track created_at for public submissions)
         # reflect fresh (re)submissions as "new" work items.
         submitted_at = timezone.now()
@@ -2568,40 +2605,14 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
         is_dealer = portal_snapshot.get("is_dealer", False)
         ctx["is_dealer"] = is_dealer
 
-        # UI-only tier/discount display. For non-dealers, show the requested tier's
-        # configured discount percent (without enabling wholesale pricing).
-        tier_levels = ctx.get("tier_levels") or []
-        tier_map = {getattr(t, "code", None): t for t in tier_levels if getattr(t, "code", None)}
-
+        # UI-only tier/discount display.
         portal_display = {
             "tier_code": portal_snapshot.get("tier_code"),
             "tier_label": portal_snapshot.get("tier_label"),
             "discount_percent": portal_snapshot.get("discount_percent") or 0,
             "note": "",
         }
-        if (not is_dealer) and dealer_app:
-            requested_code = dealer_app.resolved_tier() or dealer_app.preferred_tier or DealerTier.NONE
-            requested_level = tier_map.get(requested_code)
-            if requested_level:
-                portal_display.update(
-                    {
-                        "tier_code": requested_code,
-                        "tier_label": requested_level.label,
-                        "discount_percent": requested_level.discount_percent or 0,
-                        "note": "after approval",
-                    }
-                )
         ctx["portal_display"] = portal_display
-
-        if dealer_app:
-            application_code = dealer_app.resolved_tier() or dealer_app.preferred_tier or DealerTier.NONE
-            application_level = tier_map.get(application_code)
-            if application_level:
-                ctx["application_tier_label"] = application_level.label
-                ctx["application_tier_discount_percent"] = application_level.discount_percent or 0
-            else:
-                ctx["application_tier_label"] = dealer_app.get_preferred_tier_display() or application_code
-                ctx["application_tier_discount_percent"] = 0
 
         # One-time success banner: show once after approval, then mark as seen.
         show_welcome = bool(is_dealer and up and hasattr(up, "dealer_welcome_seen") and not up.dealer_welcome_seen)
@@ -2625,6 +2636,32 @@ def financing_view(request):
             "font_settings": font_settings,
             "financing_copy": financing_copy,
             "header_copy": financing_copy,
+        },
+    )
+
+def faq_view(request):
+    font_settings = build_page_font_context(PageFontSetting.Page.HOME)
+    home_copy = HomePageCopy.get_solo()
+    try:
+        all_faq_items = list(
+            HomePageFAQItem.objects.filter(home_page_copy=home_copy).order_by("order", "id")
+        )
+    except (OperationalError, ProgrammingError):
+        home_faq_legacy = True
+        home_faq_items = []
+    else:
+        home_faq_legacy = False
+        home_faq_items = [item for item in all_faq_items if item.is_published]
+
+    return render(
+        request,
+        "client/faq.html",
+        {
+            "font_settings": font_settings,
+            "home_copy": home_copy,
+            "home_faq_legacy": home_faq_legacy,
+            "home_faq_items": home_faq_items,
+            "header_copy": home_copy,
         },
     )
 

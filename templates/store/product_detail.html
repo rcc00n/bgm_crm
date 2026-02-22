@@ -1,5 +1,5 @@
 {% extends "store/_base_store.html" %}
-{% load dealer_extras %}
+{% load dealer_extras lead_security %}
 {% block title %}{{ product.name }} — BGM Store{% endblock %}
 
 {% block body %}
@@ -53,9 +53,9 @@
                     data-currency-code="{{ currency.code }}"
                     style="font-size:1.4rem"
                   >
-                    {{ product.display_price|money }}
+                    {{ product.public_price|money }}
                   </strong>
-                  {% if product.old_price %}<span class="old">{{ product.old_price|money }}</span>{% endif %}
+                  {% if product.old_price %}<span class="old" data-product-price-old>{{ product.old_price|money }}</span>{% endif %}
                 </div>
                 {% if dealer_portal.show_discount and not product|is_merch_product %}
                   <div class="price__dealer-row" data-dealer-price-wrapper>
@@ -126,7 +126,8 @@
                                     type="radio"
                                     name="option_id"
                                     value="{{ opt.id }}"
-                                    data-price-retail="{{ opt.unit_price|floatformat:2 }}"
+                                    data-price-retail="{{ opt.discounted_price|floatformat:2 }}"
+                                    data-price-base="{{ opt.unit_price|floatformat:2 }}"
                                     data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
                                     data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
                                     {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
@@ -139,7 +140,7 @@
                                       </span>
                                       {% if not product.contact_for_estimate %}
                                         <span class="option-pill__price">
-                                          {{ opt.unit_price|money }}
+                                          {{ opt.discounted_price|money }}
                                           {% if dealer_portal.show_discount and not product|is_merch_product %}
                                             <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
                                           {% endif %}
@@ -170,7 +171,8 @@
                                     type="radio"
                                     name="option_id"
                                     value="{{ opt.id }}"
-                                    data-price-retail="{{ opt.unit_price|floatformat:2 }}"
+                                    data-price-retail="{{ opt.discounted_price|floatformat:2 }}"
+                                    data-price-base="{{ opt.unit_price|floatformat:2 }}"
                                     data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
                                     data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
                                     {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
@@ -183,7 +185,7 @@
                                       </span>
                                       {% if not product.contact_for_estimate %}
                                         <span class="option-pill__price">
-                                          {{ opt.unit_price|money }}
+                                          {{ opt.discounted_price|money }}
                                           {% if dealer_portal.show_discount and not product|is_merch_product %}
                                             <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
                                           {% endif %}
@@ -213,7 +215,8 @@
                                 type="radio"
                                 name="option_id"
                                 value="{{ opt.id }}"
-                                data-price-retail="{{ opt.unit_price|floatformat:2 }}"
+                                data-price-retail="{{ opt.discounted_price|floatformat:2 }}"
+                                data-price-base="{{ opt.unit_price|floatformat:2 }}"
                                 data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
                                 data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
                                 {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
@@ -226,7 +229,7 @@
                                   </span>
                                   {% if not product.contact_for_estimate %}
                                     <span class="option-pill__price">
-                                      {{ opt.unit_price|money }}
+                                      {{ opt.discounted_price|money }}
                                       {% if dealer_portal.show_discount and not product|is_merch_product %}
                                         <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
                                       {% endif %}
@@ -262,7 +265,7 @@
 	                              {% endif %}
 	                            </span>
 	                            <span class="option-pill__price">
-	                              {{ product.display_price|money }}
+	                              {{ product.public_price|money }}
 	                              {% if dealer_portal.show_discount and not product|is_merch_product %}
 	                                <span class="option-pill__dealer">Dealer {{ product.display_price|dealer_price:dealer_portal.discount_percent|money }}</span>
 	                              {% endif %}
@@ -347,6 +350,7 @@
       <form method="post" action="" class="quote-form" novalidate enctype="multipart/form-data">
         {% csrf_token %}
         <input type="hidden" name="form_type" value="custom_fitment">
+        {% lead_security_fields "fitment_request" %}
         {{ quote_form.product }}
         {{ quote_form.source_url }}
 
@@ -479,7 +483,7 @@
                 {% else %}
                   <div class="price__retail-row">
                     {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>{{ p.display_price|money }}</strong>
+                    <strong>{{ p.public_price|money }}</strong>
                   </div>
                   {% if dealer_portal.show_discount and not p|is_merch_product %}
                     <div class="price__dealer-row">
@@ -518,7 +522,7 @@
                 {% else %}
                   <div class="price__retail-row">
                     {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>{{ p.display_price|money }}</strong>
+                    <strong>{{ p.public_price|money }}</strong>
                   </div>
                   {% if dealer_portal.show_discount and not p|is_merch_product %}
                     <div class="price__dealer-row">
@@ -651,6 +655,7 @@
 		        var retailEl = document.querySelector('[data-product-price-retail]');
 		        var dealerEl = document.querySelector('[data-product-price-dealer]');
 	        var savingsEl = document.querySelector('[data-product-price-savings]');
+	        var oldEl = document.querySelector('[data-product-price-old]');
 	        var optionInputs = document.querySelectorAll('#product-options input[name="option_id"]');
 	        if (!retailEl || !optionInputs.length) return;
 	        var optionSelected = document.querySelector('[data-option-selected]');
@@ -673,12 +678,22 @@
           }
           return wrap(num.toFixed(2));
         };
-        var update = function (input) {
-          if (!input || !input.dataset) return;
-          var retail = input.dataset.priceRetail;
-          if (retail) {
-            retailEl.textContent = format(retail);
-          }
+	        var update = function (input) {
+	          if (!input || !input.dataset) return;
+	          var retail = input.dataset.priceRetail;
+	          var base = input.dataset.priceBase;
+	          if (retail) {
+	            retailEl.textContent = format(retail);
+	          }
+	          if (oldEl) {
+	            if (base) {
+	              oldEl.textContent = format(base);
+	              oldEl.style.display = '';
+	            } else {
+	              oldEl.textContent = '';
+	              oldEl.style.display = 'none';
+	            }
+	          }
           if (dealerEl) {
             var dealerPrice = input.dataset.priceDealer || retail;
             if (dealerPrice) {
@@ -1372,6 +1387,7 @@
 
 </style>
 
+{% include "includes/lead_security_script.html" %}
 <script>
   (function () {
     var el = document.getElementById('product-specs-json');

@@ -10,7 +10,7 @@ from django.utils.timezone import make_aware, get_current_timezone
 from core.models import (
     Service, ServiceMaster, CustomUserDisplay, Appointment,
     MasterAvailability, AppointmentStatus, AppointmentStatusHistory,
-    PaymentStatus, MasterProfile,
+    PaymentStatus, MasterProfile, BookingDayOverride,
 )
 
 Slot = Tuple[datetime, datetime]
@@ -138,6 +138,9 @@ def get_available_slots(
     day = day.astimezone(get_current_timezone())
 
     masters = [master] if master else list(get_service_masters(service))
+    day_status = BookingDayOverride.resolve_status(day)
+    if day_status["is_closed"]:
+        return {m.id: [] for m in masters if m}
 
     result: Dict[int, List[datetime]] = {}
     for m in masters:

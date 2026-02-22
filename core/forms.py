@@ -7,6 +7,7 @@ from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
+from django.utils import timezone
 from .models import *
 from .constants import STAFF_DISPLAY_NAME
 from core.validators import clean_phone
@@ -94,6 +95,13 @@ class AppointmentForm(forms.ModelForm):
         master_field = self.fields.get("master")
         if master_field:
             master_field.label = STAFF_DISPLAY_NAME
+        if self.instance and getattr(self.instance, "pk", None):
+            try:
+                appt_promo = self.instance.appointmentpromocode
+            except AppointmentPromoCode.DoesNotExist:
+                appt_promo = None
+            if appt_promo:
+                self.fields["promocode"].initial = appt_promo.promocode.code
 
     def clean(self):
         cleaned_data = super().clean()
@@ -136,7 +144,8 @@ class AppointmentForm(forms.ModelForm):
         ):
             if field in cleaned_data:
                 setattr(instance, field, cleaned_data.get(field))
-        promocode_str = cleaned_data.get("promocode")
+        promocode_str = (cleaned_data.get("promocode") or "").strip()
+        cleaned_data["promocode"] = promocode_str
         service = cleaned_data.get("service")
         try:
             instance.clean()
@@ -145,9 +154,16 @@ class AppointmentForm(forms.ModelForm):
 
         if promocode_str:
             try:
-                code = PromoCode.objects.get(code=promocode_str.upper())
-                if not code.is_valid_for(service):
+                code = PromoCode.objects.get(code__iexact=promocode_str)
+                if not code.is_valid_for_service(service):
                     raise forms.ValidationError("This promo code is not valid for the selected service or date.")
+                today = timezone.now().date()
+                if ServiceDiscount.objects.filter(
+                    service=service,
+                    start_date__lte=today,
+                    end_date__gte=today,
+                ).exists():
+                    raise forms.ValidationError("This service already has a discount. Promo code can't be applied.")
                 cleaned_data["applied_promocode"] = code
             except PromoCode.DoesNotExist:
                 raise forms.ValidationError("Promo code not found.")
@@ -162,12 +178,16 @@ class AppointmentForm(forms.ModelForm):
         if promocode:
             base_amount = instance.service.base_price_amount()
             percent = Decimal(promocode.discount_percent) / Decimal("100")
-            discount = base_amount * percent
-            AppointmentPromoCode.objects.create(
+            discount = (base_amount * percent).quantize(Decimal("0.01"))
+            AppointmentPromoCode.objects.update_or_create(
                 appointment=instance,
-                promocode=promocode,
-                discount_applied=discount
+                defaults={
+                    "promocode": promocode,
+                    "discount_applied": discount,
+                },
             )
+        else:
+            AppointmentPromoCode.objects.filter(appointment=instance).delete()
 
         new_status = self.cleaned_data['status']
 
@@ -470,18 +490,16 @@ class MasterCreateFullForm(forms.ModelForm):
             return super().save(commit=commit)
         
 from django import forms
-from core.models import DealerApplication, DealerTierLevel
-from core.utils import format_currency
+from core.models import DealerApplication
 
 class DealerApplicationForm(forms.ModelForm):
     class Meta:
         model = DealerApplication
-        fields = ["business_name", "website", "phone", "preferred_tier", "notes"]
+        fields = ["business_name", "website", "phone", "notes"]
         widgets = {
             "business_name": forms.TextInput(attrs={"placeholder": "Business name"}),
             "website": forms.URLInput(attrs={"placeholder": "Website (optional)"}),
             "phone": forms.TextInput(attrs={"placeholder": "Phone"}),
-            "preferred_tier": forms.Select(attrs={"class": "field"}),
             "notes": forms.Textarea(attrs={"placeholder": "Tell us about your business...", "rows": 4}),
         }
 
@@ -497,24 +515,7 @@ class DealerApplicationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.current_user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        tier_field = self.fields.get("preferred_tier")
-        if tier_field:
-            tier_field.label = "Projected tier"
-            tier_field.help_text = "Select the tier that matches your planned annual CAD volume."
-            try:
-                tiers = list(
-                    DealerTierLevel.objects.filter(is_active=True).order_by("minimum_spend", "sort_order", "code")
-                )
-            except Exception:
-                tiers = []
-            if tiers:
-                tier_field.choices = [
-                    (
-                        tier.code,
-                        f"{tier.label} — {format_currency(tier.minimum_spend)}+ · {tier.discount_percent}% off",
-                    )
-                    for tier in tiers
-                ]
+        # No tier selection at application time; tiers are revealed post-approval.
 
 
 class ServiceLeadForm(forms.ModelForm):

@@ -371,10 +371,182 @@
   .site-header nav li{ margin:0 !important; }
 }
 
+  /* Our Story page refinements */
+  .our-story-page{
+    --story-card-radius: 1rem;
+    --story-card-padding: clamp(1.1rem, 2.2vw, 1.6rem);
+    --story-card-shadow: 0 10px 24px rgba(0,0,0,.45);
+    --story-card-border: 1px solid rgba(255,255,255,.12);
+    --story-card-bg: linear-gradient(180deg, rgba(18,18,18,.92), rgba(12,12,12,.92));
+    --bgm-cart-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.2rem);
+  }
+  .our-story-page .section{
+    padding: clamp(2.2rem, 6vw, 4.2rem) 0;
+  }
+  .our-story-page .grid--2{
+    gap: clamp(1.4rem, 2.6vw, 2.6rem);
+  }
+  .our-story-page .card{
+    padding: var(--story-card-padding);
+    border-radius: var(--story-card-radius);
+    border: var(--story-card-border);
+    box-shadow: var(--story-card-shadow);
+    background: var(--story-card-bg);
+  }
+  .our-story-page .card:hover{
+    transform:translateY(-1px);
+    box-shadow:0 12px 28px rgba(0,0,0,.5);
+  }
+  .our-story-page .card > .section__title{ margin-bottom:.35rem; }
+  .our-story-page .card p + p{ margin-top:.55rem; }
+
+  .our-story-page .hero__inner{ align-items:center; }
+  .our-story-page .hero__copy{
+    position:relative;
+    max-width:68ch;
+    padding: clamp(1rem, 2.2vw, 1.6rem);
+    border-radius: var(--story-card-radius);
+    background:linear-gradient(90deg, rgba(0,0,0,.65) 0%, rgba(0,0,0,.35) 55%, rgba(0,0,0,0) 100%);
+  }
+  .our-story-page .hero__copy .lead{
+    max-width:65ch;
+    margin-top:.6rem;
+    color:var(--muted);
+  }
+  .our-story-page .hero__media{ justify-self:stretch; }
+  .our-story-page .hero__media img{
+    border-radius: var(--story-card-radius);
+    box-shadow: var(--story-card-shadow);
+  }
+  .our-story-page .kickers{ gap:.6rem; margin-top:1.1rem; }
+  .our-story-page .chip{
+    display:inline-flex;
+    align-items:center;
+    min-height:32px;
+    padding:.38rem .75rem;
+    border-radius:999px;
+    background:rgba(255,255,255,.04);
+  }
+
+  .our-story-page .list{
+    margin:.55rem 0 0 1.1rem;
+    line-height:1.75;
+  }
+  .our-story-page .list li + li{ margin-top:.45rem; }
+  .our-story-page .list--build li{ break-inside:avoid; }
+  .our-story-page .list--steps li strong{
+    display:inline-block;
+    min-width:9ch;
+    margin-right:.5rem;
+  }
+
+  .our-story-page .list--rates{
+    list-style:none;
+    margin-left:0;
+    padding-left:0;
+  }
+  .our-story-page .rate-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:1rem;
+    padding:.45rem 0;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .our-story-page .rate-label{ color:var(--muted); font-weight:800; }
+  .our-story-page .rate-value{ font-weight:900; text-align:right; }
+  .our-story-page .rate-policy{
+    position:relative;
+    padding-left:1.1rem;
+    color:var(--muted);
+    font-size:var(--text-detail);
+    line-height:1.6;
+    margin-top:.45rem;
+  }
+  .our-story-page .rate-policy::before{
+    content:"";
+    position:absolute;
+    left:.1rem;
+    top:.65rem;
+    width:.35rem;
+    height:.35rem;
+    border-radius:50%;
+    background:rgba(255,255,255,.35);
+  }
+
+  .our-story-page .location-card__map{
+    border-radius: var(--story-card-radius);
+    border: var(--story-card-border);
+    box-shadow: var(--story-card-shadow);
+    height: clamp(240px, 30vh, 340px);
+  }
+
+  .our-story-page main{ padding-bottom: clamp(5.5rem, 9vh, 7.5rem); }
+  .our-story-page #amvic{ padding-bottom: clamp(4rem, 7vh, 6rem); }
+
+  .our-story-page .contact-fab{
+    right:18px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1.1rem);
+    padding:.75rem 1rem;
+    font-size:.92rem;
+  }
+  .our-story-page .contact-fab svg{ width:18px; height:18px; }
+  .our-story-page .bgm-cart-fab{
+    right:18px;
+    padding:.5rem .7rem .5rem .5rem;
+    gap:.5rem;
+  }
+  .our-story-page .bgm-cart-fab__icon{
+    width:34px;
+    height:34px;
+  }
+  .our-story-page .bgm-cart-fab__icon svg{ width:20px; height:20px; }
+  .our-story-page .bgm-cart-fab__label{ font-size:.82rem; }
+
+  @media (min-width:900px){
+    .our-story-page .grid--2{ align-items:stretch; }
+    .our-story-page .grid--2 > .card{ height:100%; }
+    .our-story-page .list--build{
+      columns:2;
+      column-gap:2rem;
+    }
+  }
+  @media (max-width:1200px){
+    .our-story-page .hero__inner{ gap:clamp(1.4rem, 3vw, 2rem); }
+    .our-story-page .hero__media img{ max-height:clamp(220px, 38vh, 360px); }
+  }
+  @media (max-width:900px){
+    .our-story-page .hero__inner{ grid-template-columns:1fr; }
+    .our-story-page .hero__copy{ max-width:100%; }
+    .our-story-page .list--build{ columns:1; }
+    .our-story-page .location-card{ grid-template-columns:1fr; }
+    .our-story-page .location-card__map{ height:clamp(220px, 32vh, 300px); }
+  }
+  @media (max-width:600px){
+    .our-story-page .card{ padding:1rem; }
+    .our-story-page .hero__copy{
+      padding:1rem;
+      background:linear-gradient(90deg, rgba(0,0,0,.7) 0%, rgba(0,0,0,.45) 60%, rgba(0,0,0,0) 100%);
+    }
+    .our-story-page .chip{ padding:.32rem .65rem; min-height:30px; }
+    .our-story-page .list{ margin-left:1rem; }
+    .our-story-page .rate-row{
+      flex-direction:column;
+      align-items:flex-start;
+    }
+    .our-story-page .rate-value{ text-align:left; }
+    .our-story-page .contact-fab,
+    .our-story-page .bgm-cart-fab{ opacity:.9; }
+  }
+  @media (max-height:720px){
+    .our-story-page .contact-fab,
+    .our-story-page .bgm-cart-fab{ opacity:.86; }
+  }
+
   </style>
 </head>
 
-<body>
+<body class="our-story-page">
   {% include "includes/marketing_body.html" %}
 
   <!-- Smoke layer -->
@@ -435,7 +607,7 @@
 
         <article class="card">
           <h2 class="section__title">{{ about_copy.build_title }}</h2>
-          <ul class="list">
+          <ul class="list list--build">
             <li>{{ about_copy.build_item_1 }}</li>
             <li>{{ about_copy.build_item_2 }}</li>
             <li>{{ about_copy.build_item_3 }}</li>
@@ -444,6 +616,14 @@
             <li>{{ about_copy.build_item_6 }}</li>
             <li>{{ about_copy.build_item_7 }}</li>
             <li>{{ about_copy.build_item_8 }}</li>
+            {% if about_copy.build_item_9 %}<li>{{ about_copy.build_item_9 }}</li>{% endif %}
+            {% if about_copy.build_item_10 %}<li>{{ about_copy.build_item_10 }}</li>{% endif %}
+            {% if about_copy.build_item_11 %}<li>{{ about_copy.build_item_11 }}</li>{% endif %}
+            {% if about_copy.build_item_12 %}<li>{{ about_copy.build_item_12 }}</li>{% endif %}
+            {% if about_copy.build_item_13 %}<li>{{ about_copy.build_item_13 }}</li>{% endif %}
+            {% if about_copy.build_item_14 %}<li>{{ about_copy.build_item_14 }}</li>{% endif %}
+            {% if about_copy.build_item_15 %}<li>{{ about_copy.build_item_15 }}</li>{% endif %}
+            {% if about_copy.build_item_16 %}<li>{{ about_copy.build_item_16 }}</li>{% endif %}
           </ul>
         </article>
       </div>
@@ -454,7 +634,7 @@
       <div class="container grid grid--2">
         <article class="card">
           <h2 class="section__title">{{ about_copy.how_title }}</h2>
-          <ul class="list">
+          <ul class="list list--steps">
             <li><strong>{{ about_copy.how_step_1_title }}:</strong> {{ about_copy.how_step_1_desc }}</li>
             <li><strong>{{ about_copy.how_step_2_title }}:</strong> {{ about_copy.how_step_2_desc }}</li>
             <li><strong>{{ about_copy.how_step_3_title }}:</strong> {{ about_copy.how_step_3_desc }}</li>
@@ -464,12 +644,21 @@
 
         <article class="card">
 	          <h2 class="section__title">{{ about_copy.rates_title }}</h2>
-		          <ul class="list">
-		            <li>{{ about_copy.rates_shop_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_shop_value }}</strong></li>
-		            <li>{{ about_copy.rates_cad_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_cad_value }}</strong></li>
-		            <li>{{ about_copy.rates_customer_parts_label }}: <strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_customer_parts_value }}</strong></li>
+		          <ul class="list list--rates">
+		            <li class="rate-row">
+                  <span class="rate-label">{{ about_copy.rates_shop_label }}</span>
+                  <span class="rate-value"><strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_shop_value }}</strong></span>
+                </li>
+		            <li class="rate-row">
+                  <span class="rate-label">{{ about_copy.rates_cad_label }}</span>
+                  <span class="rate-value"><strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_cad_value }}</strong></span>
+                </li>
+		            <li class="rate-row">
+                  <span class="rate-label">{{ about_copy.rates_customer_parts_label }}</span>
+                  <span class="rate-value"><strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_customer_parts_value }}</strong></span>
+                </li>
 		            {% for policy in about_copy.rates_policies|split_lines %}
-		              <li>{{ policy|striptags|safe }}</li>
+		              <li class="rate-policy">{{ policy|striptags|safe }}</li>
 		            {% endfor %}
 		          </ul>
 		        </article>

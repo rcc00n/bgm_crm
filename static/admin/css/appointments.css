@@ -108,6 +108,35 @@ body{
     flex-wrap:wrap;
 }
 
+.calendar-day-status{
+    margin:1rem clamp(1rem,2vw,1.6rem) 0;
+    padding:.75rem 1rem;
+    border:1px solid var(--calendar-line);
+    border-radius:var(--calendar-radius-md);
+    background:rgba(255,255,255,.04);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.8rem;
+}
+.calendar-day-status__label{
+    font-weight:700;
+    color:var(--calendar-ink);
+}
+.calendar-day-status__btn{
+    border:none;
+    border-radius:999px;
+    padding:.45rem 1rem;
+    font-weight:700;
+    background:var(--calendar-red);
+    color:#fff;
+    cursor:pointer;
+    transition:.2s ease;
+}
+.calendar-day-status__btn:hover{
+    background:var(--calendar-red-dark);
+}
+
 .nav-btn,
 .nav-icon2,
 .add-appointment-btn,
@@ -427,6 +456,30 @@ body{
     position:relative;
 }
 
+.week-cell--closed{
+    background:rgba(255,255,255,.04);
+}
+
+.week-slot--closed{
+    cursor:not-allowed;
+}
+
+.week-closed-label{
+    position:absolute;
+    top:.35rem;
+    right:.45rem;
+    font-size:.6rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:.15rem .35rem;
+    border-radius:8px;
+    background:rgba(255,255,255,.08);
+    color:var(--calendar-muted);
+    border:1px solid var(--calendar-line);
+    z-index:2;
+    pointer-events:none;
+}
+
 .week-event,
 .month-event{
     display:flex;
@@ -505,6 +558,26 @@ body{
     flex-direction:column;
     gap:.35rem;
     cursor:pointer;
+}
+
+.month-day-cell--closed{
+    background:rgba(255,255,255,.04);
+}
+
+.month-day-cell--closed .month-day-top{
+    justify-content:space-between;
+    align-items:center;
+}
+
+.month-day-closed{
+    font-size:.6rem;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--calendar-muted);
+    padding:.12rem .35rem;
+    border-radius:8px;
+    border:1px solid var(--calendar-line);
+    background:rgba(255,255,255,.08);
 }
 
 .month-day-cell.out-month{

@@ -5,7 +5,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 import uuid
 from django.core.exceptions import ValidationError
-from datetime import timedelta, time
+from datetime import datetime, timedelta, time
 import os
 from django.utils import timezone
 from django.utils.text import slugify
@@ -882,6 +882,10 @@ class ServicesPageCopy(models.Model):
     booking_no_open_times_on_prefix = models.CharField(max_length=80, default="No open times on")
     booking_no_open_times_on_suffix = models.CharField(max_length=20, default=".")
     booking_no_availability_label = models.CharField(max_length=80, default="No availability yet")
+    booking_weekend_closed_label = models.CharField(
+        max_length=140,
+        default="Weekends are closed. Call for availability.",
+    )
     booking_scroll_hint_desktop = models.CharField(
         max_length=200,
         default="Shift + scroll for horizontal scroll. Red = busy (unclickable).",
@@ -902,6 +906,8 @@ class ServicesPageCopy(models.Model):
     booking_phone_label = models.CharField(max_length=40, default="Phone*")
     booking_phone_placeholder = models.CharField(max_length=120, default="+1 5551234567")
     booking_phone_title = models.CharField(max_length=120, default="Use digits only, optionally starting with +")
+    booking_promocode_label = models.CharField(max_length=60, default="Promo code (optional)")
+    booking_promocode_placeholder = models.CharField(max_length=120, default="Enter code")
     booking_confirmation_hint = models.CharField(
         max_length=160,
         default="No account needed — we confirm bookings by email and phone.",
@@ -1478,7 +1484,7 @@ class FinancingPageCopy(models.Model):
 
     meta_title = models.CharField(max_length=160, default="BGM Customs — Financing Options")
     meta_description = models.TextField(
-        default="Flexible financing partners for builds, parts, and installs including Canadian Financial and Afterpay."
+        default="Flexible financing partners for builds, parts, and installs including AutoLogiQ and Afterpay."
     )
 
     skip_to_main_label = models.CharField(max_length=120, default="Skip to main content")
@@ -1520,12 +1526,17 @@ class FinancingPageCopy(models.Model):
     )
     providers_badge_label = models.CharField(max_length=40, default="Trusted")
 
-    provider_1_title = models.CharField(max_length=80, default="Canadian Financial")
-    provider_1_meta = models.CharField(max_length=120, default="Advisor: Canadian Financial team")
-    provider_1_desc = models.TextField(
-        default="Personalized financing support through Canadian Financial. Great for custom quotes and structured plans."
+    provider_1_title = models.CharField(max_length=80, default="AutoLogiQ")
+    provider_1_meta = models.CharField(
+        max_length=120, default="Credit-based or vehicle-based • Up to $12,500"
     )
-    provider_1_primary_cta_label = models.CharField(max_length=80, default="Apply with Canadian Financial")
+    provider_1_desc = models.TextField(
+        default=(
+            "Existing estimate required to apply. Credit-based or vehicle-based financing available up to $12,500. "
+            "Vehicles older than 10 years: financing limited."
+        )
+    )
+    provider_1_primary_cta_label = models.CharField(max_length=80, default="Apply with AutoLogiQ")
     provider_1_secondary_cta_label = models.CharField(max_length=60, default="How it works")
 
     provider_2_title = models.CharField(max_length=80, default="Afterpay (via Square)")
@@ -1548,7 +1559,7 @@ class FinancingPageCopy(models.Model):
     )
     step_2_title = models.CharField(max_length=80, default="Apply with a provider")
     step_2_desc = models.TextField(
-        default="Use Canadian Financial for larger projects, or Afterpay for smaller purchases."
+        default="Use AutoLogiQ for larger projects, or Afterpay for smaller purchases."
     )
     step_3_title = models.CharField(max_length=80, default="Choose terms & finalize")
     step_3_desc = models.TextField(
@@ -1561,18 +1572,24 @@ class FinancingPageCopy(models.Model):
 
     faq_title = models.CharField(max_length=80, default="Good to know")
     faq_desc = models.CharField(max_length=120, default="Quick answers to common questions.")
-    faq_1_title = models.CharField(max_length=80, default="Credit checks & approvals")
+    faq_1_title = models.CharField(max_length=80, default="Credit-based loans")
     faq_1_desc = models.TextField(
         default=(
-            "Some providers offer soft credit checks for pre-qualification. Final approval may require a "
-            "hard check. Terms and limits depend on your credit profile."
+            "The Max Credit Limit and Estimated Payment shown are for illustration only and are based on a "
+            "13.99% interest rate (lowest applicable rate for 24- and 36-month terms). The final loan amount, "
+            "term, interest rate, and payment are determined by the funder after a credit check and final "
+            "approval. If the client does not qualify or opts out of a credit-based loan, the vehicle may still "
+            "qualify for a loan based on its value. More information is available on the EasyPay FAQ page."
         )
     )
-    faq_2_title = models.CharField(max_length=80, default="Project eligibility")
+    faq_2_title = models.CharField(max_length=80, default="Vehicle-based loans")
     faq_2_desc = models.TextField(
         default=(
-            "Financing can cover parts, labor, coatings, and custom fabrication. We’ll help you structure "
-            "the quote to fit provider requirements."
+            "No credit check is required for loans secured by the vehicle's value in provinces where this type of "
+            "loan is offered. The Maximum Credit Limit is calculated as a percentage of the vehicle's current "
+            "Black Book value. Estimated payment is based on a 24.99% interest rate for a 36-month term. All loans, "
+            "including those subject to a personal credit check, are subject to final approval upon receipt and "
+            "review of the completed loan application."
         )
     )
     faq_3_title = models.CharField(max_length=80, default="Afterpay limits")
@@ -1717,6 +1734,14 @@ class AboutPageCopy(models.Model):
     build_item_6 = models.CharField(max_length=140, default="Diesel performance, tuning & hard parts")
     build_item_7 = models.CharField(max_length=120, default="Body swaps & custom fab")
     build_item_8 = models.CharField(max_length=140, default="Coatings & liners (Armadillo, Smooth Criminal)")
+    build_item_9 = models.CharField(max_length=140, blank=True, default="")
+    build_item_10 = models.CharField(max_length=140, blank=True, default="")
+    build_item_11 = models.CharField(max_length=140, blank=True, default="")
+    build_item_12 = models.CharField(max_length=140, blank=True, default="")
+    build_item_13 = models.CharField(max_length=140, blank=True, default="")
+    build_item_14 = models.CharField(max_length=140, blank=True, default="")
+    build_item_15 = models.CharField(max_length=140, blank=True, default="")
+    build_item_16 = models.CharField(max_length=140, blank=True, default="")
 
     how_title = models.CharField(max_length=80, default="How we work")
     how_step_1_title = models.CharField(max_length=80, default="Consult & scope")
@@ -3217,9 +3242,9 @@ from django.core.validators import MinLengthValidator
 class DealerTier(models.TextChoices):
     NONE = "NONE", "None"
     # Keep display labels generic so ops can control discount % via DealerTierLevel rows.
-    TIER_5 = "TIER_5", "Tier 1"
-    TIER_10 = "TIER_10", "Tier 2"
-    TIER_15 = "TIER_15", "Tier 3"
+    TIER_5 = "TIER_5", "T1"
+    TIER_10 = "TIER_10", "T2"
+    TIER_15 = "TIER_15", "T3"
 
 
 class DealerTierLevel(models.Model):
@@ -3263,9 +3288,9 @@ DEALER_THRESHOLDS = {
     DealerTier.TIER_15: 20000,
 }
 DEALER_DISCOUNTS = {
-    DealerTier.TIER_5: 5,
-    DealerTier.TIER_10: 10,
-    DealerTier.TIER_15: 15,
+    DealerTier.TIER_5: 15,
+    DealerTier.TIER_10: 20,
+    DealerTier.TIER_15: 25,
 }
 
 class DealerApplication(models.Model):
@@ -3889,6 +3914,21 @@ class Appointment(models.Model):
         if not self.master or not self.service or not self.start_time:
             return
 
+        local_start_dt = self.start_time
+        if timezone.is_aware(local_start_dt):
+            local_start_dt = timezone.localtime(local_start_dt)
+        else:
+            local_start_dt = timezone.make_aware(local_start_dt, timezone.get_current_timezone())
+        day_status = BookingDayOverride.resolve_status(local_start_dt)
+        if day_status["is_closed"]:
+            if day_status["source"] == "weekend":
+                message = "We are closed on weekends. Please call for availability."
+            else:
+                message = "Bookings are closed for this day. Please choose another date."
+            raise ValidationError({
+                "start_time": message
+            })
+
         # Контактные данные: либо есть клиент, либо все поля заполнены
         if not self.client:
             err = {}
@@ -4240,6 +4280,47 @@ class MasterAvailability(models.Model):
                 })
 
 
+class BookingDayOverride(models.Model):
+    class Status(models.TextChoices):
+        OPEN = ("open", "Open")
+        CLOSED = ("closed", "Closed")
+
+    date = models.DateField(unique=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.OPEN)
+    note = models.CharField(max_length=160, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("date",)
+        verbose_name = "Booking day override"
+        verbose_name_plural = "Booking day overrides"
+
+    def __str__(self) -> str:
+        return f"{self.date} — {self.get_status_display()}"
+
+    @classmethod
+    def resolve_status(cls, day_value, override=None):
+        if isinstance(day_value, datetime):
+            day_value = day_value.date()
+        default_closed = day_value.weekday() >= 5
+        if override is None:
+            override = cls.objects.filter(date=day_value).first()
+        if override:
+            is_closed = override.status == cls.Status.CLOSED
+            source = "override"
+        else:
+            is_closed = default_closed
+            source = "weekend" if default_closed else "default"
+        return {
+            "date": day_value,
+            "is_closed": is_closed,
+            "source": source,
+            "override": override,
+            "default_closed": default_closed,
+        }
+
+
 class AppointmentReview(models.Model):
     appointment = models.OneToOneField(
         Appointment,
@@ -4303,14 +4384,48 @@ class PromoCode(models.Model):
     active = models.BooleanField(default=True)
     start_date = models.DateField()
     end_date = models.DateField()
-    applicable_services = models.ManyToManyField(Service, blank=True, help_text="leave empty to apply to all services")
+    applies_to_services = models.BooleanField(
+        default=True,
+        help_text="Enable this promo code for service bookings.",
+    )
+    applies_to_products = models.BooleanField(
+        default=False,
+        help_text="Enable this promo code for store products.",
+    )
+    applicable_services = models.ManyToManyField(
+        Service,
+        blank=True,
+        help_text="Leave empty to apply to all services.",
+    )
+    applicable_products = models.ManyToManyField(
+        "store.Product",
+        blank=True,
+        help_text="Leave empty to apply to all products.",
+    )
+
+    def is_active(self, today=None):
+        today = today or timezone.now().date()
+        return self.active and self.start_date <= today <= self.end_date
 
     def is_valid_for(self, service, today=None):
+        return self.is_valid_for_service(service, today=today)
+
+    def is_valid_for_service(self, service, today=None):
+        if not service or not self.applies_to_services:
+            return False
         today = today or timezone.now().date()
         return (
-                self.active and
-                self.start_date <= today <= self.end_date and
-                (self.applicable_services.count() == 0 or self.applicable_services.filter(pk=service.pk).exists())
+            self.is_active(today) and
+            (not self.applicable_services.exists() or self.applicable_services.filter(pk=service.pk).exists())
+        )
+
+    def is_valid_for_product(self, product, today=None):
+        if not product or not self.applies_to_products:
+            return False
+        today = today or timezone.now().date()
+        return (
+            self.is_active(today) and
+            (not self.applicable_products.exists() or self.applicable_products.filter(pk=product.pk).exists())
         )
 
     def __str__(self):
@@ -4319,11 +4434,20 @@ class PromoCode(models.Model):
 class AppointmentPromoCode(models.Model):
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE)
     promocode = models.ForeignKey(PromoCode, on_delete=models.CASCADE)
+    discount_applied = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Discount amount applied to the appointment.",
+    )
 
     def clean(self):
-        if self.promocode.end_date < timezone.now().date():
+        if not self.promocode or not self.appointment:
+            return
+        today = timezone.now().date()
+        if not self.promocode.is_valid_for_service(self.appointment.service, today=today):
             raise ValidationError({
-                "promocode": "This promocode is expired."
+                "promocode": "This promo code is not valid for the selected service or date."
             })
         now = timezone.now()
         discounts = ServiceDiscount.objects.filter(
@@ -4425,6 +4549,7 @@ class LeadSubmissionEvent(models.Model):
     class FormType(models.TextChoices):
         SITE_NOTICE = ("site_notice", "Site notice signup")
         SERVICE_LEAD = ("service_lead", "Service lead")
+        FITMENT_REQUEST = ("fitment_request", "Fitment request")
 
     class Outcome(models.TextChoices):
         ACCEPTED = ("accepted", "Accepted")

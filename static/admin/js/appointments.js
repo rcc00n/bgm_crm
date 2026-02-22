@@ -830,6 +830,9 @@ function attachDragAndDropHandlers() {
 
     // Week table cells (drop should work even when dropping over an existing card).
     document.querySelectorAll(".week-cell[data-time24]").forEach(slot => {
+        if (slot.dataset.closed === "1") {
+            return;
+        }
         slot.addEventListener("dragover", onSlotDragOver);
         slot.addEventListener("dragleave", onSlotDragLeave);
         slot.addEventListener("drop", onSlotDrop);
@@ -1052,3 +1055,49 @@ function handleAdd(type) {
     const qs = params.toString();
     window.location.href = qs ? `${baseUrl}?${qs}` : baseUrl;
 }
+
+function getCookie(name) {
+    const match = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
+    return match ? match.pop() : "";
+}
+
+async function toggleDayStatus(btn) {
+    const bar = btn.closest(".calendar-day-status");
+    if (!bar) return;
+    const dateStr = bar.dataset.date;
+    const action = btn.dataset.action || "toggle";
+    if (!dateStr) return;
+
+    btn.disabled = true;
+    try {
+        const form = new FormData();
+        form.append("date", dateStr);
+        form.append("action", action);
+        const res = await fetch("/admin/core/appointment/toggle_day/", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken"),
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: form,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+            throw new Error(data.error || "Unable to update day status.");
+        }
+        const input = document.getElementById("realDateInput");
+        if (input) input.value = dateStr;
+        onDateChange(dateStr);
+    } catch (err) {
+        alert(err.message || "Unable to update day status.");
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-day-toggle]");
+    if (!btn) return;
+    event.preventDefault();
+    toggleDayStatus(btn);
+});

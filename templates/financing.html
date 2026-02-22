@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ financing_copy.meta_title|default:"BGM Customs — Financing Options" }}</title>
-  {% with meta_title=financing_copy.meta_title|default:"BGM Customs — Financing Options" meta_description=financing_copy.meta_description|default:"Flexible financing partners for builds, parts, and installs including Canadian Financial and Afterpay." meta_section="financing" %}
+  {% with meta_title=financing_copy.meta_title|default:"BGM Customs — Financing Options" meta_description=financing_copy.meta_description|default:"Flexible financing partners for builds, parts, and installs including AutoLogiQ and Afterpay." meta_section="financing" %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
   {% if font_settings.preload_fonts %}
@@ -26,7 +26,16 @@
       --site-header-toggle-size:46px;
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-height:1.55}
+    body{
+      background:
+        radial-gradient(900px 520px at 12% -6%, rgba(213,0,0,.14), transparent 60%),
+        radial-gradient(760px 520px at 88% 6%, rgba(255,77,77,.10), transparent 58%),
+        radial-gradient(520px 360px at 50% 110%, rgba(255,255,255,.05), transparent 65%),
+        var(--bg);
+      color:var(--fg);
+      font-family:var(--font-body);
+      line-height:1.55;
+    }
     a{color:inherit;text-decoration:none}
     img{max-width:100%;display:block}
     .container{width:var(--container);margin-inline:auto;padding-inline:1rem}
@@ -71,6 +80,7 @@
     /* ===== карточка провайдера ===== */
     .card{
       position:relative;
+      overflow:hidden;
       display:flex;flex-direction:column;
       gap:.65rem;
       padding:1.1rem 1.1rem 1.1rem;
@@ -80,6 +90,17 @@
       box-shadow:var(--shadow);
       transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background:
+        radial-gradient(420px 220px at 12% 12%, var(--card-glow), transparent 60%),
+        radial-gradient(420px 220px at 88% 0%, rgba(255,77,77,.08), transparent 62%);
+      opacity:.72;
+      pointer-events:none;
+    }
+    .card > *{position:relative;z-index:1}
     .card:hover{ transform:translateY(-2px); box-shadow:0 16px 36px rgba(0,0,0,.55); border-color:rgba(255,255,255,.18); }
 
     .card__head{display:flex;align-items:flex-start;gap:.8rem;margin-bottom:.25rem}
@@ -720,7 +741,7 @@ html{ font-size: 17px; }                      /* было 16px */
         </div>
 
         <div class="grid grid--cards">
-          <!-- Canadian Financial -->
+          <!-- AutoLogiQ -->
           <article class="card">
             <div class="card__head">
               <h3 class="card__title">{{ financing_copy.provider_1_title }}</h3>
@@ -728,7 +749,7 @@ html{ font-size: 17px; }                      /* было 16px */
             </div>
             <p class="section__desc">{{ financing_copy.provider_1_desc }}</p>
             <div class="card__actions">
-              <a class="btn btn--primary btn--diesel" href="https://canadian-financial.ca/" target="_blank" rel="noopener">{{ financing_copy.provider_1_primary_cta_label }}</a>
+              <a class="btn btn--primary btn--diesel" href="https://www.autologiq.ca/easypay/" target="_blank" rel="noopener">{{ financing_copy.provider_1_primary_cta_label }}</a>
               <a class="btn btn--ghost btn--diesel" href="#steps">{{ financing_copy.provider_1_secondary_cta_label }}</a>
             </div>
           </article>

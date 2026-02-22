@@ -257,6 +257,7 @@
     .field{display:flex;flex-direction:column;gap:.35rem}
     .field label{font-size:.9rem;color:var(--muted)}
     .field input,.field select{padding:.6rem .8rem;border:1px solid var(--line);border-radius:.6rem;font-size:.95rem;background:#0a0a0a;color:var(--ink)}
+    .label-placeholder{visibility:hidden}
     .booking-photo-preview{
       display:flex;
       align-items:center;
@@ -266,7 +267,10 @@
       border-radius:.6rem;
       padding:.45rem .55rem;
       background:#0d0d0d;
+      width:100%;
+      min-height:44px;
     }
+    .field--preview .booking-photo-preview{margin-top:0}
     .booking-photo-preview img{
       width:52px;
       height:52px;
@@ -988,8 +992,17 @@ main h3{
                      required placeholder="{{ services_copy.booking_phone_placeholder }}">
             </div>
             <div class="field">
+              <label for="contactPromo">{{ services_copy.booking_promocode_label }}</label>
+              <input id="contactPromo" name="promocode" type="text"
+                     class="input" autocomplete="off"
+                     placeholder="{{ services_copy.booking_promocode_placeholder }}">
+            </div>
+            <div class="field">
               <label for="contactReferenceImage">Reference photo (optional)</label>
               <input id="contactReferenceImage" name="contact_reference_image" type="file" accept="image/*" class="input">
+            </div>
+            <div class="field field--preview">
+              <label class="label-placeholder" aria-hidden="true">Reference preview</label>
               <div id="contactReferencePreview" class="booking-photo-preview" hidden>
                 <img id="contactReferencePreviewImg" alt="Reference preview">
                 <div class="booking-photo-preview__meta">
@@ -1072,6 +1085,7 @@ main h3{
       noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
       noOpenTimesOnPrefix: "{{ services_copy.booking_no_open_times_on_prefix|escapejs }}",
       noOpenTimesOnSuffix: "{{ services_copy.booking_no_open_times_on_suffix|escapejs }}",
+      weekendClosedLabel: "{{ services_copy.booking_weekend_closed_label|escapejs }}",
       failedSlotsLabel: "{{ services_copy.booking_failed_slots_label|escapejs }}",
       noStaffLabel: "{{ services_copy.booking_no_staff_label|escapejs }}",
       availabilityErrorLabel: "{{ services_copy.booking_availability_error_label|escapejs }}",
@@ -1106,6 +1120,7 @@ main h3{
       email: document.getElementById('contactEmail'),
       phone: document.getElementById('contactPhone'),
     };
+    const promoInput = document.getElementById('contactPromo');
     const contactReferenceInput = document.getElementById('contactReferenceImage');
     const contactReferencePreview = document.getElementById('contactReferencePreview');
     const contactReferencePreviewImg = document.getElementById('contactReferencePreviewImg');
@@ -1439,7 +1454,7 @@ main h3{
         if (!cached || cached.loading){
           availabilityCache.set(dayKey, {loading:true});
           const res = await fetchAvailability(dayKey, Number(elMaster.value || current.masterId));
-          availabilityCache.set(dayKey, {set: res.set, iso: res.map});
+          availabilityCache.set(dayKey, {set: res.set, iso: res.map, status: res.dayStatus});
           cached = availabilityCache.get(dayKey);
         }
 
@@ -1451,9 +1466,13 @@ main h3{
         if (!times.length){
           const dayObj = fromYmd(dayKey);
           const dayLabel = dayObj ? dayObj.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'}) : '';
-          const message = dayLabel ? `${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}` : copy.noOpenTimesLabel;
+          const status = cached?.status || {};
+          const weekendClosed = status.is_closed && status.source === 'weekend';
+          const message = weekendClosed
+            ? (copy.weekendClosedLabel || copy.noOpenTimesLabel)
+            : (dayLabel ? `${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}` : copy.noOpenTimesLabel);
           setMobileStatus(message, true);
-          if (mobileTimeInput) mobileTimeInput.setCustomValidity(copy.noOpenTimesLabel);
+          if (mobileTimeInput) mobileTimeInput.setCustomValidity(message);
           return;
         }
 
@@ -1564,7 +1583,8 @@ main h3{
         const key=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
         set.add(key); if(!map.has(key)) map.set(key, iso);
       });
-      return {set, map, raw:data};
+      const dayStatus = data.day_status || {};
+      return {set, map, dayStatus, raw:data};
     }
 
     async function ensureRangeLoaded(startDate, daysCount){
@@ -1576,7 +1596,7 @@ main h3{
           tasks.push((async()=>{
             availabilityCache.set(ds, {loading:true});
             const res=await fetchAvailability(ds, Number(elMaster.value||current.masterId));
-            availabilityCache.set(ds,{set:res.set, iso:res.map});
+            availabilityCache.set(ds,{set:res.set, iso:res.map, status:res.dayStatus});
           })());
         }
       }
@@ -1781,6 +1801,9 @@ main h3{
         payload.append('contact_name', contact.name);
         payload.append('contact_email', contact.email);
         payload.append('contact_phone', contact.phone);
+        if (promoInput && promoInput.value.trim()){
+          payload.append('promocode', promoInput.value.trim());
+        }
         if (contactReferenceInput && contactReferenceInput.files && contactReferenceInput.files[0]){
           payload.append('reference_image', contactReferenceInput.files[0]);
         }

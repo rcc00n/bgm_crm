@@ -139,34 +139,6 @@
     .btn--ghost{background:transparent;border-color:var(--line);color:var(--ink)}
     .btn--ghost:hover{border-color:var(--red);color:var(--red)}
 
-    .tier-panel{
-      margin:1.05rem 0 1.25rem;
-      padding:1.05rem;
-      border:1px solid var(--card-border);
-      border-radius:var(--radius-lg);
-      background:rgba(255,255,255,.02);
-    }
-    .tier-panel h2{
-      font-size:1rem;
-      margin:0 0 .35rem;
-      text-transform:uppercase;
-      letter-spacing:.12em;
-    }
-    .tier-panel p{color:var(--muted);font-size:.92rem;margin:0 0 .85rem}
-    .tier-list{display:flex;flex-direction:column;gap:.6rem}
-    .tier-pill{
-      display:flex;
-      flex-wrap:wrap;
-      gap:.35rem;
-      justify-content:space-between;
-      padding:.75rem .9rem;
-      border-radius:.85rem;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(0,0,0,.12);
-    }
-    .tier-pill__name{font-weight:800}
-    .tier-pill__meta{color:var(--muted);font-size:.9rem}
-    .tier-pill__desc{flex-basis:100%;color:var(--muted);font-size:.9rem}
   </style>
 </head>
 <body>
@@ -192,22 +164,6 @@
       <div class="progress" aria-hidden="true">
         <div class="progress__fill" style="width: {{ progress_percent }}%"></div>
       </div>
-
-      {% if step_slug == "business" and tier_levels %}
-        <section class="tier-panel" aria-label="Dealer tier overview">
-          <h2>Dealer tier overview</h2>
-          <p>Thresholds are denominated in CAD and can be updated by the ops team.</p>
-          <div class="tier-list">
-            {% for tier in tier_levels %}
-              <div class="tier-pill">
-                <div class="tier-pill__name">{{ tier.label|normalize_tier_label }}</div>
-                <div class="tier-pill__meta">{{ tier.minimum_spend|money }}+ · {{ tier.discount_percent }}% off</div>
-                {% if tier.description %}<div class="tier-pill__desc">{{ tier.description }}</div>{% endif %}
-              </div>
-            {% endfor %}
-          </div>
-        </section>
-      {% endif %}
 
       {% if form.non_field_errors %}
         <div class="errors" role="alert" aria-live="assertive">

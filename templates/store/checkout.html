@@ -301,6 +301,31 @@
       <!-- SUMMARY -->
       <aside class="card summary">
         <h3 class="block-title">Order summary</h3>
+        <div class="promo-summary">
+          <form class="promo-form" method="post" action="{% url 'store-cart-promo' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'store-checkout' %}">
+            <label for="checkoutPromoCode">Promo code</label>
+            <div class="promo-form__row">
+              <input id="checkoutPromoCode" class="input" type="text" name="promo_code" value="{{ promo_code }}" placeholder="Enter code">
+              <button class="btn btn--ghost" type="submit">{% if promo_code %}Update{% else %}Apply{% endif %}</button>
+            </div>
+            {% if promo_error %}
+              <div class="promo-form__error">{{ promo_error }}</div>
+            {% endif %}
+            {% if promo_applied %}
+              <div class="promo-form__success">Applied {{ promo_code }} · You save {{ promo_savings|money }}</div>
+            {% endif %}
+          </form>
+          {% if promo_code %}
+            <form class="promo-form promo-form--remove" method="post" action="{% url 'store-cart-promo' %}">
+              {% csrf_token %}
+              <input type="hidden" name="promo_code" value="">
+              <input type="hidden" name="next" value="{% url 'store-checkout' %}">
+              <button class="btn btn--ghost" type="submit">Remove promo</button>
+            </form>
+          {% endif %}
+        </div>
 
         {% if positions %}
           <ul class="summary__list">
@@ -321,7 +346,7 @@
                   <div class="section__desc">
                     Retail {{ it.retail_unit_price|money }}
                     {% if it.discount_percent %}
-                      <span class="badge badge--dealer">Dealer {{ it.unit_price|money }}</span>
+                      <span class="badge badge--discount badge--{{ it.discount_type|default:'discount' }}">{{ it.discount_label }} {{ it.unit_price|money }}</span>
                     {% endif %}
                   </div>
                   {% if it.savings %}
@@ -334,9 +359,15 @@
           </ul>
           <div class="summary__total">
             <div>
-              <span class="summary__total-label">{% if dealer_discount_percent %}Dealer subtotal{% else %}Subtotal{% endif %}</span>
+              <span class="summary__total-label">{{ cart_total_label }}</span>
               <span class="summary__total-sum">{{ total|money }}</span>
             </div>
+            {% if promo_applied and promo_code %}
+              <div class="summary__total-savings summary__total-savings--promo">
+                <span class="summary__total-label">Promo {{ promo_code }}</span>
+                <span class="summary__total-sum">- {{ promo_savings|money }}</span>
+              </div>
+            {% endif %}
             {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
               <div class="summary__total-savings">
                 <span class="summary__total-label">You save</span>
@@ -345,7 +376,7 @@
             {% endif %}
           </div>
           {% if cart_savings and cart_savings|floatformat:2 != '0.00' %}
-            <p class="section__desc">Retail before discount: {{ retail_total|money }}</p>
+            <p class="section__desc">Retail before discount: {{ retail_total|money }} ({{ cart_savings_label }})</p>
           {% endif %}
 
           <div class="summary__divider"></div>
@@ -440,6 +471,10 @@
     .actions{flex-direction:column;align-items:stretch;}
     .actions .btn{width:100%;justify-content:center;}
   }
+  @media (max-width: 640px){
+    .promo-form__row{flex-direction:column;align-items:stretch;}
+    .promo-form__row .btn{width:100%;}
+  }
 
   /* Steps */
   .steps{ display:flex; align-items:center; gap:.5rem; margin-bottom:.6rem; color:var(--muted); }
@@ -477,8 +512,9 @@
   .addr, .pickup{ margin-top:.8rem; }
   .pickup{ display:none; }
 
-  .check{ display:flex; align-items:flex-start; gap:.55rem; padding:.6rem .7rem; border:1px solid var(--card-border); border-radius:.6rem; background:var(--field-bg); }
-  .check input{ margin-top:.2rem; accent-color:var(--red); }
+  .check{ display:flex; align-items:center; gap:.55rem; padding:.6rem .7rem; border:1px solid var(--card-border); border-radius:.6rem; background:var(--field-bg); }
+  .check input{ margin-top:0; accent-color:var(--red); }
+  .summary__total-savings--promo .summary__total-label{ font-weight:800; }
 
   .actions{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
   .btn.is-busy{ opacity:.7; cursor:progress; }
@@ -594,7 +630,17 @@
     font-size:.8rem;
   }
   .badge--dealer{background:rgba(23,212,91,.12); border-color:rgba(23,212,91,.35); color:#17d45b;}
+  .badge--promo{background:rgba(213,0,0,.14); border-color:rgba(213,0,0,.45); color:#ffb3b3;}
+  .badge--sale{background:rgba(255,193,7,.12); border-color:rgba(255,193,7,.35); color:#ffd166;}
   .badge--reference{background:rgba(45,156,219,.14); border-color:rgba(45,156,219,.45); color:#8fd9ff;}
+
+  .promo-summary{margin:.6rem 0 1rem; display:grid; gap:.35rem;}
+  .promo-form{display:flex;flex-direction:column;gap:.35rem;}
+  .promo-form label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800;}
+  .promo-form__row{display:flex;gap:.5rem;align-items:center;}
+  .promo-form__row .input{flex:1;min-width:0;}
+  .promo-form__error{color:#ff5c72;font-size:.85rem;}
+  .promo-form__success{color:#17d45b;font-size:.85rem;}
 
   .callout{ border-left:4px solid; background:var(--card-bg); border:1px solid var(--card-border); border-left-color:#d50000; border-radius:.6rem; margin-bottom:1rem; }
   .callout--ok{ border-left-color:#17d45b; }

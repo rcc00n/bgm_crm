@@ -88,7 +88,7 @@
               {% else %}
                 <div class="price__retail-row">
                   {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                  <strong>{{ p.display_price|money }}</strong>
+                  <strong>{{ p.public_price|money }}</strong>
                   {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
                 </div>
                 {% if dealer_portal.show_discount and not p|is_merch_product %}

@@ -7,8 +7,6 @@ from phonenumbers.phonenumberutil import NumberParseException
 
 from django import forms
 
-from core.models import DealerTier, DealerTierLevel
-from core.utils import format_currency
 
 
 def _normalize_phone(raw: str) -> str:
@@ -22,27 +20,6 @@ def _normalize_phone(raw: str) -> str:
         raise forms.ValidationError("Invalid phone format.")
     return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
 
-
-def _tier_choices() -> list[tuple[str, str]]:
-    try:
-        tiers = list(
-            DealerTierLevel.objects.filter(is_active=True).order_by(
-                "minimum_spend", "sort_order", "code"
-            )
-        )
-    except Exception:
-        tiers = []
-
-    if tiers:
-        return [
-            (
-                tier.code,
-                f"{tier.label} — {format_currency(tier.minimum_spend)}+ · {tier.discount_percent}% off",
-            )
-            for tier in tiers
-        ]
-
-    return list(DealerTier.choices)
 
 
 CANADA_PROVINCE_STATE_CHOICES: list[tuple[str, str]] = [
@@ -145,17 +122,6 @@ class DealerApplyBusinessForm(forms.Form):
         label="Years in Business", min_value=0, required=False
     )
     business_type = forms.CharField(label="Type of Business", max_length=120)
-    preferred_tier = forms.ChoiceField(
-        label="Projected tier",
-        required=False,
-        choices=[],
-        help_text="Optional: select the tier that matches your planned annual CAD volume.",
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["preferred_tier"].choices = _tier_choices()
-
     def clean_phone(self):
         return _normalize_phone(self.cleaned_data.get("phone"))
 

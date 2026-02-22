@@ -22,6 +22,7 @@ from .models import (
     CarMake,
     CarModel,
     Category,
+    MerchCategory,
     CleanupBatch,
     ImportBatch,
     StorePricingSettings,
@@ -29,7 +30,9 @@ from .models import (
     Product,
     ProductImage,
     ProductOption,
+    ProductDiscount,
     Order,
+    OrderPromoCode,
     OrderItem,
     CustomFitmentRequest,
     StoreReview,
@@ -213,6 +216,27 @@ class CategoryAdmin(admin.ModelAdmin):
     image_preview.short_description = "Preview"
 
 
+@admin.register(MerchCategory)
+class MerchCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "is_active", "sort_order", "cover_preview")
+    list_editable = ("is_active", "sort_order")
+    search_fields = ("name", "slug")
+    prepopulated_fields = {"slug": ("name",)}
+    list_filter = ("is_active",)
+    readonly_fields = ("cover_preview", "created_at", "updated_at")
+    fields = (
+        "name",
+        "slug",
+        "description",
+        "cover_image",
+        "cover_image_alt",
+        ("sort_order", "is_active"),
+        "cover_preview",
+        "created_at",
+        "updated_at",
+    )
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     """
@@ -230,6 +254,7 @@ class ProductAdmin(admin.ModelAdmin):
         "sku",
         "printful_merch",
         "category_short",
+        "merch_category_short",
         "price",
         "unit_cost",
         "margin_preview",
@@ -246,20 +271,21 @@ class ProductAdmin(admin.ModelAdmin):
         CostStatusFilter,
         "is_in_house",
         "category",
+        "merch_category",
         "currency",
         "contact_for_estimate",
         CleanupStatusFilter,
     )
     search_fields = ("name", "sku", "description")
     prepopulated_fields = {"slug": ("name",)}
-    list_select_related = ("category",)
+    list_select_related = ("category", "merch_category")
     inlines = [ProductOptionInline, ProductImageInline]
     filter_horizontal = ("compatible_models",)
     readonly_fields = ("created_at", "updated_at", "specs_preview")
     actions = ("hide_selected_products", "show_selected_products")
 
     fields = (
-        "name", "slug", "sku", "category",
+        "name", "slug", "sku", "category", "merch_category",
         ("price", "unit_cost", "contact_for_estimate"),
         "is_in_house",
         "estimate_from_price",
@@ -308,6 +334,7 @@ class ProductAdmin(admin.ModelAdmin):
         )
 
     margin_preview.short_description = "Margin"
+
 
     def get_urls(self):
         urls = super().get_urls()
@@ -521,6 +548,12 @@ class ProductAdmin(admin.ModelAdmin):
             short = name.split(">")[-1].strip()
             return format_html('<span title="{}">{}</span>', name, short)
         return name
+
+    @admin.display(description="Merch category", ordering="merch_category__name")
+    def merch_category_short(self, obj):
+        if not getattr(obj, "merch_category", None):
+            return "—"
+        return obj.merch_category.name or "—"
 
     @admin.display(description="Printful", boolean=True)
     def printful_merch(self, obj):
@@ -1417,12 +1450,31 @@ class StatusBadgeMixin:
         )
 
 
+@admin.register(ProductDiscount)
+class ProductDiscountAdmin(admin.ModelAdmin):
+    list_display = ("product", "discount_percent", "start_date", "end_date", "is_active")
+    list_filter = ("start_date", "end_date", "product")
+    search_fields = ("product__name", "product__sku")
+    export_fields = ["product", "discount_percent", "start_date", "end_date", "is_active"]
+
+    @admin.display(boolean=True)
+    def is_active(self, obj):
+        return obj.is_active()
+
+
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
     autocomplete_fields = ["product", "option"]
     fields = ("product", "option", "qty", "price_at_moment", "subtotal")
     readonly_fields = ("subtotal",)
+
+
+class OrderPromoCodeInline(admin.StackedInline):
+    model = OrderPromoCode
+    extra = 0
+    readonly_fields = ("promocode", "discount_percent", "discount_amount", "created_at")
+    can_delete = False
 
 
 @admin.register(Order)
@@ -1445,7 +1497,7 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("customer_name", "email", "phone", "id")
     ordering = ("-id",)  # вместо date_hierarchy
-    inlines = [OrderItemInline]
+    inlines = [OrderPromoCodeInline, OrderItemInline]
     readonly_fields = ("shipped_at", "completed_at", "cancelled_at", "reference_image_preview")
     fieldsets = (
         ("Status & ownership", {"fields": ("status", "user", "created_by")}),
@@ -1453,6 +1505,7 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
         ("Vehicle", {"fields": ("vehicle_make", "vehicle_model", "vehicle_year")}),
         ("Notes", {"fields": ("notes",)}),
         ("Client photo reference", {"fields": ("reference_image", "reference_image_preview")}),
+        ("Shipping", {"fields": ("tracking_numbers", "tracking_url")}),
         ("Timeline", {"fields": ("shipped_at", "completed_at", "cancelled_at")}),
     )
 
@@ -1489,6 +1542,14 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
                 obj.reference_image.url,
             )
         return "—"
+
+
+@admin.register(OrderPromoCode)
+class OrderPromoCodeAdmin(admin.ModelAdmin):
+    list_display = ("order", "promocode", "discount_percent", "discount_amount", "created_at")
+    list_filter = ("promocode", "created_at")
+    search_fields = ("order__id", "promocode__code", "order__customer_name", "order__email")
+    readonly_fields = ("created_at",)
 
 
 @admin.register(CustomFitmentRequest)
