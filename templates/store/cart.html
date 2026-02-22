@@ -161,6 +161,21 @@
         <a class="btn btn--ghost" href="{% url 'store' %}">Continue shopping</a>
         <a class="btn btn--primary" href="{% url 'store-checkout' %}">Proceed to checkout</a>
       </div>
+      <div class="payment-accept" aria-label="Payment methods accepted">
+        <div class="payment-accept__label">Payment methods accepted</div>
+        <div class="payment-accept__logos" role="list">
+          <span class="pay-logo pay-logo--visa" role="listitem" aria-label="Visa">VISA</span>
+          <span class="pay-logo pay-logo--mc" role="listitem" aria-label="Mastercard">
+            <span class="mc-circles" aria-hidden="true">
+              <span class="mc-circle mc-circle--left"></span>
+              <span class="mc-circle mc-circle--right"></span>
+            </span>
+            <span class="mc-text">mastercard</span>
+          </span>
+          <span class="pay-logo pay-logo--amex" role="listitem" aria-label="American Express">AMEX</span>
+          <span class="pay-logo pay-logo--interac" role="listitem" aria-label="Interac e-Transfer">Interac e-Transfer</span>
+        </div>
+      </div>
 
     {% else %}
       <!-- Empty state -->
@@ -258,6 +273,79 @@
   .cart__actions{
     margin-top:1rem; display:flex; gap:.6rem; justify-content:flex-end; flex-wrap:wrap;
   }
+  .payment-accept{
+    margin-top:.85rem;
+    display:flex;
+    flex-direction:column;
+    gap:.5rem;
+    align-items:flex-end;
+  }
+  .payment-accept__label{
+    font-size:.72rem;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--muted);
+    font-weight:800;
+  }
+  .payment-accept__logos{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.5rem;
+    align-items:center;
+    justify-content:flex-end;
+  }
+  .pay-logo{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.35rem;
+    min-height:34px;
+    padding:.32rem .6rem;
+    border-radius:.65rem;
+    border:1px solid var(--card-border);
+    background:rgba(255,255,255,.04);
+    font-weight:900;
+    font-size:.7rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:#fff;
+  }
+  .pay-logo--visa{
+    color:#2f74ff;
+    background:rgba(47,116,255,.12);
+    border-color:rgba(47,116,255,.35);
+  }
+  .pay-logo--amex{
+    color:#2d9cdb;
+    background:rgba(45,156,219,.12);
+    border-color:rgba(45,156,219,.35);
+  }
+  .pay-logo--interac{
+    text-transform:none;
+    letter-spacing:.02em;
+    font-weight:800;
+    color:#fff;
+  }
+  .pay-logo--mc{
+    text-transform:none;
+    letter-spacing:.02em;
+    font-weight:800;
+  }
+  .mc-circles{
+    position:relative;
+    width:24px;
+    height:14px;
+    display:inline-block;
+  }
+  .mc-circle{
+    position:absolute;
+    top:0;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+  }
+  .mc-circle--left{ left:0; background:#eb001b; opacity:.9; }
+  .mc-circle--right{ right:0; background:#f79e1b; opacity:.9; }
 
   /* Empty */
   .empty{
@@ -289,6 +377,8 @@
     .cart__meta .section__desc:not(:last-child){display:none;}
     .cart__actions{flex-direction:column;align-items:stretch;}
     .cart__actions .btn{width:100%;justify-content:center;}
+    .payment-accept{align-items:flex-start;}
+    .payment-accept__logos{justify-content:flex-start;}
   }
   @media (max-width: 640px){
     .promo-form__row{flex-direction:column;align-items:stretch;}
