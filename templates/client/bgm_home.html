@@ -303,6 +303,12 @@
       scroll-snap-align:start;
       scroll-snap-stop:always;
     }
+    @media (max-width: 860px){
+      #products .products-carousel__nav{ margin-top:.4rem; }
+      #products .products-carousel__item{
+        flex-basis:clamp(240px, 78vw, 320px);
+      }
+    }
 	    .grid--gallery{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 
 	    .home-gallery{margin:1rem 0 1.6rem}
@@ -984,8 +990,8 @@
 	      #products .home-divider,
 	      #products #productsSearchForm,
 	      #products #productsLiveTitle,
-	      #products #productsLiveGrid,
-	      #products #productsServerContent{ display:none !important; }
+	      #products #productsLiveGrid{ display:none !important; }
+	      #products #productsServerContent{ display:block !important; }
 	    }
     @media (max-width: 640px){
       .mobi-photo-break.frame{ aspect-ratio:4/3; }
