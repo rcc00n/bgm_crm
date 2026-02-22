@@ -60,6 +60,7 @@ from core.models import (
     PromoCode,
     SiteNoticeSignup,
     ServicesPageCopy,
+    BookingDayOverride,
     HomePageCopy,
     HomePageFAQItem,
     FinancingPageCopy,
@@ -1808,12 +1809,17 @@ def api_availability(request):
 
     day_dt = _tz_aware(datetime(day.year, day.month, day.day, 12, 0))
     master_obj = get_object_or_404(CustomUserDisplay, pk=master_id) if master_id else None
+    day_status = BookingDayOverride.resolve_status(day)
     slots_map = get_available_slots(service, day_dt, master=master_obj)
 
     masters_qs = [master_obj] if master_obj else list(get_service_masters(service))
     resp = {
         "service": {"id": str(service.pk), "name": service.name, "duration": service.duration_min},
         "date": date_str,
+        "day_status": {
+            "is_closed": day_status["is_closed"],
+            "source": day_status["source"],
+        },
         "masters": []
     }
     for m in masters_qs:

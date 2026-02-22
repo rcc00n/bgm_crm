@@ -526,6 +526,15 @@ class MasterAvailabilityAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelA
 
         return initial
 
+
+@admin.register(BookingDayOverride)
+class BookingDayOverrideAdmin(admin.ModelAdmin):
+    list_display = ("date", "status", "note", "updated_at")
+    list_filter = ("status",)
+    search_fields = ("date", "note")
+    ordering = ("-date",)
+    readonly_fields = ("created_at", "updated_at")
+
     @admin.display(description=STAFF_DISPLAY_NAME, ordering="master__first_name")
     def staff(self, obj):
         full_name = obj.master.get_full_name()
@@ -679,6 +688,21 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
             range_start_date = selected_date
             range_end_date = selected_date
 
+        overrides = BookingDayOverride.objects.filter(date__range=[range_start_date, range_end_date])
+        override_map = {override.date: override for override in overrides}
+        selected_day_status = BookingDayOverride.resolve_status(selected_date, override_map.get(selected_date))
+        if selected_day_status["is_closed"]:
+            selected_day_label = "Bookings: Closed (Weekend)" if selected_day_status["source"] == "weekend" else "Bookings: Closed"
+            selected_day_toggle_label = "Open bookings"
+            selected_day_toggle_action = "open"
+        else:
+            if selected_day_status["source"] == "override" and selected_day_status["default_closed"]:
+                selected_day_label = "Bookings: Open (Weekend override)"
+            else:
+                selected_day_label = "Bookings: Open"
+            selected_day_toggle_label = "Close bookings"
+            selected_day_toggle_action = "close"
+
         range_start = make_aware(datetime.combine(range_start_date, datetime.min.time()))
         range_end = make_aware(datetime.combine(range_end_date, datetime.max.time()))
 
@@ -706,15 +730,31 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
         if calendar_view == "day":
             slot_times = []
             grid_start, grid_end = determine_calendar_window(masters, appointments_for_range)
-            calendar_table = createTable(selected_date, grid_start, grid_end, slot_times, appointments_for_range, masters, availabilities_for_range)
+            calendar_table = createTable(
+                selected_date,
+                grid_start,
+                grid_end,
+                slot_times,
+                appointments_for_range,
+                masters,
+                availabilities_for_range,
+                override_map=override_map,
+            )
         elif calendar_view == "week":
             grid_start, grid_end = determine_calendar_window(masters, appointments_for_range)
             slot_times = build_slot_times(grid_start, grid_end)
             week_dates = [range_start_date + timedelta(days=i) for i in range(7)]
-            week_table = build_week_table(week_dates, slot_times, appointments_for_range, masters)
+            week_table = build_week_table(week_dates, slot_times, appointments_for_range, masters, override_map=override_map)
         else:
             month_day_names = [datetime(2020, 1, 6) + timedelta(days=i) for i in range(7)]
-            month_grid = build_month_grid(range_start_date, range_end_date, selected_date.month, appointments_for_range, masters)
+            month_grid = build_month_grid(
+                range_start_date,
+                range_end_date,
+                selected_date.month,
+                appointments_for_range,
+                masters,
+                override_map=override_map,
+            )
 
         calendar_context = {
             "calendar_view": calendar_view,
@@ -724,6 +764,10 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
             "week_table": week_table,
             "month_grid": month_grid,
             "month_day_names": month_day_names,
+            "selected_date": selected_date,
+            "selected_day_label": selected_day_label,
+            "selected_day_toggle_label": selected_day_toggle_label,
+            "selected_day_toggle_action": selected_day_toggle_action,
         }
 
 
@@ -754,6 +798,9 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
                 "month_day_names": month_day_names,
                 "masters": masters,
                 "selected_date": selected_date,
+                "selected_day_label": selected_day_label,
+                "selected_day_toggle_label": selected_day_toggle_label,
+                "selected_day_toggle_action": selected_day_toggle_action,
                 "prev_date": (selected_date - timedelta(days=1)).strftime("%Y-%m-%d"),
                 "next_date": (selected_date + timedelta(days=1)).strftime("%Y-%m-%d"),
                 "today": timezone.localdate().strftime("%Y-%m-%d"),
@@ -776,6 +823,11 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
                 "quick_add/",
                 self.admin_site.admin_view(self.quick_add_view),
                 name="core_appointment_quick_add",
+            ),
+            path(
+                "toggle_day/",
+                self.admin_site.admin_view(self.toggle_day_view),
+                name="core_appointment_toggle_day",
             ),
         ]
         return custom_urls + urls
@@ -816,6 +868,66 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
 
         appt = form.save()
         return JsonResponse({"ok": True, "appointment_id": str(appt.pk)})
+
+    def toggle_day_view(self, request):
+        if request.method != "POST":
+            return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+        if not self.has_change_permission(request):
+            return JsonResponse({"ok": False, "error": "Permission denied."}, status=403)
+
+        date_str = (request.POST.get("date") or "").strip()
+        action = (request.POST.get("action") or "toggle").strip().lower()
+        if not date_str:
+            return JsonResponse({"ok": False, "error": "Missing date."}, status=400)
+
+        try:
+            day_value = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return JsonResponse({"ok": False, "error": "Invalid date."}, status=400)
+
+        override = BookingDayOverride.objects.filter(date=day_value).first()
+        day_status = BookingDayOverride.resolve_status(day_value, override)
+        default_closed = day_status["default_closed"]
+
+        if action == "toggle":
+            target_open = day_status["is_closed"]
+        elif action == "open":
+            target_open = True
+        elif action == "close":
+            target_open = False
+        else:
+            return JsonResponse({"ok": False, "error": "Unknown action."}, status=400)
+
+        if target_open:
+            if default_closed:
+                if override:
+                    override.status = BookingDayOverride.Status.OPEN
+                    override.save(update_fields=["status", "updated_at"])
+                else:
+                    BookingDayOverride.objects.create(date=day_value, status=BookingDayOverride.Status.OPEN)
+            else:
+                if override:
+                    override.delete()
+        else:
+            if default_closed:
+                if override and override.status == BookingDayOverride.Status.OPEN:
+                    override.delete()
+            else:
+                if override:
+                    override.status = BookingDayOverride.Status.CLOSED
+                    override.save(update_fields=["status", "updated_at"])
+                else:
+                    BookingDayOverride.objects.create(date=day_value, status=BookingDayOverride.Status.CLOSED)
+
+        updated_override = BookingDayOverride.objects.filter(date=day_value).first()
+        updated_status = BookingDayOverride.resolve_status(day_value, updated_override)
+        return JsonResponse({
+            "ok": True,
+            "day_status": {
+                "is_closed": updated_status["is_closed"],
+                "source": updated_status["source"],
+            },
+        })
 
     def move_appointment_view(self, request):
         if request.method != "POST":
@@ -1617,7 +1729,12 @@ def _build_appointment_display(appt, master_color):
     }
 
 
-def build_week_table(week_dates, slot_times, appointments, masters):
+def _resolve_day_status(day_value, override_map=None):
+    override = override_map.get(day_value) if override_map else None
+    return BookingDayOverride.resolve_status(day_value, override)
+
+
+def build_week_table(week_dates, slot_times, appointments, masters, override_map=None):
     master_colors = _get_master_colors(masters)
     appointments_by_slot = {}
 
@@ -1639,16 +1756,17 @@ def build_week_table(week_dates, slot_times, appointments, masters):
     for time_str in slot_times:
         row = {"time": time_str, "cells": []}
         for day in week_dates:
+            day_status = _resolve_day_status(day, override_map)
             row["cells"].append({
                 "date": day,
-                "is_closed": day.weekday() >= 5,
+                "is_closed": day_status["is_closed"],
                 "appointments": appointments_by_slot.get(day, {}).get(time_str, []),
             })
         week_table.append(row)
     return week_table
 
 
-def build_month_grid(range_start_date, range_end_date, focus_month, appointments, masters):
+def build_month_grid(range_start_date, range_end_date, focus_month, appointments, masters, override_map=None):
     master_colors = _get_master_colors(masters)
     appointments_by_day = {}
 
@@ -1669,10 +1787,11 @@ def build_month_grid(range_start_date, range_end_date, focus_month, appointments
         week = []
         for _ in range(7):
             items = appointments_by_day.get(pointer, [])
+            day_status = _resolve_day_status(pointer, override_map)
             week.append({
                 "date": pointer,
                 "in_month": pointer.month == focus_month,
-                "is_closed": pointer.weekday() >= 5,
+                "is_closed": day_status["is_closed"],
                 "appointments": items[:3],
                 "overflow": max(0, len(items) - 3),
             })
@@ -1743,9 +1862,10 @@ def determine_calendar_window(masters, appointments):
     return base + timedelta(minutes=start_minutes), base + timedelta(minutes=end_minutes)
 
 
-def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities):
+def createTable(selected_date, time_pointer, end_time, slot_times, appointments, masters, availabilities, override_map=None):
     MASTER_COLORS = _get_master_colors(masters)
-    is_weekend = selected_date.weekday() >= 5
+    day_status = _resolve_day_status(selected_date, override_map)
+    is_closed_day = day_status["is_closed"]
 
 
     grid_start_dt = time_pointer
@@ -1930,12 +2050,13 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
             elif master_id in skip_map and time_str in skip_map[master_id]:
                 row["cells"].append({"skip": True})
             else:
-                if is_weekend:
+                if is_closed_day:
+                    closed_label = "Closed (Weekend)" if day_status["source"] == "weekend" else "Closed"
                     row["cells"].append({
-                        "html": "Closed (Weekend)" if time_str == closed_label_time else "",
+                        "html": closed_label if time_str == closed_label_time else "",
                         "rowspan": 1,
                         "unavailable": True,
-                        "reason": "Weekend (closed)",
+                        "reason": closed_label,
                         "start": "Closed",
                         "end": "All day",
                         "until": "",
@@ -3611,6 +3732,7 @@ class ServicesPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "booking_no_open_times_on_prefix",
                 "booking_no_open_times_on_suffix",
                 "booking_no_availability_label",
+                "booking_weekend_closed_label",
                 "booking_scroll_hint_desktop",
                 "booking_scroll_hint_mobile",
                 "booking_summary_label",

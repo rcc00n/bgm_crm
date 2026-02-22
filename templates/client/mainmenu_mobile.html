@@ -618,6 +618,7 @@
         noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
         noOpenTimesOnPrefix: "{{ services_copy.booking_no_open_times_on_prefix|escapejs }}",
         noOpenTimesOnSuffix: "{{ services_copy.booking_no_open_times_on_suffix|escapejs }}",
+        weekendClosedLabel: "{{ services_copy.booking_weekend_closed_label|escapejs }}",
         failedSlotsLabel: "{{ services_copy.booking_failed_slots_label|escapejs }}",
         availabilityErrorLabel: "{{ services_copy.booking_availability_error_label|escapejs }}",
         missingContactError: "{{ services_copy.booking_missing_contact_error|escapejs }}",
@@ -861,6 +862,7 @@
           const r = await fetch(`${apiAvail}?${params.toString()}`, {credentials:'same-origin'});
           if (!r.ok) throw new Error(copy.failedSlotsLabel);
           const data = await r.json();
+          const dayStatus = data.day_status || {};
           state.masters = data.masters || [];
           if (!state.masters.length){
             state.timeMap = new Map();
@@ -873,7 +875,11 @@
           renderTimeOptions(times);
           if (!times.length){
             const dayLabel = new Date(`${dateKey}T00:00:00`).toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
-            setStatus(`${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`, true);
+            const weekendClosed = dayStatus.is_closed && dayStatus.source === 'weekend';
+            const message = weekendClosed
+              ? (copy.weekendClosedLabel || copy.noOpenTimesLabel)
+              : `${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}`;
+            setStatus(message, true);
             return;
           }
           if (times.length === 1){

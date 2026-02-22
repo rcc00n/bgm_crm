@@ -5,7 +5,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 import uuid
 from django.core.exceptions import ValidationError
-from datetime import timedelta, time
+from datetime import datetime, timedelta, time
 import os
 from django.utils import timezone
 from django.utils.text import slugify
@@ -882,6 +882,10 @@ class ServicesPageCopy(models.Model):
     booking_no_open_times_on_prefix = models.CharField(max_length=80, default="No open times on")
     booking_no_open_times_on_suffix = models.CharField(max_length=20, default=".")
     booking_no_availability_label = models.CharField(max_length=80, default="No availability yet")
+    booking_weekend_closed_label = models.CharField(
+        max_length=140,
+        default="Weekends are closed. Call for availability.",
+    )
     booking_scroll_hint_desktop = models.CharField(
         max_length=200,
         default="Shift + scroll for horizontal scroll. Red = busy (unclickable).",
@@ -3915,9 +3919,14 @@ class Appointment(models.Model):
             local_start_dt = timezone.localtime(local_start_dt)
         else:
             local_start_dt = timezone.make_aware(local_start_dt, timezone.get_current_timezone())
-        if local_start_dt.weekday() >= 5:
+        day_status = BookingDayOverride.resolve_status(local_start_dt)
+        if day_status["is_closed"]:
+            if day_status["source"] == "weekend":
+                message = "We are closed on weekends. Please call for availability."
+            else:
+                message = "Bookings are closed for this day. Please choose another date."
             raise ValidationError({
-                "start_time": "We are closed on weekends. Please choose a weekday."
+                "start_time": message
             })
 
         # Контактные данные: либо есть клиент, либо все поля заполнены
@@ -4269,6 +4278,47 @@ class MasterAvailability(models.Model):
                 raise ValidationError({
                     "start_time": "Vacation overlaps with existing appointments",
                 })
+
+
+class BookingDayOverride(models.Model):
+    class Status(models.TextChoices):
+        OPEN = ("open", "Open")
+        CLOSED = ("closed", "Closed")
+
+    date = models.DateField(unique=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.OPEN)
+    note = models.CharField(max_length=160, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("date",)
+        verbose_name = "Booking day override"
+        verbose_name_plural = "Booking day overrides"
+
+    def __str__(self) -> str:
+        return f"{self.date} — {self.get_status_display()}"
+
+    @classmethod
+    def resolve_status(cls, day_value, override=None):
+        if isinstance(day_value, datetime):
+            day_value = day_value.date()
+        default_closed = day_value.weekday() >= 5
+        if override is None:
+            override = cls.objects.filter(date=day_value).first()
+        if override:
+            is_closed = override.status == cls.Status.CLOSED
+            source = "override"
+        else:
+            is_closed = default_closed
+            source = "weekend" if default_closed else "default"
+        return {
+            "date": day_value,
+            "is_closed": is_closed,
+            "source": source,
+            "override": override,
+            "default_closed": default_closed,
+        }
 
 
 class AppointmentReview(models.Model):

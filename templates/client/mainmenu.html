@@ -1085,6 +1085,7 @@ main h3{
       noOpenTimesLabel: "{{ services_copy.booking_no_open_times_label|escapejs }}",
       noOpenTimesOnPrefix: "{{ services_copy.booking_no_open_times_on_prefix|escapejs }}",
       noOpenTimesOnSuffix: "{{ services_copy.booking_no_open_times_on_suffix|escapejs }}",
+      weekendClosedLabel: "{{ services_copy.booking_weekend_closed_label|escapejs }}",
       failedSlotsLabel: "{{ services_copy.booking_failed_slots_label|escapejs }}",
       noStaffLabel: "{{ services_copy.booking_no_staff_label|escapejs }}",
       availabilityErrorLabel: "{{ services_copy.booking_availability_error_label|escapejs }}",
@@ -1453,7 +1454,7 @@ main h3{
         if (!cached || cached.loading){
           availabilityCache.set(dayKey, {loading:true});
           const res = await fetchAvailability(dayKey, Number(elMaster.value || current.masterId));
-          availabilityCache.set(dayKey, {set: res.set, iso: res.map});
+          availabilityCache.set(dayKey, {set: res.set, iso: res.map, status: res.dayStatus});
           cached = availabilityCache.get(dayKey);
         }
 
@@ -1465,9 +1466,13 @@ main h3{
         if (!times.length){
           const dayObj = fromYmd(dayKey);
           const dayLabel = dayObj ? dayObj.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'}) : '';
-          const message = dayLabel ? `${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}` : copy.noOpenTimesLabel;
+          const status = cached?.status || {};
+          const weekendClosed = status.is_closed && status.source === 'weekend';
+          const message = weekendClosed
+            ? (copy.weekendClosedLabel || copy.noOpenTimesLabel)
+            : (dayLabel ? `${copy.noOpenTimesOnPrefix} ${dayLabel}${copy.noOpenTimesOnSuffix}` : copy.noOpenTimesLabel);
           setMobileStatus(message, true);
-          if (mobileTimeInput) mobileTimeInput.setCustomValidity(copy.noOpenTimesLabel);
+          if (mobileTimeInput) mobileTimeInput.setCustomValidity(message);
           return;
         }
 
@@ -1578,7 +1583,8 @@ main h3{
         const key=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
         set.add(key); if(!map.has(key)) map.set(key, iso);
       });
-      return {set, map, raw:data};
+      const dayStatus = data.day_status || {};
+      return {set, map, dayStatus, raw:data};
     }
 
     async function ensureRangeLoaded(startDate, daysCount){
@@ -1590,7 +1596,7 @@ main h3{
           tasks.push((async()=>{
             availabilityCache.set(ds, {loading:true});
             const res=await fetchAvailability(ds, Number(elMaster.value||current.masterId));
-            availabilityCache.set(ds,{set:res.set, iso:res.map});
+            availabilityCache.set(ds,{set:res.set, iso:res.map, status:res.dayStatus});
           })());
         }
       }
