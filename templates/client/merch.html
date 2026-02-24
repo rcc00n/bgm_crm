@@ -1389,7 +1389,7 @@ body.nav-open .contact-fab,
                     </svg>
                   </span>
                   <label class="visually-hidden" for="merchSearch">Search merch</label>
-                  <input id="merchSearch" class="merch-search__input" type="search" placeholder="Search merch" data-merch-search-input>
+                  <input id="merchSearch" class="merch-search__input" type="search" placeholder="Search merch" data-merch-search-input autocomplete="off" autocapitalize="none" spellcheck="false">
                   <button type="button" class="merch-search__clear" data-merch-search-clear hidden>Clear</button>
                 </div>
               </div>
@@ -1421,9 +1421,9 @@ body.nav-open .contact-fab,
                   <div class="merch-filter">
                     <label>Price</label>
                     <div class="merch-filter__range">
-                      <input type="number" min="0" step="1" placeholder="Min" data-merch-filter="price-min">
+                      <input type="number" min="0" step="1" placeholder="Min" data-merch-filter="price-min" autocomplete="off" inputmode="numeric">
                       <span>-</span>
-                      <input type="number" min="0" step="1" placeholder="Max" data-merch-filter="price-max">
+                      <input type="number" min="0" step="1" placeholder="Max" data-merch-filter="price-max" autocomplete="off" inputmode="numeric">
                     </div>
                   </div>
                   {% if merch_categories %}
@@ -1769,6 +1769,8 @@ body.nav-open .contact-fab,
       let previousFocus = null;
 
       const normalize = (value) => String(value || '').toLowerCase().trim();
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasUrlFilters = urlParams.has('category') || urlParams.has('q') || urlParams.has('min') || urlParams.has('max') || urlParams.has('sort');
 
       const getPrice = (card) => {
         const raw = card.getAttribute('data-merch-price') || '';
@@ -1949,8 +1951,12 @@ body.nav-open .contact-fab,
       }
       clearButtons.forEach((btn) => btn.addEventListener('click', clearFilters));
 
-      sortCards(sortSelect ? sortSelect.value : 'featured');
-      applyFilters();
+      if (hasUrlFilters) {
+        sortCards(sortSelect ? sortSelect.value : 'featured');
+        applyFilters();
+      } else {
+        clearFilters();
+      }
     })();
   </script>
 
