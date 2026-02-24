@@ -395,7 +395,7 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
             "error": "",
         }
 
-    limit = _int_setting("PRINTFUL_MERCH_LIMIT", 8, min_value=1, max_value=24)
+    limit = _int_setting("PRINTFUL_MERCH_LIMIT", 8, min_value=0)
     show_prices = bool(getattr(settings, "PRINTFUL_MERCH_SHOW_PRICE", True))
     cache_seconds = _int_setting("PRINTFUL_MERCH_CACHE_SECONDS", 300, min_value=0)
     store_id = (getattr(settings, "PRINTFUL_STORE_ID", "") or "").strip()
@@ -416,56 +416,69 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
     try:
         # /sync/products works across connected platforms (Wix/Shopify/etc).
         # /store/products is limited to Manual Order / API stores.
-        listing_payload = _api_get("/sync/products", query={"limit": limit, "offset": 0})
-        items = _extract_result_items(listing_payload)
-
+        max_items = limit if limit > 0 else None
+        page_size = min(max(limit or 24, 1), 24)
+        offset = 0
         products: list[dict[str, Any]] = []
-        for raw_item in items:
-            item = _extract_product(raw_item)
-            if not isinstance(item, dict):
-                continue
-            if item.get("is_ignored") is True:
-                continue
 
-            product_id = _coerce_int(item.get("id"))
-            name = (item.get("name") or "").strip()
-            if not product_id or not name:
-                continue
-
-            variants = _extract_variants(item)
-            if not variants:
-                try:
-                    variants = _fetch_product_detail_variants(product_id)
-                except PrintfulAPIError:
-                    variants = []
-
-            variant_count = _coerce_int(item.get("variants"), default=len(variants))
-            if variant_count <= 0 and variants:
-                variant_count = len(variants)
-
-            products.append(
-                {
-                    "id": product_id,
-                    "name": name,
-                    "category_label": _extract_product_category_label(item),
-                    "image_url": (item.get("thumbnail_url") or "").strip(),
-                    "price_label": _build_price_label(variants) if show_prices else "",
-                    "base_price": _build_base_price(variants),
-                    "variant_label": f"{variant_count} variants" if variant_count > 1 else "",
-                    "currency": _variant_currency(variants),
-                    "skus": _build_variant_skus(variants),
-                    "variants": _build_variants_payload(variants, product_name=name),
-                    "url": _build_product_url(
-                        product_id=product_id,
-                        name=name,
-                        external_id=str(item.get("external_id") or ""),
-                        catalog_url=catalog_url,
-                    ),
-                }
-            )
-
-            if len(products) >= limit:
+        while True:
+            listing_payload = _api_get("/sync/products", query={"limit": page_size, "offset": offset})
+            items = _extract_result_items(listing_payload)
+            if not items:
                 break
+
+            for raw_item in items:
+                item = _extract_product(raw_item)
+                if not isinstance(item, dict):
+                    continue
+                if item.get("is_ignored") is True:
+                    continue
+
+                product_id = _coerce_int(item.get("id"))
+                name = (item.get("name") or "").strip()
+                if not product_id or not name:
+                    continue
+
+                variants = _extract_variants(item)
+                if not variants:
+                    try:
+                        variants = _fetch_product_detail_variants(product_id)
+                    except PrintfulAPIError:
+                        variants = []
+
+                variant_count = _coerce_int(item.get("variants"), default=len(variants))
+                if variant_count <= 0 and variants:
+                    variant_count = len(variants)
+
+                products.append(
+                    {
+                        "id": product_id,
+                        "name": name,
+                        "category_label": _extract_product_category_label(item),
+                        "image_url": (item.get("thumbnail_url") or "").strip(),
+                        "price_label": _build_price_label(variants) if show_prices else "",
+                        "base_price": _build_base_price(variants),
+                        "variant_label": f"{variant_count} variants" if variant_count > 1 else "",
+                        "currency": _variant_currency(variants),
+                        "skus": _build_variant_skus(variants),
+                        "variants": _build_variants_payload(variants, product_name=name),
+                        "url": _build_product_url(
+                            product_id=product_id,
+                            name=name,
+                            external_id=str(item.get("external_id") or ""),
+                            catalog_url=catalog_url,
+                        ),
+                    }
+                )
+
+                if max_items is not None and len(products) >= max_items:
+                    break
+
+            if max_items is not None and len(products) >= max_items:
+                break
+            if len(items) < page_size:
+                break
+            offset += page_size
 
         payload["products"] = products
     except PrintfulAPIError as exc:
