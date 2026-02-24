@@ -786,38 +786,13 @@
       gap:.5rem;
       align-items:center;
     }
-    .merch-filter__colors{
-      display:flex;
-      flex-wrap:wrap;
-      gap:.5rem;
-    }
-    .merch-filter__empty{
-      color:var(--muted-2);
-      font-size:.85rem;
-    }
-    .merch-color-chip{
-      display:inline-flex;
-      align-items:center;
-      gap:.45rem;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-      border-radius:999px;
-      padding:.3rem .6rem;
-      font-size:.78rem;
-      font-weight:700;
-      cursor:pointer;
-    }
-    .merch-color-chip input{ display:none; }
-    .merch-color-dot{
-      width:12px;
-      height:12px;
-      border-radius:50%;
-      background:var(--swatch, #6c6c6c);
-      border:1px solid rgba(255,255,255,.35);
-    }
-    .merch-color-chip.is-active{
-      border-color:rgba(213,0,0,.6);
-      background:rgba(213,0,0,.16);
+    @media (min-width: 901px){
+      .merch-filters-panel{
+        padding:.75rem 1rem;
+        border-radius:1rem;
+        background:rgba(255,255,255,.02);
+      }
+      .merch-filters-head{ display:none; }
     }
     .merch-filters-actions{
       display:flex;
@@ -1462,10 +1437,6 @@ body.nav-open .contact-fab,
                       </select>
                     </div>
                   {% endif %}
-                  <div class="merch-filter">
-                    <label>Colors</label>
-                    <div class="merch-filter__colors" data-merch-color-options></div>
-                  </div>
                 </div>
                 <div class="merch-filters-actions">
                   <button class="btn btn--primary" type="button" data-merch-filters-apply>Apply</button>
@@ -1487,7 +1458,6 @@ body.nav-open .contact-fab,
                 data-merch-category="{{ item.category_key|default:'' }}"
                 data-merch-category-label="{{ item.category_label|default:''|escape }}"
                 data-merch-price="{{ item.base_price|default:'' }}"
-                data-merch-colors="{% for swatch in item.color_swatches %}{{ swatch.label|lower|escape }}{% if not forloop.last %}|{% endif %}{% endfor %}"
                 data-merch-search-text="{{ item.name|default:''|escape }} {{ item.category_label|default:''|escape }}"
                 data-merch-index="{{ forloop.counter0 }}"
               >
@@ -1787,7 +1757,6 @@ body.nav-open .contact-fab,
       const minInput = root.querySelector('[data-merch-filter="price-min"]');
       const maxInput = root.querySelector('[data-merch-filter="price-max"]');
       const categorySelect = root.querySelector('[data-merch-filter="category"]');
-      const colorHost = root.querySelector('[data-merch-color-options]');
       const clearButtons = root.querySelectorAll('[data-merch-filters-clear]');
       const applyBtn = root.querySelector('[data-merch-filters-apply]');
       const filtersWrap = root.querySelector('[data-merch-filters]');
@@ -1801,78 +1770,10 @@ body.nav-open .contact-fab,
 
       const normalize = (value) => String(value || '').toLowerCase().trim();
 
-      const colorToHex = (label) => {
-        const low = normalize(label);
-        if (low.includes('black')) return '#101010';
-        if (low.includes('white')) return '#f3f3f3';
-        if (low.includes('grey') || low.includes('gray')) return '#bdbdbd';
-        if (low.includes('heather') || low.includes('charcoal')) return '#8f949a';
-        if (low.includes('navy')) return '#0b1b3a';
-        if (low.includes('blue')) return '#1f3b7a';
-        if (low.includes('red') || low.includes('scarlet')) return '#d50000';
-        if (low.includes('maroon') || low.includes('burgundy')) return '#5b0a0a';
-        if (low.includes('green')) return '#1f8a4c';
-        if (low.includes('olive')) return '#556b2f';
-        if (low.includes('tan') || low.includes('khaki')) return '#c2b280';
-        if (low.includes('brown')) return '#5c4033';
-        if (low.includes('orange')) return '#ff7a00';
-        if (low.includes('yellow')) return '#f4c430';
-        if (low.includes('purple')) return '#5b3fd6';
-        if (low.includes('pink')) return '#ff5ca8';
-        if (low.includes('cream') || low.includes('natural')) return '#e9dec8';
-        return '#6c6c6c';
-      };
-
-      const buildColorOptions = () => {
-        if (!colorHost) return;
-        const colors = new Map();
-        cards.forEach((card) => {
-          const raw = card.getAttribute('data-merch-colors') || '';
-          raw.split('|').forEach((label) => {
-            const clean = label.trim();
-            if (!clean) return;
-            const key = clean.toLowerCase();
-            if (!colors.has(key)) colors.set(key, clean);
-          });
-        });
-        if (!colors.size) {
-          colorHost.innerHTML = '<span class="merch-filter__empty">No color data yet.</span>';
-          return;
-        }
-        colorHost.innerHTML = '';
-        colors.forEach((label, key) => {
-          const chip = document.createElement('label');
-          chip.className = 'merch-color-chip';
-          const input = document.createElement('input');
-          input.type = 'checkbox';
-          input.value = key;
-          const dot = document.createElement('span');
-          dot.className = 'merch-color-dot';
-          dot.style.setProperty('--swatch', colorToHex(label));
-          const text = document.createElement('span');
-          text.textContent = label;
-          chip.appendChild(input);
-          chip.appendChild(dot);
-          chip.appendChild(text);
-          colorHost.appendChild(chip);
-          input.addEventListener('change', () => {
-            chip.classList.toggle('is-active', input.checked);
-            applyFilters();
-          });
-        });
-      };
-
       const getPrice = (card) => {
         const raw = card.getAttribute('data-merch-price') || '';
         const value = parseFloat(raw);
         return Number.isFinite(value) ? value : null;
-      };
-
-      const getSelectedColors = () => {
-        if (!colorHost) return new Set();
-        return new Set(
-          Array.from(colorHost.querySelectorAll('input[type="checkbox"]:checked')).map((el) => normalize(el.value))
-        );
       };
 
       const updateClearState = () => {
@@ -1880,8 +1781,7 @@ body.nav-open .contact-fab,
         const minVal = minInput && minInput.value ? parseFloat(minInput.value) : null;
         const maxVal = maxInput && maxInput.value ? parseFloat(maxInput.value) : null;
         const categoryVal = categorySelect ? categorySelect.value : '';
-        const colors = getSelectedColors();
-        const hasFilters = Boolean(query || categoryVal || colors.size || minVal || maxVal);
+        const hasFilters = Boolean(query || categoryVal || minVal || maxVal);
         clearButtons.forEach((btn) => {
           btn.hidden = !hasFilters;
         });
@@ -1895,14 +1795,11 @@ body.nav-open .contact-fab,
         const minVal = minInput && minInput.value ? parseFloat(minInput.value) : null;
         const maxVal = maxInput && maxInput.value ? parseFloat(maxInput.value) : null;
         const categoryVal = categorySelect ? categorySelect.value : '';
-        const selectedColors = getSelectedColors();
         let visible = 0;
 
         cards.forEach((card) => {
           const text = normalize(card.getAttribute('data-merch-search-text'));
           const cardCategory = card.getAttribute('data-merch-category') || '';
-          const colorsRaw = card.getAttribute('data-merch-colors') || '';
-          const colors = colorsRaw.split('|').map((c) => normalize(c)).filter(Boolean);
           const price = getPrice(card);
 
           let match = true;
@@ -1915,10 +1812,6 @@ body.nav-open .contact-fab,
               if (minVal !== null && price < minVal) match = false;
               if (maxVal !== null && price > maxVal) match = false;
             }
-          }
-          if (match && selectedColors.size) {
-            const hasColor = colors.some((color) => selectedColors.has(color));
-            if (!hasColor) match = false;
           }
 
           card.hidden = !match;
@@ -1970,13 +1863,6 @@ body.nav-open .contact-fab,
         if (maxInput) maxInput.value = '';
         if (categorySelect) categorySelect.value = '';
         if (sortSelect) sortSelect.value = 'featured';
-        if (colorHost) {
-          colorHost.querySelectorAll('input[type="checkbox"]').forEach((el) => {
-            el.checked = false;
-            const chip = el.closest('.merch-color-chip');
-            if (chip) chip.classList.remove('is-active');
-          });
-        }
         sortCards(sortSelect ? sortSelect.value : 'featured');
         applyFilters();
       };
@@ -2063,7 +1949,6 @@ body.nav-open .contact-fab,
       }
       clearButtons.forEach((btn) => btn.addEventListener('click', clearFilters));
 
-      buildColorOptions();
       sortCards(sortSelect ? sortSelect.value : 'featured');
       applyFilters();
     })();
