@@ -1380,19 +1380,27 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
         except (TypeError, ValueError):
             product_id = 0
 
-        if product_id in hidden_ids:
+        if product_id and product_id in hidden_ids:
             continue
 
         matched = synced.get(product_id)
-        if not matched:
-            continue
-
-        product = matched["product"]
-        merch_category = getattr(product, "merch_category", None)
-        if merch_category and getattr(merch_category, "is_active", False):
-            row["merch_category_id"] = merch_category.id
-            row["category_label"] = merch_category.name or ""
-            row["category_key"] = merch_category.slug or ""
+        product = matched["product"] if matched else None
+        if product:
+            merch_category = getattr(product, "merch_category", None)
+            if merch_category and getattr(merch_category, "is_active", False):
+                row["merch_category_id"] = merch_category.id
+                row["category_label"] = merch_category.name or ""
+                row["category_key"] = merch_category.slug or ""
+            else:
+                row["merch_category_id"] = None
+                raw_category_label = _extract_printful_category_label(row)
+                if raw_category_label:
+                    category_key, category_label = normalize_merch_category(raw_category_label)
+                    row["category_label"] = category_label or raw_category_label
+                    row["category_key"] = category_key or (slugify(raw_category_label)[:64] or f"category-{product_id}")
+            row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
+            row["checkout_label"] = "Choose options"
+            row["url"] = row["store_product_url"]
         else:
             row["merch_category_id"] = None
             raw_category_label = _extract_printful_category_label(row)
@@ -1400,9 +1408,8 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
                 category_key, category_label = normalize_merch_category(raw_category_label)
                 row["category_label"] = category_label or raw_category_label
                 row["category_key"] = category_key or (slugify(raw_category_label)[:64] or f"category-{product_id}")
-        row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
-        row["checkout_label"] = "Choose options"
-        row["url"] = row["store_product_url"]
+            row["store_product_url"] = ""
+            row["checkout_label"] = "View catalog"
         carousel_images, color_swatches = _build_merch_listing_media(row)
         row["carousel_images"] = carousel_images
         row["color_swatches"] = color_swatches
