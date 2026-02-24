@@ -57,6 +57,7 @@ from .forms import (
     VerifiedLoginForm,
 )
 from store.models import Category, MerchCategory, Order, Product, ProductOption
+from store.utils_merch import normalize_merch_category
 
 CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
 CLIENT_PORTAL_FILE_MAX_BYTES = CLIENT_PORTAL_FILE_MAX_MB * 1024 * 1024
@@ -1057,6 +1058,30 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
 
     category = _get_or_create_merch_category()
     default_currency = (getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD") or "CAD").upper()
+    merch_categories = list(MerchCategory.objects.all())
+    merch_by_slug = {(cat.slug or "").strip().lower(): cat for cat in merch_categories if cat.slug}
+    merch_by_name = {(cat.name or "").strip().lower(): cat for cat in merch_categories if cat.name}
+
+    def _resolve_merch_category(label_source: str) -> MerchCategory | None:
+        source = (label_source or "").strip()
+        if not source:
+            return None
+        category_key, category_label = normalize_merch_category(source)
+        if not category_label:
+            return None
+        key = (category_key or "").strip().lower()
+        name_key = category_label.strip().lower()
+        existing = merch_by_slug.get(key) or merch_by_name.get(name_key)
+        if existing:
+            return existing
+        created = MerchCategory.objects.create(
+            name=category_label,
+            slug=category_key or slugify(category_label)[:140],
+            is_active=True,
+        )
+        merch_by_slug[(created.slug or "").strip().lower()] = created
+        merch_by_name[(created.name or "").strip().lower()] = created
+        return created
 
     for item in products:
         try:
@@ -1085,7 +1110,11 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
 
         currency = (str(item.get("currency") or "") or default_currency).strip().upper() or default_currency
         image_url = (str(item.get("image_url") or "") or "").strip()
-        existing = Product.objects.filter(sku=sku).only("id", "is_active").first()
+        existing = Product.objects.filter(sku=sku).only("id", "is_active", "merch_category_id").first()
+        merch_category = None
+        if existing is None or not existing.merch_category_id:
+            label_source = (item.get("category_label") or item.get("name") or "").strip()
+            merch_category = _resolve_merch_category(label_source)
         defaults = {
             "slug": slug,
             "name": name,
@@ -1102,6 +1131,8 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
             "estimate_from_price": None,
             "main_image": image_url,
         }
+        if merch_category:
+            defaults["merch_category"] = merch_category
         product, _ = Product.objects.update_or_create(sku=sku, defaults=defaults)
         _sync_printful_options_for_product(product, variants)
 
@@ -1172,79 +1203,6 @@ def _extract_printful_category_label(item: dict) -> str:
         if text:
             return text[:80]
     return ""
-
-
-def _normalize_merch_category(label: str) -> tuple[str, str]:
-    """
-    Printful category labels vary a lot ("Unisex hoodie", "Hoodies & Sweatshirts", etc).
-    For the merch landing page we want a clean, one-word category UX (Hoodies, Stickers, ...).
-    Returns (category_key, category_label).
-    """
-    clean = " ".join(str(label or "").strip().split())[:80]
-    if not clean:
-        return "", ""
-
-    low = clean.lower()
-    # Common, high-signal groupings (ordered).
-    rules: list[tuple[tuple[str, ...], str]] = [
-        (("hoodie", "sweatshirt", "crewneck"), "Hoodies"),
-        (("sticker", "decal"), "Stickers"),
-        (("hat", "cap", "snapback", "trucker"), "Hats"),
-        (("beanie",), "Beanies"),
-        (("mug", "cup"), "Mugs"),
-        (("shirt", "tee", "t-shirt", "tshirt"), "Tees"),
-        (("tank",), "Tanks"),
-        (("poster", "print"), "Posters"),
-        (("bag", "tote", "backpack"), "Bags"),
-        (("case",), "Cases"),
-        (("sock",), "Socks"),
-    ]
-    for needles, normalized in rules:
-        if any(needle in low for needle in needles):
-            key = slugify(normalized)[:64]
-            return key or (slugify(clean)[:64] or "merch"), normalized
-
-    # Fallback: pick a meaningful word from the label.
-    stopwords = {
-        "unisex",
-        "men",
-        "mens",
-        "women",
-        "womens",
-        "kids",
-        "youth",
-        "adult",
-        "basic",
-        "classic",
-        "premium",
-        "and",
-        "the",
-        "for",
-        "with",
-        "of",
-    }
-    words = [w for w in re.split(r"[^a-z0-9]+", low) if w]
-    chosen = ""
-    for word in words:
-        if word in stopwords:
-            continue
-        if len(word) < 3:
-            continue
-        chosen = word
-        break
-    if not chosen and words:
-        chosen = words[0]
-
-    if not chosen:
-        key = slugify(clean)[:64] or "merch"
-        return key, clean
-
-    normalized_label = chosen.upper() if chosen in {"pf"} else chosen.title()
-    # Light pluralization so categories feel natural.
-    if not normalized_label.endswith("s") and normalized_label.lower() not in {"merch"}:
-        normalized_label = f"{normalized_label}s"
-    key = slugify(normalized_label)[:64] or (slugify(clean)[:64] or "merch")
-    return key, normalized_label
 
 
 def _normalize_merch_color_label(value: str) -> str:
@@ -1439,7 +1397,7 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
             row["merch_category_id"] = None
             raw_category_label = _extract_printful_category_label(row)
             if raw_category_label:
-                category_key, category_label = _normalize_merch_category(raw_category_label)
+                category_key, category_label = normalize_merch_category(raw_category_label)
                 row["category_label"] = category_label or raw_category_label
                 row["category_key"] = category_key or (slugify(raw_category_label)[:64] or f"category-{product_id}")
         row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
