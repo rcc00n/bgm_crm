@@ -48,6 +48,7 @@ from core.services.media import build_home_gallery_media
 from core.services.page_sections import get_page_sections
 from core.services.email_reporting import describe_email_types
 from core.services.printful import get_printful_merch_feed
+from core.utils import format_currency
 from core.emails import build_email_html, send_html_email
 from core.email_templates import email_brand_name, join_text_sections
 
@@ -1417,6 +1418,57 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
     return enriched
 
 
+def _build_store_merch_products() -> list[dict]:
+    rows: list[dict] = []
+    products = (
+        Product.objects.filter(sku__startswith="PF-", is_active=True)
+        .select_related("merch_category")
+        .order_by("name")
+    )
+    for product in products:
+        product_id = _parse_printful_product_id_from_sku(product.sku) or product.id
+        image_url = ""
+        if getattr(product, "main_image", None):
+            try:
+                image_url = product.main_image.url
+            except Exception:
+                image_url = ""
+
+        merch_category = getattr(product, "merch_category", None)
+        category_key = ""
+        category_label = ""
+        merch_category_id = None
+        if merch_category and getattr(merch_category, "is_active", False):
+            merch_category_id = merch_category.id
+            category_label = merch_category.name or ""
+            category_key = merch_category.slug or (slugify(category_label)[:64] if category_label else "")
+
+        base_price = product.price if product.price is not None else Decimal("0.00")
+        price_label = format_currency(base_price)
+        store_url = reverse("store:store-product", kwargs={"slug": product.slug})
+
+        row = {
+            "id": product_id,
+            "name": product.name or "",
+            "category_label": category_label,
+            "category_key": category_key,
+            "merch_category_id": merch_category_id,
+            "image_url": image_url,
+            "base_price": str(base_price),
+            "price_label": price_label,
+            "currency": (product.currency or "").strip().upper(),
+            "variants": [],
+            "url": store_url,
+            "store_product_url": store_url,
+            "checkout_label": "Choose options",
+        }
+        carousel_images, color_swatches = _build_merch_listing_media(row)
+        row["carousel_images"] = carousel_images
+        row["color_swatches"] = color_swatches
+        rows.append(row)
+    return rows
+
+
 class MerchPlaceholderView(TemplateView):
     template_name = "client/merch.html"
 
@@ -1425,6 +1477,8 @@ class MerchPlaceholderView(TemplateView):
         ctx["merch_copy"] = MerchPageCopy.get_solo()
         printful_feed = get_printful_merch_feed()
         all_products = _enrich_printful_merch_products(printful_feed.get("products", []))
+        if not all_products and printful_feed.get("error"):
+            all_products = _build_store_merch_products()
 
         manual_categories = list(
             MerchCategory.objects.filter(is_active=True).order_by("sort_order", "name")
