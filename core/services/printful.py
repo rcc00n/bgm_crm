@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
+import hashlib
+import time
+from pathlib import Path
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -21,6 +24,50 @@ _CACHE_PREFIX = "printful_merch_v1"
 
 class PrintfulAPIError(RuntimeError):
     """Raised when a Printful API request fails."""
+
+
+def _printful_cache_dir() -> Path:
+    root = getattr(settings, "MEDIA_ROOT", "") or ""
+    if root:
+        base = Path(root)
+    else:
+        base = Path(getattr(settings, "BASE_DIR", Path(__file__).resolve().parents[2])) / "media"
+    return base / "cache"
+
+
+def _last_good_payload_path(key: str) -> Path:
+    digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:20]
+    return _printful_cache_dir() / f"printful_merch_{digest}.json"
+
+
+def _read_last_good_payload(key: str) -> dict[str, Any] | None:
+    try:
+        path = _last_good_payload_path(key)
+        if not path.exists():
+            return None
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(payload, dict) and payload.get("products"):
+            return payload
+    except Exception as exc:
+        logger.warning("Failed to read cached Printful merch payload: %s", exc)
+    return None
+
+
+def _write_last_good_payload(payload: dict[str, Any], key: str, *, min_interval: int = 300) -> None:
+    if not payload.get("products"):
+        return
+    try:
+        path = _last_good_payload_path(key)
+        if path.exists() and min_interval > 0:
+            age = time.time() - path.stat().st_mtime
+            if age < min_interval:
+                return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(payload), encoding="utf-8")
+        tmp.replace(path)
+    except Exception as exc:
+        logger.warning("Failed to write cached Printful merch payload: %s", exc)
 
 
 def _coerce_int(value: Any, default: int = 0) -> int:
@@ -401,15 +448,21 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
     store_id = (getattr(settings, "PRINTFUL_STORE_ID", "") or "").strip()
     cache_key = f"{_CACHE_PREFIX}:{store_id}:{limit}:{int(show_prices)}"
     last_good_key = f"{_CACHE_PREFIX}:last_good:{store_id}:{limit}:{int(show_prices)}"
+    disk_key = f"{store_id}:{limit}:{int(show_prices)}"
 
     if cache_seconds > 0 and not force_refresh:
         cached = cache.get(cache_key)
         if isinstance(cached, dict):
             if cached.get("products") or not cached.get("error"):
+                _write_last_good_payload(cached, disk_key, min_interval=cache_seconds or 300)
                 return cached
             last_good = cache.get(last_good_key)
             if isinstance(last_good, dict) and last_good.get("products"):
+                _write_last_good_payload(last_good, disk_key, min_interval=cache_seconds or 300)
                 return last_good
+            disk_payload = _read_last_good_payload(disk_key)
+            if isinstance(disk_payload, dict):
+                return disk_payload
 
     payload = {
         "enabled": True,
@@ -493,7 +546,11 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
     if payload.get("error"):
         last_good = cache.get(last_good_key)
         if isinstance(last_good, dict) and last_good.get("products"):
+            _write_last_good_payload(last_good, disk_key, min_interval=cache_seconds or 300)
             return last_good
+        disk_payload = _read_last_good_payload(disk_key)
+        if isinstance(disk_payload, dict):
+            return disk_payload
 
     if cache_seconds > 0:
         ttl = cache_seconds
@@ -502,5 +559,6 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
         cache.set(cache_key, payload, ttl)
         if payload.get("products"):
             cache.set(last_good_key, payload, max(cache_seconds, 1800))
+            _write_last_good_payload(payload, disk_key, min_interval=cache_seconds or 300)
 
     return payload
