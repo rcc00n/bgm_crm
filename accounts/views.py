@@ -1443,12 +1443,19 @@ class MerchPlaceholderView(TemplateView):
 
         if manual_categories:
             category_map = {cat.slug: cat for cat in manual_categories if cat.slug}
+            category_name_map = {cat.name.lower(): cat for cat in manual_categories if cat.name}
             rows_by_category: dict[int, list[dict]] = {}
             for row in all_products:
                 cat_id = row.get("merch_category_id")
-                if not cat_id:
+                if cat_id:
+                    rows_by_category.setdefault(cat_id, []).append(row)
                     continue
-                rows_by_category.setdefault(cat_id, []).append(row)
+
+                key = (row.get("category_key") or "").strip()
+                label = (row.get("category_label") or "").strip().lower()
+                cat = category_map.get(key) or category_name_map.get(label)
+                if cat:
+                    rows_by_category.setdefault(cat.id, []).append(row)
 
             for rows in rows_by_category.values():
                 rows.sort(key=lambda item: (item.get("name") or "").lower())
