@@ -1444,6 +1444,11 @@ class MerchPlaceholderView(TemplateView):
         if manual_categories:
             category_map = {cat.slug: cat for cat in manual_categories if cat.slug}
             category_name_map = {cat.name.lower(): cat for cat in manual_categories if cat.name}
+            category_norm_map: dict[str, MerchCategory] = {}
+            for cat in manual_categories:
+                key, _label = normalize_merch_category(cat.name)
+                if key:
+                    category_norm_map[key] = cat
             rows_by_category: dict[int, list[dict]] = {}
             for row in all_products:
                 cat_id = row.get("merch_category_id")
@@ -1453,7 +1458,7 @@ class MerchPlaceholderView(TemplateView):
 
                 key = (row.get("category_key") or "").strip()
                 label = (row.get("category_label") or "").strip().lower()
-                cat = category_map.get(key) or category_name_map.get(label)
+                cat = category_map.get(key) or category_norm_map.get(key) or category_name_map.get(label)
                 if cat:
                     rows_by_category.setdefault(cat.id, []).append(row)
 
@@ -1502,7 +1507,12 @@ class MerchPlaceholderView(TemplateView):
             elif selected_merch_category and selected_merch_category in category_map:
                 cat = category_map[selected_merch_category]
                 merch_display_products = rows_by_category.get(cat.id, [])
-                selected_merch_category_label = cat.name
+                if merch_display_products:
+                    selected_merch_category_label = cat.name
+                else:
+                    selected_merch_category = ""
+                    merch_display_products = all_products
+                    selected_merch_category_label = ""
             else:
                 selected_merch_category = ""
                 merch_display_products = all_products
