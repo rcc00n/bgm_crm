@@ -400,11 +400,16 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
     cache_seconds = _int_setting("PRINTFUL_MERCH_CACHE_SECONDS", 300, min_value=0)
     store_id = (getattr(settings, "PRINTFUL_STORE_ID", "") or "").strip()
     cache_key = f"{_CACHE_PREFIX}:{store_id}:{limit}:{int(show_prices)}"
+    last_good_key = f"{_CACHE_PREFIX}:last_good:{store_id}:{limit}:{int(show_prices)}"
 
     if cache_seconds > 0 and not force_refresh:
         cached = cache.get(cache_key)
         if isinstance(cached, dict):
-            return cached
+            if cached.get("products") or not cached.get("error"):
+                return cached
+            last_good = cache.get(last_good_key)
+            if isinstance(last_good, dict) and last_good.get("products"):
+                return last_good
 
     payload = {
         "enabled": True,
@@ -485,10 +490,17 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
         payload["error"] = str(exc)
         logger.warning("Printful merch sync failed: %s", exc)
 
+    if payload.get("error"):
+        last_good = cache.get(last_good_key)
+        if isinstance(last_good, dict) and last_good.get("products"):
+            return last_good
+
     if cache_seconds > 0:
         ttl = cache_seconds
         if payload.get("error"):
             ttl = max(30, min(cache_seconds, 90))
         cache.set(cache_key, payload, ttl)
+        if payload.get("products"):
+            cache.set(last_good_key, payload, max(cache_seconds, 1800))
 
     return payload
