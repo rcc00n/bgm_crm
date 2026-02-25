@@ -25,7 +25,7 @@ from django.utils.text import slugify
 from django.utils.html import strip_tags
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import validate_email
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.core.paginator import Paginator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.urls import reverse
@@ -3204,6 +3204,17 @@ def project_journal_view(request):
         return render(request, "client/project_journal_feed_items.html", context)
 
     return render(request, "client/project_journal.html", context)
+
+
+@require_GET
+def robots_txt(request):
+    lines = [
+        "User-agent: *",
+        "Disallow: /admin/",
+        "Disallow: /accounts/",
+        "Disallow: /ckeditor/",
+    ]
+    return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
 
 
 @require_GET

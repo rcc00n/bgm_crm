@@ -867,7 +867,19 @@ input.pj-cat-input:checked + label.pj-chip span{ color:var(--pj-ink); }
   background:rgba(0,0,0,.55);
   border:1px solid rgba(255,255,255,.2);
   color:#fff;
-  z-index:3;
+  z-index:6;
+  pointer-events:none;
+}
+
+.pj-mobile-reel__open{
+  position:absolute;
+  inset:0;
+  border:0;
+  padding:0;
+  margin:0;
+  background:transparent;
+  cursor:pointer;
+  z-index:4;
 }
 
 .pj-mobile-reel__nav{

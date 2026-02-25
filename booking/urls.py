@@ -11,6 +11,7 @@ from core.views import DealerApplyWizardView, DealerEntryView, DealerStatusView
 from core import views as core_views
 from store import views as store_views
 urlpatterns = [
+    path("robots.txt", core_views.robots_txt, name="robots-txt"),
     path("analytics/collect/", core_views.analytics_collect, name="analytics-collect"),
     path("site-notice/signup/", core_views.site_notice_signup, name="site-notice-signup"),
     path("admin/logout/", core_views.admin_logout, name="admin-logout"),

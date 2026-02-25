@@ -450,6 +450,7 @@
       const pager = reel.querySelector('[data-mobile-pager]');
       const prevBtn = reel.querySelector('[data-mobile-prev]');
       const nextBtn = reel.querySelector('[data-mobile-next]');
+      const openBtn = reel.querySelector('[data-mobile-open]');
       const media = reel.querySelector('[data-mobile-media]');
 
       const resetSkeleton = (mediaEl, imgEl) => {
@@ -471,6 +472,15 @@
 
       let idx = items.findIndex((item) => item.stage === 'after');
       if (idx < 0) idx = 0;
+
+      const titleEl = reel.closest('[data-feed-card]')?.querySelector(
+        '.pj-title-link, .pj-card__title, .pj-album-teaser__title',
+      );
+      const albumTitle = titleEl ? (titleEl.textContent || '').trim() : 'Build album';
+      const modalApi = getAlbumModalApi();
+      const openAlbum = () => {
+        modalApi.open(items, idx, albumTitle || 'Build album');
+      };
 
       const update = () => {
         const item = items[idx] || items[0];
@@ -496,6 +506,7 @@
 
       if (prevBtn) prevBtn.addEventListener('click', () => move(-1));
       if (nextBtn) nextBtn.addEventListener('click', () => move(1));
+      if (openBtn) openBtn.addEventListener('click', openAlbum);
 
       update();
     });
