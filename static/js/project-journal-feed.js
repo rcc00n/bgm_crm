@@ -408,6 +408,99 @@
     return 'Build photo';
   };
 
+  const initMobileReel = (root = document) => {
+    const reels = root.querySelectorAll('[data-mobile-reel]');
+    reels.forEach((reel) => {
+      if (reel.dataset.reelInit === '1') return;
+      reel.dataset.reelInit = '1';
+
+      const compare = reel.closest('[data-compare]');
+      const script = compare ? compare.querySelector('[data-compare-sources]') : null;
+      let sources = null;
+      try {
+        sources = script ? JSON.parse(script.textContent || '{}') : null;
+      } catch (err) {
+        sources = null;
+      }
+
+      const toItems = (list, stage) => {
+        if (!Array.isArray(list)) return [];
+        return list
+          .filter((item) => item && item.src)
+          .map((item) => ({
+            src: item.src,
+            srcset: item.srcset || '',
+            alt: item.alt || '',
+            stage,
+          }));
+      };
+
+      const beforeList = toItems(sources && sources.before, 'before');
+      const processList = toItems(sources && sources.process, 'process');
+      const afterList = toItems(sources && sources.after, 'after');
+      const items = [...beforeList, ...processList, ...afterList];
+
+      if (!items.length) {
+        reel.hidden = true;
+        return;
+      }
+
+      const img = reel.querySelector('[data-mobile-image]');
+      const labelEl = reel.querySelector('[data-mobile-label]');
+      const pager = reel.querySelector('[data-mobile-pager]');
+      const prevBtn = reel.querySelector('[data-mobile-prev]');
+      const nextBtn = reel.querySelector('[data-mobile-next]');
+      const media = reel.querySelector('[data-mobile-media]');
+
+      const resetSkeleton = (mediaEl, imgEl) => {
+        if (!mediaEl || !imgEl) return;
+        mediaEl.classList.remove('is-loaded');
+        const mark = () => mediaEl.classList.add('is-loaded');
+        if (imgEl.complete) {
+          mark();
+          return;
+        }
+        const fallbackTimer = window.setTimeout(mark, 4500);
+        const markOnce = () => {
+          window.clearTimeout(fallbackTimer);
+          mark();
+        };
+        imgEl.addEventListener('load', markOnce, { once: true });
+        imgEl.addEventListener('error', markOnce, { once: true });
+      };
+
+      let idx = items.findIndex((item) => item.stage === 'after');
+      if (idx < 0) idx = 0;
+
+      const update = () => {
+        const item = items[idx] || items[0];
+        if (!item || !img) return;
+        img.src = item.src;
+        img.srcset = item.srcset || '';
+        const label = albumStageLabel(item.stage);
+        img.alt = item.alt || img.alt || `${label} photo`;
+        if (labelEl) labelEl.textContent = label;
+        if (pager) pager.textContent = `${idx + 1} / ${items.length}`;
+        resetSkeleton(media, img);
+
+        const canNavigate = items.length > 1;
+        if (prevBtn) prevBtn.style.display = canNavigate ? '' : 'none';
+        if (nextBtn) nextBtn.style.display = canNavigate ? '' : 'none';
+        if (pager) pager.style.display = canNavigate ? '' : 'none';
+      };
+
+      const move = (delta) => {
+        idx = (idx + delta + items.length) % items.length;
+        update();
+      };
+
+      if (prevBtn) prevBtn.addEventListener('click', () => move(-1));
+      if (nextBtn) nextBtn.addEventListener('click', () => move(1));
+
+      update();
+    });
+  };
+
   const getAlbumModalApi = () => {
     if (albumModalApi) return albumModalApi;
 
@@ -612,6 +705,7 @@
 
       initSkeleton(feed);
       initCompare(feed);
+      initMobileReel(feed);
       initAlbum(feed);
     };
 
@@ -746,6 +840,7 @@
   const boot = () => {
     initSkeleton();
     initCompare();
+    initMobileReel();
     initAlbum();
     initLoadMore();
     initContactFab();

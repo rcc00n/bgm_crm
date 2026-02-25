@@ -1,6 +1,6 @@
 /* static/admin/js/project_journal_admin.js
    Admin enhancements for ProjectJournalEntry:
-   - Bulk drag&drop upload into Before/After inlines
+   - Bulk drag&drop upload into the photo inline
    - Drag&drop sorting that updates sort_order
    - Live preview of the public feed card */
 
@@ -112,6 +112,24 @@
     cell.innerHTML = `<img src="${url}" alt="" style="height:64px;width:96px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb;">`;
   };
 
+  const rowIsDeleted = (row) => {
+    const input = $('input[type="checkbox"][id$="-DELETE"]', row);
+    return Boolean(input && input.checked);
+  };
+
+  const getRowKind = (row) => {
+    const select = $('select[id$="-kind"]', row);
+    return select ? (select.value || '').toLowerCase() : '';
+  };
+
+  const setRowKind = (row, kind) => {
+    if (!kind) return;
+    const select = $('select[id$="-kind"]', row);
+    if (!select) return;
+    select.value = kind;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
   const addInlineRow = async (group) => {
     const addLink = $('.add-row a', group);
     if (!addLink) return false;
@@ -151,13 +169,29 @@
     });
   };
 
-  const mountDropzone = (group, kindLabel) => {
+  const bindInlineKindUpdates = (group) => {
+    const tbody = getInlineTbody(group);
+    if (!tbody) return;
+    tbody.addEventListener('change', (e) => {
+      const target = e.target;
+      if (!target) return;
+      if (target.matches && target.matches('select[id$="-kind"]')) {
+        queuePreviewUpdate();
+        return;
+      }
+      if (target.matches && target.matches('input[type="checkbox"][id$="-DELETE"]')) {
+        queuePreviewUpdate();
+      }
+    });
+  };
+
+  const mountDropzone = (group, label, defaultKind = '') => {
     const anchor = $('table', group);
     if (!anchor) return;
 
     const dz = document.createElement('div');
     dz.className = 'pj-dropzone';
-    dz.innerHTML = `<strong>Drop ${kindLabel} photos here</strong><span>or click to pick</span>`;
+    dz.innerHTML = `<strong>Drop ${label} photos here</strong><span>or click to pick</span>`;
     anchor.parentNode.insertBefore(dz, anchor);
 
     const handleFiles = async (files) => {
@@ -174,7 +208,10 @@
         if (!input) break;
         const row = input.closest('tr.form-row');
         setFileInput(input, file);
-        if (row) updateRowPreviewFromFile(row, file);
+        if (row) {
+          updateRowPreviewFromFile(row, file);
+          setRowKind(row, defaultKind);
+        }
       }
 
       updateSortOrders(group);
@@ -298,9 +335,30 @@
     return img ? img.getAttribute('src') || '' : '';
   };
 
+  const findFirstInlineImageSrcByKind = (group, kind) => {
+    if (!group) return '';
+    const rows = getFormRows(group);
+    for (const row of rows) {
+      if (rowIsDeleted(row)) continue;
+      if (getRowKind(row) !== kind) continue;
+      // Prefer newly selected files.
+      const input = $('input[type="file"]', row);
+      if (input && input.files && input.files.length) {
+        return URL.createObjectURL(input.files[0]);
+      }
+      const img = $('td.field-image_preview img', row);
+      if (img) {
+        return img.getAttribute('src') || '';
+      }
+    }
+    return '';
+  };
+
   const beforeGroup = findInlineGroup('before');
   const processGroup = findInlineGroup('process');
   const afterGroup = findInlineGroup('after');
+  const photoGroup = findInlineGroup('photo') || findInlineGroup('media') || null;
+  const unifiedInline = Boolean(photoGroup && !beforeGroup && !afterGroup && !processGroup);
 
   const updatePreview = () => {
     if (!previewEls) return;
@@ -318,8 +376,13 @@
     buildChips();
     buildCTAs();
 
-    setPreviewImage('before', findFirstInlineImageSrc(beforeGroup));
-    setPreviewImage('after', findFirstInlineImageSrc(afterGroup));
+    if (unifiedInline) {
+      setPreviewImage('before', findFirstInlineImageSrcByKind(photoGroup, 'before'));
+      setPreviewImage('after', findFirstInlineImageSrcByKind(photoGroup, 'after'));
+    } else {
+      setPreviewImage('before', findFirstInlineImageSrc(beforeGroup));
+      setPreviewImage('after', findFirstInlineImageSrc(afterGroup));
+    }
   };
 
   let previewQueued = false;
@@ -357,23 +420,31 @@
 
   // ---- Boot ----
   const boot = () => {
-    if (beforeGroup) {
-      mountDropzone(beforeGroup, 'BEFORE');
-      bindInlineFilePreview(beforeGroup);
-      makeSortable(beforeGroup);
-      updateSortOrders(beforeGroup);
-    }
-    if (processGroup) {
-      mountDropzone(processGroup, 'PROCESS');
-      bindInlineFilePreview(processGroup);
-      makeSortable(processGroup);
-      updateSortOrders(processGroup);
-    }
-    if (afterGroup) {
-      mountDropzone(afterGroup, 'AFTER');
-      bindInlineFilePreview(afterGroup);
-      makeSortable(afterGroup);
-      updateSortOrders(afterGroup);
+    if (unifiedInline && photoGroup) {
+      mountDropzone(photoGroup, 'build');
+      bindInlineFilePreview(photoGroup);
+      bindInlineKindUpdates(photoGroup);
+      makeSortable(photoGroup);
+      updateSortOrders(photoGroup);
+    } else {
+      if (beforeGroup) {
+        mountDropzone(beforeGroup, 'BEFORE', 'before');
+        bindInlineFilePreview(beforeGroup);
+        makeSortable(beforeGroup);
+        updateSortOrders(beforeGroup);
+      }
+      if (processGroup) {
+        mountDropzone(processGroup, 'PROCESS', 'process');
+        bindInlineFilePreview(processGroup);
+        makeSortable(processGroup);
+        updateSortOrders(processGroup);
+      }
+      if (afterGroup) {
+        mountDropzone(afterGroup, 'AFTER', 'after');
+        bindInlineFilePreview(afterGroup);
+        makeSortable(afterGroup);
+        updateSortOrders(afterGroup);
+      }
     }
 
     bindPreviewInputs();

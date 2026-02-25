@@ -5472,78 +5472,59 @@ class ProjectJournalCategoryAdmin(admin.ModelAdmin):
     ordering = ("sort_order", "name")
 
 
-class _ProjectJournalFixedKindPhotoFormSet(BaseInlineFormSet):
-    fixed_kind = ""
-    require_message = "At least one photo is required."
+class ProjectJournalPhotoFormSet(BaseInlineFormSet):
+    require_before_message = "To publish, add at least one BEFORE photo."
+    require_after_message = "To publish, add at least one AFTER photo."
+
+    def _has_legacy_gallery(self, field_name: str) -> bool:
+        raw_gallery = (self.data.get(field_name) or "").strip()
+        # Allow legacy/manual JSON gallery values (compat path).
+        if raw_gallery and raw_gallery not in {"[]", "null", "None"}:
+            return True
+        if getattr(self.instance, field_name, None):
+            return True
+        return False
 
     def clean(self):
         super().clean()
         if any(self.errors):
             return
 
-        if self.fixed_kind not in {ProjectJournalPhoto.Kind.BEFORE, ProjectJournalPhoto.Kind.AFTER}:
-            return
-
         status = (self.data.get("status") or "").strip()
         if status != ProjectJournalEntry.Status.PUBLISHED:
             return
 
-        kept = 0
+        counts = {ProjectJournalPhoto.Kind.BEFORE: 0, ProjectJournalPhoto.Kind.AFTER: 0}
         for form in self.forms:
             if not hasattr(form, "cleaned_data"):
                 continue
             if form.cleaned_data.get("DELETE"):
                 continue
             image = form.cleaned_data.get("image") or getattr(form.instance, "image", None)
-            if image:
-                kept += 1
+            if not image:
+                continue
+            kind = form.cleaned_data.get("kind") or getattr(form.instance, "kind", "")
+            if kind in counts:
+                counts[kind] += 1
 
-        if kept < 1:
-            gallery_field = "before_gallery" if self.fixed_kind == ProjectJournalPhoto.Kind.BEFORE else "after_gallery"
-            raw_gallery = (self.data.get(gallery_field) or "").strip()
-            # Allow legacy/manual JSON gallery values (compat path).
-            if raw_gallery and raw_gallery not in {"[]", "null", "None"}:
-                return
-            if getattr(self.instance, gallery_field, None):
-                return
-            raise ValidationError(self.require_message)
-
-    def save_new(self, form, commit=True):
-        obj = super().save_new(form, commit=False)
-        if self.fixed_kind:
-            obj.kind = self.fixed_kind
-        if commit:
-            obj.save()
-        return obj
-
-    def save_existing(self, form, instance, commit=True):
-        obj = super().save_existing(form, instance, commit=False)
-        if self.fixed_kind:
-            obj.kind = self.fixed_kind
-        if commit:
-            obj.save()
-        return obj
+        errors = []
+        if counts[ProjectJournalPhoto.Kind.BEFORE] < 1 and not self._has_legacy_gallery("before_gallery"):
+            errors.append(self.require_before_message)
+        if counts[ProjectJournalPhoto.Kind.AFTER] < 1 and not self._has_legacy_gallery("after_gallery"):
+            errors.append(self.require_after_message)
+        if errors:
+            raise ValidationError(errors)
 
 
-class ProjectJournalBeforePhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
-    fixed_kind = ProjectJournalPhoto.Kind.BEFORE
-    require_message = "To publish, add at least one BEFORE photo."
-
-
-class ProjectJournalAfterPhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
-    fixed_kind = ProjectJournalPhoto.Kind.AFTER
-    require_message = "To publish, add at least one AFTER photo."
-
-
-class ProjectJournalProcessPhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
-    fixed_kind = ProjectJournalPhoto.Kind.PROCESS
-
-
-class _ProjectJournalPhotoInline(admin.TabularInline):
+class ProjectJournalPhotoInline(admin.TabularInline):
+    model = ProjectJournalPhoto
+    formset = ProjectJournalPhotoFormSet
     extra = 1
-    fields = ("image_preview", "image", "alt_text", "sort_order")
+    fields = ("image_preview", "image", "kind", "alt_text", "sort_order")
     readonly_fields = ("image_preview",)
     ordering = ("sort_order", "created_at")
+    verbose_name = "Build photo"
+    verbose_name_plural = "Build photos"
 
     @admin.display(description="Preview")
     def image_preview(self, obj):
@@ -5557,33 +5538,6 @@ class _ProjectJournalPhotoInline(admin.TabularInline):
             '<img src="{}" alt="" style="height:64px;width:96px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb;">',
             url,
         )
-
-
-class ProjectJournalBeforePhotoInline(_ProjectJournalPhotoInline):
-    model = ProjectJournalBeforePhoto
-    formset = ProjectJournalBeforePhotoFormSet
-    verbose_name_plural = "Before media"
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.BEFORE)
-
-
-class ProjectJournalAfterPhotoInline(_ProjectJournalPhotoInline):
-    model = ProjectJournalAfterPhoto
-    formset = ProjectJournalAfterPhotoFormSet
-    verbose_name_plural = "After media"
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.AFTER)
-
-
-class ProjectJournalProcessPhotoInline(_ProjectJournalPhotoInline):
-    model = ProjectJournalProcessPhoto
-    formset = ProjectJournalProcessPhotoFormSet
-    verbose_name_plural = "Process media"
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.PROCESS)
 
 
 class ProjectJournalEntryAdminForm(forms.ModelForm):
@@ -5631,11 +5585,7 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
     ordering = ("-published_at", "-updated_at")
     readonly_fields = ("created_at", "updated_at", "preview_link")
     prepopulated_fields = {"slug": ("title",)}
-    inlines = (
-        ProjectJournalBeforePhotoInline,
-        ProjectJournalProcessPhotoInline,
-        ProjectJournalAfterPhotoInline,
-    )
+    inlines = (ProjectJournalPhotoInline,)
     fieldsets = (
         ("Story", {
             "fields": (

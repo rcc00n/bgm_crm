@@ -45,6 +45,17 @@
               {% endthumbnail %}
             {% endthumbnail %}
           {% endif %}
+        ],
+        "process": [
+          {% if post.process_photos and post.process_photos.0.image %}
+            {% for p in post.process_photos %}
+              {% thumbnail p.image "1200" quality=74 format="WEBP" as process_json_1x %}
+                {% thumbnail p.image "2000" quality=74 format="WEBP" as process_json_2x %}
+                  {"src":"{{ process_json_1x.url|escapejs }}","srcset":"{{ process_json_1x.url|escapejs }} 1x, {{ process_json_2x.url|escapejs }} 2x","alt":"{% if p.alt_text %}{{ p.alt_text|escapejs }}{% else %}{{ post.title|add:' process'|escapejs }}{% endif %}"}{% if not forloop.last %},{% endif %}
+                {% endthumbnail %}
+              {% endthumbnail %}
+            {% endfor %}
+          {% endif %}
         ]
       }
     </script>
@@ -144,6 +155,111 @@
     <span class="pj-compare__hint" aria-hidden="true">Drag left/right</span>
     <span class="pj-compare__handle" aria-hidden="true"></span>
     <input class="pj-compare__range" type="range" min="0" max="100" value="50" aria-label="Before and after slider">
+
+    <div class="pj-mobile-reel" data-mobile-reel aria-label="Build photos">
+      <figure class="pj-mobile-reel__frame">
+        <figcaption class="pj-mobile-reel__label" data-mobile-label>
+          {% if post.after_photos and post.after_photos.0.image %}
+            After
+          {% elif post.legacy_after %}
+            After
+          {% elif post.process_photos and post.process_photos.0.image %}
+            Process
+          {% elif post.before_photos and post.before_photos.0.image %}
+            Before
+          {% elif post.legacy_before %}
+            Before
+          {% else %}
+            Build photo
+          {% endif %}
+        </figcaption>
+        <div class="pj-media" data-skeleton data-mobile-media>
+          {% if post.after_photos and post.after_photos.0.image %}
+            {% thumbnail post.after_photos.0.image "1200" quality=74 format="WEBP" as mobile_after_1x %}
+              {% thumbnail post.after_photos.0.image "2000" quality=74 format="WEBP" as mobile_after_2x %}
+                <img
+                  src="{{ mobile_after_1x.url }}"
+                  srcset="{{ mobile_after_1x.url }} 1x, {{ mobile_after_2x.url }} 2x"
+                  alt="{% firstof post.after_photos.0.alt_text post.title|add:' after' %}"
+                  loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                  decoding="async"
+                  draggable="false"
+                  data-mobile-image
+                >
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% elif post.legacy_after %}
+            <img
+              src="{{ post.legacy_after.0.url }}"
+              alt="{% firstof post.legacy_after.0.alt post.title|add:' after' %}"
+              loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+              decoding="async"
+              draggable="false"
+              data-mobile-image
+            >
+          {% elif post.process_photos and post.process_photos.0.image %}
+            {% thumbnail post.process_photos.0.image "1200" quality=74 format="WEBP" as mobile_process_1x %}
+              {% thumbnail post.process_photos.0.image "2000" quality=74 format="WEBP" as mobile_process_2x %}
+                <img
+                  src="{{ mobile_process_1x.url }}"
+                  srcset="{{ mobile_process_1x.url }} 1x, {{ mobile_process_2x.url }} 2x"
+                  alt="{% firstof post.process_photos.0.alt_text post.title|add:' process' %}"
+                  loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                  decoding="async"
+                  draggable="false"
+                  data-mobile-image
+                >
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% elif post.before_photos and post.before_photos.0.image %}
+            {% thumbnail post.before_photos.0.image "1200" quality=74 format="WEBP" as mobile_before_1x %}
+              {% thumbnail post.before_photos.0.image "2000" quality=74 format="WEBP" as mobile_before_2x %}
+                <img
+                  src="{{ mobile_before_1x.url }}"
+                  srcset="{{ mobile_before_1x.url }} 1x, {{ mobile_before_2x.url }} 2x"
+                  alt="{% firstof post.before_photos.0.alt_text post.title|add:' before' %}"
+                  loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                  decoding="async"
+                  draggable="false"
+                  data-mobile-image
+                >
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% elif post.legacy_before %}
+            <img
+              src="{{ post.legacy_before.0.url }}"
+              alt="{% firstof post.legacy_before.0.alt post.title|add:' before' %}"
+              loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+              decoding="async"
+              draggable="false"
+              data-mobile-image
+            >
+          {% elif post.cover_image %}
+            {% thumbnail post.cover_image "1200" quality=74 format="WEBP" as mobile_cover_1x %}
+              {% thumbnail post.cover_image "2000" quality=74 format="WEBP" as mobile_cover_2x %}
+                <img
+                  src="{{ mobile_cover_1x.url }}"
+                  srcset="{{ mobile_cover_1x.url }} 1x, {{ mobile_cover_2x.url }} 2x"
+                  alt="{{ post.title }} build photo"
+                  loading="{% if is_first %}eager{% else %}lazy{% endif %}"
+                  decoding="async"
+                  draggable="false"
+                  data-mobile-image
+                >
+              {% endthumbnail %}
+            {% endthumbnail %}
+          {% endif %}
+        </div>
+      </figure>
+
+      <button class="pj-mobile-reel__nav pj-mobile-reel__nav--prev" type="button" data-mobile-prev aria-label="Previous photo">
+        <span aria-hidden="true">‹</span>
+      </button>
+      <button class="pj-mobile-reel__nav pj-mobile-reel__nav--next" type="button" data-mobile-next aria-label="Next photo">
+        <span aria-hidden="true">›</span>
+      </button>
+      <div class="pj-mobile-reel__pager" data-mobile-pager aria-live="polite"></div>
+    </div>
   </section>
 
   <section class="pj-album-teaser" data-album-card aria-label="Build photo album">
