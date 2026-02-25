@@ -1361,25 +1361,6 @@ body.nav-open .contact-fab,
               </div>
             </div>
 
-            {% if merch_categories %}
-              <div class="merch-categories" aria-label="Filter merch by category">
-                <a
-                  class="merch-categories__chip{% if selected_merch_category == 'all' or not selected_merch_category %} is-active{% endif %}"
-                  href="{% url 'merch' %}?category=all#merchCatalog"
-                >
-                  All
-                </a>
-                {% for category in merch_categories %}
-                  <a
-                    class="merch-categories__chip{% if selected_merch_category == category.key %} is-active{% endif %}"
-                    href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog"
-                  >
-                    {{ category.label }}
-                  </a>
-                {% endfor %}
-              </div>
-            {% endif %}
-
             <div class="merch-toolbar">
               <div class="merch-toolbar__left">
                 <div class="merch-search" data-merch-search>
