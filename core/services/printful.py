@@ -463,6 +463,12 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
             disk_payload = _read_last_good_payload(disk_key)
             if isinstance(disk_payload, dict):
                 return disk_payload
+        # Cold start: serve the last known payload from disk to avoid blocking the page
+        # on a fresh Printful fetch (especially after deploys).
+        disk_payload = _read_last_good_payload(disk_key)
+        if isinstance(disk_payload, dict):
+            cache.set(cache_key, disk_payload, cache_seconds)
+            return disk_payload
 
     payload = {
         "enabled": True,

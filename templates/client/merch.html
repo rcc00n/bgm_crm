@@ -1461,18 +1461,31 @@ body.nav-open .contact-fab,
                 data-merch-search-text="{{ item.name|default:''|escape }} {{ item.category_label|default:''|escape }}"
                 data-merch-index="{{ forloop.counter0 }}"
               >
-                <div class="card__media merch-carousel" data-merch-carousel data-carousel-ready="0">
+                <div
+                  class="card__media merch-carousel"
+                  data-merch-carousel
+                  data-carousel-ready="0"
+                  data-carousel-alt="{{ item.name|default:'Merch photo'|escapejs }}"
                   {% if item.carousel_images %}
-                    {% for img in item.carousel_images %}
+                    data-carousel-images='[{% for img in item.carousel_images %}"{{ img|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+                  {% elif item.image_url %}
+                    data-carousel-images='["{{ item.image_url|escapejs }}"]'
+                  {% else %}
+                    data-carousel-images='[]'
+                  {% endif %}
+                >
+                  {% if item.carousel_images %}
+                    {% with first_img=item.carousel_images.0 %}
                       <img
-                        class="merch-carousel__img{% if forloop.first %} is-active{% endif %}"
-                        src="{{ img }}"
-                        alt="{{ item.name }} photo {{ forloop.counter }}"
+                        class="merch-carousel__img is-active"
+                        src="{{ first_img }}"
+                        alt="{{ item.name }} photo 1"
                         loading="lazy"
                         decoding="async"
                         data-carousel-slide
+                        data-carousel-index="0"
                       >
-                    {% endfor %}
+                    {% endwith %}
                   {% elif item.image_url %}
                     <img
                       class="merch-carousel__img is-active"
@@ -1481,6 +1494,7 @@ body.nav-open .contact-fab,
                       loading="lazy"
                       decoding="async"
                       data-carousel-slide
+                      data-carousel-index="0"
                     >
                   {% else %}
                     <div class="sk" style="aspect-ratio:4/3"></div>
@@ -2035,30 +2049,80 @@ body.nav-open .contact-fab,
 	        const nextBtn = carousel.querySelector("[data-carousel-next]");
 	        const card = carousel.closest("[data-merch-card]");
 	        const swatches = card ? Array.from(card.querySelectorAll("[data-merch-swatch]")) : [];
-
-        let index = slides.findIndex((node) => node.classList.contains("is-active"));
-        if (index < 0) index = 0;
-
-        const setIndex = (next) => {
-          if (!slides.length) return;
-          const len = slides.length;
-          index = ((next % len) + len) % len;
-          slides.forEach((node, i) => node.classList.toggle("is-active", i === index));
-          swatches.forEach((btn) => {
-            const target = parseInt(btn.getAttribute("data-carousel-index") || "0", 10) || 0;
-            btn.classList.toggle("is-active", target === index);
-	          });
-	        };
-
-	        if (!slides.length) {
+	        const rawSources = carousel.dataset.carouselImages || "";
+	        let sources = [];
+	        if (rawSources) {
+	          try {
+	            const parsed = JSON.parse(rawSources);
+	            if (Array.isArray(parsed)) sources = parsed.filter(Boolean);
+	          } catch (err) {
+	            sources = [];
+	          }
+	        }
+	        if (!sources.length && slides.length) {
+	          sources = slides.map((node) => node.getAttribute("src") || "").filter(Boolean);
+	        }
+	        if (!sources.length) {
 	          carousel.setAttribute("data-carousel-ready", "0");
 	          return;
 	        }
 
+	        const altBase = (carousel.dataset.carouselAlt || "Merch photo").trim() || "Merch photo";
+	        const slideSlots = new Array(sources.length).fill(null);
+	        slides.forEach((node, i) => {
+	          const rawIndex = parseInt(node.getAttribute("data-carousel-index") || `${i}`, 10);
+	          const idx = Number.isFinite(rawIndex) ? rawIndex : i;
+	          slideSlots[idx] = node;
+	          node.setAttribute("data-carousel-index", String(idx));
+	        });
+
+	        const ensureSlide = (idx) => {
+	          if (idx < 0 || idx >= sources.length) return null;
+	          if (slideSlots[idx]) return slideSlots[idx];
+	          const src = sources[idx];
+	          if (!src) return null;
+	          const img = document.createElement("img");
+	          img.className = "merch-carousel__img";
+	          img.src = src;
+	          img.alt = `${altBase} photo ${idx + 1}`;
+	          img.loading = "lazy";
+	          img.decoding = "async";
+	          img.setAttribute("data-carousel-slide", "");
+	          img.setAttribute("data-carousel-index", String(idx));
+	          if (prevBtn) {
+	            carousel.insertBefore(img, prevBtn);
+	          } else if (nextBtn) {
+	            carousel.insertBefore(img, nextBtn);
+	          } else {
+	            carousel.appendChild(img);
+	          }
+	          slideSlots[idx] = img;
+	          return img;
+	        };
+
+	        let index = slides.findIndex((node) => node.classList.contains("is-active"));
+	        if (index < 0) index = 0;
+	        ensureSlide(index);
+
+	        const setIndex = (next) => {
+	          const len = sources.length;
+	          if (!len) return;
+	          index = ((next % len) + len) % len;
+	          ensureSlide(index);
+	          slideSlots.forEach((node, i) => {
+	            if (!node) return;
+	            node.classList.toggle("is-active", i === index);
+	          });
+	          swatches.forEach((btn) => {
+	            const target = parseInt(btn.getAttribute("data-carousel-index") || "0", 10) || 0;
+	            btn.classList.toggle("is-active", target === index);
+	          });
+	        };
+
 	        // Always show arrows for consistency (even if only one slide).
 	        // If there is only a single slide, disable the controls.
 	        carousel.setAttribute("data-carousel-ready", "1");
-	        const hasMultiple = slides.length > 1;
+	        const hasMultiple = sources.length > 1;
 	        [prevBtn, nextBtn].forEach((btn) => {
 	          if (!btn) return;
 	          if (hasMultiple) {
@@ -2078,24 +2142,24 @@ body.nav-open .contact-fab,
 	          prevBtn.addEventListener("click", (e) => {
 	            e.preventDefault();
 	            e.stopPropagation();
-            setIndex(index - 1);
-          });
-        }
-        if (nextBtn) {
-          nextBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIndex(index + 1);
-          });
-        }
-        swatches.forEach((btn) => {
-          btn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const target = parseInt(btn.getAttribute("data-carousel-index") || "0", 10) || 0;
-            setIndex(target);
-          });
-        });
+	            setIndex(index - 1);
+	          });
+	        }
+	        if (nextBtn) {
+	          nextBtn.addEventListener("click", (e) => {
+	            e.preventDefault();
+	            e.stopPropagation();
+	            setIndex(index + 1);
+	          });
+	        }
+	        swatches.forEach((btn) => {
+	          btn.addEventListener("click", (e) => {
+	            e.preventDefault();
+	            e.stopPropagation();
+	            const target = parseInt(btn.getAttribute("data-carousel-index") || "0", 10) || 0;
+	            setIndex(target);
+	          });
+	        });
 
         // Touch swipe (mobile): swipe left/right to cycle.
         let startX = 0;
