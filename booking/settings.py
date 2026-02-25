@@ -440,6 +440,9 @@ CKEDITOR_CONFIGS = {
     }
 }
 
+# Silence CKEditor 4 deprecation warning for now (we'll plan a safe upgrade path).
+SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
+
 STORAGES = {
     # Manifest storage has been causing 404s in production when the manifest and
     # collected files get out of sync. Prefer non-manifest storage for uptime.
