@@ -671,6 +671,10 @@
       color:#fff;
       font-size:.95rem;
       min-width:120px;
+      min-height:34px;
+      line-height:1.2;
+      -webkit-appearance:none;
+      appearance:none;
     }
     .merch-search__input:focus{ outline:none; }
     .merch-search__clear{
@@ -884,9 +888,15 @@
     /* =============================== MOBILE TUNING ============================== */
     @media (max-width: 900px){
       .merch-toolbar{ flex-direction:column; align-items:stretch; }
-      .merch-toolbar__left, .merch-toolbar__right{ width:100%; }
+      .merch-toolbar__left, .merch-toolbar__right{
+        width:100%;
+        flex:0 0 auto;
+      }
       .merch-sort{ width:100%; justify-content:space-between; }
-      .merch-search{ width:100%; }
+      .merch-search{
+        width:100%;
+        padding:.42rem .62rem;
+      }
       .merch-filters-panel{
         position:fixed;
         top:0;
@@ -1238,110 +1248,114 @@ body.nav-open .contact-fab,
   <main id="main">
     <section class="section{% if merch_copy.coming_soon_enabled and not merch_has_products %} section--preview{% endif %}">
       <div class="container">
-        <div class="section__head">
-          <div>
-            <h2 class="section__title">{{ merch_copy.section_title }}</h2>
-            <p class="section__desc">{{ merch_copy.section_desc|striptags|safe }}</p>
-            {% if store_shipping.free_shipping_threshold_label %}
-              <div class="merch-shipping-banner">
-                Canada free shipping over <strong>{{ store_shipping.free_shipping_threshold_label }}</strong>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-
-        {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
-          <div class="social">
+        {% if not selected_merch_category %}
+          <div class="section__head">
             <div>
-              <div class="social__title">{{ merch_copy.social_section_title }}</div>
-              <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
-            </div>
-            <div class="social__links">
-              {% if merch_copy.social_link_1_url %}
-                <a class="social__link social__link--ig" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_2_url %}
-                <a class="social__link social__link--fb" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_3_url %}
-                <a class="social__link social__link--yt" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_4_url %}
-                <a class="social__link social__link--tt" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
+              <h2 class="section__title">{{ merch_copy.section_title }}</h2>
+              <p class="section__desc">{{ merch_copy.section_desc|striptags|safe }}</p>
+              {% if store_shipping.free_shipping_threshold_label %}
+                <div class="merch-shipping-banner">
+                  Canada free shipping over <strong>{{ store_shipping.free_shipping_threshold_label }}</strong>
+                </div>
               {% endif %}
             </div>
           </div>
+
+          {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
+            <div class="social">
+              <div>
+                <div class="social__title">{{ merch_copy.social_section_title }}</div>
+                <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
+              </div>
+              <div class="social__links">
+                {% if merch_copy.social_link_1_url %}
+                  <a class="social__link social__link--ig" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
+                {% endif %}
+                {% if merch_copy.social_link_2_url %}
+                  <a class="social__link social__link--fb" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
+                {% endif %}
+                {% if merch_copy.social_link_3_url %}
+                  <a class="social__link social__link--yt" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
+                {% endif %}
+                {% if merch_copy.social_link_4_url %}
+                  <a class="social__link social__link--tt" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
         {% endif %}
 
         <div class="merch-shell"
              data-merch-root
              data-merch-has-selection="{% if selected_merch_category %}1{% else %}0{% endif %}"
              data-merch-has-categories="{% if merch_category_cards or merch_categories %}1{% else %}0{% endif %}">
-          <div class="merch-section merch-section--categories">
-            <div class="merch-section__head">
-              <div>
-                <h3 class="merch-section__title">Browse categories</h3>
-                <p class="merch-section__desc">Pick a category to see what's available right now.</p>
+          {% if not selected_merch_category %}
+            <div class="merch-section merch-section--categories">
+              <div class="merch-section__head">
+                <div>
+                  <h3 class="merch-section__title">Browse categories</h3>
+                  <p class="merch-section__desc">Pick a category to see what's available right now.</p>
+                </div>
+                {% if merch_category_cards or merch_categories %}
+                  <div class="merch-section__meta">{{ merch_categories|length }} categories</div>
+                {% endif %}
               </div>
-              {% if merch_category_cards or merch_categories %}
-                <div class="merch-section__meta">{{ merch_categories|length }} categories</div>
+
+              {% if show_merch_category_grid and merch_category_cards %}
+                <details class="merch-categories-collapse" id="merchCategoriesCollapse" open>
+                  <summary class="merch-categories-toggle">Show categories</summary>
+                  <div class="merch-categories-preview" data-merch-categories-preview>
+                    <div class="merch-category-grid" aria-label="Merch categories">
+                      {% for category in merch_category_cards %}
+                        <a
+                          class="card merch-category-card{% if selected_merch_category == category.key %} is-active{% endif %}"
+                          href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog"
+                        >
+                          <div class="merch-category-card__media">
+                            {% if category.cover_url %}
+                              <img src="{{ category.cover_url }}" alt="{{ category.cover_alt|default:category.label }}" loading="lazy" decoding="async">
+                            {% else %}
+                              <div class="sk" style="aspect-ratio:4/3"></div>
+                            {% endif %}
+                          </div>
+                          <div class="merch-category-card__body">
+                            <div class="merch-category-card__title">{{ category.label }}</div>
+                            {% if category.description %}
+                              <div class="merch-category-card__desc">{{ category.description }}</div>
+                            {% endif %}
+                            {% if category.count %}
+                              <div class="merch-category-card__count">{{ category.count }} items</div>
+                            {% endif %}
+                          </div>
+                        </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <button class="btn btn--ghost merch-categories-expand" type="button"
+                          data-merch-categories-toggle
+                          data-label-expand="View all categories"
+                          data-label-collapse="Show fewer">
+                    View all categories
+                  </button>
+                </details>
+              {% elif merch_categories %}
+                <div class="merch-categories merch-categories--grid" aria-label="Merch categories">
+                  <a class="merch-categories__chip{% if selected_merch_category == 'all' or not selected_merch_category %} is-active{% endif %}"
+                     href="{% url 'merch' %}?category=all#merchCatalog">All</a>
+                  {% for category in merch_categories %}
+                    <a class="merch-categories__chip{% if selected_merch_category == category.key %} is-active{% endif %}"
+                       href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog">
+                      {{ category.label }}
+                    </a>
+                  {% endfor %}
+                </div>
               {% endif %}
+
+              <div class="merch-intro-note">Choose a category to view products.</div>
             </div>
 
-            {% if show_merch_category_grid and merch_category_cards %}
-              <details class="merch-categories-collapse" id="merchCategoriesCollapse" open>
-                <summary class="merch-categories-toggle">Show categories</summary>
-                <div class="merch-categories-preview" data-merch-categories-preview>
-                  <div class="merch-category-grid" aria-label="Merch categories">
-                    {% for category in merch_category_cards %}
-                      <a
-                        class="card merch-category-card{% if selected_merch_category == category.key %} is-active{% endif %}"
-                        href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog"
-                      >
-                        <div class="merch-category-card__media">
-                          {% if category.cover_url %}
-                            <img src="{{ category.cover_url }}" alt="{{ category.cover_alt|default:category.label }}" loading="lazy" decoding="async">
-                          {% else %}
-                            <div class="sk" style="aspect-ratio:4/3"></div>
-                          {% endif %}
-                        </div>
-                        <div class="merch-category-card__body">
-                          <div class="merch-category-card__title">{{ category.label }}</div>
-                          {% if category.description %}
-                            <div class="merch-category-card__desc">{{ category.description }}</div>
-                          {% endif %}
-                          {% if category.count %}
-                            <div class="merch-category-card__count">{{ category.count }} items</div>
-                          {% endif %}
-                        </div>
-                      </a>
-                    {% endfor %}
-                  </div>
-                </div>
-                <button class="btn btn--ghost merch-categories-expand" type="button"
-                        data-merch-categories-toggle
-                        data-label-expand="View all categories"
-                        data-label-collapse="Show fewer">
-                  View all categories
-                </button>
-              </details>
-            {% elif merch_categories %}
-              <div class="merch-categories merch-categories--grid" aria-label="Merch categories">
-                <a class="merch-categories__chip{% if selected_merch_category == 'all' or not selected_merch_category %} is-active{% endif %}"
-                   href="{% url 'merch' %}?category=all#merchCatalog">All</a>
-                {% for category in merch_categories %}
-                  <a class="merch-categories__chip{% if selected_merch_category == category.key %} is-active{% endif %}"
-                     href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog">
-                    {{ category.label }}
-                  </a>
-                {% endfor %}
-              </div>
-            {% endif %}
-
-            <div class="merch-intro-note">Choose a category to view products.</div>
-          </div>
-
-          <hr class="merch-divider" aria-hidden="true">
+            <hr class="merch-divider" aria-hidden="true">
+          {% endif %}
 
           <div id="merchCatalog"></div>
 
