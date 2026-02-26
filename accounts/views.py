@@ -952,6 +952,15 @@ class StoreView(TemplateView):
 PRINTFUL_MERCH_SYNC_KEY_PREFIX = "printful_merch_store_sync_v2"
 
 
+def _printful_merch_limit_setting(default: int = 8) -> int:
+    raw = getattr(settings, "PRINTFUL_MERCH_LIMIT", default)
+    try:
+        parsed = int(raw)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(0, parsed)
+
+
 def _parse_merch_decimal(value) -> Decimal | None:
     if value in (None, ""):
         return None
@@ -1058,10 +1067,12 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
         return
 
     category = _get_or_create_merch_category()
+    sync_full_catalog = _printful_merch_limit_setting() == 0
     default_currency = (getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD") or "CAD").upper()
     merch_categories = list(MerchCategory.objects.all())
     merch_by_slug = {(cat.slug or "").strip().lower(): cat for cat in merch_categories if cat.slug}
     merch_by_name = {(cat.name or "").strip().lower(): cat for cat in merch_categories if cat.name}
+    synced_skus: set[str] = set()
 
     def _resolve_merch_category(label_source: str) -> MerchCategory | None:
         source = (label_source or "").strip()
@@ -1094,6 +1105,7 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
 
         name = (str(item.get("name") or "") or f"Merch item {product_id}").strip()[:180]
         sku = _build_printful_product_sku(product_id)
+        synced_skus.add(sku)
         slug = _build_printful_product_slug(product_id, name)
         variants = [row for row in item.get("variants", []) if isinstance(row, dict)]
 
@@ -1136,6 +1148,9 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
             defaults["merch_category"] = merch_category
         product, _ = Product.objects.update_or_create(sku=sku, defaults=defaults)
         _sync_printful_options_for_product(product, variants)
+
+    if sync_full_catalog and synced_skus:
+        Product.objects.filter(sku__startswith="PF-", is_active=True).exclude(sku__in=synced_skus).update(is_active=False)
 
 
 def _build_synced_printful_merch_map(products: list[dict]) -> tuple[dict[int, dict], set[int]]:

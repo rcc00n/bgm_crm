@@ -131,3 +131,41 @@ class PrintfulMerchFeedTests(SimpleTestCase):
             feed["products"][1]["url"],
             "https://shop.example.com/products/bgm-hoodie-black?p=2&ext=hoodie-black",
         )
+
+    @override_settings(
+        PRINTFUL_TOKEN="token-123",
+        PRINTFUL_MERCH_LIMIT=8,
+        PRINTFUL_MERCH_CACHE_SECONDS=300,
+        PRINTFUL_MERCH_SHOW_PRICE=False,
+    )
+    def test_cold_start_disk_snapshot_does_not_block_live_refresh(self):
+        stale_disk_payload = {
+            "enabled": True,
+            "catalog_url": "",
+            "products": [{"id": 999, "name": "Stale snapshot"}],
+            "error": "",
+        }
+
+        with (
+            patch("core.services.printful._read_last_good_payload", return_value=stale_disk_payload),
+            patch(
+                "core.services.printful.urlopen",
+                return_value=_FakeResponse(
+                    {
+                        "code": 200,
+                        "result": [
+                            {
+                                "id": 11,
+                                "name": "Fresh Product",
+                                "thumbnail_url": "",
+                                "variants": 1,
+                            }
+                        ],
+                    }
+                ),
+            ) as mocked_urlopen,
+        ):
+            feed = get_printful_merch_feed(force_refresh=False)
+
+        self.assertEqual([row["id"] for row in feed["products"]], [11])
+        mocked_urlopen.assert_called()

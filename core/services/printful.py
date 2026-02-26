@@ -449,6 +449,7 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
     cache_key = f"{_CACHE_PREFIX}:{store_id}:{limit}:{int(show_prices)}"
     last_good_key = f"{_CACHE_PREFIX}:last_good:{store_id}:{limit}:{int(show_prices)}"
     disk_key = f"{store_id}:{limit}:{int(show_prices)}"
+    disk_payload: dict[str, Any] | None = None
 
     if cache_seconds > 0 and not force_refresh:
         cached = cache.get(cache_key)
@@ -463,12 +464,8 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
             disk_payload = _read_last_good_payload(disk_key)
             if isinstance(disk_payload, dict):
                 return disk_payload
-        # Cold start: serve the last known payload from disk to avoid blocking the page
-        # on a fresh Printful fetch (especially after deploys).
+        # Keep a disk snapshot as a fallback, but still attempt a live fetch first.
         disk_payload = _read_last_good_payload(disk_key)
-        if isinstance(disk_payload, dict):
-            cache.set(cache_key, disk_payload, cache_seconds)
-            return disk_payload
 
     payload = {
         "enabled": True,
@@ -554,6 +551,8 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
         if isinstance(last_good, dict) and last_good.get("products"):
             _write_last_good_payload(last_good, disk_key, min_interval=cache_seconds or 300)
             return last_good
+        if isinstance(disk_payload, dict):
+            return disk_payload
         disk_payload = _read_last_good_payload(disk_key)
         if isinstance(disk_payload, dict):
             return disk_payload
