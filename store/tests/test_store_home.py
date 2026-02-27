@@ -1,8 +1,10 @@
 from decimal import Decimal
 
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.urls import reverse
 
+from core.models import PageSection, StorePageCopy
 from store.models import Category, Product
 
 
@@ -93,3 +95,41 @@ class StoreHomeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         names = [item["name"] for item in response.json()["results"]]
         self.assertEqual(names, ["BGM Leveling Kit"])
+
+
+class StoreHomePageSectionRenderingTests(TestCase):
+    def setUp(self):
+        self.store_url = reverse("store:store")
+        self.store_copy = StorePageCopy.get_solo()
+        self.store_copy.hero_title = "__default_store_title__"
+        self.store_copy.hero_lead = "__default_store_lead__"
+        self.store_copy.save(update_fields=["hero_title", "hero_lead"])
+        self.content_type = ContentType.objects.get_for_model(StorePageCopy)
+        PageSection.objects.filter(content_type=self.content_type, object_id=self.store_copy.pk).delete()
+
+    def test_store_home_uses_standard_layout_when_no_page_sections_exist(self):
+        response = self.client.get(self.store_url, secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "__default_store_title__")
+        self.assertNotContains(response, "builder-section")
+
+    def test_store_home_renders_page_builder_sections_when_present(self):
+        PageSection.objects.create(
+            content_type=self.content_type,
+            object_id=self.store_copy.pk,
+            section_type=PageSection.SectionType.TEXT,
+            order=10,
+            config={
+                "title": "__builder_store_title__",
+                "body": "__builder_store_body__",
+            },
+        )
+
+        response = self.client.get(self.store_url, secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "__builder_store_title__")
+        self.assertContains(response, "__builder_store_body__")
+        self.assertContains(response, "builder-section--text")
+        self.assertNotContains(response, "__default_store_title__")
