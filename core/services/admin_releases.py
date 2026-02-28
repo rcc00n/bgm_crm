@@ -10,6 +10,18 @@ from django.utils import timezone
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-product-editor-redesign",
+        "published_at": "2026-03-20T15:15:00-06:00",
+        "title": "Product editor redesigned for faster catalog work",
+        "summary": "The product change form now uses a custom editor layout with clearer sections, better save flow, and cleaner option/image management.",
+        "highlights": [
+            "Product identity, pricing, storefront content, compatibility, and specs are now grouped into clearer workspace cards instead of one long uneven form.",
+            "The product page now surfaces a quick product summary, stock and margin context, and a cleaner action rail while you edit.",
+            "Options and gallery rows still work as before, but they now sit inside clearer inline sections that are easier to scan and maintain.",
+        ],
+        "areas": ["Products", "Catalog", "Admin UX"],
+    },
+    {
         "key": "2026-03-19-admin-search-favorites-and-workspace-navigation",
         "published_at": "2026-03-19T23:40:00-06:00",
         "title": "Global admin search, favorites, and smarter workspace navigation",

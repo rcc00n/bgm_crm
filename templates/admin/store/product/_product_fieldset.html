@@ -1,0 +1,65 @@
+<section class="product-form-card {{ fieldset.classes|join:' ' }}">
+  <header class="product-form-card__header">
+    <div>
+      {% if fieldset.name %}
+        <p class="product-form-card__eyebrow">Product workspace</p>
+        <h3>{{ fieldset.name }}</h3>
+      {% endif %}
+    </div>
+    {% if fieldset.description %}
+      <p class="product-form-card__description">{{ fieldset.description|safe }}</p>
+    {% endif %}
+  </header>
+
+  <div class="product-form-card__body">
+    {% for line in fieldset %}
+      <div class="product-form-row product-form-row--{{ line.fields|length }}">
+        {% for field in line %}
+          <div class="product-form-field{% if field.field.name %} field-{{ field.field.name }}{% endif %}{% if field.is_checkbox %} product-form-field--checkbox{% endif %}{% if field.is_readonly %} product-form-field--readonly{% endif %}{% if field.field.is_hidden %} hidden{% endif %}">
+            {% if field.is_checkbox %}
+              <label class="product-toggle-card" for="id_{{ field.field.name }}">
+                <span class="product-toggle-card__input">{{ field.field }}</span>
+                <span class="product-toggle-card__content">
+                  <span class="product-form-label">
+                    {{ field.field.label|capfirst }}
+                    {% if field.field.field.required %}
+                      <span class="text-red">*</span>
+                    {% endif %}
+                  </span>
+                  {% if field.field.help_text %}
+                    <span class="product-form-help">{{ field.field.help_text|safe }}</span>
+                  {% endif %}
+                </span>
+              </label>
+              <div class="product-form-errors">
+                {{ field.errors }}
+                {% if line.fields|length == 1 %}{{ line.errors }}{% endif %}
+              </div>
+            {% else %}
+              <label class="product-form-label" {% if field.field.id_for_label %}for="{{ field.field.id_for_label }}"{% endif %}>
+                {{ field.field.label|capfirst }}
+                {% if field.field.field.required %}
+                  <span class="text-red">*</span>
+                {% endif %}
+              </label>
+              <div class="product-form-control">
+                {% if field.is_readonly %}
+                  <div class="product-form-readonly">{{ field.contents }}</div>
+                {% else %}
+                  {{ field.field }}
+                {% endif %}
+              </div>
+              {% if field.field.help_text %}
+                <div class="product-form-help">{{ field.field.help_text|safe }}</div>
+              {% endif %}
+              <div class="product-form-errors">
+                {{ field.errors }}
+                {% if line.fields|length == 1 %}{{ line.errors }}{% endif %}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+</section>

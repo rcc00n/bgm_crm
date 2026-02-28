@@ -309,6 +309,7 @@ class ProductAdmin(admin.ModelAdmin):
     NAME_CLEANUP_PATTERN = re.compile(r"\b(?:DIESELR|EFI|EZ|Lynk)\b", re.IGNORECASE)
     form = ProductAdminForm
     change_list_template = "admin/store/product/change_list.html"
+    change_form_template = "admin/store/product/change_form.html"
     list_display = (
         "name",
         "sku",
@@ -346,20 +347,82 @@ class ProductAdmin(admin.ModelAdmin):
     filter_horizontal = ("compatible_models",)
     readonly_fields = ("created_at", "updated_at", "specs_preview")
     actions = ("hide_selected_products", "show_selected_products")
-
-    fields = (
-        "name", "slug", "sku", "category", "merch_category",
-        ("price", "unit_cost", "contact_for_estimate"),
-        "is_in_house",
-        "estimate_from_price",
-        ("option_column_1_label", "option_column_2_label"),
-        "currency", "inventory", "is_active",
-        "main_image",
-        "short_description", "description",
-        "compatible_models", "compatibility",
-        "specs_text", "specs_preview",
-        "created_at", "updated_at",
+    fieldsets = (
+        (
+            "Catalog identity",
+            {
+                "description": "Core catalog mapping for search, URLs, and storefront routing.",
+                "classes": ("product-admin-fieldset", "product-admin-fieldset--identity"),
+                "fields": (
+                    "name",
+                    "slug",
+                    ("sku", "currency"),
+                    ("category", "merch_category"),
+                ),
+            },
+        ),
+        (
+            "Pricing & stock",
+            {
+                "description": "Retail pricing, internal cost, inventory, and sellability flags.",
+                "classes": ("product-admin-fieldset", "product-admin-fieldset--pricing"),
+                "fields": (
+                    ("price", "unit_cost"),
+                    ("inventory", "estimate_from_price"),
+                    ("contact_for_estimate", "is_in_house", "is_active"),
+                ),
+            },
+        ),
+        (
+            "Storefront content",
+            {
+                "description": "Primary image and customer-facing copy shown on product pages.",
+                "classes": ("product-admin-fieldset", "product-admin-fieldset--content"),
+                "fields": (
+                    "main_image",
+                    "short_description",
+                    "description",
+                    ("option_column_1_label", "option_column_2_label"),
+                ),
+            },
+        ),
+        (
+            "Compatibility",
+            {
+                "description": "Vehicle fitment and free-form guidance for staff and customers.",
+                "classes": ("product-admin-fieldset", "product-admin-fieldset--compatibility"),
+                "fields": (
+                    "compatible_models",
+                    "compatibility",
+                ),
+            },
+        ),
+        (
+            "Specifications",
+            {
+                "description": "Maintain technical specs in text form and verify the rendered JSON preview.",
+                "classes": ("product-admin-fieldset", "product-admin-fieldset--specs"),
+                "fields": (
+                    ("specs_text", "specs_preview"),
+                ),
+            },
+        ),
+        (
+            "System details",
+            {
+                "description": "Read-only audit timestamps for internal reference.",
+                "classes": ("product-admin-fieldset", "product-admin-fieldset--meta"),
+                "fields": (
+                    ("created_at", "updated_at"),
+                ),
+            },
+        ),
     )
+
+    class Media:
+        css = {
+            "all": ("admin/css/product_change_form.css",),
+        }
 
     def get_queryset(self, request):
         self._inventory_threshold = StoreInventorySettings.get_low_stock_threshold()
@@ -376,6 +439,118 @@ class ProductAdmin(admin.ModelAdmin):
             )
             .prefetch_related("discounts")
         )
+
+    def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
+        context = dict(context)
+        context["product_admin_summary"] = self._build_product_admin_summary(obj, add=add)
+        return super().render_change_form(
+            request,
+            context,
+            add=add,
+            change=change,
+            form_url=form_url,
+            obj=obj,
+        )
+
+    def _product_primary_image_url(self, obj):
+        if not obj:
+            return ""
+        image = getattr(obj, "main_image", None)
+        if image:
+            try:
+                return image.url
+            except Exception:
+                pass
+        extra_image = obj.images.order_by("sort_order", "id").first()
+        if extra_image and getattr(extra_image, "image", None):
+            try:
+                return extra_image.image.url
+            except Exception:
+                return ""
+        return ""
+
+    def _product_margin_snapshot(self, obj):
+        if not obj or obj.unit_cost in (None, "") or obj.price in (None, ""):
+            return {"value": "Not set", "tone": "muted"}
+        try:
+            price = Decimal(str(obj.price))
+            cost = Decimal(str(obj.unit_cost))
+        except Exception:
+            return {"value": "Not set", "tone": "muted"}
+        if price <= 0:
+            return {"value": "Not set", "tone": "muted"}
+        profit = price - cost
+        margin = (profit / price) * Decimal("100")
+        return {
+            "value": f"{margin:.1f}%",
+            "tone": "success" if margin >= 0 else "danger",
+        }
+
+    def _build_product_admin_summary(self, obj, *, add=False):
+        if add or not obj:
+            return {
+                "title": "New product draft",
+                "summary": "Start with core catalog identity, then pricing and storefront copy before adding options or images.",
+                "image_url": "",
+                "chips": [
+                    {"label": "Draft", "tone": "info"},
+                ],
+                "stats": [
+                    {"label": "Status", "value": "Not saved yet", "tone": "muted"},
+                    {"label": "Options", "value": "0", "tone": "muted"},
+                    {"label": "Images", "value": "0", "tone": "muted"},
+                    {"label": "Margin", "value": "Not set", "tone": "muted"},
+                ],
+                "facts": [
+                    {"label": "Category", "value": "Assign after naming the product."},
+                    {"label": "SKU", "value": "Set a unique SKU before saving."},
+                ],
+            }
+
+        threshold = StoreInventorySettings.get_low_stock_threshold()
+        inventory = int(obj.inventory or 0)
+        chips = [
+            {"label": "Active" if obj.is_active else "Hidden", "tone": "success" if obj.is_active else "muted"},
+            {"label": "Estimate only" if obj.contact_for_estimate else "Fixed price", "tone": "warning" if obj.contact_for_estimate else "info"},
+            {"label": "In-house" if obj.is_in_house else "Multiplier managed", "tone": "info" if obj.is_in_house else "muted"},
+        ]
+        if inventory <= 0:
+            chips.append({"label": "Out of stock", "tone": "danger"})
+        elif threshold > 0 and inventory <= threshold:
+            chips.append({"label": "Low stock", "tone": "warning"})
+        else:
+            chips.append({"label": "In stock", "tone": "success"})
+        if obj.sku.startswith("PF-") or obj.printful_product_id:
+            chips.append({"label": "Printful merch", "tone": "info"})
+
+        margin_snapshot = self._product_margin_snapshot(obj)
+        return {
+            "title": obj.name,
+            "summary": (
+                "Keep core catalog data accurate first, then tighten storefront copy, fitment, and options. "
+                "The right rail keeps save actions visible while you work."
+            ),
+            "image_url": self._product_primary_image_url(obj),
+            "chips": chips,
+            "stats": [
+                {"label": "Price", "value": format_currency(obj.price, include_code=False), "tone": "info"},
+                {
+                    "label": "Cost",
+                    "value": format_currency(obj.unit_cost, include_code=False) if obj.unit_cost not in (None, "") else "Not set",
+                    "tone": "muted" if obj.unit_cost in (None, "") else "neutral",
+                },
+                {"label": "Margin", "value": margin_snapshot["value"], "tone": margin_snapshot["tone"]},
+                {"label": "Stock", "value": str(inventory), "tone": "danger" if inventory <= 0 else ("warning" if threshold > 0 and inventory <= threshold else "success")},
+            ],
+            "facts": [
+                {"label": "SKU", "value": obj.sku},
+                {"label": "Category", "value": getattr(obj.category, "display_name", str(obj.category))},
+                {"label": "Merch category", "value": str(obj.merch_category) if obj.merch_category else "None"},
+                {"label": "Updated", "value": timezone.localtime(obj.updated_at).strftime("%b %d, %Y %H:%M")},
+                {"label": "Options", "value": str(obj.options.count())},
+                {"label": "Gallery", "value": str(obj.images.count())},
+            ],
+        }
 
     def margin_preview(self, obj):
         """
