@@ -55,6 +55,7 @@ def _bool_env(name: str, default: str = "False") -> bool:
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 DEBUG = _bool_env("DEBUG", "False")
 RUNNING_TESTS = len(sys.argv) > 1 and sys.argv[1] == "test"
+RUNNING_DEVSERVER = len(sys.argv) > 1 and sys.argv[1] == "runserver"
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -471,10 +472,10 @@ if os.getenv("USE_S3_MEDIA") == "1":
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Enforced HTTPS is correct for production, but breaks the Django test client
 # expectations unless every request is marked secure.
-SECURE_SSL_REDIRECT = False if RUNNING_TESTS else _bool_env("SECURE_SSL_REDIRECT", "True")
+SECURE_SSL_REDIRECT = False if (RUNNING_TESTS or RUNNING_DEVSERVER) else _bool_env("SECURE_SSL_REDIRECT", "True")
 
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = False if RUNNING_DEVSERVER else _bool_env("SESSION_COOKIE_SECURE", "True")
+CSRF_COOKIE_SECURE = False if RUNNING_DEVSERVER else _bool_env("CSRF_COOKIE_SECURE", "True")
 CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h]
 
 # ── Сессии ──────────────────────────────────────────────────────────────
@@ -486,27 +487,61 @@ AUTH_IDLE_TIMEOUT_SECONDS = 60 * 30
 # ── Jazzmin (как было) ───────────────────────────────────────────────────
 ADMIN_SIDEBAR_SECTIONS = [
     {
-        "label": "Operations",
-        "icon": "fas fa-tachometer-alt",
+        "label": "Start Here",
+        "icon": "fas fa-compass",
+        "show_header": False,
         "groups": [
             {
-                "label": "Appointments",
+                "label": "Calendar",
                 "icon": "fas fa-calendar-check",
+                "always_visible": True,
+                "sidebar_expand": False,
+                "model": "core.Appointment",
                 "items": [
-                    {"model": "core.Appointment", "label": "Calendar"},
-                    {"model": "core.AppointmentStatus", "label": "Status Library"},
-                    {"model": "core.AppointmentStatusHistory", "label": "Status Timeline"},
-                    {"model": "core.AppointmentPrepayment", "label": "Collected Prepayments"},
+                    {
+                        "model": "core.Appointment",
+                        "label": "Calendar",
+                    },
                 ],
             },
             {
-                "label": "Staffing",
-                "icon": "fas fa-user-cog",
+                "label": "Onboarding",
+                "icon": "fas fa-map-signs",
+                "always_visible": True,
+                "sidebar_expand": False,
+                "href": "/admin/staff-guide/",
                 "items": [
+                    {
+                        "label": "Staff Guide",
+                        "url": "admin-staff-guide",
+                        "icon": "fas fa-route",
+                        "active_patterns": ["admin-staff-guide"],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        "label": "Operations",
+        "icon": "fas fa-tachometer-alt",
+        "show_header": False,
+        "groups": [
+            {
+                "label": "Scheduling & Shop",
+                "icon": "fas fa-tools",
+                "sidebar_expand": False,
+                "hub_slug": "scheduling-shop",
+                "href": "/admin/workspaces/scheduling-shop/",
+                "items": [
+                    {"model": "core.Appointment", "label": "Calendar"},
+                    {"model": "core.AppointmentPrepayment", "label": "Collected Prepayments"},
+                    {"model": "core.BookingDayOverride", "label": "Day Overrides"},
                     {"model": "core.MasterAvailability", "label": "Availability"},
                     {"model": "core.MasterProfile", "label": "Team Profiles"},
                     {"model": "core.ServiceMaster", "label": "Service Assignment"},
                     {"model": "core.MasterRoom", "label": "Rooms & Bays"},
+                    {"model": "core.ServiceCategory", "label": "Service Categories"},
+                    {"model": "core.Service"},
                     {
                         "label": "Time Tracking",
                         "url": "admin-staff-usage",
@@ -516,20 +551,22 @@ ADMIN_SIDEBAR_SECTIONS = [
                     },
                 ],
             },
+        ],
+    },
+    {
+        "label": "Operations",
+        "icon": "fas fa-tachometer-alt",
+        "show_header": False,
+        "groups": [
             {
-                "label": "Payments",
+                "label": "Payments & Promotions",
                 "icon": "fas fa-money-bill-wave",
+                "sidebar_expand": False,
+                "hub_slug": "payments-promotions",
+                "href": "/admin/workspaces/payments-promotions/",
+                "hub_primary_count": 2,
                 "items": [
                     {"model": "core.Payment"},
-                    {"model": "core.PaymentStatus", "label": "Payment Status"},
-                    {"model": "core.PaymentMethod", "label": "Payment Methods"},
-                    {"model": "core.PrepaymentOption", "label": "Prepayment Options"},
-                ],
-            },
-            {
-                "label": "Promotions",
-                "icon": "fas fa-tags",
-                "items": [
                     {"model": "core.ServiceDiscount", "label": "Service Discounts"},
                     {"model": "store.ProductDiscount", "label": "Product Discounts"},
                     {"model": "core.PromoCode", "label": "Promo Codes"},
@@ -537,9 +574,20 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "store.OrderPromoCode", "label": "Order Promo Codes"},
                 ],
             },
+        ],
+    },
+    {
+        "label": "Operations",
+        "icon": "fas fa-tachometer-alt",
+        "show_header": False,
+        "groups": [
             {
                 "label": "Automation",
                 "icon": "fas fa-robot",
+                "sidebar_expand": False,
+                "hub_slug": "automation",
+                "href": "/admin/workspaces/automation/",
+                "hub_primary_count": 2,
                 "items": [
                     {"model": "notifications.TelegramContact", "label": "Contacts"},
                     {"model": "notifications.TelegramBotSettings", "label": "Bot Settings"},
@@ -547,60 +595,34 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "notifications.TelegramMessageLog", "label": "Delivery Log"},
                 ],
             },
-            {
-                "label": "Analytics",
-                "icon": "fas fa-chart-line",
-                "items": [
-                    {
-                        "label": "Insights",
-                        "url": "admin-analytics-insights",
-                        "icon": "fas fa-chart-pie",
-                        "active_patterns": ["admin-analytics-insights"],
-                        "permissions": ["core.view_visitorsession"],
-                    },
-                    {"model": "core.VisitorSession", "label": "Visitor Sessions"},
-                    {"model": "core.PageView", "label": "Page Views"},
-                ],
-            },
         ],
     },
     {
-        "label": "Clients",
-        "icon": "fas fa-users",
+        "label": "Customers & Sales",
+        "icon": "fas fa-users-cog",
+        "show_header": False,
         "groups": [
             {
-                "label": "Client Records",
+                "label": "Clients & Leads",
                 "icon": "fas fa-address-card",
+                "sidebar_expand": False,
+                "hub_slug": "client-hub",
+                "href": "/admin/workspaces/client-hub/",
+                "hub_title": "Clients & leads",
                 "items": [
                     {"model": "core.UserProfile", "label": "Client Profiles"},
                     {"model": "core.ClientFile", "label": "Client Files"},
                     {
                         "model": "core.ClientReview",
                         "label": "Reviews",
-                        # Reviews are created via the public site (no LogEntry), so use created_at
-                        # for admin sidebar + bell notifications.
                         "activity_field": "created_at",
                     },
-                    {"model": "core.ClientSource", "label": "Lead Sources"},
-                ],
-            },
-            {
-                "label": "Inbound Leads",
-                "icon": "fas fa-inbox",
-                "items": [
+                    {"model": "core.AppointmentReview", "label": "Appointment Reviews"},
                     {"model": "core.ServiceLead", "label": "Service Leads"},
-                ],
-            },
-            {
-                "label": "Dealer Program",
-                "icon": "fas fa-user-shield",
-                "items": [
-                    {"model": "core.DealerTierLevel", "label": "Tier Levels"},
+                    {"model": "core.LeadSubmissionEvent", "label": "Lead Submission Events"},
                     {
                         "model": "core.DealerApplication",
-                        "label": "Applications",
-                        # Dealer applications are created via the public wizard (not via admin),
-                        # so LogEntry won't exist. Use created_at so the admin bell/sidebar can detect new items.
+                        "label": "Dealer Applications",
                         "activity_field": "created_at",
                     },
                 ],
@@ -608,13 +630,21 @@ ADMIN_SIDEBAR_SECTIONS = [
         ],
     },
     {
-        "label": "Storefront",
-        "icon": "fas fa-store",
+        "label": "Customers & Sales",
+        "icon": "fas fa-users-cog",
+        "show_header": False,
         "groups": [
             {
-                "label": "Catalog",
+                "label": "Catalog & Merch",
                 "icon": "fas fa-box-open",
+                "sidebar_expand": False,
+                "hub_slug": "catalog-merch",
+                "href": "/admin/workspaces/catalog-merch/",
                 "items": [
+                    {"model": "store.Product"},
+                    {"model": "store.ProductImage", "label": "Product Gallery"},
+                    {"model": "store.ProductOption", "label": "Product Options"},
+                    {"model": "store.StoreReview", "label": "Product Reviews"},
                     {"model": "store.StorePricingSettings", "label": "Pricing Settings"},
                     {"model": "store.StoreShippingSettings", "label": "Shipping Settings"},
                     {
@@ -626,67 +656,48 @@ ADMIN_SIDEBAR_SECTIONS = [
                     },
                     {"model": "store.Category", "label": "Product Categories"},
                     {"model": "store.MerchCategory", "label": "Merch Categories"},
-                    {"model": "store.Product"},
-                    {"model": "store.ProductImage", "label": "Product Gallery"},
-                    {"model": "store.ProductOption", "label": "Product Options"},
-                ],
-            },
-            {
-                "label": "Services Catalog",
-                "icon": "fas fa-tools",
-                "items": [
-                    {"model": "core.ServiceCategory", "label": "Service Categories"},
-                    {"model": "core.Service"},
-                ],
-            },
-            {
-                "label": "Vehicles & Fitment",
-                "icon": "fas fa-car-side",
-                "items": [
-                    {"model": "store.CarMake", "label": "Car Makes"},
-                    {"model": "store.CarModel", "label": "Car Models"},
-                    {
-                        "model": "store.CustomFitmentRequest",
-                        "label": "Fitment Requests",
-                        "activity_field": "created_at",
-                    },
-                ],
-            },
-            {
-                "label": "Orders",
-                "icon": "fas fa-shopping-cart",
-                "items": [
-                    {"model": "store.Order", "label": "Orders"},
-                    {"model": "store.OrderItem", "label": "Order Items"},
                 ],
             },
         ],
     },
     {
-        "label": "Website Content",
-        "icon": "fas fa-globe",
+        "label": "Customers & Sales",
+        "icon": "fas fa-users-cog",
+        "show_header": False,
         "groups": [
             {
-                "label": "Branding & Fonts",
-                "icon": "fas fa-font",
+                "label": "Orders & Fulfillment",
+                "icon": "fas fa-shopping-cart",
+                "sidebar_expand": False,
+                "hub_slug": "orders-fulfillment",
+                "href": "/admin/workspaces/orders-fulfillment/",
+                "hub_primary_count": 2,
                 "items": [
-                    {"model": "core.FontPreset", "label": "Font Library"},
-                    {"model": "core.PageFontSetting", "label": "Page Fonts"},
-                    {"model": "core.TopbarSettings", "label": "Topbar Settings"},
-                    {"model": "core.AdminLoginBranding", "label": "Admin Login Branding"},
-                    {"model": "core.SiteContactSettings", "label": "Site Contact Settings"},
+                    {"model": "store.Order", "label": "Orders"},
+                    {"model": "store.OrderItem", "label": "Order Items"},
+                    {
+                        "model": "store.CustomFitmentRequest",
+                        "label": "Fitment Requests",
+                        "activity_field": "created_at",
+                    },
+                    {"model": "store.PrintfulWebhookEvent", "label": "Printful Webhooks"},
+                    {"model": "store.ImportBatch", "label": "Import History"},
+                    {"model": "store.CleanupBatch", "label": "Cleanup History"},
                 ],
             },
+        ],
+    },
+    {
+        "label": "Website & Marketing",
+        "icon": "fas fa-globe",
+        "show_header": False,
+        "groups": [
             {
-                "label": "Media & Hero Assets",
-                "icon": "fas fa-images",
-                "items": [
-                    {"model": "core.HeroImage", "label": "Hero Assets"},
-                ],
-            },
-            {
-                "label": "Page Copy",
+                "label": "Page Content",
                 "icon": "fas fa-pen-nib",
+                "sidebar_expand": False,
+                "hub_slug": "page-content",
+                "href": "/admin/workspaces/page-content/",
                 "items": [
                     {"model": "core.HomePageCopy", "label": "Home Page Copy"},
                     {"model": "core.FAQPageCopy", "label": "FAQ Page Copy"},
@@ -697,14 +708,50 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "core.DealerStatusPageCopy", "label": "Dealer Portal Copy"},
                     {"model": "core.ClientPortalPageCopy", "label": "Client Portal Copy"},
                     {"model": "core.MerchPageCopy", "label": "Merch Page Copy"},
+                    {"model": "core.ProjectJournalPageCopy", "label": "Project Journal Page Copy"},
                     {"model": "core.LegalPage", "label": "Legal Pages"},
                     {"model": "core.LandingPageReview", "label": "Landing Reviews"},
+                    {"model": "core.ProjectJournalCategory", "label": "Journal Categories"},
                     {"model": "core.ProjectJournalEntry", "label": "Project Journal"},
                 ],
             },
+        ],
+    },
+    {
+        "label": "Website & Marketing",
+        "icon": "fas fa-globe",
+        "show_header": False,
+        "groups": [
             {
-                "label": "Email Reporting",
-                "icon": "fas fa-inbox",
+                "label": "Brand & Assets",
+                "icon": "fas fa-font",
+                "sidebar_expand": False,
+                "hub_slug": "brand-assets",
+                "href": "/admin/workspaces/brand-assets/",
+                "items": [
+                    {"model": "core.FontPreset", "label": "Font Library"},
+                    {"model": "core.PageFontSetting", "label": "Page Fonts"},
+                    {"model": "core.TopbarSettings", "label": "Topbar Settings"},
+                    {"model": "core.AdminLoginBranding", "label": "Admin Login Branding"},
+                    {"model": "core.SiteContactSettings", "label": "Site Contact Settings"},
+                    {"model": "core.HeroImage", "label": "Hero Assets"},
+                    {"model": "core.BackgroundAsset", "label": "Background Assets"},
+                    {"model": "core.SiteBackgroundSettings", "label": "Site Backgrounds"},
+                ],
+            },
+        ],
+    },
+    {
+        "label": "Website & Marketing",
+        "icon": "fas fa-globe",
+        "show_header": False,
+        "groups": [
+            {
+                "label": "Email & Campaigns",
+                "icon": "fas fa-bell",
+                "sidebar_expand": False,
+                "hub_slug": "email-campaigns",
+                "href": "/admin/workspaces/email-campaigns/",
                 "items": [
                     {
                         "label": "Email overview",
@@ -734,14 +781,6 @@ ADMIN_SIDEBAR_SECTIONS = [
                         "active_patterns": ["admin-email-campaign-history"],
                         "permissions": ["core.view_emailcampaign"],
                     },
-                    {"model": "core.EmailSendLog", "label": "Raw send logs"},
-                    {"model": "core.EmailCampaignRecipient", "label": "Campaign recipients"},
-                ],
-            },
-            {
-                "label": "Messaging",
-                "icon": "fas fa-bell",
-                "items": [
                     {"model": "core.Notification", "label": "Notifications"},
                     {
                         "model": "core.EmailCampaign",
@@ -754,17 +793,51 @@ ADMIN_SIDEBAR_SECTIONS = [
                         "activity_field": "created_at",
                     },
                     {"model": "core.EmailTemplate", "label": "Email Templates"},
+                    {"model": "core.EmailSendLog", "label": "Raw send logs"},
+                    {"model": "core.EmailCampaignRecipient", "label": "Campaign recipients"},
                 ],
             },
         ],
     },
     {
-        "label": "System",
-        "icon": "fas fa-shield-alt",
+        "label": "Reporting & Access",
+        "icon": "fas fa-chart-line",
+        "show_header": False,
         "groups": [
             {
-                "label": "Access Control",
+                "label": "Insights & QA",
+                "icon": "fas fa-chart-pie",
+                "sidebar_expand": False,
+                "hub_slug": "insights-qa",
+                "href": "/admin/workspaces/insights-qa/",
+                "hub_primary_count": 2,
+                "items": [
+                    {
+                        "label": "Insights",
+                        "url": "admin-analytics-insights",
+                        "icon": "fas fa-chart-pie",
+                        "active_patterns": ["admin-analytics-insights"],
+                        "permissions": ["core.view_visitorsession"],
+                    },
+                    {"model": "core.VisitorSession", "label": "Visitor Sessions"},
+                    {"model": "core.PageView", "label": "Page Views"},
+                    {"model": "core.ClientUiCheckRun", "label": "Client UI Checks"},
+                ],
+            },
+        ],
+    },
+    {
+        "label": "Reporting & Access",
+        "icon": "fas fa-chart-line",
+        "show_header": False,
+        "groups": [
+            {
+                "label": "People & Access",
                 "icon": "fas fa-user-lock",
+                "sidebar_expand": False,
+                "hub_slug": "people-access",
+                "href": "/admin/workspaces/people-access/",
+                "hub_primary_count": 2,
                 "items": [
                     {"model": "auth.User", "label": "Users"},
                     {"model": "auth.Group", "label": "Groups"},
@@ -774,7 +847,92 @@ ADMIN_SIDEBAR_SECTIONS = [
             },
         ],
     },
+    {
+        "label": "Reference & Setup",
+        "icon": "fas fa-archive",
+        "show_header": False,
+        "groups": [
+            {
+                "label": "Booking & Payments",
+                "icon": "fas fa-wallet",
+                "sidebar_expand": False,
+                "hub_slug": "booking-payments",
+                "href": "/admin/workspaces/booking-payments/",
+                "hub_primary_count": 2,
+                "items": [
+                    {"model": "core.AppointmentStatus", "label": "Status Library"},
+                    {"model": "core.AppointmentStatusHistory", "label": "Status Timeline"},
+                    {"model": "core.PaymentStatus", "label": "Payment Status"},
+                    {"model": "core.PaymentMethod", "label": "Payment Methods"},
+                    {"model": "core.PrepaymentOption", "label": "Prepayment Options"},
+                ],
+            },
+        ],
+    },
+    {
+        "label": "Reference & Setup",
+        "icon": "fas fa-archive",
+        "show_header": False,
+        "groups": [
+            {
+                "label": "CRM & Vehicles",
+                "icon": "fas fa-address-book",
+                "sidebar_expand": False,
+                "hub_slug": "crm-vehicles",
+                "href": "/admin/workspaces/crm-vehicles/",
+                "hub_primary_count": 2,
+                "items": [
+                    {"model": "core.ClientSource", "label": "Lead Sources"},
+                    {"model": "core.DealerTierLevel", "label": "Tier Levels"},
+                    {"model": "store.CarMake", "label": "Car Makes"},
+                    {"model": "store.CarModel", "label": "Car Models"},
+                ],
+            },
+        ],
+    },
 ]
+
+ADMIN_SIDEBAR_GROUP_ALIASES = {
+    "operations__promotions": "operations__payments-promotions",
+    "clients__inbound-leads": "customers-sales__client-hub",
+    "storefront__services-catalog": "operations__scheduling-shop",
+    "website-content__media-hero-assets": "website-marketing__brand-assets",
+    "website-content__email-reporting": "website-marketing__email-campaigns",
+    "operations__appointments": "operations__scheduling-shop",
+    "operations__staffing": "operations__scheduling-shop",
+    "operations__payments": "operations__payments-promotions",
+    "operations__analytics": "reporting-access__insights-qa",
+    "clients__client-records": "customers-sales__client-hub",
+    "storefront__catalog": [
+        "customers-sales__catalog-merch",
+        "customers-sales__orders-fulfillment",
+    ],
+    "storefront__vehicles-fitment": "customers-sales__orders-fulfillment",
+    "storefront__orders": "customers-sales__orders-fulfillment",
+    "website-content__branding-fonts": "website-marketing__brand-assets",
+    "website-content__page-copy": "website-marketing__page-content",
+    "website-content__messaging": "website-marketing__email-campaigns",
+    "system__access-control": "reporting-access__people-access",
+    "reference-setup__catalog-reference": "reference-setup__crm-vehicles",
+    "operations__front-desk": "operations__scheduling-shop",
+    "operations__shop-setup": "operations__scheduling-shop",
+    "operations__payments-offers": "operations__payments-promotions",
+    "clients__clients-leads": "customers-sales__client-hub",
+    "clients__dealer-program": "customers-sales__client-hub",
+    "storefront__products-merch": "customers-sales__catalog-merch",
+    "storefront__store-setup": "customers-sales__catalog-merch",
+    "storefront__orders-fitment": "customers-sales__orders-fulfillment",
+    "storefront__store-maintenance": "customers-sales__orders-fulfillment",
+    "website-content__page-editor": "website-marketing__page-content",
+    "website-content__brand-assets": "website-marketing__brand-assets",
+    "website-content__email-messaging": "website-marketing__email-campaigns",
+    "insights__dashboards-qa": "reporting-access__insights-qa",
+    "system__people-access": "reporting-access__people-access",
+    "reference-setup__booking-reference": "reference-setup__booking-payments",
+    "reference-setup__payment-reference": "reference-setup__booking-payments",
+    "reference-setup__crm-reference": "reference-setup__crm-vehicles",
+    "reference-setup__vehicle-directory": "reference-setup__crm-vehicles",
+}
 
 # Include the current user's own admin edits in sidebar/notification activity.
 ADMIN_SIDEBAR_INCLUDE_SELF_ACTIVITY = True
@@ -794,13 +952,17 @@ JAZZMIN_SETTINGS = {
         "auth.User": "fas fa-user",
         "auth.Group": "fas fa-users-cog",
         "core.Appointment": "fas fa-calendar-check",
+        "core.AppointmentReview": "fas fa-star-half-alt",
         "core.AppointmentStatus": "fas fa-dot-circle",
         "core.AppointmentStatusHistory": "fas fa-wave-square",
         "core.AppointmentPrepayment": "fas fa-coins",
         "core.AppointmentPromoCode": "fas fa-ticket-alt",
+        "core.BookingDayOverride": "fas fa-calendar-day",
+        "core.BackgroundAsset": "fas fa-photo-video",
         "core.ClientFile": "fas fa-folder-open",
         "core.ClientReview": "fas fa-comments",
         "core.ClientSource": "fas fa-bullseye",
+        "core.ClientUiCheckRun": "fas fa-laptop-code",
         "core.DealerApplication": "fas fa-user-check",
         "core.DealerTierLevel": "fas fa-medal",
         "core.HeroImage": "fas fa-image",
@@ -834,27 +996,35 @@ JAZZMIN_SETTINGS = {
         "core.PaymentMethod": "fas fa-credit-card",
         "core.PaymentStatus": "fas fa-clipboard-check",
         "core.PrepaymentOption": "fas fa-piggy-bank",
+        "core.ProjectJournalCategory": "fas fa-layer-group",
         "core.PromoCode": "fas fa-ticket-alt",
         "core.ProjectJournalEntry": "fas fa-newspaper",
+        "core.ProjectJournalPageCopy": "fas fa-newspaper",
         "core.Role": "fas fa-user-shield",
         "core.Service": "fas fa-tools",
         "core.ServiceCategory": "fas fa-project-diagram",
         "core.ServiceDiscount": "fas fa-percent",
         "core.ServiceLead": "fas fa-inbox",
+        "core.LeadSubmissionEvent": "fas fa-paper-plane",
         "core.ServiceMaster": "fas fa-user-cog",
+        "core.SiteBackgroundSettings": "fas fa-fill-drip",
         "core.UserProfile": "fas fa-id-badge",
         "core.UserRole": "fas fa-user-tag",
         "core.VisitorSession": "fas fa-user-clock",
         "store.CarMake": "fas fa-industry",
         "store.CarModel": "fas fa-car-side",
         "store.Category": "fas fa-tags",
+        "store.CleanupBatch": "fas fa-broom",
+        "store.ImportBatch": "fas fa-file-import",
         "store.MerchCategory": "fas fa-tags",
         "store.CustomFitmentRequest": "fas fa-ruler-combined",
         "store.Order": "fas fa-shopping-cart",
         "store.OrderPromoCode": "fas fa-ticket-alt",
+        "store.PrintfulWebhookEvent": "fas fa-plug",
         "store.OrderItem": "fas fa-receipt",
         "store.ProductDiscount": "fas fa-percent",
         "store.StorePricingSettings": "fas fa-percent",
+        "store.StoreReview": "fas fa-star",
         "store.StoreShippingSettings": "fas fa-shipping-fast",
         "store.Product": "fas fa-box-open",
         "store.ProductImage": "fas fa-images",
