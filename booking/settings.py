@@ -673,6 +673,7 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "core.PageFontSetting", "label": "Page Fonts"},
                     {"model": "core.TopbarSettings", "label": "Topbar Settings"},
                     {"model": "core.AdminLoginBranding", "label": "Admin Login Branding"},
+                    {"model": "core.SiteContactSettings", "label": "Site Contact Settings"},
                 ],
             },
             {
@@ -813,6 +814,7 @@ JAZZMIN_SETTINGS = {
         "core.PageFontSetting": "fas fa-heading",
         "core.TopbarSettings": "fas fa-stream",
         "core.AdminLoginBranding": "fas fa-sign-in-alt",
+        "core.SiteContactSettings": "fas fa-phone-volume",
         "core.EmailTemplate": "fas fa-envelope-open-text",
         "core.EmailCampaign": "fas fa-paper-plane",
         "core.EmailSubscriber": "fas fa-user-plus",
