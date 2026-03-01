@@ -9,7 +9,16 @@ from core.services.media import (
     resolve_media_asset,
 )
 
-from .models import HeroImage, TopbarSettings, HomePageCopy, ServicesPageCopy, StorePageCopy
+from django.db.utils import OperationalError, ProgrammingError
+
+from .models import (
+    HeroImage,
+    TopbarSettings,
+    HomePageCopy,
+    ServicesPageCopy,
+    StorePageCopy,
+    SiteContactSettings,
+)
 from core.services.fonts import serialize_font_preset
 from core.utils import format_currency
 from store.models import StoreShippingSettings
@@ -251,6 +260,40 @@ def company_info(request):
             "hours_lines": hours_lines,
         }
     }
+
+
+def site_contact(request):
+    """
+    Global public contact details editable via admin.
+    Falls back safely before migrations are applied.
+    """
+    defaults = {
+        "email": "support@badguymotors.com",
+        "office_phone": "+14035250432",
+        "office_phone_display": "(403) 525-0432",
+        "text_phone": "+15874060101",
+        "text_phone_display": "(587) 406-0101",
+    }
+
+    try:
+        settings_obj = SiteContactSettings.get_solo()
+    except (OperationalError, ProgrammingError):
+        return {"site_contact": defaults}
+    except Exception:
+        return {"site_contact": defaults}
+
+    payload = {
+        "email": (settings_obj.contact_email or defaults["email"]).strip(),
+        "office_phone": (settings_obj.office_phone or defaults["office_phone"]).strip(),
+        "office_phone_display": (
+            settings_obj.office_phone_display or settings_obj.office_phone or defaults["office_phone_display"]
+        ).strip(),
+        "text_phone": (settings_obj.text_phone or defaults["text_phone"]).strip(),
+        "text_phone_display": (
+            settings_obj.text_phone_display or settings_obj.text_phone or defaults["text_phone_display"]
+        ).strip(),
+    }
+    return {"site_contact": payload}
 
 
 def currency(request):

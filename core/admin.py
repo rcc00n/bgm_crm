@@ -5915,6 +5915,36 @@ class SiteBackgroundSettingsAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+
+@admin.register(SiteContactSettings)
+class SiteContactSettingsAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        ("Contact", {
+            "fields": (
+                "contact_email",
+                "office_phone",
+                "office_phone_display",
+                "text_phone",
+                "text_phone_display",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="Settings")
+    def label(self, obj):
+        return "Site contact"
+
+    def has_add_permission(self, request):
+        if SiteContactSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 @admin.register(ServiceLead)
 class ServiceLeadAdmin(admin.ModelAdmin):
     list_display = ("created_at", "full_name", "service_needed", "phone", "email", "source_page", "status")

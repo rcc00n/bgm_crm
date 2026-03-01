@@ -375,6 +375,7 @@ TEMPLATES = [
                 "core.context_processors_core.store_shipping",
                 "core.context_processors_core.marketing_tags",
                 "core.context_processors_core.company_info",
+                "core.context_processors_core.site_contact",
                 "core.context_processors_core.topbar_style",
                 "core.context_processors_core.cart_summary",
             ],

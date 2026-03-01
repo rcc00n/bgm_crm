@@ -1738,8 +1738,8 @@ body.nav-open .contact-fab,
             {% if contact_email %}
               <a class="contact-btn" href="mailto:{{ contact_email }}?subject={{ merch_copy.contact_email_subject|urlencode }}">{{ merch_copy.contact_write_email_label }}</a>
             {% endif %}
-            {% if contact_phone %}
-              <a class="contact-btn" href="sms:{{ contact_phone }}">{{ merch_copy.contact_text_label }}</a>
+            {% if site_contact.text_phone %}
+              <a class="contact-btn" href="sms:{{ site_contact.text_phone }}">{{ merch_copy.contact_text_label }}</a>
             {% endif %}
           </div>
         {% endwith %}

@@ -773,26 +773,26 @@
       <div class="contact-body">
         <div class="contact-row">
           <div>
-            <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
+            <div><a href="mailto:{{ site_contact.email }}">{{ site_contact.email }}</a></div>
             <div class="contact-sub">{{ about_copy.contact_email_label }}</div>
           </div>
-          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ about_copy.contact_copy_label }}</button>
+          <button class="contact-btn" data-copy="{{ site_contact.email }}" type="button">{{ about_copy.contact_copy_label }}</button>
         </div>
 
         <div class="contact-row">
           <div>
-            <div><a href="tel:+14035250432">(403) 525-0432</a></div>
+            <div><a href="tel:{{ site_contact.office_phone }}">{{ site_contact.office_phone_display }}</a></div>
             <div class="contact-sub">{{ about_copy.contact_phone_label }}</div>
           </div>
           <div class="contact-row__actions">
-            <a class="contact-btn" href="tel:+14035250432">{{ about_copy.contact_call_label }}</a>
-            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ about_copy.contact_copy_label }}</button>
+            <a class="contact-btn" href="tel:{{ site_contact.office_phone }}">{{ about_copy.contact_call_label }}</a>
+            <button class="contact-btn" data-copy="{{ site_contact.office_phone }}" type="button">{{ about_copy.contact_copy_label }}</button>
           </div>
         </div>
 
         <div class="contact-actions">
-          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ about_copy.contact_write_email_label }}</a>
-          <a class="contact-btn" href="sms:+14035250432">{{ about_copy.contact_text_label }}</a>
+          <a class="contact-btn" href="mailto:{{ site_contact.email }}?subject=Inquiry%20from%20website">{{ about_copy.contact_write_email_label }}</a>
+          <a class="contact-btn" href="sms:{{ site_contact.text_phone }}">{{ about_copy.contact_text_label }}</a>
         </div>
       </div>
     </div>
