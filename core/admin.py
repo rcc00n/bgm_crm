@@ -3212,6 +3212,13 @@ HOME_HERO_CAROUSEL_SLOTS = (
     ("hero_carousel_4", HeroImage.Location.HOME_CAROUSEL_D, "Slide 4"),
 )
 
+HOME_GALLERY_SLOTS = (
+    ("home_gallery_1", HeroImage.Location.HOME_GALLERY_A, "Card 1"),
+    ("home_gallery_2", HeroImage.Location.HOME_GALLERY_B, "Card 2"),
+    ("home_gallery_3", HeroImage.Location.HOME_GALLERY_C, "Card 3"),
+    ("home_gallery_4", HeroImage.Location.HOME_GALLERY_D, "Card 4"),
+)
+
 
 class HomePageCopyAdminForm(forms.ModelForm):
     hero_main_image = forms.ImageField(
@@ -3291,6 +3298,87 @@ class HomePageCopyAdminForm(forms.ModelForm):
         label="Carousel slide 4 caption",
         max_length=160,
     )
+    home_gallery_1_image = forms.ImageField(
+        required=False,
+        label="Gallery card 1 image",
+        help_text="Upload the first homepage Builds card image.",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    home_gallery_1_alt_text = forms.CharField(
+        required=False,
+        label="Gallery card 1 alt text",
+        max_length=160,
+    )
+    home_gallery_1_title = forms.CharField(
+        required=False,
+        label="Gallery card 1 title",
+        max_length=120,
+    )
+    home_gallery_1_caption = forms.CharField(
+        required=False,
+        label="Gallery card 1 caption",
+        max_length=160,
+    )
+    home_gallery_2_image = forms.ImageField(
+        required=False,
+        label="Gallery card 2 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    home_gallery_2_alt_text = forms.CharField(
+        required=False,
+        label="Gallery card 2 alt text",
+        max_length=160,
+    )
+    home_gallery_2_title = forms.CharField(
+        required=False,
+        label="Gallery card 2 title",
+        max_length=120,
+    )
+    home_gallery_2_caption = forms.CharField(
+        required=False,
+        label="Gallery card 2 caption",
+        max_length=160,
+    )
+    home_gallery_3_image = forms.ImageField(
+        required=False,
+        label="Gallery card 3 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    home_gallery_3_alt_text = forms.CharField(
+        required=False,
+        label="Gallery card 3 alt text",
+        max_length=160,
+    )
+    home_gallery_3_title = forms.CharField(
+        required=False,
+        label="Gallery card 3 title",
+        max_length=120,
+    )
+    home_gallery_3_caption = forms.CharField(
+        required=False,
+        label="Gallery card 3 caption",
+        max_length=160,
+    )
+    home_gallery_4_image = forms.ImageField(
+        required=False,
+        label="Gallery card 4 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    home_gallery_4_alt_text = forms.CharField(
+        required=False,
+        label="Gallery card 4 alt text",
+        max_length=160,
+    )
+    home_gallery_4_title = forms.CharField(
+        required=False,
+        label="Gallery card 4 title",
+        max_length=120,
+    )
+    home_gallery_4_caption = forms.CharField(
+        required=False,
+        label="Gallery card 4 caption",
+        max_length=160,
+    )
 
     class Meta:
         model = HomePageCopy
@@ -3327,6 +3415,26 @@ class HomePageCopyAdminForm(forms.ModelForm):
                 self.fields[image_field].initial = asset.image
             if asset:
                 self.fields[alt_field].initial = asset.alt_text
+                self.fields[caption_field].initial = asset.caption
+
+        gallery_locations = [slot[1] for slot in HOME_GALLERY_SLOTS]
+        try:
+            gallery_assets = HeroImage.objects.filter(location__in=gallery_locations)
+        except Exception:
+            gallery_assets = []
+        gallery_asset_map = {asset.location: asset for asset in gallery_assets}
+
+        for prefix, location, label in HOME_GALLERY_SLOTS:
+            asset = gallery_asset_map.get(location)
+            image_field = f"{prefix}_image"
+            alt_field = f"{prefix}_alt_text"
+            title_field = f"{prefix}_title"
+            caption_field = f"{prefix}_caption"
+            if asset and getattr(asset, "image", None):
+                self.fields[image_field].initial = asset.image
+            if asset:
+                self.fields[alt_field].initial = asset.alt_text
+                self.fields[title_field].initial = asset.title
                 self.fields[caption_field].initial = asset.caption
 
     def save_hero_asset(self):
@@ -3385,6 +3493,41 @@ class HomePageCopyAdminForm(forms.ModelForm):
             asset.caption = caption
             if not asset.title:
                 asset.title = f"Home hero carousel {label}"
+            asset.is_active = bool(asset.image)
+            asset.save()
+
+    def save_gallery_assets(self):
+        locations = [slot[1] for slot in HOME_GALLERY_SLOTS]
+        existing_assets = {asset.location: asset for asset in HeroImage.objects.filter(location__in=locations)}
+
+        for prefix, location, label in HOME_GALLERY_SLOTS:
+            image_field = f"{prefix}_image"
+            alt_field = f"{prefix}_alt_text"
+            title_field = f"{prefix}_title"
+            caption_field = f"{prefix}_caption"
+            image_value = self.cleaned_data.get(image_field)
+            alt_text = (self.cleaned_data.get(alt_field) or "").strip()
+            title = (self.cleaned_data.get(title_field) or "").strip()
+            caption = (self.cleaned_data.get(caption_field) or "").strip()
+
+            asset = existing_assets.get(location)
+            has_new_image = image_value not in (None, False)
+            has_any_value = has_new_image or alt_text or title or caption
+
+            if not asset and not has_any_value:
+                continue
+
+            if not asset:
+                asset = HeroImage(location=location)
+
+            if image_value is False:
+                asset.image = None
+            elif image_value:
+                asset.image = image_value
+
+            asset.alt_text = alt_text
+            asset.title = title or f"Home gallery {label}"
+            asset.caption = caption
             asset.is_active = bool(asset.image)
             asset.save()
 
@@ -3541,7 +3684,24 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "gallery_desc",
                 "gallery_cta_label",
                 "gallery_cta_url",
-            )
+                "home_gallery_1_image",
+                "home_gallery_1_alt_text",
+                "home_gallery_1_title",
+                "home_gallery_1_caption",
+                "home_gallery_2_image",
+                "home_gallery_2_alt_text",
+                "home_gallery_2_title",
+                "home_gallery_2_caption",
+                "home_gallery_3_image",
+                "home_gallery_3_alt_text",
+                "home_gallery_3_title",
+                "home_gallery_3_caption",
+                "home_gallery_4_image",
+                "home_gallery_4_alt_text",
+                "home_gallery_4_title",
+                "home_gallery_4_caption",
+            ),
+            "description": "These four uploads control the Builds card images on the homepage. If a card image is left empty, the site falls back to recent project journal covers or the built-in defaults.",
         }),
         ("Shared pricing labels", {
             "fields": (
@@ -3655,6 +3815,8 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
             form.save_hero_asset()
         if hasattr(form, "save_carousel_assets"):
             form.save_carousel_assets()
+        if hasattr(form, "save_gallery_assets"):
+            form.save_gallery_assets()
 
 
 @admin.register(ServicesPageCopy)

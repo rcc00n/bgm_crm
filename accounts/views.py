@@ -899,36 +899,51 @@ class HomeView(TemplateView):
             .exclude(cover_image="")
             .order_by("-featured", "-published_at")[:4]
         )
-        gallery_items = [
-            {
-                "image": post.cover_image,
-                "src": post.cover_image.url,
-                "alt": post.hero_title or post.title,
-                "title": post.hero_title or post.title,
-                "caption": post.result_highlight or post.excerpt,
-                "url": post.get_absolute_url(),
-            }
-            for post in gallery_posts
-        ]
-        if len(gallery_items) < 4:
-            for asset in build_home_gallery_media():
-                if len(gallery_items) >= 4:
-                    break
+        gallery_posts_iter = iter(gallery_posts)
+        gallery_items = []
+        for asset in build_home_gallery_media():
+            if asset.get("is_custom"):
                 gallery_items.append(
                     {
-                        "image": None,
+                        "image": asset.get("image"),
                         "src": asset["src"],
                         "alt": asset.get("alt") or "",
                         "title": asset.get("title") or "",
                         "caption": asset.get("caption") or "",
-                        "fallback_srcset_avif": asset.get("fallback_srcset_avif") or "",
-                        "fallback_srcset_webp": asset.get("fallback_srcset_webp") or "",
-                        "fallback_srcset_jpg": asset.get("fallback_srcset_jpg") or "",
-                        "fallback_width": asset.get("fallback_width"),
-                        "fallback_height": asset.get("fallback_height"),
                         "url": gallery_url,
                     }
                 )
+                continue
+
+            post = next(gallery_posts_iter, None)
+            if post:
+                gallery_items.append(
+                    {
+                        "image": post.cover_image,
+                        "src": post.cover_image.url,
+                        "alt": post.hero_title or post.title,
+                        "title": post.hero_title or post.title,
+                        "caption": post.result_highlight or post.excerpt,
+                        "url": gallery_url,
+                    }
+                )
+                continue
+
+            gallery_items.append(
+                {
+                    "image": None,
+                    "src": asset["src"],
+                    "alt": asset.get("alt") or "",
+                    "title": asset.get("title") or "",
+                    "caption": asset.get("caption") or "",
+                    "fallback_srcset_avif": asset.get("fallback_srcset_avif") or "",
+                    "fallback_srcset_webp": asset.get("fallback_srcset_webp") or "",
+                    "fallback_srcset_jpg": asset.get("fallback_srcset_jpg") or "",
+                    "fallback_width": asset.get("fallback_width"),
+                    "fallback_height": asset.get("fallback_height"),
+                    "url": gallery_url,
+                }
+            )
         ctx["home_gallery_items"] = gallery_items
         ctx["home_gallery_url"] = gallery_url
         return ctx
