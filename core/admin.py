@@ -10,11 +10,11 @@ from django.template.response import TemplateResponse
 from django.contrib import admin, messages
 from django import forms
 from django.db import models
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Prefetch
 from itertools import cycle
 from django.utils.timezone import localtime, datetime, make_aware, localdate
 from django.utils import timezone
-from django.utils.html import escape
+from django.utils.html import conditional_escape, escape
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 from django.template.defaultfilters import filesizeformat
@@ -340,19 +340,32 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
     )
 
     # Fields shown in user list
-    list_display = ('username', 'email', 'first_name', 'last_name', 'staff_status', 'phone', 'birth_date', 'user_roles', 'send_notify_button')
-    list_filter = ('is_staff', 'is_superuser', 'is_active', RoleFilter)
+    list_display = (
+        'username',
+        'email',
+        'first_name',
+        'last_name',
+        'staff_status',
+        'date_joined_local',
+        'last_login_local',
+        'phone',
+        'birth_date',
+        'user_roles',
+        'send_notify_button',
+    )
+    list_filter = ('is_staff', 'is_superuser', 'is_active', RoleFilter, ('date_joined', DateFieldListFilter))
     search_fields = ('username', 'email', 'first_name', 'last_name', 'userprofile__phone')
 
     # Field layout when editing a user
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'birth_date')}),
+        ('System Dates', {'fields': ('date_joined', 'last_login')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Admin Notifications', {'fields': ('admin_notification_sections',)}),
         ('Files', {'fields': ('files', 'files_overview')}),
     )
-    readonly_fields = BaseUserAdmin.readonly_fields + ('files_overview',)
+    readonly_fields = BaseUserAdmin.readonly_fields + ('date_joined', 'last_login', 'files_overview')
 
     def get_fieldsets(self, request, obj=None):
         # Allow Django to use default fieldsets logic
@@ -404,6 +417,18 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
 
     def birth_date(self, instance):
         return instance.userprofile.birth_date if hasattr(instance, 'userprofile') else '-'
+
+    @admin.display(description="Joined", ordering="date_joined")
+    def date_joined_local(self, instance):
+        if not instance.date_joined:
+            return "—"
+        return timezone.localtime(instance.date_joined).strftime("%b %d, %Y")
+
+    @admin.display(description="Last login", ordering="last_login")
+    def last_login_local(self, instance):
+        if not instance.last_login:
+            return "—"
+        return timezone.localtime(instance.last_login).strftime("%b %d, %Y %H:%M")
 
     @admin.display(description="")
     def send_notify_button(self, obj):
@@ -654,9 +679,22 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
 
         appointments = (
             Appointment.objects.select_related('client', 'service', 'master')
-            .prefetch_related(
-                'appointmentstatushistory_set__status',
+            .select_related(
+                'payment_status',
                 'appointmentpromocode__promocode',
+                'appointmentprepayment__option',
+            )
+            .prefetch_related(
+                Prefetch(
+                    'appointmentstatushistory_set',
+                    queryset=AppointmentStatusHistory.objects.select_related('status', 'set_by').order_by('-set_at'),
+                    to_attr='prefetched_status_history',
+                ),
+                Prefetch(
+                    'payment_set',
+                    queryset=Payment.objects.select_related('method').order_by('-created_at'),
+                    to_attr='prefetched_payments',
+                ),
             )
         )
         cancelled_status = AppointmentStatus.objects.filter(name="Cancelled").first()
@@ -768,6 +806,7 @@ class AppointmentAdmin(MasterSelectorMixing, admin.ModelAdmin):
             "selected_day_label": selected_day_label,
             "selected_day_toggle_label": selected_day_toggle_label,
             "selected_day_toggle_action": selected_day_toggle_action,
+            "calendar_summary": build_calendar_summary(appointments_for_range),
         }
 
 
@@ -1035,7 +1074,7 @@ class PaymentAdmin(ExportCsvMixin ,admin.ModelAdmin):
         'receipt_link',
         'created_at',
     )
-    list_filter = ('method', 'payment_mode', 'processor')
+    list_filter = ('method', 'payment_mode', 'processor', ('created_at', DateFieldListFilter))
     export_fields = [
         'order',
         'appointment',
@@ -1113,8 +1152,68 @@ class AppointmentPrepaymentAdmin(ExportCsvMixin,admin.ModelAdmin):
     """
     Admin interface for prepayment options tied to appointments.
     """
-    list_display = ('appointment', 'option')
-    export_fields = ['appointment', 'option']
+    list_display = (
+        'appointment',
+        'client_name',
+        'service_name',
+        'appointment_start',
+        'payment_status_name',
+        'option',
+        'payment_snapshot',
+    )
+    list_filter = ('option', 'appointment__payment_status')
+    search_fields = (
+        'appointment__contact_name',
+        'appointment__contact_email',
+        'appointment__contact_phone',
+        'appointment__client__first_name',
+        'appointment__client__last_name',
+        'appointment__client__email',
+        'appointment__service__name',
+    )
+    ordering = ('-appointment__start_time',)
+    export_fields = ['appointment', 'client_name', 'service_name', 'appointment_start', 'payment_status_name', 'option', 'payment_snapshot']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'appointment',
+            'appointment__client',
+            'appointment__service',
+            'appointment__payment_status',
+            'option',
+        ).prefetch_related(
+            Prefetch(
+                'appointment__payment_set',
+                queryset=Payment.objects.select_related('method').order_by('-created_at'),
+                to_attr='prefetched_payments',
+            ),
+        )
+
+    @admin.display(description="Client", ordering="appointment__contact_name")
+    def client_name(self, obj):
+        return _appointment_client_name(obj.appointment)
+
+    @admin.display(description="Service", ordering="appointment__service__name")
+    def service_name(self, obj):
+        return getattr(obj.appointment.service, "name", "—")
+
+    @admin.display(description="Starts", ordering="appointment__start_time")
+    def appointment_start(self, obj):
+        if not obj.appointment.start_time:
+            return "—"
+        return timezone.localtime(obj.appointment.start_time).strftime("%b %d, %Y %H:%M")
+
+    @admin.display(description="Payment", ordering="appointment__payment_status__name")
+    def payment_status_name(self, obj):
+        return getattr(obj.appointment.payment_status, "name", "—")
+
+    @admin.display(description="Payment log")
+    def payment_snapshot(self, obj):
+        summary = _appointment_payment_summary(obj.appointment)
+        details = [summary["status_label"]]
+        if summary["record_label"]:
+            details.append(summary["record_label"])
+        return " · ".join(bit for bit in details if bit) or "—"
 
 # -----------------------------
 # Hidden Proxy Admin for CustomUserDisplay
@@ -1464,17 +1563,23 @@ class RoleAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         try:
-            from core.services.admin_notifications import iter_notification_groups
+            from core.services.admin_notifications import (
+                iter_notification_groups,
+                resolve_notification_group_keys,
+            )
 
             choices = [(group["key"], group["label"]) for group in iter_notification_groups()]
         except Exception:
             choices = []
+            resolve_notification_group_keys = lambda values: set(values)
 
         current: set[str] = set()
         raw = getattr(self.instance, "admin_sidebar_visible_groups", None) or []
         if isinstance(raw, str):
             raw = [raw]
-        current = {val for val in raw if isinstance(val, str) and val}
+        current = resolve_notification_group_keys(
+            val for val in raw if isinstance(val, str) and val
+        )
 
         # Preserve unknown keys if the sidebar config changed.
         existing_keys = {key for key, _ in choices}
@@ -1486,7 +1591,16 @@ class RoleAdminForm(forms.ModelForm):
 
     def clean_admin_sidebar_visible_groups(self):
         values = self.cleaned_data.get("admin_sidebar_visible_groups") or []
-        return [val for val in values if isinstance(val, str) and val]
+        try:
+            from core.services.admin_notifications import resolve_notification_group_keys
+
+            return sorted(
+                resolve_notification_group_keys(
+                    val for val in values if isinstance(val, str) and val
+                )
+            )
+        except Exception:
+            return [val for val in values if isinstance(val, str) and val]
 
 
 @admin.register(Role)
@@ -1672,6 +1786,116 @@ def _get_master_colors(masters):
     return dict(zip(master_ids, cycle(CALENDAR_COLOR_PALETTE)))
 
 
+def _get_latest_status_entry(appt):
+    prefetched = getattr(appt, "prefetched_status_history", None)
+    if prefetched is not None:
+        return prefetched[0] if prefetched else None
+    return appt.appointmentstatushistory_set.select_related("status").order_by("-set_at").first()
+
+
+def _get_prefetched_payments(appt):
+    prefetched = getattr(appt, "prefetched_payments", None)
+    if prefetched is not None:
+        return prefetched
+    return list(appt.payment_set.select_related("method").order_by("-created_at"))
+
+
+def _appointment_client_name(appt):
+    client_name = appt.contact_name or ""
+    if not client_name and appt.client_id:
+        client_name = appt.client.get_full_name() or appt.client.username or appt.client.email
+    return client_name or "Guest"
+
+
+def _appointment_phone_value(appt):
+    phone_value = appt.contact_phone or ""
+    if not phone_value and appt.client_id:
+        profile = getattr(appt.client, "userprofile", None)
+        phone_value = getattr(profile, "phone", "") if profile else ""
+    return phone_value or ""
+
+
+def _badge_tone_from_text(value):
+    normalized = (value or "").strip().lower()
+    if normalized in {"paid", "completed", "success", "succeeded"}:
+        return "success"
+    if normalized in {"pending", "deposit", "partial", "processing"}:
+        return "warning"
+    if normalized in {"failed", "cancelled", "canceled", "unpaid", "overdue"}:
+        return "danger"
+    return "neutral"
+
+
+def _appointment_payment_summary(appt):
+    status_label = getattr(appt.payment_status, "name", "") or "No payment status"
+    payments = _get_prefetched_payments(appt)
+    latest_payment = payments[0] if payments else None
+    record_label = ""
+    if latest_payment:
+        record_label = "Deposit logged" if latest_payment.is_deposit else "Payment logged"
+        if latest_payment.balance_due and latest_payment.balance_due > 0:
+            balance_due = Decimal(latest_payment.balance_due).quantize(Decimal("0.01"))
+            record_label = f"Balance {latest_payment.currency} {balance_due}"
+    return {
+        "status_label": status_label,
+        "record_label": record_label,
+        "tone": _badge_tone_from_text(status_label),
+        "has_payment": bool(latest_payment),
+        "has_deposit": bool(latest_payment and latest_payment.is_deposit),
+    }
+
+
+def _build_badges_html(badges):
+    parts = []
+    for tone, label in badges:
+        if not label:
+            continue
+        parts.append(
+            f'<span class="appt-chip appt-chip--{conditional_escape(tone)}">{conditional_escape(label)}</span>'
+        )
+    return "".join(parts)
+
+
+def _build_day_appointment_html(appt_display):
+    return (
+        "<div>"
+        f'<div class="appt-card__top"><span>{appt_display["time_short"]}</span><strong>{appt_display["client"]}</strong></div>'
+        f'<div class="appt-card__service">{appt_display["service"]}</div>'
+        f'<div class="appt-card__meta">{appt_display["master"]} · {appt_display["duration"]} · {appt_display["client_type"]}</div>'
+        f'<div class="appt-card__badges">{_build_badges_html(appt_display["badges"])}</div>'
+        "</div>"
+    )
+
+
+def build_calendar_summary(appointments):
+    now = timezone.now()
+    totals = {
+        "total": len(appointments),
+        "awaiting_payment": 0,
+        "prepayment_required": 0,
+        "deposit_logged": 0,
+        "guest": 0,
+        "recent": 0,
+    }
+    for appt in appointments:
+        payment_summary = _appointment_payment_summary(appt)
+        try:
+            prepayment = appt.appointmentprepayment
+        except AppointmentPrepayment.DoesNotExist:
+            prepayment = None
+        if not appt.client_id:
+            totals["guest"] += 1
+        if prepayment:
+            totals["prepayment_required"] += 1
+        if payment_summary["has_deposit"]:
+            totals["deposit_logged"] += 1
+        if payment_summary["tone"] in {"warning", "danger"}:
+            totals["awaiting_payment"] += 1
+        if appt.created_at and appt.created_at >= now - timedelta(days=1):
+            totals["recent"] += 1
+    return totals
+
+
 def _build_appointment_display(appt, master_color):
     local_start = localtime(appt.start_time)
     service = appt.service
@@ -1681,7 +1905,7 @@ def _build_appointment_display(appt, master_color):
     if total_minutes <= 0:
         total_minutes = GRID_STEP_MINUTES
     local_end = local_start + timedelta(minutes=total_minutes)
-    last_status = appt.appointmentstatushistory_set.order_by('-set_at').first()
+    last_status = _get_latest_status_entry(appt)
     status_name = last_status.status.name if last_status else "Unknown"
 
     if service.contact_for_estimate:
@@ -1696,19 +1920,32 @@ def _build_appointment_display(appt, master_color):
     except AppointmentPromoCode.DoesNotExist:
         appt_promocode = None
 
-    client_name = appt.contact_name or ""
-    if not client_name and appt.client_id:
-        client_name = appt.client.get_full_name() or appt.client.username or appt.client.email
-    client_name = client_name or "Guest"
-
-    phone_value = appt.contact_phone or ""
-    if not phone_value and appt.client_id:
-        profile = getattr(appt.client, "userprofile", None)
-        phone_value = getattr(profile, "phone", "") if profile else ""
+    client_name = _appointment_client_name(appt)
+    phone_value = _appointment_phone_value(appt)
 
     master_name = ""
     if appt.master_id:
         master_name = appt.master.get_full_name()
+
+    try:
+        appt_prepayment = appt.appointmentprepayment
+    except AppointmentPrepayment.DoesNotExist:
+        appt_prepayment = None
+
+    payment_summary = _appointment_payment_summary(appt)
+    prepayment_label = f"{appt_prepayment.option.percent}% prepay" if appt_prepayment else ""
+    created_recent = bool(appt.created_at and appt.created_at >= timezone.now() - timedelta(days=1))
+    created_label = timezone.localtime(appt.created_at).strftime("Added %b %d, %Y %H:%M") if appt.created_at else ""
+
+    badges = [(payment_summary["tone"], payment_summary["status_label"])]
+    if prepayment_label:
+        badges.append(("accent", prepayment_label))
+    if payment_summary["record_label"]:
+        badges.append(("neutral", payment_summary["record_label"]))
+    if not appt.client_id:
+        badges.append(("dark", "Guest"))
+    if created_recent:
+        badges.append(("dark", "New"))
 
     return {
         "id": appt.id,
@@ -1720,12 +1957,21 @@ def _build_appointment_display(appt, master_color):
         "master": escape(master_name),
         "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
         "time_start": local_start.strftime('%I:%M%p').lstrip('0'),
+        "time_short": f"{local_start.strftime('%I:%M').lstrip('0')} - {local_end.strftime('%I:%M').lstrip('0')}",
         "duration": f"{base_duration}min",
         "discount": f"-{appt_promocode.promocode.discount_percent}" if appt_promocode else "",
         "price_discounted": price_discounted,
         "price": price_value,
         "background": master_color or CALENDAR_COLOR_PALETTE[0],
         "start_minutes": _time_to_minutes(local_start.time()),
+        "client_type": "Client" if appt.client_id else "Guest",
+        "payment_status": payment_summary["status_label"],
+        "payment_record": payment_summary["record_label"],
+        "payment_tone": payment_summary["tone"],
+        "prepayment_label": prepayment_label,
+        "created_label": created_label,
+        "is_recent": created_recent,
+        "badges": badges,
     }
 
 
@@ -1978,61 +2224,28 @@ def createTable(selected_date, time_pointer, end_time, slot_times, appointments,
             if master_id in slot_map and time_str in slot_map[master_id]:
                 data = slot_map[master_id][time_str]
                 appt = data["appointment"]
-                try:
-                    appt_promocode = appt.appointmentpromocode
-                except AppointmentPromoCode.DoesNotExist:
-                    appt_promocode = None
-
-                local_start = localtime(appt.start_time)
-                base_duration = data.get("base_duration", 0) or 0
-                extra_duration = data.get("extra_duration", 0) or 0
-                local_end = local_start + timedelta(minutes=base_duration + extra_duration)
-                last_status = appt.appointmentstatushistory_set.order_by('-set_at').first()
-                status_name = last_status.status.name if last_status else "Unknown"
-                service_obj = appt.service
-                if service_obj.contact_for_estimate:
-                    price_value = "Contact for estimate"
-                    price_discounted = price_value
-                else:
-                    price_discounted = f"${service_obj.get_discounted_price():.2f}"
-                    price_value = f"${service_obj.base_price_amount():.2f}"
-
-                client_name = appt.contact_name or ""
-                if not client_name and appt.client_id:
-                    client_name = appt.client.get_full_name() or appt.client.username or appt.client.email
-                client_name = client_name or "Guest"
-
-                phone_value = appt.contact_phone or ""
-                if not phone_value and appt.client_id:
-                    profile = getattr(appt.client, "userprofile", None)
-                    phone_value = getattr(profile, "phone", "") if profile else ""
-
+                appt_display = _build_appointment_display(appt, MASTER_COLORS.get(master_id))
                 row["cells"].append({
-                    "html": f"""
-                                        <div>
-                                            <div style="font-size:0.75rem;">
-                                                {local_start.strftime('%I:%M').lstrip('0')} – {local_end.strftime('%I:%M').lstrip('0')}
-                                                <strong>{escape(client_name)}</strong>
-                                            </div>
-                                            <div style="font-size:0.75rem;">
-                                                {escape(appt.service.name)}
-                                            </div>
-                                        </div>
-                                    """,
+                    "html": _build_day_appointment_html(appt_display),
                     "rowspan": data["rowspan"],
                     "appt_id": appt.id,
                     "appointment": appt,
-                    "client": escape(client_name),
-                    "phone": escape(phone_value or ""),
-                    "service": escape(appt.service.name),
-                    "status": status_name,
-                    "master": escape(master.get_full_name()),
-                    "time_label": f"{local_start.strftime('%I:%M%p').lstrip('0')} - {local_end.strftime('%I:%M%p').lstrip('0')}",
-                    "duration": f"{base_duration}min",
-                    "discount": f"-{appt_promocode.promocode.discount_percent}" if appt_promocode else "",
-                    "price_discounted": price_discounted,
-                    "price": price_value,
-                    "background": MASTER_COLORS.get(master_id),
+                    "client": appt_display["client"],
+                    "phone": appt_display["phone"],
+                    "service": appt_display["service"],
+                    "status": appt_display["status"],
+                    "master": appt_display["master"],
+                    "time_label": appt_display["time_label"],
+                    "duration": appt_display["duration"],
+                    "discount": appt_display["discount"],
+                    "price_discounted": appt_display["price_discounted"],
+                    "price": appt_display["price"],
+                    "background": appt_display["background"],
+                    "payment_status": appt_display["payment_status"],
+                    "payment_record": appt_display["payment_record"],
+                    "prepayment_label": appt_display["prepayment_label"],
+                    "created_label": appt_display["created_label"],
+                    "client_type": appt_display["client_type"],
                 })
 
             elif master_id in availability_map and time_str in availability_map[master_id]:
