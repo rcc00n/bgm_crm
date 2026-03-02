@@ -30,11 +30,41 @@ urlpatterns = [
         core_views.admin_analytics_collect,
         name="admin-analytics-collect",
     ),
+    path(
+        "admin/search/",
+        admin.site.admin_view(core_views.admin_global_search),
+        name="admin-global-search",
+    ),
+    path(
+        "admin/search/suggest/",
+        admin.site.admin_view(core_views.admin_global_search_suggest),
+        name="admin-global-search-suggest",
+    ),
+    path(
+        "admin/navigation/track/",
+        admin.site.admin_view(core_views.admin_navigation_track),
+        name="admin-navigation-track",
+    ),
+    path(
+        "admin/favorites/toggle/",
+        admin.site.admin_view(core_views.admin_favorite_toggle),
+        name="admin-favorite-toggle",
+    ),
     path("admin/ui-check/run/", core_views.admin_ui_check_run, name="admin-ui-check-run"),
     path(
         "admin/notifications/read-all/",
         admin.site.admin_view(core_views.admin_notifications_read_all),
         name="admin-notifications-read-all",
+    ),
+    path(
+        "admin/whats-new/",
+        admin.site.admin_view(core_views.admin_whats_new),
+        name="admin-whats-new",
+    ),
+    path(
+        "admin/whats-new/read-all/",
+        admin.site.admin_view(core_views.admin_releases_read_all),
+        name="admin-releases-read-all",
     ),
     path(
         "admin/pagecopy/save-field/",
@@ -75,6 +105,41 @@ urlpatterns = [
         "admin/staffing/time-tracking/",
         admin.site.admin_view(core_views.admin_staff_usage),
         name="admin-staff-usage",
+    ),
+    path(
+        "admin/staff-guide/",
+        admin.site.admin_view(core_views.admin_staff_guide),
+        name="admin-staff-guide",
+    ),
+    path(
+        "admin/workspaces/operations/",
+        admin.site.admin_view(core_views.admin_workspace_operations),
+        name="admin-workspace-operations",
+    ),
+    path(
+        "admin/workspaces/customers-sales/",
+        admin.site.admin_view(core_views.admin_workspace_customers_sales),
+        name="admin-workspace-customers-sales",
+    ),
+    path(
+        "admin/workspaces/website-marketing/",
+        admin.site.admin_view(core_views.admin_workspace_website_marketing),
+        name="admin-workspace-website-marketing",
+    ),
+    path(
+        "admin/workspaces/reporting-access/",
+        admin.site.admin_view(core_views.admin_workspace_reporting_access),
+        name="admin-workspace-reporting-access",
+    ),
+    path(
+        "admin/workspaces/reference-setup/",
+        admin.site.admin_view(core_views.admin_workspace_reference_setup),
+        name="admin-workspace-reference-setup",
+    ),
+    path(
+        "admin/workspaces/<slug:slug>/",
+        admin.site.admin_view(core_views.admin_workspace_hub),
+        name="admin-workspace-hub",
     ),
     path(
         "admin/analytics/insights/",
