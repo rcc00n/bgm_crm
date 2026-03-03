@@ -117,6 +117,84 @@ class AdminSidebarSeen(models.Model):
         return f"{self.user} → {self.app_label}.{self.model_name}"
 
 
+class AdminReleaseSeen(models.Model):
+    """
+    Tracks the most recent admin release update a staff user has viewed.
+    Used to render the "What's New" unread badge in the admin navbar.
+    """
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_release_seen",
+    )
+    last_seen_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "last_seen_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} → admin releases @ {localtime(self.last_seen_at).strftime('%Y-%m-%d %H:%M:%S')}"
+
+
+class AdminFavoritePage(models.Model):
+    """
+    Staff-curated shortcuts for commonly used admin pages or saved filtered views.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_favorite_pages",
+    )
+    url = models.CharField(max_length=600)
+    label = models.CharField(max_length=160)
+    icon = models.CharField(max_length=80, blank=True)
+    category = models.CharField(max_length=120, blank=True)
+    note = models.CharField(max_length=240, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("label", "created_at")
+        unique_together = ("user", "url")
+        indexes = [
+            models.Index(fields=["user", "label"]),
+            models.Index(fields=["user", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} → {self.label}"
+
+
+class AdminRecentPage(models.Model):
+    """
+    Tracks recently visited admin pages so staff can jump back into ongoing work.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_recent_pages",
+    )
+    url = models.CharField(max_length=600)
+    label = models.CharField(max_length=160)
+    icon = models.CharField(max_length=80, blank=True)
+    category = models.CharField(max_length=120, blank=True)
+    note = models.CharField(max_length=240, blank=True)
+    visit_count = models.PositiveIntegerField(default=1)
+    last_visited_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ("-last_visited_at",)
+        unique_together = ("user", "url")
+        indexes = [
+            models.Index(fields=["user", "last_visited_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} recent → {self.label}"
+
+
 class StaffLoginEvent(models.Model):
     """
     Successful staff authentication event used in admin time tracking.
