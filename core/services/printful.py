@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 """
-Printful catalog integration only.
+Printful storefront and fulfillment integration.
 
-This module fetches/synchronizes merch catalog data for the storefront. It does
-not currently create Printful orders, submit recipient addresses, or fetch
-Printful shipping rates during checkout.
+This module handles the merch catalog sync plus the low-level API calls used for
+live shipping-rate lookups, order submission, and webhook subscription sync.
 """
 
 import json
@@ -134,7 +133,13 @@ def _build_headers() -> dict[str, str]:
     return headers
 
 
-def _api_get(path: str, *, query: dict[str, Any] | None = None) -> dict[str, Any]:
+def _api_request(
+    method: str,
+    path: str,
+    *,
+    query: dict[str, Any] | None = None,
+    data: dict[str, Any] | list[Any] | None = None,
+) -> dict[str, Any]:
     base_url = (getattr(settings, "PRINTFUL_API_BASE_URL", "https://api.printful.com") or "https://api.printful.com").strip()
     if not base_url:
         base_url = "https://api.printful.com"
@@ -143,7 +148,13 @@ def _api_get(path: str, *, query: dict[str, Any] | None = None) -> dict[str, Any
     if query:
         url = f"{url}?{urlencode(query, doseq=True)}"
 
-    req = Request(url, headers=_build_headers())
+    headers = _build_headers()
+    body = None
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+        body = json.dumps(data).encode("utf-8")
+
+    req = Request(url, data=body, headers=headers, method=(method or "GET").upper())
     timeout = _float_setting("PRINTFUL_TIMEOUT_SECONDS", 4.0, min_value=0.5)
 
     try:
@@ -180,6 +191,23 @@ def _api_get(path: str, *, query: dict[str, Any] | None = None) -> dict[str, Any
         if payload.get("error"):
             raise PrintfulAPIError("api_error")
     return payload if isinstance(payload, dict) else {}
+
+
+def _api_get(path: str, *, query: dict[str, Any] | None = None) -> dict[str, Any]:
+    return _api_request("GET", path, query=query)
+
+
+def _api_post(
+    path: str,
+    *,
+    query: dict[str, Any] | None = None,
+    data: dict[str, Any] | list[Any] | None = None,
+) -> dict[str, Any]:
+    return _api_request("POST", path, query=query, data=data)
+
+
+def _api_delete(path: str, *, query: dict[str, Any] | None = None) -> dict[str, Any]:
+    return _api_request("DELETE", path, query=query)
 
 
 def _extract_result_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -605,3 +633,200 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
             _write_last_good_payload(payload, disk_key, min_interval=cache_seconds or 300)
 
     return payload
+
+
+def printful_is_enabled() -> bool:
+    return bool((getattr(settings, "PRINTFUL_TOKEN", "") or "").strip())
+
+
+def _shipping_rates_cache_key(*, recipient: dict[str, Any], items: list[dict[str, Any]], currency: str) -> str:
+    digest = hashlib.sha256(
+        json.dumps(
+            {
+                "recipient": recipient,
+                "items": items,
+                "currency": currency,
+                "store_id": (getattr(settings, "PRINTFUL_STORE_ID", "") or "").strip(),
+            },
+            sort_keys=True,
+            default=str,
+        ).encode("utf-8")
+    ).hexdigest()
+    return f"{_CACHE_PREFIX}:shipping_rates:{digest}"
+
+
+def quote_printful_shipping_rates(
+    *,
+    recipient: dict[str, Any],
+    items: list[dict[str, Any]],
+    currency: str = "",
+    force_refresh: bool = False,
+) -> list[dict[str, Any]]:
+    if not printful_is_enabled():
+        raise PrintfulAPIError("disabled")
+
+    normalized_currency = (currency or "").strip().upper()
+    payload: dict[str, Any] = {
+        "recipient": recipient,
+        "items": items,
+    }
+    if normalized_currency:
+        payload["currency"] = normalized_currency
+
+    cache_key = _shipping_rates_cache_key(recipient=recipient, items=items, currency=normalized_currency)
+    cache_seconds = _int_setting("PRINTFUL_MERCH_CACHE_SECONDS", 300, min_value=0)
+    if cache_seconds > 0 and not force_refresh:
+        cached = cache.get(cache_key)
+        if isinstance(cached, list):
+            return cached
+
+    response = _api_post("/shipping/rates", data=payload)
+    result = response.get("result")
+    rows = result if isinstance(result, list) else []
+
+    normalized_rows: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        amount = _coerce_decimal(
+            row.get("rate")
+            or row.get("price")
+            or row.get("cost")
+            or row.get("amount")
+        )
+        rate_id = " ".join(
+            str(
+                row.get("id")
+                or row.get("shipping")
+                or row.get("service_code")
+                or row.get("code")
+                or ""
+            ).split()
+        )[:80]
+        name = " ".join(
+            str(
+                row.get("name")
+                or row.get("title")
+                or row.get("shipping_service_name")
+                or row.get("shipping")
+                or rate_id
+            ).split()
+        )[:160]
+        if not rate_id or not name or amount is None:
+            continue
+        normalized_rows.append(
+            {
+                "id": rate_id,
+                "name": name,
+                "rate": str(amount.quantize(Decimal("0.01"))),
+                "currency": (row.get("currency") or normalized_currency or "").strip().upper(),
+                "min_delivery_days": _coerce_int(row.get("minDeliveryDays")),
+                "max_delivery_days": _coerce_int(row.get("maxDeliveryDays")),
+                "min_delivery_date": (row.get("minDeliveryDate") or "").strip(),
+                "max_delivery_date": (row.get("maxDeliveryDate") or "").strip(),
+            }
+        )
+
+    normalized_rows.sort(key=lambda item: (_coerce_decimal(item.get("rate")) or Decimal("0.00"), item.get("name") or ""))
+    if cache_seconds > 0:
+        cache.set(cache_key, normalized_rows, min(cache_seconds, 300))
+    return normalized_rows
+
+
+def create_printful_order(
+    *,
+    recipient: dict[str, Any],
+    items: list[dict[str, Any]],
+    shipping: str = "",
+    external_id: str = "",
+    notes: str = "",
+    retail_costs: dict[str, Any] | None = None,
+    confirm: bool = True,
+) -> dict[str, Any]:
+    if not printful_is_enabled():
+        raise PrintfulAPIError("disabled")
+
+    payload: dict[str, Any] = {
+        "recipient": recipient,
+        "items": items,
+    }
+    if shipping:
+        payload["shipping"] = shipping
+    if external_id:
+        payload["external_id"] = external_id[:140]
+    if notes:
+        payload["notes"] = notes[:6000]
+    if retail_costs:
+        payload["retail_costs"] = retail_costs
+
+    response = _api_post("/orders", query={"confirm": 1 if confirm else 0}, data=payload)
+    result = response.get("result")
+    return result if isinstance(result, dict) else {}
+
+
+def get_printful_order(order_id: int) -> dict[str, Any]:
+    if not order_id:
+        return {}
+    response = _api_get(f"/orders/{int(order_id)}")
+    result = response.get("result")
+    return result if isinstance(result, dict) else {}
+
+
+def find_printful_order_by_external_id(
+    external_id: str,
+    *,
+    page_size: int = 100,
+    max_pages: int = 10,
+) -> dict[str, Any]:
+    normalized_external_id = (external_id or "").strip()[:140]
+    if not normalized_external_id:
+        return {}
+
+    normalized_page_size = max(1, min(int(page_size or 100), 100))
+    normalized_max_pages = max(1, int(max_pages or 10))
+    offset = 0
+
+    for _ in range(normalized_max_pages):
+        response = _api_get("/orders", query={"limit": normalized_page_size, "offset": offset})
+        result = response.get("result")
+        rows = result if isinstance(result, list) else []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            if str(row.get("external_id") or "").strip()[:140] == normalized_external_id:
+                return row
+
+        paging = response.get("paging") if isinstance(response.get("paging"), dict) else {}
+        total = _coerce_int(paging.get("total"), default=0)
+        if len(rows) < normalized_page_size:
+            break
+        offset += normalized_page_size
+        if total and offset >= total:
+            break
+
+    return {}
+
+
+def cancel_printful_order(order_id: int) -> dict[str, Any]:
+    if not order_id:
+        return {}
+    response = _api_delete(f"/orders/{int(order_id)}")
+    result = response.get("result")
+    return result if isinstance(result, dict) else {}
+
+
+def get_printful_webhook() -> dict[str, Any]:
+    response = _api_get("/webhooks")
+    result = response.get("result")
+    return result if isinstance(result, dict) else {}
+
+
+def upsert_printful_webhook(*, url: str, types: list[str], params: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    payload = {
+        "url": (url or "").strip(),
+        "types": [str(item).strip() for item in (types or []) if str(item).strip()],
+        "params": params or [],
+    }
+    response = _api_post("/webhooks", data=payload)
+    result = response.get("result")
+    return result if isinstance(result, dict) else {}
