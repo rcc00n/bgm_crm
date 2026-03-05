@@ -968,17 +968,23 @@ class Order(models.Model):
     def save(self, *args, **kwargs):
         is_new = self._state.adding
         old_status = None
+        old_payment_status = None
         if not is_new and self.pk:
             try:
-                old_status = (
+                old_values = (
                     Order.objects.filter(pk=self.pk)
-                    .values_list("status", flat=True)
+                    .values("status", "payment_status")
                     .first()
                 )
+                if old_values:
+                    old_status = old_values.get("status")
+                    old_payment_status = old_values.get("payment_status")
             except Exception:
                 old_status = None
+                old_payment_status = None
 
         status_changed = old_status is not None and self.status != old_status
+        payment_status_changed = old_payment_status is not None and self.payment_status != old_payment_status
         if status_changed:
             now = timezone.now()
             if self.status == self.STATUS_SHIPPED and not self.shipped_at:
@@ -1004,6 +1010,8 @@ class Order(models.Model):
 
         if status_changed:
             transaction.on_commit(lambda: self._send_status_update(old_status))
+        if payment_status_changed and self.payment_status == self.PaymentStatus.PAID:
+            transaction.on_commit(lambda: self._handle_paid_transition())
 
     def _send_status_update(self, old_status: str | None):
         recipient = (self.email or "").strip()
@@ -1130,6 +1138,14 @@ class Order(models.Model):
                 old_status,
                 self.status,
             )
+
+    def _handle_paid_transition(self):
+        try:
+            from store.printful_fulfillment import handle_order_payment_status_transition
+
+            handle_order_payment_status_transition(self.pk)
+        except Exception:
+            logger.exception("Failed to process paid transition for order %s", self.pk)
 
     STATUS_UI = {
         STATUS_PROCESSING: ("processing", "#f5a623"),

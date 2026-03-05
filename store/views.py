@@ -18,9 +18,10 @@ from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Avg, Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from PIL import Image, UnidentifiedImageError
 from square.client import Square, SquareEnvironment
@@ -33,12 +34,18 @@ from .models import (
     OrderItem,
     Product,
     ProductOption,
-    StoreShippingSettings,
     StoreReview,
     CarMake,
     CarModel,
 )
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm, StoreReviewForm
+from .printful_fulfillment import (
+    cart_is_merch_only,
+    get_checkout_printful_shipping,
+    get_printful_webhook_secret,
+    handle_order_payment_status_transition,
+    record_printful_webhook,
+)
 from core.models import ClientFile, Payment, PaymentMethod, StorePageCopy, PageFontSetting, PromoCode
 from core.services.page_sections import get_page_sections
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
@@ -1507,6 +1514,19 @@ def _mark_abandoned_cart_recovered(email: str):
         email__iexact=email,
     ).update(recovered_at=timezone.now())
 
+
+def _has_mixed_merch_cart(positions: list[dict]) -> bool:
+    has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
+    has_non_merch = any(
+        (entry.get("product") is not None) and (not _is_merch_product(entry.get("product")))
+        for entry in (positions or [])
+    )
+    return has_merch and has_non_merch
+
+
+def _mixed_merch_cart_message() -> str:
+    return "Merch and in-house products must be checked out separately so shipping and fulfillment stay accurate."
+
 @require_POST
 def cart_add(request, slug: str):
     product = get_object_or_404(Product, slug=slug, is_active=True)
@@ -1520,6 +1540,22 @@ def cart_add(request, slug: str):
     except (TypeError, ValueError):
         qty = 1
     qty = max(1, qty)
+
+    cart_positions, _, _ = _cart_positions(
+        request.session,
+        dealer_discount=get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0,
+        user=request.user if request.user.is_authenticated else None,
+    )
+    if cart_positions:
+        incoming_is_merch = _is_merch_product(product)
+        cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in cart_positions)
+        cart_has_non_merch = any(
+            (entry.get("product") is not None) and (not _is_merch_product(entry.get("product")))
+            for entry in cart_positions
+        )
+        if (incoming_is_merch and cart_has_non_merch) or ((not incoming_is_merch) and cart_has_merch):
+            messages.error(request, _mixed_merch_cart_message())
+            return redirect("store:store-cart")
 
     option = None
     option_id_raw = request.POST.get("option_id")
@@ -1743,6 +1779,82 @@ def cart_remove(request, slug: str):
 
 # ─────────────────────────────── Вспомогалки ─────────────────────────────
 
+
+@require_POST
+def checkout_printful_rates(request):
+    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    positions, _, _ = _cart_positions(
+        request.session,
+        dealer_discount=dealer_discount,
+        user=request.user if request.user.is_authenticated else None,
+    )
+    if not positions:
+        return JsonResponse({"error": "Your cart is empty."}, status=400)
+    if _has_mixed_merch_cart(positions):
+        return JsonResponse({"error": _mixed_merch_cart_message()}, status=400)
+    if not cart_is_merch_only(positions):
+        return JsonResponse(
+            {
+                "enabled": False,
+                "rates": [],
+                "selected_rate_id": "",
+                "shipping_cost": "0.00",
+                "shipping_name": "",
+                "shipping_currency": "",
+                "error": "",
+                "field_errors": {},
+            }
+        )
+
+    form = {
+        "customer_name": (request.POST.get("customer_name") or "").strip(),
+        "email": (request.POST.get("email") or "").strip(),
+        "phone": (request.POST.get("phone") or "").strip(),
+        "address_line1": (request.POST.get("address_line1") or "").strip(),
+        "address_line2": (request.POST.get("address_line2") or "").strip(),
+        "city": (request.POST.get("city") or "").strip(),
+        "region": (request.POST.get("region") or "").strip(),
+        "postal_code": (request.POST.get("postal_code") or "").strip(),
+        "country": (request.POST.get("country") or "").strip(),
+    }
+    shipping_quote = get_checkout_printful_shipping(
+        positions=positions,
+        form=form,
+        selected_rate_id=(request.POST.get("printful_shipping_rate_id") or "").strip(),
+        require_complete=False,
+    )
+    status = 200
+    if shipping_quote["error"] and not shipping_quote["rates"]:
+        status = 400
+    return JsonResponse(
+        {
+            "enabled": True,
+            "rates": shipping_quote["rates"],
+            "selected_rate_id": shipping_quote["selected_rate_id"],
+            "shipping_cost": str(shipping_quote["shipping_cost"]),
+            "shipping_name": shipping_quote["shipping_name"],
+            "shipping_currency": shipping_quote["shipping_currency"],
+            "error": shipping_quote["error"],
+            "field_errors": shipping_quote["errors"],
+        },
+        status=status,
+    )
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def printful_webhook(request, secret: str):
+    if (secret or "").strip() != get_printful_webhook_secret():
+        return HttpResponseForbidden("Forbidden")
+    try:
+        payload = json.loads((request.body or b"{}").decode("utf-8", errors="ignore"))
+    except (TypeError, ValueError):
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+    record_printful_webhook(payload)
+    return HttpResponse("ok")
+
 def _model_field_names(model) -> set:
     names = set()
     for f in model._meta.get_fields():
@@ -1760,7 +1872,6 @@ def _first_present(model_fields: set, candidates: Iterable[str]):
 # ─────────────────────────────── Checkout ────────────────────────────────
 
 def checkout(request):
-    # собрать позиции заказа из корзины
     dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
     promo_code = _get_cart_promocode(request.session)
     promo = None
@@ -1771,22 +1882,24 @@ def checkout(request):
             _clear_cart_promocode(request.session)
             promo_code = ""
             promo = None
+
     positions, total, retail_total = _cart_positions(
         request.session,
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
         promo=promo,
     )
+    if request.method == "POST" and not positions:
+        messages.error(request, "The cart is empty.")
+        return redirect("store:store-cart")
+    if positions and _has_mixed_merch_cart(positions):
+        messages.error(request, _mixed_merch_cart_message())
+        return redirect("store:store-cart")
+
     cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
-    cart_has_non_merch = any(
-        (entry.get("product") is not None) and (not _is_merch_product(entry.get("product")))
-        for entry in (positions or [])
-    )
-    any_discounted = any(int(entry.get("discount_percent") or 0) > 0 for entry in (positions or []))
     has_dealer_discount = any(entry.get("discount_type") == "dealer" for entry in (positions or []))
     effective_dealer_discount = int(dealer_discount or 0) if has_dealer_discount else 0
-    # Merch checkout should not allow an order-level reference photo upload.
-    cart_is_merch_checkout = cart_has_merch and not cart_has_non_merch
+    cart_is_merch_checkout = cart_is_merch_only(positions)
     promo_applied = any(entry.get("discount_type") == "promo" for entry in (positions or []))
     promo_savings = sum((entry.get("promo_savings") or Decimal("0.00")) for entry in (positions or []))
     if promo_savings:
@@ -1811,49 +1924,33 @@ def checkout(request):
     currency_symbol = getattr(settings, "DEFAULT_CURRENCY_SYMBOL", "$")
     etransfer_email = _normalize_etransfer_email(getattr(settings, "ETRANSFER_EMAIL", "")) or "Payments@badguymotors.ca"
     etransfer_memo_hint = getattr(settings, "ETRANSFER_MEMO_HINT", "")
-
     pay_mode = Order.PaymentMode.FULL
     payment_method = request.POST.get("payment_method") or request.GET.get("payment_method") or "card"
     if payment_method not in ("card", "etransfer"):
         payment_method = "card"
 
-    reference_file = None
-    if request.method == "POST" and not positions:
-        messages.error(request, "The cart is empty.")
-        return redirect("store:store-cart")
-
-    form = {"delivery_method": "shipping", "country": "Canada", "pay_mode": pay_mode, "payment_method": payment_method}
     errors: Dict[str, str] = {}
+    reference_file = None
+    form = {
+        "delivery_method": "shipping",
+        "country": "Canada",
+        "pay_mode": pay_mode,
+        "payment_method": payment_method,
+        "printful_shipping_rate_id": "",
+    }
 
-    def _is_canada(country: str) -> bool:
-        c = (country or "").strip().lower()
-        if not c:
-            return False
-        return c in {"canada", "ca"} or c.startswith("canada")
-
-    def _compute_merch_delivery_cost(*, delivery_method: str, country: str) -> Decimal:
-        """
-        Source of truth for merch shipping charges in checkout.
-
-        This is the only place that computes the delivery amount applied to the
-        cart/order totals. Printful is currently catalog-sync only in this codebase;
-        no Printful shipping quote is fetched or added during checkout.
-        """
-        if not cart_has_merch:
-            return Decimal("0.00")
-        if (delivery_method or "").strip().lower() == "pickup":
-            return Decimal("0.00")
-        if not _is_canada(country):
-            return Decimal("0.00")
-
-        delivery_cost = StoreShippingSettings.get_delivery_cost_under_threshold_cad()
-        if not delivery_cost:
-            return Decimal("0.00")
-
-        threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
-        if threshold and total and total >= threshold:
-            return Decimal("0.00")
-        return delivery_cost
+    def _empty_shipping_quote() -> dict:
+        return {
+            "rates": [],
+            "selected_rate_id": "",
+            "selected_rate": None,
+            "shipping_cost": Decimal("0.00"),
+            "shipping_name": "",
+            "shipping_currency": "",
+            "recipient": {},
+            "errors": {},
+            "error": "",
+        }
 
     def _build_payment_options(
         *,
@@ -1862,38 +1959,34 @@ def checkout(request):
         order_processing: Decimal,
         order_total_with_fees: Decimal,
     ):
-        def payment_plan(label: str, portion: Decimal):
-            base_portion = (order_subtotal * portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if order_subtotal else Decimal("0.00")
-            gst_portion = (base_portion * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
-            processing_portion = (base_portion * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if base_portion else Decimal("0.00")
-            charge_amount = (base_portion + gst_portion + processing_portion).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
-            balance_due = (order_total_with_fees - charge_amount).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
-            if balance_due < 0:
-                balance_due = Decimal("0.00")
-            return {
-                "label": label,
-                "base": base_portion,
-                "gst": gst_portion,
-                "processing_fee": processing_portion,
+        charge_amount = order_total_with_fees.quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
+        return {
+            "full": {
+                "label": "Pay 100% now",
+                "base": order_subtotal,
+                "gst": order_gst,
+                "processing_fee": order_processing,
                 "charge": charge_amount,
-                "balance_due": balance_due,
+                "balance_due": Decimal("0.00"),
                 "order_subtotal": order_subtotal,
                 "order_gst": order_gst,
                 "order_processing": order_processing,
                 "order_total_with_fees": order_total_with_fees,
             }
-
-        return {
-            "full": payment_plan("Pay 100% now", Decimal("1.0")),
         }
 
-    def _recompute_totals_for_form(form_payload: dict):
-        delivery_method = (form_payload.get("delivery_method") or "shipping").strip()
-        country = (form_payload.get("country") or "Canada").strip()
+    def _recompute_totals_for_form(form_payload: dict, *, require_complete_merch_rate: bool = False):
+        shipping_quote = _empty_shipping_quote()
+        shipping_cost = Decimal("0.00")
+        if cart_is_merch_checkout:
+            shipping_quote = get_checkout_printful_shipping(
+                positions=positions,
+                form=form_payload,
+                selected_rate_id=(form_payload.get("printful_shipping_rate_id") or "").strip(),
+                require_complete=require_complete_merch_rate,
+            )
+            shipping_cost = shipping_quote["shipping_cost"].quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
 
-        shipping_cost = _compute_merch_delivery_cost(delivery_method=delivery_method, country=country).quantize(
-            PAYMENT_QUANT, rounding=ROUND_HALF_UP
-        )
         order_subtotal = (total + shipping_cost).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else shipping_cost
         order_gst = (order_subtotal * gst_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if order_subtotal else Decimal("0.00")
         order_processing = (order_subtotal * processing_rate).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if order_subtotal else Decimal("0.00")
@@ -1910,9 +2003,18 @@ def checkout(request):
                 order_processing=order_processing,
                 order_total_with_fees=order_total_with_fees,
             ),
+            shipping_quote,
         )
 
-    shipping_cost, order_subtotal, order_gst, order_processing, order_total_with_fees, payment_options = _recompute_totals_for_form(form)
+    (
+        shipping_cost,
+        order_subtotal,
+        order_gst,
+        order_processing,
+        order_total_with_fees,
+        payment_options,
+        printful_shipping_quote,
+    ) = _recompute_totals_for_form(form)
 
     if request.method == "POST":
         def val(name, default=""):
@@ -1928,30 +2030,40 @@ def checkout(request):
         reference_file = request.FILES.get("reference_image")
         if cart_is_merch_checkout:
             reference_file = None
+
         form = {
             "customer_name": val("customer_name"),
             "email": val("email"),
             "phone": val("phone"),
-            "delivery_method": val("delivery_method", "shipping"),
+            "delivery_method": "shipping" if cart_is_merch_checkout else val("delivery_method", "shipping"),
             "address_line1": val("address_line1"),
             "address_line2": val("address_line2"),
             "city": val("city"),
             "region": val("region"),
             "postal_code": normalize_postal_code(val("postal_code")),
             "country": val("country") or "Canada",
-            "pickup_notes": val("pickup_notes"),
+            "pickup_notes": "" if cart_is_merch_checkout else val("pickup_notes"),
             "comment": val("comment"),
             "agree": request.POST.get("agree") == "1",
             "pay_mode": pay_mode,
             "payment_method": payment_method,
+            "printful_shipping_rate_id": (request.POST.get("printful_shipping_rate_id") or "").strip(),
         }
         payment_method = val("payment_method", payment_method) or "card"
         if payment_method not in ("card", "etransfer"):
             payment_method = "card"
         form["payment_method"] = payment_method
-        shipping_cost, order_subtotal, order_gst, order_processing, order_total_with_fees, payment_options = _recompute_totals_for_form(form)
 
-        # валидация
+        (
+            shipping_cost,
+            order_subtotal,
+            order_gst,
+            order_processing,
+            order_total_with_fees,
+            payment_options,
+            printful_shipping_quote,
+        ) = _recompute_totals_for_form(form, require_complete_merch_rate=cart_is_merch_checkout)
+
         if not form["customer_name"]:
             errors["customer_name"] = "Please provide your full name."
         if not form["phone"]:
@@ -1973,6 +2085,13 @@ def checkout(request):
                 errors["postal_code"] = "Postal code is required."
         if not form["country"]:
             errors["country"] = "Country is required."
+        if cart_is_merch_checkout:
+            for field_name, message in (printful_shipping_quote.get("errors") or {}).items():
+                errors.setdefault(field_name, message)
+            if printful_shipping_quote.get("error"):
+                errors["printful_shipping"] = printful_shipping_quote["error"]
+            elif not printful_shipping_quote.get("selected_rate_id"):
+                errors["printful_shipping"] = "Select a live shipping option for this merch order."
 
         if not form["agree"]:
             errors["agree"] = "You must agree to the terms."
@@ -1985,7 +2104,7 @@ def checkout(request):
         if any(getattr(it["product"], "contact_for_estimate", False) for it in positions):
             errors["payment"] = "Items that require an estimate must be invoiced manually. Please remove them to pay online."
 
-        selected_payment = payment_options[Order.PaymentMode.FULL]
+        selected_payment = payment_options["full"]
         charge_amount = selected_payment["charge"]
         charge_processing_fee = selected_payment["processing_fee"]
         balance_due = selected_payment["balance_due"]
@@ -1994,9 +2113,8 @@ def checkout(request):
 
         if charge_amount <= 0:
             errors["payment"] = "Order total is zero — nothing to charge."
-        if not errors and is_etransfer:
-            if not getattr(settings, "ETRANSFER_EMAIL", ""):
-                errors["payment"] = "Interac e-Transfer is not available right now. Please choose card or contact support."
+        if not errors and is_etransfer and not getattr(settings, "ETRANSFER_EMAIL", ""):
+            errors["payment"] = "Interac e-Transfer is not available right now. Please choose card or contact support."
         if not errors and not is_etransfer and not square_token:
             errors["payment"] = "Please enter your card details to complete payment."
         if not errors and not is_etransfer and not _square_ready():
@@ -2027,13 +2145,10 @@ def checkout(request):
 
         if not errors:
             o_fields = _model_field_names(Order)
-
             order_kwargs = {}
             for key in ["customer_name", "email", "phone"]:
                 if key in o_fields:
                     order_kwargs[key] = form[key]
-
-            # Если в модели есть поле total — положим туда сумму (иначе total будет считаться @property)
             if "total" in o_fields:
                 order_kwargs["total"] = total
             if "shipping_cost" in o_fields:
@@ -2057,16 +2172,20 @@ def checkout(request):
             if "payment_last4" in o_fields and not is_etransfer:
                 order_kwargs["payment_last4"] = payment_resp.get("last_4", "")
             if "payment_status" in o_fields:
-                order_kwargs["payment_status"] = (
-                    Order.PaymentStatus.UNPAID if is_etransfer else Order.PaymentStatus.PAID
-                )
+                order_kwargs["payment_status"] = Order.PaymentStatus.UNPAID if is_etransfer else Order.PaymentStatus.PAID
+            if "printful_shipping_rate_id" in o_fields:
+                order_kwargs["printful_shipping_rate_id"] = printful_shipping_quote.get("selected_rate_id", "")
+            if "printful_shipping_name" in o_fields:
+                order_kwargs["printful_shipping_name"] = printful_shipping_quote.get("shipping_name", "")
+            if "printful_shipping_cost" in o_fields:
+                order_kwargs["printful_shipping_cost"] = shipping_cost if cart_is_merch_checkout else Decimal("0.00")
+            if "printful_shipping_currency" in o_fields:
+                order_kwargs["printful_shipping_currency"] = printful_shipping_quote.get("shipping_currency", currency_code) if cart_is_merch_checkout else ""
 
-            # способ доставки
-            name = _first_present(o_fields, ["delivery_method", "shipping_method"])
-            if name:
-                order_kwargs[name] = form["delivery_method"]
+            delivery_field = _first_present(o_fields, ["delivery_method", "shipping_method"])
+            if delivery_field:
+                order_kwargs[delivery_field] = form["delivery_method"]
 
-            # адресные поля (маппинг на разные варианты имен полей)
             mapping = {
                 "address_line1": ["address_line1", "address1", "shipping_address1", "address", "shipping_address"],
                 "address_line2": ["address_line2", "address2", "shipping_address2"],
@@ -2077,42 +2196,25 @@ def checkout(request):
             }
             for src, cands in mapping.items():
                 dst = _first_present(o_fields, cands)
-                if dst and form[src]:
+                if dst:
                     order_kwargs[dst] = form[src]
 
-            # комментарии/примечания
-            comment_field = _first_present(
-                o_fields,
-                ["comment", "comments", "notes", "note", "customer_note", "customer_notes"]
-            )
+            comment_field = _first_present(o_fields, ["comment", "comments", "notes", "note", "customer_note", "customer_notes"])
             if comment_field:
                 extra_blocks = []
                 if form["comment"]:
                     extra_blocks.append(form["comment"])
                 if is_pickup and form["pickup_notes"]:
                     extra_blocks.append(f"[Pickup] {form['pickup_notes']}")
-                if not is_pickup:
-                    addr_pushed = all(
-                        _first_present(o_fields, mapping[k])
-                        for k in ["address_line1", "city", "region", "postal_code", "country"]
-                    )
-                    if not addr_pushed:
-                        addr_text = ", ".join(
-                            [form["address_line1"], form["address_line2"], form["city"],
-                             form["region"], form["postal_code"], form["country"]]
-                        ).strip(", ").replace("  ", " ")
-                        extra_blocks.append(f"[Delivery] {addr_text}")
                 if is_etransfer:
-                    et_email = etransfer_email
-                    memo_hint = etransfer_memo_hint
                     payment_note_parts = [
                         "Customer chose Interac e-Transfer (full payment).",
                         f"Amount requested now: {charge_amount} {currency_code}.",
                     ]
-                    if et_email:
-                        payment_note_parts.append(f"Send to {et_email}.")
-                    if memo_hint:
-                        payment_note_parts.append(memo_hint)
+                    if etransfer_email:
+                        payment_note_parts.append(f"Send to {etransfer_email}.")
+                    if etransfer_memo_hint:
+                        payment_note_parts.append(etransfer_memo_hint)
                     extra_blocks.append("[Payment] " + " ".join(payment_note_parts))
                 item_reference_notes = []
                 for it in positions:
@@ -2128,20 +2230,15 @@ def checkout(request):
                 if extra_blocks:
                     order_kwargs[comment_field] = "\n".join(extra_blocks)
 
-            # <<< ВАЖНО: Привязка к текущему пользователю, если он вошёл в систему >>>
             if request.user.is_authenticated:
                 if "user" in o_fields:
                     order_kwargs["user"] = request.user
-                # для совместимости также проставим created_by, если есть и пусто
                 if "created_by" in o_fields:
                     order_kwargs.setdefault("created_by", request.user)
 
             if reference_file and "reference_image" in o_fields:
                 order_kwargs["reference_image"] = reference_file
-            portal_owner = _resolve_client_file_owner(
-                request_user=request.user,
-                email=form.get("email", ""),
-            )
+            portal_owner = _resolve_client_file_owner(request_user=request.user, email=form.get("email", ""))
 
             with transaction.atomic():
                 order = Order.objects.create(**order_kwargs)
@@ -2152,41 +2249,36 @@ def checkout(request):
                         description=f"Store checkout reference for Order #{order.id}",
                     )
 
-                # ── создание позиций ──
                 i_fields = _model_field_names(OrderItem)
-
                 product_field = _first_present(i_fields, ["product", "item", "sku_product"])
-                qty_field     = _first_present(i_fields, ["quantity", "qty", "count", "amount", "quantity_ordered"])
-                price_field   = _first_present(i_fields, ["price_at_moment", "unit_price", "price", "unit", "price_snapshot"])
-                line_field    = _first_present(i_fields, ["total", "line_total", "subtotal", "line_price", "price_total"])
-                currency_field= _first_present(i_fields, ["currency", "currency_code"])
-
+                qty_field = _first_present(i_fields, ["quantity", "qty", "count", "amount", "quantity_ordered"])
+                price_field = _first_present(i_fields, ["price_at_moment", "unit_price", "price", "unit", "price_snapshot"])
+                line_field = _first_present(i_fields, ["total", "line_total", "subtotal", "line_price", "price_total"])
+                currency_field = _first_present(i_fields, ["currency", "currency_code"])
                 option_field = _first_present(i_fields, ["option", "product_option"])
 
                 for it in positions:
-                    p = it["product"]
+                    product = it["product"]
                     qty = int(it["qty"])
                     unit_source = it.get("unit_price")
                     if unit_source is None:
-                        unit_source = p.get_unit_price()
+                        unit_source = product.get_unit_price()
                     unit = Decimal(str(unit_source))
                     line_total = Decimal(str(it.get("line_total", unit * qty)))
-
-                    kwargs = {"order": order}
+                    item_kwargs = {"order": order}
                     if product_field:
-                        kwargs[product_field] = p
+                        item_kwargs[product_field] = product
                     if qty_field:
-                        kwargs[qty_field] = qty
+                        item_kwargs[qty_field] = qty
                     if price_field:
-                        kwargs[price_field] = unit  # важно: NOT NULL
+                        item_kwargs[price_field] = unit
                     if line_field:
-                        kwargs[line_field] = line_total
+                        item_kwargs[line_field] = line_total
                     if currency_field:
-                        kwargs[currency_field] = getattr(p, "currency", settings.DEFAULT_CURRENCY_CODE)
+                        item_kwargs[currency_field] = getattr(product, "currency", settings.DEFAULT_CURRENCY_CODE)
                     if option_field and it.get("option"):
-                        kwargs[option_field] = it["option"]
-
-                    OrderItem.objects.create(**kwargs)
+                        item_kwargs[option_field] = it["option"]
+                    OrderItem.objects.create(**item_kwargs)
 
                 if promo and promo_applied:
                     OrderPromoCode.objects.create(
@@ -2206,38 +2298,39 @@ def checkout(request):
                         payment_fee=charge_processing_fee,
                     )
 
-                # очистить корзину
                 request.session[CART_KEY] = {"items": []}
                 request.session.pop(PROMO_CODE_KEY, None)
                 request.session.modified = True
 
-                transaction.on_commit(lambda: _send_order_confirmation(
-                    order=order,
-                    payment_method=payment_method,
-                    pay_mode=Order.PaymentMode.FULL,
-                    charge_amount=charge_amount,
-                    balance_due=balance_due,
-                    order_total_with_fees=order_total_with_fees,
-                    currency_symbol=currency_symbol,
-                    currency_code=currency_code,
-                    etransfer_email=etransfer_email,
-                    etransfer_memo_hint=etransfer_memo_hint,
-                    receipt_url=payment_resp.get("receipt_url", ""),
-                ))
+                transaction.on_commit(
+                    lambda: _send_order_confirmation(
+                        order=order,
+                        payment_method=payment_method,
+                        pay_mode=Order.PaymentMode.FULL,
+                        charge_amount=charge_amount,
+                        balance_due=balance_due,
+                        order_total_with_fees=order_total_with_fees,
+                        currency_symbol=currency_symbol,
+                        currency_code=currency_code,
+                        etransfer_email=etransfer_email,
+                        etransfer_memo_hint=etransfer_memo_hint,
+                        receipt_url=payment_resp.get("receipt_url", ""),
+                    )
+                )
                 transaction.on_commit(lambda: _mark_abandoned_cart_recovered(form.get("email", "")))
+                if cart_is_merch_checkout and not is_etransfer:
+                    transaction.on_commit(lambda: handle_order_payment_status_transition(order.id))
 
             if is_etransfer:
-                et_email = etransfer_email
-                memo_hint = etransfer_memo_hint
                 amount_str = f"{currency_symbol}{charge_amount.quantize(PAYMENT_QUANT)}"
                 memo_suffix = (
-                    f" with “Order #{order.id} — {memo_hint}”."
-                    if memo_hint else
+                    f" with “Order #{order.id} — {etransfer_memo_hint}”."
+                    if etransfer_memo_hint else
                     f" and include Order #{order.id} in the transfer message."
                 )
                 messages.success(
                     request,
-                    f"Order created. Order #: {order.id}. Send {amount_str} via Interac e-Transfer to {et_email or 'our payments email'}{memo_suffix}",
+                    f"Order created. Order #: {order.id}. Send {amount_str} via Interac e-Transfer to {etransfer_email or 'our payments email'}{memo_suffix}",
                 )
             else:
                 messages.success(request, f"Order created successfully. Thank you! Order #: {order.id}")
@@ -2256,21 +2349,12 @@ def checkout(request):
             "order_gst": float(data["order_gst"]),
             "order_processing": float(data["order_processing"]),
             "order_total_with_fees": float(data["order_total_with_fees"]),
-        } for key, data in payment_options.items()
+        }
+        for key, data in payment_options.items()
     }
 
-    if (
-        request.method == "POST"
-        and positions
-        and form.get("email")
-        and "email" not in errors
-    ):
-        _record_abandoned_cart(
-            request,
-            email=form.get("email", ""),
-            positions=positions,
-            total=order_subtotal,
-        )
+    if request.method == "POST" and positions and form.get("email") and "email" not in errors:
+        _record_abandoned_cart(request, email=form.get("email", ""), positions=positions, total=order_subtotal)
 
     has_product_discount = any(entry.get("discount_type") == "sale" for entry in (positions or []))
     cart_total_label = "Subtotal"
@@ -2324,5 +2408,8 @@ def checkout(request):
             "etransfer_email": etransfer_email,
             "etransfer_memo_hint": etransfer_memo_hint,
             "store_copy": StorePageCopy.get_solo(),
+            "printful_rates": printful_shipping_quote["rates"],
+            "selected_printful_rate_id": printful_shipping_quote["selected_rate_id"],
+            "printful_shipping_error": errors.get("printful_shipping", printful_shipping_quote["error"]),
         },
     )
