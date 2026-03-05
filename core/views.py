@@ -3,6 +3,7 @@ import logging
 import re
 from io import StringIO
 from decimal import Decimal, InvalidOperation
+from typing import Any
 
 from django.apps import apps
 from django import forms
@@ -15,6 +16,7 @@ from django.contrib import admin, messages
 from django.contrib.admin.models import ADDITION, CHANGE, DELETION
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.contenttypes.models import ContentType
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
@@ -28,7 +30,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.core.validators import validate_email
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, Http404
 from django.core.paginator import Paginator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.urls import reverse
@@ -43,6 +45,9 @@ from core.email_templates import base_email_context, email_brand_name, join_text
 from core.emails import build_email_html, send_html_email
 from core.models import (
     Appointment,
+    AdminReleaseSeen,
+    AdminFavoritePage,
+    AdminRecentPage,
     AdminSidebarSeen,
     ServiceCategory,
     Service,
@@ -76,6 +81,8 @@ from core.models import (
     EmailSendLog,
     EmailSubscriber,
     ClientFile,
+    ClientUiCheckRun,
+    ServiceLead,
     ServiceDiscount,
 )
 from core.forms import ServiceLeadForm
@@ -101,6 +108,13 @@ from core.services.analytics import (
 )
 from core.services.ip_location import format_ip_location, get_client_ip
 from core.services.email_reporting import describe_email_types
+from core.services.admin_releases import get_admin_releases, get_latest_admin_release_timestamp
+from core.services.admin_navigation import (
+    get_admin_navigation_targets,
+    resolve_admin_page_meta,
+    search_admin_navigation,
+    search_admin_records,
+)
 from core.services.dealer_application_emails import send_dealer_application_submitted
 from notifications.services import (
     notify_about_service_lead,
@@ -109,7 +123,7 @@ from notifications.services import (
     queue_lead_digest,
 )
 from core.utils import format_currency
-from store.models import Product as StoreProduct, StoreShippingSettings
+from store.models import Order as StoreOrder, Product as StoreProduct, StoreInventorySettings, StoreShippingSettings
 
 logger = logging.getLogger(__name__)
 BOOKING_REFERENCE_IMAGE_MAX_MB = int(getattr(settings, "BOOKING_REFERENCE_IMAGE_MAX_MB", 8))
@@ -211,6 +225,183 @@ def admin_notifications_read_all(request):
     if not next_url or not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
         next_url = reverse("admin:index")
     return HttpResponseRedirect(next_url)
+
+
+def _mark_admin_releases_seen(user) -> None:
+    latest = get_latest_admin_release_timestamp()
+    if not user or not getattr(user, "is_authenticated", False) or not latest:
+        return
+    try:
+        AdminReleaseSeen.objects.update_or_create(
+            user=user,
+            defaults={"last_seen_at": latest},
+        )
+    except (OperationalError, ProgrammingError):
+        return
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
+def admin_releases_read_all(request):
+    _mark_admin_releases_seen(request.user)
+    next_url = (request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("admin-whats-new") or "").strip()
+    if not next_url or not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = reverse("admin-whats-new")
+    return HttpResponseRedirect(next_url)
+
+
+def _is_safe_admin_url(request, raw_url: str) -> bool:
+    raw_url = (raw_url or "").strip()
+    if not raw_url:
+        return False
+    return url_has_allowed_host_and_scheme(raw_url, allowed_hosts={request.get_host()}) and "/admin/" in raw_url
+
+
+def _normalize_admin_page_payload(request) -> dict[str, str]:
+    url = (request.POST.get("url") or request.GET.get("url") or "").strip()
+    if not _is_safe_admin_url(request, url):
+        url = ""
+    if not url:
+        return {}
+    return {
+        "url": url,
+        "label": (request.POST.get("label") or request.GET.get("label") or "Admin page").strip()[:160],
+        "icon": (request.POST.get("icon") or request.GET.get("icon") or "fas fa-star").strip()[:80],
+        "category": (request.POST.get("category") or request.GET.get("category") or "Admin").strip()[:120],
+        "note": (request.POST.get("note") or request.GET.get("note") or "").strip()[:240],
+    }
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
+def admin_navigation_track(request):
+    payload = _normalize_admin_page_payload(request)
+    if not payload:
+        return JsonResponse({"ok": False, "error": "Invalid page payload."}, status=400)
+
+    recent, created = AdminRecentPage.objects.get_or_create(
+        user=request.user,
+        url=payload["url"],
+        defaults={
+            "label": payload["label"],
+            "icon": payload["icon"],
+            "category": payload["category"],
+            "note": payload["note"],
+            "visit_count": 1,
+            "last_visited_at": timezone.now(),
+        },
+    )
+    if not created:
+        recent.label = payload["label"] or recent.label
+        recent.icon = payload["icon"] or recent.icon
+        recent.category = payload["category"] or recent.category
+        recent.note = payload["note"]
+        recent.visit_count = int(recent.visit_count or 0) + 1
+        recent.last_visited_at = timezone.now()
+        recent.save(update_fields=["label", "icon", "category", "note", "visit_count", "last_visited_at"])
+
+    stale_ids = list(
+        AdminRecentPage.objects.filter(user=request.user)
+        .order_by("-last_visited_at")
+        .values_list("id", flat=True)[12:]
+    )
+    if stale_ids:
+        AdminRecentPage.objects.filter(id__in=stale_ids).delete()
+
+    return JsonResponse({"ok": True})
+
+
+@staff_member_required
+@require_POST
+@csrf_protect
+def admin_favorite_toggle(request):
+    payload = _normalize_admin_page_payload(request)
+    if not payload:
+        return JsonResponse({"ok": False, "error": "Invalid page payload."}, status=400)
+
+    action = (request.POST.get("action") or "toggle").strip().lower()
+    favorite = AdminFavoritePage.objects.filter(user=request.user, url=payload["url"]).first()
+    favorited = False
+
+    if action == "remove":
+        if favorite:
+            favorite.delete()
+        favorited = False
+    elif action == "add":
+        AdminFavoritePage.objects.update_or_create(
+            user=request.user,
+            url=payload["url"],
+            defaults={
+                "label": payload["label"],
+                "icon": payload["icon"],
+                "category": payload["category"],
+                "note": payload["note"],
+            },
+        )
+        favorited = True
+    else:
+        if favorite:
+            favorite.delete()
+            favorited = False
+        else:
+            AdminFavoritePage.objects.create(
+                user=request.user,
+                url=payload["url"],
+                label=payload["label"],
+                icon=payload["icon"],
+                category=payload["category"],
+                note=payload["note"],
+            )
+            favorited = True
+
+    favorites_count = AdminFavoritePage.objects.filter(user=request.user).count()
+    return JsonResponse(
+        {
+            "ok": True,
+            "favorited": favorited,
+            "favorites_count": favorites_count,
+            "message": f"{payload['label']} {'saved to favorites' if favorited else 'removed from favorites'}.",
+            "undo_action": "remove" if favorited else "add",
+            "page": payload,
+        }
+    )
+
+
+@staff_member_required
+@require_GET
+def admin_global_search(request):
+    query = (request.GET.get("q") or "").strip()
+    navigation_results = search_admin_navigation(request.user, query, limit=12)
+    record_groups = search_admin_records(request.user, query, per_group=6)
+    total_results = len(navigation_results) + sum(len(group.get("items", [])) for group in record_groups)
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Admin search",
+            "search_query": query,
+            "search_navigation_results": navigation_results,
+            "search_record_groups": record_groups,
+            "search_total_results": total_results,
+        }
+    )
+    return TemplateResponse(request, "admin/admin_search.html", context)
+
+
+@staff_member_required
+@require_GET
+def admin_global_search_suggest(request):
+    query = (request.GET.get("q") or "").strip()
+    navigation_results = search_admin_navigation(request.user, query, limit=6)
+    record_groups = search_admin_records(request.user, query, per_group=3)
+    payload = []
+
+    if navigation_results:
+        payload.append({"title": "Pages", "items": navigation_results})
+    payload.extend(record_groups)
+    return JsonResponse({"ok": True, "query": query, "groups": payload})
 
 
 def _resolve_pagecopy_model(label: str):
@@ -958,6 +1149,991 @@ def admin_analytics_collect(request):
     if not user.is_authenticated or not user.is_staff:
         return JsonResponse({"error": "Staff authentication required."}, status=403)
     return analytics_collect(request)
+
+
+def _admin_changelist_url(model_label: str) -> str:
+    app_label, model_name = model_label.split(".", 1)
+    return reverse(f"admin:{app_label}_{model_name.lower()}_changelist")
+
+
+def _admin_add_url(model_label: str) -> str:
+    app_label, model_name = model_label.split(".", 1)
+    return reverse(f"admin:{app_label}_{model_name.lower()}_add")
+
+
+def _can_access_admin_model(user, model_label: str, *, add: bool = False) -> bool:
+    try:
+        app_label, model_name = model_label.split(".", 1)
+        model = apps.get_model(app_label, model_name)
+    except Exception:
+        return False
+
+    perm_model = model._meta.model_name
+    if add:
+        return user.has_perm(f"{app_label}.add_{perm_model}")
+
+    return any(
+        user.has_perm(perm)
+        for perm in (
+            f"{app_label}.view_{perm_model}",
+            f"{app_label}.change_{perm_model}",
+            f"{app_label}.add_{perm_model}",
+            f"{app_label}.delete_{perm_model}",
+        )
+    )
+
+
+def _resolve_workspace_link(request, link_def: dict) -> dict | None:
+    link = dict(link_def)
+    label = (link.get("label") or "").strip()
+    if not label:
+        return None
+
+    model_label = (link.get("model") or "").strip()
+    url_name = (link.get("url_name") or "").strip()
+    href = (link.get("href") or "").strip()
+    add = bool(link.get("add"))
+    permissions = link.get("permissions") or []
+
+    if model_label:
+        if not _can_access_admin_model(request.user, model_label, add=add):
+            return None
+        url = _admin_add_url(model_label) if add else _admin_changelist_url(model_label)
+        add_url = _admin_add_url(model_label) if _can_access_admin_model(request.user, model_label, add=True) else ""
+    else:
+        if permissions and not request.user.has_perms(permissions):
+            return None
+        url = reverse(url_name) if url_name else (href or "#")
+        add_url = ""
+
+    return {
+        "label": label,
+        "url": url,
+        "add_url": add_url,
+        "note": (link.get("note") or "").strip(),
+        "icon": (link.get("icon") or "").strip(),
+        "add": add,
+    }
+
+
+def _build_workspace_card(request, card_def: dict) -> dict | None:
+    main_links = [
+        resolved
+        for resolved in (
+            _resolve_workspace_link(request, link_def) for link_def in card_def.get("main_links", [])
+        )
+        if resolved
+    ]
+    support_links = [
+        resolved
+        for resolved in (
+            _resolve_workspace_link(request, link_def) for link_def in card_def.get("support_links", [])
+        )
+        if resolved
+    ]
+    if not main_links and not support_links:
+        return None
+
+    return {
+        "title": card_def.get("title", ""),
+        "summary": card_def.get("summary", ""),
+        "tips": [tip for tip in card_def.get("tips", []) if isinstance(tip, str) and tip.strip()],
+        "main_links": main_links,
+        "support_links": support_links,
+    }
+
+
+def _admin_sidebar_group_workspaces() -> dict[str, dict]:
+    config = getattr(settings, "ADMIN_SIDEBAR_SECTIONS", None) or settings.JAZZMIN_SETTINGS.get(
+        "custom_sidebar", []
+    ) or []
+    workspaces: dict[str, dict] = {}
+
+    for section in config:
+        section_label = (section.get("label") or "").strip()
+        for group in section.get("groups", []):
+            slug = (group.get("hub_slug") or "").strip()
+            if not slug:
+                continue
+
+            raw_items = []
+            for item in group.get("items", []):
+                if not isinstance(item, dict):
+                    continue
+                normalized = dict(item)
+                if normalized.get("url") and not normalized.get("url_name"):
+                    normalized["url_name"] = normalized.pop("url")
+                if not normalized.get("label") and normalized.get("model"):
+                    try:
+                        app_label, model_name = str(normalized["model"]).split(".", 1)
+                        model = apps.get_model(app_label, model_name)
+                        normalized["label"] = str(model._meta.verbose_name_plural).title()
+                    except Exception:
+                        pass
+                raw_items.append(normalized)
+            if not raw_items:
+                continue
+
+            primary_count = max(1, int(group.get("hub_primary_count") or 3))
+            main_links = raw_items[:primary_count]
+            support_links = raw_items[primary_count:]
+            group_label = (group.get("label") or section_label or "Workspace").strip()
+
+            workspaces[slug] = {
+                "title": group.get("hub_title") or group_label,
+                "eyebrow": group.get("hub_eyebrow") or section_label,
+                "summary": group.get("hub_summary")
+                or f"Use this workspace to reach the main {group_label.lower()} pages without scanning the whole admin sidebar.",
+                "hero_links": [dict(link) for link in main_links[:3]],
+                "cards": [
+                    {
+                        "title": group.get("hub_card_title") or "Main pages",
+                        "summary": group.get("hub_card_summary")
+                        or f"Start here for {group_label.lower()} work, then open support pages only when needed.",
+                        "main_links": [dict(link) for link in main_links],
+                        "support_links": [dict(link) for link in support_links],
+                        "tips": [tip for tip in group.get("hub_tips", []) if isinstance(tip, str) and tip.strip()],
+                    }
+                ],
+            }
+    return workspaces
+
+
+def _workspace_section_slug_map() -> dict[str, str]:
+    return {
+        "Operations": "operations",
+        "Customers & Sales": "customers-sales",
+        "Website & Marketing": "website-marketing",
+        "Reporting & Access": "reporting-access",
+        "Reference & Setup": "reference-setup",
+    }
+
+
+def _workspace_group_registry() -> dict[str, dict[str, Any]]:
+    config = getattr(settings, "ADMIN_SIDEBAR_SECTIONS", None) or settings.JAZZMIN_SETTINGS.get(
+        "custom_sidebar", []
+    ) or []
+    registry: dict[str, dict[str, Any]] = {}
+    for section in config:
+        section_label = (section.get("label") or "").strip()
+        for group in section.get("groups", []):
+            slug = (group.get("hub_slug") or "").strip()
+            if not slug:
+                continue
+            registry[slug] = {
+                "section_label": section_label,
+                "label": (group.get("label") or "").strip(),
+                "href": (group.get("href") or "").strip(),
+                "icon": (group.get("icon") or section.get("icon") or "fas fa-compass").strip(),
+            }
+    return registry
+
+
+def _build_workspace_related_links(request, slug: str) -> list[dict[str, str]]:
+    section_map = _workspace_section_slug_map()
+    group_registry = _workspace_group_registry()
+    links: list[dict[str, str]] = []
+
+    if slug in section_map.values():
+        section_label = next((label for label, value in section_map.items() if value == slug), "")
+        for group_slug, group_meta in group_registry.items():
+            if group_meta.get("section_label") != section_label:
+                continue
+            url = group_meta.get("href") or reverse("admin-workspace-hub", kwargs={"slug": group_slug})
+            links.append(
+                {
+                    "label": group_meta.get("label", ""),
+                    "url": url,
+                    "icon": group_meta.get("icon", "fas fa-compass"),
+                    "note": section_label,
+                }
+            )
+        return links[:6]
+
+    group_meta = group_registry.get(slug)
+    if not group_meta:
+        return []
+
+    section_label = group_meta.get("section_label", "")
+    parent_slug = section_map.get(section_label, "")
+    if parent_slug:
+        parent_label = section_label or "Workspace"
+        links.append(
+            {
+                "label": parent_label,
+                "url": reverse("admin-workspace-hub", kwargs={"slug": parent_slug}),
+                "icon": "fas fa-compass",
+                "note": "Parent workspace",
+            }
+        )
+    for sibling_slug, sibling_meta in group_registry.items():
+        if sibling_slug == slug or sibling_meta.get("section_label") != section_label:
+            continue
+        links.append(
+            {
+                "label": sibling_meta.get("label", ""),
+                "url": sibling_meta.get("href") or reverse("admin-workspace-hub", kwargs={"slug": sibling_slug}),
+                "icon": sibling_meta.get("icon", "fas fa-compass"),
+                "note": section_label,
+            }
+        )
+    return links[:6]
+
+
+def _make_attention_chip(*, label: str, count: int, url: str, tone: str, note: str) -> dict[str, Any]:
+    return {
+        "label": label,
+        "count": max(0, int(count or 0)),
+        "url": url,
+        "tone": tone,
+        "note": note,
+    }
+
+
+def _workspace_attention_items(slug: str) -> list[dict[str, Any]]:
+    today = timezone.localdate()
+    threshold = max(0, int(StoreInventorySettings.get_low_stock_threshold() or 0))
+    product_qs = StoreProduct.objects.filter(is_active=True)
+    media_gap_qs = product_qs.filter(main_image__isnull=True, images__isnull=True).distinct()
+    out_of_stock_qs = product_qs.filter(inventory__lte=0)
+    low_stock_qs = product_qs.filter(inventory__gt=0, inventory__lte=threshold) if threshold > 0 else product_qs.none()
+    new_leads_qs = ServiceLead.objects.filter(status=ServiceLead.Status.NEW)
+    pending_dealers_qs = DealerApplication.objects.filter(status=DealerApplication.Status.PENDING)
+    unpaid_orders_qs = StoreOrder.objects.filter(payment_status=StoreOrder.PaymentStatus.UNPAID)
+    failed_orders_qs = StoreOrder.objects.filter(payment_status=StoreOrder.PaymentStatus.FAILED)
+    processing_orders_qs = StoreOrder.objects.filter(status=StoreOrder.STATUS_PROCESSING)
+    draft_campaigns_qs = EmailCampaign.objects.filter(status=EmailCampaign.Status.DRAFT)
+    failed_email_qs = EmailSendLog.objects.filter(success=False)
+    draft_copy_qs = PageCopyDraft.objects.exclude(data={})
+    latest_ui_check = ClientUiCheckRun.objects.order_by("-started_at").first()
+    today_appts_qs = Appointment.objects.filter(start_time__date=today)
+
+    mapping: dict[str, list[dict[str, Any]]] = {
+        "operations": [
+            _make_attention_chip(label="Today’s bookings", count=today_appts_qs.count(), url=_admin_changelist_url("core.Appointment"), tone="info", note="Today’s scheduled appointments."),
+            _make_attention_chip(label="New leads", count=new_leads_qs.count(), url=_admin_changelist_url("core.ServiceLead"), tone="warning", note="Inbound requests waiting on follow-up."),
+        ],
+        "scheduling-shop": [
+            _make_attention_chip(label="Today’s bookings", count=today_appts_qs.count(), url=_admin_changelist_url("core.Appointment"), tone="info", note="Use Calendar as the daily operating screen."),
+            _make_attention_chip(label="New leads", count=new_leads_qs.count(), url=_admin_changelist_url("core.ServiceLead"), tone="warning", note="Recent requests likely to convert into bookings."),
+        ],
+        "customers-sales": [
+            _make_attention_chip(label="New leads", count=new_leads_qs.count(), url=_admin_changelist_url("core.ServiceLead"), tone="warning", note="Service requests waiting on response."),
+            _make_attention_chip(label="Pending dealers", count=pending_dealers_qs.count(), url=_admin_changelist_url("core.DealerApplication"), tone="info", note="Dealer applications pending review."),
+            _make_attention_chip(label="Unpaid orders", count=unpaid_orders_qs.count(), url=_admin_changelist_url("store.Order"), tone="danger", note="Orders that still need payment."),
+        ],
+        "client-hub": [
+            _make_attention_chip(label="New leads", count=new_leads_qs.count(), url=_admin_changelist_url("core.ServiceLead"), tone="warning", note="Service requests waiting on response."),
+            _make_attention_chip(label="Pending dealers", count=pending_dealers_qs.count(), url=_admin_changelist_url("core.DealerApplication"), tone="info", note="Dealer applications pending review."),
+        ],
+        "catalog-merch": [
+            _make_attention_chip(label="Out of stock", count=out_of_stock_qs.count(), url=f"{_admin_changelist_url('store.Product')}?stock_level=out", tone="danger", note="Active products with zero inventory."),
+            _make_attention_chip(label="Low stock", count=low_stock_qs.count(), url=f"{_admin_changelist_url('store.Product')}?stock_level=low", tone="warning", note="Products at or below the low-stock threshold."),
+            _make_attention_chip(label="Missing images", count=media_gap_qs.count(), url=_admin_changelist_url("store.Product"), tone="info", note="Products still missing any image."),
+        ],
+        "orders-fulfillment": [
+            _make_attention_chip(label="Unpaid orders", count=unpaid_orders_qs.count(), url=_admin_changelist_url("store.Order"), tone="danger", note="Orders waiting on payment."),
+            _make_attention_chip(label="Failed payments", count=failed_orders_qs.count(), url=_admin_changelist_url("store.Order"), tone="danger", note="Orders with failed payment attempts."),
+            _make_attention_chip(label="Processing", count=processing_orders_qs.count(), url=_admin_changelist_url("store.Order"), tone="info", note="Orders still in active processing."),
+        ],
+        "website-marketing": [
+            _make_attention_chip(label="Draft copy", count=draft_copy_qs.count(), url=reverse("admin-workspace-hub", kwargs={"slug": "page-content"}), tone="warning", note="Autosaved drafts that may need publishing."),
+            _make_attention_chip(label="Draft campaigns", count=draft_campaigns_qs.count(), url=_admin_changelist_url("core.EmailCampaign"), tone="info", note="Campaigns not yet sent."),
+            _make_attention_chip(label="Failed sends", count=failed_email_qs.count(), url=_admin_changelist_url("core.EmailSendLog"), tone="danger", note="Email sends with errors."),
+        ],
+        "page-content": [
+            _make_attention_chip(label="Draft copy", count=draft_copy_qs.count(), url=reverse("admin-workspace-hub", kwargs={"slug": "page-content"}), tone="warning", note="Autosaved drafts waiting on publish review."),
+        ],
+        "email-campaigns": [
+            _make_attention_chip(label="Draft campaigns", count=draft_campaigns_qs.count(), url=_admin_changelist_url("core.EmailCampaign"), tone="info", note="Campaigns still being prepared."),
+            _make_attention_chip(label="Failed sends", count=failed_email_qs.count(), url=_admin_changelist_url("core.EmailSendLog"), tone="danger", note="Delivery attempts with errors."),
+        ],
+        "reporting-access": [],
+        "insights-qa": [],
+        "reference-setup": [],
+    }
+
+    if latest_ui_check:
+        ui_items = [
+            _make_attention_chip(
+                label="UI failures",
+                count=latest_ui_check.failures_count,
+                url=_admin_changelist_url("core.ClientUiCheckRun"),
+                tone="danger" if latest_ui_check.failures_count else "success",
+                note="Latest client UI check failures.",
+            ),
+            _make_attention_chip(
+                label="UI warnings",
+                count=latest_ui_check.warnings_count,
+                url=_admin_changelist_url("core.ClientUiCheckRun"),
+                tone="warning" if latest_ui_check.warnings_count else "success",
+                note="Latest client UI check warnings.",
+            ),
+        ]
+        mapping["reporting-access"] = ui_items
+        mapping["insights-qa"] = ui_items
+
+    if slug == "payments-promotions":
+        mapping[slug] = [
+            _make_attention_chip(label="Unpaid orders", count=unpaid_orders_qs.count(), url=_admin_changelist_url("store.Order"), tone="danger", note="Orders waiting on payment resolution."),
+        ]
+
+    return [item for item in mapping.get(slug, []) if item.get("count", 0) > 0][:4]
+
+
+def _admin_workspace_config() -> dict[str, dict]:
+    config = {
+        "operations": {
+            "title": "Operations workspace",
+            "eyebrow": "Appointments, staffing, payments, automation",
+            "summary": "Use this page as the operating entry point before dropping into raw admin lists.",
+            "hero_links": [
+                {"label": "Calendar", "model": "core.Appointment", "note": "Primary booking workspace."},
+                {"label": "Payments", "model": "core.Payment", "note": "Transactions and payment follow-up."},
+                {"label": "Time Tracking", "url_name": "admin-staff-usage", "permissions": ["auth.view_user"], "note": "Staff audit trail."},
+            ],
+            "cards": [
+                {
+                    "title": "Scheduling control",
+                    "summary": "Run the day from Calendar. Use the surrounding pages for exceptions, deposits, and closures.",
+                    "main_links": [
+                        {"label": "Calendar", "model": "core.Appointment", "note": "Day-to-day booking control."},
+                        {"label": "Collected Prepayments", "model": "core.AppointmentPrepayment", "note": "Deposit lookup and reconciliation."},
+                    ],
+                    "support_links": [
+                        {"label": "Day Overrides", "model": "core.BookingDayOverride", "note": "Closures and exceptions."},
+                    ],
+                    "tips": [
+                        "Calendar should be the default daily screen.",
+                        "Use Collected Prepayments only when tracing a specific deposit or record.",
+                    ],
+                },
+                {
+                    "title": "Shop capacity and setup",
+                    "summary": "These screens shape availability, routing, and physical shop capacity.",
+                    "main_links": [
+                        {"label": "Availability", "model": "core.MasterAvailability", "note": "Open and closed working blocks."},
+                        {"label": "Team Profiles", "model": "core.MasterProfile", "note": "Roster and shop-facing profile data."},
+                        {"label": "Services", "model": "core.Service", "note": "Core service catalog."},
+                    ],
+                    "support_links": [
+                        {"label": "Service Assignment", "model": "core.ServiceMaster", "note": "Map services to staff."},
+                        {"label": "Rooms & Bays", "model": "core.MasterRoom", "note": "Physical capacity."},
+                        {"label": "Service Categories", "model": "core.ServiceCategory", "note": "Service grouping and organization."},
+                        {"label": "Time Tracking", "url_name": "admin-staff-usage", "permissions": ["auth.view_user"], "note": "Usage and action history."},
+                    ],
+                    "tips": [
+                        "Touch these pages when the calendar stops reflecting real capacity.",
+                    ],
+                },
+                {
+                    "title": "Cash, pricing, and offers",
+                    "summary": "Keep transactional work and discount controls in one lane.",
+                    "main_links": [
+                        {"label": "Payments", "model": "core.Payment", "note": "Recorded payments and reconciliation."},
+                        {"label": "Promo Codes", "model": "core.PromoCode", "note": "Service-side promotions."},
+                    ],
+                    "support_links": [
+                        {"label": "Service Discounts", "model": "core.ServiceDiscount", "note": "Service discount rules."},
+                        {"label": "Product Discounts", "model": "store.ProductDiscount", "note": "Store discount rules."},
+                        {"label": "Appointment Promo Codes", "model": "core.AppointmentPromoCode", "note": "Appointment promo usage."},
+                        {"label": "Order Promo Codes", "model": "store.OrderPromoCode", "note": "Store promo usage."},
+                    ],
+                    "tips": [
+                        "Keep promotions here so discount cleanup does not get mixed into scheduling work.",
+                    ],
+                },
+                {
+                    "title": "Automation and reminders",
+                    "summary": "Telegram contacts, settings, and delivery trails live together for diagnostics.",
+                    "main_links": [
+                        {"label": "Bot Settings", "model": "notifications.TelegramBotSettings", "note": "Core automation controls."},
+                        {"label": "Reminders", "model": "notifications.TelegramReminder", "note": "Queued and sent reminder records."},
+                    ],
+                    "support_links": [
+                        {"label": "Contacts", "model": "notifications.TelegramContact", "note": "Known Telegram recipients."},
+                        {"label": "Delivery Log", "model": "notifications.TelegramMessageLog", "note": "Send outcomes and failures."},
+                    ],
+                },
+            ],
+        },
+        "customers-sales": {
+            "title": "Customers & sales workspace",
+            "eyebrow": "Clients, leads, catalog, orders",
+            "summary": "Start here for customer-facing admin work instead of bouncing between client, product, and order lists.",
+            "hero_links": [
+                {"label": "Client Profiles", "model": "core.UserProfile", "note": "Main customer lookup."},
+                {"label": "Products", "model": "store.Product", "note": "Main catalog workspace."},
+                {"label": "Orders", "model": "store.Order", "note": "Main fulfillment workspace."},
+            ],
+            "cards": [
+                {
+                    "title": "Client desk",
+                    "summary": "Profiles, reviews, leads, and dealer intake are grouped here so follow-up starts from one place.",
+                    "main_links": [
+                        {"label": "Client Profiles", "model": "core.UserProfile", "note": "Client history and contact context."},
+                        {"label": "Service Leads", "model": "core.ServiceLead", "note": "New inbound service requests."},
+                        {"label": "Dealer Applications", "model": "core.DealerApplication", "note": "Dealer intake pipeline."},
+                    ],
+                    "support_links": [
+                        {"label": "Client Files", "model": "core.ClientFile", "note": "Uploaded documents and references."},
+                        {"label": "Reviews", "model": "core.ClientReview", "note": "Public client reviews."},
+                        {"label": "Appointment Reviews", "model": "core.AppointmentReview", "note": "Booking-specific feedback."},
+                        {"label": "Lead Submission Events", "model": "core.LeadSubmissionEvent", "note": "Intake event trail."},
+                    ],
+                    "tips": [
+                        "Start with Client Profiles for most support tasks.",
+                    ],
+                },
+                {
+                    "title": "Catalog and merch controls",
+                    "summary": "Product work, global store settings, and merchandising tools share one lane here.",
+                    "main_links": [
+                        {"label": "Products", "model": "store.Product", "note": "Main product workspace."},
+                        {"label": "Pricing Settings", "model": "store.StorePricingSettings", "note": "Global pricing behavior."},
+                        {"label": "Shipping Settings", "model": "store.StoreShippingSettings", "note": "Checkout and shipping rules."},
+                    ],
+                    "support_links": [
+                        {"label": "Product Gallery", "model": "store.ProductImage", "note": "Image-only edits."},
+                        {"label": "Product Options", "model": "store.ProductOption", "note": "Variant support page."},
+                        {"label": "Product Reviews", "model": "store.StoreReview", "note": "Store review moderation."},
+                        {"label": "Merch economics", "url_name": "admin-merch-economics", "permissions": ["store.view_product"], "note": "Margin and shipping thresholds."},
+                        {"label": "Product Categories", "model": "store.Category", "note": "Catalog taxonomy."},
+                        {"label": "Merch Categories", "model": "store.MerchCategory", "note": "Merch taxonomy."},
+                    ],
+                },
+                {
+                    "title": "Orders and fulfillment",
+                    "summary": "Use Orders as the main lane. Keep diagnostics and maintenance pages nearby, not mixed into daily work.",
+                    "main_links": [
+                        {"label": "Orders", "model": "store.Order", "note": "Primary fulfillment screen."},
+                        {"label": "Fitment Requests", "model": "store.CustomFitmentRequest", "note": "Compatibility and pre-sale checks."},
+                    ],
+                    "support_links": [
+                        {"label": "Order Items", "model": "store.OrderItem", "note": "SKU-level investigation."},
+                        {"label": "Printful Webhooks", "model": "store.PrintfulWebhookEvent", "note": "Fulfillment integration diagnostics."},
+                        {"label": "Import History", "model": "store.ImportBatch", "note": "Catalog import trail."},
+                        {"label": "Cleanup History", "model": "store.CleanupBatch", "note": "Cleanup trail."},
+                    ],
+                    "tips": [
+                        "Order Items and webhooks are investigation pages, not daily home screens.",
+                    ],
+                },
+            ],
+        },
+        "website-marketing": {
+            "title": "Website & marketing workspace",
+            "eyebrow": "Page content, brand assets, campaigns",
+            "summary": "This workspace keeps publishing, branding, and outbound messaging in one place.",
+            "hero_links": [
+                {"label": "Home Page Copy", "model": "core.HomePageCopy", "note": "Homepage content and layout."},
+                {"label": "Font Library", "model": "core.FontPreset", "note": "Reusable type assets."},
+                {"label": "Email overview", "url_name": "admin-email-overview", "permissions": ["core.view_emailsendlog"], "note": "Delivery health and monitoring."},
+            ],
+            "cards": [
+                {
+                    "title": "Page content editors",
+                    "summary": "Use these screens for live copy, previews, and editorial publishing.",
+                    "main_links": [
+                        {"label": "Home Page Copy", "model": "core.HomePageCopy", "note": "Homepage content and layout."},
+                        {"label": "Services Page Copy", "model": "core.ServicesPageCopy", "note": "Main services marketing page."},
+                        {"label": "Store Page Copy", "model": "core.StorePageCopy", "note": "Storefront marketing copy."},
+                    ],
+                    "support_links": [
+                        {"label": "FAQ Page Copy", "model": "core.FAQPageCopy", "note": "FAQ content."},
+                        {"label": "Financing Page Copy", "model": "core.FinancingPageCopy", "note": "Financing landing page."},
+                        {"label": "About Page Copy", "model": "core.AboutPageCopy", "note": "Brand story page."},
+                        {"label": "Dealer Portal Copy", "model": "core.DealerStatusPageCopy", "note": "Dealer portal page copy."},
+                        {"label": "Client Portal Copy", "model": "core.ClientPortalPageCopy", "note": "Client dashboard copy."},
+                        {"label": "Merch Page Copy", "model": "core.MerchPageCopy", "note": "Merch landing page."},
+                        {"label": "Project Journal Page Copy", "model": "core.ProjectJournalPageCopy", "note": "Journal landing page copy."},
+                        {"label": "Legal Pages", "model": "core.LegalPage", "note": "Legal content."},
+                        {"label": "Landing Reviews", "model": "core.LandingPageReview", "note": "Landing page review submissions."},
+                        {"label": "Journal Categories", "model": "core.ProjectJournalCategory", "note": "Editorial taxonomy."},
+                        {"label": "Project Journal", "model": "core.ProjectJournalEntry", "note": "Editorial entries."},
+                    ],
+                },
+                {
+                    "title": "Brand assets and chrome",
+                    "summary": "These controls shape the look and feel across the public site and admin entry points.",
+                    "main_links": [
+                        {"label": "Font Library", "model": "core.FontPreset", "note": "Reusable font assets."},
+                        {"label": "Page Fonts", "model": "core.PageFontSetting", "note": "Page-level typography rules."},
+                        {"label": "Topbar Settings", "model": "core.TopbarSettings", "note": "Global topbar controls."},
+                    ],
+                    "support_links": [
+                        {"label": "Admin Login Branding", "model": "core.AdminLoginBranding", "note": "Admin sign-in branding."},
+                        {"label": "Site Contact Settings", "model": "core.SiteContactSettings", "note": "Global contact details."},
+                        {"label": "Hero Assets", "model": "core.HeroImage", "note": "Primary hero media."},
+                        {"label": "Background Assets", "model": "core.BackgroundAsset", "note": "Reusable media assets."},
+                        {"label": "Site Backgrounds", "model": "core.SiteBackgroundSettings", "note": "Background assignment rules."},
+                    ],
+                },
+                {
+                    "title": "Email and campaign controls",
+                    "summary": "Start with monitoring screens when diagnosing sends, then move into campaign and template editing.",
+                    "main_links": [
+                        {"label": "Email overview", "url_name": "admin-email-overview", "permissions": ["core.view_emailsendlog"], "note": "Best entry point for email health."},
+                        {"label": "Email Campaigns", "model": "core.EmailCampaign", "note": "Broadcast workflow."},
+                        {"label": "Email Templates", "model": "core.EmailTemplate", "note": "Reusable email layouts."},
+                    ],
+                    "support_links": [
+                        {"label": "Send logs", "url_name": "admin-email-logs", "permissions": ["core.view_emailsendlog"], "note": "Delivery log summary."},
+                        {"label": "Email history", "url_name": "admin-email-history", "permissions": ["core.view_emailsendlog"], "note": "Historical send breakdown."},
+                        {"label": "Campaign history", "url_name": "admin-email-campaign-history", "permissions": ["core.view_emailcampaign"], "note": "Campaign send trail."},
+                        {"label": "Notifications", "model": "core.Notification", "note": "On-site/admin notifications."},
+                        {"label": "Email Subscribers", "model": "core.EmailSubscriber", "note": "Audience management."},
+                        {"label": "Raw send logs", "model": "core.EmailSendLog", "note": "Record-level diagnostics."},
+                        {"label": "Campaign recipients", "model": "core.EmailCampaignRecipient", "note": "Recipient-level history."},
+                    ],
+                    "tips": [
+                        "Use raw logs only when the overview and history pages are not enough.",
+                    ],
+                },
+            ],
+        },
+        "reporting-access": {
+            "title": "Reporting & access workspace",
+            "eyebrow": "Insights, QA, people, permissions",
+            "summary": "Reporting and access control are paired here because both are management workflows rather than daily service screens.",
+            "hero_links": [
+                {"label": "Insights", "url_name": "admin-analytics-insights", "permissions": ["core.view_visitorsession"], "note": "Traffic and behavior analysis."},
+                {"label": "Users", "model": "auth.User", "note": "Staff and user accounts."},
+                {"label": "Roles", "model": "core.Role", "note": "Role-based sidebar visibility and permissions."},
+            ],
+            "cards": [
+                {
+                    "title": "Insights and QA",
+                    "summary": "Use the analytics view first, then drop into raw sessions or page views only when you need deeper inspection.",
+                    "main_links": [
+                        {"label": "Insights", "url_name": "admin-analytics-insights", "permissions": ["core.view_visitorsession"], "note": "Analytics overview and trends."},
+                        {"label": "Client UI Checks", "model": "core.ClientUiCheckRun", "note": "UI regression history."},
+                    ],
+                    "support_links": [
+                        {"label": "Visitor Sessions", "model": "core.VisitorSession", "note": "Session-level inspection."},
+                        {"label": "Page Views", "model": "core.PageView", "note": "Raw page view records."},
+                    ],
+                },
+                {
+                    "title": "People and access",
+                    "summary": "Users and roles should be the first stop; groups and assignments are supporting structures.",
+                    "main_links": [
+                        {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
+                        {"label": "Roles", "model": "core.Role", "note": "Sidebar visibility and role controls."},
+                    ],
+                    "support_links": [
+                        {"label": "Groups", "model": "auth.Group", "note": "Django auth groups."},
+                        {"label": "Role Assignments", "model": "core.UserRole", "note": "User-to-role mapping."},
+                    ],
+                },
+            ],
+        },
+        "reference-setup": {
+            "title": "Reference & setup workspace",
+            "eyebrow": "Foundational lists and configuration",
+            "summary": "These pages change core system behavior. Use them intentionally and sparingly.",
+            "hero_links": [
+                {"label": "Status Library", "model": "core.AppointmentStatus", "note": "Booking status definitions."},
+                {"label": "Payment Methods", "model": "core.PaymentMethod", "note": "Accepted payment methods."},
+                {"label": "Lead Sources", "model": "core.ClientSource", "note": "CRM attribution list."},
+            ],
+            "cards": [
+                {
+                    "title": "Booking and payment references",
+                    "summary": "These lists define status flows and accepted payment behavior.",
+                    "main_links": [
+                        {"label": "Status Library", "model": "core.AppointmentStatus", "note": "Booking status definitions."},
+                        {"label": "Payment Methods", "model": "core.PaymentMethod", "note": "Accepted payment methods."},
+                    ],
+                    "support_links": [
+                        {"label": "Status Timeline", "model": "core.AppointmentStatusHistory", "note": "Status history records."},
+                        {"label": "Payment Status", "model": "core.PaymentStatus", "note": "Payment state definitions."},
+                        {"label": "Prepayment Options", "model": "core.PrepaymentOption", "note": "Deposit options."},
+                    ],
+                },
+                {
+                    "title": "CRM and vehicle references",
+                    "summary": "These lists support attribution, dealer tiers, and vehicle fitment tables.",
+                    "main_links": [
+                        {"label": "Lead Sources", "model": "core.ClientSource", "note": "Client source attribution."},
+                        {"label": "Car Makes", "model": "store.CarMake", "note": "Vehicle directory root."},
+                    ],
+                    "support_links": [
+                        {"label": "Tier Levels", "model": "core.DealerTierLevel", "note": "Dealer program tiers."},
+                        {"label": "Car Models", "model": "store.CarModel", "note": "Vehicle directory detail."},
+                    ],
+                    "tips": [
+                        "If you are not intentionally changing workflow behavior, leave these lists alone.",
+                    ],
+                },
+            ],
+        },
+    }
+    config.update(_admin_sidebar_group_workspaces())
+    return config
+
+
+def admin_staff_guide(request):
+    def guide_link(
+        label: str,
+        *,
+        model: str | None = None,
+        url_name: str | None = None,
+        note: str = "",
+    ) -> dict[str, str]:
+        if model:
+            url = _admin_changelist_url(model)
+        elif url_name:
+            url = reverse(url_name)
+        else:
+            url = "#"
+        return {"label": label, "url": url, "note": note}
+
+    guide_sections = [
+        {
+            "title": "Daily control room",
+            "summary": "These are the screens most staff should use during a normal shift.",
+            "cards": [
+                {
+                    "title": "Start with the dashboard",
+                    "summary": "Use the dashboard to spot pressure points before opening deeper lists.",
+                    "frequency": "Daily",
+                    "roles": ["all", "manager", "frontdesk"],
+                    "keywords": "dashboard kpi today revenue pulse ui check",
+                    "tips": [
+                        "Check today's load, cancellations, revenue trend, and UI check status.",
+                        "Jump from here into Calendar, Orders, or Insights when something needs action.",
+                    ],
+                    "links": [
+                        guide_link("Open dashboard", url_name="admin:index", note="Main pulse view."),
+                        guide_link("Open calendar", model="core.Appointment", note="Primary appointment workspace."),
+                        guide_link("Open orders", model="store.Order", note="Primary order workspace."),
+                    ],
+                },
+                {
+                    "title": "Run bookings from Calendar",
+                    "summary": "Calendar is the main operating screen, not the raw appointment list.",
+                    "frequency": "Daily",
+                    "roles": ["all", "frontdesk", "shop"],
+                    "keywords": "appointments calendar booking day week month payment prepayment badges",
+                    "tips": [
+                        "Use the badges on appointment cards to read payment, prepayment, guest, and freshness signals quickly.",
+                        "Open Collected Prepayments only when you need to trace a specific deposit or record.",
+                    ],
+                    "links": [
+                        guide_link("Calendar", model="core.Appointment", note="Use Day / Week / Month views."),
+                        guide_link("Collected Prepayments", model="core.AppointmentPrepayment", note="Lookup page, not a daily home."),
+                        guide_link("Day Overrides", model="core.BookingDayOverride", note="Use for closures and exceptions."),
+                    ],
+                },
+                {
+                    "title": "Handle clients from the client hub",
+                    "summary": "Profiles, files, reviews, and incoming leads live together on purpose.",
+                    "frequency": "Daily",
+                    "roles": ["all", "frontdesk", "manager"],
+                    "keywords": "client profiles files reviews service leads intake follow up",
+                    "tips": [
+                        "Start with Client Profiles for history and contact context.",
+                        "Use Service Leads and Lead Submission Events when you need intake follow-up or source details.",
+                    ],
+                    "links": [
+                        guide_link("Client Profiles", model="core.UserProfile", note="Main client lookup."),
+                        guide_link("Client Files", model="core.ClientFile", note="Documents and uploads."),
+                        guide_link("Service Leads", model="core.ServiceLead", note="New inbound requests."),
+                    ],
+                },
+            ],
+        },
+        {
+            "title": "Shop and scheduling setup",
+            "summary": "These pages support the daily flow, but are usually touched by coordinators or managers.",
+            "cards": [
+                {
+                    "title": "Manage team capacity",
+                    "summary": "Keep people, rooms, and service routing aligned so calendar availability stays accurate.",
+                    "frequency": "Weekly",
+                    "roles": ["manager", "shop"],
+                    "keywords": "availability team profiles service assignment rooms bays staffing",
+                    "tips": [
+                        "Availability controls open slots.",
+                        "Service Assignment and Rooms & Bays affect who can do what and where the work lands.",
+                    ],
+                    "links": [
+                        guide_link("Availability", model="core.MasterAvailability", note="Open/closed time blocks."),
+                        guide_link("Team Profiles", model="core.MasterProfile", note="Staff roster and shop roles."),
+                        guide_link("Service Assignment", model="core.ServiceMaster", note="Map services to staff."),
+                        guide_link("Rooms & Bays", model="core.MasterRoom", note="Physical capacity."),
+                    ],
+                },
+                {
+                    "title": "Review staff activity",
+                    "summary": "Useful for audits and reviews, not as a first stop every morning.",
+                    "frequency": "Weekly",
+                    "roles": ["manager"],
+                    "keywords": "time tracking staff usage login history",
+                    "tips": [
+                        "Use Time Tracking when you need to verify who did what and when.",
+                    ],
+                    "links": [
+                        guide_link("Time Tracking", url_name="admin-staff-usage", note="Usage periods and action history."),
+                    ],
+                },
+            ],
+        },
+        {
+            "title": "Store and fulfillment",
+            "summary": "Products and orders are separated so merchandising work does not get mixed with shipping work.",
+            "cards": [
+                {
+                    "title": "Merchandise products",
+                    "summary": "Product list is the main catalog cockpit. Gallery and options are support pages.",
+                    "frequency": "Daily",
+                    "roles": ["commerce", "manager", "content"],
+                    "keywords": "products gallery options reviews catalog merch store",
+                    "tips": [
+                        "Stay on Products for flags, image gaps, discount status, and freshness.",
+                        "Open Product Gallery or Product Options only when you need deeper edits or cleanup.",
+                    ],
+                    "links": [
+                        guide_link("Products", model="store.Product", note="Main product workspace."),
+                        guide_link("Product Gallery", model="store.ProductImage", note="Image-only lookup/edit page."),
+                        guide_link("Product Options", model="store.ProductOption", note="Variant support page."),
+                    ],
+                },
+                {
+                    "title": "Process orders and fitment",
+                    "summary": "Keep order handling, line-item lookup, and fitment requests in one lane.",
+                    "frequency": "Daily",
+                    "roles": ["commerce", "frontdesk", "manager"],
+                    "keywords": "orders order items fitment printful shipping fulfillment",
+                    "tips": [
+                        "Orders is the main page.",
+                        "Order Items and Printful Webhooks are mainly investigation pages.",
+                    ],
+                    "links": [
+                        guide_link("Orders", model="store.Order", note="Primary fulfillment screen."),
+                        guide_link("Order Items", model="store.OrderItem", note="Use when tracing a specific SKU or line."),
+                        guide_link("Fitment Requests", model="store.CustomFitmentRequest", note="Customer compatibility requests."),
+                    ],
+                },
+                {
+                    "title": "Adjust store setup carefully",
+                    "summary": "Pricing, shipping, categories, and merch economics shape the storefront globally.",
+                    "frequency": "Rare",
+                    "roles": ["commerce", "manager"],
+                    "keywords": "pricing shipping categories merch economics store setup global",
+                    "tips": [
+                        "Treat these as settings pages, not daily workspaces.",
+                    ],
+                    "links": [
+                        guide_link("Pricing Settings", model="store.StorePricingSettings", note="Global pricing behavior."),
+                        guide_link("Shipping Settings", model="store.StoreShippingSettings", note="Checkout and delivery rules."),
+                        guide_link("Merch economics", url_name="admin-merch-economics", note="Margin and shipping thresholds."),
+                    ],
+                },
+            ],
+        },
+        {
+            "title": "Content, campaigns, and publishing",
+            "summary": "These screens change what customers see and what gets sent out.",
+            "cards": [
+                {
+                    "title": "Edit page content",
+                    "summary": "Use the page editor screens for live copy, layout, and preview workflows.",
+                    "frequency": "Weekly",
+                    "roles": ["content", "manager"],
+                    "keywords": "page copy content editor homepage faq services store about legal journal",
+                    "tips": [
+                        "Most page copy screens share the same pattern: form, preview, and draft support.",
+                        "Dealer Portal Copy and Client Portal Copy still live here because they are content pages first.",
+                    ],
+                    "links": [
+                        guide_link("Home Page Copy", model="core.HomePageCopy", note="Home content and layout."),
+                        guide_link("Services Page Copy", model="core.ServicesPageCopy", note="Service marketing page."),
+                        guide_link("Project Journal", model="core.ProjectJournalEntry", note="Editorial entries."),
+                    ],
+                },
+                {
+                    "title": "Manage brand assets",
+                    "summary": "Fonts, hero media, background assets, and contact details are grouped as brand controls.",
+                    "frequency": "Rare",
+                    "roles": ["content", "manager"],
+                    "keywords": "brand assets fonts hero backgrounds topbar admin login contact",
+                    "tips": [
+                        "These are usually set once and adjusted only when the brand or campaign changes.",
+                    ],
+                    "links": [
+                        guide_link("Font Library", model="core.FontPreset", note="Reusable font assets."),
+                        guide_link("Hero Assets", model="core.HeroImage", note="Homepage hero media."),
+                        guide_link("Site Contact Settings", model="core.SiteContactSettings", note="Global contact details."),
+                    ],
+                },
+                {
+                    "title": "Run email and notifications",
+                    "summary": "Overview and history pages are for monitoring. Campaigns and templates are for publishing.",
+                    "frequency": "Weekly",
+                    "roles": ["content", "manager"],
+                    "keywords": "email overview logs history campaigns templates notifications subscribers",
+                    "tips": [
+                        "Start with Email overview if you are diagnosing send health.",
+                        "Open raw logs only when you need exact delivery detail.",
+                    ],
+                    "links": [
+                        guide_link("Email overview", url_name="admin-email-overview", note="Best entry point for email health."),
+                        guide_link("Email Campaigns", model="core.EmailCampaign", note="Broadcast workflow."),
+                        guide_link("Email Templates", model="core.EmailTemplate", note="Reusable email layouts."),
+                    ],
+                },
+            ],
+        },
+        {
+            "title": "Reference and maintenance",
+            "summary": "Touch these pages when setting up the system, debugging edge cases, or doing periodic cleanup.",
+            "cards": [
+                {
+                    "title": "Use reference pages sparingly",
+                    "summary": "Status libraries, payment methods, lead sources, and vehicle tables are foundational settings.",
+                    "frequency": "Rare",
+                    "roles": ["manager", "commerce"],
+                    "keywords": "status timeline payment methods prepayment options lead sources tier levels car makes models reference",
+                    "tips": [
+                        "If you are not intentionally changing system behavior, leave these alone.",
+                        "Reference & Setup lives at the bottom of the sidebar on purpose.",
+                    ],
+                    "links": [
+                        guide_link("Status Library", model="core.AppointmentStatus", note="Booking status definitions."),
+                        guide_link("Payment Methods", model="core.PaymentMethod", note="Accepted payment methods."),
+                        guide_link("Lead Sources", model="core.ClientSource", note="CRM attribution list."),
+                        guide_link("Car Makes", model="store.CarMake", note="Vehicle directory root."),
+                    ],
+                },
+                {
+                    "title": "Open maintenance logs only for investigation",
+                    "summary": "Import history, cleanup history, and webhook logs are useful, but they are not where normal work happens.",
+                    "frequency": "Rare",
+                    "roles": ["manager", "commerce"],
+                    "keywords": "import cleanup history webhook printful maintenance logs investigate",
+                    "tips": [
+                        "Use these when you need to trace what happened, not as starting points.",
+                    ],
+                    "links": [
+                        guide_link("Import History", model="store.ImportBatch", note="Catalog import trail."),
+                        guide_link("Cleanup History", model="store.CleanupBatch", note="Cleanup operations trail."),
+                        guide_link("Printful Webhooks", model="store.PrintfulWebhookEvent", note="Fulfillment integration diagnostics."),
+                    ],
+                },
+            ],
+        },
+    ]
+
+    role_filters = [
+        {"key": "all", "label": "Everyone"},
+        {"key": "frontdesk", "label": "Front Desk"},
+        {"key": "shop", "label": "Shop"},
+        {"key": "commerce", "label": "Commerce"},
+        {"key": "content", "label": "Content"},
+        {"key": "manager", "label": "Manager"},
+    ]
+
+    frequency_summary = {
+        "daily": sum(1 for section in guide_sections for card in section["cards"] if card["frequency"] == "Daily"),
+        "weekly": sum(1 for section in guide_sections for card in section["cards"] if card["frequency"] == "Weekly"),
+        "rare": sum(1 for section in guide_sections for card in section["cards"] if card["frequency"] == "Rare"),
+    }
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "Staff guide",
+            "guide_sections": guide_sections,
+            "guide_role_filters": role_filters,
+            "guide_frequency_summary": frequency_summary,
+        }
+    )
+    return TemplateResponse(request, "admin/staff_guide.html", context)
+
+
+def admin_workspace_hub(request, slug: str):
+    workspace = _admin_workspace_config().get(slug)
+    if not workspace:
+        raise Http404("Unknown admin workspace.")
+
+    hero_links = [
+        resolved
+        for resolved in (
+            _resolve_workspace_link(request, link_def) for link_def in workspace.get("hero_links", [])
+        )
+        if resolved
+    ]
+    cards = [
+        resolved
+        for resolved in (
+            _build_workspace_card(request, card_def) for card_def in workspace.get("cards", [])
+        )
+        if resolved
+    ]
+    attention_items = _workspace_attention_items(slug)
+    related_links = _build_workspace_related_links(request, slug)
+    hero_link_count = len(hero_links)
+    main_link_count = sum(len(card.get("main_links", [])) for card in cards)
+    support_link_count = sum(len(card.get("support_links", [])) for card in cards)
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": workspace["title"],
+            "workspace": {
+                "slug": slug,
+                "title": workspace["title"],
+                "eyebrow": workspace.get("eyebrow", ""),
+                "summary": workspace.get("summary", ""),
+                "hero_links": hero_links,
+                "cards": cards,
+                "attention_items": attention_items,
+                "related_links": related_links,
+                "stats": [
+                    {"label": "Sections", "value": len(cards)},
+                    {"label": "Main pages", "value": main_link_count or hero_link_count},
+                    {"label": "Support pages", "value": support_link_count},
+                ],
+            },
+        }
+    )
+    return TemplateResponse(request, "admin/workspace_hub.html", context)
+
+
+def admin_workspace_operations(request):
+    return admin_workspace_hub(request, "operations")
+
+
+def admin_workspace_customers_sales(request):
+    return admin_workspace_hub(request, "customers-sales")
+
+
+def admin_workspace_website_marketing(request):
+    return admin_workspace_hub(request, "website-marketing")
+
+
+def admin_workspace_reporting_access(request):
+    return admin_workspace_hub(request, "reporting-access")
+
+
+def admin_workspace_reference_setup(request):
+    return admin_workspace_hub(request, "reference-setup")
+
+
+def admin_whats_new(request):
+    releases = get_admin_releases()
+    _mark_admin_releases_seen(request.user)
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "title": "What's new",
+            "admin_releases": releases,
+        }
+    )
+    return TemplateResponse(request, "admin/whats_new.html", context)
 
 
 def admin_staff_usage(request):
