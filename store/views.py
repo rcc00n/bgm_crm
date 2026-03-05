@@ -584,7 +584,7 @@ def _send_order_confirmation(
         return
 
     brand = email_brand_name()
-    pay_mode_label = "Pay in full" if pay_mode != Order.PaymentMode.DEPOSIT else "50% deposit"
+    pay_mode_label = "Pay in full"
     amount_now = (charge_amount or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
     balance_left = (balance_due or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
     total_with_fees = (order_total_with_fees or Decimal("0.00")).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
@@ -1812,12 +1812,7 @@ def checkout(request):
     etransfer_email = _normalize_etransfer_email(getattr(settings, "ETRANSFER_EMAIL", "")) or "Payments@badguymotors.ca"
     etransfer_memo_hint = getattr(settings, "ETRANSFER_MEMO_HINT", "")
 
-    pay_mode = request.POST.get("pay_mode") or request.GET.get("pay_mode") or "full"
-    if pay_mode not in ("full", "deposit_50"):
-        pay_mode = "full"
-    if cart_is_merch_checkout:
-        # Merch is paid in full only.
-        pay_mode = "full"
+    pay_mode = Order.PaymentMode.FULL
     payment_method = request.POST.get("payment_method") or request.GET.get("payment_method") or "card"
     if payment_method not in ("card", "etransfer"):
         payment_method = "card"
@@ -1890,7 +1885,6 @@ def checkout(request):
 
         return {
             "full": payment_plan("Pay 100% now", Decimal("1.0")),
-            "deposit_50": payment_plan("Pay 50% deposit", Decimal("0.5")),
         }
 
     def _recompute_totals_for_form(form_payload: dict):
@@ -1991,7 +1985,7 @@ def checkout(request):
         if any(getattr(it["product"], "contact_for_estimate", False) for it in positions):
             errors["payment"] = "Items that require an estimate must be invoiced manually. Please remove them to pay online."
 
-        selected_payment = payment_options[pay_mode]
+        selected_payment = payment_options[Order.PaymentMode.FULL]
         charge_amount = selected_payment["charge"]
         charge_processing_fee = selected_payment["processing_fee"]
         balance_due = selected_payment["balance_due"]
@@ -2024,7 +2018,7 @@ def checkout(request):
                     square_token,
                     cents,
                     currency_code,
-                    note=f"BGM store order ({pay_mode}) — {form['customer_name']}",
+                    note=f"BGM store order ({Order.PaymentMode.FULL}) — {form['customer_name']}",
                     buyer_email=form["email"],
                 )
             except Exception as exc:
@@ -2045,7 +2039,7 @@ def checkout(request):
             if "shipping_cost" in o_fields:
                 order_kwargs["shipping_cost"] = shipping_cost
             if "payment_mode" in o_fields:
-                order_kwargs["payment_mode"] = pay_mode
+                order_kwargs["payment_mode"] = Order.PaymentMode.FULL
             if "payment_amount" in o_fields:
                 order_kwargs["payment_amount"] = Decimal("0.00") if is_etransfer else charge_amount
             if "payment_fee" in o_fields:
@@ -2112,7 +2106,7 @@ def checkout(request):
                     et_email = etransfer_email
                     memo_hint = etransfer_memo_hint
                     payment_note_parts = [
-                        f"Customer chose Interac e-Transfer ({pay_mode}).",
+                        "Customer chose Interac e-Transfer (full payment).",
                         f"Amount requested now: {charge_amount} {currency_code}.",
                     ]
                     if et_email:
@@ -2207,7 +2201,7 @@ def checkout(request):
                         order=order,
                         amount=charge_amount,
                         balance_due=balance_due,
-                        pay_mode=pay_mode,
+                        pay_mode=Order.PaymentMode.FULL,
                         payment_resp=payment_resp,
                         payment_fee=charge_processing_fee,
                     )
@@ -2220,7 +2214,7 @@ def checkout(request):
                 transaction.on_commit(lambda: _send_order_confirmation(
                     order=order,
                     payment_method=payment_method,
-                    pay_mode=pay_mode,
+                    pay_mode=Order.PaymentMode.FULL,
                     charge_amount=charge_amount,
                     balance_due=balance_due,
                     order_total_with_fees=order_total_with_fees,
@@ -2249,7 +2243,7 @@ def checkout(request):
                 messages.success(request, f"Order created successfully. Thank you! Order #: {order.id}")
             return redirect("store:store")
 
-    selected_payment = payment_options.get(pay_mode, payment_options["full"])
+    selected_payment = payment_options["full"]
     payment_options_payload = {
         key: {
             "label": data["label"],
