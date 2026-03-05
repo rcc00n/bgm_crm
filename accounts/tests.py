@@ -5,7 +5,7 @@ from django.test import TestCase
 from accounts.views import ClientDashboardView, HomeView
 from accounts.forms import ClientProfileForm, ClientRegistrationForm
 from core.models import EmailSendLog, UserProfile
-from store.models import Category, Product
+from store.models import Category, MerchCategory, Product
 
 
 class ClientRegistrationFormTests(TestCase):
@@ -208,6 +208,7 @@ class HomeViewProductCarouselTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.category = Category.objects.create(name="Tunes", slug="tunes")
+        self.merch_category = MerchCategory.objects.create(name="Apparel", slug="apparel", is_active=True)
 
     def test_homepage_products_only_include_in_house_items(self):
         in_house = Product.objects.create(
@@ -227,6 +228,16 @@ class HomeViewProductCarouselTests(TestCase):
             price="120.00",
             is_active=True,
             is_in_house=False,
+        )
+        Product.objects.create(
+            name="In-House Merch",
+            slug="merch-shirt",
+            sku="PF-1",
+            category=self.category,
+            merch_category=self.merch_category,
+            price="45.00",
+            is_active=True,
+            is_in_house=True,
         )
 
         request = self.factory.get("/")

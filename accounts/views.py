@@ -25,7 +25,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.text import slugify
-from django.db.models import OuterRef, Subquery, Count
+from django.db.models import OuterRef, Subquery, Count, Q
 from django.db.models.functions import TruncMonth
 from django.conf import settings
 from django.template.defaultfilters import filesizeformat
@@ -887,6 +887,12 @@ class HomeView(TemplateView):
         # НОВОЕ: 8 товаров для главной (витрина)
         products_qs = (
             Product.objects.filter(is_active=True, is_in_house=True)
+            .exclude(
+                Q(merch_category__isnull=False)
+                | Q(category__slug="merch")
+                | Q(sku__startswith="PF-")
+                | Q(slug__startswith="merch-")
+            )
             .select_related("category")
             .prefetch_related("options", "discounts")
             .order_by("-created_at")
