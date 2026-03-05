@@ -353,6 +353,20 @@ class Product(models.Model):
         default=False,
         help_text="Exclude this product from the global price multiplier.",
     )
+    printful_product_id = models.PositiveIntegerField(
+        "Printful product ID",
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Connected Printful sync product ID for merch items.",
+    )
+    printful_external_id = models.CharField(
+        "Printful external ID",
+        max_length=140,
+        blank=True,
+        default="",
+        help_text="Optional external identifier mirrored from Printful.",
+    )
     currency = models.CharField(max_length=3, default=settings.DEFAULT_CURRENCY_CODE)
     inventory = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -672,6 +686,27 @@ class ProductOption(models.Model):
         related_name="options",
     )
     sort_order = models.PositiveIntegerField("Sort order", default=0)
+    printful_sync_variant_id = models.PositiveIntegerField(
+        "Printful sync variant ID",
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Connected Printful sync variant ID for merch fulfillment.",
+    )
+    printful_variant_id = models.PositiveIntegerField(
+        "Printful catalog variant ID",
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Underlying Printful catalog variant ID when available.",
+    )
+    printful_external_id = models.CharField(
+        "Printful external ID",
+        max_length=140,
+        blank=True,
+        default="",
+        help_text="Optional external variant identifier mirrored from Printful.",
+    )
 
     class Meta:
         verbose_name = "Product option"
@@ -808,6 +843,82 @@ class Order(models.Model):
         blank=True,
         default="",
         help_text="Optional carrier tracking URL shown in the client portal.",
+    )
+    printful_order_id = models.PositiveIntegerField(
+        "Printful order ID",
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Connected Printful order ID after merch fulfillment submission.",
+    )
+    printful_external_id = models.CharField(
+        "Printful external ID",
+        max_length=140,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Idempotent external order ID used when creating Printful orders.",
+    )
+    printful_status = models.CharField(
+        "Printful status",
+        max_length=40,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Last known Printful order status from API/webhooks.",
+    )
+    printful_shipping_rate_id = models.CharField(
+        "Printful shipping rate ID",
+        max_length=80,
+        blank=True,
+        default="",
+        help_text="Chosen Printful shipping rate identifier from checkout.",
+    )
+    printful_shipping_name = models.CharField(
+        "Printful shipping method",
+        max_length=140,
+        blank=True,
+        default="",
+        help_text="Customer-facing Printful shipping method label used at checkout.",
+    )
+    printful_shipping_cost = models.DecimalField(
+        "Printful shipping cost",
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0)],
+        help_text="Shipping amount returned by Printful for the selected rate.",
+    )
+    printful_shipping_currency = models.CharField(
+        "Printful shipping currency",
+        max_length=8,
+        blank=True,
+        default="",
+        help_text="Currency code returned by Printful shipping/order APIs.",
+    )
+    printful_tracking_data = models.JSONField(
+        "Printful tracking payload",
+        default=list,
+        blank=True,
+        help_text="Normalized tracking entries received from Printful webhooks.",
+    )
+    printful_last_synced_at = models.DateTimeField(
+        "Printful last synced at",
+        null=True,
+        blank=True,
+        help_text="When this order was last updated from Printful.",
+    )
+    printful_submitted_at = models.DateTimeField(
+        "Printful submitted at",
+        null=True,
+        blank=True,
+        help_text="When this order was first submitted to Printful.",
+    )
+    printful_error = models.TextField(
+        "Printful error",
+        blank=True,
+        default="",
+        help_text="Last fulfillment error returned by Printful, if any.",
     )
 
     # who created
@@ -1144,6 +1255,26 @@ class AbandonedCart(models.Model):
 
     def __str__(self) -> str:
         return f"{self.email} — {self.cart_total}"
+
+
+class PrintfulWebhookEvent(models.Model):
+    event_type = models.CharField(max_length=80, db_index=True)
+    event_hash = models.CharField(max_length=64, unique=True)
+    order = models.ForeignKey(
+        Order,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="printful_webhook_events",
+    )
+    payload = models.JSONField(default=dict, blank=True)
+    received_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-received_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.event_type or 'printful'} @ {self.received_at:%Y-%m-%d %H:%M}"
 
 
 # ─────────────────────────── Custom fitment / quote requests ───────────────────────────
