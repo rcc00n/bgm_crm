@@ -1837,6 +1837,13 @@ def checkout(request):
         return c in {"canada", "ca"} or c.startswith("canada")
 
     def _compute_merch_delivery_cost(*, delivery_method: str, country: str) -> Decimal:
+        """
+        Source of truth for merch shipping charges in checkout.
+
+        This is the only place that computes the delivery amount applied to the
+        cart/order totals. Printful is currently catalog-sync only in this codebase;
+        no Printful shipping quote is fetched or added during checkout.
+        """
         if not cart_has_merch:
             return Decimal("0.00")
         if (delivery_method or "").strip().lower() == "pickup":

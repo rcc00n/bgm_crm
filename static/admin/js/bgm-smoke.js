@@ -38,6 +38,7 @@
   host.style.inset = '0';
   host.style.pointerEvents = 'none';
   if (!host.style.zIndex) host.style.zIndex = '0';
+  host.style.filter = 'brightness(0.78)';
   host.style.background = [
     'radial-gradient(circle at 50% 18%, rgba(8, 12, 20, 0.28) 0%, rgba(3, 4, 8, 0.68) 48%, rgba(0, 0, 0, 0.92) 100%)',
     'linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.54) 55%, rgba(0, 0, 0, 0.78) 100%)',

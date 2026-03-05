@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+"""
+Printful catalog integration only.
+
+This module fetches/synchronizes merch catalog data for the storefront. It does
+not currently create Printful orders, submit recipient addresses, or fetch
+Printful shipping rates during checkout.
+"""
+
 import json
 import logging
 import hashlib
