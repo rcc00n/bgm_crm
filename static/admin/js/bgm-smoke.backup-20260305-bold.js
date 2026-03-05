@@ -1,7 +1,6 @@
 // static/admin/js/bgm-smoke.js
-// Backups of previous live versions:
+// Backup of the previous live version:
 // static/admin/js/bgm-smoke.backup-20260305.js
-// static/admin/js/bgm-smoke.backup-20260305-bold.js
 (function init() {
   if (window.__bgmSmokeInit) return;
   window.__bgmSmokeInit = true;
@@ -291,36 +290,21 @@
         float k = 1.0 - smoothstep(0.0, edge, y);
         return pow(k, 1.1);
       }
-      vec2 flowField(vec2 p, float t){
-        vec2 q = vec2(
-          fbm(p * 0.9 + vec2(0.0,  t * 0.08)),
-          fbm(p * 0.85 + vec2(4.7, -t * 0.06))
-        );
-        vec2 r = vec2(
-          fbm((p + q * 0.7) * 1.65 + vec2(-2.8,  t * 0.12)),
-          fbm((p - q * 0.6) * 1.5  + vec2( 3.1, -t * 0.09))
-        );
-        return (q - 0.5) * 0.34 + (r - 0.5) * 0.18;
-      }
       vec3 tonemap(vec3 x){ x=max(x, vec3(0.0)); return x/(1.0+x); }
 
       void main(){
         vec2 uv = gl_FragCoord.xy / iResolution.xy;
         vec2 p = uv; p.x *= iResolution.x/iResolution.y;
         float t = iTime, rise = 0.12 * uRise;
-        vec2 drift = flowField(p * vec2(1.0, 0.82), t) * (0.82 + uTurbulence * 0.08);
-        p += drift;
-        p.y += drift.x * 0.08;
+        float ripple = sin((uv.y * 16.0) - (t * (1.1 + uTurbulence * 0.22)) + fbm(vec2(uv.x * 4.5, uv.y * 3.2 + t * 0.15)) * 2.4);
+        p.x += ripple * (0.02 + uTurbulence * 0.004);
 
         float d = 0.0;
-        vec2 s1 = vec2(p.x * 1.08 + uWind*t*0.03 + drift.x*0.65, p.y - t*rise*0.58 + drift.y*0.28);
-        d += fbm(s1*1.2 + vec2(0.0, t*0.10)) * 0.9;
-        vec2 s2 = vec2(p.x * 1.42 + uWind*t*0.05 - drift.y*0.5, p.y - t*rise*0.88 - drift.x*0.18);
-        d += fbm(s2*1.95 + vec2(0.0, -t*0.15)) * 0.7;
+        vec2 s1 = vec2(p.x + uWind*t*0.03, p.y - t*rise*0.6);  d += fbm(s1*1.2 + vec2(0.0,  t*0.10)) * 0.9;
+        vec2 s2 = vec2(p.x*1.5 + uWind*t*0.05, p.y - t*rise*0.9); d += fbm(s2*2.0 + vec2(0.0, -t*0.15)) * 0.7;
 
         float q = mix(3.0, 5.0, uQuality);
-        vec2 s3 = vec2(p.x*2.1 + uWind*t*0.07 + drift.x*0.32, p.y - t*rise*1.2 + drift.y*0.22);
-        d += fbm(s3*q + vec2(t*0.12, 0.0)) * 0.55;
+        vec2 s3 = vec2(p.x*2.2 + uWind*t*0.07, p.y - t*rise*1.25); d += fbm(s3*q + vec2(t*0.12, 0.0)) * 0.55;
 
         d /= 2.15; d = pow(d, 1.35 + uTurbulence*0.08); d *= uDensity;
 
@@ -330,8 +314,7 @@
         float g = (noise(uv * iResolution.xy * (48.0 + uQuality*64.0) + iTime*10.0) - 0.5) * uGrain;
 
         float smoke = clamp(d * uContrast + g, 0.0, 1.0);
-        float eddy = fbm(vec2(p.x * 1.35 - drift.y * 0.4, p.y * 0.9 + drift.x * 0.28 + t * 0.05));
-        smoke *= mix(0.94, 1.06, eddy);
+        smoke *= 1.0 + ripple * 0.1;
         float hx = smoothstep(0.0, 0.15, uv.x) * (1.0 - smoothstep(0.85, 1.0, uv.x));
         smoke *= mix(0.95, 1.0, hx);
 
