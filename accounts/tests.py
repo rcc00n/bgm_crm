@@ -2,9 +2,10 @@ from django.contrib.auth import get_user_model
 from django.test import RequestFactory
 from django.test import TestCase
 
-from accounts.views import ClientDashboardView
+from accounts.views import ClientDashboardView, HomeView
 from accounts.forms import ClientProfileForm, ClientRegistrationForm
 from core.models import EmailSendLog, UserProfile
+from store.models import Category, Product
 
 
 class ClientRegistrationFormTests(TestCase):
@@ -201,3 +202,38 @@ class ClientDashboardNotificationEmailTests(TestCase):
         self.assertEqual(len(notifications), 1)
         self.assertEqual(notifications[0]["title"], "Verify your email")
         self.assertEqual(notifications[0]["tag"], "Account")
+
+
+class HomeViewProductCarouselTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.category = Category.objects.create(name="Tunes", slug="tunes")
+
+    def test_homepage_products_only_include_in_house_items(self):
+        in_house = Product.objects.create(
+            name="In-House Tune",
+            slug="in-house-tune",
+            sku="IH-1",
+            category=self.category,
+            price="100.00",
+            is_active=True,
+            is_in_house=True,
+        )
+        Product.objects.create(
+            name="External Tune",
+            slug="external-tune",
+            sku="EXT-1",
+            category=self.category,
+            price="120.00",
+            is_active=True,
+            is_in_house=False,
+        )
+
+        request = self.factory.get("/")
+        request.user = get_user_model()()
+        view = HomeView()
+        view.request = request
+
+        context = view.get_context_data()
+
+        self.assertEqual([product.id for product in context["home_products"]], [in_house.id])

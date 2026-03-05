@@ -20,6 +20,7 @@ _PLACEHOLDER_DISCLAIMER_NORMALIZED = {
 _DISCLAIMER_PHRASE_RE = re.compile(
     r"(?i)\bproduct\s+may\s+not\s+(?:appear|be|look)\s+exactly\s+as\s+shown\b\.?\s*"
 )
+_SYMBOL_ONLY_COPY_RE = re.compile(r"^[\s*().•\-–—]+$")
 
 
 def _normalize_disclaimer(value: str) -> str:
@@ -60,5 +61,23 @@ def suppress_placeholder_disclaimer(value: Any) -> str:
         if _normalize_disclaimer(cleaned) in _PLACEHOLDER_DISCLAIMER_NORMALIZED:
             return ""
         return cleaned
+
+    return text
+
+
+@register.filter(name="suppress_symbol_only_copy")
+def suppress_symbol_only_copy(value: Any) -> str:
+    """
+    Hide copy values that are effectively placeholder symbols, e.g. "*", "(*)", or ".".
+    """
+    if value is None:
+        return ""
+
+    text = str(value).strip()
+    if not text:
+        return ""
+
+    if _SYMBOL_ONLY_COPY_RE.fullmatch(text):
+        return ""
 
     return text

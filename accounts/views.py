@@ -886,7 +886,7 @@ class HomeView(TemplateView):
 
         # НОВОЕ: 8 товаров для главной (витрина)
         products_qs = (
-            Product.objects.filter(is_active=True)
+            Product.objects.filter(is_active=True, is_in_house=True)
             .select_related("category")
             .prefetch_related("options", "discounts")
             .order_by("-created_at")

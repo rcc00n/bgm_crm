@@ -228,6 +228,8 @@
     .section__head{display:flex;align-items:end;justify-content:space-between;margin-bottom:1.1rem;gap:1rem}
     .section__title{font-size:1.6rem;font-weight:900}
     .section__desc{color:var(--muted-2)}
+    #products .section__title{font-size:clamp(2rem,3.3vw,2.65rem);line-height:1.05}
+    #products .section__desc{font-size:clamp(1rem,1.4vw,1.14rem);line-height:1.55}
     .kicker{color:var(--muted-2);font-weight:800;letter-spacing:.18em;text-transform:uppercase;font-size:.78rem}
 
     .filters{display:flex;flex-wrap:wrap;gap:.65rem;margin:1rem 0 1.25rem}
@@ -1852,7 +1854,11 @@
 		        <div class="section__head">
 		          <div>
 		            <h2 class="section__title">{{ home_copy.products_title }}</h2>
-		            <p class="section__desc">{{ home_copy.products_desc }}</p>
+                {% with products_desc=home_copy.products_desc|suppress_symbol_only_copy %}
+                  {% if products_desc %}
+		            <p class="section__desc">{{ products_desc }}</p>
+                  {% endif %}
+                {% endwith %}
 		          </div>
 		        </div>
 
