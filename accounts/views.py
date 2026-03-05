@@ -1062,6 +1062,17 @@ def _sync_printful_options_for_product(product: Product, variants: list[dict]) -
 
         option_name = _dedupe_option_name(str(variant.get("name") or ""), index=index, used=used_names)
         option_price = _parse_merch_decimal(variant.get("price"))
+        sync_variant_id = 0
+        variant_id = 0
+        try:
+            sync_variant_id = int(variant.get("sync_variant_id") or variant.get("id") or 0)
+        except (TypeError, ValueError):
+            sync_variant_id = 0
+        try:
+            variant_id = int(variant.get("variant_id") or 0)
+        except (TypeError, ValueError):
+            variant_id = 0
+        external_id = (str(variant.get("external_id") or "") or "").strip()[:140]
 
         option, _ = ProductOption.objects.update_or_create(
             sku=option_sku,
@@ -1074,6 +1085,9 @@ def _sync_printful_options_for_product(product: Product, variants: list[dict]) -
                 "price": option_price,
                 "is_active": True,
                 "sort_order": index,
+                "printful_sync_variant_id": sync_variant_id or None,
+                "printful_variant_id": variant_id or None,
+                "printful_external_id": external_id,
             },
         )
         if default_option_id is None:
@@ -1144,6 +1158,7 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
 
         currency = (str(item.get("currency") or "") or default_currency).strip().upper() or default_currency
         image_url = (str(item.get("image_url") or "") or "").strip()
+        external_id = (str(item.get("external_id") or "") or "").strip()[:140]
         existing = Product.objects.filter(sku=sku).only("id", "is_active", "merch_category_id").first()
         merch_category = None
         if existing is None or not existing.merch_category_id:
@@ -1155,6 +1170,8 @@ def _sync_printful_merch_products(products: list[dict]) -> None:
             "category": category,
             "price": base_price,
             "is_in_house": True,
+            "printful_product_id": product_id,
+            "printful_external_id": external_id,
             "currency": currency,
             "inventory": 9999,
             # Preserve manual visibility toggles from admin.

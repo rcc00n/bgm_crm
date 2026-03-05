@@ -25,12 +25,23 @@ class PrintfulMerchSyncTests(TestCase):
         return [
             {
                 "id": product_id,
+                "external_id": f"ext-product-{product_id}",
                 "name": f"Synced {product_id}",
                 "base_price": base_price,
                 "currency": "CAD",
                 "image_url": "",
                 "category_label": "T-Shirts",
-                "variants": [{"id": 1, "name": "Default", "price": base_price, "sku": f"PF-{product_id}-1"}],
+                "variants": [
+                    {
+                        "id": 1,
+                        "sync_variant_id": 1,
+                        "variant_id": 501,
+                        "external_id": f"ext-variant-{product_id}-1",
+                        "name": "Default",
+                        "price": base_price,
+                        "sku": f"PF-{product_id}-1",
+                    }
+                ],
             }
         ]
 
@@ -67,3 +78,15 @@ class PrintfulMerchSyncTests(TestCase):
 
         missing_but_kept.refresh_from_db()
         self.assertTrue(missing_but_kept.is_active)
+
+    def test_sync_persists_printful_product_and_variant_ids(self):
+        _sync_printful_merch_products(self._sync_payload(101, base_price="21.00"))
+
+        product = Product.objects.get(sku="PF-101")
+        option = product.options.get(sku="PF-101-1")
+
+        self.assertEqual(product.printful_product_id, 101)
+        self.assertEqual(product.printful_external_id, "ext-product-101")
+        self.assertEqual(option.printful_sync_variant_id, 1)
+        self.assertEqual(option.printful_variant_id, 501)
+        self.assertEqual(option.printful_external_id, "ext-variant-101-1")

@@ -367,13 +367,41 @@ def _extract_variant_color_label(variant: dict[str, Any]) -> str:
     return ""
 
 
+def _extract_catalog_variant_id(variant: dict[str, Any]) -> int:
+    candidate = _coerce_int(variant.get("variant_id"))
+    if candidate > 0:
+        return candidate
+    nested = variant.get("variant")
+    if isinstance(nested, dict):
+        candidate = _coerce_int(nested.get("id"))
+        if candidate > 0:
+            return candidate
+    return 0
+
+
+def _extract_variant_external_id(variant: dict[str, Any]) -> str:
+    value = (variant.get("external_id") or "").strip()
+    if value:
+        return value[:140]
+    nested = variant.get("variant")
+    if isinstance(nested, dict):
+        value = (nested.get("external_id") or "").strip()
+        if value:
+            return value[:140]
+    return ""
+
+
 def _build_variants_payload(variants: list[dict[str, Any]], *, product_name: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for index, variant in enumerate(variants, start=1):
         price = _coerce_decimal(variant.get("retail_price") or variant.get("price"))
         sku = (variant.get("sku") or "").strip()
+        sync_variant_id = _coerce_int(variant.get("id"))
         row = {
-            "id": _coerce_int(variant.get("id")),
+            "id": sync_variant_id,
+            "sync_variant_id": sync_variant_id,
+            "variant_id": _extract_catalog_variant_id(variant),
+            "external_id": _extract_variant_external_id(variant),
             "name": _variant_option_name(product_name, str(variant.get("name") or ""), index),
             "sku": sku,
             "price": str(price) if price is not None else "",
@@ -522,6 +550,8 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
                 products.append(
                     {
                         "id": product_id,
+                        "sync_product_id": product_id,
+                        "external_id": str(item.get("external_id") or "")[:140],
                         "name": name,
                         "category_label": _extract_product_category_label(item),
                         "image_url": (item.get("thumbnail_url") or "").strip(),
