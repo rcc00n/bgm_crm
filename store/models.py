@@ -353,7 +353,7 @@ class Product(models.Model):
         default=False,
         help_text="Exclude this product from the global price multiplier.",
     )
-    printful_product_id = models.PositiveIntegerField(
+    printful_product_id = models.PositiveBigIntegerField(
         "Printful product ID",
         null=True,
         blank=True,
@@ -686,14 +686,14 @@ class ProductOption(models.Model):
         related_name="options",
     )
     sort_order = models.PositiveIntegerField("Sort order", default=0)
-    printful_sync_variant_id = models.PositiveIntegerField(
+    printful_sync_variant_id = models.PositiveBigIntegerField(
         "Printful sync variant ID",
         null=True,
         blank=True,
         db_index=True,
         help_text="Connected Printful sync variant ID for merch fulfillment.",
     )
-    printful_variant_id = models.PositiveIntegerField(
+    printful_variant_id = models.PositiveBigIntegerField(
         "Printful catalog variant ID",
         null=True,
         blank=True,
