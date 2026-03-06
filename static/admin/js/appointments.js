@@ -136,16 +136,47 @@ function onDateChange(value) {
 
 const sidebar = document.getElementById("filterSidebar");
 const filterBtn = document.getElementById("nav-icon2");
+const filterBackdrop = document.getElementById("filterBackdrop");
 const filterForm = document.getElementById("filterForm");
 
-filterBtn.addEventListener("click", () => {
-
+function openSidebar() {
+    if (!sidebar) {
+        return;
+    }
     sidebar.classList.remove("hidden");
-    setTimeout(() => sidebar.classList.add("visible"), 200);
-});
+    filterBackdrop?.classList.remove("hidden");
+    window.requestAnimationFrame(() => {
+        sidebar.classList.add("visible");
+        filterBackdrop?.classList.add("visible");
+    });
+    filterBtn?.setAttribute("aria-expanded", "true");
+    sidebar.setAttribute("aria-hidden", "false");
+    document.body.classList.add("filters-open");
+}
+
+if (filterBtn) {
+    filterBtn.addEventListener("click", () => {
+        if (sidebar?.classList.contains("visible")) {
+            closeSidebar();
+            return;
+        }
+        openSidebar();
+    });
+}
+
 function closeSidebar() {
+    if (!sidebar) {
+        return;
+    }
     sidebar.classList.remove("visible");
-    setTimeout(() => sidebar.classList.add("hidden"), 350);
+    filterBackdrop?.classList.remove("visible");
+    filterBtn?.setAttribute("aria-expanded", "false");
+    sidebar.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("filters-open");
+    setTimeout(() => {
+        sidebar.classList.add("hidden");
+        filterBackdrop?.classList.add("hidden");
+    }, 350);
 }
 
 function toggleSection(el) {
@@ -186,6 +217,18 @@ filterForm.addEventListener("submit", function (e) {
         .catch(err => {
             console.error("Error loading appointments:", err);
         });
+});
+
+document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") {
+        return;
+    }
+    if (sidebar?.classList.contains("visible")) {
+        closeSidebar();
+    }
+    if (qaOverlay && !qaOverlay.classList.contains("hidden")) {
+        closeQuickAdd();
+    }
 });
 function syncCalendarScrollHeight() {
     const scrollable = document.querySelector(".scrollable");
@@ -849,22 +892,26 @@ function showTooltip(box) {
     const duration = box.dataset.duration || "";
     const price = box.dataset.price || "";
     const price_discounted = box.dataset.pricedisc || "";
-    const discount = box.dataset.discount || "";
     const master = box.dataset.master || "";
+    const paymentStatus = box.dataset.paymentStatus || "";
+    const paymentRecord = box.dataset.paymentRecord || "";
+    const prepayment = box.dataset.prepayment || "";
+    const createdLabel = box.dataset.createdLabel || "";
+    const clientType = box.dataset.clientType || "";
 
     const firstLetter = client.trim().charAt(0).toUpperCase();
-    if (price === price_discounted) {
-        let floatNumber = parseFloat(price.replace(/[^0-9.]/g, '')); // 150.00
-        let intNumber = Math.round(floatNumber); // 150
-        let final_price = 0;
-        if(discount === ""){
-            final_price = intNumber;
-        }
-        else {
-            final_price = intNumber * (1 - parseInt(discount)/(-1*100));
-        }
+    const priceBlock = price && price_discounted && price !== price_discounted
+        ? `
+            <div>
+                <div class="tooltip-price" style="opacity:0.5;text-decoration:line-through;">${price}</div>
+                <div class="tooltip-price">${price_discounted}</div>
+            </div>
+        `
+        : `<div class="tooltip-price">${price_discounted || price || "—"}</div>`;
+    const detailBits = [paymentStatus, paymentRecord, prepayment, clientType].filter(Boolean).join(" · ");
+    const createdRow = createdLabel ? `<div class="tooltip-meta">${createdLabel}</div>` : "";
 
-        tooltip.innerHTML = `
+    tooltip.innerHTML = `
         <div class="tooltip-card">
             <div class="tooltip-header">
                 <span>${time}</span>
@@ -881,44 +928,14 @@ function showTooltip(box) {
 
                 <div class="tooltip-footer">
                     <div class="tooltip-service">${service}</div>
-                    <div class="tooltip-price">$${final_price}</div>
+                    ${priceBlock}
                 </div>
                 <div class="tooltip-meta">${master} · ${duration}</div>
+                ${detailBits ? `<div class="tooltip-meta">${detailBits}</div>` : ""}
+                ${createdRow}
             </div>
         </div>
     `;
-    }
-    else {
-        let floatNumber = parseFloat(price_discounted.replace(/[^0-9.]/g, ''));
-        let intNumber = Math.round(floatNumber);
-
-        tooltip.innerHTML = `
-        <div class="tooltip-card">
-            <div class="tooltip-header">
-                <span>${time}</span>
-                <span>${status}</span>
-            </div>
-            <div class="tooltip-body">
-                <div class="tooltip-client">
-                    <div class="tooltip-avatar">${firstLetter}</div>
-                    <div class="tooltip-client-info">
-                        <div class="tooltip-client-name">${client}</div>
-                        <div class="tooltip-client-phone">${phone}</div>
-                    </div>
-                </div>
-
-                <div class="tooltip-footer">
-                    <div class="tooltip-service">${service}</div>
-                    <div>
-                    <div class="tooltip-price" style="opacity: 0.5; text-decoration: line-through;">${price}</div>
-                    <div class="tooltip-price">$${intNumber * (1 - discount/(-1*100))}</div>
-                    </div>
-                </div>
-                <div class="tooltip-meta">${master} · ${duration}</div>
-            </div>
-        </div>
-    `;
-    }
     const card = tooltip.querySelector('.tooltip-card');
     const tooltipWidth = card ? card.offsetWidth : Math.min(320, document.documentElement.clientWidth * 0.8);
     const tooltipHeight = card ? card.offsetHeight : 200;
@@ -1060,44 +1077,3 @@ function getCookie(name) {
     const match = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
     return match ? match.pop() : "";
 }
-
-async function toggleDayStatus(btn) {
-    const bar = btn.closest(".calendar-day-status");
-    if (!bar) return;
-    const dateStr = bar.dataset.date;
-    const action = btn.dataset.action || "toggle";
-    if (!dateStr) return;
-
-    btn.disabled = true;
-    try {
-        const form = new FormData();
-        form.append("date", dateStr);
-        form.append("action", action);
-        const res = await fetch("/admin/core/appointment/toggle_day/", {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": getCookie("csrftoken"),
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: form,
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
-            throw new Error(data.error || "Unable to update day status.");
-        }
-        const input = document.getElementById("realDateInput");
-        if (input) input.value = dateStr;
-        onDateChange(dateStr);
-    } catch (err) {
-        alert(err.message || "Unable to update day status.");
-    } finally {
-        btn.disabled = false;
-    }
-}
-
-document.addEventListener("click", (event) => {
-    const btn = event.target.closest("[data-day-toggle]");
-    if (!btn) return;
-    event.preventDefault();
-    toggleDayStatus(btn);
-});
