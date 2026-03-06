@@ -1360,16 +1360,16 @@ def _build_store_merch_products() -> list[dict]:
 
 def _get_merch_listing_products() -> tuple[list[dict], str, str]:
     catalog_url = (getattr(settings, "PRINTFUL_MERCH_CATALOG_URL", "") or "").strip()
+    store_products = _build_store_merch_products()
+    if store_products:
+        return store_products, catalog_url, ""
+
     printful_feed = get_printful_merch_feed()
     printful_products = printful_feed.get("products", []) if isinstance(printful_feed, dict) else []
     if printful_products:
         all_products = _enrich_printful_merch_products(printful_products)
         if all_products:
             return all_products, printful_feed.get("catalog_url", "") or catalog_url, printful_feed.get("error", "")
-
-    store_products = _build_store_merch_products()
-    if store_products:
-        return store_products, catalog_url, (printful_feed.get("error", "") if isinstance(printful_feed, dict) else "")
     return [], printful_feed.get("catalog_url", "") or catalog_url, (printful_feed.get("error", "") if isinstance(printful_feed, dict) else "")
 
 
