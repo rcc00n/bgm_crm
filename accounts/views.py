@@ -1478,11 +1478,11 @@ class MerchPlaceholderView(TemplateView):
                     selected_merch_category_label = ""
             else:
                 selected_merch_category = ""
-                merch_display_products = []
+                merch_display_products = all_products
                 selected_merch_category_label = ""
 
             show_merch_category_grid = not bool(selected_merch_category)
-            show_merch_filters = bool(selected_merch_category)
+            show_merch_filters = bool(merch_display_products)
         else:
             category_map: dict[str, str] = {}
             for row in all_products:
@@ -1503,9 +1503,9 @@ class MerchPlaceholderView(TemplateView):
                 selected_merch_category_label = category_map.get(selected_merch_category, "")
             else:
                 selected_merch_category = ""
-                merch_display_products = [] if merch_categories else all_products
+                merch_display_products = all_products
                 selected_merch_category_label = ""
-            show_merch_filters = bool(selected_merch_category)
+            show_merch_filters = bool(merch_display_products)
 
         ctx["header_copy"] = ctx["merch_copy"]
         ctx["printful_products"] = all_products
