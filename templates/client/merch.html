@@ -810,6 +810,70 @@
       color:var(--muted);
       font-weight:700;
     }
+    .merch-pagination{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap:.85rem;
+      margin:1rem 0 0;
+      padding:.85rem 1rem;
+      border:1px solid var(--line);
+      border-radius:1rem;
+      background:rgba(255,255,255,.03);
+    }
+    .merch-pagination[hidden]{ display:none !important; }
+    .merch-pagination__summary{
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.03em;
+      white-space:nowrap;
+    }
+    .merch-pagination__controls{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:.55rem;
+      flex:1 1 auto;
+      flex-wrap:wrap;
+    }
+    .merch-pagination__pages{
+      display:flex;
+      align-items:center;
+      gap:.45rem;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .merch-pagination__btn{
+      min-width:2.65rem;
+      height:2.65rem;
+      padding:0 .85rem;
+      border-radius:.8rem;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.42);
+      color:var(--fg);
+      font:inherit;
+      font-weight:800;
+      cursor:pointer;
+      transition:transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease;
+    }
+    .merch-pagination__btn:hover:not(:disabled){
+      transform:translateY(-1px);
+      border-color:rgba(255,255,255,.22);
+      background:rgba(255,255,255,.07);
+    }
+    .merch-pagination__btn:disabled{
+      opacity:.42;
+      cursor:not-allowed;
+    }
+    .merch-pagination__btn.is-active{
+      border-color:rgba(255,0,0,.38);
+      background:linear-gradient(180deg, rgba(255,0,0,.28), rgba(110,0,0,.34));
+      color:#fff;
+      box-shadow:0 12px 24px rgba(100,0,0,.18);
+    }
+    @media (min-width: 901px){
+      .merch-pagination{ display:flex; }
+    }
 
     /* =============================== CATEGORY COLLAPSE ============================== */
     .merch-categories-collapse{ margin-top:.6rem; }
@@ -892,6 +956,7 @@
         width:100%;
         flex:0 0 auto;
       }
+      .merch-pagination{ display:none !important; }
       .merch-sort{ width:100%; justify-content:space-between; }
       .merch-search{
         width:100%;
@@ -1443,6 +1508,14 @@ body.nav-open .contact-fab,
 
             {% if merch_display_products %}
               <p class="merch-empty" data-merch-empty hidden>No items match your filters.</p>
+              <div class="merch-pagination" data-merch-pagination hidden>
+                <div class="merch-pagination__summary" data-merch-pagination-summary></div>
+                <div class="merch-pagination__controls">
+                  <button class="merch-pagination__btn" type="button" data-merch-page-prev>Prev</button>
+                  <div class="merch-pagination__pages" data-merch-page-list></div>
+                  <button class="merch-pagination__btn" type="button" data-merch-page-next>Next</button>
+                </div>
+              </div>
               <div class="grid grid--cards" style="margin-top:1rem" data-merch-grid>
             {% for item in merch_display_products %}
               <article
@@ -1762,6 +1835,11 @@ body.nav-open .contact-fab,
       const searchClear = root.querySelector('[data-merch-search-clear]');
       const resultCount = root.querySelector('[data-merch-results-count]');
       const emptyState = root.querySelector('[data-merch-empty]');
+      const pagination = root.querySelector('[data-merch-pagination]');
+      const paginationSummary = root.querySelector('[data-merch-pagination-summary]');
+      const paginationList = root.querySelector('[data-merch-page-list]');
+      const paginationPrev = root.querySelector('[data-merch-page-prev]');
+      const paginationNext = root.querySelector('[data-merch-page-next]');
       const sortSelect = root.querySelector('[data-merch-sort]');
       const minInput = root.querySelector('[data-merch-filter="price-min"]');
       const maxInput = root.querySelector('[data-merch-filter="price-max"]');
@@ -1775,9 +1853,13 @@ body.nav-open .contact-fab,
       const filtersBackdrop = root.querySelector('[data-merch-filters-backdrop]');
       const filtersBadge = root.querySelector('[data-merch-filters-badge]');
       const mq = window.matchMedia('(max-width: 900px)');
+      const desktopPaginationMq = window.matchMedia('(min-width: 901px)');
+      const pageSize = 25;
       let previousFocus = null;
+      let currentPage = 1;
 
       const normalize = (value) => String(value || '').toLowerCase().trim();
+      const useDesktopPagination = () => desktopPaginationMq.matches;
       const urlParams = new URLSearchParams(window.location.search);
       const hasUrlFilters = urlParams.has('category') || urlParams.has('q') || urlParams.has('min') || urlParams.has('max') || urlParams.has('sort');
 
@@ -1801,12 +1883,50 @@ body.nav-open .contact-fab,
         }
       };
 
+      const renderPagination = (totalMatches, startIndex, endIndex, totalPages) => {
+        if (!pagination) return;
+
+        const shouldShow = useDesktopPagination() && totalMatches > pageSize && totalPages > 1;
+        pagination.hidden = !shouldShow;
+
+        if (!shouldShow) {
+          if (paginationSummary) paginationSummary.textContent = '';
+          if (paginationList) paginationList.innerHTML = '';
+          if (paginationPrev) paginationPrev.disabled = true;
+          if (paginationNext) paginationNext.disabled = true;
+          return;
+        }
+
+        if (paginationSummary) {
+          paginationSummary.textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalMatches}`;
+        }
+
+        if (paginationPrev) paginationPrev.disabled = currentPage <= 1;
+        if (paginationNext) paginationNext.disabled = currentPage >= totalPages;
+
+        if (paginationList) {
+          paginationList.innerHTML = '';
+          for (let page = 1; page <= totalPages; page += 1) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'merch-pagination__btn';
+            button.textContent = String(page);
+            button.dataset.merchPage = String(page);
+            if (page === currentPage) {
+              button.classList.add('is-active');
+              button.setAttribute('aria-current', 'page');
+            }
+            paginationList.appendChild(button);
+          }
+        }
+      };
+
       const applyFilters = () => {
         const query = normalize(searchInput ? searchInput.value : '');
         const minVal = minInput && minInput.value ? parseFloat(minInput.value) : null;
         const maxVal = maxInput && maxInput.value ? parseFloat(maxInput.value) : null;
         const categoryVal = categorySelect ? categorySelect.value : '';
-        let visible = 0;
+        const matchedCards = [];
 
         cards.forEach((card) => {
           const text = normalize(card.getAttribute('data-merch-search-text'));
@@ -1825,20 +1945,48 @@ body.nav-open .contact-fab,
             }
           }
 
-          card.hidden = !match;
-          card.classList.toggle('is-hidden', !match);
-          if (match) visible += 1;
+          if (match) matchedCards.push(card);
+        });
+
+        const desktopPagination = useDesktopPagination();
+        const totalMatches = matchedCards.length;
+        const totalPages = desktopPagination && totalMatches > 0
+          ? Math.ceil(totalMatches / pageSize)
+          : totalMatches > 0 ? 1 : 0;
+
+        if (!desktopPagination) {
+          currentPage = 1;
+        } else if (totalPages > 0) {
+          currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+        } else {
+          currentPage = 1;
+        }
+
+        const startIndex = desktopPagination ? (currentPage - 1) * pageSize : 0;
+        const visibleCards = desktopPagination
+          ? matchedCards.slice(startIndex, startIndex + pageSize)
+          : matchedCards;
+        const visibleSet = new Set(visibleCards);
+        const endIndex = startIndex + visibleCards.length;
+
+        cards.forEach((card) => {
+          const isVisible = visibleSet.has(card);
+          card.hidden = !isVisible;
+          card.classList.toggle('is-hidden', !isVisible);
         });
 
         if (resultCount) {
-          resultCount.textContent = `${visible} of ${cards.length} items`;
+          resultCount.textContent = desktopPagination
+            ? `${totalMatches} items`
+            : `${visibleCards.length} of ${cards.length} items`;
         }
         if (emptyState) {
-          emptyState.hidden = visible > 0;
+          emptyState.hidden = totalMatches > 0;
         }
         if (searchClear) {
           searchClear.hidden = !query;
         }
+        renderPagination(totalMatches, startIndex, endIndex, totalPages);
         updateClearState();
       };
 
@@ -1866,6 +2014,7 @@ body.nav-open .contact-fab,
           return indexA - indexB;
         });
         sorted.forEach((card) => grid.appendChild(card));
+        cards.splice(0, cards.length, ...sorted);
       };
 
       const clearFilters = () => {
@@ -1874,6 +2023,7 @@ body.nav-open .contact-fab,
         if (maxInput) maxInput.value = '';
         if (categorySelect) categorySelect.value = '';
         if (sortSelect) sortSelect.value = 'featured';
+        currentPage = 1;
         sortCards(sortSelect ? sortSelect.value : 'featured');
         applyFilters();
       };
@@ -1932,33 +2082,72 @@ body.nav-open .contact-fab,
 
       if (mq.addEventListener) {
         mq.addEventListener('change', (event) => {
+          applyFilters();
           if (!event.matches) closeFilters();
         });
       } else if (mq.addListener) {
         mq.addListener((event) => {
+          applyFilters();
           if (!event.matches) closeFilters();
         });
       }
 
       if (searchInput) {
-        searchInput.addEventListener('input', applyFilters);
+        searchInput.addEventListener('input', () => {
+          currentPage = 1;
+          applyFilters();
+        });
       }
       if (searchClear) {
         searchClear.addEventListener('click', () => {
           if (searchInput) searchInput.value = '';
+          currentPage = 1;
           applyFilters();
         });
       }
-      if (minInput) minInput.addEventListener('input', applyFilters);
-      if (maxInput) maxInput.addEventListener('input', applyFilters);
-      if (categorySelect) categorySelect.addEventListener('change', applyFilters);
+      if (minInput) minInput.addEventListener('input', () => {
+        currentPage = 1;
+        applyFilters();
+      });
+      if (maxInput) maxInput.addEventListener('input', () => {
+        currentPage = 1;
+        applyFilters();
+      });
+      if (categorySelect) categorySelect.addEventListener('change', () => {
+        currentPage = 1;
+        applyFilters();
+      });
       if (sortSelect) {
         sortSelect.addEventListener('change', () => {
+          currentPage = 1;
           sortCards(sortSelect.value);
           applyFilters();
         });
       }
       clearButtons.forEach((btn) => btn.addEventListener('click', clearFilters));
+      if (paginationPrev) {
+        paginationPrev.addEventListener('click', () => {
+          if (currentPage <= 1) return;
+          currentPage -= 1;
+          applyFilters();
+        });
+      }
+      if (paginationNext) {
+        paginationNext.addEventListener('click', () => {
+          currentPage += 1;
+          applyFilters();
+        });
+      }
+      if (paginationList) {
+        paginationList.addEventListener('click', (event) => {
+          const button = event.target.closest('[data-merch-page]');
+          if (!button) return;
+          const page = parseInt(button.dataset.merchPage || '', 10);
+          if (!Number.isFinite(page) || page === currentPage) return;
+          currentPage = page;
+          applyFilters();
+        });
+      }
 
       if (hasUrlFilters) {
         sortCards(sortSelect ? sortSelect.value : 'featured');
