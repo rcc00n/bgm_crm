@@ -4,11 +4,35 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase, override_settings
 
-from accounts.views import _get_merch_listing_products
+from accounts.views import _build_merch_listing_media, _get_merch_listing_products, _normalize_merch_image_url
 
 
 @override_settings(PRINTFUL_MERCH_CATALOG_URL="https://printful.example/catalog")
 class MerchListingSourceTests(SimpleTestCase):
+    def test_normalize_merch_image_url_repairs_media_prefixed_remote_urls(self):
+        raw = "/media/https%3A/static.wixstatic.com/media/example.jpg/v1/fit/w_2000,h_2000,q_90/file.jpg"
+
+        normalized = _normalize_merch_image_url(raw, preset="card")
+
+        self.assertEqual(
+            normalized,
+            "https://static.wixstatic.com/media/example.jpg/v1/fit/w_960,h_960,q_80/file.jpg",
+        )
+
+    def test_build_merch_listing_media_uses_normalized_card_images(self):
+        carousel_images, color_swatches = _build_merch_listing_media(
+            {
+                "image_url": "/media/https%3A/static.wixstatic.com/media/example.jpg/v1/fit/w_2000,h_2000,q_90/file.jpg",
+                "variants": [],
+            }
+        )
+
+        self.assertEqual(
+            carousel_images,
+            ["https://static.wixstatic.com/media/example.jpg/v1/fit/w_960,h_960,q_80/file.jpg"],
+        )
+        self.assertEqual(color_swatches, [])
+
     @patch("accounts.views.get_printful_merch_feed")
     @patch("accounts.views._build_store_merch_products")
     def test_prefers_local_store_merch_products(self, build_store_merch_products, get_printful_merch_feed):

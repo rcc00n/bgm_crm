@@ -6,6 +6,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from datetime import timedelta
 from collections import OrderedDict
+from urllib.parse import unquote
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -1055,6 +1056,37 @@ def _normalize_merch_color_label(value: str) -> str:
     return text[:60]
 
 
+def _normalize_merch_image_url(value: str, *, preset: str = "card") -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+
+    url = raw
+    if raw.startswith("/media/http%3A") or raw.startswith("/media/https%3A"):
+        url = unquote(raw[len("/media/"):])
+    elif raw.startswith("http%3A") or raw.startswith("https%3A"):
+        url = unquote(raw)
+
+    if url.startswith("https:/") and not url.startswith("https://"):
+        url = url.replace("https:/", "https://", 1)
+    elif url.startswith("http:/") and not url.startswith("http://"):
+        url = url.replace("http:/", "http://", 1)
+
+    presets = {
+        "category": (720, 720, 78),
+        "card": (960, 960, 80),
+        "hero": (1400, 1400, 82),
+    }
+    width, height, quality = presets.get(preset, presets["card"])
+    if "static.wixstatic.com/media/" not in url or "/v1/" not in url:
+        return url
+
+    optimized = re.sub(r"w_\d+", f"w_{width}", url, count=1)
+    optimized = re.sub(r"h_\d+", f"h_{height}", optimized, count=1)
+    optimized = re.sub(r"q_\d+", f"q_{quality}", optimized, count=1)
+    return optimized
+
+
 def _guess_merch_color_from_variant_name(value: str) -> str:
     """
     Printful variant names are often like: "Black / M" or "Sport Grey / XL".
@@ -1138,7 +1170,7 @@ def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
     for key in ("image_url", "thumbnail_url", "thumbnail", "photo_url"):
         candidate = (row.get(key) or "").strip()
         if candidate:
-            fallback_image = candidate
+            fallback_image = _normalize_merch_image_url(candidate, preset="card")
             break
     variants = row.get("variants") if isinstance(row.get("variants"), list) else []
 
@@ -1165,7 +1197,7 @@ def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
         for key in ("image_url", "thumbnail_url", "preview_url"):
             candidate = (variant.get(key) or "").strip()
             if candidate:
-                image_url = candidate
+                image_url = _normalize_merch_image_url(candidate, preset="card")
                 break
         if not image_url:
             image_url = fallback_image
@@ -1196,7 +1228,7 @@ def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
         for variant in variants:
             candidate = (variant.get("image_url") or "").strip()
             if candidate:
-                carousel_images = [candidate]
+                carousel_images = [_normalize_merch_image_url(candidate, preset="card")]
                 break
 
     # Store an index per swatch so the template can jump the carousel.
@@ -1287,11 +1319,9 @@ def _build_store_merch_products() -> list[dict]:
     for product in products:
         product_id = parse_printful_product_id_from_sku(product.sku) or product.id
         image_url = ""
-        if getattr(product, "main_image", None):
-            try:
-                image_url = product.main_image.url
-            except Exception:
-                image_url = ""
+        candidate = getattr(product, "main_image_url", "") or ""
+        if candidate:
+            image_url = _normalize_merch_image_url(candidate, preset="card")
 
         merch_category = getattr(product, "merch_category", None)
         category_key = ""
@@ -1420,6 +1450,8 @@ class MerchPlaceholderView(TemplateView):
                         cover_url = ""
                 if not cover_url:
                     cover_url = _first_product_image(rows)
+                else:
+                    cover_url = _normalize_merch_image_url(cover_url, preset="category")
                 merch_category_cards.append({
                     "key": cat.slug,
                     "label": cat.name,
@@ -1498,9 +1530,9 @@ class MerchPlaceholderView(TemplateView):
             first = merch_display_products[0] or {}
             hero_src = ""
             if isinstance(first.get("carousel_images"), list) and first["carousel_images"]:
-                hero_src = str(first["carousel_images"][0] or "").strip()
+                hero_src = _normalize_merch_image_url(first["carousel_images"][0], preset="hero")
             if not hero_src:
-                hero_src = str(first.get("image_url") or "").strip()
+                hero_src = _normalize_merch_image_url(first.get("image_url"), preset="hero")
             if hero_src:
                 ctx["hero_media"] = {
                     "src": hero_src,
