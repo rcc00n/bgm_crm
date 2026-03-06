@@ -1360,15 +1360,17 @@ def _build_store_merch_products() -> list[dict]:
 
 def _get_merch_listing_products() -> tuple[list[dict], str, str]:
     catalog_url = (getattr(settings, "PRINTFUL_MERCH_CATALOG_URL", "") or "").strip()
+    printful_feed = get_printful_merch_feed()
+    printful_products = printful_feed.get("products", []) if isinstance(printful_feed, dict) else []
+    if printful_products:
+        all_products = _enrich_printful_merch_products(printful_products)
+        if all_products:
+            return all_products, printful_feed.get("catalog_url", "") or catalog_url, printful_feed.get("error", "")
+
     store_products = _build_store_merch_products()
     if store_products:
-        return store_products, catalog_url, ""
-
-    printful_feed = get_printful_merch_feed()
-    all_products = _enrich_printful_merch_products(printful_feed.get("products", []))
-    if not all_products and printful_feed.get("error"):
-        all_products = _build_store_merch_products()
-    return all_products, printful_feed.get("catalog_url", "") or catalog_url, printful_feed.get("error", "")
+        return store_products, catalog_url, (printful_feed.get("error", "") if isinstance(printful_feed, dict) else "")
+    return [], printful_feed.get("catalog_url", "") or catalog_url, (printful_feed.get("error", "") if isinstance(printful_feed, dict) else "")
 
 
 class MerchPlaceholderView(TemplateView):
@@ -1440,18 +1442,13 @@ class MerchPlaceholderView(TemplateView):
                     "is_all": True,
                 })
 
+            visible_manual_categories: list[MerchCategory] = []
             for cat in manual_categories:
                 rows = rows_by_category.get(cat.id, [])
-                cover_url = ""
-                if getattr(cat, "cover_image", None):
-                    try:
-                        cover_url = cat.cover_image.url
-                    except Exception:
-                        cover_url = ""
-                if not cover_url:
-                    cover_url = _first_product_image(rows)
-                else:
-                    cover_url = _normalize_merch_image_url(cover_url, preset="category")
+                if not rows:
+                    continue
+                visible_manual_categories.append(cat)
+                cover_url = _first_product_image(rows)
                 merch_category_cards.append({
                     "key": cat.slug,
                     "label": cat.name,
@@ -1464,7 +1461,7 @@ class MerchPlaceholderView(TemplateView):
 
             merch_categories = [
                 {"key": cat.slug, "label": cat.name}
-                for cat in manual_categories
+                for cat in visible_manual_categories
             ]
 
             if selected_merch_category == "all":
