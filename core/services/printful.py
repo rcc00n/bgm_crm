@@ -491,6 +491,74 @@ def _fetch_product_detail_variants(product_id: int) -> list[dict[str, Any]]:
     return _extract_variants(payload)
 
 
+def _normalize_merch_product(
+    raw_item: dict[str, Any],
+    *,
+    catalog_url: str,
+    show_prices: bool,
+) -> dict[str, Any] | None:
+    item = _extract_product(raw_item)
+    if not isinstance(item, dict):
+        return None
+    if item.get("is_ignored") is True:
+        return None
+
+    product_id = _coerce_int(item.get("id"))
+    name = (item.get("name") or "").strip()
+    if not product_id or not name:
+        return None
+
+    variants = _extract_variants(item)
+    if not variants:
+        try:
+            variants = _fetch_product_detail_variants(product_id)
+        except PrintfulAPIError:
+            variants = []
+
+    variant_count = _coerce_int(item.get("variants"), default=len(variants))
+    if variant_count <= 0 and variants:
+        variant_count = len(variants)
+
+    return {
+        "id": product_id,
+        "sync_product_id": product_id,
+        "external_id": str(item.get("external_id") or "")[:140],
+        "name": name,
+        "category_label": _extract_product_category_label(item),
+        "image_url": (item.get("thumbnail_url") or "").strip(),
+        "price_label": _build_price_label(variants) if show_prices else "",
+        "base_price": _build_base_price(variants),
+        "variant_label": f"{variant_count} variants" if variant_count > 1 else "",
+        "currency": _variant_currency(variants),
+        "skus": _build_variant_skus(variants),
+        "variants": _build_variants_payload(variants, product_name=name),
+        "url": _build_product_url(
+            product_id=product_id,
+            name=name,
+            external_id=str(item.get("external_id") or ""),
+            catalog_url=catalog_url,
+        ),
+    }
+
+
+def get_printful_merch_product(product_id: int) -> dict[str, Any]:
+    """
+    Fetch and normalize a single Printful merch product.
+    """
+    normalized_product_id = _coerce_int(product_id)
+    if normalized_product_id <= 0:
+        return {}
+    payload = _api_get(f"/sync/products/{normalized_product_id}")
+    show_prices = bool(getattr(settings, "PRINTFUL_MERCH_SHOW_PRICE", True))
+    catalog_url = (getattr(settings, "PRINTFUL_MERCH_CATALOG_URL", "") or "").strip()
+    normalized = _normalize_merch_product(
+        payload.get("result") if isinstance(payload, dict) else {},
+        catalog_url=catalog_url,
+        show_prices=show_prices,
+    )
+    return normalized or {}
+
+
 def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
     """
     Returns a normalized catalog payload for the merch page.
@@ -553,50 +621,14 @@ def get_printful_merch_feed(*, force_refresh: bool = False) -> dict[str, Any]:
                 break
 
             for raw_item in items:
-                item = _extract_product(raw_item)
-                if not isinstance(item, dict):
-                    continue
-                if item.get("is_ignored") is True:
-                    continue
-
-                product_id = _coerce_int(item.get("id"))
-                name = (item.get("name") or "").strip()
-                if not product_id or not name:
-                    continue
-
-                variants = _extract_variants(item)
-                if not variants:
-                    try:
-                        variants = _fetch_product_detail_variants(product_id)
-                    except PrintfulAPIError:
-                        variants = []
-
-                variant_count = _coerce_int(item.get("variants"), default=len(variants))
-                if variant_count <= 0 and variants:
-                    variant_count = len(variants)
-
-                products.append(
-                    {
-                        "id": product_id,
-                        "sync_product_id": product_id,
-                        "external_id": str(item.get("external_id") or "")[:140],
-                        "name": name,
-                        "category_label": _extract_product_category_label(item),
-                        "image_url": (item.get("thumbnail_url") or "").strip(),
-                        "price_label": _build_price_label(variants) if show_prices else "",
-                        "base_price": _build_base_price(variants),
-                        "variant_label": f"{variant_count} variants" if variant_count > 1 else "",
-                        "currency": _variant_currency(variants),
-                        "skus": _build_variant_skus(variants),
-                        "variants": _build_variants_payload(variants, product_name=name),
-                        "url": _build_product_url(
-                            product_id=product_id,
-                            name=name,
-                            external_id=str(item.get("external_id") or ""),
-                            catalog_url=catalog_url,
-                        ),
-                    }
+                normalized = _normalize_merch_product(
+                    raw_item,
+                    catalog_url=catalog_url,
+                    show_prices=show_prices,
                 )
+                if not normalized:
+                    continue
+                products.append(normalized)
 
                 if max_items is not None and len(products) >= max_items:
                     break

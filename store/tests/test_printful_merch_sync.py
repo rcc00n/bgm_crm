@@ -2,8 +2,8 @@ from decimal import Decimal
 
 from django.test import TestCase, override_settings
 
-from accounts.views import _sync_printful_merch_products
 from store.models import Category, Product
+from store.printful_catalog import sync_printful_merch_products
 
 
 class PrintfulMerchSyncTests(TestCase):
@@ -58,7 +58,7 @@ class PrintfulMerchSyncTests(TestCase):
             is_active=True,
         )
 
-        _sync_printful_merch_products(self._sync_payload(101, base_price="19.99"))
+        sync_printful_merch_products(self._sync_payload(101, base_price="19.99"))
 
         kept.refresh_from_db()
         removed.refresh_from_db()
@@ -74,13 +74,13 @@ class PrintfulMerchSyncTests(TestCase):
         self._create_pf_product(101, price="40.00")
         missing_but_kept = self._create_pf_product(202, price="60.00")
 
-        _sync_printful_merch_products(self._sync_payload(101, base_price="21.00"))
+        sync_printful_merch_products(self._sync_payload(101, base_price="21.00"))
 
         missing_but_kept.refresh_from_db()
         self.assertTrue(missing_but_kept.is_active)
 
     def test_sync_persists_printful_product_and_variant_ids(self):
-        _sync_printful_merch_products(self._sync_payload(101, base_price="21.00"))
+        sync_printful_merch_products(self._sync_payload(101, base_price="21.00"))
 
         product = Product.objects.get(sku="PF-101")
         option = product.options.get(sku="PF-101-1")
