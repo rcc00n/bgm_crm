@@ -953,6 +953,51 @@ class Order(models.Model):
             pass
         return total.quantize(Decimal("0.01"))
 
+    @property
+    def tracking_entries(self) -> list[dict[str, str]]:
+        rows: list[dict[str, str]] = []
+        seen: set[tuple[str, str]] = set()
+
+        raw_entries = self.printful_tracking_data if isinstance(self.printful_tracking_data, list) else []
+        for raw_entry in raw_entries:
+            if not isinstance(raw_entry, dict):
+                continue
+            number = " ".join(str(raw_entry.get("number") or "").split())[:140]
+            url = str(raw_entry.get("url") or "").strip()[:500]
+            if not number and not url:
+                continue
+            key = (number, url)
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append({"number": number, "url": url})
+
+        if rows:
+            return rows
+
+        tracking_url = str(self.tracking_url or "").strip()[:500]
+        for raw_number in str(self.tracking_numbers or "").splitlines():
+            number = " ".join(raw_number.split())[:140]
+            if not number:
+                continue
+            key = (number, tracking_url)
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append({"number": number, "url": tracking_url})
+
+        if not rows and tracking_url:
+            rows.append({"number": "", "url": tracking_url})
+        return rows
+
+    @property
+    def primary_tracking_url(self) -> str:
+        for entry in self.tracking_entries:
+            url = str(entry.get("url") or "").strip()
+            if url:
+                return url
+        return str(self.tracking_url or "").strip()
+
     def set_status(self, new_status: str, *, save=True):
         self.status = new_status
         now = timezone.now()
@@ -1042,6 +1087,8 @@ class Order(models.Model):
                 "order_id": self.pk,
                 "order_status": self.get_status_display(),
                 "order_total": total_text,
+                "tracking_numbers": self.tracking_numbers,
+                "tracking_url": self.primary_tracking_url,
             }
         )
         template = render_email_template(template_slug, context)
@@ -1055,6 +1102,26 @@ class Order(models.Model):
         link_rows: list[tuple[str, str]] = []
         cta_label = template.cta_label
         cta_url = getattr(settings, "COMPANY_WEBSITE", "")
+        tracking_entries = self.tracking_entries
+        tracking_numbers = ""
+        if self.status == self.STATUS_SHIPPED and tracking_entries:
+            tracking_numbers = ", ".join(
+                entry["number"] for entry in tracking_entries if (entry.get("number") or "").strip()
+            )
+            if tracking_numbers:
+                detail_lines.append(f"Tracking: {tracking_numbers}")
+            tracking_links: list[tuple[str, str]] = []
+            for index, entry in enumerate(tracking_entries, start=1):
+                url = str(entry.get("url") or "").strip()
+                if not url:
+                    continue
+                label = "Track package" if len(tracking_entries) == 1 else f"Track package {index}"
+                tracking_links.append((label, url))
+            if tracking_links:
+                link_rows = tracking_links
+                link_lines = [f"{label}: {url}" for label, url in tracking_links]
+                cta_label = tracking_links[0][0]
+                cta_url = tracking_links[0][1]
         if self.status == self.STATUS_COMPLETED:
             base = (getattr(settings, "COMPANY_WEBSITE", "") or "").strip()
             if base and not base.startswith(("http://", "https://")):
@@ -1110,11 +1177,14 @@ class Order(models.Model):
                 preheader=template.preheader,
                 greeting=template.greeting,
                 intro_lines=template.intro_lines,
-                detail_rows=[
-                    ("Order #", self.pk),
-                    ("Status", self.get_status_display()),
-                    ("Order total", total_text),
-                ],
+                detail_rows=(
+                    [
+                        ("Order #", self.pk),
+                        ("Status", self.get_status_display()),
+                        ("Order total", total_text),
+                    ]
+                    + ([("Tracking", tracking_numbers)] if self.status == self.STATUS_SHIPPED and tracking_entries and tracking_numbers else [])
+                ),
                 item_rows=item_rows,
                 notice_title=template.notice_title or None,
                 notice_lines=template.notice_lines,

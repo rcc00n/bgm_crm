@@ -13,7 +13,7 @@ from django.db.models import Q
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils import timezone
 
 from core.utils import format_currency
@@ -1532,6 +1532,8 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
         "printful_submitted_at",
         "printful_last_synced_at",
         "printful_error",
+        "printful_tracking_preview",
+        "printful_tracking_data",
     )
     fieldsets = (
         ("Status & ownership", {"fields": ("status", "user", "created_by")}),
@@ -1555,6 +1557,8 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
                     "printful_submitted_at",
                     "printful_last_synced_at",
                     "printful_error",
+                    "printful_tracking_preview",
+                    "printful_tracking_data",
                 )
             },
         ),
@@ -1628,6 +1632,32 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
                 obj.reference_image.url,
             )
         return "—"
+
+    @admin.display(description="Printful tracking")
+    def printful_tracking_preview(self, obj):
+        entries = getattr(obj, "tracking_entries", [])
+        if not entries:
+            return "—"
+        return format_html_join(
+            "",
+            (
+                "<div style='margin:0 0 .45rem'>"
+                "<strong>{}</strong>{}"
+                "</div>"
+            ),
+            (
+                (
+                    entry.get("number") or "Tracking link",
+                    format_html(
+                        " &middot; <a href='{}' target='_blank' rel='noopener'>open</a>",
+                        entry["url"],
+                    )
+                    if entry.get("url")
+                    else "",
+                )
+                for entry in entries
+            ),
+        )
 
 
 @admin.register(OrderPromoCode)

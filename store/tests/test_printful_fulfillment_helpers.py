@@ -5,10 +5,13 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase, override_settings
 
+from store.models import Order
 from store.printful_fulfillment import (
+    _extract_tracking_entries,
     build_printful_recipient_from_form,
     build_printful_webhook_url,
     get_checkout_printful_shipping,
+    sync_order_from_printful_payload,
 )
 
 
@@ -123,3 +126,86 @@ class PrintfulFulfillmentHelperTests(SimpleTestCase):
         self.assertEqual(shipping["shipping_cost"], Decimal("8.95"))
         self.assertEqual(shipping["error"], "")
         refresh_merch_option_mapping.assert_called_once()
+
+    def test_extract_tracking_entries_supports_nested_shipment_payloads(self):
+        entries = _extract_tracking_entries(
+            {
+                "type": "package_shipped",
+                "data": {
+                    "shipment": {
+                        "tracking_number": "TRACK-123",
+                        "tracking_url": "https://tracking.example/123",
+                    }
+                },
+            }
+        )
+
+        self.assertEqual(
+            entries,
+            [{"number": "TRACK-123", "url": "https://tracking.example/123"}],
+        )
+
+    def test_sync_order_from_payload_updates_tracking_fields(self):
+        class _FakeOrder:
+            def __init__(self):
+                self.printful_order_id = None
+                self.printful_external_id = ""
+                self.printful_status = ""
+                self.printful_shipping_cost = Decimal("0.00")
+                self.printful_shipping_currency = ""
+                self.printful_shipping_name = ""
+                self.printful_tracking_data = []
+                self.printful_last_synced_at = None
+                self.printful_submitted_at = None
+                self.printful_error = ""
+                self.tracking_numbers = ""
+                self.tracking_url = ""
+                self.status = Order.STATUS_PROCESSING
+                self.shipped_at = None
+                self.saved_update_fields = []
+
+            @property
+            def tracking_entries(self):
+                rows = []
+                for entry in self.printful_tracking_data:
+                    rows.append({
+                        "number": str(entry.get("number") or "").strip(),
+                        "url": str(entry.get("url") or "").strip(),
+                    })
+                return rows
+
+            def save(self, update_fields=None):
+                self.saved_update_fields = list(update_fields or [])
+
+        order = _FakeOrder()
+
+        sync_order_from_printful_payload(
+            order,
+            {
+                "id": 148615541,
+                "external_id": "bgm-order-123",
+                "status": "fulfilled",
+                "shipping_service_name": "Flat Rate",
+                "costs": {"shipping": "11.95", "currency": "CAD"},
+                "result": {
+                    "shipment": {
+                        "tracking_number": "TRACK-123",
+                        "tracking_url": "https://tracking.example/123",
+                    }
+                },
+            },
+        )
+
+        self.assertEqual(order.printful_order_id, 148615541)
+        self.assertEqual(order.printful_status, "fulfilled")
+        self.assertEqual(order.printful_shipping_name, "Flat Rate")
+        self.assertEqual(order.printful_shipping_cost, Decimal("11.95"))
+        self.assertEqual(order.tracking_numbers, "TRACK-123")
+        self.assertEqual(order.tracking_url, "https://tracking.example/123")
+        self.assertEqual(
+            order.printful_tracking_data,
+            [{"number": "TRACK-123", "url": "https://tracking.example/123"}],
+        )
+        self.assertEqual(order.status, Order.STATUS_SHIPPED)
+        self.assertIn("tracking_numbers", order.saved_update_fields)
+        self.assertIn("tracking_url", order.saved_update_fields)

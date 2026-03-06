@@ -455,27 +455,64 @@ def build_printful_external_id(order: Order) -> str:
     return f"bgm-order-{order.id}"[:140]
 
 
+def _iter_tracking_payload_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+
+    rows: list[dict[str, Any]] = []
+    stack: list[dict[str, Any]] = [payload]
+    seen: set[int] = set()
+    while stack:
+        candidate = stack.pop(0)
+        marker = id(candidate)
+        if marker in seen:
+            continue
+        seen.add(marker)
+        rows.append(candidate)
+        for key in ("result", "data", "order"):
+            nested = candidate.get(key)
+            if isinstance(nested, dict):
+                stack.append(nested)
+    return rows
+
+
 def _extract_tracking_entries(payload: dict[str, Any]) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
-    shipments = payload.get("shipments")
-    if isinstance(shipments, list):
-        for shipment in shipments:
-            if not isinstance(shipment, dict):
+    seen: set[tuple[str, str]] = set()
+
+    def _append_shipment(shipment: dict[str, Any]) -> None:
+        numbers = shipment.get("tracking_number") or shipment.get("tracking_numbers") or shipment.get("tracking")
+        urls = shipment.get("tracking_url") or shipment.get("tracking_urls") or shipment.get("url")
+        number_list = numbers if isinstance(numbers, list) else [numbers]
+        url_list = urls if isinstance(urls, list) else [urls]
+        if not any(" ".join(str(raw or "").split()) for raw in number_list) and shipment.get("tracking_number"):
+            number_list = [shipment.get("tracking_number")]
+
+        for idx, raw_number in enumerate(number_list):
+            number = " ".join(str(raw_number or "").split())[:140]
+            if not number:
                 continue
-            numbers = shipment.get("tracking_number") or shipment.get("tracking_numbers") or shipment.get("tracking")
-            urls = shipment.get("tracking_url") or shipment.get("tracking_urls") or shipment.get("url")
-            number_list = numbers if isinstance(numbers, list) else [numbers]
-            url_list = urls if isinstance(urls, list) else [urls]
-            for idx, raw_number in enumerate(number_list):
-                number = " ".join(str(raw_number or "").split())
-                if not number:
-                    continue
-                url = ""
-                if idx < len(url_list):
-                    url = str(url_list[idx] or "").strip()
-                if not url:
-                    url = str(shipment.get("tracking_url") or "").strip()
-                rows.append({"number": number[:140], "url": url[:500]})
+            url = ""
+            if idx < len(url_list):
+                url = str(url_list[idx] or "").strip()[:500]
+            if not url:
+                url = str(shipment.get("tracking_url") or "").strip()[:500]
+            key = (number, url)
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append({"number": number, "url": url})
+
+    for candidate in _iter_tracking_payload_candidates(payload):
+        shipments = candidate.get("shipments")
+        if isinstance(shipments, list):
+            for shipment in shipments:
+                if isinstance(shipment, dict):
+                    _append_shipment(shipment)
+
+        shipment = candidate.get("shipment")
+        if isinstance(shipment, dict):
+            _append_shipment(shipment)
     return rows
 
 
@@ -725,6 +762,8 @@ def record_printful_webhook(payload: dict[str, Any]) -> tuple[PrintfulWebhookEve
             live_payload = get_printful_order(order.printful_order_id)
         if order and live_payload:
             order = sync_order_from_printful_payload(order, live_payload)
+        if order and (not live_payload or not order.tracking_entries) and _extract_tracking_entries(payload):
+            order = sync_order_from_printful_payload(order, payload)
     except Exception:
         logger.exception("Failed to sync local order from Printful webhook payload")
 
