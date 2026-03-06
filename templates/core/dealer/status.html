@@ -437,11 +437,55 @@
   }
 </style>
 </head>
-<body>
+<body class="dealer-status-page">
   {% include "includes/terms_gate.html" with terms_gate_autostart=True %}
   {% include "includes/marketing_body.html" %}
   <div id="bg"></div>
   {% include "includes/topbar_client_v3.html" with current="dealer" topbar_badge_label=dealer_copy.header_badge_label %}
+  <style id="dealer-status-topbar-mobile-fix">
+    @media (max-width: 960px){
+      body.dealer-status-page .bgm-topbar__inner{
+        align-items:flex-start !important;
+        gap:clamp(10px, 2.6vw, 18px) !important;
+      }
+      body.dealer-status-page .bgm-topbar__toggle,
+      body.dealer-status-page .bgm-topbar__slot--search{
+        align-self:flex-start !important;
+      }
+      body.dealer-status-page .bgm-topbar__slot--brand{
+        display:flex !important;
+        flex-direction:column !important;
+        align-items:flex-start !important;
+        justify-content:flex-start !important;
+        gap:.28rem !important;
+        min-width:0 !important;
+        overflow:visible !important;
+      }
+      body.dealer-status-page .bgm-topbar__brand{
+        max-width:100% !important;
+        font-size:clamp(1rem, 4.9vw, 1.3rem) !important;
+        gap:.34rem !important;
+      }
+      body.dealer-status-page .bgm-topbar__badge{
+        margin-left:0 !important;
+        max-width:min(46vw, 12rem) !important;
+        padding:.16rem .46rem !important;
+        font-size:.58rem !important;
+        letter-spacing:.1em !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+      }
+    }
+
+    @media (max-width: 420px){
+      body.dealer-status-page .bgm-topbar__brand{
+        font-size:clamp(.92rem, 4.6vw, 1.1rem) !important;
+      }
+      body.dealer-status-page .bgm-topbar__badge{
+        max-width:min(42vw, 9.5rem) !important;
+      }
+    }
+  </style>
 
   <main class="container">
     {% if show_dealer_welcome %}
