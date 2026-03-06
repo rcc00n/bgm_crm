@@ -1642,7 +1642,7 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
             "",
             (
                 "<div style='margin:0 0 .45rem'>"
-                "<strong>{}</strong>{}"
+                "<strong>{}</strong>{}{}"
                 "</div>"
             ),
             (
@@ -1654,6 +1654,29 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
                     )
                     if entry.get("url")
                     else "",
+                    format_html(
+                        "<div style='margin-top:.2rem;color:#666'>{}</div>{}",
+                        " | ".join(
+                            text
+                            for text in [
+                                f"Carrier: {entry.get('carrier')}" if entry.get("carrier") else "",
+                                f"ETA: {entry.get('estimated_delivery')}" if entry.get("estimated_delivery") else "",
+                                f"Shipped: {entry.get('shipment_date')}" if entry.get("shipment_date") else "",
+                                f"Delivered: {entry.get('delivery_date')}" if entry.get("delivery_date") else "",
+                            ]
+                            if text
+                        ),
+                        format_html(
+                            "<div style='margin-top:.25rem'>{}</div>",
+                            format_html_join(
+                                "",
+                                "<div style='color:#444'>{}</div>",
+                                ((event,) for event in (entry.get("tracking_events") or [])),
+                            ),
+                        )
+                        if entry.get("tracking_events")
+                        else "",
+                    ),
                 )
                 for entry in entries
             ),

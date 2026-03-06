@@ -1,5 +1,6 @@
 from decimal import Decimal, InvalidOperation
 import logging
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -954,8 +955,8 @@ class Order(models.Model):
         return total.quantize(Decimal("0.01"))
 
     @property
-    def tracking_entries(self) -> list[dict[str, str]]:
-        rows: list[dict[str, str]] = []
+    def tracking_entries(self) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
         seen: set[tuple[str, str]] = set()
 
         raw_entries = self.printful_tracking_data if isinstance(self.printful_tracking_data, list) else []
@@ -970,7 +971,21 @@ class Order(models.Model):
             if key in seen:
                 continue
             seen.add(key)
-            rows.append({"number": number, "url": url})
+            rows.append(
+                {
+                    "number": number,
+                    "url": url,
+                    "carrier": " ".join(str(raw_entry.get("carrier") or "").split())[:120],
+                    "estimated_delivery": " ".join(str(raw_entry.get("estimated_delivery") or "").split())[:120],
+                    "shipment_date": " ".join(str(raw_entry.get("shipment_date") or "").split())[:120],
+                    "delivery_date": " ".join(str(raw_entry.get("delivery_date") or "").split())[:120],
+                    "tracking_events": [
+                        " ".join(str(event or "").split())[:240]
+                        for event in (raw_entry.get("tracking_events") if isinstance(raw_entry.get("tracking_events"), list) else [])
+                        if " ".join(str(event or "").split())
+                    ],
+                }
+            )
 
         if rows:
             return rows
@@ -984,10 +999,30 @@ class Order(models.Model):
             if key in seen:
                 continue
             seen.add(key)
-            rows.append({"number": number, "url": tracking_url})
+            rows.append(
+                {
+                    "number": number,
+                    "url": tracking_url,
+                    "carrier": "",
+                    "estimated_delivery": "",
+                    "shipment_date": "",
+                    "delivery_date": "",
+                    "tracking_events": [],
+                }
+            )
 
         if not rows and tracking_url:
-            rows.append({"number": "", "url": tracking_url})
+            rows.append(
+                {
+                    "number": "",
+                    "url": tracking_url,
+                    "carrier": "",
+                    "estimated_delivery": "",
+                    "shipment_date": "",
+                    "delivery_date": "",
+                    "tracking_events": [],
+                }
+            )
         return rows
 
     @property
@@ -997,6 +1032,41 @@ class Order(models.Model):
             if url:
                 return url
         return str(self.tracking_url or "").strip()
+
+    def shipment_detail_rows(self) -> list[tuple[str, str]]:
+        rows: list[tuple[str, str]] = []
+        entries = self.tracking_entries
+        total_entries = len(entries)
+        for index, entry in enumerate(entries, start=1):
+            prefix = "" if total_entries == 1 else f"Package {index} "
+            details = [
+                ("Tracking", entry.get("number")),
+                ("Carrier", entry.get("carrier")),
+                ("Estimated delivery", entry.get("estimated_delivery")),
+                ("Shipment date", entry.get("shipment_date")),
+                ("Delivery date", entry.get("delivery_date")),
+            ]
+            for label, value in details:
+                text = " ".join(str(value or "").split())
+                if text:
+                    rows.append((f"{prefix}{label}", text))
+        return rows
+
+    def shipment_notice_lines(self) -> list[str]:
+        lines: list[str] = []
+        entries = self.tracking_entries
+        total_entries = len(entries)
+        for index, entry in enumerate(entries, start=1):
+            prefix = "" if total_entries == 1 else f"Package {index} "
+            for event_index, event in enumerate(entry.get("tracking_events") or [], start=1):
+                text = " ".join(str(event or "").split())
+                if not text:
+                    continue
+                if total_entries == 1:
+                    lines.append(f"Tracking event {event_index}: {text}")
+                else:
+                    lines.append(f"{prefix}event {event_index}: {text}")
+        return lines
 
     def set_status(self, new_status: str, *, save=True):
         self.status = new_status
@@ -1079,6 +1149,8 @@ class Order(models.Model):
         currency_code = getattr(settings, "DEFAULT_CURRENCY_CODE", "").upper()
         order_total = self.total
         total_text = f"{currency_symbol}{order_total} {currency_code}".strip()
+        tracking_entries = self.tracking_entries
+        primary_tracking = tracking_entries[0] if tracking_entries else {}
         from core.email_templates import base_email_context, join_text_sections, render_email_template
         context = base_email_context(
             {
@@ -1089,6 +1161,11 @@ class Order(models.Model):
                 "order_total": total_text,
                 "tracking_numbers": self.tracking_numbers,
                 "tracking_url": self.primary_tracking_url,
+                "carrier": primary_tracking.get("carrier", ""),
+                "estimated_delivery": primary_tracking.get("estimated_delivery", ""),
+                "shipment_date": primary_tracking.get("shipment_date", ""),
+                "delivery_date": primary_tracking.get("delivery_date", ""),
+                "tracking_events": " | ".join(self.shipment_notice_lines()),
             }
         )
         template = render_email_template(template_slug, context)
@@ -1100,16 +1177,22 @@ class Order(models.Model):
 
         link_lines: list[str] = []
         link_rows: list[tuple[str, str]] = []
+        notice_title = template.notice_title or None
+        notice_lines = list(template.notice_lines)
         cta_label = template.cta_label
         cta_url = getattr(settings, "COMPANY_WEBSITE", "")
-        tracking_entries = self.tracking_entries
         tracking_numbers = ""
         if self.status == self.STATUS_SHIPPED and tracking_entries:
             tracking_numbers = ", ".join(
                 entry["number"] for entry in tracking_entries if (entry.get("number") or "").strip()
             )
-            if tracking_numbers:
-                detail_lines.append(f"Tracking: {tracking_numbers}")
+            shipment_detail_rows = self.shipment_detail_rows()
+            for label, value in shipment_detail_rows:
+                detail_lines.append(f"{label}: {value}")
+            shipment_notice_lines = self.shipment_notice_lines()
+            if shipment_notice_lines:
+                notice_title = "Tracking updates"
+                notice_lines.extend(shipment_notice_lines)
             tracking_links: list[tuple[str, str]] = []
             for index, entry in enumerate(tracking_entries, start=1):
                 url = str(entry.get("url") or "").strip()
@@ -1183,11 +1266,11 @@ class Order(models.Model):
                         ("Status", self.get_status_display()),
                         ("Order total", total_text),
                     ]
-                    + ([("Tracking", tracking_numbers)] if self.status == self.STATUS_SHIPPED and tracking_entries and tracking_numbers else [])
+                    + (self.shipment_detail_rows() if self.status == self.STATUS_SHIPPED and tracking_entries else [])
                 ),
                 item_rows=item_rows,
-                notice_title=template.notice_title or None,
-                notice_lines=template.notice_lines,
+                notice_title=notice_title,
+                notice_lines=notice_lines,
                 footer_lines=template.footer_lines,
                 cta_label=cta_label,
                 cta_url=cta_url,

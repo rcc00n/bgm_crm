@@ -557,10 +557,8 @@
       font-weight:800;
     }
     .order-card__tracking-list{
-      display:flex;
-      flex-wrap:wrap;
-      gap:.4rem .55rem;
-      align-items:center;
+      display:grid;
+      gap:.55rem;
     }
     .tracking-pill{
       display:inline-flex;
@@ -572,6 +570,30 @@
       font-weight:700;
       color:#fff;
       background:rgba(255,255,255,.04);
+    }
+    .tracking-entry{
+      display:grid;
+      gap:.38rem;
+      padding:.65rem .75rem;
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:.9rem;
+      background:rgba(255,255,255,.03);
+    }
+    .tracking-entry__meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.35rem .65rem;
+      color:var(--muted-2);
+      font-size:.78rem;
+    }
+    .tracking-entry__events{
+      display:grid;
+      gap:.25rem;
+    }
+    .tracking-entry__event{
+      font-size:.78rem;
+      color:#fff;
+      line-height:1.4;
     }
 
     .order-modal__dialog{width:min(820px,calc(100dvw - 2rem))}

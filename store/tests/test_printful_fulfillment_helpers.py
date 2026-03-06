@@ -135,6 +135,14 @@ class PrintfulFulfillmentHelperTests(SimpleTestCase):
                     "shipment": {
                         "tracking_number": "TRACK-123",
                         "tracking_url": "https://tracking.example/123",
+                        "carrier": "UPS",
+                        "estimated_delivery": "2026-03-12",
+                        "shipment_date": "2026-03-08",
+                        "delivery_date": "",
+                        "tracking_events": [
+                            {"status": "In transit", "timestamp": "2026-03-08T13:00:00Z"},
+                            {"status": "Out for delivery", "timestamp": "2026-03-12T08:15:00Z"},
+                        ],
                     }
                 },
             }
@@ -142,7 +150,20 @@ class PrintfulFulfillmentHelperTests(SimpleTestCase):
 
         self.assertEqual(
             entries,
-            [{"number": "TRACK-123", "url": "https://tracking.example/123"}],
+            [
+                {
+                    "number": "TRACK-123",
+                    "url": "https://tracking.example/123",
+                    "carrier": "UPS",
+                    "estimated_delivery": "2026-03-12",
+                    "shipment_date": "2026-03-08",
+                    "delivery_date": "",
+                    "tracking_events": [
+                        "2026-03-08T13:00:00Z: In transit",
+                        "2026-03-12T08:15:00Z: Out for delivery",
+                    ],
+                }
+            ],
         )
 
     def test_sync_order_from_payload_updates_tracking_fields(self):
@@ -191,6 +212,11 @@ class PrintfulFulfillmentHelperTests(SimpleTestCase):
                     "shipment": {
                         "tracking_number": "TRACK-123",
                         "tracking_url": "https://tracking.example/123",
+                        "carrier": "UPS",
+                        "estimated_delivery": "2026-03-12",
+                        "shipment_date": "2026-03-08",
+                        "delivery_date": "",
+                        "tracking_events": [{"status": "In transit", "timestamp": "2026-03-08T13:00:00Z"}],
                     }
                 },
             },
@@ -204,7 +230,17 @@ class PrintfulFulfillmentHelperTests(SimpleTestCase):
         self.assertEqual(order.tracking_url, "https://tracking.example/123")
         self.assertEqual(
             order.printful_tracking_data,
-            [{"number": "TRACK-123", "url": "https://tracking.example/123"}],
+            [
+                {
+                    "number": "TRACK-123",
+                    "url": "https://tracking.example/123",
+                    "carrier": "UPS",
+                    "estimated_delivery": "2026-03-12",
+                    "shipment_date": "2026-03-08",
+                    "delivery_date": "",
+                    "tracking_events": ["2026-03-08T13:00:00Z: In transit"],
+                }
+            ],
         )
         self.assertEqual(order.status, Order.STATUS_SHIPPED)
         self.assertIn("tracking_numbers", order.saved_update_fields)

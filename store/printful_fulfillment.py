@@ -476,8 +476,45 @@ def _iter_tracking_payload_candidates(payload: dict[str, Any]) -> list[dict[str,
     return rows
 
 
-def _extract_tracking_entries(payload: dict[str, Any]) -> list[dict[str, str]]:
-    rows: list[dict[str, str]] = []
+def _shipment_text(shipment: dict[str, Any], *keys: str, max_length: int = 120) -> str:
+    for key in keys:
+        text = " ".join(str(shipment.get(key) or "").split())
+        if text:
+            return text[:max_length]
+    return ""
+
+
+def _normalize_tracking_events(value: Any) -> list[str]:
+    rows: list[str] = []
+    if not isinstance(value, list):
+        return rows
+
+    for raw_event in value:
+        if isinstance(raw_event, dict):
+            timestamp = _shipment_text(raw_event, "timestamp", "date", "datetime", "time", max_length=80)
+            status = _shipment_text(raw_event, "status", "title", "state", max_length=80)
+            message = _shipment_text(raw_event, "description", "message", "details", "detail", max_length=180)
+            location = _shipment_text(raw_event, "location", "city", max_length=120)
+            parts = [part for part in (status, message, location) if part]
+            if timestamp and parts:
+                rows.append(f"{timestamp}: {' - '.join(parts)}"[:240])
+                continue
+            if parts:
+                rows.append(" - ".join(parts)[:240])
+                continue
+            fallback = " ".join(str(val or "").split() for val in raw_event.values() if str(val or "").strip())
+            if fallback:
+                rows.append(fallback[:240])
+            continue
+
+        text = " ".join(str(raw_event or "").split())
+        if text:
+            rows.append(text[:240])
+    return rows
+
+
+def _extract_tracking_entries(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
 
     def _append_shipment(shipment: dict[str, Any]) -> None:
@@ -485,6 +522,11 @@ def _extract_tracking_entries(payload: dict[str, Any]) -> list[dict[str, str]]:
         urls = shipment.get("tracking_url") or shipment.get("tracking_urls") or shipment.get("url")
         number_list = numbers if isinstance(numbers, list) else [numbers]
         url_list = urls if isinstance(urls, list) else [urls]
+        carrier = _shipment_text(shipment, "carrier", "carrier_name")
+        estimated_delivery = _shipment_text(shipment, "estimated_delivery", "estimatedDelivery")
+        shipment_date = _shipment_text(shipment, "shipment_date", "shipmentDate", "shipped_at")
+        delivery_date = _shipment_text(shipment, "delivery_date", "deliveryDate", "delivered_at")
+        tracking_events = _normalize_tracking_events(shipment.get("tracking_events") or shipment.get("trackingEvents"))
         if not any(" ".join(str(raw or "").split()) for raw in number_list) and shipment.get("tracking_number"):
             number_list = [shipment.get("tracking_number")]
 
@@ -501,7 +543,17 @@ def _extract_tracking_entries(payload: dict[str, Any]) -> list[dict[str, str]]:
             if key in seen:
                 continue
             seen.add(key)
-            rows.append({"number": number, "url": url})
+            rows.append(
+                {
+                    "number": number,
+                    "url": url,
+                    "carrier": carrier,
+                    "estimated_delivery": estimated_delivery,
+                    "shipment_date": shipment_date,
+                    "delivery_date": delivery_date,
+                    "tracking_events": tracking_events,
+                }
+            )
 
     for candidate in _iter_tracking_payload_candidates(payload):
         shipments = candidate.get("shipments")
