@@ -331,6 +331,38 @@ class SiteBackgroundSettings(models.Model):
         return obj
 
 
+class SiteContactSettings(models.Model):
+    """
+    Singleton for global public-facing contact details.
+    Keeps office phone, SMS line, and email editable from admin in one place.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    contact_email = models.EmailField(default="support@badguymotors.com")
+    office_phone = models.CharField(max_length=32, default="+14035250432")
+    office_phone_display = models.CharField(max_length=40, default="(403) 525-0432")
+    text_phone = models.CharField(max_length=32, default="+15874060101")
+    text_phone_display = models.CharField(max_length=40, default="(587) 406-0101")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Site contact settings"
+        verbose_name_plural = "Site contact settings"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Site contact settings"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
 class PageCopyDraft(models.Model):
     """
     Stores autosaved draft edits for PageCopy models before publishing.

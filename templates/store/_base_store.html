@@ -581,26 +581,26 @@
       <div class="contact-body">
         <div class="contact-row">
           <div>
-            <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
+            <div><a href="mailto:{{ site_contact.email }}">{{ site_contact.email }}</a></div>
             <div class="contact-sub">{{ store_copy.contact_email_label|default:"E-mail" }}</div>
           </div>
-          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ store_copy.contact_copy_label|default:"Copy" }}</button>
+          <button class="contact-btn" data-copy="{{ site_contact.email }}" type="button">{{ store_copy.contact_copy_label|default:"Copy" }}</button>
         </div>
 
         <div class="contact-row">
           <div>
-            <div><a href="tel:+14035250432">(403) 525-0432</a></div>
+            <div><a href="tel:{{ site_contact.office_phone }}">{{ site_contact.office_phone_display }}</a></div>
             <div class="contact-sub">{{ store_copy.contact_phone_label|default:"Phone" }}</div>
           </div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-            <a class="contact-btn" href="tel:+14035250432">{{ store_copy.contact_call_label|default:"Call" }}</a>
-            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ store_copy.contact_copy_label|default:"Copy" }}</button>
+            <a class="contact-btn" href="tel:{{ site_contact.office_phone }}">{{ store_copy.contact_call_label|default:"Call" }}</a>
+            <button class="contact-btn" data-copy="{{ site_contact.office_phone }}" type="button">{{ store_copy.contact_copy_label|default:"Copy" }}</button>
           </div>
         </div>
 
         <div class="contact-actions">
-          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ store_copy.contact_write_email_label|default:"Write e-mail" }}</a>
-          <a class="contact-btn" href="sms:+14035250432">{{ store_copy.contact_text_label|default:"Text us" }}</a>
+          <a class="contact-btn" href="mailto:{{ site_contact.email }}?subject=Inquiry%20from%20website">{{ store_copy.contact_write_email_label|default:"Write e-mail" }}</a>
+          <a class="contact-btn" href="sms:{{ site_contact.text_phone }}">{{ store_copy.contact_text_label|default:"Text us" }}</a>
         </div>
       </div>
     </div>

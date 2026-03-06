@@ -228,6 +228,8 @@
     .section__head{display:flex;align-items:end;justify-content:space-between;margin-bottom:1.1rem;gap:1rem}
     .section__title{font-size:1.6rem;font-weight:900}
     .section__desc{color:var(--muted-2)}
+    #products .section__title{font-size:clamp(2rem,3.3vw,2.65rem);line-height:1.05}
+    #products .section__desc{font-size:clamp(1rem,1.4vw,1.14rem);line-height:1.55}
     .kicker{color:var(--muted-2);font-weight:800;letter-spacing:.18em;text-transform:uppercase;font-size:.78rem}
 
     .filters{display:flex;flex-wrap:wrap;gap:.65rem;margin:1rem 0 1.25rem}
@@ -263,19 +265,28 @@
     #products .products-carousel__nav{
       display:flex;
       gap:.4rem;
-      justify-content:flex-end;
-      margin:.2rem 0 .6rem;
+      justify-content:space-between;
+      position:absolute;
+      left:.6rem;
+      right:.6rem;
+      top:50%;
+      transform:translateY(-50%);
+      z-index:6;
+      pointer-events:none;
     }
     #products .products-carousel__btn{
-      width:38px;
-      height:38px;
+      width:42px;
+      height:42px;
       border-radius:999px;
       border:1px solid var(--line);
-      background:rgba(0,0,0,.45);
+      background:rgba(0,0,0,.7);
       color:#fff;
       display:grid;
       place-items:center;
       cursor:pointer;
+      z-index:5;
+      box-shadow:0 12px 24px rgba(0,0,0,.35);
+      pointer-events:auto;
       transition:.2s ease;
     }
     #products .products-carousel__btn:hover{
@@ -294,14 +305,54 @@
       overflow-x:auto;
       scroll-snap-type:x mandatory;
       scroll-behavior:smooth;
-      padding:.1rem 0 .75rem;
+      padding:.45rem 3.2rem .9rem;
       scrollbar-width:none;
+      position:relative;
     }
     #products .products-carousel__track::-webkit-scrollbar{ width:0; height:0; display:none; }
     #products .products-carousel__item{
       flex:0 0 clamp(240px, 24vw, 300px);
       scroll-snap-align:start;
       scroll-snap-stop:always;
+    }
+    @media (max-width: 860px){
+      #products .container{
+        display:flex;
+        flex-direction:column;
+      }
+      #products .section__head{ order:1; margin-bottom:.4rem; }
+      #products #productsServerContent{ order:2; }
+      #products #mobileProducts{ order:3; }
+      #products #productsLiveTitle{ order:4; }
+      #products #productsLiveGrid{ order:5; }
+      #products .products-carousel{ margin-top:-.2rem; }
+      #products .products-carousel__nav{
+        position:absolute;
+        left:.4rem;
+        right:.4rem;
+        top:50%;
+        transform:translateY(-50%);
+        justify-content:space-between;
+        pointer-events:none;
+      }
+      #products .products-carousel__btn{
+        width:42px;
+        height:42px;
+        background:rgba(0,0,0,.65);
+        border-color:rgba(255,255,255,.28);
+        box-shadow:0 10px 22px rgba(0,0,0,.35);
+        pointer-events:auto;
+      }
+      #products .products-carousel__btn:hover{
+        border-color:rgba(213,0,0,.7);
+        transform:translateY(-1px) scale(1.02);
+      }
+      #products .products-carousel__track{
+        padding:.35rem 3rem .9rem;
+      }
+      #products .products-carousel__item{
+        flex-basis:clamp(240px, 78vw, 320px);
+      }
     }
 	    .grid--gallery{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 
@@ -352,6 +403,8 @@
 
     .card{display:flex;flex-direction:column;gap:.75rem;padding:1rem;border-radius:1rem;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .22s ease}
     .card:hover{transform:translateY(-3px)}
+    #services .card--link{ cursor:pointer; }
+    #services .card--link:focus-visible{ outline:2px solid rgba(213,0,0,.6); outline-offset:3px; }
     .card__img{position:relative;aspect-ratio:16/9;border-radius:.8rem;overflow:hidden;background:#0b0b0b;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-size:.95rem}
     .card__img img{width:100%;height:100%;object-fit:cover;display:block}
     .card__head{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap}
@@ -984,8 +1037,8 @@
 	      #products .home-divider,
 	      #products #productsSearchForm,
 	      #products #productsLiveTitle,
-	      #products #productsLiveGrid,
-	      #products #productsServerContent{ display:none !important; }
+	      #products #productsLiveGrid{ display:none !important; }
+	      #products #productsServerContent{ display:block !important; }
 	    }
     @media (max-width: 640px){
       .mobi-photo-break.frame{ aspect-ratio:4/3; }
@@ -1678,7 +1731,7 @@
             <h3 class="kicker" style="margin:.5rem 0 1rem">{{ home_copy.services_results_label }}</h3>
             <div class="grid grid--services">
               {% for s in search_results|slice:":8" %}
-                <article class="card">
+                <article class="card card--link" data-card-href="{% url 'client-dashboard' %}?book={{ s.id }}#services" tabindex="0">
                   <div class="card__img">
                     {% if s.image %}
                       {% thumbnail s.image "320" quality=66 format="WEBP" as service_1x %}
@@ -1736,7 +1789,7 @@
 		          {% if home_services %}
 		            <div class="grid grid--services grid--services--limit2">
 		              {% for s in home_services|slice:":8" %}
-		                <article class="card">
+		                <article class="card card--link" data-card-href="{% url 'client-dashboard' %}?book={{ s.id }}#services" tabindex="0">
 		                  <div class="card__img">
 	                    {% if s.image %}
 	                      {% thumbnail s.image "320" quality=66 format="WEBP" as service_1x %}
@@ -1801,7 +1854,11 @@
 		        <div class="section__head">
 		          <div>
 		            <h2 class="section__title">{{ home_copy.products_title }}</h2>
-		            <p class="section__desc">{{ home_copy.products_desc }}</p>
+                {% with products_desc=home_copy.products_desc|suppress_symbol_only_copy %}
+                  {% if products_desc %}
+		            <p class="section__desc">{{ products_desc }}</p>
+                  {% endif %}
+                {% endwith %}
 		          </div>
 		        </div>
 
@@ -2168,7 +2225,7 @@
         : "";
       const durationHtml = durationBits ? `<div class="dur">${durationBits}</div>` : "";
       return `
-        <article class="card">
+        <article class="card card--link" data-card-href="${esc(bookingHref)}" tabindex="0">
           <div class="card__img">${media}</div>
           <div class="card__head">
             <h3 style="font-weight:900">${esc(s.name)}</h3>
@@ -2205,6 +2262,31 @@
     catSel.addEventListener('change', run);
 	  })();
 	  </script>
+
+    <script id="services-card-link-js">
+    (function(){
+      const selector = '#services .card--link[data-card-href]';
+      const isInteractive = (el) => !!el.closest('a,button,input,select,textarea,label,summary,details');
+      const go = (card) => {
+        const href = card.dataset.cardHref;
+        if (href) window.location.href = href;
+      };
+
+      document.addEventListener('click', (e) => {
+        const card = e.target.closest(selector);
+        if (!card || isInteractive(e.target)) return;
+        go(card);
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const card = e.target.closest(selector);
+        if (!card || isInteractive(e.target)) return;
+        e.preventDefault();
+        go(card);
+      });
+    })();
+    </script>
 
 	  <script>
 	  /* Live product search (Home) */
@@ -2395,26 +2477,26 @@
       <div class="contact-body">
         <div class="contact-row">
           <div>
-            <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
+            <div><a href="mailto:{{ site_contact.email }}">{{ site_contact.email }}</a></div>
             <div class="contact-sub">{{ home_copy.contact_email_label }}</div>
           </div>
-          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ home_copy.contact_copy_label }}</button>
+          <button class="contact-btn" data-copy="{{ site_contact.email }}" type="button">{{ home_copy.contact_copy_label }}</button>
         </div>
 
         <div class="contact-row">
           <div>
-            <div><a href="tel:+14035250432">(403) 525-0432</a></div>
+            <div><a href="tel:{{ site_contact.office_phone }}">{{ site_contact.office_phone_display }}</a></div>
             <div class="contact-sub">{{ home_copy.contact_phone_label }}</div>
           </div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-            <a class="contact-btn" href="tel:+14035250432">{{ home_copy.contact_call_label }}</a>
-            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ home_copy.contact_copy_label }}</button>
+            <a class="contact-btn" href="tel:{{ site_contact.office_phone }}">{{ home_copy.contact_call_label }}</a>
+            <button class="contact-btn" data-copy="{{ site_contact.office_phone }}" type="button">{{ home_copy.contact_copy_label }}</button>
           </div>
         </div>
 
         <div class="contact-actions">
-          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ home_copy.contact_write_email_label }}</a>
-          <a class="contact-btn" href="sms:+14035250432">{{ home_copy.contact_text_label }}</a>
+          <a class="contact-btn" href="mailto:{{ site_contact.email }}?subject=Inquiry%20from%20website">{{ home_copy.contact_write_email_label }}</a>
+          <a class="contact-btn" href="sms:{{ site_contact.text_phone }}">{{ home_copy.contact_text_label }}</a>
         </div>
       </div>
     </div>
@@ -2568,6 +2650,20 @@
       if (!track) return;
       const prevBtn = carousel.querySelector('[data-products-prev]');
       const nextBtn = carousel.querySelector('[data-products-next]');
+      let originalWidth = 0;
+      let lastScrollLeft = 0;
+
+      const setupLoop = () => {
+        if (track.dataset.loopReady === 'true') return;
+        const items = Array.from(track.children);
+        if (items.length < 2) return;
+        items.forEach((item) => {
+          track.appendChild(item.cloneNode(true));
+        });
+        track.dataset.loopReady = 'true';
+        originalWidth = track.scrollWidth / 2;
+        lastScrollLeft = track.scrollLeft;
+      };
 
       const getStep = () => {
         const item = track.querySelector('.products-carousel__item');
@@ -2582,14 +2678,23 @@
         const hasOverflow = track.scrollWidth > track.clientWidth + 2;
         prevBtn.style.display = hasOverflow ? '' : 'none';
         nextBtn.style.display = hasOverflow ? '' : 'none';
-        prevBtn.disabled = track.scrollLeft <= 2;
-        nextBtn.disabled = track.scrollLeft >= maxScroll;
+        if (track.dataset.loopReady === 'true') {
+          prevBtn.disabled = false;
+          nextBtn.disabled = false;
+        } else {
+          prevBtn.disabled = track.scrollLeft <= 2;
+          nextBtn.disabled = track.scrollLeft >= maxScroll;
+        }
       };
 
       const scrollByStep = (dir) => {
+        if (dir < 0 && originalWidth && track.scrollLeft <= 1) {
+          track.scrollLeft = track.scrollLeft + originalWidth;
+        }
         track.scrollBy({ left: getStep() * dir, behavior: prefersReduced ? 'auto' : 'smooth' });
       };
 
+      setupLoop();
       if (prevBtn) prevBtn.addEventListener('click', () => scrollByStep(-1));
       if (nextBtn) nextBtn.addEventListener('click', () => scrollByStep(1));
 
@@ -2597,12 +2702,29 @@
       track.addEventListener('scroll', () => {
         if (raf) return;
         raf = window.requestAnimationFrame(() => {
+          if (originalWidth) {
+            const current = track.scrollLeft;
+            if (current >= originalWidth) {
+              track.scrollLeft = current - originalWidth;
+              lastScrollLeft = track.scrollLeft;
+            } else if (current <= 1 && lastScrollLeft > current) {
+              track.scrollLeft = current + originalWidth;
+              lastScrollLeft = track.scrollLeft;
+            } else {
+              lastScrollLeft = current;
+            }
+          }
           updateButtons();
           raf = null;
         });
       }, { passive: true });
 
-      window.addEventListener('resize', updateButtons);
+      window.addEventListener('resize', () => {
+        if (track.dataset.loopReady === 'true') {
+          originalWidth = track.scrollWidth / 2;
+        }
+        updateButtons();
+      });
       updateButtons();
     });
   })();

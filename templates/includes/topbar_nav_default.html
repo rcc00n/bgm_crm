@@ -23,6 +23,7 @@
       </a>
     </li>
     <li><a href="{% url 'project-journal' %}" {% if current == 'gallery' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_gallery_label|default:"Gallery" }}</a></li>
+    <li><a href="{% url 'faq' %}" {% if current == 'faq' %}aria-current="page"{% endif %}>FAQs</a></li>
   </ul>
 </li>
 <li class="bgm-topbar__nav-item bgm-topbar__nav-item--mobile-only">
@@ -56,6 +57,9 @@
 </li>
 <li class="bgm-topbar__nav-item bgm-topbar__nav-item--mobile-only">
   <a href="{% url 'project-journal' %}" {% if current == 'gallery' %}aria-current="page"{% endif %}>{{ topbar_copy.nav_gallery_label|default:"Gallery" }}</a>
+</li>
+<li class="bgm-topbar__nav-item bgm-topbar__nav-item--mobile-only">
+  <a href="{% url 'faq' %}" {% if current == 'faq' %}aria-current="page"{% endif %}>FAQs</a>
 </li>
 {% if user.is_authenticated %}
   <li class="bgm-topbar__nav-item"><a href="{% url 'dashboard' %}">{{ topbar_copy.nav_client_portal_label|default:"Client Portal" }}</a></li>

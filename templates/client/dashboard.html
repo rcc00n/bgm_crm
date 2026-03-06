@@ -557,10 +557,8 @@
       font-weight:800;
     }
     .order-card__tracking-list{
-      display:flex;
-      flex-wrap:wrap;
-      gap:.4rem .55rem;
-      align-items:center;
+      display:grid;
+      gap:.55rem;
     }
     .tracking-pill{
       display:inline-flex;
@@ -572,6 +570,30 @@
       font-weight:700;
       color:#fff;
       background:rgba(255,255,255,.04);
+    }
+    .tracking-entry{
+      display:grid;
+      gap:.38rem;
+      padding:.65rem .75rem;
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:.9rem;
+      background:rgba(255,255,255,.03);
+    }
+    .tracking-entry__meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.35rem .65rem;
+      color:var(--muted-2);
+      font-size:.78rem;
+    }
+    .tracking-entry__events{
+      display:grid;
+      gap:.25rem;
+    }
+    .tracking-entry__event{
+      font-size:.78rem;
+      color:#fff;
+      line-height:1.4;
     }
 
     .order-modal__dialog{width:min(820px,calc(100dvw - 2rem))}
@@ -3477,26 +3499,26 @@ body, input, select, textarea, button, .muted, .muted-2, .kicker, .panel, .chip 
     <div class="contact-body">
       <div class="contact-row">
         <div>
-          <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
+          <div><a href="mailto:{{ site_contact.email }}">{{ site_contact.email }}</a></div>
           <div class="contact-sub">{{ portal_copy.contact_email_label }}</div>
         </div>
-        <button class="contact-btn" data-copy="support@badguymotors.com" type="button">{{ portal_copy.contact_copy_label }}</button>
+        <button class="contact-btn" data-copy="{{ site_contact.email }}" type="button">{{ portal_copy.contact_copy_label }}</button>
       </div>
 
       <div class="contact-row">
         <div>
-          <div><a href="tel:+14035250432">(403) 525-0432</a></div>
+          <div><a href="tel:{{ site_contact.office_phone }}">{{ site_contact.office_phone_display }}</a></div>
           <div class="contact-sub">{{ portal_copy.contact_phone_label }}</div>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-          <a class="contact-btn" href="tel:+14035250432">{{ portal_copy.contact_call_label }}</a>
-          <button class="contact-btn" data-copy="+1 403 525 0432" type="button">{{ portal_copy.contact_copy_label }}</button>
+          <a class="contact-btn" href="tel:{{ site_contact.office_phone }}">{{ portal_copy.contact_call_label }}</a>
+          <button class="contact-btn" data-copy="{{ site_contact.office_phone }}" type="button">{{ portal_copy.contact_copy_label }}</button>
         </div>
       </div>
 
       <div class="contact-actions">
-        <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">{{ portal_copy.contact_write_email_label }}</a>
-        <a class="contact-btn" href="sms:+14035250432">{{ portal_copy.contact_text_label }}</a>
+        <a class="contact-btn" href="mailto:{{ site_contact.email }}?subject=Inquiry%20from%20website">{{ portal_copy.contact_write_email_label }}</a>
+        <a class="contact-btn" href="sms:{{ site_contact.text_phone }}">{{ portal_copy.contact_text_label }}</a>
       </div>
     </div>
   </div>

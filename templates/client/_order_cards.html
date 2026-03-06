@@ -68,22 +68,39 @@
             </div>
           {% endif %}
 
-          {% if o.tracking_numbers or o.tracking_url %}
+          {% if o.tracking_entries %}
             <div class="order-card__tracking">
               <div class="order-card__tracking-title">Tracking</div>
               <div class="order-card__tracking-list">
-                {% for entry in o.tracking_numbers|split_lines %}
-                  <span class="tracking-pill">{{ entry }}</span>
+                {% for entry in o.tracking_entries %}
+                  <div class="tracking-entry">
+                    {% if entry.number %}
+                      <span class="tracking-pill">{{ entry.number }}</span>
+                    {% endif %}
+                    <div class="tracking-entry__meta">
+                      {% if entry.carrier %}<span>Carrier: {{ entry.carrier }}</span>{% endif %}
+                      {% if entry.estimated_delivery %}<span>ETA: {{ entry.estimated_delivery }}</span>{% endif %}
+                      {% if entry.shipment_date %}<span>Shipped: {{ entry.shipment_date }}</span>{% endif %}
+                      {% if entry.delivery_date %}<span>Delivered: {{ entry.delivery_date }}</span>{% endif %}
+                    </div>
+                    {% if entry.tracking_events %}
+                      <div class="tracking-entry__events">
+                        {% for event in entry.tracking_events %}
+                          <div class="tracking-entry__event">{{ event }}</div>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                    {% if entry.url %}
+                      <a class="link text-sm inline-flex items-center gap-1"
+                         href="{{ entry.url }}"
+                         target="_blank"
+                         rel="noopener"
+                         data-order-ignore-modal>
+                        Track package{% if o.tracking_entries|length > 1 %} {{ forloop.counter }}{% endif %} →
+                      </a>
+                    {% endif %}
+                  </div>
                 {% endfor %}
-                {% if o.tracking_url %}
-                  <a class="link text-sm inline-flex items-center gap-1"
-                     href="{{ o.tracking_url }}"
-                     target="_blank"
-                     rel="noopener"
-                     data-order-ignore-modal>
-                    Track package →
-                  </a>
-                {% endif %}
               </div>
             </div>
           {% endif %}

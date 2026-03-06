@@ -40,3 +40,20 @@ class MetaTextFilterTests(SimpleTestCase):
 
         value = "Warranty &amp;amp; support"
         self.assertEqual(meta_text(value), "Warranty & support")
+
+
+class CopyExtrasFilterTests(SimpleTestCase):
+    def test_suppress_symbol_only_copy_hides_placeholder_symbols(self):
+        from core.templatetags.copy_extras import suppress_symbol_only_copy
+
+        self.assertEqual(suppress_symbol_only_copy("*"), "")
+        self.assertEqual(suppress_symbol_only_copy("(*)"), "")
+        self.assertEqual(suppress_symbol_only_copy("."), "")
+
+    def test_suppress_symbol_only_copy_keeps_real_copy(self):
+        from core.templatetags.copy_extras import suppress_symbol_only_copy
+
+        self.assertEqual(
+            suppress_symbol_only_copy("Performance parts curated by BGM."),
+            "Performance parts curated by BGM.",
+        )

@@ -287,10 +287,11 @@ PRINTFUL_STORE_ID = os.getenv("PRINTFUL_STORE_ID", "")
 PRINTFUL_API_BASE_URL = os.getenv("PRINTFUL_API_BASE_URL", "https://api.printful.com")
 PRINTFUL_MERCH_CATALOG_URL = os.getenv("PRINTFUL_MERCH_CATALOG_URL", "")
 PRINTFUL_MERCH_PRODUCT_URL_TEMPLATE = os.getenv("PRINTFUL_MERCH_PRODUCT_URL_TEMPLATE", "")
-PRINTFUL_MERCH_LIMIT = max(1, _int_env("PRINTFUL_MERCH_LIMIT", 8))
+PRINTFUL_MERCH_LIMIT = max(0, _int_env("PRINTFUL_MERCH_LIMIT", 8))
 PRINTFUL_MERCH_CACHE_SECONDS = max(0, _int_env("PRINTFUL_MERCH_CACHE_SECONDS", 300))
 PRINTFUL_TIMEOUT_SECONDS = max(0.5, _float_env("PRINTFUL_TIMEOUT_SECONDS", 4.0))
 PRINTFUL_MERCH_SHOW_PRICE = _bool_env("PRINTFUL_MERCH_SHOW_PRICE", "True")
+PRINTFUL_WEBHOOK_SECRET = os.getenv("PRINTFUL_WEBHOOK_SECRET", "")
 # Internal inbox for staff notifications (fallback when per-feature recipients are not configured).
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@badguymotors.com")
 # e-Transfer instructions should default to the payments inbox, not the support inbox.
@@ -375,6 +376,7 @@ TEMPLATES = [
                 "core.context_processors_core.store_shipping",
                 "core.context_processors_core.marketing_tags",
                 "core.context_processors_core.company_info",
+                "core.context_processors_core.site_contact",
                 "core.context_processors_core.topbar_style",
                 "core.context_processors_core.cart_summary",
             ],
@@ -439,6 +441,9 @@ CKEDITOR_CONFIGS = {
         "width": "auto",
     }
 }
+
+# Silence CKEditor 4 deprecation warning for now (we'll plan a safe upgrade path).
+SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
 
 STORAGES = {
     # Manifest storage has been causing 404s in production when the manifest and
@@ -669,6 +674,7 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "core.PageFontSetting", "label": "Page Fonts"},
                     {"model": "core.TopbarSettings", "label": "Topbar Settings"},
                     {"model": "core.AdminLoginBranding", "label": "Admin Login Branding"},
+                    {"model": "core.SiteContactSettings", "label": "Site Contact Settings"},
                 ],
             },
             {
@@ -809,6 +815,7 @@ JAZZMIN_SETTINGS = {
         "core.PageFontSetting": "fas fa-heading",
         "core.TopbarSettings": "fas fa-stream",
         "core.AdminLoginBranding": "fas fa-sign-in-alt",
+        "core.SiteContactSettings": "fas fa-phone-volume",
         "core.EmailTemplate": "fas fa-envelope-open-text",
         "core.EmailCampaign": "fas fa-paper-plane",
         "core.EmailSubscriber": "fas fa-user-plus",

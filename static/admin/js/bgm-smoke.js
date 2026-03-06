@@ -1,4 +1,7 @@
 // static/admin/js/bgm-smoke.js
+// Backups of previous live versions:
+// static/admin/js/bgm-smoke.backup-20260305.js
+// static/admin/js/bgm-smoke.backup-20260305-bold.js
 (function init() {
   if (window.__bgmSmokeInit) return;
   window.__bgmSmokeInit = true;
@@ -35,6 +38,12 @@
   host.style.inset = '0';
   host.style.pointerEvents = 'none';
   if (!host.style.zIndex) host.style.zIndex = '0';
+  host.style.filter = 'brightness(0.78)';
+  host.style.background = [
+    'radial-gradient(circle at 50% 18%, rgba(8, 12, 20, 0.28) 0%, rgba(3, 4, 8, 0.68) 48%, rgba(0, 0, 0, 0.92) 100%)',
+    'linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.54) 55%, rgba(0, 0, 0, 0.78) 100%)',
+  ].join(',');
+  host.style.backgroundBlendMode = 'normal, multiply';
 
   const loadThreeScript = (src) =>
     new Promise((resolve, reject) => {
@@ -117,7 +126,7 @@
     canvas.style.width = '100%';
     canvas.style.height = '100%';
     canvas.style.display = 'block';
-    canvas.style.opacity = '0.62';
+    canvas.style.opacity = '0.82';
     canvas.style.mixBlendMode = 'screen';
     host.appendChild(canvas);
 
@@ -136,20 +145,20 @@
     const spawnParticle = () => ({
       x: Math.random() * pxW,
       y: pxH + Math.random() * (pxH * 0.3),
-      r: (Math.random() * 90 + 55) * dpr,
-      vx: (Math.random() - 0.5) * 0.28 * dpr,
-      vy: -(Math.random() * 0.42 + 0.22) * dpr,
-      alpha: Math.random() * 0.05 + 0.025,
+      r: (Math.random() * 120 + 72) * dpr,
+      vx: (Math.random() - 0.5) * 0.38 * dpr,
+      vy: -(Math.random() * 0.56 + 0.3) * dpr,
+      alpha: Math.random() * 0.07 + 0.04,
       wobbleSeed: Math.random() * Math.PI * 2,
     });
 
     const resetParticle = (p) => {
       p.x = Math.random() * pxW;
       p.y = pxH + Math.random() * (pxH * 0.25);
-      p.r = (Math.random() * 90 + 55) * dpr;
-      p.vx = (Math.random() - 0.5) * 0.28 * dpr;
-      p.vy = -(Math.random() * 0.42 + 0.22) * dpr;
-      p.alpha = Math.random() * 0.05 + 0.025;
+      p.r = (Math.random() * 120 + 72) * dpr;
+      p.vx = (Math.random() - 0.5) * 0.38 * dpr;
+      p.vy = -(Math.random() * 0.56 + 0.3) * dpr;
+      p.alpha = Math.random() * 0.07 + 0.04;
       p.wobbleSeed = Math.random() * Math.PI * 2;
     };
 
@@ -159,7 +168,7 @@
       pxH = Math.max(1, Math.floor(window.innerHeight * dpr));
       canvas.width = pxW;
       canvas.height = pxH;
-      const targetCount = Math.min(44, Math.max(20, Math.round((pxW * pxH) / 85000)));
+      const targetCount = Math.min(56, Math.max(26, Math.round((pxW * pxH) / 70000)));
       if (particles.length > targetCount) {
         particles.length = targetCount;
       } else {
@@ -176,8 +185,8 @@
         p.y,
         p.r
       );
-      gradient.addColorStop(0, `rgba(235,242,255,${p.alpha})`);
-      gradient.addColorStop(0.58, `rgba(208,220,248,${p.alpha * 0.55})`);
+      gradient.addColorStop(0, `rgba(244,247,255,${p.alpha})`);
+      gradient.addColorStop(0.58, `rgba(214,225,252,${p.alpha * 0.66})`);
       gradient.addColorStop(1, 'rgba(145,165,210,0)');
       ctx.fillStyle = gradient;
       ctx.beginPath();
@@ -194,7 +203,7 @@
       ctx.clearRect(0, 0, pxW, pxH);
       for (let i = 0; i < particles.length; i += 1) {
         const p = particles[i];
-        const wobble = Math.sin(now * 0.00075 + p.wobbleSeed + p.y * 0.004) * 0.18 * dpr;
+        const wobble = Math.sin(now * 0.001 + p.wobbleSeed + p.y * 0.0045) * 0.3 * dpr;
         p.x += p.vx + wobble;
         p.y += p.vy;
         if (p.y < -p.r || p.x < -p.r * 1.3 || p.x > pxW + p.r * 1.3) {
@@ -283,34 +292,53 @@
         float k = 1.0 - smoothstep(0.0, edge, y);
         return pow(k, 1.1);
       }
+      vec2 flowField(vec2 p, float t){
+        vec2 q = vec2(
+          fbm(p * 0.9 + vec2(0.0,  t * 0.08)),
+          fbm(p * 0.85 + vec2(4.7, -t * 0.06))
+        );
+        vec2 r = vec2(
+          fbm((p + q * 0.7) * 1.65 + vec2(-2.8,  t * 0.12)),
+          fbm((p - q * 0.6) * 1.5  + vec2( 3.1, -t * 0.09))
+        );
+        return (q - 0.5) * 0.34 + (r - 0.5) * 0.18;
+      }
       vec3 tonemap(vec3 x){ x=max(x, vec3(0.0)); return x/(1.0+x); }
 
       void main(){
         vec2 uv = gl_FragCoord.xy / iResolution.xy;
         vec2 p = uv; p.x *= iResolution.x/iResolution.y;
         float t = iTime, rise = 0.12 * uRise;
+        vec2 drift = flowField(p * vec2(1.0, 0.82), t) * (0.82 + uTurbulence * 0.08);
+        p += drift;
+        p.y += drift.x * 0.08;
 
         float d = 0.0;
-        vec2 s1 = vec2(p.x + uWind*t*0.03, p.y - t*rise*0.6);  d += fbm(s1*1.2 + vec2(0.0,  t*0.10)) * 0.9;
-        vec2 s2 = vec2(p.x*1.5 + uWind*t*0.05, p.y - t*rise*0.9); d += fbm(s2*2.0 + vec2(0.0, -t*0.15)) * 0.7;
+        vec2 s1 = vec2(p.x * 1.08 + uWind*t*0.03 + drift.x*0.65, p.y - t*rise*0.58 + drift.y*0.28);
+        d += fbm(s1*1.2 + vec2(0.0, t*0.10)) * 0.9;
+        vec2 s2 = vec2(p.x * 1.42 + uWind*t*0.05 - drift.y*0.5, p.y - t*rise*0.88 - drift.x*0.18);
+        d += fbm(s2*1.95 + vec2(0.0, -t*0.15)) * 0.7;
 
         float q = mix(3.0, 5.0, uQuality);
-        vec2 s3 = vec2(p.x*2.2 + uWind*t*0.07, p.y - t*rise*1.25); d += fbm(s3*q + vec2(t*0.12, 0.0)) * 0.55;
+        vec2 s3 = vec2(p.x*2.1 + uWind*t*0.07 + drift.x*0.32, p.y - t*rise*1.2 + drift.y*0.22);
+        d += fbm(s3*q + vec2(t*0.12, 0.0)) * 0.55;
 
         d /= 2.15; d = pow(d, 1.35 + uTurbulence*0.08); d *= uDensity;
 
         float emit = bottomEmitter(uv.y, uFill); d *= mix(0.6, 1.0, emit);
-        float topFade = smoothstep(0.85*uFill, 1.05, uv.y); d *= (1.0 - 0.35*topFade);
+        float topFade = smoothstep(0.88*uFill, 1.04, uv.y); d *= (1.0 - 0.24*topFade);
 
         float g = (noise(uv * iResolution.xy * (48.0 + uQuality*64.0) + iTime*10.0) - 0.5) * uGrain;
 
         float smoke = clamp(d * uContrast + g, 0.0, 1.0);
+        float eddy = fbm(vec2(p.x * 1.35 - drift.y * 0.4, p.y * 0.9 + drift.x * 0.28 + t * 0.05));
+        smoke *= mix(0.94, 1.06, eddy);
         float hx = smoothstep(0.0, 0.15, uv.x) * (1.0 - smoothstep(0.85, 1.0, uv.x));
         smoke *= mix(0.95, 1.0, hx);
 
-        vec3 tint = vec3(0.8, 0.85, 1.0);
+        vec3 tint = vec3(0.86, 0.9, 1.0);
         vec3 col = vec3(smoke) * tint;
-        col = tonemap(col * 2.2);
+        col = tonemap(col * 2.9);
         gl_FragColor = vec4(col, 1.0);
       }
     `;
@@ -318,14 +346,14 @@
     const uniforms = {
       iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
       iTime:       { value: 0 },
-      uDensity:    { value: 0.52 },
-      uRise:       { value: 0.5 },
-      uWind:       { value: 0.15 },
-      uTurbulence: { value: 1.0 },
-      uFill:       { value: 0.7 },
-      uContrast:   { value: 0.95 },
+      uDensity:    { value: 0.68 },
+      uRise:       { value: 0.58 },
+      uWind:       { value: 0.22 },
+      uTurbulence: { value: 1.24 },
+      uFill:       { value: 0.82 },
+      uContrast:   { value: 1.22 },
       uGrain:      { value: 0.0 },
-      uQuality:    { value: 0.65 },
+      uQuality:    { value: 0.7 },
     };
 
     quad.material = new THREE.ShaderMaterial({

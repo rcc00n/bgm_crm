@@ -12,5 +12,7 @@ urlpatterns = [
     path("cart/add/<slug:slug>/", views.cart_add, name="store-cart-add"),
     path("cart/remove/<slug:slug>/", views.cart_remove, name="store-cart-remove"),
     path("cart/promo/", views.cart_promo, name="store-cart-promo"),
+    path("checkout/printful-shipping-rates/", views.checkout_printful_rates, name="store-checkout-printful-rates"),
     path("checkout/", views.checkout, name="store-checkout"),
+    path("printful/webhook/<str:secret>/", views.printful_webhook, name="store-printful-webhook"),
 ]

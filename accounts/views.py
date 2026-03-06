@@ -6,6 +6,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from datetime import timedelta
 from collections import OrderedDict
+from urllib.parse import unquote
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -25,8 +26,9 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.text import slugify
-from django.db.models import OuterRef, Subquery, Count
+from django.db.models import OuterRef, Subquery, Count, Q
 from django.db.models.functions import TruncMonth
+from django.db.utils import OperationalError, ProgrammingError
 from django.conf import settings
 from django.template.defaultfilters import filesizeformat
 import os
@@ -48,6 +50,7 @@ from core.services.media import build_home_gallery_media
 from core.services.page_sections import get_page_sections
 from core.services.email_reporting import describe_email_types
 from core.services.printful import get_printful_merch_feed
+from core.utils import format_currency
 from core.emails import build_email_html, send_html_email
 from core.email_templates import email_brand_name, join_text_sections
 
@@ -56,7 +59,13 @@ from .forms import (
     ClientProfileForm,
     VerifiedLoginForm,
 )
+from store.printful_catalog import (
+    build_printful_product_sku,
+    parse_printful_product_id_from_sku,
+    sync_printful_merch_products,
+)
 from store.models import Category, MerchCategory, Order, Product, ProductOption
+from store.utils_merch import normalize_merch_category
 
 CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
 CLIENT_PORTAL_FILE_MAX_BYTES = CLIENT_PORTAL_FILE_MAX_MB * 1024 * 1024
@@ -884,7 +893,13 @@ class HomeView(TemplateView):
 
         # НОВОЕ: 8 товаров для главной (витрина)
         products_qs = (
-            Product.objects.filter(is_active=True)
+            Product.objects.filter(is_active=True, is_in_house=True)
+            .exclude(
+                Q(merch_category__isnull=False)
+                | Q(category__slug="merch")
+                | Q(sku__startswith="PF-")
+                | Q(slug__startswith="merch-")
+            )
             .select_related("category")
             .prefetch_related("options", "discounts")
             .order_by("-created_at")
@@ -897,36 +912,51 @@ class HomeView(TemplateView):
             .exclude(cover_image="")
             .order_by("-featured", "-published_at")[:4]
         )
-        gallery_items = [
-            {
-                "image": post.cover_image,
-                "src": post.cover_image.url,
-                "alt": post.hero_title or post.title,
-                "title": post.hero_title or post.title,
-                "caption": post.result_highlight or post.excerpt,
-                "url": post.get_absolute_url(),
-            }
-            for post in gallery_posts
-        ]
-        if len(gallery_items) < 4:
-            for asset in build_home_gallery_media():
-                if len(gallery_items) >= 4:
-                    break
+        gallery_posts_iter = iter(gallery_posts)
+        gallery_items = []
+        for asset in build_home_gallery_media():
+            if asset.get("is_custom"):
                 gallery_items.append(
                     {
-                        "image": None,
+                        "image": asset.get("image"),
                         "src": asset["src"],
                         "alt": asset.get("alt") or "",
                         "title": asset.get("title") or "",
                         "caption": asset.get("caption") or "",
-                        "fallback_srcset_avif": asset.get("fallback_srcset_avif") or "",
-                        "fallback_srcset_webp": asset.get("fallback_srcset_webp") or "",
-                        "fallback_srcset_jpg": asset.get("fallback_srcset_jpg") or "",
-                        "fallback_width": asset.get("fallback_width"),
-                        "fallback_height": asset.get("fallback_height"),
                         "url": gallery_url,
                     }
                 )
+                continue
+
+            post = next(gallery_posts_iter, None)
+            if post:
+                gallery_items.append(
+                    {
+                        "image": post.cover_image,
+                        "src": post.cover_image.url,
+                        "alt": post.hero_title or post.title,
+                        "title": post.hero_title or post.title,
+                        "caption": post.result_highlight or post.excerpt,
+                        "url": gallery_url,
+                    }
+                )
+                continue
+
+            gallery_items.append(
+                {
+                    "image": None,
+                    "src": asset["src"],
+                    "alt": asset.get("alt") or "",
+                    "title": asset.get("title") or "",
+                    "caption": asset.get("caption") or "",
+                    "fallback_srcset_avif": asset.get("fallback_srcset_avif") or "",
+                    "fallback_srcset_webp": asset.get("fallback_srcset_webp") or "",
+                    "fallback_srcset_jpg": asset.get("fallback_srcset_jpg") or "",
+                    "fallback_width": asset.get("fallback_width"),
+                    "fallback_height": asset.get("fallback_height"),
+                    "url": gallery_url,
+                }
+            )
         ctx["home_gallery_items"] = gallery_items
         ctx["home_gallery_url"] = gallery_url
         return ctx
@@ -950,162 +980,6 @@ class StoreView(TemplateView):
 PRINTFUL_MERCH_SYNC_KEY_PREFIX = "printful_merch_store_sync_v2"
 
 
-def _parse_merch_decimal(value) -> Decimal | None:
-    if value in (None, ""):
-        return None
-    try:
-        parsed = Decimal(str(value).strip())
-    except (InvalidOperation, TypeError, ValueError):
-        return None
-    return parsed if parsed >= 0 else None
-
-
-def _build_printful_product_sku(product_id: int) -> str:
-    return f"PF-{product_id}"
-
-
-def _parse_printful_product_id_from_sku(value: str) -> int:
-    raw = (value or "").strip().upper()
-    if not raw.startswith("PF-"):
-        return 0
-    try:
-        return int(raw[3:])
-    except (TypeError, ValueError):
-        return 0
-
-
-def _build_printful_product_slug(product_id: int, name: str) -> str:
-    base = slugify(name or "")[:140] or "item"
-    return f"merch-{product_id}-{base}"[:200]
-
-
-def _get_or_create_merch_category() -> Category:
-    existing = Category.objects.filter(name__iexact="Merch").first() or Category.objects.filter(slug="merch").first()
-    if existing:
-        return existing
-    return Category.objects.create(
-        name="Merch",
-        slug="merch",
-        description="Printful merchandise catalog.",
-    )
-
-
-def _dedupe_option_name(name: str, *, index: int, used: set[str]) -> str:
-    clean = (name or "").strip()[:120] or f"Option {index}"
-    if clean not in used:
-        used.add(clean)
-        return clean
-
-    attempt = 2
-    while True:
-        suffix = f" ({attempt})"
-        candidate = f"{clean[: max(1, 120 - len(suffix))]}{suffix}"
-        if candidate not in used:
-            used.add(candidate)
-            return candidate
-        attempt += 1
-
-
-def _sync_printful_options_for_product(product: Product, variants: list[dict]) -> int | None:
-    if not variants:
-        ProductOption.objects.filter(product=product).update(is_active=False)
-        return None
-
-    seen_skus: list[str] = []
-    used_names: set[str] = set()
-    default_option_id = None
-
-    for index, variant in enumerate(variants, start=1):
-        raw_sku = str(variant.get("sku") or "").strip()[:64]
-        variant_id = 0
-        try:
-            variant_id = int(variant.get("id") or 0)
-        except (TypeError, ValueError):
-            variant_id = 0
-
-        option_sku = raw_sku or f"{product.sku}-VAR-{variant_id or index}"
-        if option_sku in seen_skus:
-            option_sku = f"{option_sku[:56]}-{index}"[:64]
-        seen_skus.append(option_sku)
-
-        option_name = _dedupe_option_name(str(variant.get("name") or ""), index=index, used=used_names)
-        option_price = _parse_merch_decimal(variant.get("price"))
-
-        option, _ = ProductOption.objects.update_or_create(
-            sku=option_sku,
-            defaults={
-                "product": product,
-                "name": option_name,
-                "description": "",
-                "is_separator": False,
-                "option_column": 1,
-                "price": option_price,
-                "is_active": True,
-                "sort_order": index,
-            },
-        )
-        if default_option_id is None:
-            default_option_id = option.id
-
-    ProductOption.objects.filter(product=product).exclude(sku__in=seen_skus).update(is_active=False)
-    return default_option_id
-
-
-def _sync_printful_merch_products(products: list[dict]) -> None:
-    if not products:
-        return
-
-    category = _get_or_create_merch_category()
-    default_currency = (getattr(settings, "DEFAULT_CURRENCY_CODE", "CAD") or "CAD").upper()
-
-    for item in products:
-        try:
-            product_id = int(item.get("id") or 0)
-        except (TypeError, ValueError):
-            product_id = 0
-        if product_id <= 0:
-            continue
-
-        name = (str(item.get("name") or "") or f"Merch item {product_id}").strip()[:180]
-        sku = _build_printful_product_sku(product_id)
-        slug = _build_printful_product_slug(product_id, name)
-        variants = [row for row in item.get("variants", []) if isinstance(row, dict)]
-
-        variant_prices = []
-        for variant in variants:
-            price = _parse_merch_decimal(variant.get("price"))
-            if price is not None:
-                variant_prices.append(price)
-
-        base_price = _parse_merch_decimal(item.get("base_price"))
-        if base_price is None and variant_prices:
-            base_price = min(variant_prices)
-        if base_price is None:
-            base_price = Decimal("0.00")
-
-        currency = (str(item.get("currency") or "") or default_currency).strip().upper() or default_currency
-        image_url = (str(item.get("image_url") or "") or "").strip()
-        existing = Product.objects.filter(sku=sku).only("id", "is_active").first()
-        defaults = {
-            "slug": slug,
-            "name": name,
-            "category": category,
-            "price": base_price,
-            "is_in_house": True,
-            "currency": currency,
-            "inventory": 9999,
-            # Preserve manual visibility toggles from admin.
-            "is_active": existing.is_active if existing is not None else True,
-            "short_description": "Fulfilled by Printful.",
-            "description": f"Printful product #{product_id}",
-            "contact_for_estimate": False,
-            "estimate_from_price": None,
-            "main_image": image_url,
-        }
-        product, _ = Product.objects.update_or_create(sku=sku, defaults=defaults)
-        _sync_printful_options_for_product(product, variants)
-
-
 def _build_synced_printful_merch_map(products: list[dict]) -> tuple[dict[int, dict], set[int]]:
     ids: list[int] = []
     for item in products:
@@ -1123,7 +997,7 @@ def _build_synced_printful_merch_map(products: list[dict]) -> tuple[dict[int, di
     if not cache.get(sync_key):
         sync_ttl = 900
         try:
-            _sync_printful_merch_products(products)
+            sync_printful_merch_products(products)
         except Exception:
             logger.exception("Failed to sync Printful merch catalog to store products.")
             sync_ttl = 60
@@ -1132,14 +1006,14 @@ def _build_synced_printful_merch_map(products: list[dict]) -> tuple[dict[int, di
     resolved: dict[int, dict] = {}
     hidden_ids: set[int] = set()
 
-    skus = [_build_printful_product_sku(product_id) for product_id in ids]
+    skus = [build_printful_product_sku(product_id) for product_id in ids]
     store_products = (
         Product.objects.filter(sku__in=skus)
         .select_related("merch_category")
         .prefetch_related("options")
     )
     for product in store_products:
-        product_id = _parse_printful_product_id_from_sku(product.sku)
+        product_id = parse_printful_product_id_from_sku(product.sku)
         if not product_id:
             continue
         if not product.is_active:
@@ -1174,85 +1048,43 @@ def _extract_printful_category_label(item: dict) -> str:
     return ""
 
 
-def _normalize_merch_category(label: str) -> tuple[str, str]:
-    """
-    Printful category labels vary a lot ("Unisex hoodie", "Hoodies & Sweatshirts", etc).
-    For the merch landing page we want a clean, one-word category UX (Hoodies, Stickers, ...).
-    Returns (category_key, category_label).
-    """
-    clean = " ".join(str(label or "").strip().split())[:80]
-    if not clean:
-        return "", ""
-
-    low = clean.lower()
-    # Common, high-signal groupings (ordered).
-    rules: list[tuple[tuple[str, ...], str]] = [
-        (("hoodie", "sweatshirt", "crewneck"), "Hoodies"),
-        (("sticker", "decal"), "Stickers"),
-        (("hat", "cap", "snapback", "trucker"), "Hats"),
-        (("beanie",), "Beanies"),
-        (("mug", "cup"), "Mugs"),
-        (("shirt", "tee", "t-shirt", "tshirt"), "Tees"),
-        (("tank",), "Tanks"),
-        (("poster", "print"), "Posters"),
-        (("bag", "tote", "backpack"), "Bags"),
-        (("case",), "Cases"),
-        (("sock",), "Socks"),
-    ]
-    for needles, normalized in rules:
-        if any(needle in low for needle in needles):
-            key = slugify(normalized)[:64]
-            return key or (slugify(clean)[:64] or "merch"), normalized
-
-    # Fallback: pick a meaningful word from the label.
-    stopwords = {
-        "unisex",
-        "men",
-        "mens",
-        "women",
-        "womens",
-        "kids",
-        "youth",
-        "adult",
-        "basic",
-        "classic",
-        "premium",
-        "and",
-        "the",
-        "for",
-        "with",
-        "of",
-    }
-    words = [w for w in re.split(r"[^a-z0-9]+", low) if w]
-    chosen = ""
-    for word in words:
-        if word in stopwords:
-            continue
-        if len(word) < 3:
-            continue
-        chosen = word
-        break
-    if not chosen and words:
-        chosen = words[0]
-
-    if not chosen:
-        key = slugify(clean)[:64] or "merch"
-        return key, clean
-
-    normalized_label = chosen.upper() if chosen in {"pf"} else chosen.title()
-    # Light pluralization so categories feel natural.
-    if not normalized_label.endswith("s") and normalized_label.lower() not in {"merch"}:
-        normalized_label = f"{normalized_label}s"
-    key = slugify(normalized_label)[:64] or (slugify(clean)[:64] or "merch")
-    return key, normalized_label
-
-
 def _normalize_merch_color_label(value: str) -> str:
     """
     Keep swatch labels stable and short.
     """
     text = " ".join(str(value or "").strip().split())
     return text[:60]
+
+
+def _normalize_merch_image_url(value: str, *, preset: str = "card") -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+
+    url = raw
+    if raw.startswith("/media/http%3A") or raw.startswith("/media/https%3A"):
+        url = unquote(raw[len("/media/"):])
+    elif raw.startswith("http%3A") or raw.startswith("https%3A"):
+        url = unquote(raw)
+
+    if url.startswith("https:/") and not url.startswith("https://"):
+        url = url.replace("https:/", "https://", 1)
+    elif url.startswith("http:/") and not url.startswith("http://"):
+        url = url.replace("http:/", "http://", 1)
+
+    presets = {
+        "category": (720, 720, 78),
+        "card": (960, 960, 80),
+        "hero": (1400, 1400, 82),
+    }
+    width, height, quality = presets.get(preset, presets["card"])
+    if "static.wixstatic.com/media/" not in url or "/v1/" not in url:
+        return url
+
+    optimized = re.sub(r"w_\d+", f"w_{width}", url, count=1)
+    optimized = re.sub(r"h_\d+", f"h_{height}", optimized, count=1)
+    optimized = re.sub(r"q_\d+", f"q_{quality}", optimized, count=1)
+    return optimized
 
 
 def _guess_merch_color_from_variant_name(value: str) -> str:
@@ -1338,7 +1170,7 @@ def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
     for key in ("image_url", "thumbnail_url", "thumbnail", "photo_url"):
         candidate = (row.get(key) or "").strip()
         if candidate:
-            fallback_image = candidate
+            fallback_image = _normalize_merch_image_url(candidate, preset="card")
             break
     variants = row.get("variants") if isinstance(row.get("variants"), list) else []
 
@@ -1365,7 +1197,7 @@ def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
         for key in ("image_url", "thumbnail_url", "preview_url"):
             candidate = (variant.get(key) or "").strip()
             if candidate:
-                image_url = candidate
+                image_url = _normalize_merch_image_url(candidate, preset="card")
                 break
         if not image_url:
             image_url = fallback_image
@@ -1396,7 +1228,7 @@ def _build_merch_listing_media(row: dict) -> tuple[list[str], list[dict]]:
         for variant in variants:
             candidate = (variant.get("image_url") or "").strip()
             if candidate:
-                carousel_images = [candidate]
+                carousel_images = [_normalize_merch_image_url(candidate, preset="card")]
                 break
 
     # Store an index per swatch so the template can jump the carousel.
@@ -1422,34 +1254,123 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
         except (TypeError, ValueError):
             product_id = 0
 
-        if product_id in hidden_ids:
+        if product_id and product_id in hidden_ids:
             continue
 
         matched = synced.get(product_id)
-        if not matched:
-            continue
-
-        product = matched["product"]
-        merch_category = getattr(product, "merch_category", None)
-        if merch_category and getattr(merch_category, "is_active", False):
-            row["merch_category_id"] = merch_category.id
-            row["category_label"] = merch_category.name or ""
-            row["category_key"] = merch_category.slug or ""
+        product = matched["product"] if matched else None
+        if product:
+            merch_category = getattr(product, "merch_category", None)
+            if merch_category and getattr(merch_category, "is_active", False):
+                row["merch_category_id"] = merch_category.id
+                row["category_label"] = merch_category.name or ""
+                row["category_key"] = merch_category.slug or ""
+            else:
+                row["merch_category_id"] = None
+                raw_category_label = _extract_printful_category_label(row)
+                if raw_category_label:
+                    category_key, category_label = normalize_merch_category(raw_category_label)
+                    row["category_label"] = category_label or raw_category_label
+                    row["category_key"] = category_key or (slugify(raw_category_label)[:64] or f"category-{product_id}")
+            row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
+            row["checkout_label"] = "Choose options"
+            row["url"] = row["store_product_url"]
         else:
             row["merch_category_id"] = None
             raw_category_label = _extract_printful_category_label(row)
             if raw_category_label:
-                category_key, category_label = _normalize_merch_category(raw_category_label)
+                category_key, category_label = normalize_merch_category(raw_category_label)
                 row["category_label"] = category_label or raw_category_label
                 row["category_key"] = category_key or (slugify(raw_category_label)[:64] or f"category-{product_id}")
-        row["store_product_url"] = reverse("store:store-product", kwargs={"slug": product.slug})
-        row["checkout_label"] = "Choose options"
-        row["url"] = row["store_product_url"]
+            row["store_product_url"] = ""
+            row["checkout_label"] = "View catalog"
         carousel_images, color_swatches = _build_merch_listing_media(row)
         row["carousel_images"] = carousel_images
         row["color_swatches"] = color_swatches
         enriched.append(row)
     return enriched
+
+
+def _build_store_merch_products() -> list[dict]:
+    rows: list[dict] = []
+    try:
+        products = list(
+            Product.objects.filter(sku__startswith="PF-", is_active=True)
+            .select_related("merch_category")
+            .only(
+                "id",
+                "sku",
+                "slug",
+                "name",
+                "price",
+                "currency",
+                "main_image",
+                "merch_category__id",
+                "merch_category__name",
+                "merch_category__slug",
+                "merch_category__is_active",
+            )
+            .order_by("name")
+        )
+    except (OperationalError, ProgrammingError):
+        logger.warning("Merch product mirror is unavailable because the local store schema is not fully migrated.")
+        return []
+
+    for product in products:
+        product_id = parse_printful_product_id_from_sku(product.sku) or product.id
+        image_url = ""
+        candidate = getattr(product, "main_image_url", "") or ""
+        if candidate:
+            image_url = _normalize_merch_image_url(candidate, preset="card")
+
+        merch_category = getattr(product, "merch_category", None)
+        category_key = ""
+        category_label = ""
+        merch_category_id = None
+        if merch_category and getattr(merch_category, "is_active", False):
+            merch_category_id = merch_category.id
+            category_label = merch_category.name or ""
+            category_key = merch_category.slug or (slugify(category_label)[:64] if category_label else "")
+
+        base_price = product.price if product.price is not None else Decimal("0.00")
+        price_label = format_currency(base_price)
+        store_url = reverse("store:store-product", kwargs={"slug": product.slug})
+
+        row = {
+            "id": product_id,
+            "name": product.name or "",
+            "category_label": category_label,
+            "category_key": category_key,
+            "merch_category_id": merch_category_id,
+            "image_url": image_url,
+            "base_price": str(base_price),
+            "price_label": price_label,
+            "currency": (product.currency or "").strip().upper(),
+            "variants": [],
+            "url": store_url,
+            "store_product_url": store_url,
+            "checkout_label": "Choose options",
+        }
+        carousel_images, color_swatches = _build_merch_listing_media(row)
+        row["carousel_images"] = carousel_images
+        row["color_swatches"] = color_swatches
+        rows.append(row)
+    return rows
+
+
+def _get_merch_listing_products() -> tuple[list[dict], str, str]:
+    catalog_url = (getattr(settings, "PRINTFUL_MERCH_CATALOG_URL", "") or "").strip()
+    store_products = _build_store_merch_products()
+    if store_products:
+        return store_products, catalog_url, ""
+
+    printful_feed = get_printful_merch_feed()
+    printful_products = printful_feed.get("products", []) if isinstance(printful_feed, dict) else []
+    if printful_products:
+        all_products = _enrich_printful_merch_products(printful_products)
+        if all_products:
+            return all_products, printful_feed.get("catalog_url", "") or catalog_url, printful_feed.get("error", "")
+    return [], printful_feed.get("catalog_url", "") or catalog_url, (printful_feed.get("error", "") if isinstance(printful_feed, dict) else "")
 
 
 class MerchPlaceholderView(TemplateView):
@@ -1458,12 +1379,15 @@ class MerchPlaceholderView(TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["merch_copy"] = MerchPageCopy.get_solo()
-        printful_feed = get_printful_merch_feed()
-        all_products = _enrich_printful_merch_products(printful_feed.get("products", []))
+        all_products, printful_catalog_url, merch_feed_error = _get_merch_listing_products()
 
-        manual_categories = list(
-            MerchCategory.objects.filter(is_active=True).order_by("sort_order", "name")
-        )
+        try:
+            manual_categories = list(
+                MerchCategory.objects.filter(is_active=True).order_by("sort_order", "name")
+            )
+        except (OperationalError, ProgrammingError):
+            logger.warning("Merch categories are unavailable because the local store schema is not fully migrated.")
+            manual_categories = []
 
         selected_merch_category = (self.request.GET.get("category") or "").strip()
         selected_merch_category_label = ""
@@ -1485,12 +1409,24 @@ class MerchPlaceholderView(TemplateView):
 
         if manual_categories:
             category_map = {cat.slug: cat for cat in manual_categories if cat.slug}
+            category_name_map = {cat.name.lower(): cat for cat in manual_categories if cat.name}
+            category_norm_map: dict[str, MerchCategory] = {}
+            for cat in manual_categories:
+                key, _label = normalize_merch_category(cat.name)
+                if key:
+                    category_norm_map[key] = cat
             rows_by_category: dict[int, list[dict]] = {}
             for row in all_products:
                 cat_id = row.get("merch_category_id")
-                if not cat_id:
+                if cat_id:
+                    rows_by_category.setdefault(cat_id, []).append(row)
                     continue
-                rows_by_category.setdefault(cat_id, []).append(row)
+
+                key = (row.get("category_key") or "").strip()
+                label = (row.get("category_label") or "").strip().lower()
+                cat = category_map.get(key) or category_norm_map.get(key) or category_name_map.get(label)
+                if cat:
+                    rows_by_category.setdefault(cat.id, []).append(row)
 
             for rows in rows_by_category.values():
                 rows.sort(key=lambda item: (item.get("name") or "").lower())
@@ -1506,16 +1442,13 @@ class MerchPlaceholderView(TemplateView):
                     "is_all": True,
                 })
 
+            visible_manual_categories: list[MerchCategory] = []
             for cat in manual_categories:
                 rows = rows_by_category.get(cat.id, [])
-                cover_url = ""
-                if getattr(cat, "cover_image", None):
-                    try:
-                        cover_url = cat.cover_image.url
-                    except Exception:
-                        cover_url = ""
-                if not cover_url:
-                    cover_url = _first_product_image(rows)
+                if not rows:
+                    continue
+                visible_manual_categories.append(cat)
+                cover_url = _first_product_image(rows)
                 merch_category_cards.append({
                     "key": cat.slug,
                     "label": cat.name,
@@ -1528,7 +1461,7 @@ class MerchPlaceholderView(TemplateView):
 
             merch_categories = [
                 {"key": cat.slug, "label": cat.name}
-                for cat in manual_categories
+                for cat in visible_manual_categories
             ]
 
             if selected_merch_category == "all":
@@ -1537,14 +1470,19 @@ class MerchPlaceholderView(TemplateView):
             elif selected_merch_category and selected_merch_category in category_map:
                 cat = category_map[selected_merch_category]
                 merch_display_products = rows_by_category.get(cat.id, [])
-                selected_merch_category_label = cat.name
+                if merch_display_products:
+                    selected_merch_category_label = cat.name
+                else:
+                    selected_merch_category = ""
+                    merch_display_products = all_products
+                    selected_merch_category_label = ""
             else:
                 selected_merch_category = ""
                 merch_display_products = all_products
                 selected_merch_category_label = ""
 
             show_merch_category_grid = not bool(selected_merch_category)
-            show_merch_filters = bool(selected_merch_category)
+            show_merch_filters = bool(merch_display_products)
         else:
             category_map: dict[str, str] = {}
             for row in all_products:
@@ -1567,13 +1505,14 @@ class MerchPlaceholderView(TemplateView):
                 selected_merch_category = ""
                 merch_display_products = all_products
                 selected_merch_category_label = ""
-            show_merch_filters = bool(merch_categories)
+            show_merch_filters = bool(merch_display_products)
 
         ctx["header_copy"] = ctx["merch_copy"]
         ctx["printful_products"] = all_products
         ctx["merch_display_products"] = merch_display_products
         ctx["merch_has_products"] = bool(all_products)
-        ctx["printful_catalog_url"] = printful_feed.get("catalog_url", "")
+        ctx["printful_catalog_url"] = printful_catalog_url
+        ctx["printful_error"] = merch_feed_error
         ctx["merch_categories"] = merch_categories
         ctx["merch_category_cards"] = merch_category_cards
         ctx["show_merch_category_grid"] = show_merch_category_grid
@@ -1588,9 +1527,9 @@ class MerchPlaceholderView(TemplateView):
             first = merch_display_products[0] or {}
             hero_src = ""
             if isinstance(first.get("carousel_images"), list) and first["carousel_images"]:
-                hero_src = str(first["carousel_images"][0] or "").strip()
+                hero_src = _normalize_merch_image_url(first["carousel_images"][0], preset="hero")
             if not hero_src:
-                hero_src = str(first.get("image_url") or "").strip()
+                hero_src = _normalize_merch_image_url(first.get("image_url"), preset="hero")
             if hero_src:
                 ctx["hero_media"] = {
                     "src": hero_src,

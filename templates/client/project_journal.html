@@ -208,26 +208,26 @@
       <div class="contact-body">
         <div class="contact-row">
           <div>
-            <div><a href="mailto:support@badguymotors.com">support@badguymotors.com</a></div>
+            <div><a href="mailto:{{ site_contact.email }}">{{ site_contact.email }}</a></div>
             <div class="contact-sub">Email</div>
           </div>
-          <button class="contact-btn" data-copy="support@badguymotors.com" type="button">Copy</button>
+          <button class="contact-btn" data-copy="{{ site_contact.email }}" type="button">Copy</button>
         </div>
 
         <div class="contact-row">
           <div>
-            <div><a href="tel:+14035250432">(403) 525-0432</a></div>
+            <div><a href="tel:{{ site_contact.office_phone }}">{{ site_contact.office_phone_display }}</a></div>
             <div class="contact-sub">Phone</div>
           </div>
           <div class="contact-row__actions">
-            <a class="contact-btn" href="tel:+14035250432">Call</a>
-            <button class="contact-btn" data-copy="+1 403 525 0432" type="button">Copy</button>
+            <a class="contact-btn" href="tel:{{ site_contact.office_phone }}">Call</a>
+            <button class="contact-btn" data-copy="{{ site_contact.office_phone }}" type="button">Copy</button>
           </div>
         </div>
 
         <div class="contact-actions">
-          <a class="contact-btn" href="mailto:support@badguymotors.com?subject=Inquiry%20from%20website">Write email</a>
-          <a class="contact-btn" href="sms:+14035250432">Text</a>
+          <a class="contact-btn" href="mailto:{{ site_contact.email }}?subject=Inquiry%20from%20website">Write email</a>
+          <a class="contact-btn" href="sms:{{ site_contact.text_phone }}">Text</a>
         </div>
       </div>
     </div>

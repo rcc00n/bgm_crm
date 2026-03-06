@@ -598,6 +598,412 @@
       box-shadow:0 0 18px rgba(213,0,0,.22);
     }
 
+    /* =============================== MERCH SECTIONS ============================== */
+    .merch-shell{ display:grid; gap:1.6rem; }
+    .merch-section{ display:grid; gap:1rem; }
+    .merch-section__head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:1rem;
+      flex-wrap:wrap;
+    }
+    .merch-section__title{
+      font-family:var(--font-head);
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.14em;
+      font-size:1rem;
+      color:rgba(255,255,255,.9);
+    }
+    .merch-section__desc{ color:var(--muted-2); font-size:.9rem; }
+    .merch-section__meta{
+      color:var(--muted);
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-size:.75rem;
+      white-space:nowrap;
+    }
+    .merch-section__actions{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+    .merch-divider{
+      border:0;
+      height:1px;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent);
+      margin:.2rem 0 .9rem;
+    }
+    .merch-intro-note{
+      display:none;
+      margin-top:.5rem;
+      padding:.7rem .9rem;
+      border-radius:.8rem;
+      border:1px dashed rgba(255,255,255,.18);
+      color:var(--muted);
+      font-size:.9rem;
+    }
+
+    /* =============================== MERCH TOOLBAR ============================== */
+    .merch-toolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      flex-wrap:wrap;
+      margin:.4rem 0 1rem;
+    }
+    .merch-toolbar__left{ flex:1 1 320px; display:flex; gap:.8rem; flex-wrap:wrap; }
+    .merch-toolbar__right{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+    .merch-search{
+      flex:1 1 280px;
+      display:flex;
+      align-items:center;
+      gap:.6rem;
+      border:1px solid var(--line);
+      background:var(--panel);
+      padding:.55rem .7rem;
+      border-radius:.9rem;
+    }
+    .merch-search__icon svg{ width:18px; height:18px; fill:rgba(255,255,255,.6); }
+    .merch-search__input{
+      flex:1;
+      background:transparent;
+      border:0;
+      color:#fff;
+      font-size:.95rem;
+      min-width:120px;
+      min-height:34px;
+      line-height:1.2;
+      -webkit-appearance:none;
+      appearance:none;
+    }
+    .merch-search__input:focus{ outline:none; }
+    .merch-search__clear{
+      border:0;
+      background:rgba(255,255,255,.1);
+      color:#fff;
+      border-radius:.6rem;
+      padding:.3rem .6rem;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .merch-sort{
+      display:flex;
+      align-items:center;
+      gap:.45rem;
+      padding:.5rem .65rem;
+      border:1px solid var(--line);
+      background:var(--panel);
+      border-radius:.9rem;
+    }
+    .merch-sort label{
+      font-size:.7rem;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:var(--muted-2);
+      font-weight:800;
+    }
+    .merch-sort select{
+      background:transparent;
+      border:0;
+      color:#fff;
+      font-weight:700;
+    }
+    .merch-filters-toggle,
+    .merch-filters-clear{
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      border-radius:.9rem;
+      border:1px solid var(--line);
+      background:var(--panel);
+      padding:.6rem .95rem;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-size:.75rem;
+      cursor:pointer;
+      color:#fff;
+    }
+    .merch-filters-clear{ background:rgba(255,255,255,.05); }
+    .merch-filters-toggle__badge{
+      font-size:.7rem;
+      border-radius:999px;
+      padding:.1rem .45rem;
+      background:rgba(213,0,0,.18);
+      border:1px solid rgba(213,0,0,.45);
+    }
+    @media (min-width: 901px){
+      .merch-filters-toggle{ display:none; }
+    }
+
+    /* =============================== MERCH FILTERS ============================== */
+    .merch-filters-wrap{ position:relative; }
+    .merch-filters-backdrop{ display:none; }
+    .merch-filters-panel{
+      padding:1rem;
+      background:var(--panel);
+      border:1px solid var(--line);
+    }
+    .merch-filters-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.8rem;
+      margin-bottom:.9rem;
+    }
+    .merch-filters-title{ font-size:1.05rem; font-weight:900; }
+    .merch-filters-close{
+      display:none;
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--fg);
+      padding:.4rem .9rem;
+      border-radius:.6rem;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .merch-filters-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+      gap:.8rem;
+    }
+    .merch-filter label{
+      display:block;
+      margin:0 0 .35rem .1rem;
+      color:var(--muted);
+      font-size:.82rem;
+      font-weight:700;
+      letter-spacing:.02em;
+    }
+    .merch-filter input,
+    .merch-filter select{
+      width:100%;
+      background:var(--panel-2);
+      color:var(--fg);
+      border:1px solid var(--line);
+      border-radius:.6rem;
+      padding:.5rem .65rem;
+    }
+    .merch-filter__range{
+      display:grid;
+      grid-template-columns:1fr auto 1fr;
+      gap:.5rem;
+      align-items:center;
+    }
+    @media (min-width: 901px){
+      .merch-filters-panel{
+        padding:.75rem 1rem;
+        border-radius:1rem;
+        background:rgba(255,255,255,.02);
+      }
+      .merch-filters-head{ display:none; }
+    }
+    .merch-filters-actions{
+      display:flex;
+      gap:.6rem;
+      margin-top:1rem;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .merch-empty{
+      margin:.6rem 0 0;
+      color:var(--muted);
+      font-weight:700;
+    }
+    .merch-pagination{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap:.85rem;
+      margin:1rem 0 0;
+      padding:.85rem 1rem;
+      border:1px solid var(--line);
+      border-radius:1rem;
+      background:rgba(255,255,255,.03);
+    }
+    .merch-pagination[hidden]{ display:none !important; }
+    .merch-pagination__summary{
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.03em;
+      white-space:nowrap;
+    }
+    .merch-pagination__controls{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:.55rem;
+      flex:1 1 auto;
+      flex-wrap:wrap;
+    }
+    .merch-pagination__pages{
+      display:flex;
+      align-items:center;
+      gap:.45rem;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .merch-pagination__btn{
+      min-width:2.65rem;
+      height:2.65rem;
+      padding:0 .85rem;
+      border-radius:.8rem;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.42);
+      color:var(--fg);
+      font:inherit;
+      font-weight:800;
+      cursor:pointer;
+      transition:transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease;
+    }
+    .merch-pagination__btn:hover:not(:disabled){
+      transform:translateY(-1px);
+      border-color:rgba(255,255,255,.22);
+      background:rgba(255,255,255,.07);
+    }
+    .merch-pagination__btn:disabled{
+      opacity:.42;
+      cursor:not-allowed;
+    }
+    .merch-pagination__btn.is-active{
+      border-color:rgba(255,0,0,.38);
+      background:linear-gradient(180deg, rgba(255,0,0,.28), rgba(110,0,0,.34));
+      color:#fff;
+      box-shadow:0 12px 24px rgba(100,0,0,.18);
+    }
+    @media (min-width: 901px){
+      .merch-pagination{ display:flex; }
+    }
+
+    /* =============================== CATEGORY COLLAPSE ============================== */
+    .merch-categories-collapse{ margin-top:.6rem; }
+    .merch-categories-toggle{
+      list-style:none;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.6rem;
+      font-weight:800;
+      letter-spacing:.04em;
+      padding:.75rem .9rem;
+      border-radius:.85rem;
+      border:1px solid var(--line);
+      background:var(--panel);
+    }
+    .merch-categories-toggle::-webkit-details-marker{ display:none; }
+    .merch-categories-toggle::after{
+      content:"+";
+      font-size:1.1rem;
+      line-height:1;
+      opacity:.8;
+    }
+    .merch-categories-collapse[open] .merch-categories-toggle::after{ content:"–"; }
+    @media (min-width: 901px){
+      .merch-categories-toggle{ display:none; }
+    }
+    @media (max-width: 900px){
+      .merch-categories-collapse{
+        border:1px solid var(--line);
+        border-radius:1rem;
+        padding:.5rem;
+        background:var(--panel);
+      }
+      .merch-categories-collapse[open]{ padding-bottom:1rem; }
+    }
+    .merch-categories-preview{ position:relative; }
+    .merch-categories-expand{ display:none; }
+    @media (min-width: 901px){
+      .merch-categories-collapse{
+        display:flex;
+        flex-direction:column;
+      }
+      .merch-categories-preview{
+        max-height:var(--categories-preview-height, 320px);
+        overflow:hidden;
+      }
+      .merch-categories-preview::after{
+        content:"";
+        position:absolute;
+        left:0;
+        right:0;
+        bottom:0;
+        height:90px;
+        background:linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.35) 35%, rgba(0,0,0,.75));
+        backdrop-filter:blur(7px);
+        -webkit-backdrop-filter:blur(7px);
+        pointer-events:none;
+      }
+      .merch-categories-collapse--expanded .merch-categories-preview{
+        max-height:none;
+      }
+      .merch-categories-collapse--expanded .merch-categories-preview::after{ display:none; }
+      .merch-categories-expand{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:.35rem;
+        margin:.8rem auto 0;
+        width:fit-content;
+        max-width:100%;
+      }
+    }
+
+    /* =============================== MOBILE TUNING ============================== */
+    @media (max-width: 900px){
+      .merch-toolbar{ flex-direction:column; align-items:stretch; }
+      .merch-toolbar__left, .merch-toolbar__right{
+        width:100%;
+        flex:0 0 auto;
+      }
+      .merch-pagination{ display:none !important; }
+      .merch-sort{ width:100%; justify-content:space-between; }
+      .merch-search{
+        width:100%;
+        padding:.42rem .62rem;
+      }
+      .merch-filters-panel{
+        position:fixed;
+        top:0;
+        right:0;
+        bottom:0;
+        width:min(420px,84vw);
+        max-width:84vw;
+        border-radius:0;
+        transform:translateX(100%);
+        transition:transform .28s ease;
+        z-index:3500;
+        overflow-y:auto;
+        box-shadow:-18px 0 36px rgba(0,0,0,.45);
+      }
+      .merch-filters-wrap.is-open .merch-filters-panel{ transform:translateX(0); }
+      .merch-filters-backdrop{
+        display:block;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.45);
+        -webkit-backdrop-filter:blur(4px);
+        backdrop-filter:blur(4px);
+        opacity:0;
+        pointer-events:none;
+        transition:opacity .2s ease;
+        z-index:3400;
+      }
+      .merch-filters-wrap.is-open .merch-filters-backdrop{
+        opacity:1;
+        pointer-events:auto;
+      }
+      .merch-filters-close{ display:flex; }
+      body.merch-filters-open{ overflow:hidden; }
+      [data-merch-root][data-merch-has-selection="0"][data-merch-has-categories="1"] .merch-section--catalog,
+      [data-merch-root][data-merch-has-selection="0"][data-merch-has-categories="1"] .merch-divider{
+        display:none;
+      }
+      [data-merch-root][data-merch-has-selection="0"][data-merch-has-categories="1"] .merch-intro-note{
+        display:block;
+      }
+    }
+
     .social{
       margin:1rem 0 1.6rem; padding:1.1rem;
       border:1px solid var(--line); border-radius:1rem;
@@ -907,119 +1313,247 @@ body.nav-open .contact-fab,
   <main id="main">
     <section class="section{% if merch_copy.coming_soon_enabled and not merch_has_products %} section--preview{% endif %}">
       <div class="container">
-        <div class="section__head">
-          <div>
-            <h2 class="section__title">{{ merch_copy.section_title }}</h2>
-            <p class="section__desc">{{ merch_copy.section_desc|striptags|safe }}</p>
-            {% if store_shipping.free_shipping_threshold_label %}
-              <div class="merch-shipping-banner">
-                Canada free shipping over <strong>{{ store_shipping.free_shipping_threshold_label }}</strong>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-
-        {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
-          <div class="social">
+        {% if not selected_merch_category %}
+          <div class="section__head">
             <div>
-              <div class="social__title">{{ merch_copy.social_section_title }}</div>
-              <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
-            </div>
-            <div class="social__links">
-              {% if merch_copy.social_link_1_url %}
-                <a class="social__link social__link--ig" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_2_url %}
-                <a class="social__link social__link--fb" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_3_url %}
-                <a class="social__link social__link--yt" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
-              {% endif %}
-              {% if merch_copy.social_link_4_url %}
-                <a class="social__link social__link--tt" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
+              <h2 class="section__title">{{ merch_copy.section_title }}</h2>
+              <p class="section__desc">{{ merch_copy.section_desc|striptags|safe }}</p>
+              {% if store_shipping.free_shipping_threshold_label %}
+                <div class="merch-shipping-banner">
+                  Canada free shipping over <strong>{{ store_shipping.free_shipping_threshold_label }}</strong>
+                </div>
               {% endif %}
             </div>
           </div>
+
+          {% if merch_copy.social_link_1_url or merch_copy.social_link_2_url or merch_copy.social_link_3_url or merch_copy.social_link_4_url %}
+            <div class="social">
+              <div>
+                <div class="social__title">{{ merch_copy.social_section_title }}</div>
+                <p class="section__desc">{{ merch_copy.social_section_desc|striptags|safe }}</p>
+              </div>
+              <div class="social__links">
+                {% if merch_copy.social_link_1_url %}
+                  <a class="social__link social__link--ig" href="{{ merch_copy.social_link_1_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_1_label }}</a>
+                {% endif %}
+                {% if merch_copy.social_link_2_url %}
+                  <a class="social__link social__link--fb" href="{{ merch_copy.social_link_2_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_2_label }}</a>
+                {% endif %}
+                {% if merch_copy.social_link_3_url %}
+                  <a class="social__link social__link--yt" href="{{ merch_copy.social_link_3_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_3_label }}</a>
+                {% endif %}
+                {% if merch_copy.social_link_4_url %}
+                  <a class="social__link social__link--tt" href="{{ merch_copy.social_link_4_url }}" target="_blank" rel="noopener">{{ merch_copy.social_link_4_label }}</a>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
         {% endif %}
 
-	        {% if show_merch_category_grid and merch_category_cards %}
-	          <div class="merch-category-grid" aria-label="Merch categories">
-	            {% for category in merch_category_cards %}
-	              <a
-	                class="card merch-category-card{% if selected_merch_category == category.key %} is-active{% endif %}"
-	                href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog"
-	              >
-	                <div class="merch-category-card__media">
-	                  {% if category.cover_url %}
-	                    <img src="{{ category.cover_url }}" alt="{{ category.cover_alt|default:category.label }}" loading="lazy" decoding="async">
-	                  {% else %}
-	                    <div class="sk" style="aspect-ratio:4/3"></div>
-	                  {% endif %}
-	                </div>
-	                <div class="merch-category-card__body">
-	                  <div class="merch-category-card__title">{{ category.label }}</div>
-	                  {% if category.description %}
-	                    <div class="merch-category-card__desc">{{ category.description }}</div>
-	                  {% endif %}
-	                  {% if category.count %}
-	                    <div class="merch-category-card__count">{{ category.count }} items</div>
-	                  {% endif %}
-	                </div>
-	              </a>
-	            {% endfor %}
-	          </div>
-	        {% endif %}
+        <div class="merch-shell"
+             data-merch-root
+             data-merch-has-selection="{% if selected_merch_category %}1{% else %}0{% endif %}"
+             data-merch-has-categories="{% if merch_category_cards or merch_categories %}1{% else %}0{% endif %}">
+          {% if not selected_merch_category %}
+            <div class="merch-section merch-section--categories">
+              <div class="merch-section__head">
+                <div>
+                  <h3 class="merch-section__title">Browse categories</h3>
+                  <p class="merch-section__desc">Pick a category to see what's available right now.</p>
+                </div>
+                {% if merch_category_cards or merch_categories %}
+                  <div class="merch-section__meta">{{ merch_categories|length }} categories</div>
+                {% endif %}
+              </div>
 
-	        {% if show_merch_filters and merch_categories %}
-	          <div class="merch-categories" aria-label="Filter merch by category">
-	            <a
-	              class="merch-categories__chip{% if selected_merch_category == 'all' %} is-active{% endif %}"
-	              href="{% url 'merch' %}?category=all#merchCatalog"
-	            >
-	              All
-	            </a>
-	            {% for category in merch_categories %}
-	              <a
-	                class="merch-categories__chip{% if selected_merch_category == category.key %} is-active{% endif %}"
-	                href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog"
-	              >
-	                {{ category.label }}
-	              </a>
-	            {% endfor %}
-	          </div>
-	        {% endif %}
+              {% if show_merch_category_grid and merch_category_cards %}
+                <details class="merch-categories-collapse" id="merchCategoriesCollapse" open>
+                  <summary class="merch-categories-toggle">Show categories</summary>
+                  <div class="merch-categories-preview" data-merch-categories-preview>
+                    <div class="merch-category-grid" aria-label="Merch categories">
+                      {% for category in merch_category_cards %}
+                        <a
+                          class="card merch-category-card{% if selected_merch_category == category.key %} is-active{% endif %}"
+                          href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog"
+                        >
+                          <div class="merch-category-card__media">
+                            {% if category.cover_url %}
+                              <img src="{{ category.cover_url }}" alt="{{ category.cover_alt|default:category.label }}" loading="lazy" decoding="async">
+                            {% else %}
+                              <div class="sk" style="aspect-ratio:4/3"></div>
+                            {% endif %}
+                          </div>
+                          <div class="merch-category-card__body">
+                            <div class="merch-category-card__title">{{ category.label }}</div>
+                            {% if category.description %}
+                              <div class="merch-category-card__desc">{{ category.description }}</div>
+                            {% endif %}
+                            {% if category.count %}
+                              <div class="merch-category-card__count">{{ category.count }} items</div>
+                            {% endif %}
+                          </div>
+                        </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <button class="btn btn--ghost merch-categories-expand" type="button"
+                          data-merch-categories-toggle
+                          data-label-expand="View all categories"
+                          data-label-collapse="Show fewer">
+                    View all categories
+                  </button>
+                </details>
+              {% elif merch_categories %}
+                <div class="merch-categories merch-categories--grid" aria-label="Merch categories">
+                  <a class="merch-categories__chip{% if selected_merch_category == 'all' or not selected_merch_category %} is-active{% endif %}"
+                     href="{% url 'merch' %}?category=all#merchCatalog">All</a>
+                  {% for category in merch_categories %}
+                    <a class="merch-categories__chip{% if selected_merch_category == category.key %} is-active{% endif %}"
+                       href="{% url 'merch' %}?category={{ category.key|urlencode }}#merchCatalog">
+                      {{ category.label }}
+                    </a>
+                  {% endfor %}
+                </div>
+              {% endif %}
 
-	        {% if merch_display_products %}
+              <div class="merch-intro-note">Choose a category to view products.</div>
+            </div>
 
-	          {% if selected_merch_category_label %}
-	            <div class="merch-category-head" aria-label="Selected merch category">
-	              <h3 class="merch-category-title">{{ selected_merch_category_label }}</h3>
-	              {% if merch_category_cards %}
-	                <a class="btn btn--ghost" href="{% url 'merch' %}#merchCatalog">Back to categories</a>
-	              {% endif %}
-	            </div>
-	          {% endif %}
+            <hr class="merch-divider" aria-hidden="true">
+          {% endif %}
 
-	          <div id="merchCatalog"></div>
-	          <div class="grid grid--cards" style="margin-top:1rem">
-	            {% for item in merch_display_products %}
-	              <article
-	                class="card merch-card{% if item.url %} card--product-link{% endif %}"
-	                data-merch-card
+          <div id="merchCatalog"></div>
+
+          <div class="merch-section merch-section--catalog">
+            <div class="merch-section__head merch-section__head--catalog">
+              <div>
+                <h3 class="merch-section__title">
+                  {% if selected_merch_category_label %}{{ selected_merch_category_label }}{% else %}Shop merch{% endif %}
+                </h3>
+                <p class="merch-section__desc">Filter by color, price, or search by name.</p>
+              </div>
+              <div class="merch-section__actions">
+                <div class="merch-section__meta" data-merch-results-count aria-live="polite">{{ merch_display_products|length }} items</div>
+                {% if merch_category_cards %}
+                  <a class="btn btn--ghost" href="{% url 'merch' %}#merchCatalog">Back to categories</a>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="merch-toolbar">
+              <div class="merch-toolbar__left">
+                <div class="merch-search" data-merch-search>
+                  <span class="merch-search__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M15.5 14h-.79l-.28-.27A6 6 0 1 0 14 15.5l.27.28v.79L20 21.5 21.5 20l-6-6zm-5.5 0A4.5 4.5 0 1 1 10 5a4.5 4.5 0 0 1 0 9z"/>
+                    </svg>
+                  </span>
+                  <label class="visually-hidden" for="merchSearch">Search merch</label>
+                  <input id="merchSearch" class="merch-search__input" type="search" placeholder="Search merch" data-merch-search-input autocomplete="off" autocapitalize="none" spellcheck="false">
+                  <button type="button" class="merch-search__clear" data-merch-search-clear hidden>Clear</button>
+                </div>
+              </div>
+              <div class="merch-toolbar__right">
+                <div class="merch-sort">
+                  <label for="merchSort">Sort</label>
+                  <select id="merchSort" data-merch-sort>
+                    <option value="featured">Featured</option>
+                    <option value="price-asc">Price: low to high</option>
+                    <option value="price-desc">Price: high to low</option>
+                    <option value="name-asc">Name: A-Z</option>
+                    <option value="name-desc">Name: Z-A</option>
+                  </select>
+                </div>
+                <button type="button" class="merch-filters-toggle" data-merch-filters-toggle aria-expanded="false" aria-controls="merchFiltersPanel">
+                  Filters <span class="merch-filters-toggle__badge" data-merch-filters-badge hidden>On</span>
+                </button>
+                <button type="button" class="merch-filters-clear" data-merch-filters-clear hidden>Clear</button>
+              </div>
+            </div>
+
+            <div class="merch-filters-wrap" data-merch-filters>
+              <div id="merchFiltersPanel" class="card merch-filters-panel" tabindex="-1" data-merch-filters-panel>
+                <div class="merch-filters-head">
+                  <h4 class="merch-filters-title">Filters</h4>
+                  <button type="button" class="merch-filters-close" data-merch-filters-close>Close</button>
+                </div>
+                <div class="merch-filters-grid">
+                  <div class="merch-filter">
+                    <label>Price</label>
+                    <div class="merch-filter__range">
+                      <input type="number" min="0" step="1" placeholder="Min" data-merch-filter="price-min" autocomplete="off" inputmode="numeric">
+                      <span>-</span>
+                      <input type="number" min="0" step="1" placeholder="Max" data-merch-filter="price-max" autocomplete="off" inputmode="numeric">
+                    </div>
+                  </div>
+                  {% if merch_categories %}
+                    <div class="merch-filter">
+                      <label>Category</label>
+                      <select data-merch-filter="category">
+                        <option value=""{% if not selected_merch_category or selected_merch_category == 'all' %} selected{% endif %}>All categories</option>
+                        {% for category in merch_categories %}
+                          <option value="{{ category.key }}"{% if selected_merch_category == category.key %} selected{% endif %}>{{ category.label }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="merch-filters-actions">
+                  <button class="btn btn--primary" type="button" data-merch-filters-apply>Apply</button>
+                  <button class="btn btn--ghost" type="button" data-merch-filters-clear>Clear filters</button>
+                </div>
+              </div>
+              <div class="merch-filters-backdrop" data-merch-filters-backdrop></div>
+            </div>
+
+            {% if merch_display_products %}
+              <p class="merch-empty" data-merch-empty hidden>No items match your filters.</p>
+              <div class="merch-pagination" data-merch-pagination hidden>
+                <div class="merch-pagination__summary" data-merch-pagination-summary></div>
+                <div class="merch-pagination__controls">
+                  <button class="merch-pagination__btn" type="button" data-merch-page-prev>Prev</button>
+                  <div class="merch-pagination__pages" data-merch-page-list></div>
+                  <button class="merch-pagination__btn" type="button" data-merch-page-next>Next</button>
+                </div>
+              </div>
+              <div class="grid grid--cards" style="margin-top:1rem" data-merch-grid>
+            {% for item in merch_display_products %}
+              <article
+                class="card merch-card{% if item.url %} card--product-link{% endif %}"
+                data-merch-card
                 {% if item.url %}data-merch-product-card data-product-url="{{ item.url }}"{% endif %}
+                data-merch-name="{{ item.name|escape }}"
+                data-merch-category="{{ item.category_key|default:'' }}"
+                data-merch-category-label="{{ item.category_label|default:''|escape }}"
+                data-merch-price="{{ item.base_price|default:'' }}"
+                data-merch-search-text="{{ item.name|default:''|escape }} {{ item.category_label|default:''|escape }}"
+                data-merch-index="{{ forloop.counter0 }}"
               >
-                <div class="card__media merch-carousel" data-merch-carousel data-carousel-ready="0">
+                <div
+                  class="card__media merch-carousel"
+                  data-merch-carousel
+                  data-carousel-ready="0"
+                  data-carousel-alt="{{ item.name|default:'Merch photo'|escapejs }}"
                   {% if item.carousel_images %}
-                    {% for img in item.carousel_images %}
+                    data-carousel-images='[{% for img in item.carousel_images %}"{{ img|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+                  {% elif item.image_url %}
+                    data-carousel-images='["{{ item.image_url|escapejs }}"]'
+                  {% else %}
+                    data-carousel-images='[]'
+                  {% endif %}
+                >
+                  {% if item.carousel_images %}
+                    {% with first_img=item.carousel_images.0 %}
                       <img
-                        class="merch-carousel__img{% if forloop.first %} is-active{% endif %}"
-                        src="{{ img }}"
-                        alt="{{ item.name }} photo {{ forloop.counter }}"
+                        class="merch-carousel__img is-active"
+                        src="{{ first_img }}"
+                        alt="{{ item.name }} photo 1"
                         loading="lazy"
                         decoding="async"
                         data-carousel-slide
+                        data-carousel-index="0"
                       >
-                    {% endfor %}
+                    {% endwith %}
                   {% elif item.image_url %}
                     <img
                       class="merch-carousel__img is-active"
@@ -1028,6 +1562,7 @@ body.nav-open .contact-fab,
                       loading="lazy"
                       decoding="async"
                       data-carousel-slide
+                      data-carousel-index="0"
                     >
                   {% else %}
                     <div class="sk" style="aspect-ratio:4/3"></div>
@@ -1081,15 +1616,9 @@ body.nav-open .contact-fab,
             {% endfor %}
           </div>
         {% elif selected_merch_category %}
-          <div class="merch-category-head" aria-label="Selected merch category">
-            <h3 class="merch-category-title">{{ selected_merch_category_label|default:"Merch" }}</h3>
-            {% if merch_category_cards %}
-              <a class="btn btn--ghost" href="{% url 'merch' %}#merchCatalog">Back to categories</a>
-            {% endif %}
-          </div>
           <div class="empty">No merch items are available in this category yet.</div>
         {% elif not merch_has_products %}
-        <div class="grid grid--cards">
+          <div class="grid grid--cards">
           <article class="card">
             {% if merch_copy.card_1_photo %}
               <div class="card__media">
@@ -1222,6 +1751,9 @@ body.nav-open .contact-fab,
         {% endif %}
         {% endif %}
 
+          </div>
+        </div>
+
         <div class="btn-row" style="margin-top:1.5rem">
           <a class="btn btn--primary" href="{% url 'home' %}">{{ merch_copy.bottom_cta_label }}</a>
           <!-- <a class="btn btn--ghost" href="{% url 'client-dashboard' %}#services">Book an install</a> -->
@@ -1279,8 +1811,8 @@ body.nav-open .contact-fab,
             {% if contact_email %}
               <a class="contact-btn" href="mailto:{{ contact_email }}?subject={{ merch_copy.contact_email_subject|urlencode }}">{{ merch_copy.contact_write_email_label }}</a>
             {% endif %}
-            {% if contact_phone %}
-              <a class="contact-btn" href="sms:{{ contact_phone }}">{{ merch_copy.contact_text_label }}</a>
+            {% if site_contact.text_phone %}
+              <a class="contact-btn" href="sms:{{ site_contact.text_phone }}">{{ merch_copy.contact_text_label }}</a>
             {% endif %}
           </div>
         {% endwith %}
@@ -1289,6 +1821,407 @@ body.nav-open .contact-fab,
   </div>
 
   <script src="{% static 'js/topbar.js' %}"></script>
+
+  <script>
+    (function(){
+      const root = document.querySelector('[data-merch-root]');
+      if (!root) return;
+
+      const grid = root.querySelector('[data-merch-grid]');
+      const cards = Array.from(root.querySelectorAll('[data-merch-card]'));
+      if (!grid || !cards.length) return;
+
+      const searchInput = root.querySelector('[data-merch-search-input]');
+      const searchClear = root.querySelector('[data-merch-search-clear]');
+      const resultCount = root.querySelector('[data-merch-results-count]');
+      const emptyState = root.querySelector('[data-merch-empty]');
+      const pagination = root.querySelector('[data-merch-pagination]');
+      const paginationSummary = root.querySelector('[data-merch-pagination-summary]');
+      const paginationList = root.querySelector('[data-merch-page-list]');
+      const paginationPrev = root.querySelector('[data-merch-page-prev]');
+      const paginationNext = root.querySelector('[data-merch-page-next]');
+      const sortSelect = root.querySelector('[data-merch-sort]');
+      const minInput = root.querySelector('[data-merch-filter="price-min"]');
+      const maxInput = root.querySelector('[data-merch-filter="price-max"]');
+      const categorySelect = root.querySelector('[data-merch-filter="category"]');
+      const clearButtons = root.querySelectorAll('[data-merch-filters-clear]');
+      const applyBtn = root.querySelector('[data-merch-filters-apply]');
+      const filtersWrap = root.querySelector('[data-merch-filters]');
+      const filtersPanel = root.querySelector('[data-merch-filters-panel]');
+      const filtersToggle = root.querySelector('[data-merch-filters-toggle]');
+      const filtersClose = root.querySelectorAll('[data-merch-filters-close]');
+      const filtersBackdrop = root.querySelector('[data-merch-filters-backdrop]');
+      const filtersBadge = root.querySelector('[data-merch-filters-badge]');
+      const mq = window.matchMedia('(max-width: 900px)');
+      const desktopPaginationMq = window.matchMedia('(min-width: 901px)');
+      const pageSize = 25;
+      let previousFocus = null;
+      let currentPage = 1;
+
+      const normalize = (value) => String(value || '').toLowerCase().trim();
+      const useDesktopPagination = () => desktopPaginationMq.matches;
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasUrlFilters = urlParams.has('category') || urlParams.has('q') || urlParams.has('min') || urlParams.has('max') || urlParams.has('sort');
+
+      const getPrice = (card) => {
+        const raw = card.getAttribute('data-merch-price') || '';
+        const value = parseFloat(raw);
+        return Number.isFinite(value) ? value : null;
+      };
+
+      const updateClearState = () => {
+        const query = normalize(searchInput ? searchInput.value : '');
+        const minVal = minInput && minInput.value ? parseFloat(minInput.value) : null;
+        const maxVal = maxInput && maxInput.value ? parseFloat(maxInput.value) : null;
+        const categoryVal = categorySelect ? categorySelect.value : '';
+        const hasFilters = Boolean(query || categoryVal || minVal || maxVal);
+        clearButtons.forEach((btn) => {
+          btn.hidden = !hasFilters;
+        });
+        if (filtersBadge) {
+          filtersBadge.hidden = !hasFilters;
+        }
+      };
+
+      const renderPagination = (totalMatches, startIndex, endIndex, totalPages) => {
+        if (!pagination) return;
+
+        const shouldShow = useDesktopPagination() && totalMatches > pageSize && totalPages > 1;
+        pagination.hidden = !shouldShow;
+
+        if (!shouldShow) {
+          if (paginationSummary) paginationSummary.textContent = '';
+          if (paginationList) paginationList.innerHTML = '';
+          if (paginationPrev) paginationPrev.disabled = true;
+          if (paginationNext) paginationNext.disabled = true;
+          return;
+        }
+
+        if (paginationSummary) {
+          paginationSummary.textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalMatches}`;
+        }
+
+        if (paginationPrev) paginationPrev.disabled = currentPage <= 1;
+        if (paginationNext) paginationNext.disabled = currentPage >= totalPages;
+
+        if (paginationList) {
+          paginationList.innerHTML = '';
+          for (let page = 1; page <= totalPages; page += 1) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'merch-pagination__btn';
+            button.textContent = String(page);
+            button.dataset.merchPage = String(page);
+            if (page === currentPage) {
+              button.classList.add('is-active');
+              button.setAttribute('aria-current', 'page');
+            }
+            paginationList.appendChild(button);
+          }
+        }
+      };
+
+      const applyFilters = () => {
+        const query = normalize(searchInput ? searchInput.value : '');
+        const minVal = minInput && minInput.value ? parseFloat(minInput.value) : null;
+        const maxVal = maxInput && maxInput.value ? parseFloat(maxInput.value) : null;
+        const categoryVal = categorySelect ? categorySelect.value : '';
+        const matchedCards = [];
+
+        cards.forEach((card) => {
+          const text = normalize(card.getAttribute('data-merch-search-text'));
+          const cardCategory = card.getAttribute('data-merch-category') || '';
+          const price = getPrice(card);
+
+          let match = true;
+          if (query && !text.includes(query)) match = false;
+          if (match && categoryVal && cardCategory !== categoryVal) match = false;
+          if (match && (minVal !== null || maxVal !== null)) {
+            if (price === null) {
+              match = false;
+            } else {
+              if (minVal !== null && price < minVal) match = false;
+              if (maxVal !== null && price > maxVal) match = false;
+            }
+          }
+
+          if (match) matchedCards.push(card);
+        });
+
+        const desktopPagination = useDesktopPagination();
+        const totalMatches = matchedCards.length;
+        const totalPages = desktopPagination && totalMatches > 0
+          ? Math.ceil(totalMatches / pageSize)
+          : totalMatches > 0 ? 1 : 0;
+
+        if (!desktopPagination) {
+          currentPage = 1;
+        } else if (totalPages > 0) {
+          currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+        } else {
+          currentPage = 1;
+        }
+
+        const startIndex = desktopPagination ? (currentPage - 1) * pageSize : 0;
+        const visibleCards = desktopPagination
+          ? matchedCards.slice(startIndex, startIndex + pageSize)
+          : matchedCards;
+        const visibleSet = new Set(visibleCards);
+        const endIndex = startIndex + visibleCards.length;
+
+        cards.forEach((card) => {
+          const isVisible = visibleSet.has(card);
+          card.hidden = !isVisible;
+          card.classList.toggle('is-hidden', !isVisible);
+        });
+
+        if (resultCount) {
+          resultCount.textContent = desktopPagination
+            ? `${totalMatches} items`
+            : `${visibleCards.length} of ${cards.length} items`;
+        }
+        if (emptyState) {
+          emptyState.hidden = totalMatches > 0;
+        }
+        if (searchClear) {
+          searchClear.hidden = !query;
+        }
+        renderPagination(totalMatches, startIndex, endIndex, totalPages);
+        updateClearState();
+      };
+
+      const sortCards = (mode) => {
+        const sorted = [...cards].sort((a, b) => {
+          const nameA = normalize(a.getAttribute('data-merch-name'));
+          const nameB = normalize(b.getAttribute('data-merch-name'));
+          const priceA = getPrice(a);
+          const priceB = getPrice(b);
+          const indexA = parseInt(a.getAttribute('data-merch-index') || '0', 10);
+          const indexB = parseInt(b.getAttribute('data-merch-index') || '0', 10);
+
+          if (mode === 'price-asc') {
+            const va = priceA === null ? Number.POSITIVE_INFINITY : priceA;
+            const vb = priceB === null ? Number.POSITIVE_INFINITY : priceB;
+            return va - vb;
+          }
+          if (mode === 'price-desc') {
+            const va = priceA === null ? Number.NEGATIVE_INFINITY : priceA;
+            const vb = priceB === null ? Number.NEGATIVE_INFINITY : priceB;
+            return vb - va;
+          }
+          if (mode === 'name-asc') return nameA.localeCompare(nameB);
+          if (mode === 'name-desc') return nameB.localeCompare(nameA);
+          return indexA - indexB;
+        });
+        sorted.forEach((card) => grid.appendChild(card));
+        cards.splice(0, cards.length, ...sorted);
+      };
+
+      const clearFilters = () => {
+        if (searchInput) searchInput.value = '';
+        if (minInput) minInput.value = '';
+        if (maxInput) maxInput.value = '';
+        if (categorySelect) categorySelect.value = '';
+        if (sortSelect) sortSelect.value = 'featured';
+        currentPage = 1;
+        sortCards(sortSelect ? sortSelect.value : 'featured');
+        applyFilters();
+      };
+
+      const openFilters = () => {
+        if (!filtersWrap || !filtersPanel || !mq.matches) return;
+        previousFocus = document.activeElement;
+        filtersWrap.classList.add('is-open');
+        document.body.classList.add('merch-filters-open');
+        if (filtersToggle) filtersToggle.setAttribute('aria-expanded', 'true');
+        requestAnimationFrame(() => {
+          try {
+            filtersPanel.focus({ preventScroll: true });
+          } catch (err) {
+            filtersPanel.focus();
+          }
+        });
+      };
+
+      const closeFilters = () => {
+        if (!filtersWrap) return;
+        filtersWrap.classList.remove('is-open');
+        document.body.classList.remove('merch-filters-open');
+        if (filtersToggle) filtersToggle.setAttribute('aria-expanded', 'false');
+        if (previousFocus && typeof previousFocus.focus === 'function') {
+          try {
+            previousFocus.focus({ preventScroll: true });
+          } catch (err) {
+            previousFocus.focus();
+          }
+        }
+      };
+
+      const handleKeydown = (event) => {
+        if (!filtersWrap || !filtersWrap.classList.contains('is-open')) return;
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeFilters();
+        }
+      };
+
+      if (filtersToggle) {
+        filtersToggle.addEventListener('click', () => {
+          if (!filtersWrap || !mq.matches) return;
+          if (filtersWrap.classList.contains('is-open')) {
+            closeFilters();
+          } else {
+            openFilters();
+          }
+        });
+      }
+      filtersClose.forEach((btn) => btn.addEventListener('click', closeFilters));
+      if (filtersBackdrop) filtersBackdrop.addEventListener('click', closeFilters);
+      if (applyBtn) applyBtn.addEventListener('click', closeFilters);
+      document.addEventListener('keydown', handleKeydown);
+
+      if (mq.addEventListener) {
+        mq.addEventListener('change', (event) => {
+          applyFilters();
+          if (!event.matches) closeFilters();
+        });
+      } else if (mq.addListener) {
+        mq.addListener((event) => {
+          applyFilters();
+          if (!event.matches) closeFilters();
+        });
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          currentPage = 1;
+          applyFilters();
+        });
+      }
+      if (searchClear) {
+        searchClear.addEventListener('click', () => {
+          if (searchInput) searchInput.value = '';
+          currentPage = 1;
+          applyFilters();
+        });
+      }
+      if (minInput) minInput.addEventListener('input', () => {
+        currentPage = 1;
+        applyFilters();
+      });
+      if (maxInput) maxInput.addEventListener('input', () => {
+        currentPage = 1;
+        applyFilters();
+      });
+      if (categorySelect) categorySelect.addEventListener('change', () => {
+        currentPage = 1;
+        applyFilters();
+      });
+      if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+          currentPage = 1;
+          sortCards(sortSelect.value);
+          applyFilters();
+        });
+      }
+      clearButtons.forEach((btn) => btn.addEventListener('click', clearFilters));
+      if (paginationPrev) {
+        paginationPrev.addEventListener('click', () => {
+          if (currentPage <= 1) return;
+          currentPage -= 1;
+          applyFilters();
+        });
+      }
+      if (paginationNext) {
+        paginationNext.addEventListener('click', () => {
+          currentPage += 1;
+          applyFilters();
+        });
+      }
+      if (paginationList) {
+        paginationList.addEventListener('click', (event) => {
+          const button = event.target.closest('[data-merch-page]');
+          if (!button) return;
+          const page = parseInt(button.dataset.merchPage || '', 10);
+          if (!Number.isFinite(page) || page === currentPage) return;
+          currentPage = page;
+          applyFilters();
+        });
+      }
+
+      if (hasUrlFilters) {
+        sortCards(sortSelect ? sortSelect.value : 'featured');
+        applyFilters();
+      } else {
+        clearFilters();
+      }
+    })();
+  </script>
+
+  <script>
+    (function(){
+      const root = document.getElementById('merchCategoriesCollapse');
+      if (!root) return;
+      const btn = root.querySelector('[data-merch-categories-toggle]');
+      const preview = root.querySelector('[data-merch-categories-preview]');
+      const grid = root.querySelector('.merch-category-grid');
+      if (!btn || !preview || !grid) return;
+
+      const labelExpand = btn.dataset.labelExpand || 'View all categories';
+      const labelCollapse = btn.dataset.labelCollapse || 'Show fewer';
+      const setLabel = (expanded) => {
+        btn.textContent = expanded ? labelCollapse : labelExpand;
+      };
+
+      const calcHeight = () => {
+        const card = grid.querySelector('.merch-category-card');
+        if (!card) return;
+        const styles = window.getComputedStyle(grid);
+        const gapValue = styles.rowGap || styles.gap || '0';
+        const gap = parseFloat(gapValue) || 0;
+        const row = card.getBoundingClientRect().height;
+        if (row) {
+          const target = Math.round(row * 1.5 + gap);
+          preview.style.setProperty('--categories-preview-height', target + 'px');
+        }
+      };
+
+      const getCollapsedHeight = () => {
+        const raw = window.getComputedStyle(preview).getPropertyValue('--categories-preview-height');
+        const value = parseFloat(raw);
+        if (Number.isFinite(value) && value > 0) return value;
+        return 320;
+      };
+
+      const updateOverflow = () => {
+        const collapsedHeight = getCollapsedHeight();
+        const hasOverflow = preview.scrollHeight > collapsedHeight + 2;
+        btn.hidden = !hasOverflow;
+        if (!hasOverflow) {
+          root.classList.remove('merch-categories-collapse--expanded');
+        }
+        setLabel(root.classList.contains('merch-categories-collapse--expanded'));
+      };
+
+      const refresh = () => {
+        calcHeight();
+        updateOverflow();
+      };
+
+      btn.addEventListener('click', () => {
+        root.classList.toggle('merch-categories-collapse--expanded');
+        setLabel(root.classList.contains('merch-categories-collapse--expanded'));
+        updateOverflow();
+      });
+
+      setLabel(false);
+      refresh();
+      window.addEventListener('resize', () => {
+        window.requestAnimationFrame(refresh);
+      });
+      window.addEventListener('load', refresh);
+    })();
+  </script>
 
 	  <script>
 	    /* Merch listing: per-card carousel + color swatches (simple, no deps). */
@@ -1300,30 +2233,80 @@ body.nav-open .contact-fab,
 	        const nextBtn = carousel.querySelector("[data-carousel-next]");
 	        const card = carousel.closest("[data-merch-card]");
 	        const swatches = card ? Array.from(card.querySelectorAll("[data-merch-swatch]")) : [];
-
-        let index = slides.findIndex((node) => node.classList.contains("is-active"));
-        if (index < 0) index = 0;
-
-        const setIndex = (next) => {
-          if (!slides.length) return;
-          const len = slides.length;
-          index = ((next % len) + len) % len;
-          slides.forEach((node, i) => node.classList.toggle("is-active", i === index));
-          swatches.forEach((btn) => {
-            const target = parseInt(btn.getAttribute("data-carousel-index") || "0", 10) || 0;
-            btn.classList.toggle("is-active", target === index);
-	          });
-	        };
-
-	        if (!slides.length) {
+	        const rawSources = carousel.dataset.carouselImages || "";
+	        let sources = [];
+	        if (rawSources) {
+	          try {
+	            const parsed = JSON.parse(rawSources);
+	            if (Array.isArray(parsed)) sources = parsed.filter(Boolean);
+	          } catch (err) {
+	            sources = [];
+	          }
+	        }
+	        if (!sources.length && slides.length) {
+	          sources = slides.map((node) => node.getAttribute("src") || "").filter(Boolean);
+	        }
+	        if (!sources.length) {
 	          carousel.setAttribute("data-carousel-ready", "0");
 	          return;
 	        }
 
+	        const altBase = (carousel.dataset.carouselAlt || "Merch photo").trim() || "Merch photo";
+	        const slideSlots = new Array(sources.length).fill(null);
+	        slides.forEach((node, i) => {
+	          const rawIndex = parseInt(node.getAttribute("data-carousel-index") || `${i}`, 10);
+	          const idx = Number.isFinite(rawIndex) ? rawIndex : i;
+	          slideSlots[idx] = node;
+	          node.setAttribute("data-carousel-index", String(idx));
+	        });
+
+	        const ensureSlide = (idx) => {
+	          if (idx < 0 || idx >= sources.length) return null;
+	          if (slideSlots[idx]) return slideSlots[idx];
+	          const src = sources[idx];
+	          if (!src) return null;
+	          const img = document.createElement("img");
+	          img.className = "merch-carousel__img";
+	          img.src = src;
+	          img.alt = `${altBase} photo ${idx + 1}`;
+	          img.loading = "lazy";
+	          img.decoding = "async";
+	          img.setAttribute("data-carousel-slide", "");
+	          img.setAttribute("data-carousel-index", String(idx));
+	          if (prevBtn) {
+	            carousel.insertBefore(img, prevBtn);
+	          } else if (nextBtn) {
+	            carousel.insertBefore(img, nextBtn);
+	          } else {
+	            carousel.appendChild(img);
+	          }
+	          slideSlots[idx] = img;
+	          return img;
+	        };
+
+	        let index = slides.findIndex((node) => node.classList.contains("is-active"));
+	        if (index < 0) index = 0;
+	        ensureSlide(index);
+
+	        const setIndex = (next) => {
+	          const len = sources.length;
+	          if (!len) return;
+	          index = ((next % len) + len) % len;
+	          ensureSlide(index);
+	          slideSlots.forEach((node, i) => {
+	            if (!node) return;
+	            node.classList.toggle("is-active", i === index);
+	          });
+	          swatches.forEach((btn) => {
+	            const target = parseInt(btn.getAttribute("data-carousel-index") || "0", 10) || 0;
+	            btn.classList.toggle("is-active", target === index);
+	          });
+	        };
+
 	        // Always show arrows for consistency (even if only one slide).
 	        // If there is only a single slide, disable the controls.
 	        carousel.setAttribute("data-carousel-ready", "1");
-	        const hasMultiple = slides.length > 1;
+	        const hasMultiple = sources.length > 1;
 	        [prevBtn, nextBtn].forEach((btn) => {
 	          if (!btn) return;
 	          if (hasMultiple) {
@@ -1343,24 +2326,24 @@ body.nav-open .contact-fab,
 	          prevBtn.addEventListener("click", (e) => {
 	            e.preventDefault();
 	            e.stopPropagation();
-            setIndex(index - 1);
-          });
-        }
-        if (nextBtn) {
-          nextBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIndex(index + 1);
-          });
-        }
-        swatches.forEach((btn) => {
-          btn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const target = parseInt(btn.getAttribute("data-carousel-index") || "0", 10) || 0;
-            setIndex(target);
-          });
-        });
+	            setIndex(index - 1);
+	          });
+	        }
+	        if (nextBtn) {
+	          nextBtn.addEventListener("click", (e) => {
+	            e.preventDefault();
+	            e.stopPropagation();
+	            setIndex(index + 1);
+	          });
+	        }
+	        swatches.forEach((btn) => {
+	          btn.addEventListener("click", (e) => {
+	            e.preventDefault();
+	            e.stopPropagation();
+	            const target = parseInt(btn.getAttribute("data-carousel-index") || "0", 10) || 0;
+	            setIndex(target);
+	          });
+	        });
 
         // Touch swipe (mobile): swipe left/right to cycle.
         let startX = 0;

@@ -3212,6 +3212,13 @@ HOME_HERO_CAROUSEL_SLOTS = (
     ("hero_carousel_4", HeroImage.Location.HOME_CAROUSEL_D, "Slide 4"),
 )
 
+HOME_GALLERY_SLOTS = (
+    ("home_gallery_1", HeroImage.Location.HOME_GALLERY_A, "Card 1"),
+    ("home_gallery_2", HeroImage.Location.HOME_GALLERY_B, "Card 2"),
+    ("home_gallery_3", HeroImage.Location.HOME_GALLERY_C, "Card 3"),
+    ("home_gallery_4", HeroImage.Location.HOME_GALLERY_D, "Card 4"),
+)
+
 
 class HomePageCopyAdminForm(forms.ModelForm):
     hero_main_image = forms.ImageField(
@@ -3291,6 +3298,87 @@ class HomePageCopyAdminForm(forms.ModelForm):
         label="Carousel slide 4 caption",
         max_length=160,
     )
+    home_gallery_1_image = forms.ImageField(
+        required=False,
+        label="Gallery card 1 image",
+        help_text="Upload the first homepage Builds card image.",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    home_gallery_1_alt_text = forms.CharField(
+        required=False,
+        label="Gallery card 1 alt text",
+        max_length=160,
+    )
+    home_gallery_1_title = forms.CharField(
+        required=False,
+        label="Gallery card 1 title",
+        max_length=120,
+    )
+    home_gallery_1_caption = forms.CharField(
+        required=False,
+        label="Gallery card 1 caption",
+        max_length=160,
+    )
+    home_gallery_2_image = forms.ImageField(
+        required=False,
+        label="Gallery card 2 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    home_gallery_2_alt_text = forms.CharField(
+        required=False,
+        label="Gallery card 2 alt text",
+        max_length=160,
+    )
+    home_gallery_2_title = forms.CharField(
+        required=False,
+        label="Gallery card 2 title",
+        max_length=120,
+    )
+    home_gallery_2_caption = forms.CharField(
+        required=False,
+        label="Gallery card 2 caption",
+        max_length=160,
+    )
+    home_gallery_3_image = forms.ImageField(
+        required=False,
+        label="Gallery card 3 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    home_gallery_3_alt_text = forms.CharField(
+        required=False,
+        label="Gallery card 3 alt text",
+        max_length=160,
+    )
+    home_gallery_3_title = forms.CharField(
+        required=False,
+        label="Gallery card 3 title",
+        max_length=120,
+    )
+    home_gallery_3_caption = forms.CharField(
+        required=False,
+        label="Gallery card 3 caption",
+        max_length=160,
+    )
+    home_gallery_4_image = forms.ImageField(
+        required=False,
+        label="Gallery card 4 image",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+    )
+    home_gallery_4_alt_text = forms.CharField(
+        required=False,
+        label="Gallery card 4 alt text",
+        max_length=160,
+    )
+    home_gallery_4_title = forms.CharField(
+        required=False,
+        label="Gallery card 4 title",
+        max_length=120,
+    )
+    home_gallery_4_caption = forms.CharField(
+        required=False,
+        label="Gallery card 4 caption",
+        max_length=160,
+    )
 
     class Meta:
         model = HomePageCopy
@@ -3327,6 +3415,26 @@ class HomePageCopyAdminForm(forms.ModelForm):
                 self.fields[image_field].initial = asset.image
             if asset:
                 self.fields[alt_field].initial = asset.alt_text
+                self.fields[caption_field].initial = asset.caption
+
+        gallery_locations = [slot[1] for slot in HOME_GALLERY_SLOTS]
+        try:
+            gallery_assets = HeroImage.objects.filter(location__in=gallery_locations)
+        except Exception:
+            gallery_assets = []
+        gallery_asset_map = {asset.location: asset for asset in gallery_assets}
+
+        for prefix, location, label in HOME_GALLERY_SLOTS:
+            asset = gallery_asset_map.get(location)
+            image_field = f"{prefix}_image"
+            alt_field = f"{prefix}_alt_text"
+            title_field = f"{prefix}_title"
+            caption_field = f"{prefix}_caption"
+            if asset and getattr(asset, "image", None):
+                self.fields[image_field].initial = asset.image
+            if asset:
+                self.fields[alt_field].initial = asset.alt_text
+                self.fields[title_field].initial = asset.title
                 self.fields[caption_field].initial = asset.caption
 
     def save_hero_asset(self):
@@ -3385,6 +3493,41 @@ class HomePageCopyAdminForm(forms.ModelForm):
             asset.caption = caption
             if not asset.title:
                 asset.title = f"Home hero carousel {label}"
+            asset.is_active = bool(asset.image)
+            asset.save()
+
+    def save_gallery_assets(self):
+        locations = [slot[1] for slot in HOME_GALLERY_SLOTS]
+        existing_assets = {asset.location: asset for asset in HeroImage.objects.filter(location__in=locations)}
+
+        for prefix, location, label in HOME_GALLERY_SLOTS:
+            image_field = f"{prefix}_image"
+            alt_field = f"{prefix}_alt_text"
+            title_field = f"{prefix}_title"
+            caption_field = f"{prefix}_caption"
+            image_value = self.cleaned_data.get(image_field)
+            alt_text = (self.cleaned_data.get(alt_field) or "").strip()
+            title = (self.cleaned_data.get(title_field) or "").strip()
+            caption = (self.cleaned_data.get(caption_field) or "").strip()
+
+            asset = existing_assets.get(location)
+            has_new_image = image_value not in (None, False)
+            has_any_value = has_new_image or alt_text or title or caption
+
+            if not asset and not has_any_value:
+                continue
+
+            if not asset:
+                asset = HeroImage(location=location)
+
+            if image_value is False:
+                asset.image = None
+            elif image_value:
+                asset.image = image_value
+
+            asset.alt_text = alt_text
+            asset.title = title or f"Home gallery {label}"
+            asset.caption = caption
             asset.is_active = bool(asset.image)
             asset.save()
 
@@ -3541,7 +3684,24 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "gallery_desc",
                 "gallery_cta_label",
                 "gallery_cta_url",
-            )
+                "home_gallery_1_image",
+                "home_gallery_1_alt_text",
+                "home_gallery_1_title",
+                "home_gallery_1_caption",
+                "home_gallery_2_image",
+                "home_gallery_2_alt_text",
+                "home_gallery_2_title",
+                "home_gallery_2_caption",
+                "home_gallery_3_image",
+                "home_gallery_3_alt_text",
+                "home_gallery_3_title",
+                "home_gallery_3_caption",
+                "home_gallery_4_image",
+                "home_gallery_4_alt_text",
+                "home_gallery_4_title",
+                "home_gallery_4_caption",
+            ),
+            "description": "These four uploads control the Builds card images on the homepage. If a card image is left empty, the site falls back to recent project journal covers or the built-in defaults.",
         }),
         ("Shared pricing labels", {
             "fields": (
@@ -3655,6 +3815,8 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
             form.save_hero_asset()
         if hasattr(form, "save_carousel_assets"):
             form.save_carousel_assets()
+        if hasattr(form, "save_gallery_assets"):
+            form.save_gallery_assets()
 
 
 @admin.register(ServicesPageCopy)
@@ -5472,78 +5634,59 @@ class ProjectJournalCategoryAdmin(admin.ModelAdmin):
     ordering = ("sort_order", "name")
 
 
-class _ProjectJournalFixedKindPhotoFormSet(BaseInlineFormSet):
-    fixed_kind = ""
-    require_message = "At least one photo is required."
+class ProjectJournalPhotoFormSet(BaseInlineFormSet):
+    require_before_message = "To publish, add at least one BEFORE photo."
+    require_after_message = "To publish, add at least one AFTER photo."
+
+    def _has_legacy_gallery(self, field_name: str) -> bool:
+        raw_gallery = (self.data.get(field_name) or "").strip()
+        # Allow legacy/manual JSON gallery values (compat path).
+        if raw_gallery and raw_gallery not in {"[]", "null", "None"}:
+            return True
+        if getattr(self.instance, field_name, None):
+            return True
+        return False
 
     def clean(self):
         super().clean()
         if any(self.errors):
             return
 
-        if self.fixed_kind not in {ProjectJournalPhoto.Kind.BEFORE, ProjectJournalPhoto.Kind.AFTER}:
-            return
-
         status = (self.data.get("status") or "").strip()
         if status != ProjectJournalEntry.Status.PUBLISHED:
             return
 
-        kept = 0
+        counts = {ProjectJournalPhoto.Kind.BEFORE: 0, ProjectJournalPhoto.Kind.AFTER: 0}
         for form in self.forms:
             if not hasattr(form, "cleaned_data"):
                 continue
             if form.cleaned_data.get("DELETE"):
                 continue
             image = form.cleaned_data.get("image") or getattr(form.instance, "image", None)
-            if image:
-                kept += 1
+            if not image:
+                continue
+            kind = form.cleaned_data.get("kind") or getattr(form.instance, "kind", "")
+            if kind in counts:
+                counts[kind] += 1
 
-        if kept < 1:
-            gallery_field = "before_gallery" if self.fixed_kind == ProjectJournalPhoto.Kind.BEFORE else "after_gallery"
-            raw_gallery = (self.data.get(gallery_field) or "").strip()
-            # Allow legacy/manual JSON gallery values (compat path).
-            if raw_gallery and raw_gallery not in {"[]", "null", "None"}:
-                return
-            if getattr(self.instance, gallery_field, None):
-                return
-            raise ValidationError(self.require_message)
-
-    def save_new(self, form, commit=True):
-        obj = super().save_new(form, commit=False)
-        if self.fixed_kind:
-            obj.kind = self.fixed_kind
-        if commit:
-            obj.save()
-        return obj
-
-    def save_existing(self, form, instance, commit=True):
-        obj = super().save_existing(form, instance, commit=False)
-        if self.fixed_kind:
-            obj.kind = self.fixed_kind
-        if commit:
-            obj.save()
-        return obj
+        errors = []
+        if counts[ProjectJournalPhoto.Kind.BEFORE] < 1 and not self._has_legacy_gallery("before_gallery"):
+            errors.append(self.require_before_message)
+        if counts[ProjectJournalPhoto.Kind.AFTER] < 1 and not self._has_legacy_gallery("after_gallery"):
+            errors.append(self.require_after_message)
+        if errors:
+            raise ValidationError(errors)
 
 
-class ProjectJournalBeforePhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
-    fixed_kind = ProjectJournalPhoto.Kind.BEFORE
-    require_message = "To publish, add at least one BEFORE photo."
-
-
-class ProjectJournalAfterPhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
-    fixed_kind = ProjectJournalPhoto.Kind.AFTER
-    require_message = "To publish, add at least one AFTER photo."
-
-
-class ProjectJournalProcessPhotoFormSet(_ProjectJournalFixedKindPhotoFormSet):
-    fixed_kind = ProjectJournalPhoto.Kind.PROCESS
-
-
-class _ProjectJournalPhotoInline(admin.TabularInline):
+class ProjectJournalPhotoInline(admin.TabularInline):
+    model = ProjectJournalPhoto
+    formset = ProjectJournalPhotoFormSet
     extra = 1
-    fields = ("image_preview", "image", "alt_text", "sort_order")
+    fields = ("image_preview", "image", "kind", "alt_text", "sort_order")
     readonly_fields = ("image_preview",)
     ordering = ("sort_order", "created_at")
+    verbose_name = "Build photo"
+    verbose_name_plural = "Build photos"
 
     @admin.display(description="Preview")
     def image_preview(self, obj):
@@ -5557,33 +5700,6 @@ class _ProjectJournalPhotoInline(admin.TabularInline):
             '<img src="{}" alt="" style="height:64px;width:96px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb;">',
             url,
         )
-
-
-class ProjectJournalBeforePhotoInline(_ProjectJournalPhotoInline):
-    model = ProjectJournalBeforePhoto
-    formset = ProjectJournalBeforePhotoFormSet
-    verbose_name_plural = "Before media"
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.BEFORE)
-
-
-class ProjectJournalAfterPhotoInline(_ProjectJournalPhotoInline):
-    model = ProjectJournalAfterPhoto
-    formset = ProjectJournalAfterPhotoFormSet
-    verbose_name_plural = "After media"
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.AFTER)
-
-
-class ProjectJournalProcessPhotoInline(_ProjectJournalPhotoInline):
-    model = ProjectJournalProcessPhoto
-    formset = ProjectJournalProcessPhotoFormSet
-    verbose_name_plural = "Process media"
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).filter(kind=ProjectJournalPhoto.Kind.PROCESS)
 
 
 class ProjectJournalEntryAdminForm(forms.ModelForm):
@@ -5631,11 +5747,7 @@ class ProjectJournalEntryAdmin(admin.ModelAdmin):
     ordering = ("-published_at", "-updated_at")
     readonly_fields = ("created_at", "updated_at", "preview_link")
     prepopulated_fields = {"slug": ("title",)}
-    inlines = (
-        ProjectJournalBeforePhotoInline,
-        ProjectJournalProcessPhotoInline,
-        ProjectJournalAfterPhotoInline,
-    )
+    inlines = (ProjectJournalPhotoInline,)
     fieldsets = (
         ("Story", {
             "fields": (
@@ -5797,6 +5909,36 @@ class SiteBackgroundSettingsAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         if SiteBackgroundSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(SiteContactSettings)
+class SiteContactSettingsAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        ("Contact", {
+            "fields": (
+                "contact_email",
+                "office_phone",
+                "office_phone_display",
+                "text_phone",
+                "text_phone_display",
+            )
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="Settings")
+    def label(self, obj):
+        return "Site contact"
+
+    def has_add_permission(self, request):
+        if SiteContactSettings.objects.exists():
             return False
         return super().has_add_permission(request)
 

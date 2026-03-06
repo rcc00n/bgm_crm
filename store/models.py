@@ -1,5 +1,6 @@
 from decimal import Decimal, InvalidOperation
 import logging
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -353,6 +354,20 @@ class Product(models.Model):
         default=False,
         help_text="Exclude this product from the global price multiplier.",
     )
+    printful_product_id = models.PositiveBigIntegerField(
+        "Printful product ID",
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Connected Printful sync product ID for merch items.",
+    )
+    printful_external_id = models.CharField(
+        "Printful external ID",
+        max_length=140,
+        blank=True,
+        default="",
+        help_text="Optional external identifier mirrored from Printful.",
+    )
     currency = models.CharField(max_length=3, default=settings.DEFAULT_CURRENCY_CODE)
     inventory = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -672,6 +687,27 @@ class ProductOption(models.Model):
         related_name="options",
     )
     sort_order = models.PositiveIntegerField("Sort order", default=0)
+    printful_sync_variant_id = models.PositiveBigIntegerField(
+        "Printful sync variant ID",
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Connected Printful sync variant ID for merch fulfillment.",
+    )
+    printful_variant_id = models.PositiveBigIntegerField(
+        "Printful catalog variant ID",
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Underlying Printful catalog variant ID when available.",
+    )
+    printful_external_id = models.CharField(
+        "Printful external ID",
+        max_length=140,
+        blank=True,
+        default="",
+        help_text="Optional external variant identifier mirrored from Printful.",
+    )
 
     class Meta:
         verbose_name = "Product option"
@@ -754,6 +790,13 @@ class Order(models.Model):
     customer_name = models.CharField(max_length=120)
     email = models.EmailField()
     phone = models.CharField(max_length=32, blank=True)
+    delivery_method = models.CharField(max_length=20, blank=True, default="shipping")
+    address_line1 = models.CharField(max_length=255, blank=True, default="")
+    address_line2 = models.CharField(max_length=255, blank=True, default="")
+    city = models.CharField(max_length=120, blank=True, default="")
+    region = models.CharField(max_length=120, blank=True, default="")
+    postal_code = models.CharField(max_length=32, blank=True, default="")
+    country = models.CharField(max_length=120, blank=True, default="")
 
     # vehicle
     vehicle_make = models.CharField(max_length=64, blank=True)
@@ -809,6 +852,82 @@ class Order(models.Model):
         default="",
         help_text="Optional carrier tracking URL shown in the client portal.",
     )
+    printful_order_id = models.PositiveIntegerField(
+        "Printful order ID",
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Connected Printful order ID after merch fulfillment submission.",
+    )
+    printful_external_id = models.CharField(
+        "Printful external ID",
+        max_length=140,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Idempotent external order ID used when creating Printful orders.",
+    )
+    printful_status = models.CharField(
+        "Printful status",
+        max_length=40,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Last known Printful order status from API/webhooks.",
+    )
+    printful_shipping_rate_id = models.CharField(
+        "Printful shipping rate ID",
+        max_length=80,
+        blank=True,
+        default="",
+        help_text="Chosen Printful shipping rate identifier from checkout.",
+    )
+    printful_shipping_name = models.CharField(
+        "Printful shipping method",
+        max_length=140,
+        blank=True,
+        default="",
+        help_text="Customer-facing Printful shipping method label used at checkout.",
+    )
+    printful_shipping_cost = models.DecimalField(
+        "Printful shipping cost",
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0)],
+        help_text="Shipping amount returned by Printful for the selected rate.",
+    )
+    printful_shipping_currency = models.CharField(
+        "Printful shipping currency",
+        max_length=8,
+        blank=True,
+        default="",
+        help_text="Currency code returned by Printful shipping/order APIs.",
+    )
+    printful_tracking_data = models.JSONField(
+        "Printful tracking payload",
+        default=list,
+        blank=True,
+        help_text="Normalized tracking entries received from Printful webhooks.",
+    )
+    printful_last_synced_at = models.DateTimeField(
+        "Printful last synced at",
+        null=True,
+        blank=True,
+        help_text="When this order was last updated from Printful.",
+    )
+    printful_submitted_at = models.DateTimeField(
+        "Printful submitted at",
+        null=True,
+        blank=True,
+        help_text="When this order was first submitted to Printful.",
+    )
+    printful_error = models.TextField(
+        "Printful error",
+        blank=True,
+        default="",
+        help_text="Last fulfillment error returned by Printful, if any.",
+    )
 
     # who created
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
@@ -835,6 +954,120 @@ class Order(models.Model):
             pass
         return total.quantize(Decimal("0.01"))
 
+    @property
+    def tracking_entries(self) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+
+        raw_entries = self.printful_tracking_data if isinstance(self.printful_tracking_data, list) else []
+        for raw_entry in raw_entries:
+            if not isinstance(raw_entry, dict):
+                continue
+            number = " ".join(str(raw_entry.get("number") or "").split())[:140]
+            url = str(raw_entry.get("url") or "").strip()[:500]
+            if not number and not url:
+                continue
+            key = (number, url)
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append(
+                {
+                    "number": number,
+                    "url": url,
+                    "carrier": " ".join(str(raw_entry.get("carrier") or "").split())[:120],
+                    "estimated_delivery": " ".join(str(raw_entry.get("estimated_delivery") or "").split())[:120],
+                    "shipment_date": " ".join(str(raw_entry.get("shipment_date") or "").split())[:120],
+                    "delivery_date": " ".join(str(raw_entry.get("delivery_date") or "").split())[:120],
+                    "tracking_events": [
+                        " ".join(str(event or "").split())[:240]
+                        for event in (raw_entry.get("tracking_events") if isinstance(raw_entry.get("tracking_events"), list) else [])
+                        if " ".join(str(event or "").split())
+                    ],
+                }
+            )
+
+        if rows:
+            return rows
+
+        tracking_url = str(self.tracking_url or "").strip()[:500]
+        for raw_number in str(self.tracking_numbers or "").splitlines():
+            number = " ".join(raw_number.split())[:140]
+            if not number:
+                continue
+            key = (number, tracking_url)
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append(
+                {
+                    "number": number,
+                    "url": tracking_url,
+                    "carrier": "",
+                    "estimated_delivery": "",
+                    "shipment_date": "",
+                    "delivery_date": "",
+                    "tracking_events": [],
+                }
+            )
+
+        if not rows and tracking_url:
+            rows.append(
+                {
+                    "number": "",
+                    "url": tracking_url,
+                    "carrier": "",
+                    "estimated_delivery": "",
+                    "shipment_date": "",
+                    "delivery_date": "",
+                    "tracking_events": [],
+                }
+            )
+        return rows
+
+    @property
+    def primary_tracking_url(self) -> str:
+        for entry in self.tracking_entries:
+            url = str(entry.get("url") or "").strip()
+            if url:
+                return url
+        return str(self.tracking_url or "").strip()
+
+    def shipment_detail_rows(self) -> list[tuple[str, str]]:
+        rows: list[tuple[str, str]] = []
+        entries = self.tracking_entries
+        total_entries = len(entries)
+        for index, entry in enumerate(entries, start=1):
+            prefix = "" if total_entries == 1 else f"Package {index} "
+            details = [
+                ("Tracking", entry.get("number")),
+                ("Carrier", entry.get("carrier")),
+                ("Estimated delivery", entry.get("estimated_delivery")),
+                ("Shipment date", entry.get("shipment_date")),
+                ("Delivery date", entry.get("delivery_date")),
+            ]
+            for label, value in details:
+                text = " ".join(str(value or "").split())
+                if text:
+                    rows.append((f"{prefix}{label}", text))
+        return rows
+
+    def shipment_notice_lines(self) -> list[str]:
+        lines: list[str] = []
+        entries = self.tracking_entries
+        total_entries = len(entries)
+        for index, entry in enumerate(entries, start=1):
+            prefix = "" if total_entries == 1 else f"Package {index} "
+            for event_index, event in enumerate(entry.get("tracking_events") or [], start=1):
+                text = " ".join(str(event or "").split())
+                if not text:
+                    continue
+                if total_entries == 1:
+                    lines.append(f"Tracking event {event_index}: {text}")
+                else:
+                    lines.append(f"{prefix}event {event_index}: {text}")
+        return lines
+
     def set_status(self, new_status: str, *, save=True):
         self.status = new_status
         now = timezone.now()
@@ -850,17 +1083,23 @@ class Order(models.Model):
     def save(self, *args, **kwargs):
         is_new = self._state.adding
         old_status = None
+        old_payment_status = None
         if not is_new and self.pk:
             try:
-                old_status = (
+                old_values = (
                     Order.objects.filter(pk=self.pk)
-                    .values_list("status", flat=True)
+                    .values("status", "payment_status")
                     .first()
                 )
+                if old_values:
+                    old_status = old_values.get("status")
+                    old_payment_status = old_values.get("payment_status")
             except Exception:
                 old_status = None
+                old_payment_status = None
 
         status_changed = old_status is not None and self.status != old_status
+        payment_status_changed = old_payment_status is not None and self.payment_status != old_payment_status
         if status_changed:
             now = timezone.now()
             if self.status == self.STATUS_SHIPPED and not self.shipped_at:
@@ -886,6 +1125,8 @@ class Order(models.Model):
 
         if status_changed:
             transaction.on_commit(lambda: self._send_status_update(old_status))
+        if payment_status_changed and self.payment_status == self.PaymentStatus.PAID:
+            transaction.on_commit(lambda: self._handle_paid_transition())
 
     def _send_status_update(self, old_status: str | None):
         recipient = (self.email or "").strip()
@@ -908,6 +1149,8 @@ class Order(models.Model):
         currency_code = getattr(settings, "DEFAULT_CURRENCY_CODE", "").upper()
         order_total = self.total
         total_text = f"{currency_symbol}{order_total} {currency_code}".strip()
+        tracking_entries = self.tracking_entries
+        primary_tracking = tracking_entries[0] if tracking_entries else {}
         from core.email_templates import base_email_context, join_text_sections, render_email_template
         context = base_email_context(
             {
@@ -916,6 +1159,13 @@ class Order(models.Model):
                 "order_id": self.pk,
                 "order_status": self.get_status_display(),
                 "order_total": total_text,
+                "tracking_numbers": self.tracking_numbers,
+                "tracking_url": self.primary_tracking_url,
+                "carrier": primary_tracking.get("carrier", ""),
+                "estimated_delivery": primary_tracking.get("estimated_delivery", ""),
+                "shipment_date": primary_tracking.get("shipment_date", ""),
+                "delivery_date": primary_tracking.get("delivery_date", ""),
+                "tracking_events": " | ".join(self.shipment_notice_lines()),
             }
         )
         template = render_email_template(template_slug, context)
@@ -927,8 +1177,34 @@ class Order(models.Model):
 
         link_lines: list[str] = []
         link_rows: list[tuple[str, str]] = []
+        notice_title = template.notice_title or None
+        notice_lines = list(template.notice_lines)
         cta_label = template.cta_label
         cta_url = getattr(settings, "COMPANY_WEBSITE", "")
+        tracking_numbers = ""
+        if self.status == self.STATUS_SHIPPED and tracking_entries:
+            tracking_numbers = ", ".join(
+                entry["number"] for entry in tracking_entries if (entry.get("number") or "").strip()
+            )
+            shipment_detail_rows = self.shipment_detail_rows()
+            for label, value in shipment_detail_rows:
+                detail_lines.append(f"{label}: {value}")
+            shipment_notice_lines = self.shipment_notice_lines()
+            if shipment_notice_lines:
+                notice_title = "Tracking updates"
+                notice_lines.extend(shipment_notice_lines)
+            tracking_links: list[tuple[str, str]] = []
+            for index, entry in enumerate(tracking_entries, start=1):
+                url = str(entry.get("url") or "").strip()
+                if not url:
+                    continue
+                label = "Track package" if len(tracking_entries) == 1 else f"Track package {index}"
+                tracking_links.append((label, url))
+            if tracking_links:
+                link_rows = tracking_links
+                link_lines = [f"{label}: {url}" for label, url in tracking_links]
+                cta_label = tracking_links[0][0]
+                cta_url = tracking_links[0][1]
         if self.status == self.STATUS_COMPLETED:
             base = (getattr(settings, "COMPANY_WEBSITE", "") or "").strip()
             if base and not base.startswith(("http://", "https://")):
@@ -984,14 +1260,17 @@ class Order(models.Model):
                 preheader=template.preheader,
                 greeting=template.greeting,
                 intro_lines=template.intro_lines,
-                detail_rows=[
-                    ("Order #", self.pk),
-                    ("Status", self.get_status_display()),
-                    ("Order total", total_text),
-                ],
+                detail_rows=(
+                    [
+                        ("Order #", self.pk),
+                        ("Status", self.get_status_display()),
+                        ("Order total", total_text),
+                    ]
+                    + (self.shipment_detail_rows() if self.status == self.STATUS_SHIPPED and tracking_entries else [])
+                ),
                 item_rows=item_rows,
-                notice_title=template.notice_title or None,
-                notice_lines=template.notice_lines,
+                notice_title=notice_title,
+                notice_lines=notice_lines,
                 footer_lines=template.footer_lines,
                 cta_label=cta_label,
                 cta_url=cta_url,
@@ -1012,6 +1291,14 @@ class Order(models.Model):
                 old_status,
                 self.status,
             )
+
+    def _handle_paid_transition(self):
+        try:
+            from store.printful_fulfillment import handle_order_payment_status_transition
+
+            handle_order_payment_status_transition(self.pk)
+        except Exception:
+            logger.exception("Failed to process paid transition for order %s", self.pk)
 
     STATUS_UI = {
         STATUS_PROCESSING: ("processing", "#f5a623"),
@@ -1144,6 +1431,26 @@ class AbandonedCart(models.Model):
 
     def __str__(self) -> str:
         return f"{self.email} — {self.cart_total}"
+
+
+class PrintfulWebhookEvent(models.Model):
+    event_type = models.CharField(max_length=80, db_index=True)
+    event_hash = models.CharField(max_length=64, unique=True)
+    order = models.ForeignKey(
+        Order,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="printful_webhook_events",
+    )
+    payload = models.JSONField(default=dict, blank=True)
+    received_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-received_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.event_type or 'printful'} @ {self.received_at:%Y-%m-%d %H:%M}"
 
 
 # ─────────────────────────── Custom fitment / quote requests ───────────────────────────

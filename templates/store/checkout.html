@@ -69,23 +69,24 @@
           <!-- Delivery -->
           <section>
             <h3 class="block-title">Delivery</h3>
-            <fieldset class="options">
-              <label class="opt">
-                <input type="radio" name="delivery_method" value="shipping" {% if form.delivery_method != 'pickup' %}checked{% endif %}>
-                <span>Shipping</span>
-              </label>
-              <label class="opt">
-                <input type="radio" name="delivery_method" value="pickup" {% if form.delivery_method == 'pickup' %}checked{% endif %}>
-                <span>Pickup</span>
-              </label>
-            </fieldset>
-
-            {% if cart_has_merch and store_shipping.free_shipping_threshold_cad %}
+            {% if cart_is_merch_checkout %}
+              <input type="hidden" name="delivery_method" value="shipping">
               <div class="callout callout--ok" style="margin-top:.8rem;">
                 <div class="callout__body">
-                  Free shipping in Canada on orders over <strong>{{ store_shipping.free_shipping_threshold_cad|money }}</strong>.
+                  Merch is fulfilled directly by Printful and ships to the customer address below. Pickup is not available for merch orders.
                 </div>
               </div>
+            {% else %}
+              <fieldset class="options">
+                <label class="opt">
+                  <input type="radio" name="delivery_method" value="shipping" {% if form.delivery_method != 'pickup' %}checked{% endif %}>
+                  <span>Shipping</span>
+                </label>
+                <label class="opt">
+                  <input type="radio" name="delivery_method" value="pickup" {% if form.delivery_method == 'pickup' %}checked{% endif %}>
+                  <span>Pickup</span>
+                </label>
+              </fieldset>
             {% endif %}
 
             <!-- Address -->
@@ -138,10 +139,53 @@
                        placeholder="Canada" value="{{ form.country|default_if_none:'Canada' }}">
                 {% if errors.country %}<div class="err">{{ errors.country }}</div>{% endif %}
               </div>
+
+              {% if cart_is_merch_checkout %}
+                <div class="printful-rates" id="printfulRatesBlock">
+                  <input type="hidden" name="printful_shipping_rate_id" id="printfulShippingRateId" value="{{ selected_printful_rate_id|default_if_none:'' }}">
+                  <div class="section__head" style="margin:.9rem 0 .35rem;">
+                    <h4 class="block-title" style="margin:0;">Live shipping</h4>
+                    <p class="section__desc">Rates come directly from Printful for the address above.</p>
+                  </div>
+                  <div class="section__desc" id="printfulRatesHint" {% if printful_rates %}hidden{% endif %}>
+                    Enter the full shipping address to load live rates.
+                  </div>
+                  <div class="callout callout--err" id="printfulRatesError" {% if not printful_shipping_error %}hidden{% endif %}>
+                    <div class="callout__body">{{ printful_shipping_error }}</div>
+                  </div>
+                  <div class="callout" id="printfulRatesLoading" hidden>
+                    <div class="callout__body">Loading live shipping rates…</div>
+                  </div>
+                  <fieldset class="options options--pay" id="printfulRatesList" {% if not printful_rates %}hidden{% endif %}>
+                    {% for rate in printful_rates %}
+                      <label class="opt opt--wide">
+                        <input
+                          type="radio"
+                          name="printful_shipping_rate_choice"
+                          value="{{ rate.id }}"
+                          data-rate-amount="{{ rate.rate }}"
+                          data-rate-name="{{ rate.name }}"
+                          data-rate-currency="{{ rate.currency }}"
+                          {% if selected_printful_rate_id == rate.id %}checked{% endif %}
+                        >
+                        <div>
+                          <div class="opt__title">{{ rate.name }}</div>
+                          <div class="opt__sub">
+                            {{ currency_symbol }}{{ rate.rate }}
+                            {% if rate.min_delivery_date and rate.max_delivery_date %}
+                              • {{ rate.min_delivery_date }} to {{ rate.max_delivery_date }}
+                            {% endif %}
+                          </div>
+                        </div>
+                      </label>
+                    {% endfor %}
+                  </fieldset>
+                </div>
+              {% endif %}
             </div>
 
             <!-- Pickup notes -->
-            <div id="pickup" class="pickup">
+            <div id="pickup" class="pickup" {% if cart_is_merch_checkout %}hidden{% endif %}>
               <label class="label" for="pickup_notes">Pickup preferences (time, contact, etc.)</label>
               <input id="pickup_notes" class="input" type="text" name="pickup_notes"
                      placeholder="Tomorrow after 3 PM" value="{{ form.pickup_notes|default_if_none:'' }}">
@@ -152,39 +196,14 @@
           <section>
             <div class="section__head" style="margin-bottom:.45rem;">
               <h3 class="block-title">Payment</h3>
-              {% if cart_is_merch_checkout %}
-                <p class="section__desc">Merch orders are paid in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee. Delivery (if applicable) is shown in the order summary.</p>
-              {% else %}
-                <p class="section__desc">Pick a 50% deposit or pay in full. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee. Delivery (if applicable) is shown in the order summary.</p>
-              {% endif %}
+              <p class="section__desc">Orders are paid in full at checkout. Totals include {{ gst_rate_percent }}% GST and a {{ processing_rate_percent }}% processing fee. Delivery (if applicable) is shown in the order summary.</p>
             </div>
-
-            {% if not cart_is_merch_checkout %}
-              <fieldset class="options options--pay">
-                <label class="opt opt--wide">
-                  <input type="radio" name="pay_mode" value="deposit_50" {% if pay_mode == 'deposit_50' %}checked{% endif %}>
-                  <div>
-                    <div class="opt__title">Pay 50% now</div>
-                    <div class="opt__sub" data-pay-copy="deposit_50">
-                      Charge now {{ payment_options.deposit_50.charge|money }} (subtotal {{ payment_options.deposit_50.base|money }} + GST {{ payment_options.deposit_50.gst|money }} + processing {{ payment_options.deposit_50.processing_fee|money }}).
-                      Balance later {{ payment_options.deposit_50.balance_due|money }} (remaining subtotal + GST/processing).
-                    </div>
-                  </div>
-                </label>
-                <label class="opt opt--wide">
-                  <input type="radio" name="pay_mode" value="full" {% if pay_mode != 'deposit_50' %}checked{% endif %}>
-                  <div>
-                    <div class="opt__title">Pay 100% now</div>
-                    <div class="opt__sub" data-pay-copy="full">
-                      Charge now {{ payment_options.full.charge|money }} (subtotal {{ payment_options.full.base|money }} + GST {{ payment_options.full.gst|money }} + processing {{ payment_options.full.processing_fee|money }}).
-                      Balance later {{ payment_options.full.balance_due|money }}.
-                    </div>
-                  </div>
-                </label>
-              </fieldset>
-            {% else %}
-              <input type="hidden" name="pay_mode" value="full">
-            {% endif %}
+            <input type="hidden" name="pay_mode" value="full">
+            <div class="callout callout--ok">
+              <div class="callout__body" data-pay-copy="full">
+                Charge now {{ payment_options.full.charge|money }} (subtotal {{ payment_options.full.base|money }} + GST {{ payment_options.full.gst|money }} + processing {{ payment_options.full.processing_fee|money }}).
+              </div>
+            </div>
 
             <div class="section__head" style="margin-bottom:.3rem;">
               <h4 class="block-title" style="margin:0;">How would you like to pay?</h4>
@@ -675,7 +694,6 @@
     const refPreviewName = document.getElementById('referencePreviewName');
     const refPreviewMeta = document.getElementById('referencePreviewMeta');
     const formEl = document.querySelector('.checkout-form');
-    const payRadios = document.querySelectorAll('input[name="pay_mode"]');
     const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
     const cardBlock = document.getElementById('cardBlock');
     const cardContainer = document.getElementById('card-container');
@@ -693,11 +711,12 @@
     const paymentOptions = JSON.parse('{{ payment_options_json|escapejs }}' || '{}');
     const currencySymbol = "{{ currency_symbol }}";
     const cartHasMerch = {{ cart_has_merch|yesno:"true,false" }};
+    const cartIsMerchCheckout = {{ cart_is_merch_checkout|yesno:"true,false" }};
     const itemsSubtotal = Number('{{ total|floatformat:2 }}') || 0;
-    const merchFreeShipThreshold = {{ store_shipping.free_shipping_threshold_cad|default:"null" }};
-    const merchDeliveryCost = {{ store_shipping.delivery_cost_under_threshold_cad|default:"null" }};
     const gstRate = (Number('{{ gst_rate_percent|floatformat:2 }}') || 0) / 100;
     const processingRate = (Number('{{ processing_rate_percent|floatformat:2 }}') || 0) / 100;
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+    const printfulRatesUrl = "{% url 'store:store-checkout-printful-rates' %}";
     const squareReady = {{ square_ready|yesno:"true,false" }};
     const squareAppId = "{{ square_application_id }}";
     const squareLocationId = "{{ square_location_id }}";
@@ -717,11 +736,25 @@
     const orderGst = document.getElementById('orderGst');
     const orderProcessing = document.getElementById('orderProcessing');
     const orderTotalWithFees = document.getElementById('orderTotalWithFees');
-    const payCopyDeposit = document.querySelector('[data-pay-copy="deposit_50"]');
     const payCopyFull = document.querySelector('[data-pay-copy="full"]');
     const serverPaymentError = "{{ errors.payment|default_if_none:'' }}";
+    const customerNameInput = document.getElementById('customer_name');
+    const emailInput = document.getElementById('email');
+    const phoneInput = document.getElementById('phone');
+    const addressLine1Input = document.getElementById('address_line1');
+    const addressLine2Input = document.getElementById('address_line2');
+    const cityInput = document.getElementById('city');
+    const regionInput = document.getElementById('region');
+    const printfulRatesBlock = document.getElementById('printfulRatesBlock');
+    const printfulRatesList = document.getElementById('printfulRatesList');
+    const printfulRatesHint = document.getElementById('printfulRatesHint');
+    const printfulRatesError = document.getElementById('printfulRatesError');
+    const printfulRatesLoading = document.getElementById('printfulRatesLoading');
+    const printfulShippingRateIdInput = document.getElementById('printfulShippingRateId');
     let cardInstance = squareState.cardInstance || null;
     let processingPayment = false;
+    let printfulRatesAbortController = null;
+    let printfulRatesTimer = null;
 
     function round2(value){
       const num = Number(value || 0);
@@ -729,29 +762,102 @@
     }
 
     function syncDelivery(){
+      if (cartIsMerchCheckout){
+        if (addr) addr.style.display = 'block';
+        if (pickup) pickup.style.display = 'none';
+        return;
+      }
       const val = document.querySelector('input[name="delivery_method"]:checked')?.value;
       const ship = val !== 'pickup';
       addr.style.display   = ship ? 'block' : 'none';
       pickup.style.display = ship ? 'none'  : 'block';
     }
 
-    function isCanada(raw){
-      const c = String(raw || '').trim().toLowerCase();
-      if (!c) return false;
-      return c === 'canada' || c === 'ca' || c.startsWith('canada');
+    function getSelectedPrintfulRateRadio(){
+      return document.querySelector('input[name="printful_shipping_rate_choice"]:checked');
+    }
+
+    function setPrintfulError(message){
+      if (!printfulRatesError) return;
+      printfulRatesError.hidden = !message;
+      const body = printfulRatesError.querySelector('.callout__body');
+      if (body) body.textContent = message || '';
+    }
+
+    function setPrintfulLoading(isLoading){
+      if (!printfulRatesLoading) return;
+      printfulRatesLoading.hidden = !isLoading;
+    }
+
+    function escapeHtml(value){
+      return String(value || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function renderPrintfulRates(rates, selectedId){
+      if (!printfulRatesList) return;
+      const rows = Array.isArray(rates) ? rates : [];
+      if (!rows.length){
+        printfulRatesList.innerHTML = '';
+        printfulRatesList.hidden = true;
+        if (printfulRatesHint) printfulRatesHint.hidden = false;
+        if (printfulShippingRateIdInput) printfulShippingRateIdInput.value = '';
+        return;
+      }
+      const normalizedSelected = selectedId || rows[0].id || '';
+      printfulRatesList.innerHTML = rows.map((rate) => {
+        const checked = rate.id === normalizedSelected ? 'checked' : '';
+        const deliveryCopy = (rate.min_delivery_date && rate.max_delivery_date)
+          ? ` • ${escapeHtml(rate.min_delivery_date)} to ${escapeHtml(rate.max_delivery_date)}`
+          : '';
+        const rateId = escapeHtml(rate.id);
+        const rateAmount = escapeHtml(rate.rate);
+        const rateName = escapeHtml(rate.name);
+        const rateCurrency = escapeHtml(rate.currency || '');
+        return `
+          <label class="opt opt--wide">
+            <input
+              type="radio"
+              name="printful_shipping_rate_choice"
+              value="${rateId}"
+              data-rate-amount="${rateAmount}"
+              data-rate-name="${rateName}"
+              data-rate-currency="${rateCurrency}"
+              ${checked}
+            >
+            <div>
+              <div class="opt__title">${rateName}</div>
+              <div class="opt__sub">${formatMoney(rate.rate)}${deliveryCopy}</div>
+            </div>
+          </label>
+        `;
+      }).join('');
+      printfulRatesList.hidden = false;
+      if (printfulRatesHint) printfulRatesHint.hidden = true;
+      if (printfulShippingRateIdInput) printfulShippingRateIdInput.value = normalizedSelected;
+      bindPrintfulRateInputs();
+    }
+
+    function bindPrintfulRateInputs(){
+      const radios = document.querySelectorAll('input[name="printful_shipping_rate_choice"]');
+      radios.forEach((radio) => {
+        radio.addEventListener('change', () => {
+          if (printfulShippingRateIdInput) printfulShippingRateIdInput.value = radio.value || '';
+          setPrintfulError('');
+          syncTotals();
+        });
+      });
     }
 
     function computeShippingCost(){
-      if (!cartHasMerch) return 0;
-      const method = document.querySelector('input[name="delivery_method"]:checked')?.value || 'shipping';
-      if (method === 'pickup') return 0;
-      const country = (countryInput?.value || 'Canada').trim();
-      if (!isCanada(country)) return 0;
-      const deliveryCost = (typeof merchDeliveryCost === 'number') ? merchDeliveryCost : Number(merchDeliveryCost);
-      if (!deliveryCost || deliveryCost <= 0) return 0;
-      const threshold = (typeof merchFreeShipThreshold === 'number') ? merchFreeShipThreshold : Number(merchFreeShipThreshold);
-      if (threshold && threshold > 0 && itemsSubtotal >= threshold) return 0;
-      return round2(deliveryCost);
+      if (!cartIsMerchCheckout) return 0;
+      const selected = getSelectedPrintfulRateRadio();
+      if (!selected) return 0;
+      return round2(selected.dataset.rateAmount || selected.getAttribute('data-rate-amount') || 0);
     }
 
     function buildPlan(label, portion, orderSubtotal, orderGstValue, orderProcessingValue, orderTotalWithFeesValue){
@@ -799,19 +905,10 @@
       }
 
       paymentOptions.full = buildPlan('Pay 100% now', 1.0, orderSubtotal, gst, processing, totalWithFees);
-      paymentOptions.deposit_50 = buildPlan('Pay 50% deposit', 0.5, orderSubtotal, gst, processing, totalWithFees);
-
-      if (payCopyDeposit){
-        const dep = paymentOptions.deposit_50;
-        payCopyDeposit.textContent =
-          `Charge now ${formatMoney(dep.charge)} (subtotal ${formatMoney(dep.base)} + GST ${formatMoney(dep.gst)} + processing ${formatMoney(dep.processing_fee)}). ` +
-          `Balance later ${formatMoney(dep.balance_due)} (remaining subtotal + GST/processing).`;
-      }
       if (payCopyFull){
         const full = paymentOptions.full;
         payCopyFull.textContent =
-          `Charge now ${formatMoney(full.charge)} (subtotal ${formatMoney(full.base)} + GST ${formatMoney(full.gst)} + processing ${formatMoney(full.processing_fee)}). ` +
-          `Balance later ${formatMoney(full.balance_due)}.`;
+          `Charge now ${formatMoney(full.charge)} (subtotal ${formatMoney(full.base)} + GST ${formatMoney(full.gst)} + processing ${formatMoney(full.processing_fee)}).`;
       }
 
       updatePaymentSummary();
@@ -932,9 +1029,74 @@
       return `${currencySymbol}${num.toFixed(2)}`;
     }
 
+    function hasCompletePrintfulAddress(){
+      if (!cartIsMerchCheckout) return false;
+      return [
+        addressLine1Input?.value,
+        cityInput?.value,
+        regionInput?.value,
+        postal?.value,
+        countryInput?.value,
+      ].every(value => String(value || '').trim());
+    }
+
+    async function loadPrintfulRates(options = {}){
+      if (!cartIsMerchCheckout || !printfulRatesBlock) return;
+      if (!hasCompletePrintfulAddress()){
+        renderPrintfulRates([], '');
+        setPrintfulError('');
+        syncTotals();
+        return;
+      }
+      if (printfulRatesAbortController){
+        printfulRatesAbortController.abort();
+      }
+      printfulRatesAbortController = new AbortController();
+      setPrintfulLoading(true);
+      const body = new URLSearchParams();
+      body.append('csrfmiddlewaretoken', csrfToken);
+      body.append('customer_name', customerNameInput?.value || '');
+      body.append('email', emailInput?.value || '');
+      body.append('phone', phoneInput?.value || '');
+      body.append('address_line1', addressLine1Input?.value || '');
+      body.append('address_line2', addressLine2Input?.value || '');
+      body.append('city', cityInput?.value || '');
+      body.append('region', regionInput?.value || '');
+      body.append('postal_code', postal?.value || '');
+      body.append('country', countryInput?.value || '');
+      body.append('printful_shipping_rate_id', printfulShippingRateIdInput?.value || '');
+      try{
+        const response = await fetch(printfulRatesUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: body.toString(),
+          credentials: 'same-origin',
+          signal: printfulRatesAbortController.signal,
+        });
+        const payload = await response.json();
+        renderPrintfulRates(payload.rates || [], payload.selected_rate_id || '');
+        setPrintfulError(payload.error || '');
+      }catch(err){
+        if (err && err.name === 'AbortError') return;
+        setPrintfulError('Could not load live merch shipping right now. Please try again.');
+      }finally{
+        setPrintfulLoading(false);
+        syncTotals();
+      }
+    }
+
+    function schedulePrintfulRatesLoad(){
+      if (!cartIsMerchCheckout) return;
+      if (printfulRatesTimer) window.clearTimeout(printfulRatesTimer);
+      printfulRatesTimer = window.setTimeout(() => { loadPrintfulRates(); }, 300);
+    }
+
     function updatePaymentSummary(){
-      const mode = document.querySelector('input[name="pay_mode"]:checked')?.value || 'full';
-      const data = paymentOptions[mode] || paymentOptions.full || {charge:0, processing_fee:0, gst:0, base:0, balance_due:0};
+      const data = paymentOptions.full || {charge:0, processing_fee:0, gst:0, base:0, balance_due:0};
       const method = getPaymentMethod();
       if (summaryCharge) summaryCharge.textContent = formatMoney(data.charge);
       if (summaryGst) summaryGst.textContent = formatMoney(data.gst);
@@ -1043,6 +1205,10 @@
         syncAgree();
         return;
       }
+      if (cartIsMerchCheckout && !getSelectedPrintfulRateRadio()){
+        setPrintfulError('Select a live shipping option for this merch order.');
+        return;
+      }
       const method = getPaymentMethod();
       if (method === 'etransfer'){
         processingPayment = true;
@@ -1073,11 +1239,36 @@
     }
 
     methodInputs.forEach(i => i.addEventListener('change', () => { syncDelivery(); syncTotals(); }));
-    if (countryInput) countryInput.addEventListener('blur', syncTotals);
+    if (countryInput) countryInput.addEventListener('blur', () => {
+      if (cartIsMerchCheckout){
+        schedulePrintfulRatesLoad();
+      }else{
+        syncTotals();
+      }
+    });
     if (agree)  agree.addEventListener('change', syncAgree);
-    if (postal) postal.addEventListener('blur', normalizePostal);
-    payRadios.forEach(r => r.addEventListener('change', updatePaymentSummary));
+    if (postal) postal.addEventListener('blur', () => {
+      normalizePostal();
+      if (cartIsMerchCheckout){
+        schedulePrintfulRatesLoad();
+      }
+    });
     paymentMethodRadios.forEach(r => r.addEventListener('change', syncPaymentMethod));
+    [
+      customerNameInput,
+      emailInput,
+      phoneInput,
+      addressLine1Input,
+      addressLine2Input,
+      cityInput,
+      regionInput,
+      countryInput,
+      postal,
+    ].forEach((field) => {
+      if (!field || !cartIsMerchCheckout) return;
+      field.addEventListener('input', schedulePrintfulRatesLoad);
+      field.addEventListener('change', schedulePrintfulRatesLoad);
+    });
     if (etransferShow) etransferShow.addEventListener('click', (e) => { e.preventDefault(); toggleEtransferModal(true); });
     if (etransferClose) etransferClose.addEventListener('click', (e) => { e.preventDefault(); toggleEtransferModal(false); });
     if (etransferModal){
@@ -1098,10 +1289,14 @@
     if (formEl) formEl.addEventListener('submit', handleSubmit);
 
     document.addEventListener('DOMContentLoaded', function(){
+      bindPrintfulRateInputs();
       syncDelivery();
       syncAgree();
       syncPaymentMethod();
       syncTotals();
+      if (cartIsMerchCheckout){
+        loadPrintfulRates();
+      }
       if (serverPaymentError && cardErrors && getPaymentMethod() === 'card'){ cardErrors.textContent = serverPaymentError; }
     });
   })();

@@ -62,22 +62,22 @@
   .site-footer__social-link[data-brand="instagram"]{
     border-color:rgba(225,48,108,.45);
     background:rgba(225,48,108,.12);
-    color:#f2b3c8;
+    color:#ffd2e3;
   }
   .site-footer__social-link[data-brand="facebook"]{
     border-color:rgba(24,119,242,.45);
     background:rgba(24,119,242,.12);
-    color:#c1d8ff;
+    color:#deebff;
   }
   .site-footer__social-link[data-brand="youtube"]{
     border-color:rgba(255,0,0,.45);
     background:rgba(255,0,0,.12);
-    color:#ffb3b3;
+    color:#ffd1d1;
   }
   .site-footer__social-link[data-brand="tiktok"]{
     border-color:rgba(37,244,238,.35);
     background:rgba(37,244,238,.1);
-    color:#bff6f3;
+    color:#d9fffd;
   }
   .site-footer__icon{
     width:18px;
@@ -117,8 +117,8 @@
     <div class="site-footer__contact site-footer__group">
       <div class="site-footer__label">Contact</div>
       <div class="site-footer__links">
-        <a href="mailto:support@badguymotors.com">support@badguymotors.com</a>
-        <a href="tel:+14035250432">(403) 525-0432</a>
+        <a href="mailto:{{ site_contact.email }}">{{ site_contact.email }}</a>
+        <a href="tel:{{ site_contact.office_phone }}">{{ site_contact.office_phone_display }}</a>
       </div>
     </div>
 

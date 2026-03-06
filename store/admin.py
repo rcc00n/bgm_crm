@@ -13,7 +13,7 @@ from django.db.models import Q
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils import timezone
 
 from core.utils import format_currency
@@ -34,11 +34,13 @@ from .models import (
     Order,
     OrderPromoCode,
     OrderItem,
+    PrintfulWebhookEvent,
     CustomFitmentRequest,
     StoreReview,
 )
 from .forms_store import ProductAdminForm, ProductImportForm
 from .importers import import_products
+from .printful_fulfillment import handle_order_payment_status_transition
 
 
 # ─────────────────────────── Auto directories ───────────────────────────
@@ -1367,7 +1369,18 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductOption)
 class ProductOptionAdmin(admin.ModelAdmin):
-    list_display = ("name", "sku", "product", "price", "is_separator", "option_column", "is_active", "sort_order")
+    list_display = (
+        "name",
+        "sku",
+        "product",
+        "price",
+        "printful_sync_variant_id",
+        "printful_variant_id",
+        "is_separator",
+        "option_column",
+        "is_active",
+        "sort_order",
+    )
     list_filter = ("is_active", "is_separator", "option_column")
     search_fields = ("name", "sku", "product__name", "product__sku")
     autocomplete_fields = ("product",)
@@ -1489,27 +1502,79 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
         return "—"
     
     change_list_template = "admin/store/order/change_list.html"
-    list_display = ("id", "created_display", "customer_name", "status_badge", "status", "has_reference_image", "total")
+    list_display = (
+        "id",
+        "created_display",
+        "customer_name",
+        "status_badge",
+        "status",
+        "payment_status",
+        "printful_status",
+        "has_reference_image",
+        "total",
+    )
     list_display_links = ("id", "customer_name")
     list_editable = ("status",)  # редактирование статуса прямо в списке
 
     # убрали created_at из фильтров/иерархии, т.к. поле не гарантировано
-    list_filter = ("status",)
+    list_filter = ("status", "payment_status", "printful_status")
     search_fields = ("customer_name", "email", "phone", "id")
     ordering = ("-id",)  # вместо date_hierarchy
     inlines = [OrderPromoCodeInline, OrderItemInline]
-    readonly_fields = ("shipped_at", "completed_at", "cancelled_at", "reference_image_preview")
+    readonly_fields = (
+        "shipped_at",
+        "completed_at",
+        "cancelled_at",
+        "reference_image_preview",
+        "printful_order_id",
+        "printful_external_id",
+        "printful_status",
+        "printful_submitted_at",
+        "printful_last_synced_at",
+        "printful_error",
+        "printful_tracking_preview",
+        "printful_tracking_data",
+    )
     fieldsets = (
         ("Status & ownership", {"fields": ("status", "user", "created_by")}),
         ("Contact", {"fields": ("customer_name", "email", "phone")}),
+        ("Delivery", {"fields": ("delivery_method", "address_line1", "address_line2", "city", "region", "postal_code", "country")}),
         ("Vehicle", {"fields": ("vehicle_make", "vehicle_model", "vehicle_year")}),
         ("Notes", {"fields": ("notes",)}),
         ("Client photo reference", {"fields": ("reference_image", "reference_image_preview")}),
+        ("Payment", {"fields": ("payment_status", "payment_processor", "payment_amount", "payment_fee", "payment_balance_due")}),
+        (
+            "Printful",
+            {
+                "fields": (
+                    "printful_order_id",
+                    "printful_external_id",
+                    "printful_status",
+                    "printful_shipping_rate_id",
+                    "printful_shipping_name",
+                    "printful_shipping_cost",
+                    "printful_shipping_currency",
+                    "printful_submitted_at",
+                    "printful_last_synced_at",
+                    "printful_error",
+                    "printful_tracking_preview",
+                    "printful_tracking_data",
+                )
+            },
+        ),
         ("Shipping", {"fields": ("tracking_numbers", "tracking_url")}),
         ("Timeline", {"fields": ("shipped_at", "completed_at", "cancelled_at")}),
     )
 
-    actions = ("mark_processing", "mark_shipped", "mark_completed", "mark_cancelled")
+    actions = (
+        "mark_processing",
+        "mark_shipped",
+        "mark_completed",
+        "mark_cancelled",
+        "mark_payment_paid",
+        "mark_payment_unpaid",
+        "retry_printful_submit",
+    )
 
     def _bulk_set(self, request, queryset, status):
         updated = 0
@@ -1528,6 +1593,31 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
     mark_completed.short_description  = "Mark as completed"
     mark_cancelled.short_description  = "Mark as cancelled"
 
+    def mark_payment_paid(self, request, qs):
+        updated = 0
+        for order in qs:
+            if order.payment_status == Order.PaymentStatus.PAID:
+                continue
+            order.payment_status = Order.PaymentStatus.PAID
+            order.save(update_fields=["payment_status"])
+            updated += 1
+        self.message_user(request, f"Orders marked paid: {updated}")
+
+    def mark_payment_unpaid(self, request, qs):
+        updated = qs.exclude(payment_status=Order.PaymentStatus.UNPAID).update(payment_status=Order.PaymentStatus.UNPAID)
+        self.message_user(request, f"Orders marked unpaid: {updated}")
+
+    def retry_printful_submit(self, request, qs):
+        queued = 0
+        for order in qs.filter(payment_status=Order.PaymentStatus.PAID):
+            handle_order_payment_status_transition(order.pk)
+            queued += 1
+        self.message_user(request, f"Printful submission retried for: {queued}")
+
+    mark_payment_paid.short_description = "Mark selected orders paid"
+    mark_payment_unpaid.short_description = "Mark selected orders unpaid"
+    retry_printful_submit.short_description = "Retry Printful submission"
+
     @admin.display(description="Photo", boolean=True)
     def has_reference_image(self, obj):
         return bool(getattr(obj, "reference_image", None))
@@ -1542,6 +1632,55 @@ class OrderAdmin(StatusBadgeMixin, admin.ModelAdmin):
                 obj.reference_image.url,
             )
         return "—"
+
+    @admin.display(description="Printful tracking")
+    def printful_tracking_preview(self, obj):
+        entries = getattr(obj, "tracking_entries", [])
+        if not entries:
+            return "—"
+        return format_html_join(
+            "",
+            (
+                "<div style='margin:0 0 .45rem'>"
+                "<strong>{}</strong>{}{}"
+                "</div>"
+            ),
+            (
+                (
+                    entry.get("number") or "Tracking link",
+                    format_html(
+                        " &middot; <a href='{}' target='_blank' rel='noopener'>open</a>",
+                        entry["url"],
+                    )
+                    if entry.get("url")
+                    else "",
+                    format_html(
+                        "<div style='margin-top:.2rem;color:#666'>{}</div>{}",
+                        " | ".join(
+                            text
+                            for text in [
+                                f"Carrier: {entry.get('carrier')}" if entry.get("carrier") else "",
+                                f"ETA: {entry.get('estimated_delivery')}" if entry.get("estimated_delivery") else "",
+                                f"Shipped: {entry.get('shipment_date')}" if entry.get("shipment_date") else "",
+                                f"Delivered: {entry.get('delivery_date')}" if entry.get("delivery_date") else "",
+                            ]
+                            if text
+                        ),
+                        format_html(
+                            "<div style='margin-top:.25rem'>{}</div>",
+                            format_html_join(
+                                "",
+                                "<div style='color:#444'>{}</div>",
+                                ((event,) for event in (entry.get("tracking_events") or [])),
+                            ),
+                        )
+                        if entry.get("tracking_events")
+                        else "",
+                    ),
+                )
+                for entry in entries
+            ),
+        )
 
 
 @admin.register(OrderPromoCode)
@@ -1603,6 +1742,17 @@ class CustomFitmentRequestAdmin(admin.ModelAdmin):
             )
         except Exception:
             return "—"
+
+
+@admin.register(PrintfulWebhookEvent)
+class PrintfulWebhookEventAdmin(admin.ModelAdmin):
+    list_display = ("received_at", "event_type", "order")
+    list_filter = ("event_type",)
+    search_fields = ("event_type", "order__id", "order__customer_name", "event_hash")
+    readonly_fields = ("event_type", "event_hash", "order", "payload", "received_at")
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(StoreReview)
