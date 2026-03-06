@@ -27,6 +27,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.text import slugify
 from django.db.models import OuterRef, Subquery, Count, Q
 from django.db.models.functions import TruncMonth
+from django.db.utils import OperationalError, ProgrammingError
 from django.conf import settings
 from django.template.defaultfilters import filesizeformat
 import os
@@ -1473,11 +1474,29 @@ def _enrich_printful_merch_products(products: list[dict]) -> list[dict]:
 
 def _build_store_merch_products() -> list[dict]:
     rows: list[dict] = []
-    products = (
-        Product.objects.filter(sku__startswith="PF-", is_active=True)
-        .select_related("merch_category")
-        .order_by("name")
-    )
+    try:
+        products = list(
+            Product.objects.filter(sku__startswith="PF-", is_active=True)
+            .select_related("merch_category")
+            .only(
+                "id",
+                "sku",
+                "slug",
+                "name",
+                "price",
+                "currency",
+                "main_image",
+                "merch_category__id",
+                "merch_category__name",
+                "merch_category__slug",
+                "merch_category__is_active",
+            )
+            .order_by("name")
+        )
+    except (OperationalError, ProgrammingError):
+        logger.warning("Merch product mirror is unavailable because the local store schema is not fully migrated.")
+        return []
+
     for product in products:
         product_id = _parse_printful_product_id_from_sku(product.sku) or product.id
         image_url = ""
@@ -1522,20 +1541,34 @@ def _build_store_merch_products() -> list[dict]:
     return rows
 
 
+def _get_merch_listing_products() -> tuple[list[dict], str, str]:
+    catalog_url = (getattr(settings, "PRINTFUL_MERCH_CATALOG_URL", "") or "").strip()
+    store_products = _build_store_merch_products()
+    if store_products:
+        return store_products, catalog_url, ""
+
+    printful_feed = get_printful_merch_feed()
+    all_products = _enrich_printful_merch_products(printful_feed.get("products", []))
+    if not all_products and printful_feed.get("error"):
+        all_products = _build_store_merch_products()
+    return all_products, printful_feed.get("catalog_url", "") or catalog_url, printful_feed.get("error", "")
+
+
 class MerchPlaceholderView(TemplateView):
     template_name = "client/merch.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["merch_copy"] = MerchPageCopy.get_solo()
-        printful_feed = get_printful_merch_feed()
-        all_products = _enrich_printful_merch_products(printful_feed.get("products", []))
-        if not all_products and printful_feed.get("error"):
-            all_products = _build_store_merch_products()
+        all_products, printful_catalog_url, merch_feed_error = _get_merch_listing_products()
 
-        manual_categories = list(
-            MerchCategory.objects.filter(is_active=True).order_by("sort_order", "name")
-        )
+        try:
+            manual_categories = list(
+                MerchCategory.objects.filter(is_active=True).order_by("sort_order", "name")
+            )
+        except (OperationalError, ProgrammingError):
+            logger.warning("Merch categories are unavailable because the local store schema is not fully migrated.")
+            manual_categories = []
 
         selected_merch_category = (self.request.GET.get("category") or "").strip()
         selected_merch_category_label = ""
@@ -1629,7 +1662,7 @@ class MerchPlaceholderView(TemplateView):
                     selected_merch_category_label = ""
             else:
                 selected_merch_category = ""
-                merch_display_products = all_products
+                merch_display_products = []
                 selected_merch_category_label = ""
 
             show_merch_category_grid = not bool(selected_merch_category)
@@ -1654,15 +1687,16 @@ class MerchPlaceholderView(TemplateView):
                 selected_merch_category_label = category_map.get(selected_merch_category, "")
             else:
                 selected_merch_category = ""
-                merch_display_products = all_products
+                merch_display_products = [] if merch_categories else all_products
                 selected_merch_category_label = ""
-            show_merch_filters = bool(merch_categories)
+            show_merch_filters = bool(selected_merch_category)
 
         ctx["header_copy"] = ctx["merch_copy"]
         ctx["printful_products"] = all_products
         ctx["merch_display_products"] = merch_display_products
         ctx["merch_has_products"] = bool(all_products)
-        ctx["printful_catalog_url"] = printful_feed.get("catalog_url", "")
+        ctx["printful_catalog_url"] = printful_catalog_url
+        ctx["printful_error"] = merch_feed_error
         ctx["merch_categories"] = merch_categories
         ctx["merch_category_cards"] = merch_category_cards
         ctx["show_merch_category_grid"] = show_merch_category_grid
