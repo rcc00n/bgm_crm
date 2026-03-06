@@ -336,8 +336,13 @@ def get_checkout_printful_shipping(
         }
 
     recipient, recipient_errors = build_printful_recipient_from_form(form)
-    required_keys = ("customer_name", "phone", "email", "address_line1", "city", "region", "postal_code", "country")
-    incomplete = any(not (form.get(key) or "").strip() for key in required_keys)
+    quote_required_keys = ("address_line1", "city", "region", "postal_code", "country")
+    incomplete = any(not (form.get(key) or "").strip() for key in quote_required_keys)
+    missing_field_errors = {}
+    if not (form.get("address_line1") or "").strip():
+        missing_field_errors["address_line1"] = "Street and house/building are required for merch shipping."
+    if not (form.get("city") or "").strip():
+        missing_field_errors["city"] = "City is required for merch shipping."
     error_message = ""
     if recipient_errors and not incomplete:
         error_message = next(iter(recipient_errors.values()))
@@ -352,7 +357,7 @@ def get_checkout_printful_shipping(
             "shipping_name": "",
             "shipping_currency": "",
             "recipient": recipient,
-            "errors": recipient_errors,
+            "errors": {**missing_field_errors, **recipient_errors},
             "error": error_message,
         }
 
