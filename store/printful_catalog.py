@@ -211,7 +211,8 @@ def sync_printful_merch_products(products: list[dict]) -> None:
             "printful_external_id": external_id,
             "currency": currency,
             "inventory": 9999,
-            "is_active": existing.is_active if existing is not None else True,
+            # Printful catalog visibility is the source of truth for synced merch.
+            "is_active": True,
             "short_description": "Fulfilled by Printful.",
             "description": f"Printful product #{product_id}",
             "contact_for_estimate": False,

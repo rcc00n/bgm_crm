@@ -90,3 +90,11 @@ class PrintfulMerchSyncTests(TestCase):
         self.assertEqual(option.printful_sync_variant_id, 1)
         self.assertEqual(option.printful_variant_id, 501)
         self.assertEqual(option.printful_external_id, "ext-variant-101-1")
+
+    def test_sync_reactivates_existing_printful_products_present_in_feed(self):
+        inactive = self._create_pf_product(101, price="40.00", is_active=False)
+
+        sync_printful_merch_products(self._sync_payload(101, base_price="19.99"))
+
+        inactive.refresh_from_db()
+        self.assertTrue(inactive.is_active)
