@@ -79,3 +79,47 @@ class PrintfulFulfillmentHelperTests(SimpleTestCase):
         self.assertEqual(shipping["shipping_cost"], Decimal("11.95"))
         self.assertEqual(shipping["error"], "")
         quote_printful_shipping_rates.assert_called_once()
+
+    @patch("store.printful_fulfillment._refresh_merch_option_mapping")
+    @patch("store.printful_fulfillment.quote_printful_shipping_rates")
+    def test_get_checkout_shipping_refreshes_missing_variant_mapping(
+        self,
+        quote_printful_shipping_rates,
+        refresh_merch_option_mapping,
+    ):
+        quote_printful_shipping_rates.return_value = [
+            {
+                "id": "STANDARD",
+                "name": "Flat Rate",
+                "rate": "8.95",
+                "currency": "CAD",
+            }
+        ]
+        refresh_merch_option_mapping.return_value = type(
+            "MappedOption",
+            (),
+            {"printful_variant_id": 9988},
+        )()
+
+        shipping = get_checkout_printful_shipping(
+            positions=[
+                {
+                    "product": type("P", (), {"category": type("C", (), {"slug": "merch"})(), "sku": "PF-1", "slug": "merch-1", "name": "Bandana"})(),
+                    "option": type("O", (), {"printful_variant_id": None})(),
+                    "qty": 1,
+                }
+            ],
+            form={
+                "address_line1": "4901 46 Ave",
+                "city": "Camrose",
+                "region": "AB",
+                "postal_code": "T4V2R3",
+                "country": "Canada",
+            },
+            require_complete=False,
+        )
+
+        self.assertEqual(shipping["selected_rate_id"], "STANDARD")
+        self.assertEqual(shipping["shipping_cost"], Decimal("8.95"))
+        self.assertEqual(shipping["error"], "")
+        refresh_merch_option_mapping.assert_called_once()

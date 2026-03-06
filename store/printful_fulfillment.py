@@ -19,7 +19,8 @@ from core.services.printful import (
     quote_printful_shipping_rates,
     upsert_printful_webhook,
 )
-from store.models import Order, PrintfulWebhookEvent
+from store.models import Order, PrintfulWebhookEvent, ProductOption
+from store.printful_catalog import parse_printful_product_id_from_sku, sync_printful_merch_product
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +231,37 @@ def normalize_postal_code(value: str) -> str:
     return cleaned
 
 
+def _refresh_merch_option_mapping(product, option):
+    if not product or not option:
+        return option
+
+    product_id = getattr(product, "printful_product_id", None) or parse_printful_product_id_from_sku(getattr(product, "sku", ""))
+    if not product_id:
+        return option
+
+    option_pk = getattr(option, "pk", None) or getattr(option, "id", None)
+    option_sku = (getattr(option, "sku", "") or "").strip()
+    option_name = (getattr(option, "name", "") or "").strip()
+
+    try:
+        sync_printful_merch_product(product_id)
+    except Exception:
+        logger.exception(
+            "Failed to refresh Printful variant mappings for merch product %s during checkout.",
+            product_id,
+        )
+        return option
+
+    refreshed = None
+    if option_pk:
+        refreshed = ProductOption.objects.filter(pk=option_pk).first()
+    if refreshed is None and option_sku:
+        refreshed = ProductOption.objects.filter(product=product, sku=option_sku).first()
+    if refreshed is None and option_name:
+        refreshed = ProductOption.objects.filter(product=product, name=option_name).first()
+    return refreshed or option
+
+
 def build_printful_recipient_from_form(form: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
     country_code = normalize_country_code(form.get("country", ""))
     region_code = normalize_region_code(country_code, form.get("region", ""))
@@ -269,6 +301,9 @@ def build_printful_shipping_items(positions: list[dict[str, Any]]) -> tuple[list
         option = entry.get("option")
         qty = int(entry.get("qty") or 0)
         variant_id = getattr(option, "printful_variant_id", None) if option else None
+        if option and not variant_id:
+            option = _refresh_merch_option_mapping(product, option)
+            variant_id = getattr(option, "printful_variant_id", None) if option else None
         if not option or not variant_id:
             label = getattr(product, "name", "Merch item")
             errors.append(f"{label} is missing a Printful shipping variant mapping.")
@@ -286,6 +321,9 @@ def build_printful_order_items(order: Order) -> tuple[list[dict[str, Any]], list
             continue
         option = order_item.option
         sync_variant_id = getattr(option, "printful_sync_variant_id", None) if option else None
+        if option and not sync_variant_id:
+            option = _refresh_merch_option_mapping(product, option)
+            sync_variant_id = getattr(option, "printful_sync_variant_id", None) if option else None
         if not option or not sync_variant_id:
             errors.append(f"{product.name} is missing a Printful fulfillment variant mapping.")
             continue
