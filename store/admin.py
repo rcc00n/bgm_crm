@@ -1,6 +1,7 @@
 # store/admin.py
 import os
 import re
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -9,7 +10,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.files.storage import default_storage
 from django.utils.text import get_valid_filename
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -42,6 +43,11 @@ from .models import (
 from .forms_store import ProductAdminForm, ProductImportForm, StoreInventorySettingsAdminForm
 from .importers import import_products
 from .printful_fulfillment import handle_order_payment_status_transition
+
+Product._meta.get_field("unit_cost").verbose_name = "Cost / unit"
+Product._meta.get_field("is_in_house").verbose_name = "In-house"
+Product._meta.get_field("is_active").verbose_name = "Active"
+Product._meta.get_field("contact_for_estimate").verbose_name = "Estimate only"
 
 
 # ─────────────────────────── Auto directories ───────────────────────────
@@ -164,6 +170,30 @@ class ProductOptionInline(admin.TabularInline):
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 1
+
+
+@admin.register(ProductImage)
+class ProductImageAdmin(admin.ModelAdmin):
+    list_display = ("id", "product", "image_preview", "alt", "sort_order")
+    list_filter = ("product",)
+    search_fields = ("product__name", "product__sku", "alt")
+    autocomplete_fields = ("product",)
+    ordering = ("product__name", "sort_order", "id")
+
+    @admin.display(description="Preview")
+    def image_preview(self, obj):
+        image = getattr(obj, "image", None)
+        if not image:
+            return "—"
+        try:
+            return format_html(
+                '<a href="{0}" target="_blank" rel="noopener">'
+                '<img src="{0}" style="max-height:72px;border-radius:10px;border:1px solid rgba(255,255,255,.2)"/>'
+                "</a>",
+                image.url,
+            )
+        except Exception:
+            return "—"
 
 
 @admin.register(StorePricingSettings)
@@ -291,6 +321,7 @@ class ProductAdmin(admin.ModelAdmin):
         "currency",
         "inventory",
         "inventory_status",
+        "catalog_flags",
         "is_in_house",
         "is_active",
         "contact_for_estimate",
@@ -332,7 +363,19 @@ class ProductAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         self._inventory_threshold = StoreInventorySettings.get_low_stock_threshold()
-        return super().get_queryset(request)
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(
+                image_count=Count("images", distinct=True),
+                active_option_count=Count(
+                    "options",
+                    filter=Q(options__is_active=True, options__is_separator=False),
+                    distinct=True,
+                ),
+            )
+            .prefetch_related("discounts")
+        )
 
     def margin_preview(self, obj):
         """
@@ -362,10 +405,11 @@ class ProductAdmin(admin.ModelAdmin):
 
         profit_label = format_currency(profit, include_code=False)
         css = "color:#17d45b;font-weight:800;" if margin_pct >= 0 else "color:#ff8a80;font-weight:800;"
+        margin_text = f"{margin_pct:.1f}%"
         return format_html(
-            '<span style="{}">{:.1f}%</span> <span style="opacity:.75;">({})</span>',
+            '<span style="{}">{}</span> <span style="opacity:.75;">({})</span>',
             css,
-            margin_pct,
+            margin_text,
             profit_label,
         )
 
@@ -485,10 +529,22 @@ class ProductAdmin(admin.ModelAdmin):
         inventory_settings = StoreInventorySettings.load() or StoreInventorySettings()
         inventory_threshold = StoreInventorySettings.get_low_stock_threshold()
         tracked_products = Product.objects.filter(is_active=True)
+        today = timezone.now().date()
+        recent_cutoff = timezone.now() - timedelta(days=14)
         low_stock_qs = tracked_products.none()
         if inventory_threshold > 0:
             low_stock_qs = tracked_products.filter(inventory__gt=0, inventory__lte=inventory_threshold)
         out_of_stock_qs = tracked_products.filter(inventory__lte=0)
+        discounted_count = tracked_products.filter(
+            discounts__start_date__lte=today,
+            discounts__end_date__gte=today,
+        ).distinct().count()
+        estimate_count = tracked_products.filter(contact_for_estimate=True).count()
+        media_gap_qs = tracked_products.filter(
+            Q(main_image__isnull=True) | Q(main_image=""),
+            images__isnull=True,
+        ).distinct()
+        recent_products_qs = tracked_products.order_by("-created_at")
         low_stock_items = []
         for product in low_stock_qs.order_by("inventory", "name")[:8]:
             low_stock_items.append(
@@ -526,6 +582,25 @@ class ProductAdmin(admin.ModelAdmin):
         extra_context["low_stock_count"] = low_stock_qs.count()
         extra_context["out_of_stock_count"] = out_of_stock_qs.count()
         extra_context["low_stock_items"] = low_stock_items[:8]
+        extra_context["discounted_count"] = discounted_count
+        extra_context["estimate_count"] = estimate_count
+        extra_context["media_gap_count"] = media_gap_qs.count()
+        extra_context["recent_product_count"] = recent_products_qs.filter(created_at__gte=recent_cutoff).count()
+        extra_context["media_gap_items"] = [
+            {
+                "name": product.name,
+                "change_url": reverse(f"admin:{opts.app_label}_{opts.model_name}_change", args=[product.pk]),
+            }
+            for product in media_gap_qs.order_by("name")[:6]
+        ]
+        extra_context["recent_product_items"] = [
+            {
+                "name": product.name,
+                "created_at": timezone.localtime(product.created_at).strftime("%b %d"),
+                "change_url": reverse(f"admin:{opts.app_label}_{opts.model_name}_change", args=[product.pk]),
+            }
+            for product in recent_products_qs[:6]
+        ]
         extra_context["last_import"] = last_import
         extra_context["last_cleanup"] = last_cleanup
         return super().changelist_view(request, extra_context=extra_context)
@@ -551,8 +626,46 @@ class ProductAdmin(admin.ModelAdmin):
             'In stock</span>'
         )
 
-    inventory_status.short_description = "Stock status"
+    inventory_status.short_description = "Stock"
     inventory_status.admin_order_field = "inventory"
+
+    def catalog_flags(self, obj):
+        chips = []
+        discount_percent = int(getattr(obj, "active_discount_percent", 0) or 0)
+        if discount_percent > 0:
+            chips.append(("promo", f"-{discount_percent}%"))
+        if obj.contact_for_estimate:
+            chips.append(("estimate", "Estimate"))
+        image_count = int(getattr(obj, "image_count", 0) or 0)
+        if not getattr(obj, "main_image", None) and image_count <= 0:
+            chips.append(("media-missing", "No images"))
+        elif obj.main_image_is_placeholder:
+            chips.append(("media-placeholder", "Placeholder"))
+        elif image_count > 0:
+            chips.append(("media-ok", f"{image_count} gallery"))
+        option_count = int(getattr(obj, "active_option_count", 0) or 0)
+        if option_count > 0:
+            chips.append(("options", f"{option_count} options"))
+        if obj.created_at and obj.created_at >= timezone.now() - timedelta(days=14):
+            chips.append(("new", "New"))
+        if not chips:
+            return "—"
+        colors = {
+            "promo": ("rgba(17, 138, 178, .12)", "#0e7490"),
+            "estimate": ("rgba(180, 83, 9, .12)", "#9a3412"),
+            "media-missing": ("rgba(180, 35, 24, .12)", "#b42318"),
+            "media-placeholder": ("rgba(91, 33, 182, .12)", "#6d28d9"),
+            "media-ok": ("rgba(6, 118, 71, .12)", "#067647"),
+            "options": ("rgba(55, 65, 81, .12)", "#374151"),
+            "new": ("rgba(15, 23, 42, .12)", "#111827"),
+        }
+        return format_html_join(
+            "",
+            '<span style="display:inline-flex;align-items:center;margin:.1rem .25rem .1rem 0;padding:.18rem .48rem;border-radius:999px;font-size:.76rem;font-weight:700;background:{};color:{};">{}</span>',
+            ((colors[tone][0], colors[tone][1], label) for tone, label in chips),
+        )
+
+    catalog_flags.short_description = "Signals"
 
     def inventory_settings_view(self, request):
         if not self.has_change_permission(request):
@@ -682,7 +795,7 @@ class ProductAdmin(admin.ModelAdmin):
             return format_html('<span title="{}">{}</span>', name, short)
         return name
 
-    @admin.display(description="Merch category", ordering="merch_category__name")
+    @admin.display(description="Merch", ordering="merch_category__name")
     def merch_category_short(self, obj):
         if not getattr(obj, "merch_category", None):
             return "—"
@@ -1619,6 +1732,38 @@ class OrderPromoCodeInline(admin.StackedInline):
     extra = 0
     readonly_fields = ("promocode", "discount_percent", "discount_amount", "created_at")
     can_delete = False
+
+
+@admin.register(OrderItem)
+class OrderItemAdmin(admin.ModelAdmin):
+    list_display = ("id", "order", "product", "option", "qty", "price_at_moment", "subtotal_display")
+    list_select_related = ("order", "product", "option")
+    list_filter = ("product",)
+    search_fields = (
+        "order__id",
+        "order__customer_name",
+        "order__email",
+        "product__name",
+        "product__sku",
+        "option__name",
+        "option__sku",
+    )
+    ordering = ("-order_id", "id")
+    fields = ("order", "product", "option", "qty", "price_at_moment", "subtotal_display")
+    readonly_fields = fields
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Subtotal")
+    def subtotal_display(self, obj):
+        try:
+            return format_currency(obj.subtotal)
+        except Exception:
+            return "—"
 
 
 @admin.register(Order)
