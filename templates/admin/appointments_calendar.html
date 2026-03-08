@@ -1,5 +1,6 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
+{% block bodyclass %}calendar-focus-page no-sidebar{% endblock %}
 {% block breadcrumbs %}{% endblock %}
 {% block content_title %}{% endblock %}
 {% block object-tools %}{% endblock %}
@@ -14,8 +15,17 @@
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'admin/css/appointments.css' %}">
 {% endblock %}
+{% block sidebar %}{% endblock %}
 {% block content %}
     <div class="calendar-shell">
+        <div class="calendar-workspacebar" aria-label="Calendar workspace navigation">
+            <a href="{% url 'admin:index' %}" class="calendar-workspace-link">Dashboard</a>
+            <a href="{% url 'admin-workspace-hub' slug='scheduling-shop' %}" class="calendar-workspace-link">Scheduling &amp; Shop</a>
+            <a href="{% url 'admin:core_appointment_changelist' %}" class="calendar-workspace-link is-active" aria-current="page">Calendar</a>
+            <a href="{% url 'admin:core_appointmentprepayment_changelist' %}" class="calendar-workspace-link">Prepayments</a>
+            <a href="{% url 'admin:core_bookingdayoverride_changelist' %}" class="calendar-workspace-link">Day Overrides</a>
+            <a href="{% url 'admin-staff-usage' %}" class="calendar-workspace-link">Time Tracking</a>
+        </div>
         <div class="calendar-nav">
             <div class="calendar-left">
                 <button class="nav-btn" onclick="changeDateToToday()">Today</button>
@@ -40,9 +50,21 @@
                     <button type="button" class="view-btn {% if calendar_view == 'month' %}active{% endif %}" data-view="month" onclick="setCalendarView('month')">Month</button>
                 </div>
 
-                <button class="nav-icon2" id="nav-icon2" style="border-radius: 10px;">
-                    <img src="https://img.icons8.com/?size=100&id=O7hGF9n2ssaW&format=png&color=000000"
-                         alt="Filter" style="width: 2.2vh; height: 2.2vh;">
+                <button
+                        type="button"
+                        class="nav-btn filter-toggle-btn"
+                        id="nav-icon2"
+                        aria-controls="filterSidebar"
+                        aria-expanded="false"
+                >
+                    <span class="filter-toggle-btn__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M4 7h16" />
+                            <path d="M7 12h10" />
+                            <path d="M10 17h4" />
+                        </svg>
+                    </span>
+                    <span>Filters</span>
                 </button>
             </div>
 
@@ -59,11 +81,14 @@
             </div>
         </div>
     </div>
-    <!-- Sidebar -->
-    <div id="filterSidebar" class="sidebar2 hidden">
+    <div id="filterBackdrop" class="filter-backdrop hidden" onclick="closeSidebar()" aria-hidden="true"></div>
+    <div id="filterSidebar" class="sidebar2 hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="filterSidebarTitle">
         <div class="sidebar-header2">
-            <h3>All filters</h3>
-            <button class="close-btn2" onclick="closeSidebar()">✕</button>
+            <div>
+                <h3 id="filterSidebarTitle">Filters</h3>
+                <p>Apply changes or close the panel when you're done.</p>
+            </div>
+            <button type="button" class="close-btn2" onclick="closeSidebar()" aria-label="Close filters">Close</button>
         </div>
 
 
@@ -113,6 +138,7 @@
             <div class="filter-footer">
                 <button type="submit" class="apply-btn">Apply filters</button>
                 <button type="button" onclick="clearAllFilters()" class="clear-btn">Clear filters</button>
+                <button type="button" onclick="closeSidebar()" class="clear-btn clear-btn--quiet">Close panel</button>
             </div>
         </form>
     </div>

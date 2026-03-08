@@ -1,12 +1,3 @@
-<div class="calendar-day-status" id="dayStatusBar" data-date="{{ selected_date|date:'Y-m-d' }}">
-    <div class="calendar-day-status__label">{{ selected_day_label }}</div>
-    <button type="button"
-            class="calendar-day-status__btn"
-            data-day-toggle
-            data-action="{{ selected_day_toggle_action }}">
-        {{ selected_day_toggle_label }}
-    </button>
-</div>
 {% if calendar_view == "week" %}
     {% include "admin/appointments_calendar_partial_week.html" %}
 {% elif calendar_view == "month" %}
