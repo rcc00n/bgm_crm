@@ -163,6 +163,69 @@ class FreeStickerCheckoutTests(TestCase):
         self.assertTrue(response.context["free_sticker_eligible"])
         self.assertContains(response, 'name="free_sticker_choice"', html=False)
 
+    @patch("store.views.get_checkout_printful_shipping")
+    def test_printful_rates_fallback_removes_invalid_free_sticker(self, get_checkout_printful_shipping):
+        main_product = self._create_merch_product(
+            name="BGM Bandana",
+            slug="bgm-bandana-fallback",
+            sku="PF-BANDANA-FALLBACK",
+            price="90.00",
+        )
+        sticker = self._create_merch_product(
+            name="BGM Bubble-free stickers",
+            slug="bgm-bubble-free-stickers-fallback",
+            sku="PF-STICKER-FALLBACK",
+            price="8.00",
+        )
+        small_option = ProductOption.objects.create(
+            product=sticker,
+            name="3x3",
+            sku="PF-STICKER-FALLBACK-3X3",
+            price=Decimal("8.00"),
+            is_active=True,
+            printful_variant_id=111,
+            printful_sync_variant_id=222,
+        )
+        self._set_cart(main_product)
+
+        def shipping_side_effect(*, positions, **kwargs):
+            if len(positions) > 1:
+                return {
+                    "rates": [],
+                    "selected_rate_id": "",
+                    "selected_rate": None,
+                    "shipping_cost": Decimal("0.00"),
+                    "shipping_name": "",
+                    "shipping_currency": "",
+                    "recipient": {},
+                    "errors": {},
+                    "error": "Live merch shipping is unavailable right now. Please try again in a moment.",
+                }
+            return self._shipping_quote()
+
+        get_checkout_printful_shipping.side_effect = shipping_side_effect
+
+        response = self.client.post(
+            self.printful_rates_url,
+            data={
+                "address_line1": "4901 46 ave",
+                "city": "Camrose",
+                "region": "AB",
+                "postal_code": "T4V2R3",
+                "country": "Canada",
+                "free_sticker_choice": f"{sticker.id}:{small_option.id}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["selected_rate_id"], "pf-standard")
+        self.assertTrue(payload["free_sticker_reset"])
+        self.assertIn("selected free sticker is unavailable", payload["free_sticker_error"].lower())
+        self.assertEqual(payload["error"], "")
+        self.assertEqual(len(payload["rates"]), 1)
+        self.assertEqual(get_checkout_printful_shipping.call_count, 2)
+
     def test_free_sticker_choices_exclude_unmapped_small_stickers(self):
         mapped = self._create_merch_product(
             name="Mapped Bubble-free stickers",

@@ -1987,8 +1987,6 @@ def checkout_printful_rates(request):
     free_sticker_choices = []
     if positions and threshold and total >= threshold:
         free_sticker_choices = _build_free_sticker_choices()
-    selected_free_sticker = _find_selected_free_sticker(request.POST.get("free_sticker_choice", ""), free_sticker_choices)
-
     form = {
         "customer_name": (request.POST.get("customer_name") or "").strip(),
         "email": (request.POST.get("email") or "").strip(),
@@ -1999,13 +1997,33 @@ def checkout_printful_rates(request):
         "region": (request.POST.get("region") or "").strip(),
         "postal_code": (request.POST.get("postal_code") or "").strip(),
         "country": (request.POST.get("country") or "").strip(),
+        "free_sticker_choice": (request.POST.get("free_sticker_choice") or "").strip(),
     }
+    selected_free_sticker = _find_selected_free_sticker(form["free_sticker_choice"], free_sticker_choices)
     shipping_quote = get_checkout_printful_shipping(
         positions=_positions_with_free_sticker(positions, selected_free_sticker),
         form=form,
         selected_rate_id=(request.POST.get("printful_shipping_rate_id") or "").strip(),
         require_complete=False,
     )
+    shipping_quote.setdefault("free_sticker_reset", False)
+    shipping_quote.setdefault("free_sticker_error", "")
+    if selected_free_sticker and shipping_quote["error"] and not shipping_quote["rates"]:
+        fallback_quote = get_checkout_printful_shipping(
+            positions=positions,
+            form=form,
+            selected_rate_id=(request.POST.get("printful_shipping_rate_id") or "").strip(),
+            require_complete=False,
+        )
+        fallback_quote.setdefault("free_sticker_reset", False)
+        fallback_quote.setdefault("free_sticker_error", "")
+        if fallback_quote["rates"] or not fallback_quote["error"]:
+            form["free_sticker_choice"] = ""
+            shipping_quote = fallback_quote
+            shipping_quote["free_sticker_reset"] = True
+            shipping_quote["free_sticker_error"] = (
+                "The selected free sticker is unavailable right now. It was removed so live shipping could load."
+            )
     status = 200
     if shipping_quote["error"] and not shipping_quote["rates"]:
         status = 400
@@ -2019,6 +2037,8 @@ def checkout_printful_rates(request):
             "shipping_currency": shipping_quote["shipping_currency"],
             "error": shipping_quote["error"],
             "field_errors": shipping_quote["errors"],
+            "free_sticker_reset": shipping_quote["free_sticker_reset"],
+            "free_sticker_error": shipping_quote["free_sticker_error"],
         },
         status=status,
     )
@@ -2141,7 +2161,54 @@ def checkout(request):
             "errors": {},
             "error": "",
             "free_shipping_applied": False,
+            "free_sticker_reset": False,
+            "free_sticker_error": "",
         }
+
+    def _load_merch_shipping_quote(
+        form_payload: dict,
+        *,
+        require_complete_merch_rate: bool = False,
+        free_sticker_enabled: bool,
+    ) -> tuple[dict, dict | None]:
+        selected_free_sticker = _find_selected_free_sticker(
+            form_payload.get("free_sticker_choice", ""),
+            free_sticker_choices if free_sticker_enabled else [],
+        )
+        shipping_quote = _empty_shipping_quote()
+        if not cart_is_merch_checkout:
+            return shipping_quote, selected_free_sticker
+
+        selected_rate_id = (form_payload.get("printful_shipping_rate_id") or "").strip()
+        shipping_quote = get_checkout_printful_shipping(
+            positions=_positions_with_free_sticker(positions, selected_free_sticker),
+            form=form_payload,
+            selected_rate_id=selected_rate_id,
+            require_complete=require_complete_merch_rate,
+        )
+        shipping_quote.setdefault("free_sticker_reset", False)
+        shipping_quote.setdefault("free_sticker_error", "")
+
+        if not selected_free_sticker or shipping_quote.get("rates") or not shipping_quote.get("error"):
+            return shipping_quote, selected_free_sticker
+
+        fallback_quote = get_checkout_printful_shipping(
+            positions=positions,
+            form=form_payload,
+            selected_rate_id=selected_rate_id,
+            require_complete=require_complete_merch_rate,
+        )
+        fallback_quote.setdefault("free_sticker_reset", False)
+        fallback_quote.setdefault("free_sticker_error", "")
+        if fallback_quote.get("error") and not fallback_quote.get("rates"):
+            return shipping_quote, selected_free_sticker
+
+        form_payload["free_sticker_choice"] = ""
+        fallback_quote["free_sticker_reset"] = True
+        fallback_quote["free_sticker_error"] = (
+            "The selected free sticker is unavailable right now. It was removed so live shipping could load."
+        )
+        return fallback_quote, None
 
     def _build_payment_options(
         *,
@@ -2173,19 +2240,12 @@ def checkout(request):
             cart_is_merch_checkout=cart_is_merch_checkout,
             delivery_method=form_payload.get("delivery_method", "shipping"),
         )
-        active_free_sticker_choices = free_sticker_choices if free_sticker_enabled else []
-        selected_free_sticker = _find_selected_free_sticker(
-            form_payload.get("free_sticker_choice", ""),
-            active_free_sticker_choices,
+        shipping_quote, selected_free_sticker = _load_merch_shipping_quote(
+            form_payload,
+            require_complete_merch_rate=require_complete_merch_rate,
+            free_sticker_enabled=free_sticker_enabled,
         )
-        shipping_positions = _positions_with_free_sticker(positions, selected_free_sticker)
         if cart_is_merch_checkout:
-            shipping_quote = get_checkout_printful_shipping(
-                positions=shipping_positions,
-                form=form_payload,
-                selected_rate_id=(form_payload.get("printful_shipping_rate_id") or "").strip(),
-                require_complete=require_complete_merch_rate,
-            )
             shipping_cost = shipping_quote["shipping_cost"].quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
 
         order_subtotal = (total + shipping_cost).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else shipping_cost

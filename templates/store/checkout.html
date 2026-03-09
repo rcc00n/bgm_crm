@@ -1126,6 +1126,17 @@
       }
     }
 
+    function clearFreeStickerSelection(){
+      if (!freeStickerInputs.length) return;
+      const emptyOption = document.querySelector('input[name="free_sticker_choice"][value=""]');
+      if (emptyOption){
+        emptyOption.checked = true;
+      }else{
+        freeStickerInputs.forEach((input) => { input.checked = false; });
+      }
+      syncFreeStickerSummary();
+    }
+
     async function loadPrintfulRates(options = {}){
       if (!cartIsMerchCheckout || !printfulRatesBlock) return;
       if (!hasCompletePrintfulAddress()){
@@ -1165,8 +1176,11 @@
           signal: printfulRatesAbortController.signal,
         });
         const payload = await response.json();
+        if (payload.free_sticker_reset){
+          clearFreeStickerSelection();
+        }
         renderPrintfulRates(payload.rates || [], payload.selected_rate_id || '');
-        setPrintfulError(payload.error || '');
+        setPrintfulError(payload.error || payload.free_sticker_error || '');
       }catch(err){
         if (err && err.name === 'AbortError') return;
         setPrintfulError('Could not load live merch shipping right now. Please try again.');
