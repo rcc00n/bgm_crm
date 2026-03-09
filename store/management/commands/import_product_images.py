@@ -7,7 +7,7 @@ import os
 import re
 import sys
 import unicodedata
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 from typing import Dict, FrozenSet, Iterable, List, Optional, Tuple
@@ -328,6 +328,15 @@ def _pick_group_title(handle: str, group: List[Dict[str, str]]) -> str:
     return handle
 
 
+def _pick_group_field(group: List[Dict[str, str]], *field_names: str) -> str:
+    for row in group:
+        for field_name in field_names:
+            value = (row.get(field_name) or row.get(field_name.lower()) or "").strip()
+            if value:
+                return value
+    return ""
+
+
 def _iter_candidate_skus(group: List[Dict[str, str]], *, limit: int = 50) -> List[str]:
     """
     Return unique SKU candidates from Shopify-like rows in stable order.
@@ -484,9 +493,15 @@ class CsvImageCandidate:
     handle: str
     handle_slug: str
     title: str
+    vendor: str
+    product_type: str
+    years_text: str
     image_url: str
     skus: Tuple[str, ...]
     profile: NameMatchProfile
+    family: str
+    kind: str
+    group: str
 
 
 @dataclass(frozen=True)
@@ -521,6 +536,50 @@ class ImportStats:
     skipped_invalid_image: int = 0
     skipped_low_confidence: int = 0
     skipped_download_failed: int = 0
+
+
+def _candidate_match_text(candidate: CsvImageCandidate) -> str:
+    return " ".join(
+        part
+        for part in (
+            candidate.title,
+            candidate.handle,
+            candidate.product_type,
+            candidate.years_text,
+            candidate.vendor,
+            " ".join(candidate.skus),
+        )
+        if part
+    )
+
+
+def _build_product_match_profile(product: Product) -> NameMatchProfile:
+    category = getattr(product, "category", None)
+    category_name = (getattr(category, "name", "") or "").strip()
+    category_slug = (getattr(category, "slug", "") or "").replace("-", " ").strip()
+    return _build_name_match_profile(
+        getattr(product, "name", "") or "",
+        getattr(product, "slug", "").replace("-", " "),
+        category_name,
+        category_slug,
+    )
+
+
+def _product_match_specificity(product: Product) -> int:
+    profile = _build_product_match_profile(product)
+    text = f"{getattr(product, 'name', '')} {getattr(product, 'slug', '').replace('-', ' ')}"
+    family = _detect_broad_family(text)
+    kind = _detect_broad_kind(text)
+    score = len(profile.core_tokens)
+    score += len(profile.phrases) * 3
+    score += len(profile.engines) * 2
+    if profile.year_span:
+        score += 2
+    if family != "generic":
+        score += 2
+    if kind != "generic":
+        score += 1
+    return score
 
 
 def _year_spans_overlap(
@@ -588,7 +647,7 @@ def _find_best_name_match(
     product: Product,
     candidates: List[CsvImageCandidate],
 ) -> Optional[NameMatchResult]:
-    profile = _build_name_match_profile(product.name, getattr(product, "slug", "").replace("-", " "))
+    profile = _build_product_match_profile(product)
     scored: List[Tuple[float, CsvImageCandidate]] = []
     for candidate in candidates:
         score = _score_name_match(profile, candidate.profile)
@@ -716,7 +775,7 @@ def _find_candidate_by_tokens(
     if not required:
         return None
     for candidate in candidates:
-        if family and _detect_broad_family(f"{candidate.title} {candidate.handle}") != family:
+        if family and candidate.family != family:
             continue
         if required <= candidate.profile.tokens:
             return candidate
@@ -913,62 +972,124 @@ def _choose_broad_fallback_candidate(
     return candidate, f"{family}/{kind}"
 
 
+def _score_diverse_fallback_candidate(
+    product_profile: NameMatchProfile,
+    *,
+    product_family: str,
+    product_kind: str,
+    product_group: str,
+    candidate: CsvImageCandidate,
+) -> Optional[float]:
+    if product_family != "generic" and candidate.family not in {product_family, "generic"}:
+        return None
+    if (
+        product_profile.engines
+        and candidate.profile.engines
+        and product_profile.engines.isdisjoint(candidate.profile.engines)
+    ):
+        return None
+
+    shared_core = product_profile.core_tokens & candidate.profile.core_tokens
+    shared_phrase = product_profile.phrases & candidate.profile.phrases
+    shared_engine = product_profile.engines & candidate.profile.engines
+    union = product_profile.core_tokens | candidate.profile.core_tokens
+    core_ratio = (len(shared_core) / len(union)) if union else 0.0
+    fingerprint_ratio = SequenceMatcher(
+        None,
+        product_profile.fingerprint,
+        candidate.profile.fingerprint,
+    ).ratio()
+
+    score = (core_ratio * 1.8) + (fingerprint_ratio * 0.45)
+    score += len(shared_core) * 0.18
+    score += len(shared_phrase) * 0.60
+    score += len(shared_engine) * 0.40
+
+    if product_family != "generic":
+        if candidate.family == product_family:
+            score += 1.15
+        elif candidate.family == "generic":
+            score -= 0.35
+
+    if product_kind != "generic":
+        if candidate.kind == product_kind:
+            score += 1.25
+        elif candidate.group == product_group:
+            score += 0.55
+        elif candidate.kind != "generic":
+            score -= 0.75
+    elif product_group != "generic":
+        if candidate.group == product_group:
+            score += 0.35
+        elif candidate.group != "generic":
+            score -= 0.25
+
+    if product_profile.year_span and candidate.profile.year_span:
+        if _year_spans_overlap(product_profile.year_span, candidate.profile.year_span):
+            score += 0.45
+        else:
+            score -= 0.45
+
+    if product_profile.phrases and candidate.profile.phrases and not shared_phrase and product_kind == candidate.kind:
+        score -= 0.20
+
+    if not shared_core and not shared_phrase and candidate.kind != product_kind and candidate.group != product_group:
+        return None
+
+    return score
+
+
 def _choose_loose_fallback_candidate(
     product: Product,
     candidates: List[CsvImageCandidate],
 ) -> Tuple[Optional[CsvImageCandidate], str]:
+    return _choose_diverse_fallback_candidate(product, candidates, image_usage=Counter())
+
+
+def _choose_diverse_fallback_candidate(
+    product: Product,
+    candidates: List[CsvImageCandidate],
+    *,
+    image_usage: Counter[str],
+) -> Tuple[Optional[CsvImageCandidate], str]:
     text = f"{product.name} {getattr(product, 'slug', '').replace('-', ' ')}"
-    product_profile = _build_name_match_profile(product.name, getattr(product, "slug", "").replace("-", " "))
+    product_profile = _build_product_match_profile(product)
     product_family = _detect_broad_family(text)
     product_kind = _detect_broad_kind(text)
     product_group = _kind_group(product_kind)
 
-    best: Optional[Tuple[float, CsvImageCandidate, str, str]] = None
-    first_family_candidate: Optional[Tuple[CsvImageCandidate, str, str]] = None
-    first_group_candidate: Optional[Tuple[CsvImageCandidate, str, str]] = None
+    best: Optional[Tuple[float, float, CsvImageCandidate]] = None
+    best_reference = ""
+    fallback_best: Optional[Tuple[float, CsvImageCandidate]] = None
+    fallback_reference = ""
 
     for candidate in candidates:
-        candidate_text = f"{candidate.title} {candidate.handle}"
-        candidate_family = _detect_broad_family(candidate_text)
-        candidate_kind = _detect_broad_kind(candidate_text)
-        candidate_group = _kind_group(candidate_kind)
-
-        if product_family != "generic" and candidate_family != product_family:
-            continue
-        if product_family == "generic" and product_group != "generic" and candidate_group != product_group:
-            continue
-
-        if first_family_candidate is None:
-            first_family_candidate = (candidate, candidate_family, candidate_kind)
-        if first_group_candidate is None and candidate_group == product_group:
-            first_group_candidate = (candidate, candidate_family, candidate_kind)
-
-        shared_core = len(product_profile.core_tokens & candidate.profile.core_tokens)
-        shared_phrases = len(product_profile.phrases & candidate.profile.phrases)
-        shared_engines = len(product_profile.engines & candidate.profile.engines)
-        family_bonus = 0.75 if product_family != "generic" and candidate_family == product_family else 0.0
-        kind_bonus = 1.0 if candidate_kind == product_kind else 0.35 if candidate_group == product_group else 0.0
-        year_bonus = (
-            0.35
-            if product_profile.year_span and candidate.profile.year_span and _year_spans_overlap(
-                product_profile.year_span,
-                candidate.profile.year_span,
-            )
-            else 0.0
+        score = _score_diverse_fallback_candidate(
+            product_profile,
+            product_family=product_family,
+            product_kind=product_kind,
+            product_group=product_group,
+            candidate=candidate,
         )
-        score = (shared_core * 1.0) + (shared_phrases * 1.5) + (shared_engines * 1.2) + family_bonus + kind_bonus + year_bonus
-        if best is None or score > best[0]:
-            best = (score, candidate, candidate_family, candidate_kind)
+        if score is None:
+            continue
 
-    if best and best[0] > 0.0:
-        _score, candidate, candidate_family, candidate_kind = best
-        return candidate, f"loose:{candidate_family}/{candidate_kind}"
-    if first_group_candidate:
-        candidate, candidate_family, candidate_kind = first_group_candidate
-        return candidate, f"representative:{candidate_family}/{candidate_kind}"
-    if first_family_candidate:
-        candidate, candidate_family, candidate_kind = first_family_candidate
-        return candidate, f"representative:{candidate_family}/{candidate_kind}"
+        usage = int(image_usage.get(candidate.image_url, 0))
+        diversified_score = score - (usage * 0.85)
+        reference = f"diverse:{candidate.family}/{candidate.kind}"
+        if fallback_best is None or score > fallback_best[0]:
+            fallback_best = (score, candidate)
+            fallback_reference = reference
+        if best is None or diversified_score > best[0] or (
+            diversified_score == best[0] and score > best[1]
+        ):
+            best = (diversified_score, score, candidate)
+            best_reference = reference
+
+    if best and best[1] > 0.0:
+        return best[2], best_reference
+    if fallback_best and fallback_best[0] > 0.0:
+        return fallback_best[1], fallback_reference
     return None, ""
 
 
@@ -993,13 +1114,27 @@ def _build_csv_candidates_with_options(
             stats.skipped_invalid_image += 1
             continue
         title = _pick_group_title(handle, group)
+        vendor = _pick_group_field(group, "Vendor")
+        product_type = _pick_group_field(group, "Type")
+        years_text = _pick_group_field(group, "Years")
+        skus = tuple(_iter_candidate_skus(group))
+        match_text = " ".join(
+            part for part in (title, handle, product_type, years_text, vendor, " ".join(skus)) if part
+        )
+        candidate_kind = _detect_broad_kind(match_text)
         candidate = CsvImageCandidate(
             handle=handle,
             handle_slug=slugify(handle),
             title=title,
+            vendor=vendor,
+            product_type=product_type,
+            years_text=years_text,
             image_url=image_url,
-            skus=tuple(_iter_candidate_skus(group)),
-            profile=_build_name_match_profile(title, handle),
+            skus=skus,
+            profile=_build_name_match_profile(match_text),
+            family=_detect_broad_family(match_text),
+            kind=candidate_kind,
+            group=_kind_group(candidate_kind),
         )
         candidates.append(candidate)
     return candidates
@@ -1231,6 +1366,7 @@ class Command(BaseCommand):
         missing: List[Tuple[str, str, str]] = []
         low_confidence: List[Tuple[Product, NameMatchResult]] = []
         planned_updates: List[PlannedUpdate] = []
+        planned_image_usage: Counter[str] = Counter()
         handled_product_ids = set()
         resolver = RemoteImageResolver(
             timeout=url_timeout,
@@ -1296,10 +1432,12 @@ class Command(BaseCommand):
                     reference=reference or candidate.handle_slug,
                 )
             )
+            planned_image_usage[candidate.image_url] += 1
             stats.matched_exact += 1
 
         if match_by_name and (not limit or len(planned_updates) < limit):
-            for product in products:
+            products_for_matching = sorted(products, key=_product_match_specificity, reverse=True)
+            for product in products_for_matching:
                 if limit and len(planned_updates) >= limit:
                     break
                 if product.id in handled_product_ids:
@@ -1326,13 +1464,18 @@ class Command(BaseCommand):
                             reference=result.candidate.title or result.candidate.handle,
                         )
                     )
+                    planned_image_usage[result.candidate.image_url] += 1
                     stats.matched_name += 1
                     continue
 
                 if broad_fallback:
-                    broad_candidate, broad_reference = _choose_broad_fallback_candidate(product, candidates)
+                    broad_candidate, broad_reference = _choose_diverse_fallback_candidate(
+                        product,
+                        candidates,
+                        image_usage=planned_image_usage,
+                    )
                     if not broad_candidate:
-                        broad_candidate, broad_reference = _choose_loose_fallback_candidate(product, candidates)
+                        broad_candidate, broad_reference = _choose_broad_fallback_candidate(product, candidates)
                     if broad_candidate:
                         current = str(getattr(product, "main_image", "") or "").strip()
                         if current == broad_candidate.image_url:
@@ -1348,6 +1491,7 @@ class Command(BaseCommand):
                                 reference=f"{broad_reference} -> {broad_candidate.title or broad_candidate.handle}",
                             )
                         )
+                        planned_image_usage[broad_candidate.image_url] += 1
                         stats.matched_broad += 1
                         continue
 

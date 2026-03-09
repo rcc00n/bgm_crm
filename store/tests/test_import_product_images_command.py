@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+import csv
 import shutil
 import tempfile
+from collections import Counter
 from decimal import Decimal
 from io import StringIO
 from unittest.mock import patch
 from urllib.error import HTTPError
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.test.utils import override_settings
 
 from store.models import Category, Product
+from store.management.commands.import_product_images import (
+    ImportStats,
+    RemoteImageResolver,
+    _build_csv_candidates_with_options,
+    _choose_diverse_fallback_candidate,
+)
 
 
 def _csv_text(*rows: str) -> str:
@@ -289,3 +297,47 @@ class ImportProductImagesCommandTests(TestCase):
 
         product.refresh_from_db()
         self.assertTrue(product.main_image.name.startswith("store/products/imported/ddc/"))
+
+
+class ImportProductImagesHelperTests(SimpleTestCase):
+    def test_candidate_build_uses_type_and_years_for_classification(self):
+        csv_text = _csv_text(
+            'DDC-421012,$55.00,Performance Exhaust,performance-exhaust,https://cdn.example.com/exhaust.jpg,1'
+        )
+        rows = list(csv_text.splitlines())
+        rows[0] = rows[0] + ",Vendor,Type,Years"
+        rows[1] = rows[1] + ',Dirty Diesel Customs,Downpipe Back Exhaust System,"2011-2019 Ford F-Series 6.7L Powerstroke"'
+        out = "\n".join(rows) + "\n"
+
+        candidates = _build_csv_candidates_with_options(
+            csv.DictReader(StringIO(out)),
+            ImportStats(),
+            resolver=RemoteImageResolver(validate=False),
+        )
+        candidate = candidates[0]
+
+        self.assertEqual(candidate.family, "powerstroke")
+        self.assertEqual(candidate.kind, "downpipe_exhaust")
+
+    def test_diverse_fallback_spreads_between_multiple_candidates(self):
+        csv_text = (
+            "SKU,RETAIL PRICE,Title,Handle,Image Src,Image Position,Vendor,Type,Years\n"
+            "SW-1114,$55.00,Powerstroke Switch Alpha,powerstroke-switch-alpha,https://cdn.example.com/a.jpg,1,Dirty Diesel Customs,Switch,\"2011-2014 Ford Powerstroke 6.7L\"\n"
+            "SW-1519,$55.00,Powerstroke Switch Beta,powerstroke-switch-beta,https://cdn.example.com/b.jpg,1,Dirty Diesel Customs,Switch,\"2015-2019 Ford Powerstroke 6.7L\"\n"
+        )
+        candidates = _build_csv_candidates_with_options(
+            csv.DictReader(StringIO(csv_text)),
+            ImportStats(),
+            resolver=RemoteImageResolver(validate=False),
+        )
+        usage = Counter()
+        first = Product(name="SOTF Harness (2011-2014 Powerstroke)", slug="sotf-harness-2011-2014-powerstroke")
+        second = Product(name="SOTF Harness (2015-2019 Powerstroke)", slug="sotf-harness-2015-2019-powerstroke")
+
+        first_candidate, _ = _choose_diverse_fallback_candidate(first, candidates, image_usage=usage)
+        self.assertIsNotNone(first_candidate)
+        usage[first_candidate.image_url] += 1
+
+        second_candidate, _ = _choose_diverse_fallback_candidate(second, candidates, image_usage=usage)
+        self.assertIsNotNone(second_candidate)
+        self.assertNotEqual(first_candidate.image_url, second_candidate.image_url)
