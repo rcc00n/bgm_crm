@@ -413,11 +413,13 @@
                 <div class="summary__amount">{{ it.line_total|money }}</div>
               </li>
             {% endfor %}
-            <li class="summary__row" id="freeStickerSummaryRow" {% if not selected_free_sticker %}hidden{% endif %}>
+            <li class="summary__row" id="freeStickerSummaryRow" data-auto-included="{% if selected_free_sticker and not cart_is_merch_checkout %}true{% else %}false{% endif %}" {% if not selected_free_sticker %}hidden{% endif %}>
               <div>
                 <div class="summary__title" id="freeStickerSummaryTitle">{% if selected_free_sticker %}{{ selected_free_sticker.title }}{% else %}Free sticker{% endif %}</div>
                 <div class="section__desc" id="freeStickerSummaryMeta">
-                  {% if selected_free_sticker and selected_free_sticker.option_label %}
+                  {% if selected_free_sticker and not cart_is_merch_checkout %}
+                    Included automatically • Promo item{% if selected_free_sticker.option_label %} • {{ selected_free_sticker.option_label }}{% endif %}
+                  {% elif selected_free_sticker and selected_free_sticker.option_label %}
                     {{ selected_free_sticker.option_label }} • Promo item
                   {% elif selected_free_sticker %}
                     Promo item
@@ -1126,6 +1128,13 @@
       }
     }
 
+    function syncAutoFreeStickerSummary(){
+      if (!freeStickerSummaryRow) return;
+      if (freeStickerSummaryRow.dataset.autoIncluded !== 'true') return;
+      const deliveryMethod = document.querySelector('input[name="delivery_method"]:checked')?.value || 'shipping';
+      freeStickerSummaryRow.hidden = deliveryMethod === 'pickup';
+    }
+
     function clearFreeStickerSelection(){
       if (!freeStickerInputs.length) return;
       const emptyOption = document.querySelector('input[name="free_sticker_choice"][value=""]');
@@ -1135,6 +1144,7 @@
         freeStickerInputs.forEach((input) => { input.checked = false; });
       }
       syncFreeStickerSummary();
+      syncAutoFreeStickerSummary();
     }
 
     async function loadPrintfulRates(options = {}){
@@ -1339,7 +1349,7 @@
       }
     }
 
-    methodInputs.forEach(i => i.addEventListener('change', () => { syncDelivery(); syncTotals(); }));
+    methodInputs.forEach(i => i.addEventListener('change', () => { syncDelivery(); syncAutoFreeStickerSummary(); syncTotals(); }));
     if (countryInput) countryInput.addEventListener('blur', () => {
       if (cartIsMerchCheckout){
         schedulePrintfulRatesLoad();
@@ -1387,6 +1397,7 @@
       e.preventDefault();
       copyToClipboard(etransferMemoEls[0]?.textContent || '');
     });
+    syncAutoFreeStickerSummary();
     if (formEl) formEl.addEventListener('submit', handleSubmit);
 
     document.addEventListener('DOMContentLoaded', function(){

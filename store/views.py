@@ -1447,6 +1447,10 @@ def _find_selected_free_sticker(raw_value: str, choices: list[dict]) -> dict | N
     return None
 
 
+def _default_free_sticker_choice(choices: list[dict]) -> dict | None:
+    return (choices or [None])[0]
+
+
 def _positions_with_free_sticker(positions: list[dict], free_sticker_choice: dict | None) -> list[dict]:
     if not free_sticker_choice:
         return positions
@@ -2169,12 +2173,15 @@ def checkout(request):
         form_payload: dict,
         *,
         require_complete_merch_rate: bool = False,
-        free_sticker_enabled: bool,
+        free_sticker_visible: bool,
+        auto_free_sticker_choice: dict | None,
     ) -> tuple[dict, dict | None]:
-        selected_free_sticker = _find_selected_free_sticker(
-            form_payload.get("free_sticker_choice", ""),
-            free_sticker_choices if free_sticker_enabled else [],
-        )
+        selected_free_sticker = auto_free_sticker_choice
+        if free_sticker_visible:
+            selected_free_sticker = _find_selected_free_sticker(
+                form_payload.get("free_sticker_choice", ""),
+                free_sticker_choices,
+            )
         shipping_quote = _empty_shipping_quote()
         if not cart_is_merch_checkout:
             return shipping_quote, selected_free_sticker
@@ -2236,14 +2243,19 @@ def checkout(request):
     def _recompute_totals_for_form(form_payload: dict, *, require_complete_merch_rate: bool = False):
         shipping_quote = _empty_shipping_quote()
         shipping_cost = Decimal("0.00")
-        free_sticker_enabled = _free_sticker_available_for_delivery(
+        free_sticker_available = _free_sticker_available_for_delivery(
             cart_is_merch_checkout=cart_is_merch_checkout,
             delivery_method=form_payload.get("delivery_method", "shipping"),
         )
+        free_sticker_visible = bool(free_sticker_choices) and cart_is_merch_checkout and free_sticker_available
+        auto_free_sticker_choice = None
+        if bool(free_sticker_choices) and not cart_is_merch_checkout and free_sticker_available:
+            auto_free_sticker_choice = _default_free_sticker_choice(free_sticker_choices)
         shipping_quote, selected_free_sticker = _load_merch_shipping_quote(
             form_payload,
             require_complete_merch_rate=require_complete_merch_rate,
-            free_sticker_enabled=free_sticker_enabled,
+            free_sticker_visible=free_sticker_visible,
+            auto_free_sticker_choice=auto_free_sticker_choice,
         )
         if cart_is_merch_checkout:
             shipping_cost = shipping_quote["shipping_cost"].quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
@@ -2266,7 +2278,7 @@ def checkout(request):
             ),
             shipping_quote,
             selected_free_sticker,
-            free_sticker_enabled,
+            free_sticker_visible,
         )
 
     (
@@ -2278,7 +2290,7 @@ def checkout(request):
         payment_options,
         printful_shipping_quote,
         selected_free_sticker,
-        free_sticker_enabled,
+        free_sticker_visible,
     ) = _recompute_totals_for_form(form)
 
     if request.method == "POST":
@@ -2329,7 +2341,7 @@ def checkout(request):
             payment_options,
             printful_shipping_quote,
             selected_free_sticker,
-            free_sticker_enabled,
+            free_sticker_visible,
         ) = _recompute_totals_for_form(form, require_complete_merch_rate=cart_is_merch_checkout)
 
         if not form["customer_name"]:
@@ -2360,8 +2372,8 @@ def checkout(request):
                 errors["printful_shipping"] = printful_shipping_quote["error"]
             elif not printful_shipping_quote.get("selected_rate_id"):
                 errors["printful_shipping"] = "Select a live shipping option for this merch order."
-        if form["free_sticker_choice"] and not selected_free_sticker:
-            if not free_sticker_enabled:
+        if cart_is_merch_checkout and form["free_sticker_choice"] and not selected_free_sticker:
+            if not free_sticker_visible:
                 errors["free_sticker_choice"] = "Free sticker promo is available on shipping orders only."
             else:
                 errors["free_sticker_choice"] = "Select one of the available free sticker options."
@@ -2706,8 +2718,8 @@ def checkout(request):
             "selected_printful_rate_id": printful_shipping_quote["selected_rate_id"],
             "printful_shipping_error": errors.get("printful_shipping", printful_shipping_quote["error"]),
             "free_sticker_threshold": free_sticker_threshold,
-            "free_sticker_eligible": bool(free_sticker_choices) and free_sticker_enabled,
-            "free_sticker_choices": free_sticker_choices if free_sticker_enabled else [],
+            "free_sticker_eligible": bool(free_sticker_choices) and free_sticker_visible,
+            "free_sticker_choices": free_sticker_choices if free_sticker_visible else [],
             "selected_free_sticker": selected_free_sticker,
             "selected_free_sticker_value": (selected_free_sticker or {}).get("value", ""),
         },

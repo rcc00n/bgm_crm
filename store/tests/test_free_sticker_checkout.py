@@ -132,9 +132,7 @@ class FreeStickerCheckoutTests(TestCase):
         self.assertContains(response, "Free sticker")
         self.assertContains(response, 'name="free_sticker_choice"', html=False)
 
-    @patch("store.views.get_checkout_printful_shipping")
-    def test_free_sticker_picker_shows_for_non_merch_checkout_over_threshold(self, get_checkout_printful_shipping):
-        get_checkout_printful_shipping.return_value = self._shipping_quote()
+    def test_free_sticker_picker_hidden_for_non_merch_checkout_over_threshold(self):
         main_product = self._create_parts_product(
             name="Rear Bumpers - Armadillo",
             slug="rear-bumpers-armadillo",
@@ -160,8 +158,9 @@ class FreeStickerCheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["cart_is_merch_checkout"])
-        self.assertTrue(response.context["free_sticker_eligible"])
-        self.assertContains(response, 'name="free_sticker_choice"', html=False)
+        self.assertFalse(response.context["free_sticker_eligible"])
+        self.assertNotContains(response, 'name="free_sticker_choice"', html=False)
+        self.assertContains(response, "Included automatically")
 
     @patch("store.views.get_checkout_printful_shipping")
     def test_printful_rates_fallback_removes_invalid_free_sticker(self, get_checkout_printful_shipping):
@@ -312,6 +311,59 @@ class FreeStickerCheckoutTests(TestCase):
                 "payment_method": "etransfer",
                 "printful_shipping_rate_id": "pf-standard",
                 "free_sticker_choice": choice_value,
+                "agree": "1",
+            },
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.get()
+        self.assertEqual(order.items.count(), 2)
+        free_sticker_item = order.items.get(product=sticker)
+        self.assertEqual(free_sticker_item.qty, 1)
+        self.assertEqual(free_sticker_item.option, small_option)
+        self.assertEqual(free_sticker_item.price_at_moment, Decimal("0.00"))
+
+    @patch("store.views.get_checkout_printful_shipping")
+    def test_non_merch_shipping_order_auto_adds_default_free_sticker(self, get_checkout_printful_shipping):
+        get_checkout_printful_shipping.return_value = self._shipping_quote()
+        main_product = self._create_parts_product(
+            name="Rear Bumpers - Armadillo Auto",
+            slug="rear-bumpers-armadillo-auto",
+            sku="BGM-BUMPER-AUTO",
+            price="120.00",
+        )
+        sticker = self._create_merch_product(
+            name="BGM Bubble-free stickers Auto",
+            slug="bgm-bubble-free-stickers-auto",
+            sku="PF-STICKER-AUTO",
+            price="6.00",
+        )
+        small_option = ProductOption.objects.create(
+            product=sticker,
+            name="3x3",
+            sku="PF-STICKER-AUTO-3X3",
+            price=Decimal("6.00"),
+            is_active=True,
+            printful_variant_id=111,
+            printful_sync_variant_id=222,
+        )
+        self._set_cart(main_product)
+
+        response = self.client.post(
+            self.checkout_url,
+            data={
+                "customer_name": "Parts Buyer",
+                "email": "parts.buyer@example.com",
+                "phone": "+1 555 777 9999",
+                "delivery_method": "shipping",
+                "address_line1": "123 Main St",
+                "city": "Calgary",
+                "region": "AB",
+                "postal_code": "T1T1T1",
+                "country": "Canada",
+                "pay_mode": "full",
+                "payment_method": "etransfer",
                 "agree": "1",
             },
             follow=False,
