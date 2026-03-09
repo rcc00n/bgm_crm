@@ -3701,7 +3701,7 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "home_gallery_4_title",
                 "home_gallery_4_caption",
             ),
-            "description": "These four uploads control the Builds card images on the homepage. If a card image is left empty, the site falls back to recent project journal covers or the built-in defaults.",
+            "description": "These four controls manage the homepage Builds cards: image, white overlay title, and the small caption under it. If a card image is left empty, the site falls back to recent project journal covers or the built-in defaults, but the title/caption text entered here still overrides the fallback card copy.",
         }),
         ("Shared pricing labels", {
             "fields": (

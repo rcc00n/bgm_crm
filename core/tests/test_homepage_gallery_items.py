@@ -62,6 +62,26 @@ class HomePageGalleryItemsTests(TestCase):
         self.assertEqual(gallery_items[0]["title"], "Fallback Journal Build")
         self.assertEqual(gallery_items[0]["caption"], "Fallback Journal Build result")
 
+    def test_home_page_uses_text_overrides_from_gallery_slot_without_custom_image(self):
+        self._published_entry("Journal Build")
+        HeroImage.objects.create(
+            location=HeroImage.Location.HOME_GALLERY_A,
+            title="Homepage Override Title",
+            alt_text="Homepage override alt",
+            caption="Homepage override caption",
+            is_active=False,
+        )
+
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+
+        gallery_items = response.context["home_gallery_items"]
+        self.assertEqual(gallery_items[0]["title"], "Homepage Override Title")
+        self.assertEqual(gallery_items[0]["caption"], "Homepage override caption")
+        self.assertEqual(gallery_items[0]["alt"], "Homepage override alt")
+        self.assertIsNone(gallery_items[0]["image"])
+        self.assertTrue(gallery_items[0]["src"].endswith("/static/img/hero-home.jpg"))
+
     def test_home_page_copy_form_saves_gallery_assets(self):
         form = HomePageCopyAdminForm(instance=self.home_copy)
         form.cleaned_data = {

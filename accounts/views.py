@@ -934,9 +934,9 @@ class HomeView(TemplateView):
                     {
                         "image": post.cover_image,
                         "src": post.cover_image.url,
-                        "alt": post.hero_title or post.title,
-                        "title": post.hero_title or post.title,
-                        "caption": post.result_highlight or post.excerpt,
+                        "alt": asset.get("alt") or post.hero_title or post.title,
+                        "title": asset.get("title") or post.hero_title or post.title,
+                        "caption": asset.get("caption") or post.result_highlight or post.excerpt,
                         "url": gallery_url,
                     }
                 )
