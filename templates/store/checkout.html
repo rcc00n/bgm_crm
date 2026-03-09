@@ -271,6 +271,44 @@
             <textarea class="input" name="comment" rows="4" placeholder="Anything we should know?">{{ form.comment|default_if_none:'' }}</textarea>
           </section>
 
+          {% if free_sticker_eligible and free_sticker_choices %}
+            <section>
+              <div class="section__head" style="margin-bottom:.45rem;">
+                <h3 class="block-title">Free sticker</h3>
+                <p class="section__desc">Orders at or above {{ free_sticker_threshold|money }} can add one small sticker for free.</p>
+              </div>
+              <fieldset class="options options--pay">
+                <label class="opt opt--wide">
+                  <input type="radio" name="free_sticker_choice" value="" {% if not selected_free_sticker_value %}checked{% endif %}>
+                  <div>
+                    <div class="opt__title">No free sticker</div>
+                    <div class="opt__sub">Skip this promo item.</div>
+                  </div>
+                </label>
+                {% for choice in free_sticker_choices %}
+                  <label class="opt opt--wide">
+                    <input
+                      type="radio"
+                      name="free_sticker_choice"
+                      value="{{ choice.value }}"
+                      data-sticker-title="{{ choice.title }}"
+                      data-sticker-option="{{ choice.option_label }}"
+                      data-sticker-summary="{{ choice.summary_label }}"
+                      {% if selected_free_sticker_value == choice.value %}checked{% endif %}
+                    >
+                    <div>
+                      <div class="opt__title">{{ choice.title }}</div>
+                      <div class="opt__sub">
+                        {% if choice.option_label %}{{ choice.option_label }}{% else %}Small sticker{% endif %} • Free • Limit 1
+                      </div>
+                    </div>
+                  </label>
+                {% endfor %}
+              </fieldset>
+              {% if errors.free_sticker_choice %}<div class="err">{{ errors.free_sticker_choice }}</div>{% endif %}
+            </section>
+          {% endif %}
+
           {% if not cart_is_merch_checkout %}
             <!-- Reference photo -->
             <section>
@@ -375,6 +413,19 @@
                 <div class="summary__amount">{{ it.line_total|money }}</div>
               </li>
             {% endfor %}
+            <li class="summary__row" id="freeStickerSummaryRow" {% if not selected_free_sticker %}hidden{% endif %}>
+              <div>
+                <div class="summary__title" id="freeStickerSummaryTitle">{% if selected_free_sticker %}{{ selected_free_sticker.title }}{% else %}Free sticker{% endif %}</div>
+                <div class="section__desc" id="freeStickerSummaryMeta">
+                  {% if selected_free_sticker and selected_free_sticker.option_label %}
+                    {{ selected_free_sticker.option_label }} • Promo item
+                  {% elif selected_free_sticker %}
+                    Promo item
+                  {% endif %}
+                </div>
+              </div>
+              <div class="summary__amount">$0.00</div>
+            </li>
           </ul>
           <div class="summary__total">
             <div>
@@ -751,6 +802,10 @@
     const printfulRatesError = document.getElementById('printfulRatesError');
     const printfulRatesLoading = document.getElementById('printfulRatesLoading');
     const printfulShippingRateIdInput = document.getElementById('printfulShippingRateId');
+    const freeStickerInputs = document.querySelectorAll('input[name="free_sticker_choice"]');
+    const freeStickerSummaryRow = document.getElementById('freeStickerSummaryRow');
+    const freeStickerSummaryTitle = document.getElementById('freeStickerSummaryTitle');
+    const freeStickerSummaryMeta = document.getElementById('freeStickerSummaryMeta');
     let cardInstance = squareState.cardInstance || null;
     let processingPayment = false;
     let printfulRatesAbortController = null;
@@ -1023,6 +1078,16 @@
         resetPreview();
       });
     }
+    freeStickerInputs.forEach((input) => {
+      input.addEventListener('change', () => {
+        syncFreeStickerSummary();
+        if (cartIsMerchCheckout){
+          schedulePrintfulRatesLoad();
+        } else {
+          syncTotals();
+        }
+      });
+    });
 
     function formatMoney(value){
       const num = Number(value || 0);
@@ -1038,6 +1103,27 @@
         postal?.value,
         countryInput?.value,
       ].every(value => String(value || '').trim());
+    }
+
+    function syncFreeStickerSummary(){
+      if (!freeStickerInputs.length) return;
+      const selected = document.querySelector('input[name="free_sticker_choice"]:checked');
+      const hasSticker = Boolean(selected && selected.value);
+      if (freeStickerSummaryRow){
+        freeStickerSummaryRow.hidden = !hasSticker;
+      }
+      if (!hasSticker){
+        if (freeStickerSummaryTitle) freeStickerSummaryTitle.textContent = 'Free sticker';
+        if (freeStickerSummaryMeta) freeStickerSummaryMeta.textContent = '';
+        return;
+      }
+      if (freeStickerSummaryTitle){
+        freeStickerSummaryTitle.textContent = selected.dataset.stickerTitle || 'Free sticker';
+      }
+      if (freeStickerSummaryMeta){
+        const optionLabel = selected.dataset.stickerOption || '';
+        freeStickerSummaryMeta.textContent = optionLabel ? `${optionLabel} • Promo item` : 'Promo item';
+      }
     }
 
     async function loadPrintfulRates(options = {}){
@@ -1065,6 +1151,7 @@
       body.append('postal_code', postal?.value || '');
       body.append('country', countryInput?.value || '');
       body.append('printful_shipping_rate_id', printfulShippingRateIdInput?.value || '');
+      body.append('free_sticker_choice', document.querySelector('input[name="free_sticker_choice"]:checked')?.value || '');
       try{
         const response = await fetch(printfulRatesUrl, {
           method: 'POST',
@@ -1290,6 +1377,7 @@
 
     document.addEventListener('DOMContentLoaded', function(){
       bindPrintfulRateInputs();
+      syncFreeStickerSummary();
       syncDelivery();
       syncAgree();
       syncPaymentMethod();

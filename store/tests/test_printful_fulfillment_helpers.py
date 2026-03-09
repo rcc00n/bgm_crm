@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase, override_settings
 
-from store.models import Order
+from store.models import Order, StoreShippingSettings
 from store.printful_fulfillment import (
     _extract_tracking_entries,
     build_printful_recipient_from_form,
@@ -126,6 +126,55 @@ class PrintfulFulfillmentHelperTests(SimpleTestCase):
         self.assertEqual(shipping["shipping_cost"], Decimal("8.95"))
         self.assertEqual(shipping["error"], "")
         refresh_merch_option_mapping.assert_called_once()
+
+    @patch.object(StoreShippingSettings, "get_free_shipping_threshold_cad", return_value=Decimal("90.00"))
+    @patch("store.printful_fulfillment.quote_printful_shipping_rates")
+    def test_get_checkout_shipping_waives_cheapest_rate_over_canada_threshold(
+        self,
+        quote_printful_shipping_rates,
+        _mock_threshold,
+    ):
+        quote_printful_shipping_rates.return_value = [
+            {
+                "id": "STANDARD",
+                "name": "Flat Rate",
+                "rate": "14.75",
+                "currency": "CAD",
+            },
+            {
+                "id": "EXPRESS",
+                "name": "Express",
+                "rate": "24.50",
+                "currency": "CAD",
+            },
+        ]
+
+        shipping = get_checkout_printful_shipping(
+            positions=[
+                {
+                    "product": type("P", (), {"category": type("C", (), {"slug": "merch"})(), "sku": "PF-1", "slug": "merch-1", "name": "Sticker"})(),
+                    "option": type("O", (), {"printful_variant_id": 18730})(),
+                    "qty": 15,
+                    "line_total": Decimal("150.00"),
+                }
+            ],
+            form={
+                "address_line1": "4901 46 Ave",
+                "city": "Camrose",
+                "region": "AB",
+                "postal_code": "T4V2R3",
+                "country": "Canada",
+            },
+            require_complete=False,
+        )
+
+        self.assertEqual(shipping["selected_rate_id"], "STANDARD")
+        self.assertEqual(shipping["shipping_cost"], Decimal("0.00"))
+        self.assertEqual(shipping["quoted_shipping_cost"], Decimal("14.75"))
+        self.assertTrue(shipping["free_shipping_applied"])
+        self.assertEqual(shipping["rates"][0]["rate"], "0.00")
+        self.assertEqual(shipping["rates"][0]["quoted_rate"], "14.75")
+        self.assertEqual(shipping["rates"][1]["rate"], "24.50")
 
     def test_extract_tracking_entries_supports_nested_shipment_payloads(self):
         entries = _extract_tracking_entries(
