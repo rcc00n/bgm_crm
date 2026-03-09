@@ -13,6 +13,7 @@ from .models import (
     Category,
     CarMake,
     CarModel,
+    StoreInventorySettings,
     CustomFitmentRequest,
     StoreReview,
 )
@@ -123,6 +124,15 @@ class ProductAdminForm(forms.ModelForm):
         # update underlying JSON field from human-readable text
         self.instance.specs = parse_specs_text(text)
         return cleaned
+
+
+class StoreInventorySettingsAdminForm(forms.ModelForm):
+    class Meta:
+        model = StoreInventorySettings
+        fields = ("low_stock_threshold", "allow_out_of_stock_orders")
+        widgets = {
+            "low_stock_threshold": forms.NumberInput(attrs={"min": 0, "step": 1}),
+        }
 
 
 # =========================

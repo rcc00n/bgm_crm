@@ -1,6 +1,171 @@
 {% extends "admin/change_list.html" %}
 {% load static %}
 
+{% block extrahead %}
+  {{ block.super }}
+  <style>
+    .inventory-admin-panel{
+      margin: 0 0 1rem 0;
+      padding: 1rem 1.1rem;
+      border: 1px solid #d9d9e3;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #ffffff 0%, #fafafc 100%);
+      box-shadow: 0 8px 22px rgba(15, 23, 42, .05);
+    }
+    .inventory-admin-panel__grid{
+      display:grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(300px, .9fr);
+      gap: 1rem;
+      align-items:start;
+    }
+    .inventory-admin-panel h3{
+      margin:0 0 .35rem 0;
+      font-size:1.05rem;
+      font-weight:700;
+    }
+    .inventory-admin-panel__desc{
+      margin:0 0 .9rem 0;
+      color:#667085;
+    }
+    .inventory-admin-panel__stats{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.65rem;
+      margin-bottom:.9rem;
+    }
+    .inventory-admin-panel__stat{
+      display:inline-flex;
+      flex-direction:column;
+      gap:.1rem;
+      min-width:140px;
+      padding:.7rem .85rem;
+      border-radius:12px;
+      border:1px solid #d9d9e3;
+      background:#fff;
+      color:inherit;
+      text-decoration:none;
+    }
+    .inventory-admin-panel__stat strong{
+      font-size:1.25rem;
+      line-height:1;
+    }
+    .inventory-admin-panel__stat span{
+      color:#667085;
+      font-size:.9rem;
+    }
+    .inventory-admin-panel__stat--danger{
+      border-color: rgba(217, 45, 32, .22);
+      background: rgba(254, 243, 242, .95);
+    }
+    .inventory-admin-panel__stat--warning{
+      border-color: rgba(181, 71, 8, .22);
+      background: rgba(255, 247, 237, .95);
+    }
+    .inventory-admin-panel__stat--neutral{
+      border-color: rgba(16, 24, 40, .1);
+    }
+    .inventory-admin-panel__list{
+      margin:0;
+      padding:0;
+      list-style:none;
+      display:grid;
+      gap:.45rem;
+    }
+    .inventory-admin-panel__item{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.75rem;
+      padding:.65rem .8rem;
+      border-radius:12px;
+      background:#fff;
+      border:1px solid #eaecf0;
+    }
+    .inventory-admin-panel__item a{
+      color:#101828;
+      font-weight:600;
+      text-decoration:none;
+    }
+    .inventory-admin-panel__meta{
+      display:flex;
+      align-items:center;
+      gap:.5rem;
+      white-space:nowrap;
+      color:#667085;
+      font-size:.9rem;
+    }
+    .inventory-admin-panel__badge{
+      display:inline-flex;
+      align-items:center;
+      padding:.18rem .5rem;
+      border-radius:999px;
+      font-size:.78rem;
+      font-weight:700;
+    }
+    .inventory-admin-panel__badge--out{
+      background:rgba(254, 243, 242, 1);
+      color:#b42318;
+    }
+    .inventory-admin-panel__badge--low{
+      background:rgba(255, 247, 237, 1);
+      color:#b54708;
+    }
+    .inventory-admin-panel__empty{
+      margin:0;
+      color:#667085;
+    }
+    .inventory-admin-form{
+      display:grid;
+      gap:.85rem;
+      padding:.95rem;
+      border-radius:12px;
+      border:1px solid #d9d9e3;
+      background:#fff;
+    }
+    .inventory-admin-form__row{
+      display:grid;
+      gap:.35rem;
+    }
+    .inventory-admin-form__row label{
+      font-weight:600;
+    }
+    .inventory-admin-form__row input[type="number"]{
+      width:100%;
+      max-width:140px;
+      padding:.45rem .6rem;
+    }
+    .inventory-admin-form__toggle{
+      display:flex;
+      gap:.6rem;
+      align-items:flex-start;
+    }
+    .inventory-admin-form__toggle input{
+      margin-top:.2rem;
+    }
+    .inventory-admin-form__help{
+      margin:0;
+      color:#667085;
+      font-size:.9rem;
+    }
+    .inventory-admin-form__actions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.75rem;
+      flex-wrap:wrap;
+    }
+    .inventory-admin-form__status{
+      color:#667085;
+      font-size:.9rem;
+    }
+    @media (max-width: 1100px){
+      .inventory-admin-panel__grid{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+{% endblock %}
+
 {% block object-tools %}
   {{ block.super }}
   {% if import_url %}
@@ -51,4 +216,75 @@
       <span>Rollback Autofill</span>
     </a>
   {% endif %}
+{% endblock %}
+
+{% block result_list %}
+  <section class="inventory-admin-panel">
+    <div class="inventory-admin-panel__grid">
+      <div>
+        <h3>Inventory watch</h3>
+        <p class="inventory-admin-panel__desc">
+          Low-stock alerts use threshold <strong>{{ inventory_threshold }}</strong>. Only active products are counted here.
+        </p>
+        <div class="inventory-admin-panel__stats">
+          <a class="inventory-admin-panel__stat inventory-admin-panel__stat--danger" href="{{ product_changelist_url }}?stock_level=out">
+            <strong>{{ out_of_stock_count }}</strong>
+            <span>Out of stock</span>
+          </a>
+          <a class="inventory-admin-panel__stat inventory-admin-panel__stat--warning" href="{{ product_changelist_url }}?stock_level=low">
+            <strong>{{ low_stock_count }}</strong>
+            <span>Low stock</span>
+          </a>
+          <a class="inventory-admin-panel__stat inventory-admin-panel__stat--neutral" href="{{ product_changelist_url }}">
+            <strong>{% if allow_out_of_stock_orders %}Allowed{% else %}Blocked{% endif %}</strong>
+            <span>Out-of-stock orders</span>
+          </a>
+        </div>
+        {% if low_stock_items %}
+          <ul class="inventory-admin-panel__list">
+            {% for item in low_stock_items %}
+              <li class="inventory-admin-panel__item">
+                <a href="{{ item.change_url }}">{{ item.name }}</a>
+                <div class="inventory-admin-panel__meta">
+                  {% if item.status == "out" %}
+                    <span class="inventory-admin-panel__badge inventory-admin-panel__badge--out">Out</span>
+                  {% else %}
+                    <span class="inventory-admin-panel__badge inventory-admin-panel__badge--low">Low</span>
+                  {% endif %}
+                  <span>{{ item.inventory }} left</span>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="inventory-admin-panel__empty">No active products currently match the low-stock alert rules.</p>
+        {% endif %}
+      </div>
+
+      {% if inventory_settings_url %}
+        <form method="post" action="{{ inventory_settings_url }}" class="inventory-admin-form">
+          {% csrf_token %}
+          <div class="inventory-admin-form__row">
+            <label for="{{ inventory_settings_form.low_stock_threshold.id_for_label }}">Low stock threshold</label>
+            {{ inventory_settings_form.low_stock_threshold }}
+            <p class="inventory-admin-form__help">Products at or below this inventory level are flagged in the list and summary.</p>
+          </div>
+          <label class="inventory-admin-form__toggle" for="{{ inventory_settings_form.allow_out_of_stock_orders.id_for_label }}">
+            {{ inventory_settings_form.allow_out_of_stock_orders }}
+            <span>
+              <strong>Allow clients to order out-of-stock products</strong><br>
+              <span class="inventory-admin-form__help">Turn this off to block add-to-cart and checkout for products with zero inventory.</span>
+            </span>
+          </label>
+          <div class="inventory-admin-form__actions">
+            <button type="submit" class="button default">Save inventory rules</button>
+            <span class="inventory-admin-form__status">
+              Current mode: {% if allow_out_of_stock_orders %}clients can order out-of-stock items{% else %}out-of-stock orders are blocked{% endif %}
+            </span>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+  </section>
+  {{ block.super }}
 {% endblock %}

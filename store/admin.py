@@ -25,6 +25,7 @@ from .models import (
     MerchCategory,
     CleanupBatch,
     ImportBatch,
+    StoreInventorySettings,
     StorePricingSettings,
     StoreShippingSettings,
     Product,
@@ -38,7 +39,7 @@ from .models import (
     CustomFitmentRequest,
     StoreReview,
 )
-from .forms_store import ProductAdminForm, ProductImportForm
+from .forms_store import ProductAdminForm, ProductImportForm, StoreInventorySettingsAdminForm
 from .importers import import_products
 from .printful_fulfillment import handle_order_payment_status_transition
 
@@ -114,6 +115,33 @@ class CostStatusFilter(admin.SimpleListFilter):
             return queryset.filter(unit_cost__isnull=True)
         if value == "set":
             return queryset.filter(unit_cost__isnull=False)
+        return queryset
+
+
+class InventoryStatusFilter(admin.SimpleListFilter):
+    title = "Stock"
+    parameter_name = "stock_level"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("out", "Out of stock"),
+            ("low", "Low stock"),
+            ("in", "In stock"),
+        )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        threshold = StoreInventorySettings.get_low_stock_threshold()
+        if value == "out":
+            return queryset.filter(inventory__lte=0)
+        if value == "low":
+            if threshold <= 0:
+                return queryset.none()
+            return queryset.filter(inventory__gt=0, inventory__lte=threshold)
+        if value == "in":
+            if threshold <= 0:
+                return queryset.filter(inventory__gt=0)
+            return queryset.filter(inventory__gt=threshold)
         return queryset
 
 
@@ -262,6 +290,7 @@ class ProductAdmin(admin.ModelAdmin):
         "margin_preview",
         "currency",
         "inventory",
+        "inventory_status",
         "is_in_house",
         "is_active",
         "contact_for_estimate",
@@ -277,6 +306,7 @@ class ProductAdmin(admin.ModelAdmin):
         "currency",
         "contact_for_estimate",
         CleanupStatusFilter,
+        InventoryStatusFilter,
     )
     search_fields = ("name", "sku", "description")
     prepopulated_fields = {"slug": ("name",)}
@@ -299,6 +329,10 @@ class ProductAdmin(admin.ModelAdmin):
         "specs_text", "specs_preview",
         "created_at", "updated_at",
     )
+
+    def get_queryset(self, request):
+        self._inventory_threshold = StoreInventorySettings.get_low_stock_threshold()
+        return super().get_queryset(request)
 
     def margin_preview(self, obj):
         """
@@ -382,6 +416,11 @@ class ProductAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.rollback_autofill_photos_view),
                 name=f"{opts.app_label}_{opts.model_name}_rollback_autofill_photos",
             ),
+            path(
+                "inventory-settings/",
+                self.admin_site.admin_view(self.inventory_settings_view),
+                name=f"{opts.app_label}_{opts.model_name}_inventory_settings",
+            ),
         ]
         return custom_urls + urls
 
@@ -443,9 +482,101 @@ class ProductAdmin(admin.ModelAdmin):
             )
         except Exception:
             extra_context["autofill_rollback_url"] = None
+        inventory_settings = StoreInventorySettings.load() or StoreInventorySettings()
+        inventory_threshold = StoreInventorySettings.get_low_stock_threshold()
+        tracked_products = Product.objects.filter(is_active=True)
+        low_stock_qs = tracked_products.none()
+        if inventory_threshold > 0:
+            low_stock_qs = tracked_products.filter(inventory__gt=0, inventory__lte=inventory_threshold)
+        out_of_stock_qs = tracked_products.filter(inventory__lte=0)
+        low_stock_items = []
+        for product in low_stock_qs.order_by("inventory", "name")[:8]:
+            low_stock_items.append(
+                {
+                    "name": product.name,
+                    "inventory": product.inventory,
+                    "change_url": reverse(f"admin:{opts.app_label}_{opts.model_name}_change", args=[product.pk]),
+                    "status": "low",
+                }
+            )
+        for product in out_of_stock_qs.order_by("name")[:8]:
+            low_stock_items.append(
+                {
+                    "name": product.name,
+                    "inventory": product.inventory,
+                    "change_url": reverse(f"admin:{opts.app_label}_{opts.model_name}_change", args=[product.pk]),
+                    "status": "out",
+                }
+            )
+        try:
+            extra_context["inventory_settings_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_inventory_settings"
+            )
+        except Exception:
+            extra_context["inventory_settings_url"] = None
+        try:
+            extra_context["product_changelist_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_changelist"
+            )
+        except Exception:
+            extra_context["product_changelist_url"] = None
+        extra_context["inventory_settings_form"] = StoreInventorySettingsAdminForm(instance=inventory_settings)
+        extra_context["inventory_threshold"] = inventory_threshold
+        extra_context["allow_out_of_stock_orders"] = bool(inventory_settings.allow_out_of_stock_orders)
+        extra_context["low_stock_count"] = low_stock_qs.count()
+        extra_context["out_of_stock_count"] = out_of_stock_qs.count()
+        extra_context["low_stock_items"] = low_stock_items[:8]
         extra_context["last_import"] = last_import
         extra_context["last_cleanup"] = last_cleanup
         return super().changelist_view(request, extra_context=extra_context)
+
+    def inventory_status(self, obj):
+        threshold = getattr(self, "_inventory_threshold", StoreInventorySettings.get_low_stock_threshold())
+        available_inventory = obj.available_inventory
+        if available_inventory <= 0:
+            return format_html(
+                '<span style="display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;'
+                'background:rgba(255,92,114,.14);border:1px solid rgba(255,92,114,.35);color:#b42318;font-weight:700;">'
+                'Out of stock</span>'
+            )
+        if threshold > 0 and available_inventory <= threshold:
+            return format_html(
+                '<span style="display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;'
+                'background:rgba(245,166,35,.14);border:1px solid rgba(245,166,35,.35);color:#b54708;font-weight:700;">'
+                'Low stock</span>'
+            )
+        return format_html(
+            '<span style="display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;'
+            'background:rgba(23,212,91,.12);border:1px solid rgba(23,212,91,.3);color:#067647;font-weight:700;">'
+            'In stock</span>'
+        )
+
+    inventory_status.short_description = "Stock status"
+    inventory_status.admin_order_field = "inventory"
+
+    def inventory_settings_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+        if request.method != "POST":
+            return redirect("admin:store_product_changelist")
+
+        settings_obj = StoreInventorySettings.load() or StoreInventorySettings()
+        form = StoreInventorySettingsAdminForm(request.POST, instance=settings_obj)
+        if form.is_valid():
+            form.save()
+            allow_out = form.cleaned_data["allow_out_of_stock_orders"]
+            threshold = form.cleaned_data["low_stock_threshold"]
+            mode = "allowed" if allow_out else "blocked"
+            messages.success(
+                request,
+                f"Inventory settings updated. Low stock threshold: {threshold}. Out-of-stock orders are now {mode}.",
+            )
+        else:
+            errors = []
+            for field_errors in form.errors.values():
+                errors.extend(str(err) for err in field_errors)
+            messages.error(request, "Could not update inventory settings. " + " ".join(errors))
+        return redirect("admin:store_product_changelist")
 
     def import_view(self, request):
         if not self.has_add_permission(request):

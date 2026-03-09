@@ -36,6 +36,7 @@ from .models import (
     Product,
     ProductOption,
     StoreReview,
+    StoreInventorySettings,
     StoreShippingSettings,
     CarMake,
     CarModel,
@@ -64,6 +65,72 @@ REFERENCE_IMAGE_MAX_BYTES = int(REFERENCE_IMAGE_MAX_MB * 1024 * 1024)
 
 PAYMENT_QUANT = Decimal("0.01")
 FREE_STICKER_THRESHOLD_FALLBACK = Decimal("90.00")
+
+
+def _allow_out_of_stock_orders() -> bool:
+    return StoreInventorySettings.get_allow_out_of_stock_orders()
+
+
+def _cart_quantity_for_product(session, product_id: int) -> int:
+    quantity = 0
+    for item in _cart(session).get("items", []):
+        if item.get("product_id") != product_id:
+            continue
+        try:
+            quantity += max(0, int(item.get("qty") or 0))
+        except (TypeError, ValueError):
+            continue
+    return quantity
+
+
+def _inventory_error_for_product(product, *, requested_qty: int = 1, current_cart_qty: int = 0) -> str:
+    if not product or _allow_out_of_stock_orders():
+        return ""
+    try:
+        requested_qty = max(1, int(requested_qty or 1))
+    except (TypeError, ValueError):
+        requested_qty = 1
+    try:
+        current_cart_qty = max(0, int(current_cart_qty or 0))
+    except (TypeError, ValueError):
+        current_cart_qty = 0
+    available = getattr(product, "available_inventory", None)
+    if available is None:
+        try:
+            available = max(0, int(getattr(product, "inventory", 0) or 0))
+        except (TypeError, ValueError):
+            available = 0
+    requested_total = current_cart_qty + requested_qty
+    if available <= 0:
+        return f'"{product.name}" is out of stock right now.'
+    if requested_total > available:
+        if current_cart_qty:
+            return f'Only {available} left for "{product.name}". Your cart already has {current_cart_qty}.'
+        return f'Only {available} left for "{product.name}".'
+    return ""
+
+
+def _inventory_errors_for_positions(positions: Iterable[dict]) -> list[str]:
+    if _allow_out_of_stock_orders():
+        return []
+    errors: list[str] = []
+    seen: set[tuple[int, int]] = set()
+    for entry in positions or []:
+        product = entry.get("product")
+        if not product:
+            continue
+        try:
+            qty = max(1, int(entry.get("qty") or 1))
+        except (TypeError, ValueError):
+            qty = 1
+        key = (int(getattr(product, "pk", 0) or 0), qty)
+        if key in seen:
+            continue
+        seen.add(key)
+        error = _inventory_error_for_product(product, requested_qty=qty, current_cart_qty=0)
+        if error:
+            errors.append(error)
+    return errors
 
 
 def _validate_reference_image(uploaded_file) -> str:
@@ -994,6 +1061,14 @@ def product_detail(request, slug: str):
     review_stats = approved_reviews_qs.aggregate(avg=Avg("rating"), count=Count("id"))
     approved_reviews = list(approved_reviews_qs[:12])
     review_submitted = request.GET.get("review_submitted") == "1"
+    out_of_stock_orders_allowed = _allow_out_of_stock_orders()
+    product_can_order = bool(product.contact_for_estimate) or out_of_stock_orders_allowed or not product.is_out_of_stock
+    product_inventory_notice = ""
+    if not product.contact_for_estimate:
+        if not out_of_stock_orders_allowed and product.is_out_of_stock:
+            product_inventory_notice = "Out of stock right now. This item can't be ordered until inventory is updated."
+        elif product.is_low_stock:
+            product_inventory_notice = f"Only {product.available_inventory} left in stock."
 
     if request.method == "POST":
         form_type = (request.POST.get("form_type") or "").strip()
@@ -1150,6 +1225,9 @@ def product_detail(request, slug: str):
             "reviews_avg": review_stats.get("avg"),
             "reviews_count": review_stats.get("count") or 0,
             "review_submitted": review_submitted,
+            "product_can_order": product_can_order,
+            "product_inventory_notice": product_inventory_notice,
+            "out_of_stock_orders_allowed": out_of_stock_orders_allowed,
         },
     )
 
@@ -1721,6 +1799,15 @@ def cart_add(request, slug: str):
     except (TypeError, ValueError):
         qty = 1
     qty = max(1, qty)
+    current_cart_qty = _cart_quantity_for_product(request.session, product.id)
+    inventory_error = _inventory_error_for_product(
+        product,
+        requested_qty=qty,
+        current_cart_qty=current_cart_qty,
+    )
+    if inventory_error:
+        messages.error(request, inventory_error)
+        return redirect("store:store-product", slug=product.slug)
 
     cart_positions, _, _ = _cart_positions(
         request.session,
@@ -2292,6 +2379,9 @@ def checkout(request):
         selected_free_sticker,
         free_sticker_visible,
     ) = _recompute_totals_for_form(form)
+    initial_inventory_errors = _inventory_errors_for_positions(positions)
+    if initial_inventory_errors:
+        errors["payment"] = "Inventory updated: " + " ".join(initial_inventory_errors)
 
     if request.method == "POST":
         def val(name, default=""):
@@ -2388,6 +2478,9 @@ def checkout(request):
 
         if any(getattr(it["product"], "contact_for_estimate", False) for it in positions):
             errors["payment"] = "Items that require an estimate must be invoiced manually. Please remove them to pay online."
+        inventory_errors = _inventory_errors_for_positions(positions)
+        if inventory_errors:
+            errors["payment"] = "Inventory updated: " + " ".join(inventory_errors)
 
         selected_payment = payment_options["full"]
         charge_amount = selected_payment["charge"]

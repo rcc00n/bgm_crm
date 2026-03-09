@@ -283,14 +283,35 @@
 	            {% endif %}
 
             {% if not product.contact_for_estimate %}
-              <label class="section__desc" for="qty">Quantity</label>
-              <div class="qty-row">
-                <input class="field" id="qty" name="qty" type="number" min="1" value="1" style="width:110px">
-                <div class="btn-pair">
-                  <button class="btn btn--primary" type="submit">Add to cart</button>
-                  <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Buy now</button>
+              {% if product_inventory_notice %}
+                <div class="inventory-note{% if not product_can_order %} inventory-note--blocked{% endif %}">
+                  {{ product_inventory_notice }}
                 </div>
-              </div>
+              {% endif %}
+              {% if product_can_order %}
+                <label class="section__desc" for="qty">Quantity</label>
+                <div class="qty-row">
+                  <input
+                    class="field"
+                    id="qty"
+                    name="qty"
+                    type="number"
+                    min="1"
+                    value="1"
+                    style="width:110px"
+                    {% if not out_of_stock_orders_allowed %}max="{{ product.available_inventory }}"{% endif %}
+                  >
+                  <div class="btn-pair">
+                    <button class="btn btn--primary" type="submit">Add to cart</button>
+                    <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Buy now</button>
+                  </div>
+                </div>
+              {% else %}
+                <div class="btn-pair">
+                  <button class="btn btn--ghost" type="button" disabled>Out of stock</button>
+                  <a class="btn btn--ghost" href="{% url 'store' %}">Browse products</a>
+                </div>
+              {% endif %}
             {% else %}
               <div class="btn-pair" style="margin-top:1rem">
                 <a class="btn btn--primary" href="{% url 'home' %}#contact">Contact us</a>
@@ -904,6 +925,19 @@
   }
   .product-form{display:flex; flex-direction:column; gap:1rem}
   .qty-row{display:flex; flex-wrap:wrap; gap:.6rem; align-items:center}
+  .inventory-note{
+    padding:.75rem .9rem;
+    border-radius:.8rem;
+    border:1px solid rgba(245,166,35,.28);
+    background:rgba(245,166,35,.08);
+    color:#f7d9a3;
+    font-size:.92rem;
+  }
+  .inventory-note--blocked{
+    border-color:rgba(255,92,114,.38);
+    background:rgba(255,92,114,.1);
+    color:#ffc4cf;
+  }
   .cart-reference{
     display:flex;
     flex-direction:column;
