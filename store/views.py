@@ -10,6 +10,7 @@ import json
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.core.paginator import Paginator
 from django.core.files.base import File
 from django.core.exceptions import ValidationError
 from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
@@ -318,6 +319,17 @@ def _apply_filters(qs, form: ProductFilterForm):
         )
 
     return qs.distinct()
+
+
+def _exclude_merch_products(qs):
+    """
+    Keep Printful / merch catalog off the main /store/ storefront.
+    """
+    return qs.exclude(
+        Q(category__slug="merch")
+        | Q(sku__startswith="PF-")
+        | Q(slug__startswith="merch-")
+    )
 
 
 def _normalize_search_text(text: str) -> str:
@@ -728,7 +740,6 @@ def _send_order_confirmation(
 
 
 def store_home(request):
-    categories = Category.objects.filter(products__is_active=True).distinct()
     form_data = request.GET.copy()
     if form_data.get("cat") and not form_data.get("category"):
         form_data["category"] = form_data.get("cat")
@@ -736,12 +747,15 @@ def store_home(request):
     form = ProductFilterForm(form_data or None)
 
     base_qs = (
-        Product.objects.filter(is_active=True)
+        _exclude_merch_products(Product.objects.filter(is_active=True))
         .select_related("category")
         .prefetch_related("compatible_models", "options", "discounts")
         # Show in-house products first across the storefront.
         .order_by("-is_in_house", "-created_at")
     )
+    categories = Category.objects.filter(products__in=base_qs).distinct()
+    form.fields["category"].queryset = categories
+    form.fields["category"].label_from_instance = lambda obj: obj.display_name
 
     filtered_qs = _apply_filters(base_qs, form)
     if q:
@@ -760,12 +774,44 @@ def store_home(request):
     # Блок "New arrivals" показываем только если фильтр НЕ применён
     filters_active = bool(q) or (form.is_valid() and any(form.cleaned_data.values()))
     new_arrivals = None if filters_active else base_qs[:8]
+    page_obj = None
+    pagination_pages = []
+    prev_page_url = ""
+    next_page_url = ""
+    if filters_active:
+        paginator = Paginator(filtered_qs, 50)
+        page_obj = paginator.get_page(request.GET.get("page") or 1)
+
+        def _page_url(page_number: int) -> str:
+            params = request.GET.copy()
+            if page_number <= 1:
+                params.pop("page", None)
+            else:
+                params["page"] = str(page_number)
+            query_string = params.urlencode()
+            return f"{reverse('store:store')}?{query_string}" if query_string else reverse("store:store")
+
+        if page_obj.has_previous():
+            prev_page_url = _page_url(page_obj.previous_page_number())
+        if page_obj.has_next():
+            next_page_url = _page_url(page_obj.next_page_number())
+        for item in paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1):
+            if isinstance(item, int):
+                pagination_pages.append(
+                    {
+                        "number": item,
+                        "url": _page_url(item),
+                        "is_current": item == page_obj.number,
+                    }
+                )
+            else:
+                pagination_pages.append({"label": str(item), "is_ellipsis": True})
 
     # Секции по всем категориям
     sections = []
     for c in categories:
         cat_base = (
-            Product.objects.filter(is_active=True, category=c)
+            _exclude_merch_products(Product.objects.filter(is_active=True, category=c))
             .select_related("category")
             .prefetch_related("options", "discounts")
             # Show in-house products first inside each category preview.
@@ -778,11 +824,15 @@ def store_home(request):
         "categories": categories,
         "filter_form": form,
         "filters_active": filters_active,
-        "products": filtered_qs[:24],  # общий грид результатов при активных фильтрах
+        "products": list(page_obj.object_list) if page_obj else [],
         "new_arrivals": new_arrivals,
         "sections": sections,
         "store_copy": StorePageCopy.get_solo(),
         "q": q,
+        "page_obj": page_obj,
+        "pagination_pages": pagination_pages,
+        "prev_page_url": prev_page_url,
+        "next_page_url": next_page_url,
     }
     context["page_sections"] = get_page_sections(context["store_copy"])
     context["font_settings"] = build_page_font_context(PageFontSetting.Page.STORE)
@@ -797,7 +847,7 @@ def product_search(request):
         cat = ""
 
     all_qs = (
-        Product.objects.filter(is_active=True)
+        _exclude_merch_products(Product.objects.filter(is_active=True))
         .select_related("category")
         .prefetch_related("options", "discounts")
     )
