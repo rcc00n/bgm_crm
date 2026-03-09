@@ -790,10 +790,31 @@ body.bgm-search-open{
   .bgm-topbar__toggle{ grid-column: 1; justify-self: start; }
   .bgm-topbar__slot--brand{
     grid-column: 2;
-    overflow: hidden;
+    overflow: visible;
     min-width: 0;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: .28rem !important;
   }
   .bgm-topbar__brand{
+    min-width: 0;
+    max-width: 100%;
+    font-size: clamp(.88rem, 4.2vw, 1.12rem) !important;
+    gap: .28rem !important;
+  }
+  .bgm-topbar__brand-word{
+    max-width: 100%;
+  }
+  .bgm-topbar__badge{
+    margin-left: 0;
+    padding: .14rem .42rem;
+    font-size: .58rem;
+    letter-spacing: .1em;
+    line-height: 1.1;
+    white-space: normal;
+    overflow-wrap: anywhere;
     max-width: 100%;
   }
   .bgm-topbar__slot--search{ display: flex !important; grid-column: 3; min-width: 0; justify-self: end; }
