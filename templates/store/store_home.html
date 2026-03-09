@@ -1,5 +1,5 @@
 {% extends "store/_base_store.html" %}
-{% load dealer_extras thumbnail copy_extras %}
+{% load static dealer_extras thumbnail copy_extras %}
 {% block title %}{{ store_copy.page_title|default:"BGM — Products" }}{% endblock %}
 
 {% block marketing_meta %}
@@ -232,12 +232,12 @@
           <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
             <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
 	              <div class="card__img">
-	                {% if p.main_image %}
-	                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
+	                {% if p.main_image and not p.main_image_is_placeholder %}
+	                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
 	                {% elif p.image %}
 	                  <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
 	                {% else %}
-	                  <div class="ph" aria-hidden="true"></div>
+	                  <img src="{% static 'img/hero-products.jpg' %}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
 	                {% endif %}
 	              </div>
               <div class="product__meta">
@@ -283,12 +283,12 @@
           <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
             <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
 	              <div class="card__img">
-	                {% if p.main_image %}
-	                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
+	                {% if p.main_image and not p.main_image_is_placeholder %}
+	                  <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
 	                {% elif p.image %}
 	                  <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
 	                {% else %}
-	                  <div class="ph" aria-hidden="true"></div>
+	                  <img src="{% static 'img/hero-products.jpg' %}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
 	                {% endif %}
 	              </div>
               <div class="product__meta">
@@ -341,12 +341,12 @@
             <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
               <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
 	                <div class="card__img">
-	                    {% if p.main_image %}
-	                      <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
+	                    {% if p.main_image and not p.main_image_is_placeholder %}
+	                      <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
 	                    {% elif p.image %}
 	                      <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
 	                    {% else %}
-	                      <div class="ph" aria-hidden="true"></div>
+	                      <img src="{% static 'img/hero-products.jpg' %}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
 	                    {% endif %}
 	                  </div>
                   <div class="product__meta">

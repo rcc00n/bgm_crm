@@ -1,5 +1,5 @@
 {% extends "store/_base_store.html" %}
-{% load dealer_extras lead_security %}
+{% load static dealer_extras lead_security %}
 {% block title %}{{ product.name }} — BGM Store{% endblock %}
 
 {% block body %}
@@ -17,10 +17,10 @@
 
 	    <div class="grid product-detail__grid" style="grid-template-columns:1fr 1fr;gap:1.25rem">
 	      <div class="product-detail__media">
-	        {% if product.main_image %}
-	          <img class="card__img product-main__img" src="{{ product.main_image_url }}" alt="{{ product.name }}" loading="eager" decoding="async">
+	        {% if product.main_image and not product.main_image_is_placeholder %}
+	          <img class="card__img product-main__img" src="{{ product.main_image_url }}" alt="{{ product.name }}" loading="eager" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
 	        {% else %}
-	          <div class="card__img product-main__img product-main__img--placeholder"></div>
+	          <img class="card__img product-main__img" src="{% static 'img/hero-products.jpg' %}" alt="{{ product.name }}" loading="eager" decoding="async">
 	        {% endif %}
 
         {# галерея; если есть свой related_name=gallery — он сработает; иначе просто не отрисуется #}
@@ -468,10 +468,10 @@
 	        {% for p in go_along %}
 	          <article class="card">
 	            <a href="{% url 'store-product' slug=p.slug %}">
-	              {% if p.main_image %}
-	                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	              {% if p.main_image and not p.main_image_is_placeholder %}
+	                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
 	              {% else %}
-	                <div class="card__img" style="aspect-ratio:16/9"></div>
+	                <img class="card__img" src="{% static 'img/hero-products.jpg' %}" alt="{{ p.name }}" loading="lazy" decoding="async">
 	              {% endif %}
               <div class="card__body" style="padding:.6rem .8rem">
                 <h4>{{ p.name }}</h4>
@@ -509,10 +509,10 @@
         {% for p in related %}
 	          <article class="card">
 	            <a href="{% url 'store-product' slug=p.slug %}">
-	              {% if p.main_image %}
-	                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	              {% if p.main_image and not p.main_image_is_placeholder %}
+	                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
 	              {% else %}
-	                <div class="card__img" style="aspect-ratio:16/9"></div>
+	                <img class="card__img" src="{% static 'img/hero-products.jpg' %}" alt="{{ p.name }}" loading="lazy" decoding="async">
 	              {% endif %}
               <h4 style="margin-top:.6rem">{{ p.name }}</h4>
               <div class="price price--stacked" style="margin-top:.2rem">

@@ -449,11 +449,42 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def main_image_name(self) -> str:
+        image = getattr(self, "main_image", None)
+        if not image:
+            return ""
+        return getattr(image, "name", "") or str(image)
+
+    @property
+    def main_image_is_placeholder(self) -> bool:
+        name = self.main_image_name.strip()
+        if not name:
+            return False
+        raw = getattr(settings, "PRODUCT_PLACEHOLDER_IMAGES", None)
+        if isinstance(raw, (list, tuple)):
+            values = list(raw)
+        elif isinstance(raw, str):
+            values = [item.strip() for item in raw.replace("\n", ",").split(",")]
+        elif raw:
+            try:
+                values = list(raw)
+            except TypeError:
+                values = []
+        else:
+            values = []
+        settings_images = [str(item).strip() for item in values if str(item).strip()]
+        if settings_images and name in settings_images:
+            return True
+        placeholder_dir = str(getattr(settings, "PRODUCT_PLACEHOLDER_IMAGE_DIR", "store/placeholders"))
+        placeholder_dir = placeholder_dir.strip().strip("/")
+        return bool(placeholder_dir and name.startswith(f"{placeholder_dir}/"))
+
+    @property
     def main_image_url(self) -> str:
         image = getattr(self, "main_image", None)
         if not image:
             return ""
-        name = getattr(image, "name", "") or str(image)
+        name = self.main_image_name
         if name.startswith("http://") or name.startswith("https://"):
             return name
         try:
@@ -466,7 +497,7 @@ class Product(models.Model):
         image = getattr(self, "main_image", None)
         if not image:
             return False
-        name = getattr(image, "name", "") or str(image)
+        name = self.main_image_name
         return name.startswith(("http://", "https://"))
 
     @property
@@ -476,7 +507,7 @@ class Product(models.Model):
         Sorl/easy-thumbnail style libraries generally expect a real file object, not a remote URL.
         """
         image = getattr(self, "main_image", None)
-        if not image or self.main_image_is_remote:
+        if not image or self.main_image_is_remote or self.main_image_is_placeholder:
             return None
         return image
 

@@ -1933,8 +1933,8 @@
 	                              decoding="async">
 	                          {% endthumbnail %}
 	                        {% endthumbnail %}
-	                      {% elif p.main_image_url %}
-	                        <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	                      {% elif p.main_image_url and not p.main_image_is_placeholder %}
+	                        <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
 	                      {% elif p.image %}
 	                        {% thumbnail p.image "320" quality=66 format="WEBP" as product_fallback_1x %}
 	                          {% thumbnail p.image "640" quality=66 format="WEBP" as product_fallback_2x %}
