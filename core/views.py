@@ -63,6 +63,7 @@ from core.models import (
     BookingDayOverride,
     HomePageCopy,
     HomePageFAQItem,
+    FAQPageCopy,
     FinancingPageCopy,
     AboutPageCopy,
     DealerApplication,
@@ -2642,6 +2643,7 @@ def financing_view(request):
 def faq_view(request):
     font_settings = build_page_font_context(PageFontSetting.Page.HOME)
     home_copy = HomePageCopy.get_solo()
+    faq_copy = FAQPageCopy.get_solo()
     try:
         all_faq_items = list(
             HomePageFAQItem.objects.filter(home_page_copy=home_copy).order_by("order", "id")
@@ -2658,6 +2660,7 @@ def faq_view(request):
         "client/faq.html",
         {
             "font_settings": font_settings,
+            "faq_copy": faq_copy,
             "home_copy": home_copy,
             "home_faq_legacy": home_faq_legacy,
             "home_faq_items": home_faq_items,

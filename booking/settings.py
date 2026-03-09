@@ -689,6 +689,7 @@ ADMIN_SIDEBAR_SECTIONS = [
                 "icon": "fas fa-pen-nib",
                 "items": [
                     {"model": "core.HomePageCopy", "label": "Home Page Copy"},
+                    {"model": "core.FAQPageCopy", "label": "FAQ Page Copy"},
                     {"model": "core.ServicesPageCopy", "label": "Services Page Copy"},
                     {"model": "core.StorePageCopy", "label": "Products Page Copy"},
                     {"model": "core.FinancingPageCopy", "label": "Financing Page Copy"},
@@ -804,6 +805,7 @@ JAZZMIN_SETTINGS = {
         "core.DealerTierLevel": "fas fa-medal",
         "core.HeroImage": "fas fa-image",
         "core.HomePageCopy": "fas fa-pen-nib",
+        "core.FAQPageCopy": "fas fa-question-circle",
         "core.FinancingPageCopy": "fas fa-credit-card",
         "core.AboutPageCopy": "fas fa-info-circle",
         "core.DealerStatusPageCopy": "fas fa-handshake",

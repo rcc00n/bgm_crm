@@ -3819,6 +3819,36 @@ class HomePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
             form.save_gallery_assets()
 
 
+@admin.register(FAQPageCopy)
+class FAQPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
+    }
+    fieldsets = (
+        ("Meta", {"fields": ("meta_title", "meta_description")}),
+        ("Hero", {"fields": ("page_title", "page_lead")}),
+        ("States", {
+            "fields": ("empty_label",),
+            "description": "FAQ entries are still managed on the Home Page Copy record below in “Home page FAQs”.",
+        }),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def has_add_permission(self, request):
+        if FAQPageCopy.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Page")
+    def label(self, obj):
+        return "FAQ page"
+
+
 @admin.register(ServicesPageCopy)
 class ServicesPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")

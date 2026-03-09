@@ -831,6 +831,45 @@ class HomePageFAQItem(models.Model):
         return f"FAQ #{self.pk}"
 
 
+class FAQPageCopy(models.Model):
+    """
+    Editable static text for the public FAQ page.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    meta_title = models.CharField(max_length=160, default="FAQ — Bad Guy Motors")
+    meta_description = models.TextField(
+        default="Answers to common questions about Bad Guy Motors."
+    )
+    page_title = models.CharField(max_length=80, default="FAQ")
+    page_lead = models.TextField(
+        default="Answers to common questions about Bad Guy Motors."
+    )
+    empty_label = models.CharField(
+        max_length=160,
+        default="FAQs are being updated. Please check back soon.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "FAQ page copy"
+        verbose_name_plural = "FAQ page copy"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "FAQ page copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+
 class ServicesPageCopy(models.Model):
     """
     Editable static text for the services catalog page.
