@@ -5,6 +5,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from store.models import Category, Order, Product, ProductOption, StoreShippingSettings
+from store.views import _build_free_sticker_choices
 
 
 @override_settings(
@@ -14,6 +15,7 @@ from store.models import Category, Order, Product, ProductOption, StoreShippingS
 class FreeStickerCheckoutTests(TestCase):
     def setUp(self):
         self.merch_category = Category.objects.create(name="Merch", slug="merch")
+        self.parts_category = Category.objects.create(name="Bumpers", slug="bumpers")
         self.checkout_url = reverse("store:store-checkout")
         self.printful_rates_url = reverse("store:store-checkout-printful-rates")
         StoreShippingSettings.objects.create(
@@ -27,6 +29,16 @@ class FreeStickerCheckoutTests(TestCase):
             slug=slug,
             sku=sku,
             category=self.merch_category,
+            price=Decimal(price),
+            is_active=True,
+        )
+
+    def _create_parts_product(self, *, name: str, slug: str, sku: str, price: str) -> Product:
+        return Product.objects.create(
+            name=name,
+            slug=slug,
+            sku=sku,
+            category=self.parts_category,
             price=Decimal(price),
             is_active=True,
         )
@@ -119,6 +131,74 @@ class FreeStickerCheckoutTests(TestCase):
         self.assertEqual(len(response.context["free_sticker_choices"]), 1)
         self.assertContains(response, "Free sticker")
         self.assertContains(response, 'name="free_sticker_choice"', html=False)
+
+    @patch("store.views.get_checkout_printful_shipping")
+    def test_free_sticker_picker_shows_for_non_merch_checkout_over_threshold(self, get_checkout_printful_shipping):
+        get_checkout_printful_shipping.return_value = self._shipping_quote()
+        main_product = self._create_parts_product(
+            name="Rear Bumpers - Armadillo",
+            slug="rear-bumpers-armadillo",
+            sku="BGM-BUMPER-1",
+            price="120.00",
+        )
+        sticker = self._create_merch_product(
+            name="BGM Bubble-free stickers",
+            slug="bgm-bubble-free-stickers-non-merch",
+            sku="PF-STICKER-NON-MERCH",
+            price="8.00",
+        )
+        ProductOption.objects.create(
+            product=sticker,
+            name="3x3",
+            sku="PF-STICKER-NON-MERCH-3X3",
+            price=Decimal("8.00"),
+            is_active=True,
+        )
+        self._set_cart(main_product)
+
+        response = self.client.get(self.checkout_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["cart_is_merch_checkout"])
+        self.assertTrue(response.context["free_sticker_eligible"])
+        self.assertContains(response, 'name="free_sticker_choice"', html=False)
+
+    def test_free_sticker_choices_exclude_unmapped_small_stickers(self):
+        mapped = self._create_merch_product(
+            name="Mapped Bubble-free stickers",
+            slug="mapped-bubble-free-stickers",
+            sku="PF-STICKER-MAPPED",
+            price="8.00",
+        )
+        ProductOption.objects.create(
+            product=mapped,
+            name="3x3",
+            sku="PF-STICKER-MAPPED-3X3",
+            price=Decimal("8.00"),
+            is_active=True,
+            printful_variant_id=111,
+            printful_sync_variant_id=222,
+        )
+
+        unmapped = self._create_merch_product(
+            name="Unmapped Bubble-free stickers",
+            slug="unmapped-bubble-free-stickers",
+            sku="PF-STICKER-UNMAPPED",
+            price="8.00",
+        )
+        ProductOption.objects.create(
+            product=unmapped,
+            name="3x3",
+            sku="PF-STICKER-UNMAPPED-3X3",
+            price=Decimal("8.00"),
+            is_active=True,
+        )
+
+        choices = _build_free_sticker_choices()
+
+        labels = [choice["title"] for choice in choices]
+        self.assertIn("Mapped Bubble-free stickers", labels)
+        self.assertNotIn("Unmapped Bubble-free stickers", labels)
 
     @patch("store.views.get_checkout_printful_shipping")
     def test_selected_free_sticker_is_added_as_zero_dollar_order_item(self, get_checkout_printful_shipping):

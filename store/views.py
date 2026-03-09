@@ -42,6 +42,7 @@ from .models import (
 )
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm, StoreReviewForm
 from .printful_fulfillment import (
+    _refresh_merch_option_mapping,
     cart_is_merch_only,
     get_checkout_printful_shipping,
     get_printful_webhook_secret,
@@ -1370,6 +1371,19 @@ def _serialize_free_sticker_choice(*, product_id: int, option_id: int | None) ->
     return f"{int(product_id)}:{int(option_id or 0)}"
 
 
+def _resolve_valid_free_sticker_option(product, option):
+    if not product or not option:
+        return None
+    variant_id = getattr(option, "printful_variant_id", None)
+    sync_variant_id = getattr(option, "printful_sync_variant_id", None)
+    if variant_id and sync_variant_id:
+        return option
+    refreshed = _refresh_merch_option_mapping(product, option)
+    if getattr(refreshed, "printful_variant_id", None) and getattr(refreshed, "printful_sync_variant_id", None):
+        return refreshed
+    return None
+
+
 def _build_free_sticker_choices() -> list[dict]:
     sticker_products = (
         Product.objects.filter(is_active=True, category__slug="merch")
@@ -1395,8 +1409,16 @@ def _build_free_sticker_choices() -> list[dict]:
         if not _is_sticker_product(product):
             continue
         options = product.get_selectable_options()
-        option = next((item for item in options if _is_small_sticker_option(item)), None) if options else None
-        if options and option is None:
+        option = None
+        if not options:
+            continue
+        for candidate in options:
+            if not _is_small_sticker_option(candidate):
+                continue
+            option = _resolve_valid_free_sticker_option(product, candidate)
+            if option is not None:
+                break
+        if option is None:
             continue
         value = _serialize_free_sticker_choice(product_id=product.id, option_id=getattr(option, "id", None))
         option_label = (getattr(option, "name", "") or "").strip()
@@ -1436,6 +1458,12 @@ def _positions_with_free_sticker(positions: list[dict], free_sticker_choice: dic
         "line_total": Decimal("0.00"),
     }
     return [*(positions or []), extra_position]
+
+
+def _free_sticker_available_for_delivery(*, cart_is_merch_checkout: bool, delivery_method: str) -> bool:
+    if cart_is_merch_checkout:
+        return True
+    return (delivery_method or "shipping").strip().lower() != "pickup"
 
 
 def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: PromoCode | None = None):
@@ -2057,7 +2085,7 @@ def checkout(request):
     cart_is_merch_checkout = cart_is_merch_only(positions)
     free_sticker_threshold = _free_sticker_threshold()
     free_sticker_choices = []
-    if cart_is_merch_checkout and positions and free_sticker_threshold and total >= free_sticker_threshold:
+    if positions and free_sticker_threshold and total >= free_sticker_threshold:
         free_sticker_choices = _build_free_sticker_choices()
     free_sticker_eligible = bool(free_sticker_choices)
     promo_applied = any(entry.get("discount_type") == "promo" for entry in (positions or []))
@@ -2141,7 +2169,15 @@ def checkout(request):
     def _recompute_totals_for_form(form_payload: dict, *, require_complete_merch_rate: bool = False):
         shipping_quote = _empty_shipping_quote()
         shipping_cost = Decimal("0.00")
-        selected_free_sticker = _find_selected_free_sticker(form_payload.get("free_sticker_choice", ""), free_sticker_choices)
+        free_sticker_enabled = _free_sticker_available_for_delivery(
+            cart_is_merch_checkout=cart_is_merch_checkout,
+            delivery_method=form_payload.get("delivery_method", "shipping"),
+        )
+        active_free_sticker_choices = free_sticker_choices if free_sticker_enabled else []
+        selected_free_sticker = _find_selected_free_sticker(
+            form_payload.get("free_sticker_choice", ""),
+            active_free_sticker_choices,
+        )
         shipping_positions = _positions_with_free_sticker(positions, selected_free_sticker)
         if cart_is_merch_checkout:
             shipping_quote = get_checkout_printful_shipping(
@@ -2170,6 +2206,7 @@ def checkout(request):
             ),
             shipping_quote,
             selected_free_sticker,
+            free_sticker_enabled,
         )
 
     (
@@ -2181,6 +2218,7 @@ def checkout(request):
         payment_options,
         printful_shipping_quote,
         selected_free_sticker,
+        free_sticker_enabled,
     ) = _recompute_totals_for_form(form)
 
     if request.method == "POST":
@@ -2231,6 +2269,7 @@ def checkout(request):
             payment_options,
             printful_shipping_quote,
             selected_free_sticker,
+            free_sticker_enabled,
         ) = _recompute_totals_for_form(form, require_complete_merch_rate=cart_is_merch_checkout)
 
         if not form["customer_name"]:
@@ -2262,7 +2301,10 @@ def checkout(request):
             elif not printful_shipping_quote.get("selected_rate_id"):
                 errors["printful_shipping"] = "Select a live shipping option for this merch order."
         if form["free_sticker_choice"] and not selected_free_sticker:
-            errors["free_sticker_choice"] = "Select one of the available free sticker options."
+            if not free_sticker_enabled:
+                errors["free_sticker_choice"] = "Free sticker promo is available on shipping orders only."
+            else:
+                errors["free_sticker_choice"] = "Select one of the available free sticker options."
 
         if not form["agree"]:
             errors["agree"] = "You must agree to the terms."
@@ -2604,8 +2646,8 @@ def checkout(request):
             "selected_printful_rate_id": printful_shipping_quote["selected_rate_id"],
             "printful_shipping_error": errors.get("printful_shipping", printful_shipping_quote["error"]),
             "free_sticker_threshold": free_sticker_threshold,
-            "free_sticker_eligible": free_sticker_eligible,
-            "free_sticker_choices": free_sticker_choices,
+            "free_sticker_eligible": bool(free_sticker_choices) and free_sticker_enabled,
+            "free_sticker_choices": free_sticker_choices if free_sticker_enabled else [],
             "selected_free_sticker": selected_free_sticker,
             "selected_free_sticker_value": (selected_free_sticker or {}).get("value", ""),
         },
