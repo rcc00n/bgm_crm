@@ -57,6 +57,7 @@
         <small>Canada merch shipping rules (CAD)</small>
         <form method="post" style="margin-top:.6rem; display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
           {% csrf_token %}
+          <input type="hidden" name="action" value="save_shipping">
           <div style="min-width:260px;">
             {{ shipping_form.free_shipping_threshold_cad.label_tag }}
             {{ shipping_form.free_shipping_threshold_cad }}
@@ -80,6 +81,22 @@
           <button class="button" type="submit">Save</button>
         </form>
       </article>
+
+      {% if can_sync_merch_inventory %}
+        <article class="kpi-card">
+          <small>Printful inventory sync</small>
+          <form method="post" style="margin-top:.6rem; display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="sync_inventory">
+            <div>
+              <div class="panel-subtitle" style="margin-bottom:.6rem;">
+                Runs the Printful merch sync immediately and refreshes local stock/catalog data without waiting for cron.
+              </div>
+              <button class="button default" type="submit">Sync merch inventory</button>
+            </div>
+          </form>
+        </article>
+      {% endif %}
     </div>
 
     <section class="data-panel analytics-table-panel">

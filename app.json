@@ -1,0 +1,9 @@
+{
+  "cron": [
+    {
+      "command": "python manage.py sync_printful_merch_catalog",
+      "schedule": "*/15 * * * *",
+      "concurrency_policy": "forbid"
+    }
+  ]
+}

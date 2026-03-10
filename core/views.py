@@ -1,6 +1,7 @@
 # core/views.py
 import logging
 import re
+from io import StringIO
 from decimal import Decimal, InvalidOperation
 
 from django.apps import apps
@@ -24,6 +25,8 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.html import strip_tags
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.core.validators import validate_email
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.core.paginator import Paginator
@@ -1187,8 +1190,29 @@ def admin_merch_economics(request):
             "delivery_cost_under_threshold_cad": initial_delivery_cost,
         },
     )
+    can_sync_merch_inventory = user.has_perm("store.change_product")
 
     if request.method == "POST":
+        action = (request.POST.get("action") or "save_shipping").strip().lower()
+        if action == "sync_inventory":
+            if not can_sync_merch_inventory:
+                raise PermissionDenied
+            command_output = StringIO()
+            try:
+                call_command("sync_printful_merch_catalog", stdout=command_output)
+            except CommandError as exc:
+                detail = (str(exc) or "").strip()
+                if not detail:
+                    detail = (command_output.getvalue() or "").strip()
+                messages.error(request, f"Printful merch inventory sync failed. {detail}".strip())
+            except Exception as exc:
+                logger.exception("Printful merch inventory sync failed from admin.")
+                messages.error(request, f"Printful merch inventory sync failed. {exc}")
+            else:
+                detail = (command_output.getvalue() or "").strip() or "Printful merch inventory synced."
+                messages.success(request, detail)
+            return redirect(reverse("admin-merch-economics"))
+
         if not user.has_perm("store.change_storeshippingsettings"):
             raise PermissionDenied
         if shipping_form.is_valid():
@@ -1309,6 +1333,7 @@ def admin_merch_economics(request):
             "missing_cost": missing_cost,
             "show_inactive": show_inactive,
             "shipping_form": shipping_form,
+            "can_sync_merch_inventory": can_sync_merch_inventory,
             "summary": summary,
             "rows": rows,
         }

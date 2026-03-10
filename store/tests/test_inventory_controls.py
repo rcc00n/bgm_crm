@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
@@ -180,3 +181,22 @@ class InventoryAdminTests(TestCase):
         self.assertEqual(settings_obj.low_stock_threshold, 7)
         self.assertTrue(settings_obj.allow_out_of_stock_orders)
         self.assertContains(response, "Inventory settings updated")
+
+    def test_merch_economics_page_shows_sync_button(self):
+        response = self.client.get(reverse("admin-merch-economics"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sync merch inventory")
+
+    @patch("core.views.call_command")
+    def test_merch_economics_sync_inventory_post_runs_command(self, call_command_mock):
+        response = self.client.post(
+            reverse("admin-merch-economics"),
+            data={"action": "sync_inventory"},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        call_command_mock.assert_called_once()
+        self.assertEqual(call_command_mock.call_args.args[0], "sync_printful_merch_catalog")
+        self.assertContains(response, "Printful merch inventory synced")
