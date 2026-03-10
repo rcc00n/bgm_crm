@@ -14,7 +14,7 @@ from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.text import capfirst
 
-from core.models import PageView, VisitorSession
+from core.models import PageView, StaffLoginEvent, VisitorSession
 
 
 def _percentile(sorted_values: List[int], percentile: float) -> float:
@@ -339,6 +339,42 @@ def _classify_os(user_agent: str) -> str:
     if "linux" in agent:
         return "Linux"
     return "Other"
+
+
+def _classify_device_from_user_agent(user_agent: str) -> str:
+    if not user_agent:
+        return "Unknown"
+    agent = user_agent.lower()
+    if "ipad" in agent or "tablet" in agent:
+        return "Tablet"
+    if "mobi" in agent or "iphone" in agent or "android" in agent:
+        return "Mobile"
+    return "Desktop"
+
+
+def _format_login_device_label(user_agent: str) -> str:
+    device = _classify_device_from_user_agent(user_agent)
+    browser = _classify_browser(user_agent)
+    os_label = _classify_os(user_agent)
+
+    detail = ""
+    if browser != "Unknown" and os_label != "Unknown":
+        detail = f"{browser} on {os_label}"
+    elif browser != "Unknown":
+        detail = browser
+    elif os_label != "Unknown":
+        detail = os_label
+
+    return f"{device} · {detail}" if detail else device
+
+
+def _staff_login_source_label(path: str) -> str:
+    normalized = (path or "").strip()
+    if normalized.startswith("/admin/") or normalized == "/admin":
+        return "Admin"
+    if normalized:
+        return "Site"
+    return "Unknown"
 
 
 def summarize_web_analytics_insights(
@@ -1021,6 +1057,60 @@ def summarize_staff_usage_periods(
         )
 
     return results
+
+
+def summarize_staff_login_history(
+    window_days: int = 30,
+    limit: int = 25,
+) -> Dict[str, object]:
+    """
+    Recent successful sign-ins for staff users.
+    """
+    window_days = max(1, min(int(window_days or 0), 365))
+    limit = max(1, min(int(limit or 0), 100))
+    start_date = timezone.localdate() - timedelta(days=window_days - 1)
+    start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+
+    login_qs = (
+        StaffLoginEvent.objects.select_related("user")
+        .filter(logged_in_at__gte=start_dt, user__is_staff=True)
+        .order_by("-logged_in_at")
+    )
+
+    rows = []
+    for event in login_qs[:limit]:
+        user = event.user
+        name = (
+            (user.get_full_name() or "").strip()
+            or (user.username or "").strip()
+            or (user.email or "").strip()
+            or f"User {user.pk}"
+        )
+        rows.append(
+            {
+                "user_id": user.pk,
+                "name": name,
+                "email": (user.email or "").strip(),
+                "ip_address": event.ip_address or "—",
+                "ip_location": (event.ip_location or "").strip(),
+                "device_label": _format_login_device_label(event.user_agent or ""),
+                "user_agent": (event.user_agent or "").strip(),
+                "source_label": _staff_login_source_label(event.login_path),
+                "login_path": (event.login_path or "").strip(),
+                "logged_in_at": event.logged_in_at,
+            }
+        )
+
+    total_count = login_qs.count()
+    unique_staff_count = login_qs.values("user_id").distinct().count()
+
+    return {
+        "window_days": window_days,
+        "total_count": total_count,
+        "unique_staff_count": unique_staff_count,
+        "rows": rows,
+        "has_data": bool(rows),
+    }
 
 
 def _staff_action_meta(flag: int) -> Dict[str, str]:

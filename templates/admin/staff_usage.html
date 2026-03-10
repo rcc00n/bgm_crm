@@ -76,6 +76,66 @@
     </section>
 
     <section class="data-panel analytics-table-panel">
+      <div class="panel-title">Staff login history</div>
+      <div class="panel-subtitle">
+        Successful staff sign-ins over the last {{ staff_login_history.window_days }} days ·
+        {{ staff_login_history.total_count }} total ·
+        {{ staff_login_history.unique_staff_count }} employees
+      </div>
+
+      {% if staff_login_history.has_data %}
+        <div class="table-scroll">
+          <table class="analytics-table staff-action-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Device</th>
+                <th>IP</th>
+                <th>Source</th>
+                <th>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in staff_login_history.rows %}
+                <tr>
+                  <td>
+                    <strong>{{ entry.name }}</strong>
+                    {% if entry.email %}
+                      <div class="staff-usage-email">{{ entry.email }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <strong>{{ entry.device_label }}</strong>
+                    {% if entry.user_agent %}
+                      <div class="staff-usage-email" title="{{ entry.user_agent }}">{{ entry.user_agent|truncatechars:72 }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <strong>{{ entry.ip_address }}</strong>
+                    {% if entry.ip_location %}
+                      <div class="staff-usage-email">{{ entry.ip_location }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <strong>{{ entry.source_label }}</strong>
+                    {% if entry.login_path %}
+                      <div class="staff-usage-email">{{ entry.login_path }}</div>
+                    {% endif %}
+                  </td>
+                  <td>{{ entry.logged_in_at|date:"M d · H:i" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <p>No staff logins recorded yet.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="data-panel analytics-table-panel">
       <div class="panel-title">Staff action history</div>
       <div class="panel-subtitle">
         Admin add/change/delete actions ·

@@ -94,6 +94,7 @@ from core.services.page_sections import get_page_sections
 from core.services.pagecopy_preview import PREVIEW_CONFIG
 from core.services.lead_security import evaluate_lead_submission, log_lead_submission
 from core.services.analytics import (
+    summarize_staff_login_history,
     summarize_staff_usage_periods,
     summarize_staff_action_history,
     summarize_web_analytics_insights,
@@ -1038,6 +1039,7 @@ def admin_staff_usage(request):
             start_date = end_date - timedelta(days=364)
 
     staff_usage_periods = summarize_staff_usage_periods(windows=[1, 7, 30])
+    staff_login_history = summarize_staff_login_history(window_days=30, limit=25)
     staff_action_history = summarize_staff_action_history(
         window_days=window_days,
         page=page,
@@ -1105,6 +1107,7 @@ def admin_staff_usage(request):
         {
             "title": "Staff time tracking",
             "staff_usage_periods": staff_usage_periods,
+            "staff_login_history": staff_login_history,
             "staff_action_history": staff_action_history,
             "staff_action_filters": filter_state,
             "staff_action_staff_options": staff_user_options,

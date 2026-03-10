@@ -117,6 +117,34 @@ class AdminSidebarSeen(models.Model):
         return f"{self.user} → {self.app_label}.{self.model_name}"
 
 
+class StaffLoginEvent(models.Model):
+    """
+    Successful staff authentication event used in admin time tracking.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="staff_login_events",
+    )
+    logged_in_at = models.DateTimeField(default=timezone.now)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    ip_location = models.CharField(max_length=255, blank=True)
+    user_agent = models.TextField(blank=True)
+    login_path = models.CharField(max_length=255, blank=True)
+    session_key = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        ordering = ("-logged_in_at",)
+        indexes = [
+            models.Index(fields=["user", "logged_in_at"]),
+            models.Index(fields=["logged_in_at"]),
+        ]
+
+    def __str__(self) -> str:
+        label = getattr(self.user, "get_full_name", lambda: "")() or getattr(self.user, "username", "") or f"User {self.user_id}"
+        return f"{label} login @ {localtime(self.logged_in_at).strftime('%Y-%m-%d %H:%M:%S')}"
+
+
 class AdminLoginBranding(models.Model):
     """
     Stores logo assets for the admin login screen.

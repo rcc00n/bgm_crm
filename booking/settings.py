@@ -319,7 +319,7 @@ EMAIL_VERIFICATION_RESEND_MINUTES = int(os.getenv("EMAIL_VERIFICATION_RESEND_MIN
 INSTALLED_APPS = [
     "phonenumbers",
     "accounts",
-    "core",
+    "core.apps.CoreConfig",
     "notifications",
     "ckeditor",
     "ckeditor_uploader",
