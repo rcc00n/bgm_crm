@@ -149,6 +149,167 @@ def _validate_reference_image(uploaded_file) -> str:
     return ""
 
 
+def _normalize_review_text(value: str) -> str:
+    return " ".join(str(value or "").split())
+
+
+def _looks_generated_review_name(value: str) -> bool:
+    raw = (value or "").strip()
+    if not raw or len(raw) < 16:
+        return False
+    if any(sep in raw for sep in (" ", "-", "'", ".")):
+        return False
+    letters = "".join(ch for ch in raw if ch.isalpha())
+    if len(letters) < 16:
+        return False
+    mid_uppercase = sum(1 for ch in raw[1:] if ch.isupper())
+    vowels = sum(1 for ch in letters.lower() if ch in "aeiouy")
+    vowel_ratio = vowels / max(len(letters), 1)
+    return mid_uppercase >= 3 and vowel_ratio < 0.34
+
+
+def _looks_generated_review_text(value: str) -> bool:
+    raw = _normalize_review_text(value)
+    if len(raw) < 24:
+        return False
+    if " " not in raw:
+        return True
+    letters = [ch.lower() for ch in raw if ch.isalpha()]
+    if len(letters) < 20:
+        return False
+    vowels = sum(1 for ch in letters if ch in "aeiouy")
+    vowel_ratio = vowels / len(letters)
+    return vowel_ratio < 0.24
+
+
+def _review_spam_flags(*, cleaned_data: dict, evaluation) -> list[str]:
+    flags: list[str] = []
+    reviewer_name = _normalize_review_text(cleaned_data.get("reviewer_name") or "")
+    title = _normalize_review_text(cleaned_data.get("title") or "")
+    body = _normalize_review_text(cleaned_data.get("body") or "")
+
+    if _looks_generated_review_name(reviewer_name):
+        flags.append("gibberish_name")
+    if title and _looks_generated_review_name(title):
+        flags.append("gibberish_title")
+    if _looks_generated_review_text(body):
+        flags.append("gibberish_body")
+    if evaluation and evaluation.action == "suspect":
+        flags.append("suspect_score")
+
+    return flags
+
+
+def _handle_review_submission(
+    *,
+    request,
+    form,
+    success_redirect: str,
+    product=None,
+):
+    email = (request.POST.get("reviewer_email") or "").strip()
+    evaluation = evaluate_lead_submission(request, purpose="store_review", email=email)
+
+    if evaluation.action == "rate_limited":
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="rate_limited",
+            success=False,
+            validation_errors="rate_limited",
+        )
+        form.add_error(None, "Please wait a few minutes before sending another review.")
+        return None, form
+
+    if evaluation.honeypot_hit:
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="honeypot",
+        )
+        notification_services.queue_lead_digest(
+            form_type="store_review",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        return redirect(success_redirect), form
+
+    if not evaluation.token_valid:
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors=f"token:{evaluation.token_error or 'invalid'}",
+        )
+        if evaluation.token_error == "too_fast":
+            form.add_error(None, "Please wait a moment and try again.")
+        else:
+            form.add_error(None, "Please refresh the page and try again.")
+        return None, form
+
+    if evaluation.action == "blocked":
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="score_block",
+        )
+        notification_services.queue_lead_digest(
+            form_type="store_review",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        return redirect(success_redirect), form
+
+    if not form.is_valid():
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="rejected",
+            success=False,
+            validation_errors=form.errors.as_text(),
+        )
+        return None, form
+
+    spam_flags = _review_spam_flags(cleaned_data=form.cleaned_data, evaluation=evaluation)
+    if spam_flags:
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="review_spam:" + ",".join(spam_flags),
+        )
+        notification_services.queue_lead_digest(
+            form_type="store_review",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        return redirect(success_redirect), form
+
+    review = form.save(commit=False)
+    review.product = product
+    review.status = StoreReview.Status.PENDING
+    review.source_url = request.build_absolute_uri()
+    if request.user.is_authenticated:
+        review.user = request.user
+    review.save()
+    log_lead_submission(
+        form_type="store_review",
+        evaluation=evaluation,
+        outcome="accepted",
+        success=True,
+    )
+    return redirect(success_redirect), form
+
+
 def _resolve_client_file_owner(*, request_user=None, email: str = ""):
     if request_user and getattr(request_user, "is_authenticated", False):
         return request_user
@@ -1196,15 +1357,14 @@ def product_detail(request, slug: str):
             messages.error(request, "Please correct the fields highlighted below.")
         elif form_type == "product_review":
             review_form = StoreReviewForm(request.POST)
-            if review_form.is_valid():
-                review = review_form.save(commit=False)
-                review.product = product
-                review.status = StoreReview.Status.PENDING
-                review.source_url = request.build_absolute_uri()
-                if request.user.is_authenticated:
-                    review.user = request.user
-                review.save()
-                return redirect(product.get_absolute_url() + "?review_submitted=1#reviews")
+            response, review_form = _handle_review_submission(
+                request=request,
+                form=review_form,
+                product=product,
+                success_redirect=product.get_absolute_url() + "?review_submitted=1#reviews",
+            )
+            if response is not None:
+                return response
 
     return render(
         request,
@@ -1250,14 +1410,13 @@ def leave_review(request):
 
     if request.method == "POST":
         form = StoreReviewForm(request.POST)
-        if form.is_valid():
-            review = form.save(commit=False)
-            review.status = StoreReview.Status.PENDING
-            review.source_url = request.build_absolute_uri()
-            if request.user.is_authenticated:
-                review.user = request.user
-            review.save()
-            return redirect(f"{reverse('leave-review')}?submitted=1")
+        response, form = _handle_review_submission(
+            request=request,
+            form=form,
+            success_redirect=f"{reverse('leave-review')}?submitted=1",
+        )
+        if response is not None:
+            return response
 
     approved_reviews = list(
         StoreReview.objects.filter(

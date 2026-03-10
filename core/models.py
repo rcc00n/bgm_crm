@@ -4649,6 +4649,7 @@ class LeadSubmissionEvent(models.Model):
         SITE_NOTICE = ("site_notice", "Site notice signup")
         SERVICE_LEAD = ("service_lead", "Service lead")
         FITMENT_REQUEST = ("fitment_request", "Fitment request")
+        STORE_REVIEW = ("store_review", "Store review")
 
     class Outcome(models.TextChoices):
         ACCEPTED = ("accepted", "Accepted")

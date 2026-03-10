@@ -32,6 +32,13 @@ MIN_AGE_SECONDS_BY_PURPOSE = {
             getattr(settings, "LEAD_FORM_MIN_AGE_SECONDS_SERVICE_LEAD", 6),
         )
     ),
+    "store_review": int(
+        getattr(
+            settings,
+            "LEAD_FORM_MIN_AGE_SECONDS_STORE_REVIEW",
+            getattr(settings, "LEAD_FORM_MIN_AGE_SECONDS_SERVICE_LEAD", 6),
+        )
+    ),
 }
 
 RATE_WINDOW_SECONDS = int(getattr(settings, "LEAD_RATE_LIMIT_WINDOW_SECONDS", 60 * 10))
@@ -75,6 +82,36 @@ RATE_LIMITS_BY_PURPOSE: dict[str, dict[str, int]] = {
                 settings,
                 "LEAD_RATE_LIMIT_FITMENT_ASN",
                 getattr(settings, "LEAD_RATE_LIMIT_SERVICE_ASN", 50),
+            )
+        ),
+    },
+    "store_review": {
+        "ip": int(
+            getattr(
+                settings,
+                "LEAD_RATE_LIMIT_STORE_REVIEW_IP",
+                2,
+            )
+        ),
+        "subnet": int(
+            getattr(
+                settings,
+                "LEAD_RATE_LIMIT_STORE_REVIEW_SUBNET",
+                12,
+            )
+        ),
+        "session": int(
+            getattr(
+                settings,
+                "LEAD_RATE_LIMIT_STORE_REVIEW_SESSION",
+                1,
+            )
+        ),
+        "asn": int(
+            getattr(
+                settings,
+                "LEAD_RATE_LIMIT_STORE_REVIEW_ASN",
+                20,
             )
         ),
     },

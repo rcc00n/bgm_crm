@@ -614,6 +614,7 @@
 	        {% csrf_token %}
 	        <input type="hidden" name="form_type" value="product_review">
 	        {{ review_form.website }}
+          {% lead_security_fields "store_review" %}
 
 	        <div class="reviews-grid">
 	          <div class="quote-field{% if review_form.reviewer_name.errors %} quote-field--error{% endif %}">

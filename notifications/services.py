@@ -262,6 +262,7 @@ def queue_lead_digest(
             "site_notice": "Site notice",
             "service_lead": "Service leads",
             "fitment_request": "Fitment requests",
+            "store_review": "Store reviews",
         }
         label = label_map.get(form_type, "Service leads")
         message = (

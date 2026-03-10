@@ -1,4 +1,5 @@
 {% extends "store/_base_store.html" %}
+{% load lead_security %}
 {% block title %}Leave a review - BGM{% endblock %}
 
 {% block body %}
@@ -30,6 +31,7 @@
       <form method="post" action="#review-form" id="review-form" class="review-form" novalidate>
         {% csrf_token %}
         {{ form.website }}
+        {% lead_security_fields "store_review" %}
 
         <div class="review-grid">
           <div class="review-field{% if form.reviewer_name.errors %} review-field--error{% endif %}">
@@ -248,4 +250,5 @@
     }
   }
 </style>
+{% include "includes/lead_security_script.html" %}
 {% endblock %}
