@@ -17,6 +17,11 @@
         <p class="panel-subtitle">Operations control room</p>
         <h1>Welcome back, {{ request.user.get_short_name|default:request.user.get_username }}</h1>
         <p>Keep a pulse on confirmed work, revenue and client flow so you can react before issues appear.</p>
+        <div class="insights-window">
+          <a class="pill active" href="{% url 'admin-staff-guide' %}">Open staff guide</a>
+          <a class="pill" href="{% url 'admin:core_appointment_changelist' %}">Calendar</a>
+          <a class="pill" href="{% url 'admin:store_order_changelist' %}">Orders</a>
+        </div>
       </div>
       <div class="hero-stat">
         <span>Upcoming bookings</span>
