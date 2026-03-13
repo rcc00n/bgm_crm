@@ -14,7 +14,7 @@
     }
     .inventory-admin-panel__grid{
       display:grid;
-      grid-template-columns: minmax(0, 1.3fr) minmax(300px, .9fr);
+      grid-template-columns: minmax(0, 1.7fr) minmax(300px, .95fr);
       gap: 1rem;
       align-items:start;
     }
@@ -76,6 +76,7 @@
       align-items:center;
       justify-content:space-between;
       gap:.75rem;
+      flex-wrap:wrap;
       padding:.65rem .8rem;
       border-radius:12px;
       background:#fff;
@@ -90,7 +91,7 @@
       display:flex;
       align-items:center;
       gap:.5rem;
-      white-space:nowrap;
+      flex-wrap:wrap;
       color:#667085;
       font-size:.9rem;
     }
@@ -114,6 +115,10 @@
       margin:0;
       color:#667085;
     }
+    .inventory-admin-panel__stack{
+      display:grid;
+      gap:1rem;
+    }
     .inventory-admin-form{
       display:grid;
       gap:.85rem;
@@ -121,6 +126,8 @@
       border-radius:12px;
       border:1px solid #d9d9e3;
       background:#fff;
+      position:sticky;
+      top:1rem;
     }
     .inventory-admin-form__row{
       display:grid;
@@ -158,9 +165,105 @@
       color:#667085;
       font-size:.9rem;
     }
+    .inventory-admin-panel__subgrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+      gap:.65rem;
+      margin-top:.9rem;
+    }
+    .inventory-admin-panel__substat{
+      padding:.75rem .85rem;
+      border-radius:12px;
+      background:#fff;
+      border:1px solid #eaecf0;
+      display:flex;
+      flex-direction:column;
+      gap:.12rem;
+    }
+    .inventory-admin-panel__substat strong{
+      font-size:1.15rem;
+      line-height:1;
+    }
+    .inventory-admin-panel__substat span{
+      color:#667085;
+      font-size:.88rem;
+    }
+    body.app-store.model-product.change-list #result_list th:nth-child(1),
+    body.app-store.model-product.change-list #result_list td:nth-child(1){
+      width:44px;
+    }
+    body.app-store.model-product.change-list #result_list th:nth-child(4),
+    body.app-store.model-product.change-list #result_list td:nth-child(4){
+      width:56px;
+      text-align:center;
+    }
+    body.app-store.model-product.change-list #result_list th:nth-child(7),
+    body.app-store.model-product.change-list #result_list td:nth-child(7),
+    body.app-store.model-product.change-list #result_list th:nth-child(10),
+    body.app-store.model-product.change-list #result_list td:nth-child(10),
+    body.app-store.model-product.change-list #result_list th:nth-child(11),
+    body.app-store.model-product.change-list #result_list td:nth-child(11){
+      width:72px;
+    }
+    body.app-store.model-product.change-list #result_list th:nth-child(14),
+    body.app-store.model-product.change-list #result_list td:nth-child(14),
+    body.app-store.model-product.change-list #result_list th:nth-child(15),
+    body.app-store.model-product.change-list #result_list td:nth-child(15),
+    body.app-store.model-product.change-list #result_list th:nth-child(16),
+    body.app-store.model-product.change-list #result_list td:nth-child(16){
+      width:64px;
+      text-align:center;
+    }
+    body.app-store.model-product.change-list #result_list .field-name,
+    body.app-store.model-product.change-list #result_list .field-sku,
+    body.app-store.model-product.change-list #result_list .field-category_short,
+    body.app-store.model-product.change-list #result_list .field-merch_category_short,
+    body.app-store.model-product.change-list #result_list .field-catalog_flags{
+      min-width:0;
+    }
+    body.app-store.model-product.change-list #result_list .field-name a{
+      display:inline-block;
+      max-width:100%;
+      line-height:1.35;
+    }
+    body.app-store.model-product.change-list #result_list .field-unit_cost input{
+      max-width:8.75rem;
+    }
+    body.app-store.model-product.change-list #result_list .field-price,
+    body.app-store.model-product.change-list #result_list .field-currency,
+    body.app-store.model-product.change-list #result_list .field-inventory,
+    body.app-store.model-product.change-list #result_list .field-printful_merch,
+    body.app-store.model-product.change-list #result_list .field-is_in_house,
+    body.app-store.model-product.change-list #result_list .field-is_active,
+    body.app-store.model-product.change-list #result_list .field-contact_for_estimate{
+      text-align:center;
+      white-space:nowrap;
+    }
+    body.app-store.model-product.change-list #result_list .field-margin_preview,
+    body.app-store.model-product.change-list #result_list .field-inventory_status{
+      min-width:7.25rem;
+    }
+    body.app-store.model-product.change-list #result_list .field-catalog_flags{
+      font-size:.92rem;
+    }
+    body.app-store.model-product.change-list #result_list .field-catalog_flags span{
+      max-width:100%;
+      white-space:normal;
+    }
+    @media (max-width: 1480px){
+      .inventory-admin-panel__grid{
+        grid-template-columns:1fr;
+      }
+      .inventory-admin-form{
+        position:static;
+      }
+    }
     @media (max-width: 1100px){
       .inventory-admin-panel__grid{
         grid-template-columns:1fr;
+      }
+      .inventory-admin-form{
+        position:static;
       }
     }
   </style>
@@ -221,44 +324,95 @@
 {% block result_list %}
   <section class="inventory-admin-panel">
     <div class="inventory-admin-panel__grid">
-      <div>
-        <h3>Inventory watch</h3>
-        <p class="inventory-admin-panel__desc">
-          Low-stock alerts use threshold <strong>{{ inventory_threshold }}</strong>. Only active products are counted here.
-        </p>
-        <div class="inventory-admin-panel__stats">
-          <a class="inventory-admin-panel__stat inventory-admin-panel__stat--danger" href="{{ product_changelist_url }}?stock_level=out">
-            <strong>{{ out_of_stock_count }}</strong>
-            <span>Out of stock</span>
-          </a>
-          <a class="inventory-admin-panel__stat inventory-admin-panel__stat--warning" href="{{ product_changelist_url }}?stock_level=low">
-            <strong>{{ low_stock_count }}</strong>
-            <span>Low stock</span>
-          </a>
-          <a class="inventory-admin-panel__stat inventory-admin-panel__stat--neutral" href="{{ product_changelist_url }}">
-            <strong>{% if allow_out_of_stock_orders %}Allowed{% else %}Blocked{% endif %}</strong>
-            <span>Out-of-stock orders</span>
-          </a>
+      <div class="inventory-admin-panel__stack">
+        <div>
+          <h3>Inventory watch</h3>
+          <p class="inventory-admin-panel__desc">
+            Low-stock alerts use threshold <strong>{{ inventory_threshold }}</strong>. Only active products are counted here.
+          </p>
+          <div class="inventory-admin-panel__stats">
+            <a class="inventory-admin-panel__stat inventory-admin-panel__stat--danger" href="{{ product_changelist_url }}?stock_level=out">
+              <strong>{{ out_of_stock_count }}</strong>
+              <span>Out of stock</span>
+            </a>
+            <a class="inventory-admin-panel__stat inventory-admin-panel__stat--warning" href="{{ product_changelist_url }}?stock_level=low">
+              <strong>{{ low_stock_count }}</strong>
+              <span>Low stock</span>
+            </a>
+            <a class="inventory-admin-panel__stat inventory-admin-panel__stat--neutral" href="{{ product_changelist_url }}">
+              <strong>{% if allow_out_of_stock_orders %}Allowed{% else %}Blocked{% endif %}</strong>
+              <span>Out-of-stock orders</span>
+            </a>
+          </div>
+          {% if low_stock_items %}
+            <ul class="inventory-admin-panel__list">
+              {% for item in low_stock_items %}
+                <li class="inventory-admin-panel__item">
+                  <a href="{{ item.change_url }}">{{ item.name }}</a>
+                  <div class="inventory-admin-panel__meta">
+                    {% if item.status == "out" %}
+                      <span class="inventory-admin-panel__badge inventory-admin-panel__badge--out">Out</span>
+                    {% else %}
+                      <span class="inventory-admin-panel__badge inventory-admin-panel__badge--low">Low</span>
+                    {% endif %}
+                    <span>{{ item.inventory }} left</span>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="inventory-admin-panel__empty">No active products currently match the low-stock alert rules.</p>
+          {% endif %}
         </div>
-        {% if low_stock_items %}
-          <ul class="inventory-admin-panel__list">
-            {% for item in low_stock_items %}
-              <li class="inventory-admin-panel__item">
-                <a href="{{ item.change_url }}">{{ item.name }}</a>
-                <div class="inventory-admin-panel__meta">
-                  {% if item.status == "out" %}
-                    <span class="inventory-admin-panel__badge inventory-admin-panel__badge--out">Out</span>
-                  {% else %}
-                    <span class="inventory-admin-panel__badge inventory-admin-panel__badge--low">Low</span>
-                  {% endif %}
-                  <span>{{ item.inventory }} left</span>
-                </div>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="inventory-admin-panel__empty">No active products currently match the low-stock alert rules.</p>
-        {% endif %}
+
+        <div>
+          <h3>Catalog watch</h3>
+          <p class="inventory-admin-panel__desc">
+            Quick catalog signals, so routine checks happen here instead of separate image or pricing pages.
+          </p>
+          <div class="inventory-admin-panel__subgrid">
+            <div class="inventory-admin-panel__substat">
+              <strong>{{ discounted_count }}</strong>
+              <span>products with active discounts</span>
+            </div>
+            <div class="inventory-admin-panel__substat">
+              <strong>{{ estimate_count }}</strong>
+              <span>estimate-only products</span>
+            </div>
+            <div class="inventory-admin-panel__substat">
+              <strong>{{ media_gap_count }}</strong>
+              <span>products missing any image</span>
+            </div>
+            <div class="inventory-admin-panel__substat">
+              <strong>{{ recent_product_count }}</strong>
+              <span>products added in last 14 days</span>
+            </div>
+          </div>
+
+          {% if media_gap_items or recent_product_items %}
+            <ul class="inventory-admin-panel__list" style="margin-top:.9rem;">
+              {% for item in media_gap_items %}
+                <li class="inventory-admin-panel__item">
+                  <a href="{{ item.change_url }}">{{ item.name }}</a>
+                  <div class="inventory-admin-panel__meta">
+                    <span class="inventory-admin-panel__badge inventory-admin-panel__badge--out">Missing image</span>
+                  </div>
+                </li>
+              {% endfor %}
+              {% for item in recent_product_items %}
+                <li class="inventory-admin-panel__item">
+                  <a href="{{ item.change_url }}">{{ item.name }}</a>
+                  <div class="inventory-admin-panel__meta">
+                    <span class="inventory-admin-panel__badge">{{ item.created_at }}</span>
+                    <span>Recently added</span>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="inventory-admin-panel__empty">Catalog health looks clean right now.</p>
+          {% endif %}
+        </div>
       </div>
 
       {% if inventory_settings_url %}
