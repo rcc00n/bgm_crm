@@ -1,0 +1,409 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <style>
+    .staff-guide-shell {
+      display: grid;
+      gap: 1.5rem;
+    }
+    .staff-guide-toolbar {
+      display: grid;
+      gap: 1rem;
+      padding: 1.15rem;
+      border-radius: 1rem;
+      background:
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.18), transparent 34%),
+        linear-gradient(180deg, rgba(239, 246, 255, 0.96), rgba(226, 238, 255, 0.96));
+      border: 1px solid rgba(59, 130, 246, 0.12);
+      box-shadow: 0 22px 48px rgba(37, 99, 235, 0.1);
+    }
+    .staff-guide-search {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(255, 255, 255, 0.92);
+      color: #0f172a;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.98rem;
+      outline: none;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    }
+    .staff-guide-search::placeholder {
+      color: #64748b;
+    }
+    .staff-guide-search:focus {
+      border-color: rgba(37, 99, 235, 0.3);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+    .staff-guide-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+    }
+    .staff-guide-filter {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(255, 255, 255, 0.82);
+      color: #334155;
+      border-radius: 999px;
+      padding: 0.55rem 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+      transition: 0.18s ease;
+    }
+    .staff-guide-filter.is-active,
+    .staff-guide-filter:hover {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.95), rgba(14, 165, 233, 0.92));
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+    }
+    .staff-guide-principles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .staff-guide-principle {
+      padding: 1rem;
+      border-radius: 1rem;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+      color: #334155;
+    }
+    .staff-guide-principle strong {
+      display: block;
+      margin-bottom: 0.35rem;
+      color: #1d4ed8;
+    }
+    .staff-guide-sections {
+      display: grid;
+      gap: 1rem;
+    }
+    .staff-guide-section {
+      border-radius: 1rem;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.88);
+      overflow: hidden;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    }
+    .staff-guide-section[hidden] {
+      display: none !important;
+    }
+    .staff-guide-section > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 1.15rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.98));
+    }
+    .staff-guide-section > summary::-webkit-details-marker {
+      display: none;
+    }
+    .staff-guide-section__meta h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      color: #0f172a;
+    }
+    .staff-guide-section__meta p {
+      margin: 0.4rem 0 0;
+      color: #475569;
+    }
+    .staff-guide-section__count {
+      white-space: nowrap;
+      font-weight: 700;
+      color: #1d4ed8;
+    }
+    .staff-guide-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      padding: 1.1rem;
+    }
+    .staff-guide-card {
+      display: grid;
+      gap: 0.85rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+    }
+    .staff-guide-card[hidden] {
+      display: none !important;
+    }
+    .staff-guide-card h3 {
+      margin: 0;
+      color: #0f172a;
+      font-size: 1.02rem;
+    }
+    .staff-guide-card p {
+      margin: 0;
+      color: #475569;
+    }
+    .staff-guide-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .staff-guide-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.32rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .staff-guide-tag--daily {
+      background: rgba(22, 163, 74, 0.12);
+      color: #166534;
+    }
+    .staff-guide-tag--weekly {
+      background: rgba(37, 99, 235, 0.12);
+      color: #1d4ed8;
+    }
+    .staff-guide-tag--rare {
+      background: rgba(245, 158, 11, 0.14);
+      color: #b45309;
+    }
+    .staff-guide-notes,
+    .staff-guide-links {
+      display: grid;
+      gap: 0.55rem;
+    }
+    .staff-guide-notes {
+      padding-left: 1.1rem;
+      margin: 0;
+      color: #334155;
+    }
+    .staff-guide-link {
+      display: block;
+      padding: 0.75rem 0.85rem;
+      border-radius: 0.85rem;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(248, 250, 252, 0.85);
+      text-decoration: none;
+      color: inherit;
+      transition: 0.18s ease;
+    }
+    .staff-guide-link:hover {
+      transform: translateY(-1px);
+      border-color: rgba(37, 99, 235, 0.35);
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12);
+      text-decoration: none;
+    }
+    .staff-guide-link strong {
+      display: block;
+      color: #0f172a;
+    }
+    .staff-guide-link span {
+      display: block;
+      margin-top: 0.3rem;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+    .staff-guide-empty {
+      display: none;
+      padding: 1rem 1.2rem;
+      border-radius: 1rem;
+      background: rgba(255, 255, 255, 0.9);
+      color: #475569;
+      border: 1px dashed rgba(148, 163, 184, 0.55);
+    }
+    .staff-guide-empty.is-visible {
+      display: block;
+    }
+    @media (max-width: 768px) {
+      .staff-guide-section > summary {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="col-12">
+  <div class="dashboard-shell staff-guide-shell">
+    <section class="dashboard-hero">
+      <div class="dashboard-hero-content">
+        <div>
+          <p class="panel-subtitle">Interactive onboarding for new team members</p>
+          <h1>Staff guide</h1>
+          <p>Use this page to learn where work actually happens in the admin. Daily pages stay near the top of the sidebar. Setup and reference pages stay near the bottom on purpose.</p>
+        </div>
+        <div class="hero-stat">
+          <span>Daily workspaces</span>
+          <strong>{{ guide_frequency_summary.daily }}</strong>
+          <small>Main screens to learn first</small>
+        </div>
+        <div class="hero-stat">
+          <span>Weekly reviews</span>
+          <strong>{{ guide_frequency_summary.weekly }}</strong>
+          <small>Coordinator and manager tasks</small>
+        </div>
+        <div class="hero-stat">
+          <span>Rare setup pages</span>
+          <strong>{{ guide_frequency_summary.rare }}</strong>
+          <small>Use carefully</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="staff-guide-toolbar">
+      <input
+        id="staffGuideSearch"
+        class="staff-guide-search"
+        type="search"
+        placeholder="Search the guide by task, page, or keyword"
+        aria-label="Search the staff guide"
+      >
+      <div class="staff-guide-filters" id="staffGuideFilters">
+        {% for role in guide_role_filters %}
+          <button
+            type="button"
+            class="staff-guide-filter{% if role.key == 'all' %} is-active{% endif %}"
+            data-role="{{ role.key }}"
+          >
+            {{ role.label }}
+          </button>
+        {% endfor %}
+      </div>
+      <div class="staff-guide-principles">
+        <div class="staff-guide-principle">
+          <strong>Rule 1</strong>
+          Start from the dashboard, calendar, orders, or products before opening long lookup lists.
+        </div>
+        <div class="staff-guide-principle">
+          <strong>Rule 2</strong>
+          If a page lives under <em>Reference &amp; Setup</em>, assume it changes system behavior and use it carefully.
+        </div>
+        <div class="staff-guide-principle">
+          <strong>Rule 3</strong>
+          Red dots mean new activity. They are not impacted by this guide and still follow the existing notification system.
+        </div>
+      </div>
+    </section>
+
+    <div class="staff-guide-empty" id="staffGuideEmpty">
+      No guide cards match the current search and role filter.
+    </div>
+
+    <div class="staff-guide-sections" id="staffGuideSections">
+      {% for section in guide_sections %}
+        <details class="staff-guide-section" data-guide-section {% if forloop.first %}open{% endif %}>
+          <summary>
+            <div class="staff-guide-section__meta">
+              <h2>{{ section.title }}</h2>
+              <p>{{ section.summary }}</p>
+            </div>
+            <div class="staff-guide-section__count">
+              <span data-section-count>{{ section.cards|length }}</span> cards
+            </div>
+          </summary>
+          <div class="staff-guide-card-grid">
+            {% for card in section.cards %}
+              <article
+                class="staff-guide-card"
+                data-guide-card
+                data-roles="{{ card.roles|join:' ' }}"
+                data-search="{{ card.title|lower }} {{ card.summary|lower }} {{ card.keywords|lower }} {{ card.frequency|lower }}"
+              >
+                <div class="staff-guide-tags">
+                  <span class="staff-guide-tag staff-guide-tag--{{ card.frequency|lower }}">{{ card.frequency }}</span>
+                  {% for role in card.roles %}
+                    {% if role != "all" %}
+                      <span class="pill muted">{{ role|title }}</span>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                <div>
+                  <h3>{{ card.title }}</h3>
+                  <p>{{ card.summary }}</p>
+                </div>
+                <ul class="staff-guide-notes">
+                  {% for tip in card.tips %}
+                    <li>{{ tip }}</li>
+                  {% endfor %}
+                </ul>
+                <div class="staff-guide-links">
+                  {% for link in card.links %}
+                    <a class="staff-guide-link" href="{{ link.url }}">
+                      <strong>{{ link.label }}</strong>
+                      {% if link.note %}
+                        <span>{{ link.note }}</span>
+                      {% endif %}
+                    </a>
+                  {% endfor %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </details>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const searchInput = document.getElementById("staffGuideSearch");
+    const filterButtons = Array.from(document.querySelectorAll(".staff-guide-filter"));
+    const sections = Array.from(document.querySelectorAll("[data-guide-section]"));
+    const emptyState = document.getElementById("staffGuideEmpty");
+    let activeRole = "all";
+
+    function normalize(value) {
+      return (value || "").toLowerCase().trim();
+    }
+
+    function applyFilters() {
+      const query = normalize(searchInput.value);
+      let visibleCards = 0;
+
+      sections.forEach((section) => {
+        const cards = Array.from(section.querySelectorAll("[data-guide-card]"));
+        let sectionVisibleCount = 0;
+
+        cards.forEach((card) => {
+          const haystack = normalize(card.dataset.search + " " + card.textContent);
+          const roles = normalize(card.dataset.roles).split(/\s+/).filter(Boolean);
+          const matchesQuery = !query || haystack.includes(query);
+          const matchesRole = activeRole === "all" || roles.includes("all") || roles.includes(activeRole);
+          const visible = matchesQuery && matchesRole;
+          card.hidden = !visible;
+          if (visible) {
+            sectionVisibleCount += 1;
+            visibleCards += 1;
+          }
+        });
+
+        section.hidden = sectionVisibleCount === 0;
+        const countNode = section.querySelector("[data-section-count]");
+        if (countNode) {
+          countNode.textContent = String(sectionVisibleCount);
+        }
+      });
+
+      emptyState.classList.toggle("is-visible", visibleCards === 0);
+    }
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activeRole = button.dataset.role || "all";
+        filterButtons.forEach((node) => node.classList.toggle("is-active", node === button));
+        applyFilters();
+      });
+    });
+
+    searchInput.addEventListener("input", applyFilters);
+    applyFilters();
+  })();
+</script>
+{% endblock %}
