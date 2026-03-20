@@ -93,3 +93,16 @@ class AdminWorkspaceUiTests(TestCase):
 
         self.assertEqual(crm_response.status_code, 200)
         self.assertContains(crm_response, "People and access")
+
+    def test_whats_new_entries_include_links_to_updated_sections(self):
+        response = self.client.get(reverse("admin-whats-new"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "What&#x27;s New entries now link straight to updated sections")
+        self.assertContains(response, reverse("admin-whats-new"), html=False)
+        self.assertContains(
+            response,
+            reverse("admin-workspace-hub", kwargs={"slug": "catalog-merch"}),
+            html=False,
+        )
+        self.assertContains(response, "Catalog, Merch &amp; Fulfillment")

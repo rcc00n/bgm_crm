@@ -3,12 +3,38 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from django.apps import apps
 from django.utils import timezone
+from django.urls import NoReverseMatch, reverse
 
 
 # Keep newest entries first. Every admin-facing UX/workflow change should add a
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
+    {
+        "key": "2026-03-20-whats-new-section-links",
+        "published_at": "2026-03-20T18:55:00-06:00",
+        "title": "What's New entries now link straight to updated sections",
+        "summary": "Each admin journal entry now includes direct links to the workspaces or pages that changed.",
+        "highlights": [
+            "Release notes are now actionable: you can jump from each entry straight into the updated admin sections.",
+            "Existing release entries were backfilled with direct links so older admin updates are easier to revisit.",
+        ],
+        "areas": ["Release Notes", "Navigation", "Admin UX"],
+        "links": [
+            {
+                "label": "What's New",
+                "url_name": "admin-whats-new",
+                "note": "Open the full admin journal.",
+            },
+            {
+                "label": "Catalog, Merch & Fulfillment",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "catalog-merch"},
+                "note": "Example linked workspace entry.",
+            },
+        ],
+    },
     {
         "key": "2026-03-20-catalog-workspace-icon-restored",
         "published_at": "2026-03-20T18:25:00-06:00",
@@ -19,6 +45,14 @@ ADMIN_RELEASES: list[dict[str, Any]] = [
             "No pages moved and no workflow changed; this restores the visual cue for the existing hub.",
         ],
         "areas": ["Navigation", "Admin UX"],
+        "links": [
+            {
+                "label": "Catalog, Merch & Fulfillment",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "catalog-merch"},
+                "note": "Open the merged commerce workspace.",
+            },
+        ],
     },
     {
         "key": "2026-03-20-admin-hub-consolidation",
@@ -32,6 +66,32 @@ ADMIN_RELEASES: list[dict[str, Any]] = [
             "Old workspace URLs still forward into the new destinations so bookmarks and saved habits keep working.",
         ],
         "areas": ["Navigation", "Workspaces", "Admin UX"],
+        "links": [
+            {
+                "label": "Content, Brand & Assets",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "page-content"},
+                "note": "Page editors, brand controls, and media.",
+            },
+            {
+                "label": "Catalog, Merch & Fulfillment",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "catalog-merch"},
+                "note": "Products, orders, and store rules.",
+            },
+            {
+                "label": "Scheduling & Shop",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "scheduling-shop"},
+                "note": "Daily scheduling plus booking/payment references.",
+            },
+            {
+                "label": "CRM & Vehicles",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "crm-vehicles"},
+                "note": "CRM references, access, and vehicle tables.",
+            },
+        ],
     },
     {
         "key": "2026-03-20-product-editor-redesign",
@@ -44,6 +104,13 @@ ADMIN_RELEASES: list[dict[str, Any]] = [
             "Options and gallery rows still work as before, but they now sit inside clearer inline sections that are easier to scan and maintain.",
         ],
         "areas": ["Products", "Catalog", "Admin UX"],
+        "links": [
+            {
+                "label": "Products",
+                "model": "store.Product",
+                "note": "Open the product workspace.",
+            },
+        ],
     },
     {
         "key": "2026-03-19-admin-search-favorites-and-workspace-navigation",
@@ -56,6 +123,23 @@ ADMIN_RELEASES: list[dict[str, Any]] = [
             "Workspace pages now surface quick actions, cross-links to related workspaces, needs-attention signals, stronger empty states, and clearer support-page layouts.",
         ],
         "areas": ["Navigation", "Search", "Favorites", "Workspaces"],
+        "links": [
+            {
+                "label": "Dashboard",
+                "url_name": "admin:index",
+                "note": "Search, favorites, and recent pages live in the admin header.",
+            },
+            {
+                "label": "What's New",
+                "url_name": "admin-whats-new",
+                "note": "Release center in the header menu.",
+            },
+            {
+                "label": "Operations",
+                "url_name": "admin-workspace-operations",
+                "note": "Example workspace with richer quick actions.",
+            },
+        ],
     },
     {
         "key": "2026-03-19-whats-new-and-focused-sidebar",
@@ -68,6 +152,23 @@ ADMIN_RELEASES: list[dict[str, Any]] = [
             "A new What's New button in the admin header shows release notes and unread updates for each staff user.",
         ],
         "areas": ["Navigation", "Admin UX", "Release Notes"],
+        "links": [
+            {
+                "label": "What's New",
+                "url_name": "admin-whats-new",
+                "note": "Open the full release history.",
+            },
+            {
+                "label": "Customers & Sales",
+                "url_name": "admin-workspace-customers-sales",
+                "note": "Example of the focused-sidebar workspace pattern.",
+            },
+            {
+                "label": "Website & Marketing",
+                "url_name": "admin-workspace-website-marketing",
+                "note": "Brand, content, and campaign hub.",
+            },
+        ],
     },
     {
         "key": "2026-03-19-admin-workspace-hubs",
@@ -80,6 +181,13 @@ ADMIN_RELEASES: list[dict[str, Any]] = [
             "Section headers in the sidebar are now clickable entry points into those hubs.",
         ],
         "areas": ["Navigation", "Workspaces"],
+        "links": [
+            {"label": "Operations", "url_name": "admin-workspace-operations", "note": "Appointments, staffing, and payments."},
+            {"label": "Customers & Sales", "url_name": "admin-workspace-customers-sales", "note": "Clients, catalog, and fulfillment."},
+            {"label": "Website & Marketing", "url_name": "admin-workspace-website-marketing", "note": "Content, brand system, and campaigns."},
+            {"label": "Reporting & Access", "url_name": "admin-workspace-reporting-access", "note": "Insights and QA."},
+            {"label": "Reference & Setup", "url_name": "admin-workspace-reference-setup", "note": "Reference data and maintenance."},
+        ],
     },
 ]
 
@@ -97,6 +205,47 @@ def _coerce_release_datetime(value: Any):
     if timezone.is_naive(dt):
         dt = timezone.make_aware(dt, timezone.get_default_timezone())
     return dt
+
+
+def _resolve_release_link(value: Any):
+    if not isinstance(value, dict):
+        return None
+
+    label = str(value.get("label") or "").strip()
+    if not label:
+        return None
+
+    href = str(value.get("href") or "").strip()
+    url_name = str(value.get("url_name") or "").strip()
+    model_label = str(value.get("model") or "").strip()
+    note = str(value.get("note") or "").strip()
+    url_kwargs = value.get("url_kwargs") if isinstance(value.get("url_kwargs"), dict) else {}
+    url = ""
+
+    if model_label:
+        try:
+            app_label, model_name = model_label.split(".", 1)
+            model = apps.get_model(app_label, model_name)
+            url = reverse(f"admin:{app_label}_{model._meta.model_name}_changelist")
+        except Exception:
+            url = ""
+    elif url_name:
+        try:
+            url = reverse(url_name, kwargs=url_kwargs)
+        except NoReverseMatch:
+            url = href
+    else:
+        url = href
+
+    url = str(url or "").strip()
+    if not url:
+        return None
+
+    return {
+        "label": label,
+        "url": url,
+        "note": note,
+    }
 
 
 def get_admin_releases() -> list[dict[str, Any]]:
@@ -120,6 +269,13 @@ def get_admin_releases() -> list[dict[str, Any]]:
                     item.strip()
                     for item in (release.get("areas") or [])
                     if isinstance(item, str) and item.strip()
+                ],
+                "links": [
+                    resolved
+                    for resolved in (
+                        _resolve_release_link(item) for item in (release.get("links") or [])
+                    )
+                    if resolved
                 ],
             }
         )

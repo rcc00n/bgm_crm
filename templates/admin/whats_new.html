@@ -61,6 +61,39 @@
       display: grid;
       gap: 8px;
     }
+    .whats-new-links {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 18px;
+    }
+    .whats-new-link {
+      display: grid;
+      gap: 5px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(18, 44, 77, 0.12);
+      background: rgba(255, 255, 255, 0.82);
+      color: #16395f;
+      text-decoration: none;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    .whats-new-link:hover {
+      transform: translateY(-1px);
+      text-decoration: none;
+      border-color: rgba(29, 78, 216, 0.24);
+      box-shadow: 0 16px 34px rgba(10, 24, 40, 0.08);
+      color: #1d4ed8;
+    }
+    .whats-new-link__label {
+      font-weight: 800;
+      line-height: 1.35;
+    }
+    .whats-new-link__note {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #607189;
+    }
   </style>
 {% endblock %}
 
@@ -93,6 +126,18 @@
             <div class="whats-new-tags">
               {% for area in release.areas %}
                 <span class="whats-new-tag">{{ area }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if release.links %}
+            <div class="whats-new-links">
+              {% for link in release.links %}
+                <a class="whats-new-link" href="{{ link.url }}">
+                  <span class="whats-new-link__label">{{ link.label }}</span>
+                  {% if link.note %}
+                    <span class="whats-new-link__note">{{ link.note }}</span>
+                  {% endif %}
+                </a>
               {% endfor %}
             </div>
           {% endif %}
