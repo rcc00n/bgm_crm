@@ -1,0 +1,108 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .whats-new-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      gap: 22px;
+    }
+    .whats-new-hero,
+    .whats-new-entry {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(241, 246, 252, 0.96));
+      border: 1px solid rgba(22, 36, 58, 0.08);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 24px 70px rgba(10, 24, 40, 0.08);
+    }
+    .whats-new-hero h1,
+    .whats-new-entry h2 {
+      margin: 0 0 10px;
+      color: #102033;
+    }
+    .whats-new-hero p,
+    .whats-new-entry p,
+    .whats-new-entry li {
+      color: #42536a;
+    }
+    .whats-new-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      color: #607189;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .whats-new-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .whats-new-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(18, 44, 77, 0.08);
+      border: 1px solid rgba(18, 44, 77, 0.12);
+      color: #16395f;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .whats-new-list {
+      margin: 0;
+      padding-left: 20px;
+      display: grid;
+      gap: 8px;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="col-12">
+    <div class="whats-new-shell">
+      <section class="whats-new-hero">
+        <h1>What's New</h1>
+        <p>Recent admin panel releases and workflow updates. Opening this page marks the current release notes as seen for your user.</p>
+      </section>
+
+      {% for release in admin_releases %}
+        <article class="whats-new-entry">
+          <div class="whats-new-meta">
+            <span>{{ release.published_at|date:"M d, Y" }}</span>
+            <span>{{ release.published_at|date:"H:i" }}</span>
+          </div>
+          <h2>{{ release.title }}</h2>
+          {% if release.summary %}
+            <p>{{ release.summary }}</p>
+          {% endif %}
+          {% if release.highlights %}
+            <ul class="whats-new-list">
+              {% for item in release.highlights %}
+                <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if release.areas %}
+            <div class="whats-new-tags">
+              {% for area in release.areas %}
+                <span class="whats-new-tag">{{ area }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </article>
+      {% empty %}
+        <article class="whats-new-entry">
+          <h2>No release notes yet</h2>
+          <p>Add entries in <code>core/services/admin_releases.py</code> to populate this page.</p>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}
