@@ -19,7 +19,7 @@ from core.services.printful import (
     quote_printful_shipping_rates,
     upsert_printful_webhook,
 )
-from store.models import Order, PrintfulWebhookEvent, ProductOption
+from store.models import Order, PrintfulWebhookEvent, ProductOption, StoreShippingSettings
 from store.printful_catalog import parse_printful_product_id_from_sku, sync_printful_merch_product
 
 logger = logging.getLogger(__name__)
@@ -312,6 +312,68 @@ def build_printful_shipping_items(positions: list[dict[str, Any]]) -> tuple[list
     return items, errors
 
 
+def _positions_subtotal(positions: list[dict[str, Any]]) -> Decimal:
+    subtotal = Decimal("0.00")
+    for entry in positions or []:
+        line_total = entry.get("line_total")
+        if line_total is None:
+            unit_price = entry.get("unit_price")
+            qty = int(entry.get("qty") or 0)
+            if unit_price is None or qty <= 0:
+                continue
+            try:
+                line_total = Decimal(str(unit_price)) * qty
+            except Exception:
+                continue
+        try:
+            subtotal += Decimal(str(line_total or "0.00"))
+        except Exception:
+            continue
+    return subtotal.quantize(PAYMENT_QUANT)
+
+
+def _apply_free_shipping_threshold(
+    *,
+    positions: list[dict[str, Any]],
+    recipient: dict[str, str],
+    rates: list[dict[str, Any]],
+    selected_rate_id: str,
+) -> tuple[list[dict[str, Any]], dict[str, Any], Decimal, bool]:
+    threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
+    subtotal = _positions_subtotal(positions)
+    if not threshold or subtotal < threshold:
+        selected_rate = next((row for row in rates if row.get("id") == selected_rate_id), None) or rates[0]
+        quoted_cost = Decimal(str(selected_rate.get("rate") or "0.00")).quantize(PAYMENT_QUANT)
+        return rates, selected_rate, quoted_cost, False
+    if (recipient.get("country_code") or "").strip().upper() != "CA":
+        selected_rate = next((row for row in rates if row.get("id") == selected_rate_id), None) or rates[0]
+        quoted_cost = Decimal(str(selected_rate.get("rate") or "0.00")).quantize(PAYMENT_QUANT)
+        return rates, selected_rate, quoted_cost, False
+
+    cheapest_rate = min(
+        rates,
+        key=lambda row: Decimal(str(row.get("rate") or "0.00")),
+    )
+    normalized_selected_id = (selected_rate_id or "").strip()
+    selected_rate = next((row for row in rates if row.get("id") == normalized_selected_id), None) or cheapest_rate
+    adjusted_rates: list[dict[str, Any]] = []
+    for rate in rates:
+        original_rate = Decimal(str(rate.get("rate") or "0.00")).quantize(PAYMENT_QUANT)
+        adjusted = dict(rate)
+        adjusted["quoted_rate"] = str(original_rate)
+        if rate.get("id") == cheapest_rate.get("id"):
+            adjusted["rate"] = "0.00"
+            adjusted["free_shipping"] = True
+        adjusted_rates.append(adjusted)
+
+    quoted_cost = Decimal(str(selected_rate.get("rate") or "0.00")).quantize(PAYMENT_QUANT)
+    adjusted_selected = next(
+        (row for row in adjusted_rates if row.get("id") == selected_rate.get("id")),
+        adjusted_rates[0],
+    )
+    return adjusted_rates, adjusted_selected, quoted_cost, bool(adjusted_selected.get("free_shipping"))
+
+
 def build_printful_order_items(order: Order) -> tuple[list[dict[str, Any]], list[str]]:
     items: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -433,18 +495,25 @@ def get_checkout_printful_shipping(
         }
 
     normalized_selected_id = (selected_rate_id or "").strip()
-    selected_rate = next((row for row in rates if row.get("id") == normalized_selected_id), None) or rates[0]
+    rates, selected_rate, quoted_shipping_cost, free_shipping_applied = _apply_free_shipping_threshold(
+        positions=positions,
+        recipient=recipient,
+        rates=rates,
+        selected_rate_id=normalized_selected_id,
+    )
     shipping_cost = Decimal(str(selected_rate.get("rate") or "0.00")).quantize(PAYMENT_QUANT)
     return {
         "rates": rates,
         "selected_rate_id": selected_rate.get("id", ""),
         "selected_rate": selected_rate,
         "shipping_cost": shipping_cost,
+        "quoted_shipping_cost": quoted_shipping_cost,
         "shipping_name": selected_rate.get("name", ""),
         "shipping_currency": selected_rate.get("currency", ""),
         "recipient": recipient,
         "errors": {},
         "error": "",
+        "free_shipping_applied": free_shipping_applied,
     }
 
 

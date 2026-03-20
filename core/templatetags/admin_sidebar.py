@@ -13,12 +13,27 @@ from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.text import capfirst
 
-from core.models import AdminSidebarSeen
+from core.models import AdminFavoritePage, AdminRecentPage, AdminReleaseSeen, AdminSidebarSeen
+from core.services.admin_navigation import resolve_admin_page_meta
+from core.services.admin_releases import get_admin_release_summary
 from core.services.admin_notifications import (
+    expand_notification_group_keys,
     get_disabled_notification_sections,
     make_notification_group_key,
+    resolve_notification_group_keys,
 )
 register = template.Library()
+
+
+@register.simple_tag
+def sidebar_status(request) -> str:
+    """
+    Preserve Jazzmin's cookie toggle, but start collapsed by default.
+    """
+    if request and request.COOKIES.get("jazzy_menu") == "open":
+        return ""
+    return "sidebar-collapse"
+
 
 def _visible_group_keys_for_user(user) -> Optional[set[str]]:
     """
@@ -50,7 +65,7 @@ def _visible_group_keys_for_user(user) -> Optional[set[str]]:
     allowed: set[str] = set()
     for values in configured:
         allowed |= values
-    return allowed
+    return expand_notification_group_keys(resolve_notification_group_keys(allowed))
 
 
 def _as_list(value: Optional[Iterable[str]]) -> List[str]:
@@ -113,6 +128,7 @@ def _build_item(
     perms = _as_list(item.pop("permissions", None))
     url_name = item.pop("url", None)
     href = item.pop("href", None)
+    item.pop("url_kwargs", None)
     active_patterns = _as_list(item.pop("active_patterns", None))
 
     if model_label:
@@ -312,12 +328,18 @@ def build_admin_sidebar(context) -> List[Dict[str, Any]]:
 
     sidebar: List[Dict[str, Any]] = []
     for section in config:
+        section_link = _build_item(section, user, view_name, path)
         groups_payload = []
         section_label = section.get("label", "") or ""
         for group in section.get("groups", []):
+            group_link = _build_item(group, user, view_name, path)
             group_label = group.get("label", "") or ""
             notification_key = make_notification_group_key(section_label, group_label)
-            if visible_group_keys is not None and notification_key not in visible_group_keys:
+            if (
+                visible_group_keys is not None
+                and not group.get("always_visible")
+                and notification_key not in visible_group_keys
+            ):
                 continue
 
             items_payload = []
@@ -327,24 +349,34 @@ def build_admin_sidebar(context) -> List[Dict[str, Any]]:
                     items_payload.append(rendered)
             if items_payload:
                 notifications_enabled = notification_key not in disabled_sections
+                group_is_active = bool(group_link and group_link.get("is_active"))
+                has_active_child = any(child["is_active"] for child in items_payload)
                 groups_payload.append(
                     {
                         "label": group.get("label"),
-                        "icon": group.get("icon", section.get("icon", "fas fa-layer-group")),
+                        "icon": (group_link or {}).get("icon", group.get("icon", section.get("icon", "fas fa-layer-group"))),
                         "badge": group.get("badge"),
                         "items": items_payload,
-                        "is_open": any(child["is_active"] for child in items_payload),
+                        "is_open": has_active_child,
+                        "has_active_child": has_active_child,
+                        "is_active": group_is_active,
+                        "url": (group_link or {}).get("url"),
+                        "sidebar_expand": group.get("sidebar_expand", True),
                         "notification_key": notification_key,
                         "notifications_enabled": notifications_enabled,
                     }
                 )
         if groups_payload:
+            section_is_active = bool(section_link and section_link.get("is_active"))
             sidebar.append(
                 {
                     "label": section.get("label"),
                     "icon": section.get("icon", "fas fa-layer-group"),
                     "groups": groups_payload,
-                    "is_open": any(group["is_open"] for group in groups_payload),
+                    "is_open": section_is_active or any(group["is_open"] for group in groups_payload),
+                    "url": (section_link or {}).get("url"),
+                    "is_active": section_is_active,
+                    "show_header": section.get("show_header", True),
                 }
             )
     _apply_notification_state(sidebar, user)
@@ -384,3 +416,102 @@ def build_admin_notifications(context) -> Dict[str, Any]:
             )
 
     return {"unseen_count": unseen_count, "groups": groups}
+
+
+@register.simple_tag(takes_context=True)
+def build_admin_whats_new(context) -> Dict[str, Any]:
+    request = context.get("request")
+    if not request:
+        return {"unseen_count": 0, "releases": []}
+
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return {"unseen_count": 0, "releases": []}
+
+    cached = getattr(request, "_admin_whats_new_cache", None)
+    if cached is not None:
+        return cached
+
+    last_seen_at = None
+    try:
+        last_seen_at = (
+            AdminReleaseSeen.objects.filter(user=user)
+            .values_list("last_seen_at", flat=True)
+            .first()
+        )
+    except (DatabaseError, OperationalError):
+        last_seen_at = None
+
+    summary = get_admin_release_summary(last_seen_at, limit=5)
+    payload = {
+        "unseen_count": summary["unseen_count"],
+        "releases": summary["latest"],
+    }
+    request._admin_whats_new_cache = payload
+    return payload
+
+
+@register.simple_tag(takes_context=True)
+def build_admin_shell(context) -> Dict[str, Any]:
+    request = context.get("request")
+    if not request:
+        return {
+            "current_page": None,
+            "favorites": [],
+            "recent_pages": [],
+            "is_favorite": False,
+        }
+
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return {
+            "current_page": None,
+            "favorites": [],
+            "recent_pages": [],
+            "is_favorite": False,
+        }
+
+    cached = getattr(request, "_admin_shell_cache", None)
+    if cached is not None:
+        return cached
+
+    current_page = resolve_admin_page_meta(request, title=context.get("title") or "")
+    try:
+        favorites_qs = AdminFavoritePage.objects.filter(user=user).order_by("label", "created_at")[:8]
+        recent_qs = AdminRecentPage.objects.filter(user=user).order_by("-last_visited_at")[:8]
+        favorites = [
+            {
+                "label": item.label,
+                "url": item.url,
+                "icon": item.icon or "fas fa-star",
+                "category": item.category,
+                "note": item.note,
+            }
+            for item in favorites_qs
+        ]
+        recent_pages = [
+            {
+                "label": item.label,
+                "url": item.url,
+                "icon": item.icon or "fas fa-history",
+                "category": item.category,
+                "note": item.note,
+            }
+            for item in recent_qs
+        ]
+        is_favorite = False
+        if current_page and current_page.get("url"):
+            is_favorite = AdminFavoritePage.objects.filter(user=user, url=current_page["url"]).exists()
+    except (DatabaseError, OperationalError):
+        favorites = []
+        recent_pages = []
+        is_favorite = False
+
+    payload = {
+        "current_page": current_page,
+        "favorites": favorites,
+        "recent_pages": recent_pages,
+        "is_favorite": is_favorite,
+    }
+    request._admin_shell_cache = payload
+    return payload

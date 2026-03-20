@@ -1,5 +1,5 @@
 {% extends "store/_base_store.html" %}
-{% load dealer_extras %}
+{% load static dealer_extras %}
 {% block title %}Cart — BGM Store{% endblock %}
 
 {% block body %}
@@ -46,10 +46,10 @@
           <div class="cart__row" role="row">
 	            <div class="cart__col cart__col--product" role="cell">
 	              <a class="cart__thumb" href="{% url 'store-product' slug=row.product.slug %}">
-	                {% if row.product.main_image %}
-	                  <img src="{{ row.product.main_image_url }}" alt="{{ row.product.name }}" loading="lazy" decoding="async">
+	                {% if row.product.main_image and not row.product.main_image_is_placeholder %}
+	                  <img src="{{ row.product.main_image_url }}" alt="{{ row.product.name }}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
 	                {% else %}
-	                  <div class="thumb-ph" aria-hidden="true"></div>
+	                  <img src="{% static 'img/hero-products.jpg' %}" alt="{{ row.product.name }}" loading="lazy" decoding="async">
 	                {% endif %}
               </a>
               <div class="cart__meta">

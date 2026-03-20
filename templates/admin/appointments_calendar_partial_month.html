@@ -29,9 +29,15 @@
                                data-duration="{{ appt.duration }}"
                                data-price="{{ appt.price }}"
                                data-discount="{{ appt.discount }}"
-                               data-pricedisc="{{ appt.price_discounted }}">
+                               data-pricedisc="{{ appt.price_discounted }}"
+                               data-payment-status="{{ appt.payment_status }}"
+                               data-payment-record="{{ appt.payment_record }}"
+                               data-prepayment="{{ appt.prepayment_label }}"
+                               data-created-label="{{ appt.created_label }}"
+                               data-client-type="{{ appt.client_type }}">
                                 <span class="month-event-time">{{ appt.time_start }}</span>
                                 <span class="month-event-title">{{ appt.client }}</span>
+                                <span class="appt-chip appt-chip--{{ appt.payment_tone }}">{{ appt.payment_status }}</span>
                             </a>
                         {% endfor %}
                         {% if day.overflow %}

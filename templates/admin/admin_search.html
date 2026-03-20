@@ -1,0 +1,92 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div class="admin-search-page">
+    <section class="admin-search-page__hero card">
+      <div class="admin-search-page__hero-copy">
+        <p class="admin-search-page__eyebrow">Global Admin Search</p>
+        <h1>Find pages, products, orders, clients, and leads</h1>
+        <p>Use one search surface for navigation and record lookup instead of jumping between separate admin lists.</p>
+      </div>
+      <form method="get" action="{% url 'admin-global-search' %}" class="admin-search-page__form">
+        <div class="admin-search-input">
+          <i class="fas fa-search" aria-hidden="true"></i>
+          <input
+            type="search"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="Search products, orders, clients, leads, or pages"
+            autofocus
+          >
+        </div>
+        <button type="submit" class="btn btn-primary">Search admin</button>
+      </form>
+      {% if search_query %}
+        <div class="admin-search-page__summary">
+          <span class="admin-chip admin-chip--info">{{ search_total_results }} results</span>
+          <span class="admin-search-page__summary-text">for “{{ search_query }}”</span>
+        </div>
+      {% endif %}
+    </section>
+
+    {% if search_query %}
+      {% if search_navigation_results or search_record_groups %}
+        <div class="admin-search-page__results">
+          {% if search_navigation_results %}
+            <section class="admin-search-section card">
+              <div class="admin-search-section__head">
+                <h2>Pages & Workspaces</h2>
+                <p>Fast paths into the right admin area.</p>
+              </div>
+              <div class="admin-search-links">
+                {% for item in search_navigation_results %}
+                  <a href="{{ item.url }}" class="admin-search-link">
+                    <span class="admin-search-link__icon"><i class="{{ item.icon }}" aria-hidden="true"></i></span>
+                    <span class="admin-search-link__body">
+                      <span class="admin-search-link__label">{{ item.label }}</span>
+                      <span class="admin-search-link__meta">{{ item.category }}{% if item.note %} · {{ item.note }}{% endif %}</span>
+                    </span>
+                  </a>
+                {% endfor %}
+              </div>
+            </section>
+          {% endif %}
+
+          {% for group in search_record_groups %}
+            <section class="admin-search-section card">
+              <div class="admin-search-section__head">
+                <h2>{{ group.title }}</h2>
+                <p>Direct record hits matching your search.</p>
+              </div>
+              <div class="admin-search-links">
+                {% for item in group.items %}
+                  <a href="{{ item.url }}" class="admin-search-link">
+                    <span class="admin-search-link__icon"><i class="{{ item.icon }}" aria-hidden="true"></i></span>
+                    <span class="admin-search-link__body">
+                      <span class="admin-search-link__label">{{ item.label }}</span>
+                      {% if item.note %}
+                        <span class="admin-search-link__meta">{{ item.note }}</span>
+                      {% endif %}
+                    </span>
+                  </a>
+                {% endfor %}
+              </div>
+            </section>
+          {% endfor %}
+        </div>
+      {% else %}
+        <section class="admin-search-empty card">
+          <div class="admin-search-empty__icon"><i class="fas fa-search" aria-hidden="true"></i></div>
+          <h2>No admin results found</h2>
+          <p>Try a product name or SKU, order number, client name, email, phone, or a workspace name like “catalog” or “payments”.</p>
+        </section>
+      {% endif %}
+    {% else %}
+      <section class="admin-search-empty card">
+        <div class="admin-search-empty__icon"><i class="fas fa-compass" aria-hidden="true"></i></div>
+        <h2>Start with one search</h2>
+        <p>Search the admin once instead of opening separate pages for products, orders, clients, leads, or workspace navigation.</p>
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

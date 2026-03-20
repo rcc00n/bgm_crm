@@ -117,6 +117,112 @@ class AdminSidebarSeen(models.Model):
         return f"{self.user} → {self.app_label}.{self.model_name}"
 
 
+class AdminReleaseSeen(models.Model):
+    """
+    Tracks the most recent admin release update a staff user has viewed.
+    Used to render the "What's New" unread badge in the admin navbar.
+    """
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_release_seen",
+    )
+    last_seen_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "last_seen_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} → admin releases @ {localtime(self.last_seen_at).strftime('%Y-%m-%d %H:%M:%S')}"
+
+
+class AdminFavoritePage(models.Model):
+    """
+    Staff-curated shortcuts for commonly used admin pages or saved filtered views.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_favorite_pages",
+    )
+    url = models.CharField(max_length=600)
+    label = models.CharField(max_length=160)
+    icon = models.CharField(max_length=80, blank=True)
+    category = models.CharField(max_length=120, blank=True)
+    note = models.CharField(max_length=240, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("label", "created_at")
+        unique_together = ("user", "url")
+        indexes = [
+            models.Index(fields=["user", "label"]),
+            models.Index(fields=["user", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} → {self.label}"
+
+
+class AdminRecentPage(models.Model):
+    """
+    Tracks recently visited admin pages so staff can jump back into ongoing work.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_recent_pages",
+    )
+    url = models.CharField(max_length=600)
+    label = models.CharField(max_length=160)
+    icon = models.CharField(max_length=80, blank=True)
+    category = models.CharField(max_length=120, blank=True)
+    note = models.CharField(max_length=240, blank=True)
+    visit_count = models.PositiveIntegerField(default=1)
+    last_visited_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ("-last_visited_at",)
+        unique_together = ("user", "url")
+        indexes = [
+            models.Index(fields=["user", "last_visited_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} recent → {self.label}"
+
+
+class StaffLoginEvent(models.Model):
+    """
+    Successful staff authentication event used in admin time tracking.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="staff_login_events",
+    )
+    logged_in_at = models.DateTimeField(default=timezone.now)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    ip_location = models.CharField(max_length=255, blank=True)
+    user_agent = models.TextField(blank=True)
+    login_path = models.CharField(max_length=255, blank=True)
+    session_key = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        ordering = ("-logged_in_at",)
+        indexes = [
+            models.Index(fields=["user", "logged_in_at"]),
+            models.Index(fields=["logged_in_at"]),
+        ]
+
+    def __str__(self) -> str:
+        label = getattr(self.user, "get_full_name", lambda: "")() or getattr(self.user, "username", "") or f"User {self.user_id}"
+        return f"{label} login @ {localtime(self.logged_in_at).strftime('%Y-%m-%d %H:%M:%S')}"
+
+
 class AdminLoginBranding(models.Model):
     """
     Stores logo assets for the admin login screen.
@@ -829,6 +935,45 @@ class HomePageFAQItem(models.Model):
         if question:
             return question[:60]
         return f"FAQ #{self.pk}"
+
+
+class FAQPageCopy(models.Model):
+    """
+    Editable static text for the public FAQ page.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    meta_title = models.CharField(max_length=160, default="FAQ — Bad Guy Motors")
+    meta_description = models.TextField(
+        default="Answers to common questions about Bad Guy Motors."
+    )
+    page_title = models.CharField(max_length=80, default="FAQ")
+    page_lead = models.TextField(
+        default="Answers to common questions about Bad Guy Motors."
+    )
+    empty_label = models.CharField(
+        max_length=160,
+        default="FAQs are being updated. Please check back soon.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "FAQ page copy"
+        verbose_name_plural = "FAQ page copy"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "FAQ page copy"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
 
 
 class ServicesPageCopy(models.Model):
@@ -4582,6 +4727,7 @@ class LeadSubmissionEvent(models.Model):
         SITE_NOTICE = ("site_notice", "Site notice signup")
         SERVICE_LEAD = ("service_lead", "Service lead")
         FITMENT_REQUEST = ("fitment_request", "Fitment request")
+        STORE_REVIEW = ("store_review", "Store review")
 
     class Outcome(models.TextChoices):
         ACCEPTED = ("accepted", "Accepted")

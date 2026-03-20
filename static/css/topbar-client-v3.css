@@ -799,6 +799,33 @@ body.bgm-search-open{
   .bgm-topbar__slot--search{ display: flex !important; grid-column: 3; min-width: 0; justify-self: end; }
   .bgm-topbar__search--nav{ display: none !important; }
 
+  .bgm-topbar--dealer-compact .bgm-topbar__slot--brand{
+    overflow: visible;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: .28rem !important;
+  }
+  .bgm-topbar--dealer-compact .bgm-topbar__brand{
+    min-width: 0;
+    font-size: clamp(.88rem, 4.2vw, 1.12rem) !important;
+    gap: .28rem !important;
+  }
+  .bgm-topbar--dealer-compact .bgm-topbar__brand-word{
+    max-width: 100%;
+  }
+  .bgm-topbar--dealer-compact .bgm-topbar__badge{
+    margin-left: 0;
+    padding: .14rem .42rem;
+    font-size: .58rem;
+    letter-spacing: .1em;
+    line-height: 1.1;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
+
   body.nav-open::before{
     content: "";
     position: fixed;

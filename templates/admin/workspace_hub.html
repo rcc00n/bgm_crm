@@ -1,0 +1,979 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    :root {
+      --workspace-accent-primary: #1d4ed8;
+      --workspace-accent-secondary: #b45309;
+      --workspace-accent-secondary-soft: rgba(217, 119, 6, 0.12);
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    .workspace-shell {
+      max-width: 1520px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+    .workspace-hero {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(280px, .9fr);
+      gap: 18px;
+      padding: 24px 26px;
+      border-radius: 24px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background:
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.22), transparent 32%),
+        radial-gradient(circle at left center, rgba(14, 165, 233, 0.12), transparent 38%),
+        linear-gradient(180deg, #ffffff 0%, #f7fafd 100%);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+    }
+    .workspace-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.38), transparent 55%);
+      pointer-events: none;
+    }
+    .workspace-hero__main,
+    .workspace-hero__side {
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+    }
+    .workspace-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 10px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.08);
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .workspace-hero h1 {
+      margin: 0;
+      color: var(--admin-text-strong);
+      font-size: clamp(1.9rem, 2.8vw, 2.7rem);
+      line-height: 1.06;
+      letter-spacing: -0.03em;
+    }
+    .workspace-summary {
+      margin: 10px 0 0;
+      max-width: 58ch;
+      color: #506177;
+      font-size: .96rem;
+      line-height: 1.52;
+    }
+    .workspace-pills {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .workspace-pill {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      background: rgba(255, 255, 255, 0.74);
+      text-decoration: none;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      cursor: pointer;
+    }
+    .workspace-pill:hover {
+      transform: translateY(-2px);
+      border-color: rgba(37, 99, 235, 0.22);
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+      text-decoration: none;
+    }
+    .workspace-pill__top,
+    .workspace-attention-item__head,
+    .workspace-related-item__head,
+    .workspace-action__top,
+    .workspace-support-link__top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+    }
+    .workspace-link-cue {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      color: #1d4ed8;
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .workspace-link-cue::after {
+      content: "→";
+      font-size: .88rem;
+      line-height: 1;
+    }
+    .workspace-link-cue--soft {
+      color: #7b8aa0;
+      font-size: .68rem;
+      letter-spacing: .06em;
+    }
+    .workspace-pill__label {
+      color: var(--admin-text-strong);
+      font-weight: 800;
+      font-size: .92rem;
+      line-height: 1.3;
+    }
+    .workspace-pill__note {
+      color: var(--admin-text-muted);
+      font-size: .8rem;
+      line-height: 1.35;
+    }
+    .workspace-stats {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: stretch;
+    }
+    .workspace-stat {
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+      min-height: 0;
+    }
+    .workspace-stat__value {
+      display: block;
+      color: var(--admin-text-strong);
+      font-size: 1.55rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .workspace-stat__label {
+      display: block;
+      margin-top: 6px;
+      color: var(--admin-text-muted);
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .workspace-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1fr;
+    }
+    .workspace-strip {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    }
+    .workspace-panel {
+      display: grid;
+      gap: 14px;
+      padding: 20px 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%);
+      box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+      min-width: 0;
+    }
+    .workspace-panel__head {
+      display: grid;
+      gap: 6px;
+    }
+    .workspace-panel__eyebrow {
+      color: var(--admin-text-muted);
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .workspace-panel__head h2 {
+      margin: 0;
+      color: var(--admin-text-strong);
+      font-size: 1.1rem;
+      line-height: 1.2;
+    }
+    .workspace-panel__head p {
+      margin: 0;
+      color: var(--admin-text-muted);
+      line-height: 1.5;
+    }
+    .workspace-attention-grid,
+    .workspace-related-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    .workspace-attention-item,
+    .workspace-related-item {
+      display: grid;
+      gap: 6px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.82);
+      text-decoration: none;
+      min-width: 0;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+      cursor: pointer;
+    }
+    .workspace-attention-item:hover,
+    .workspace-related-item:hover {
+      text-decoration: none;
+      transform: translateY(-1px);
+      border-color: rgba(37, 99, 235, 0.18);
+      background: #fff;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    }
+    .workspace-attention-item__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+    }
+    .workspace-attention-item__label,
+    .workspace-related-item__label {
+      color: var(--admin-text-strong);
+      font-weight: 800;
+      line-height: 1.35;
+    }
+    .workspace-attention-item__note,
+    .workspace-related-item__note {
+      color: var(--admin-text-muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+    .workspace-empty-state {
+      display: grid;
+      gap: 8px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      border: 1px dashed rgba(15, 23, 42, 0.12);
+      background: rgba(248, 250, 252, 0.88);
+    }
+    .workspace-empty-state strong {
+      color: var(--admin-text-strong);
+      font-size: .96rem;
+    }
+    .workspace-empty-state span {
+      color: var(--admin-text-muted);
+      font-size: .88rem;
+      line-height: 1.5;
+    }
+    .workspace-jumpbar {
+      position: sticky;
+      top: 12px;
+      z-index: 3;
+      display: grid;
+      gap: 12px;
+      padding: 16px 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    }
+    .workspace-jumpbar__title {
+      margin: 0;
+      color: var(--admin-text-muted);
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .workspace-jumpbar__links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .workspace-jumpbar__link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: #f8fafc;
+      color: var(--admin-text-strong);
+      font-size: .92rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background .18s ease, border-color .18s ease, transform .18s ease;
+    }
+    .workspace-jumpbar__link:hover {
+      transform: translateY(-1px);
+      border-color: rgba(37, 99, 235, 0.18);
+      background: #ffffff;
+      color: #1d4ed8;
+      text-decoration: none;
+    }
+    .workspace-jumpbar__count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.1);
+      color: #1d4ed8;
+      font-size: .74rem;
+      font-weight: 800;
+    }
+    .workspace-card {
+      display: grid;
+      gap: 18px;
+      padding: 24px;
+      border-radius: 24px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+      min-width: 0;
+    }
+    .workspace-card__head {
+      display: grid;
+      gap: 8px;
+    }
+    .workspace-card__topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .workspace-card__eyebrow {
+      color: var(--workspace-accent-primary);
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .workspace-card__count {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.05);
+      color: var(--admin-text-muted);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .workspace-card h2 {
+      margin: 0;
+      color: var(--admin-text-strong);
+      font-size: 1.28rem;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    .workspace-card p {
+      margin: 0;
+      color: #5a6b81;
+      line-height: 1.6;
+    }
+    .workspace-card__section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--workspace-accent-secondary);
+      font-size: .74rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .workspace-card__section-label::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--workspace-accent-secondary);
+      box-shadow: 0 0 0 6px var(--workspace-accent-secondary-soft);
+    }
+    .workspace-card__body {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.4fr) minmax(300px, .92fr);
+      align-items: start;
+    }
+    .workspace-card__body--single {
+      grid-template-columns: 1fr;
+    }
+    .workspace-card__primary,
+    .workspace-card__secondary {
+      display: grid;
+      gap: 14px;
+      min-width: 0;
+    }
+    .workspace-lead-action {
+      display: grid;
+      gap: 0;
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid rgba(29, 78, 216, 0.26);
+      background:
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.28), transparent 42%),
+        linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+      box-shadow: 0 20px 40px rgba(37, 99, 235, 0.14);
+      min-width: 0;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    .workspace-lead-action:hover,
+    .workspace-lead-action:focus-within {
+      transform: translateY(-1px);
+      border-color: rgba(29, 78, 216, 0.36);
+      box-shadow: 0 24px 44px rgba(37, 99, 235, 0.18);
+    }
+    .workspace-lead-action__main {
+      display: grid;
+      gap: 12px;
+      padding: 22px 22px 16px;
+      text-decoration: none;
+      min-width: 0;
+    }
+    .workspace-lead-action__main:hover {
+      text-decoration: none;
+    }
+    .workspace-lead-action__main:hover .workspace-lead-action__title,
+    .workspace-lead-action__main:focus-visible .workspace-lead-action__title {
+      color: #1d4ed8;
+    }
+    .workspace-lead-action__eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--workspace-accent-primary);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .workspace-lead-action__title {
+      color: var(--admin-text-strong);
+      font-size: 1.14rem;
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    .workspace-lead-action__note {
+      color: #52647b;
+      font-size: .92rem;
+      line-height: 1.58;
+    }
+    .workspace-lead-action__footer {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+      gap: 10px;
+      padding: 0 22px 22px;
+    }
+    .workspace-actions {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .workspace-action {
+      display: grid;
+      gap: 0;
+      padding: 0;
+      overflow: hidden;
+      grid-template-rows: minmax(0, 1fr) auto;
+      border-radius: 18px;
+      border: 1px solid rgba(59, 130, 246, 0.14);
+      background:
+        linear-gradient(180deg, rgba(239, 246, 255, 0.86) 0%, rgba(248, 250, 252, 0.9) 100%);
+      text-decoration: none;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      min-width: 0;
+    }
+    .workspace-action:hover,
+    .workspace-action:focus-within {
+      transform: translateY(-1px);
+      border-color: rgba(37, 99, 235, 0.24);
+      background: #ffffff;
+      box-shadow: 0 14px 30px rgba(37, 99, 235, 0.12);
+    }
+    .workspace-action__main {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 100%;
+      padding: 16px 18px 12px;
+      text-decoration: none;
+      min-width: 0;
+      cursor: pointer;
+    }
+    .workspace-action__main:hover {
+      text-decoration: none;
+    }
+    .workspace-action__main:hover .workspace-action__label,
+    .workspace-action__main:focus-visible .workspace-action__label {
+      color: #1d4ed8;
+    }
+    .workspace-action__label {
+      color: var(--admin-text-strong);
+      font-weight: 800;
+      line-height: 1.35;
+    }
+    .workspace-action__note {
+      color: var(--admin-text-muted);
+      font-size: .87rem;
+      line-height: 1.45;
+    }
+    .workspace-action__footer {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 10px;
+      padding: 0 18px 16px;
+    }
+    .workspace-mini-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 32px;
+      padding: 0 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: #fff;
+      color: var(--admin-text-strong);
+      font-size: .79rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    .workspace-mini-action--primary {
+      border-color: rgba(29, 78, 216, 0.42);
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff;
+      text-shadow: 0 1px 0 rgba(15, 23, 42, 0.18);
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
+    }
+    .workspace-mini-action:hover {
+      border-color: rgba(37, 99, 235, 0.18);
+      color: #1d4ed8;
+      text-decoration: none;
+    }
+    .workspace-mini-action--primary,
+    .workspace-mini-action--primary:hover,
+    .workspace-mini-action--primary:focus-visible,
+    .workspace-mini-action--primary:active,
+    .workspace-mini-action--primary:visited {
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff;
+      text-decoration: none;
+    }
+    .workspace-mini-action--primary:hover,
+    .workspace-mini-action--primary:focus-visible,
+    .workspace-mini-action--primary:active {
+      border-color: rgba(29, 78, 216, 0.5);
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff;
+      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
+    }
+    .workspace-meta-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+      align-items: start;
+    }
+    .workspace-card__support,
+    .workspace-card__tips {
+      display: grid;
+      gap: 12px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid rgba(217, 119, 6, 0.12);
+      background:
+        linear-gradient(180deg, rgba(255, 251, 235, 0.7) 0%, rgba(248, 250, 252, 0.78) 100%);
+      min-width: 0;
+    }
+    .workspace-card__support h3,
+    .workspace-card__tips h3 {
+      margin: 0;
+      color: var(--workspace-accent-secondary);
+      font-size: .8rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .workspace-support-list,
+    .workspace-tips {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+    .workspace-support-list {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .workspace-support-list li {
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+    .workspace-support-list li,
+    .workspace-tips li {
+      min-width: 0;
+    }
+    .workspace-support-link {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+      padding: 13px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      color: var(--admin-text-strong);
+      text-decoration: none;
+      font-weight: 700;
+      line-height: 1.35;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+      cursor: pointer;
+    }
+    .workspace-support-link:hover {
+      transform: translateY(-1px);
+      border-color: rgba(217, 119, 6, 0.22);
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(217, 119, 6, 0.1);
+      color: var(--workspace-accent-secondary);
+      text-decoration: none;
+    }
+    .workspace-support-link__label {
+      color: var(--admin-text-strong);
+      font-weight: 800;
+      line-height: 1.35;
+    }
+    .workspace-note {
+      display: block;
+      margin-top: 4px;
+      color: var(--admin-text-muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+    .workspace-pill:focus-visible,
+    .workspace-attention-item:focus-visible,
+    .workspace-related-item:focus-visible,
+    .workspace-jumpbar__link:focus-visible,
+    .workspace-lead-action__main:focus-visible,
+    .workspace-action__main:focus-visible,
+    .workspace-mini-action:focus-visible,
+    .workspace-support-link:focus-visible {
+      outline: none;
+      border-color: rgba(37, 99, 235, 0.32);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12), 0 16px 34px rgba(15, 23, 42, 0.08);
+    }
+    .workspace-tips li {
+      position: relative;
+      padding-left: 14px;
+      color: #5a6b81;
+      line-height: 1.55;
+    }
+    .workspace-tips li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: .72em;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(217, 119, 6, 0.48);
+      transform: translateY(-50%);
+    }
+    @media (max-width: 1180px) {
+      .workspace-hero {
+        grid-template-columns: 1fr;
+      }
+      .workspace-stats {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+    }
+    @media (max-width: 900px) {
+      .workspace-strip,
+      .workspace-meta-grid {
+        grid-template-columns: 1fr;
+      }
+      .workspace-stats {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+      .workspace-card__body {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 640px) {
+      .workspace-jumpbar {
+        position: static;
+      }
+      .workspace-hero,
+      .workspace-card {
+        padding: 20px;
+        border-radius: 22px;
+      }
+      .workspace-pills {
+        grid-template-columns: 1fr;
+      }
+      .workspace-stats {
+        grid-template-columns: 1fr;
+      }
+      .workspace-actions,
+      .workspace-support-list {
+        grid-template-columns: 1fr;
+      }
+      .workspace-lead-action__footer,
+      .workspace-action__footer {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="col-12">
+    <div class="workspace-shell">
+      <section class="workspace-hero">
+        <div class="workspace-hero__main">
+          <p class="workspace-eyebrow">{{ workspace.eyebrow }}</p>
+          <h1>{{ workspace.title }}</h1>
+          <p class="workspace-summary">{{ workspace.summary }}</p>
+          {% if workspace.hero_links %}
+            <div class="workspace-pills">
+              {% for link in workspace.hero_links %}
+                <a class="workspace-pill" href="{{ link.url }}">
+                  <div class="workspace-pill__top">
+                    <span class="workspace-pill__label">{{ link.label }}</span>
+                    <span class="workspace-link-cue">Open</span>
+                  </div>
+                  {% if link.note %}
+                    <span class="workspace-pill__note">{{ link.note }}</span>
+                  {% endif %}
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="workspace-hero__side">
+          <div class="workspace-stats">
+            {% for stat in workspace.stats %}
+              <div class="workspace-stat">
+                <span class="workspace-stat__value">{{ stat.value }}</span>
+                <span class="workspace-stat__label">{{ stat.label }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      {% if workspace.cards|length > 1 %}
+        <nav class="workspace-jumpbar" aria-label="Workspace sections">
+          <p class="workspace-jumpbar__title">Jump To Section</p>
+          <div class="workspace-jumpbar__links">
+            {% for card in workspace.cards %}
+              <a class="workspace-jumpbar__link" href="#workspace-card-{{ forloop.counter }}">
+                <span>{{ card.title }}</span>
+                <span class="workspace-jumpbar__count">{{ forloop.counter }}</span>
+              </a>
+            {% endfor %}
+          </div>
+        </nav>
+      {% endif %}
+
+      <section class="workspace-grid">
+        {% for card in workspace.cards %}
+          <article class="workspace-card" id="workspace-card-{{ forloop.counter }}">
+            <div class="workspace-card__head">
+              <div class="workspace-card__topline">
+                <span class="workspace-card__eyebrow">Workspace Area</span>
+                <span class="workspace-card__count">
+                  {{ card.main_links|length }} main
+                  {% if card.support_links %}
+                    • {{ card.support_links|length }} support
+                  {% endif %}
+                </span>
+              </div>
+              <h2>{{ card.title }}</h2>
+              <p>{{ card.summary }}</p>
+            </div>
+
+            <div class="workspace-card__body{% if not card.support_links and not card.tips %} workspace-card__body--single{% endif %}">
+              <div class="workspace-card__primary">
+                {% if card.main_links %}
+                  {% with lead=card.main_links.0 %}
+                    <span class="workspace-card__section-label">Main Section</span>
+                    <div class="workspace-lead-action">
+                      <a class="workspace-lead-action__main" href="{{ lead.url }}">
+                        <span class="workspace-lead-action__eyebrow">Start Here</span>
+                        <div class="workspace-action__top">
+                          <span class="workspace-lead-action__title">{{ lead.label }}</span>
+                          <span class="workspace-link-cue">Open</span>
+                        </div>
+                        {% if lead.note %}
+                          <span class="workspace-lead-action__note">{{ lead.note }}</span>
+                        {% endif %}
+                      </a>
+                      <div class="workspace-lead-action__footer">
+                        <a class="workspace-mini-action workspace-mini-action--primary" href="{{ lead.url }}">Open page</a>
+                        {% if lead.add_url %}
+                          <a class="workspace-mini-action" href="{{ lead.add_url }}">New</a>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endwith %}
+
+                  {% if card.main_links|length > 1 %}
+                    <span class="workspace-card__section-label">More Main Actions</span>
+                    <div class="workspace-actions">
+                      {% for link in card.main_links|slice:"1:" %}
+                        <div class="workspace-action">
+                          <a class="workspace-action__main" href="{{ link.url }}">
+                            <div class="workspace-action__top">
+                              <span class="workspace-action__label">{{ link.label }}</span>
+                              <span class="workspace-link-cue workspace-link-cue--soft">Open</span>
+                            </div>
+                            {% if link.note %}
+                              <span class="workspace-action__note">{{ link.note }}</span>
+                            {% endif %}
+                          </a>
+                          <div class="workspace-action__footer">
+                            <a class="workspace-mini-action workspace-mini-action--primary" href="{{ link.url }}">Open page</a>
+                            {% if link.add_url %}
+                              <a class="workspace-mini-action" href="{{ link.add_url }}">New</a>
+                            {% endif %}
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                {% endif %}
+              </div>
+
+              {% if card.support_links or card.tips %}
+                <aside class="workspace-card__secondary">
+                  {% if card.support_links %}
+                    <div class="workspace-card__support">
+                      <h3>Support Pages</h3>
+                      <ul class="workspace-support-list">
+                        {% for link in card.support_links %}
+                          <li>
+                            <a class="workspace-support-link" href="{{ link.url }}">
+                              <div class="workspace-support-link__top">
+                                <span class="workspace-support-link__label">{{ link.label }}</span>
+                                <span class="workspace-link-cue workspace-link-cue--soft">Open</span>
+                              </div>
+                              {% if link.note %}
+                                <span class="workspace-note">{{ link.note }}</span>
+                              {% endif %}
+                            </a>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% endif %}
+
+                  {% if card.tips %}
+                    <div class="workspace-card__tips">
+                      <h3>Best Use</h3>
+                      <ul class="workspace-tips">
+                        {% for tip in card.tips %}
+                          <li>{{ tip }}</li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% endif %}
+                </aside>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+
+      {% if workspace.attention_items or workspace.related_links %}
+        <section class="workspace-strip">
+          <div class="workspace-panel">
+            <div class="workspace-panel__head">
+              <span class="workspace-panel__eyebrow">Needs Attention</span>
+              <h2>Surface the next thing that needs a decision</h2>
+              <p>These signals are meant to cut down the time spent opening pages just to see if anything is waiting.</p>
+            </div>
+            {% if workspace.attention_items %}
+              <div class="workspace-attention-grid">
+                {% for item in workspace.attention_items %}
+                  <a href="{{ item.url }}" class="workspace-attention-item">
+                    <div class="workspace-attention-item__head">
+                      <span class="workspace-attention-item__label">{{ item.label }}</span>
+                      <span class="workspace-link-cue workspace-link-cue--soft">Review</span>
+                    </div>
+                    <div class="workspace-attention-item__top">
+                      <span class="admin-chip admin-chip--{{ item.tone }}">{{ item.count }}</span>
+                    </div>
+                    <span class="workspace-attention-item__note">{{ item.note }}</span>
+                  </a>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="workspace-empty-state">
+                <strong>No urgent issues right now</strong>
+                <span>This workspace is clear. Use the primary actions below when you want to make a deliberate update.</span>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="workspace-panel">
+            <div class="workspace-panel__head">
+              <span class="workspace-panel__eyebrow">Related Workspaces</span>
+              <h2>Move sideways without going back to the sidebar</h2>
+              <p>Cross-links keep adjacent admin areas one click away when the task naturally spills into another lane.</p>
+            </div>
+            {% if workspace.related_links %}
+              <div class="workspace-related-grid">
+                {% for item in workspace.related_links %}
+                  <a href="{{ item.url }}" class="workspace-related-item">
+                    <div class="workspace-related-item__head">
+                      <span class="workspace-related-item__label">{{ item.label }}</span>
+                      <span class="workspace-link-cue workspace-link-cue--soft">Open</span>
+                    </div>
+                    {% if item.note %}
+                      <span class="workspace-related-item__note">{{ item.note }}</span>
+                    {% endif %}
+                  </a>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="workspace-empty-state">
+                <strong>No related workspaces configured</strong>
+                <span>This area is already narrow and direct, so the main actions below are the best entry points.</span>
+              </div>
+            {% endif %}
+          </div>
+        </section>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

@@ -54,7 +54,12 @@
                             data-duration="{{ cell.duration }}"
                             data-price="{{ cell.price }}"
                             data-discount="{{ cell.discount }}"
-                            data-pricedisc="{{ cell.price_discounted }}">
+                            data-pricedisc="{{ cell.price_discounted }}"
+                            data-payment-status="{{ cell.payment_status }}"
+                            data-payment-record="{{ cell.payment_record }}"
+                            data-prepayment="{{ cell.prepayment_label }}"
+                            data-created-label="{{ cell.created_label }}"
+                            data-client-type="{{ cell.client_type }}">
                             <div style="background-color: {{ cell.background }}; {% if cell.status == "Cancelled" %} opacity: 50%; {% endif %} position: relative;">
                                 {% if cell.discount != "" or cell.price != cell.price_discounted %}
                                     <div style="

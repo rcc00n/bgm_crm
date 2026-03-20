@@ -4,8 +4,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ home_copy.faq_title|default:"FAQ" }} — Bad Guy Motors</title>
-  {% with meta_title=home_copy.faq_title|default:"FAQ" meta_description=home_copy.faq_desc|default:"Answers to common questions about Bad Guy Motors." meta_section="faq" %}
+  <title>{{ faq_copy.meta_title|default:"FAQ — Bad Guy Motors" }}</title>
+  {% with meta_title=faq_copy.meta_title|default:"FAQ — Bad Guy Motors" meta_description=faq_copy.meta_description|default:"Answers to common questions about Bad Guy Motors." meta_section="faq" %}
     {% include "includes/marketing_head.html" %}
   {% endwith %}
 
@@ -168,8 +168,8 @@
     <section class="hero">
       <div class="container hero__inner">
         <p class="kicker">Help & answers</p>
-        <h1 class="title">{{ home_copy.faq_title|default:"FAQ" }}</h1>
-        <p class="lead">{{ home_copy.faq_desc|default:"Answers to common questions about Bad Guy Motors." }}</p>
+        <h1 class="title">{{ faq_copy.page_title|default:"FAQ" }}</h1>
+        <p class="lead">{{ faq_copy.page_lead|default:"Answers to common questions about Bad Guy Motors." }}</p>
       </div>
     </section>
 
@@ -221,7 +221,7 @@
               {% endwith %}
             {% endfor %}
           {% else %}
-            <div class="faq-empty">FAQs are being updated. Please check back soon.</div>
+            <div class="faq-empty">{{ faq_copy.empty_label|default:"FAQs are being updated. Please check back soon." }}</div>
           {% endif %}
         </div>
       </div>

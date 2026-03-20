@@ -21,8 +21,10 @@ from core.models import (
     AboutPageCopy,
     ClientPortalPageCopy,
     DealerStatusPageCopy,
+    FAQPageCopy,
     FinancingPageCopy,
     HomePageCopy,
+    HomePageFAQItem,
     MerchPageCopy,
     PageFontSetting,
     ServicesPageCopy,
@@ -1570,6 +1572,20 @@ def build_financing_context(request: HttpRequest) -> Dict[str, Any]:
     }
 
 
+def build_faq_context(request: HttpRequest) -> Dict[str, Any]:
+    home_copy = HomePageCopy.get_solo()
+    faq_items = list(
+        HomePageFAQItem.objects.filter(home_page_copy=home_copy, is_published=True).order_by("order", "id")
+    )
+    return {
+        "font_settings": build_page_font_context(PageFontSetting.Page.HOME),
+        "home_copy": home_copy,
+        "home_faq_legacy": False,
+        "home_faq_items": faq_items,
+        "header_copy": home_copy,
+    }
+
+
 def build_about_context(request: HttpRequest) -> Dict[str, Any]:
     return {
         "font_settings": build_page_font_context(PageFontSetting.Page.ABOUT),
@@ -1638,6 +1654,11 @@ PREVIEW_CONFIG: Dict[type, PreviewConfig] = {
         copy_key="financing_copy",
         header_key="header_copy",
         context_builder=build_financing_context,
+    ),
+    FAQPageCopy: PreviewConfig(
+        template="client/faq.html",
+        copy_key="faq_copy",
+        context_builder=build_faq_context,
     ),
     AboutPageCopy: PreviewConfig(
         template="client/our_story.html",

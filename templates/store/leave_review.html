@@ -1,17 +1,18 @@
 {% extends "store/_base_store.html" %}
+{% load lead_security %}
 {% block title %}Leave a review - BGM{% endblock %}
 
 {% block body %}
 <div id="bg"></div>
 
-<section class="section">
+<section class="section review-page">
   <div class="container">
-    <div class="section__head">
-      <div>
+    <div class="section__head review-page__head">
+      <div class="review-page__intro">
         <h1 class="section__title">Leave a review</h1>
         <p class="section__desc">We read every review. Reviews are published after staff approval.</p>
       </div>
-      <a class="btn btn--ghost" href="{% url 'store' %}">Back to store</a>
+      <a class="btn btn--ghost review-page__back" href="{% url 'store' %}">Back to store</a>
     </div>
 
     {% if submitted %}
@@ -20,7 +21,7 @@
       </div>
     {% endif %}
 
-    <div class="card" style="padding:1.2rem">
+    <div class="card review-form-card">
       {% if form.non_field_errors %}
         <div class="review-alert review-alert--error">
           {% for err in form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
@@ -30,6 +31,7 @@
       <form method="post" action="#review-form" id="review-form" class="review-form" novalidate>
         {% csrf_token %}
         {{ form.website }}
+        {% lead_security_fields "store_review" %}
 
         <div class="review-grid">
           <div class="review-field{% if form.reviewer_name.errors %} review-field--error{% endif %}">
@@ -142,7 +144,38 @@
     background: rgba(59,0,0,.8);
   }
 
+  .review-page{
+    overflow-x: clip;
+  }
+  .review-page__head{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) auto;
+    align-items:start;
+    gap:1rem 1.25rem;
+  }
+  .review-page__intro{
+    min-width:0;
+  }
+  .review-page__intro .section__desc{
+    max-width:34rem;
+  }
+  .review-page__back{
+    align-self:start;
+    justify-self:end;
+    white-space:normal;
+    text-align:center;
+  }
+
+  .review-form-card{
+    padding:1.2rem;
+    overflow:hidden;
+  }
   .review-form{ display:flex; flex-direction:column; gap:1rem; }
+  .review-form,
+  .review-grid,
+  .review-field{
+    min-width:0;
+  }
   .review-grid{
     display:grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -150,6 +183,16 @@
   }
   .review-field{ display:flex; flex-direction:column; gap:.35rem; }
   .review-field label{ font-weight:800; font-size:.85rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .review-field .field{
+    display:block;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+  }
+  .review-field textarea.field{
+    min-height:9.5rem;
+    resize:vertical;
+  }
   .review-field--full{ grid-column: 1 / -1; }
   .review-field__error{ margin-top:.25rem; color:#ffb4b4; font-size:.85rem; }
   .review-field--error .field{ border-color: rgba(255,138,128,.55); box-shadow: 0 0 0 2px rgba(255,138,128,.12); }
@@ -173,9 +216,39 @@
   .review-author{ color: var(--muted); font-weight: 700; margin: 0; font-size: .9rem; }
 
   @media (max-width: 900px){
+    .review-page{
+      padding-top:1.5rem;
+      padding-bottom:calc(8rem + env(safe-area-inset-bottom));
+    }
+    .review-page__head{
+      grid-template-columns:1fr;
+      gap:.9rem;
+      align-items:start;
+    }
+    .review-page__back{
+      width:100%;
+      justify-self:stretch;
+      justify-content:center;
+    }
+    .review-form-card{
+      padding:1rem;
+    }
     .review-grid{ grid-template-columns: 1fr; }
     .review-actions{ width:100%; }
-    .review-actions .btn{ width:auto; }
+    .review-actions .btn{ width:100%; min-width:0; }
+  }
+
+  @media (max-width: 520px){
+    .review-page__intro .section__title{
+      font-size:1.45rem;
+    }
+    .review-field label{
+      font-size:.8rem;
+    }
+    .review-form-card{
+      border-radius:.95rem;
+    }
   }
 </style>
+{% include "includes/lead_security_script.html" %}
 {% endblock %}

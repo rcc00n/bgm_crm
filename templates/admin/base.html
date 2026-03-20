@@ -89,23 +89,146 @@
                 {% endfor %}
             </ul>
 
-            {% if jazzmin_settings.search_model %}
-                {% for search_model in jazzmin_settings.search_models_parsed %}
-                    <form action="{{ search_model.search_url }}" method="GET" class="form-inline ml-3">
-                        <div class="input-group input-group-sm">
-                            <input class="form-control form-control-navbar" name="q" type="search" placeholder="{% trans 'Search' %} {{ search_model.search_name }}..." aria-label="{% trans 'Search' %} {{ search_model.search_name }}...">
-                            <div class="input-group-append">
-                                <button class="btn btn-navbar" type="submit">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                {% endfor %}
-            {% endif %}
-
+            {% build_admin_shell as admin_shell %}
             {% build_admin_notifications as admin_notifications %}
+            {% build_admin_whats_new as admin_whats_new %}
+            <form
+                action="{% url 'admin-global-search' %}"
+                method="GET"
+                class="admin-global-search"
+                data-search-suggest-url="{% url 'admin-global-search-suggest' %}"
+                data-favorite-toggle-url="{% url 'admin-favorite-toggle' %}"
+                data-track-url="{% url 'admin-navigation-track' %}"
+                data-current-url="{{ admin_shell.current_page.url|default:'' }}"
+                data-current-label="{{ admin_shell.current_page.label|default:'' }}"
+                data-current-icon="{{ admin_shell.current_page.icon|default:'fas fa-star' }}"
+                data-current-category="{{ admin_shell.current_page.category|default:'Admin' }}"
+                data-current-note="{{ admin_shell.current_page.note|default:'' }}"
+            >
+                <div class="admin-global-search__field">
+                    <i class="fas fa-search admin-global-search__lead" aria-hidden="true"></i>
+                    <input
+                        class="admin-global-search__input"
+                        name="q"
+                        type="search"
+                        autocomplete="off"
+                        placeholder="Search admin pages, products, orders, clients, leads"
+                        aria-label="Search admin pages, products, orders, clients, leads"
+                    >
+                    <button
+                        type="button"
+                        class="admin-global-search__favorite{% if admin_shell.is_favorite %} is-active{% endif %}"
+                        title="{% if admin_shell.is_favorite %}Remove current page from favorites{% else %}Save current page to favorites{% endif %}"
+                        aria-label="{% if admin_shell.is_favorite %}Remove current page from favorites{% else %}Save current page to favorites{% endif %}"
+                        data-favorite-toggle
+                    >
+                        <i class="{% if admin_shell.is_favorite %}fas{% else %}far{% endif %} fa-star" aria-hidden="true"></i>
+                    </button>
+                    <button class="admin-global-search__submit" type="submit">
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="admin-global-search__dropdown hidden" data-search-results></div>
+            </form>
             <ul class="navbar-nav ml-auto">
+                <li class="nav-item dropdown admin-notify admin-favorites">
+                    <a class="nav-link btn" data-toggle="dropdown" href="#" title="Favorites">
+                        <i class="far fa-star" aria-hidden="true"></i>
+                        {% if admin_shell.favorites %}
+                            <span class="admin-notify-badge">{{ admin_shell.favorites|length }}</span>
+                        {% endif %}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right admin-notify-menu admin-favorites-menu">
+                        <div class="admin-notify-menu__header">
+                            <span class="dropdown-header">Favorites</span>
+                            <span class="admin-favorites-menu__hint">Star any admin page to pin it here.</span>
+                        </div>
+                        {% if admin_shell.favorites %}
+                            {% for item in admin_shell.favorites %}
+                                <div class="dropdown-divider"></div>
+                                <a href="{{ item.url }}" class="dropdown-item admin-notify-item">
+                                    <i class="{{ item.icon }} admin-notify-item__icon" aria-hidden="true"></i>
+                                    <div class="admin-notify-item__body">
+                                        <div class="admin-notify-item__title">{{ item.label }}</div>
+                                        <div class="admin-notify-item__meta">
+                                            {{ item.category }}{% if item.note %} · {{ item.note }}{% endif %}
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <div class="dropdown-divider"></div>
+                            <div class="admin-notify-empty">
+                                No favorites yet. Save your most-used pages with the star in the search bar.
+                            </div>
+                        {% endif %}
+                        <div class="dropdown-divider"></div>
+                        <div class="admin-favorites-menu__recent-title">Recent pages</div>
+                        {% if admin_shell.recent_pages %}
+                            {% for item in admin_shell.recent_pages %}
+                                <a href="{{ item.url }}" class="dropdown-item admin-notify-item">
+                                    <i class="{{ item.icon }} admin-notify-item__icon" aria-hidden="true"></i>
+                                    <div class="admin-notify-item__body">
+                                        <div class="admin-notify-item__title">{{ item.label }}</div>
+                                        <div class="admin-notify-item__meta">
+                                            {{ item.category }}{% if item.note %} · {{ item.note }}{% endif %}
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <div class="admin-notify-empty">
+                                Recent pages will appear here as you move through the admin.
+                            </div>
+                        {% endif %}
+                    </div>
+                </li>
+
+                <li class="nav-item dropdown admin-notify admin-whats-new">
+                    <a class="nav-link btn" data-toggle="dropdown" href="#" title="What's New">
+                        <i class="far fa-lightbulb" aria-hidden="true"></i>
+                        {% if admin_whats_new.unseen_count %}
+                            <span class="admin-notify-badge">{{ admin_whats_new.unseen_count }}</span>
+                        {% endif %}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right admin-notify-menu">
+                        <div class="admin-notify-menu__header">
+                            <span class="dropdown-header">What's New</span>
+                            <form method="post" action="{% url 'admin-releases-read-all' %}" class="admin-notify-readall-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button
+                                    type="submit"
+                                    class="btn btn-sm btn-outline-secondary admin-notify-readall-btn"
+                                    {% if not admin_whats_new.unseen_count %}disabled aria-disabled="true"{% endif %}
+                                >
+                                    {% trans 'Read all' %}
+                                </button>
+                            </form>
+                        </div>
+                        {% if admin_whats_new.releases %}
+                            {% for release in admin_whats_new.releases %}
+                                <div class="dropdown-divider"></div>
+                                <a href="{% url 'admin-whats-new' %}" class="dropdown-item admin-notify-item">
+                                    <div class="admin-notify-item__body">
+                                        <div class="admin-notify-item__title">{{ release.title }}</div>
+                                        <div class="admin-notify-item__meta">
+                                            {{ release.published_at|date:"M d, Y H:i" }}{% if release.summary %} · {{ release.summary }}{% endif %}
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-chevron-right admin-notify-item__chev" aria-hidden="true"></i>
+                                </a>
+                            {% endfor %}
+                            <div class="dropdown-divider"></div>
+                            <a href="{% url 'admin-whats-new' %}" class="dropdown-item dropdown-footer">Open full release history</a>
+                        {% else %}
+                            <div class="dropdown-divider"></div>
+                            <div class="admin-notify-empty">
+                                No admin releases yet.
+                            </div>
+                        {% endif %}
+                    </div>
+                </li>
 
                 {% if jazzmin_settings.show_ui_builder %}
                 <li class="nav-item">

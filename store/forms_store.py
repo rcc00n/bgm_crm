@@ -13,6 +13,7 @@ from .models import (
     Category,
     CarMake,
     CarModel,
+    StoreInventorySettings,
     CustomFitmentRequest,
     StoreReview,
 )
@@ -123,6 +124,15 @@ class ProductAdminForm(forms.ModelForm):
         # update underlying JSON field from human-readable text
         self.instance.specs = parse_specs_text(text)
         return cleaned
+
+
+class StoreInventorySettingsAdminForm(forms.ModelForm):
+    class Meta:
+        model = StoreInventorySettings
+        fields = ("low_stock_threshold", "allow_out_of_stock_orders")
+        widgets = {
+            "low_stock_threshold": forms.NumberInput(attrs={"min": 0, "step": 1}),
+        }
 
 
 # =========================
@@ -370,6 +380,27 @@ class StoreReviewForm(forms.ModelForm):
         if value:
             raise forms.ValidationError("Invalid submission.")
         return ""
+
+    def clean_reviewer_name(self):
+        value = " ".join((self.cleaned_data.get("reviewer_name") or "").split())
+        if "@" in value or "http://" in value.lower() or "https://" in value.lower() or "www." in value.lower():
+            raise forms.ValidationError("Enter a valid name.")
+        return value
+
+    def clean_title(self):
+        value = " ".join((self.cleaned_data.get("title") or "").split())
+        if "http://" in value.lower() or "https://" in value.lower() or "www." in value.lower():
+            raise forms.ValidationError("Links are not allowed in review titles.")
+        return value
+
+    def clean_body(self):
+        value = " ".join((self.cleaned_data.get("body") or "").split())
+        word_count = len([word for word in value.replace("\n", " ").split(" ") if word.strip()])
+        if len(value) < 12 or word_count < 2:
+            raise forms.ValidationError("Please add a little more detail to your review.")
+        if "http://" in value.lower() or "https://" in value.lower() or "www." in value.lower():
+            raise forms.ValidationError("Links are not allowed in reviews.")
+        return value
 
 
 # =========================

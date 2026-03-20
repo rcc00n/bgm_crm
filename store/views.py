@@ -10,13 +10,14 @@ import json
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.core.paginator import Paginator
 from django.core.files.base import File
 from django.core.exceptions import ValidationError
 from core.email_templates import base_email_context, email_brand_name, join_text_sections, render_email_template
 from core.emails import build_email_html, send_html_email
 from django.core.validators import validate_email
 from django.db import transaction
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.urls import reverse
@@ -35,11 +36,14 @@ from .models import (
     Product,
     ProductOption,
     StoreReview,
+    StoreInventorySettings,
+    StoreShippingSettings,
     CarMake,
     CarModel,
 )
 from .forms_store import ProductFilterForm, CustomFitmentRequestForm, StoreReviewForm
 from .printful_fulfillment import (
+    _refresh_merch_option_mapping,
     cart_is_merch_only,
     get_checkout_printful_shipping,
     get_printful_webhook_secret,
@@ -60,6 +64,73 @@ REFERENCE_IMAGE_MAX_MB = getattr(settings, "STORE_REFERENCE_IMAGE_MAX_MB", 8)
 REFERENCE_IMAGE_MAX_BYTES = int(REFERENCE_IMAGE_MAX_MB * 1024 * 1024)
 
 PAYMENT_QUANT = Decimal("0.01")
+FREE_STICKER_THRESHOLD_FALLBACK = Decimal("90.00")
+
+
+def _allow_out_of_stock_orders() -> bool:
+    return StoreInventorySettings.get_allow_out_of_stock_orders()
+
+
+def _cart_quantity_for_product(session, product_id: int) -> int:
+    quantity = 0
+    for item in _cart(session).get("items", []):
+        if item.get("product_id") != product_id:
+            continue
+        try:
+            quantity += max(0, int(item.get("qty") or 0))
+        except (TypeError, ValueError):
+            continue
+    return quantity
+
+
+def _inventory_error_for_product(product, *, requested_qty: int = 1, current_cart_qty: int = 0) -> str:
+    if not product or _allow_out_of_stock_orders():
+        return ""
+    try:
+        requested_qty = max(1, int(requested_qty or 1))
+    except (TypeError, ValueError):
+        requested_qty = 1
+    try:
+        current_cart_qty = max(0, int(current_cart_qty or 0))
+    except (TypeError, ValueError):
+        current_cart_qty = 0
+    available = getattr(product, "available_inventory", None)
+    if available is None:
+        try:
+            available = max(0, int(getattr(product, "inventory", 0) or 0))
+        except (TypeError, ValueError):
+            available = 0
+    requested_total = current_cart_qty + requested_qty
+    if available <= 0:
+        return f'"{product.name}" is out of stock right now.'
+    if requested_total > available:
+        if current_cart_qty:
+            return f'Only {available} left for "{product.name}". Your cart already has {current_cart_qty}.'
+        return f'Only {available} left for "{product.name}".'
+    return ""
+
+
+def _inventory_errors_for_positions(positions: Iterable[dict]) -> list[str]:
+    if _allow_out_of_stock_orders():
+        return []
+    errors: list[str] = []
+    seen: set[tuple[int, int]] = set()
+    for entry in positions or []:
+        product = entry.get("product")
+        if not product:
+            continue
+        try:
+            qty = max(1, int(entry.get("qty") or 1))
+        except (TypeError, ValueError):
+            qty = 1
+        key = (int(getattr(product, "pk", 0) or 0), qty)
+        if key in seen:
+            continue
+        seen.add(key)
+        error = _inventory_error_for_product(product, requested_qty=qty, current_cart_qty=0)
+        if error:
+            errors.append(error)
+    return errors
 
 
 def _validate_reference_image(uploaded_file) -> str:
@@ -76,6 +147,167 @@ def _validate_reference_image(uploaded_file) -> str:
     except (UnidentifiedImageError, OSError):
         return "Unsupported image. Use JPG, PNG, or WEBP."
     return ""
+
+
+def _normalize_review_text(value: str) -> str:
+    return " ".join(str(value or "").split())
+
+
+def _looks_generated_review_name(value: str) -> bool:
+    raw = (value or "").strip()
+    if not raw or len(raw) < 16:
+        return False
+    if any(sep in raw for sep in (" ", "-", "'", ".")):
+        return False
+    letters = "".join(ch for ch in raw if ch.isalpha())
+    if len(letters) < 16:
+        return False
+    mid_uppercase = sum(1 for ch in raw[1:] if ch.isupper())
+    vowels = sum(1 for ch in letters.lower() if ch in "aeiouy")
+    vowel_ratio = vowels / max(len(letters), 1)
+    return mid_uppercase >= 3 and vowel_ratio < 0.34
+
+
+def _looks_generated_review_text(value: str) -> bool:
+    raw = _normalize_review_text(value)
+    if len(raw) < 24:
+        return False
+    if " " not in raw:
+        return True
+    letters = [ch.lower() for ch in raw if ch.isalpha()]
+    if len(letters) < 20:
+        return False
+    vowels = sum(1 for ch in letters if ch in "aeiouy")
+    vowel_ratio = vowels / len(letters)
+    return vowel_ratio < 0.24
+
+
+def _review_spam_flags(*, cleaned_data: dict, evaluation) -> list[str]:
+    flags: list[str] = []
+    reviewer_name = _normalize_review_text(cleaned_data.get("reviewer_name") or "")
+    title = _normalize_review_text(cleaned_data.get("title") or "")
+    body = _normalize_review_text(cleaned_data.get("body") or "")
+
+    if _looks_generated_review_name(reviewer_name):
+        flags.append("gibberish_name")
+    if title and _looks_generated_review_name(title):
+        flags.append("gibberish_title")
+    if _looks_generated_review_text(body):
+        flags.append("gibberish_body")
+    if evaluation and evaluation.action == "suspect":
+        flags.append("suspect_score")
+
+    return flags
+
+
+def _handle_review_submission(
+    *,
+    request,
+    form,
+    success_redirect: str,
+    product=None,
+):
+    email = (request.POST.get("reviewer_email") or "").strip()
+    evaluation = evaluate_lead_submission(request, purpose="store_review", email=email)
+
+    if evaluation.action == "rate_limited":
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="rate_limited",
+            success=False,
+            validation_errors="rate_limited",
+        )
+        form.add_error(None, "Please wait a few minutes before sending another review.")
+        return None, form
+
+    if evaluation.honeypot_hit:
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="honeypot",
+        )
+        notification_services.queue_lead_digest(
+            form_type="store_review",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        return redirect(success_redirect), form
+
+    if not evaluation.token_valid:
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors=f"token:{evaluation.token_error or 'invalid'}",
+        )
+        if evaluation.token_error == "too_fast":
+            form.add_error(None, "Please wait a moment and try again.")
+        else:
+            form.add_error(None, "Please refresh the page and try again.")
+        return None, form
+
+    if evaluation.action == "blocked":
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="score_block",
+        )
+        notification_services.queue_lead_digest(
+            form_type="store_review",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        return redirect(success_redirect), form
+
+    if not form.is_valid():
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="rejected",
+            success=False,
+            validation_errors=form.errors.as_text(),
+        )
+        return None, form
+
+    spam_flags = _review_spam_flags(cleaned_data=form.cleaned_data, evaluation=evaluation)
+    if spam_flags:
+        log_lead_submission(
+            form_type="store_review",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="review_spam:" + ",".join(spam_flags),
+        )
+        notification_services.queue_lead_digest(
+            form_type="store_review",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        return redirect(success_redirect), form
+
+    review = form.save(commit=False)
+    review.product = product
+    review.status = StoreReview.Status.PENDING
+    review.source_url = request.build_absolute_uri()
+    if request.user.is_authenticated:
+        review.user = request.user
+    review.save()
+    log_lead_submission(
+        form_type="store_review",
+        evaluation=evaluation,
+        outcome="accepted",
+        success=True,
+    )
+    return redirect(success_redirect), form
 
 
 def _resolve_client_file_owner(*, request_user=None, email: str = ""):
@@ -318,6 +550,17 @@ def _apply_filters(qs, form: ProductFilterForm):
         )
 
     return qs.distinct()
+
+
+def _exclude_merch_products(qs):
+    """
+    Keep Printful / merch catalog off the main /store/ storefront.
+    """
+    return qs.exclude(
+        Q(category__slug="merch")
+        | Q(sku__startswith="PF-")
+        | Q(slug__startswith="merch-")
+    )
 
 
 def _normalize_search_text(text: str) -> str:
@@ -728,7 +971,6 @@ def _send_order_confirmation(
 
 
 def store_home(request):
-    categories = Category.objects.filter(products__is_active=True).distinct()
     form_data = request.GET.copy()
     if form_data.get("cat") and not form_data.get("category"):
         form_data["category"] = form_data.get("cat")
@@ -736,12 +978,15 @@ def store_home(request):
     form = ProductFilterForm(form_data or None)
 
     base_qs = (
-        Product.objects.filter(is_active=True)
+        _exclude_merch_products(Product.objects.filter(is_active=True))
         .select_related("category")
         .prefetch_related("compatible_models", "options", "discounts")
         # Show in-house products first across the storefront.
         .order_by("-is_in_house", "-created_at")
     )
+    categories = Category.objects.filter(products__in=base_qs).distinct()
+    form.fields["category"].queryset = categories
+    form.fields["category"].label_from_instance = lambda obj: obj.display_name
 
     filtered_qs = _apply_filters(base_qs, form)
     if q:
@@ -760,12 +1005,44 @@ def store_home(request):
     # Блок "New arrivals" показываем только если фильтр НЕ применён
     filters_active = bool(q) or (form.is_valid() and any(form.cleaned_data.values()))
     new_arrivals = None if filters_active else base_qs[:8]
+    page_obj = None
+    pagination_pages = []
+    prev_page_url = ""
+    next_page_url = ""
+    if filters_active:
+        paginator = Paginator(filtered_qs, 50)
+        page_obj = paginator.get_page(request.GET.get("page") or 1)
+
+        def _page_url(page_number: int) -> str:
+            params = request.GET.copy()
+            if page_number <= 1:
+                params.pop("page", None)
+            else:
+                params["page"] = str(page_number)
+            query_string = params.urlencode()
+            return f"{reverse('store:store')}?{query_string}" if query_string else reverse("store:store")
+
+        if page_obj.has_previous():
+            prev_page_url = _page_url(page_obj.previous_page_number())
+        if page_obj.has_next():
+            next_page_url = _page_url(page_obj.next_page_number())
+        for item in paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1):
+            if isinstance(item, int):
+                pagination_pages.append(
+                    {
+                        "number": item,
+                        "url": _page_url(item),
+                        "is_current": item == page_obj.number,
+                    }
+                )
+            else:
+                pagination_pages.append({"label": str(item), "is_ellipsis": True})
 
     # Секции по всем категориям
     sections = []
     for c in categories:
         cat_base = (
-            Product.objects.filter(is_active=True, category=c)
+            _exclude_merch_products(Product.objects.filter(is_active=True, category=c))
             .select_related("category")
             .prefetch_related("options", "discounts")
             # Show in-house products first inside each category preview.
@@ -778,11 +1055,15 @@ def store_home(request):
         "categories": categories,
         "filter_form": form,
         "filters_active": filters_active,
-        "products": filtered_qs[:24],  # общий грид результатов при активных фильтрах
+        "products": list(page_obj.object_list) if page_obj else [],
         "new_arrivals": new_arrivals,
         "sections": sections,
         "store_copy": StorePageCopy.get_solo(),
         "q": q,
+        "page_obj": page_obj,
+        "pagination_pages": pagination_pages,
+        "prev_page_url": prev_page_url,
+        "next_page_url": next_page_url,
     }
     context["page_sections"] = get_page_sections(context["store_copy"])
     context["font_settings"] = build_page_font_context(PageFontSetting.Page.STORE)
@@ -797,7 +1078,7 @@ def product_search(request):
         cat = ""
 
     all_qs = (
-        Product.objects.filter(is_active=True)
+        _exclude_merch_products(Product.objects.filter(is_active=True))
         .select_related("category")
         .prefetch_related("options", "discounts")
     )
@@ -941,6 +1222,14 @@ def product_detail(request, slug: str):
     review_stats = approved_reviews_qs.aggregate(avg=Avg("rating"), count=Count("id"))
     approved_reviews = list(approved_reviews_qs[:12])
     review_submitted = request.GET.get("review_submitted") == "1"
+    out_of_stock_orders_allowed = _allow_out_of_stock_orders()
+    product_can_order = bool(product.contact_for_estimate) or out_of_stock_orders_allowed or not product.is_out_of_stock
+    product_inventory_notice = ""
+    if not product.contact_for_estimate:
+        if not out_of_stock_orders_allowed and product.is_out_of_stock:
+            product_inventory_notice = "Out of stock right now. This item can't be ordered until inventory is updated."
+        elif product.is_low_stock:
+            product_inventory_notice = f"Only {product.available_inventory} left in stock."
 
     if request.method == "POST":
         form_type = (request.POST.get("form_type") or "").strip()
@@ -1068,15 +1357,14 @@ def product_detail(request, slug: str):
             messages.error(request, "Please correct the fields highlighted below.")
         elif form_type == "product_review":
             review_form = StoreReviewForm(request.POST)
-            if review_form.is_valid():
-                review = review_form.save(commit=False)
-                review.product = product
-                review.status = StoreReview.Status.PENDING
-                review.source_url = request.build_absolute_uri()
-                if request.user.is_authenticated:
-                    review.user = request.user
-                review.save()
-                return redirect(product.get_absolute_url() + "?review_submitted=1#reviews")
+            response, review_form = _handle_review_submission(
+                request=request,
+                form=review_form,
+                product=product,
+                success_redirect=product.get_absolute_url() + "?review_submitted=1#reviews",
+            )
+            if response is not None:
+                return response
 
     return render(
         request,
@@ -1097,6 +1385,9 @@ def product_detail(request, slug: str):
             "reviews_avg": review_stats.get("avg"),
             "reviews_count": review_stats.get("count") or 0,
             "review_submitted": review_submitted,
+            "product_can_order": product_can_order,
+            "product_inventory_notice": product_inventory_notice,
+            "out_of_stock_orders_allowed": out_of_stock_orders_allowed,
         },
     )
 
@@ -1119,14 +1410,13 @@ def leave_review(request):
 
     if request.method == "POST":
         form = StoreReviewForm(request.POST)
-        if form.is_valid():
-            review = form.save(commit=False)
-            review.status = StoreReview.Status.PENDING
-            review.source_url = request.build_absolute_uri()
-            if request.user.is_authenticated:
-                review.user = request.user
-            review.save()
-            return redirect(f"{reverse('leave-review')}?submitted=1")
+        response, form = _handle_review_submission(
+            request=request,
+            form=form,
+            success_redirect=f"{reverse('leave-review')}?submitted=1",
+        )
+        if response is not None:
+            return response
 
     approved_reviews = list(
         StoreReview.objects.filter(
@@ -1287,6 +1577,134 @@ def _is_merch_product(product) -> bool:
     sku = (getattr(product, "sku", "") or "").strip().upper()
     slug = (getattr(product, "slug", "") or "").strip().lower()
     return category_slug == "merch" or sku.startswith("PF-") or slug.startswith("merch-")
+
+
+def _free_sticker_threshold() -> Decimal:
+    threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
+    if threshold:
+        return threshold
+    return FREE_STICKER_THRESHOLD_FALLBACK
+
+
+def _is_sticker_product(product) -> bool:
+    if not _is_merch_product(product):
+        return False
+    merch_category_slug = (getattr(getattr(product, "merch_category", None), "slug", "") or "").strip().lower()
+    name = (getattr(product, "name", "") or "").strip().lower()
+    slug = (getattr(product, "slug", "") or "").strip().lower()
+    return merch_category_slug == "stickers" or any(token in name or token in slug for token in ("sticker", "decal"))
+
+
+def _is_small_sticker_option(option) -> bool:
+    normalized = (getattr(option, "name", "") or "").strip().lower()
+    if not normalized:
+        return False
+    normalized = normalized.replace("×", "x")
+    normalized = re.sub(r"[^a-z0-9x.]+", "", normalized)
+    return normalized.startswith("3x3")
+
+
+def _serialize_free_sticker_choice(*, product_id: int, option_id: int | None) -> str:
+    return f"{int(product_id)}:{int(option_id or 0)}"
+
+
+def _resolve_valid_free_sticker_option(product, option):
+    if not product or not option:
+        return None
+    variant_id = getattr(option, "printful_variant_id", None)
+    sync_variant_id = getattr(option, "printful_sync_variant_id", None)
+    if variant_id and sync_variant_id:
+        return option
+    refreshed = _refresh_merch_option_mapping(product, option)
+    if getattr(refreshed, "printful_variant_id", None) and getattr(refreshed, "printful_sync_variant_id", None):
+        return refreshed
+    return None
+
+
+def _build_free_sticker_choices() -> list[dict]:
+    sticker_products = (
+        Product.objects.filter(is_active=True, category__slug="merch")
+        .filter(
+            Q(merch_category__slug="stickers")
+            | Q(name__icontains="sticker")
+            | Q(name__icontains="decal")
+            | Q(slug__icontains="sticker")
+            | Q(slug__icontains="decal")
+        )
+        .select_related("category", "merch_category")
+        .prefetch_related(
+            Prefetch(
+                "options",
+                queryset=ProductOption.objects.filter(is_active=True, is_separator=False).order_by("sort_order", "id"),
+            )
+        )
+        .order_by("name", "id")
+    )
+
+    choices: list[dict] = []
+    for product in sticker_products:
+        if not _is_sticker_product(product):
+            continue
+        options = product.get_selectable_options()
+        option = None
+        if not options:
+            continue
+        for candidate in options:
+            if not _is_small_sticker_option(candidate):
+                continue
+            option = _resolve_valid_free_sticker_option(product, candidate)
+            if option is not None:
+                break
+        if option is None:
+            continue
+        value = _serialize_free_sticker_choice(product_id=product.id, option_id=getattr(option, "id", None))
+        option_label = (getattr(option, "name", "") or "").strip()
+        title = (product.name or "").strip() or "Free sticker"
+        summary_label = f"{title} ({option_label})" if option_label else title
+        choices.append(
+            {
+                "value": value,
+                "product": product,
+                "option": option,
+                "title": title,
+                "option_label": option_label,
+                "summary_label": summary_label,
+            }
+        )
+    return choices
+
+
+def _find_selected_free_sticker(raw_value: str, choices: list[dict]) -> dict | None:
+    selected = (raw_value or "").strip()
+    if not selected:
+        return None
+    for choice in choices or []:
+        if choice.get("value") == selected:
+            return choice
+    return None
+
+
+def _default_free_sticker_choice(choices: list[dict]) -> dict | None:
+    return (choices or [None])[0]
+
+
+def _positions_with_free_sticker(positions: list[dict], free_sticker_choice: dict | None) -> list[dict]:
+    if not free_sticker_choice:
+        return positions
+    extra_position = {
+        "product": free_sticker_choice["product"],
+        "option": free_sticker_choice.get("option"),
+        "qty": 1,
+        "unit_price": Decimal("0.00"),
+        "line_total": Decimal("0.00"),
+    }
+    return [*(positions or []), extra_position]
+
+
+def _free_sticker_available_for_delivery(*, cart_is_merch_checkout: bool, delivery_method: str) -> bool:
+    if cart_is_merch_checkout:
+        return True
+    return (delivery_method or "shipping").strip().lower() != "pickup"
 
 
 def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: PromoCode | None = None):
@@ -1540,6 +1958,15 @@ def cart_add(request, slug: str):
     except (TypeError, ValueError):
         qty = 1
     qty = max(1, qty)
+    current_cart_qty = _cart_quantity_for_product(request.session, product.id)
+    inventory_error = _inventory_error_for_product(
+        product,
+        requested_qty=qty,
+        current_cart_qty=current_cart_qty,
+    )
+    if inventory_error:
+        messages.error(request, inventory_error)
+        return redirect("store:store-product", slug=product.slug)
 
     cart_positions, _, _ = _cart_positions(
         request.session,
@@ -1783,7 +2210,7 @@ def cart_remove(request, slug: str):
 @require_POST
 def checkout_printful_rates(request):
     dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
-    positions, _, _ = _cart_positions(
+    positions, total, _ = _cart_positions(
         request.session,
         dealer_discount=dealer_discount,
         user=request.user if request.user.is_authenticated else None,
@@ -1806,6 +2233,10 @@ def checkout_printful_rates(request):
             }
         )
 
+    threshold = _free_sticker_threshold()
+    free_sticker_choices = []
+    if positions and threshold and total >= threshold:
+        free_sticker_choices = _build_free_sticker_choices()
     form = {
         "customer_name": (request.POST.get("customer_name") or "").strip(),
         "email": (request.POST.get("email") or "").strip(),
@@ -1816,13 +2247,33 @@ def checkout_printful_rates(request):
         "region": (request.POST.get("region") or "").strip(),
         "postal_code": (request.POST.get("postal_code") or "").strip(),
         "country": (request.POST.get("country") or "").strip(),
+        "free_sticker_choice": (request.POST.get("free_sticker_choice") or "").strip(),
     }
+    selected_free_sticker = _find_selected_free_sticker(form["free_sticker_choice"], free_sticker_choices)
     shipping_quote = get_checkout_printful_shipping(
-        positions=positions,
+        positions=_positions_with_free_sticker(positions, selected_free_sticker),
         form=form,
         selected_rate_id=(request.POST.get("printful_shipping_rate_id") or "").strip(),
         require_complete=False,
     )
+    shipping_quote.setdefault("free_sticker_reset", False)
+    shipping_quote.setdefault("free_sticker_error", "")
+    if selected_free_sticker and shipping_quote["error"] and not shipping_quote["rates"]:
+        fallback_quote = get_checkout_printful_shipping(
+            positions=positions,
+            form=form,
+            selected_rate_id=(request.POST.get("printful_shipping_rate_id") or "").strip(),
+            require_complete=False,
+        )
+        fallback_quote.setdefault("free_sticker_reset", False)
+        fallback_quote.setdefault("free_sticker_error", "")
+        if fallback_quote["rates"] or not fallback_quote["error"]:
+            form["free_sticker_choice"] = ""
+            shipping_quote = fallback_quote
+            shipping_quote["free_sticker_reset"] = True
+            shipping_quote["free_sticker_error"] = (
+                "The selected free sticker is unavailable right now. It was removed so live shipping could load."
+            )
     status = 200
     if shipping_quote["error"] and not shipping_quote["rates"]:
         status = 400
@@ -1836,6 +2287,8 @@ def checkout_printful_rates(request):
             "shipping_currency": shipping_quote["shipping_currency"],
             "error": shipping_quote["error"],
             "field_errors": shipping_quote["errors"],
+            "free_sticker_reset": shipping_quote["free_sticker_reset"],
+            "free_sticker_error": shipping_quote["free_sticker_error"],
         },
         status=status,
     )
@@ -1900,6 +2353,11 @@ def checkout(request):
     has_dealer_discount = any(entry.get("discount_type") == "dealer" for entry in (positions or []))
     effective_dealer_discount = int(dealer_discount or 0) if has_dealer_discount else 0
     cart_is_merch_checkout = cart_is_merch_only(positions)
+    free_sticker_threshold = _free_sticker_threshold()
+    free_sticker_choices = []
+    if positions and free_sticker_threshold and total >= free_sticker_threshold:
+        free_sticker_choices = _build_free_sticker_choices()
+    free_sticker_eligible = bool(free_sticker_choices)
     promo_applied = any(entry.get("discount_type") == "promo" for entry in (positions or []))
     promo_savings = sum((entry.get("promo_savings") or Decimal("0.00")) for entry in (positions or []))
     if promo_savings:
@@ -1937,6 +2395,7 @@ def checkout(request):
         "pay_mode": pay_mode,
         "payment_method": payment_method,
         "printful_shipping_rate_id": "",
+        "free_sticker_choice": "",
     }
 
     def _empty_shipping_quote() -> dict:
@@ -1945,12 +2404,64 @@ def checkout(request):
             "selected_rate_id": "",
             "selected_rate": None,
             "shipping_cost": Decimal("0.00"),
+            "quoted_shipping_cost": Decimal("0.00"),
             "shipping_name": "",
             "shipping_currency": "",
             "recipient": {},
             "errors": {},
             "error": "",
+            "free_shipping_applied": False,
+            "free_sticker_reset": False,
+            "free_sticker_error": "",
         }
+
+    def _load_merch_shipping_quote(
+        form_payload: dict,
+        *,
+        require_complete_merch_rate: bool = False,
+        free_sticker_visible: bool,
+        auto_free_sticker_choice: dict | None,
+    ) -> tuple[dict, dict | None]:
+        selected_free_sticker = auto_free_sticker_choice
+        if free_sticker_visible:
+            selected_free_sticker = _find_selected_free_sticker(
+                form_payload.get("free_sticker_choice", ""),
+                free_sticker_choices,
+            )
+        shipping_quote = _empty_shipping_quote()
+        if not cart_is_merch_checkout:
+            return shipping_quote, selected_free_sticker
+
+        selected_rate_id = (form_payload.get("printful_shipping_rate_id") or "").strip()
+        shipping_quote = get_checkout_printful_shipping(
+            positions=_positions_with_free_sticker(positions, selected_free_sticker),
+            form=form_payload,
+            selected_rate_id=selected_rate_id,
+            require_complete=require_complete_merch_rate,
+        )
+        shipping_quote.setdefault("free_sticker_reset", False)
+        shipping_quote.setdefault("free_sticker_error", "")
+
+        if not selected_free_sticker or shipping_quote.get("rates") or not shipping_quote.get("error"):
+            return shipping_quote, selected_free_sticker
+
+        fallback_quote = get_checkout_printful_shipping(
+            positions=positions,
+            form=form_payload,
+            selected_rate_id=selected_rate_id,
+            require_complete=require_complete_merch_rate,
+        )
+        fallback_quote.setdefault("free_sticker_reset", False)
+        fallback_quote.setdefault("free_sticker_error", "")
+        if fallback_quote.get("error") and not fallback_quote.get("rates"):
+            return shipping_quote, selected_free_sticker
+
+        form_payload["free_sticker_choice"] = ""
+        fallback_quote["free_sticker_reset"] = True
+        fallback_quote["free_sticker_error"] = (
+            "The selected free sticker is unavailable right now. It was removed so live shipping could load."
+        )
+        return fallback_quote, None
 
     def _build_payment_options(
         *,
@@ -1978,13 +2489,21 @@ def checkout(request):
     def _recompute_totals_for_form(form_payload: dict, *, require_complete_merch_rate: bool = False):
         shipping_quote = _empty_shipping_quote()
         shipping_cost = Decimal("0.00")
+        free_sticker_available = _free_sticker_available_for_delivery(
+            cart_is_merch_checkout=cart_is_merch_checkout,
+            delivery_method=form_payload.get("delivery_method", "shipping"),
+        )
+        free_sticker_visible = bool(free_sticker_choices) and cart_is_merch_checkout and free_sticker_available
+        auto_free_sticker_choice = None
+        if bool(free_sticker_choices) and not cart_is_merch_checkout and free_sticker_available:
+            auto_free_sticker_choice = _default_free_sticker_choice(free_sticker_choices)
+        shipping_quote, selected_free_sticker = _load_merch_shipping_quote(
+            form_payload,
+            require_complete_merch_rate=require_complete_merch_rate,
+            free_sticker_visible=free_sticker_visible,
+            auto_free_sticker_choice=auto_free_sticker_choice,
+        )
         if cart_is_merch_checkout:
-            shipping_quote = get_checkout_printful_shipping(
-                positions=positions,
-                form=form_payload,
-                selected_rate_id=(form_payload.get("printful_shipping_rate_id") or "").strip(),
-                require_complete=require_complete_merch_rate,
-            )
             shipping_cost = shipping_quote["shipping_cost"].quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP)
 
         order_subtotal = (total + shipping_cost).quantize(PAYMENT_QUANT, rounding=ROUND_HALF_UP) if total else shipping_cost
@@ -2004,6 +2523,8 @@ def checkout(request):
                 order_total_with_fees=order_total_with_fees,
             ),
             shipping_quote,
+            selected_free_sticker,
+            free_sticker_visible,
         )
 
     (
@@ -2014,7 +2535,12 @@ def checkout(request):
         order_total_with_fees,
         payment_options,
         printful_shipping_quote,
+        selected_free_sticker,
+        free_sticker_visible,
     ) = _recompute_totals_for_form(form)
+    initial_inventory_errors = _inventory_errors_for_positions(positions)
+    if initial_inventory_errors:
+        errors["payment"] = "Inventory updated: " + " ".join(initial_inventory_errors)
 
     if request.method == "POST":
         def val(name, default=""):
@@ -2048,6 +2574,7 @@ def checkout(request):
             "pay_mode": pay_mode,
             "payment_method": payment_method,
             "printful_shipping_rate_id": (request.POST.get("printful_shipping_rate_id") or "").strip(),
+            "free_sticker_choice": (request.POST.get("free_sticker_choice") or "").strip(),
         }
         payment_method = val("payment_method", payment_method) or "card"
         if payment_method not in ("card", "etransfer"):
@@ -2062,6 +2589,8 @@ def checkout(request):
             order_total_with_fees,
             payment_options,
             printful_shipping_quote,
+            selected_free_sticker,
+            free_sticker_visible,
         ) = _recompute_totals_for_form(form, require_complete_merch_rate=cart_is_merch_checkout)
 
         if not form["customer_name"]:
@@ -2092,6 +2621,11 @@ def checkout(request):
                 errors["printful_shipping"] = printful_shipping_quote["error"]
             elif not printful_shipping_quote.get("selected_rate_id"):
                 errors["printful_shipping"] = "Select a live shipping option for this merch order."
+        if cart_is_merch_checkout and form["free_sticker_choice"] and not selected_free_sticker:
+            if not free_sticker_visible:
+                errors["free_sticker_choice"] = "Free sticker promo is available on shipping orders only."
+            else:
+                errors["free_sticker_choice"] = "Select one of the available free sticker options."
 
         if not form["agree"]:
             errors["agree"] = "You must agree to the terms."
@@ -2103,6 +2637,9 @@ def checkout(request):
 
         if any(getattr(it["product"], "contact_for_estimate", False) for it in positions):
             errors["payment"] = "Items that require an estimate must be invoiced manually. Please remove them to pay online."
+        inventory_errors = _inventory_errors_for_positions(positions)
+        if inventory_errors:
+            errors["payment"] = "Inventory updated: " + " ".join(inventory_errors)
 
         selected_payment = payment_options["full"]
         charge_amount = selected_payment["charge"]
@@ -2178,7 +2715,11 @@ def checkout(request):
             if "printful_shipping_name" in o_fields:
                 order_kwargs["printful_shipping_name"] = printful_shipping_quote.get("shipping_name", "")
             if "printful_shipping_cost" in o_fields:
-                order_kwargs["printful_shipping_cost"] = shipping_cost if cart_is_merch_checkout else Decimal("0.00")
+                order_kwargs["printful_shipping_cost"] = (
+                    printful_shipping_quote.get("quoted_shipping_cost", shipping_cost)
+                    if cart_is_merch_checkout else
+                    Decimal("0.00")
+                )
             if "printful_shipping_currency" in o_fields:
                 order_kwargs["printful_shipping_currency"] = printful_shipping_quote.get("shipping_currency", currency_code) if cart_is_merch_checkout else ""
 
@@ -2278,6 +2819,23 @@ def checkout(request):
                         item_kwargs[currency_field] = getattr(product, "currency", settings.DEFAULT_CURRENCY_CODE)
                     if option_field and it.get("option"):
                         item_kwargs[option_field] = it["option"]
+                    OrderItem.objects.create(**item_kwargs)
+
+                if selected_free_sticker:
+                    product = selected_free_sticker["product"]
+                    item_kwargs = {"order": order}
+                    if product_field:
+                        item_kwargs[product_field] = product
+                    if qty_field:
+                        item_kwargs[qty_field] = 1
+                    if price_field:
+                        item_kwargs[price_field] = Decimal("0.00")
+                    if line_field:
+                        item_kwargs[line_field] = Decimal("0.00")
+                    if currency_field:
+                        item_kwargs[currency_field] = getattr(product, "currency", settings.DEFAULT_CURRENCY_CODE)
+                    if option_field and selected_free_sticker.get("option"):
+                        item_kwargs[option_field] = selected_free_sticker["option"]
                     OrderItem.objects.create(**item_kwargs)
 
                 if promo and promo_applied:
@@ -2411,5 +2969,10 @@ def checkout(request):
             "printful_rates": printful_shipping_quote["rates"],
             "selected_printful_rate_id": printful_shipping_quote["selected_rate_id"],
             "printful_shipping_error": errors.get("printful_shipping", printful_shipping_quote["error"]),
+            "free_sticker_threshold": free_sticker_threshold,
+            "free_sticker_eligible": bool(free_sticker_choices) and free_sticker_visible,
+            "free_sticker_choices": free_sticker_choices if free_sticker_visible else [],
+            "selected_free_sticker": selected_free_sticker,
+            "selected_free_sticker_value": (selected_free_sticker or {}).get("value", ""),
         },
     )

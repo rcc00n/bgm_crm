@@ -130,25 +130,30 @@ def resolve_media_asset(
         except Exception:
             hero = None
 
-    if hero and hero.image:
-        try:
-            hero_alt = getattr(hero, "alt_text", "") or getattr(hero, "title", "")
-            hero_caption = getattr(hero, "caption", "")
-            hero_title = getattr(hero, "title", "")
-            payload.update(
-                {
-                    "src": hero.image.url,
-                    "alt": hero_alt or payload["alt"],
-                    "caption": hero_caption or payload["caption"],
-                    "location": getattr(hero, "location", payload["location"]),
-                    "is_custom": True,
-                    "title": hero_title or payload.get("title", ""),
-                    "image": hero.image,
-                }
-            )
-        except Exception:
-            # Keep fallbacks intact if storage fails or the URL can't be resolved.
-            pass
+    if hero:
+        hero_alt = getattr(hero, "alt_text", "") or getattr(hero, "title", "")
+        hero_caption = getattr(hero, "caption", "")
+        hero_title = getattr(hero, "title", "")
+        payload.update(
+            {
+                "alt": hero_alt or payload["alt"],
+                "caption": hero_caption or payload["caption"],
+                "location": getattr(hero, "location", payload["location"]),
+                "title": hero_title or payload.get("title", ""),
+            }
+        )
+        if hero.image:
+            try:
+                payload.update(
+                    {
+                        "src": hero.image.url,
+                        "is_custom": True,
+                        "image": hero.image,
+                    }
+                )
+            except Exception:
+                # Keep fallbacks intact if storage fails or the URL can't be resolved.
+                pass
 
     return payload
 
@@ -195,7 +200,7 @@ def build_home_gallery_media():
         HeroImage.Location.HOME_GALLERY_C,
         HeroImage.Location.HOME_GALLERY_D,
     ]
-    asset_map = _prefetch_hero_assets(locations)
+    asset_map = _prefetch_hero_assets(locations, active_only=False)
 
     gallery = [
         resolve_media_asset(
@@ -420,8 +425,12 @@ def build_performance_tuning_media():
     return {"hero": hero, "gallery": gallery}
 
 
-def _prefetch_hero_assets(locations: list[str | HeroImage.Location]) -> Dict[str, HeroImage]:
-    """Fetch active hero assets for the provided locations in a single query."""
+def _prefetch_hero_assets(
+    locations: list[str | HeroImage.Location],
+    *,
+    active_only: bool = True,
+) -> Dict[str, HeroImage]:
+    """Fetch hero assets for the provided locations in a single query."""
     if not locations:
         return {}
 
@@ -430,11 +439,12 @@ def _prefetch_hero_assets(locations: list[str | HeroImage.Location]) -> Dict[str
         return {}
 
     try:
-        assets = (
-            HeroImage.objects.filter(location__in=normalized, is_active=True)
-            .exclude(image="")
-        )
+        assets = HeroImage.objects.filter(location__in=normalized)
+        if active_only:
+            assets = assets.filter(is_active=True).exclude(image="")
     except Exception:
         return {}
 
-    return {asset.location: asset for asset in assets if getattr(asset, "image", None)}
+    if active_only:
+        return {asset.location: asset for asset in assets if getattr(asset, "image", None)}
+    return {asset.location: asset for asset in assets}

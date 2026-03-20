@@ -51,10 +51,20 @@
                                data-duration="{{ appt.duration }}"
                                data-price="{{ appt.price }}"
                                data-discount="{{ appt.discount }}"
-                               data-pricedisc="{{ appt.price_discounted }}">
+                               data-pricedisc="{{ appt.price_discounted }}"
+                               data-payment-status="{{ appt.payment_status }}"
+                               data-payment-record="{{ appt.payment_record }}"
+                               data-prepayment="{{ appt.prepayment_label }}"
+                               data-created-label="{{ appt.created_label }}"
+                               data-client-type="{{ appt.client_type }}">
                                 <div class="week-event-time">{{ appt.time_start }}</div>
                                 <div class="week-event-title">{{ appt.client }}</div>
                                 <div class="week-event-meta">{{ appt.service }} · {{ appt.master }}</div>
+                                <div class="appt-badge-row">
+                                    {% for tone, label in appt.badges %}
+                                        <span class="appt-chip appt-chip--{{ tone }}">{{ label }}</span>
+                                    {% endfor %}
+                                </div>
                             </a>
                         {% endfor %}
                     </td>

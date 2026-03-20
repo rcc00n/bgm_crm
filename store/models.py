@@ -8,6 +8,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
+from django.db.models import F
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
@@ -185,6 +186,57 @@ class StoreShippingSettings(models.Model):
         if parsed <= 0:
             return None
         return parsed.quantize(PRICE_QUANT)
+
+
+class StoreInventorySettings(models.Model):
+    low_stock_threshold = models.PositiveIntegerField(
+        "Low stock threshold",
+        default=5,
+        help_text=(
+            "Products with inventory at or below this number are highlighted as low stock in admin. "
+            "Set to 0 to disable low-stock alerts."
+        ),
+    )
+    allow_out_of_stock_orders = models.BooleanField(
+        "Allow out-of-stock orders",
+        default=True,
+        help_text="When disabled, customers cannot add products with zero inventory to the cart or checkout them.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Store inventory settings"
+        verbose_name_plural = "Store inventory settings"
+
+    def __str__(self) -> str:
+        order_mode = "allow backorders" if self.allow_out_of_stock_orders else "block out-of-stock orders"
+        return f"Store inventory ({order_mode})"
+
+    def clean(self):
+        if StoreInventorySettings.objects.exclude(pk=self.pk).exists():
+            raise ValidationError("Only one store inventory settings record is allowed.")
+
+    @classmethod
+    def load(cls) -> "StoreInventorySettings | None":
+        return cls.objects.first()
+
+    @classmethod
+    def get_low_stock_threshold(cls) -> int:
+        obj = cls.load()
+        if obj and obj.low_stock_threshold is not None:
+            try:
+                return max(0, int(obj.low_stock_threshold))
+            except (TypeError, ValueError):
+                return 5
+        return 5
+
+    @classmethod
+    def get_allow_out_of_stock_orders(cls) -> bool:
+        obj = cls.load()
+        if obj is None:
+            return True
+        return bool(obj.allow_out_of_stock_orders)
 
 
 # ─────────────────────────── Store: categories / products ───────────────────────────
@@ -449,11 +501,60 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def available_inventory(self) -> int:
+        try:
+            return max(0, int(self.inventory or 0))
+        except (TypeError, ValueError):
+            return 0
+
+    @property
+    def is_out_of_stock(self) -> bool:
+        return self.available_inventory <= 0
+
+    @property
+    def is_low_stock(self) -> bool:
+        threshold = StoreInventorySettings.get_low_stock_threshold()
+        if threshold <= 0:
+            return False
+        return 0 < self.available_inventory <= threshold
+
+    @property
+    def main_image_name(self) -> str:
+        image = getattr(self, "main_image", None)
+        if not image:
+            return ""
+        return getattr(image, "name", "") or str(image)
+
+    @property
+    def main_image_is_placeholder(self) -> bool:
+        name = self.main_image_name.strip()
+        if not name:
+            return False
+        raw = getattr(settings, "PRODUCT_PLACEHOLDER_IMAGES", None)
+        if isinstance(raw, (list, tuple)):
+            values = list(raw)
+        elif isinstance(raw, str):
+            values = [item.strip() for item in raw.replace("\n", ",").split(",")]
+        elif raw:
+            try:
+                values = list(raw)
+            except TypeError:
+                values = []
+        else:
+            values = []
+        settings_images = [str(item).strip() for item in values if str(item).strip()]
+        if settings_images and name in settings_images:
+            return True
+        placeholder_dir = str(getattr(settings, "PRODUCT_PLACEHOLDER_IMAGE_DIR", "store/placeholders"))
+        placeholder_dir = placeholder_dir.strip().strip("/")
+        return bool(placeholder_dir and name.startswith(f"{placeholder_dir}/"))
+
+    @property
     def main_image_url(self) -> str:
         image = getattr(self, "main_image", None)
         if not image:
             return ""
-        name = getattr(image, "name", "") or str(image)
+        name = self.main_image_name
         if name.startswith("http://") or name.startswith("https://"):
             return name
         try:
@@ -466,7 +567,7 @@ class Product(models.Model):
         image = getattr(self, "main_image", None)
         if not image:
             return False
-        name = getattr(image, "name", "") or str(image)
+        name = self.main_image_name
         return name.startswith(("http://", "https://"))
 
     @property
@@ -476,7 +577,7 @@ class Product(models.Model):
         Sorl/easy-thumbnail style libraries generally expect a real file object, not a remote URL.
         """
         image = getattr(self, "main_image", None)
-        if not image or self.main_image_is_remote:
+        if not image or self.main_image_is_remote or self.main_image_is_placeholder:
             return None
         return image
 
@@ -1368,6 +1469,7 @@ class OrderItem(models.Model):
         Снимаем «снэпшот» цены, если поле пустое, чтобы сумма не зависела от
         будущих изменений цены продукта.
         """
+        is_new = self._state.adding
         option_obj = None
         if self.option_id:
             option_obj = self.option
@@ -1377,6 +1479,38 @@ class OrderItem(models.Model):
         if self.price_at_moment is None and self.product_id:
             self.price_at_moment = self.product.get_unit_price(option_obj)
         super().save(*args, **kwargs)
+        if is_new:
+            self._deduct_product_inventory()
+
+    def _deduct_product_inventory(self):
+        if not self.product_id:
+            return
+        try:
+            requested_qty = max(0, int(self.qty or 0))
+        except (TypeError, ValueError):
+            return
+        if requested_qty <= 0:
+            return
+        with transaction.atomic():
+            product = (
+                Product.objects.select_for_update()
+                .only("id", "inventory")
+                .filter(pk=self.product_id)
+                .first()
+            )
+            if not product:
+                return
+            try:
+                available_qty = max(0, int(product.inventory or 0))
+            except (TypeError, ValueError):
+                return
+            if available_qty <= 0:
+                return
+
+            deduct_qty = min(available_qty, requested_qty)
+            if deduct_qty <= 0:
+                return
+            Product.objects.filter(pk=self.product_id).update(inventory=F("inventory") - deduct_qty)
 
     @property
     def subtotal(self) -> Decimal:
