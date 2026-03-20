@@ -50,6 +50,18 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, "margin-left: 84px;", html=False)
         self.assertNotContains(response, "body:not(.workspace-hub-page) .main-header", html=False)
 
+    def test_header_dropdowns_use_neutral_active_state_and_high_overlay_layer(self):
+        response = self.client.get(reverse("admin:index"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, ".main-header {", html=False)
+        self.assertContains(response, "z-index: 1100;", html=False)
+        self.assertContains(response, ".admin-notify-menu {", html=False)
+        self.assertContains(response, "z-index: 1110;", html=False)
+        self.assertContains(response, ".admin-notify-menu .dropdown-item.active", html=False)
+        self.assertContains(response, "background: rgba(15, 23, 42, 0.08);", html=False)
+        self.assertContains(response, "color: var(--admin-text-strong);", html=False)
+
     def test_whats_new_is_paginated_to_fifteen_entries_per_page(self):
         base_time = timezone.now()
         releases = [
@@ -233,6 +245,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Header dropdowns now stack cleanly and no longer flash blue active states")
         self.assertContains(response, "Topbar returned to normal flow and no longer clips into the sidebar")
         self.assertContains(response, "What&#x27;s New now shows 15 updates per page")
         self.assertContains(response, "Topbar now stays visible on admin pages without section jump links")

@@ -12,6 +12,30 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-header-dropdown-overlay-and-active-state-fix",
+        "published_at": "2026-03-20T22:35:00-06:00",
+        "title": "Header dropdowns now stack cleanly and no longer flash blue active states",
+        "summary": "The header menus now sit above dashboard cards and page panels correctly, and the What's New dropdown no longer uses the old bright blue active highlight.",
+        "highlights": [
+            "What's New, favorites, and notifications dropdowns now render on their own higher layer above dashboard and content cards.",
+            "Header dropdown items now use neutral surface hover and active states instead of the default bootstrap blue fill.",
+            "This removes the awkward blue blocks on the What's New page and fixes dropdown overlays that were visually colliding with page content.",
+        ],
+        "areas": ["Admin UX", "Navigation", "Header"],
+        "links": [
+            {
+                "label": "Dashboard",
+                "url_name": "admin:index",
+                "note": "Open any header dropdown and check the cleaner overlay.",
+            },
+            {
+                "label": "What's New",
+                "url_name": "admin-whats-new",
+                "note": "Open the header release dropdown without the old blue active fill.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-topbar-returned-to-normal-flow",
         "published_at": "2026-03-20T22:10:00-06:00",
         "title": "Topbar returned to normal flow and no longer clips into the sidebar",
