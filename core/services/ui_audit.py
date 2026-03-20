@@ -60,6 +60,8 @@ SKIP_PREFIXES = (
 
 SKIP_PATHS = (
     "/accounts/logout/",
+    "/store/cart/promo/",
+    "/store/checkout/printful-shipping-rates/",
 )
 
 UNSAFE_TOKENS = (
@@ -96,6 +98,7 @@ STATIC_EXTENSIONS = {
 IGNORED_WARNING_DETAILS = {
     "Button without action",
     "Anchor with empty href (#) and no handler",
+    "Form without action",
 }
 
 

@@ -1,10 +1,12 @@
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.test import RequestFactory
 from django.test import TestCase
+from django.urls import reverse
 
 from accounts.views import ClientDashboardView, HomeView
 from accounts.forms import ClientProfileForm, ClientRegistrationForm
-from core.models import EmailSendLog, UserProfile
+from core.models import EmailSendLog, HomePageCopy, PageSection, UserProfile
 from store.models import Category, MerchCategory, Product
 
 
@@ -248,3 +250,43 @@ class HomeViewProductCarouselTests(TestCase):
         context = view.get_context_data()
 
         self.assertEqual([product.id for product in context["home_products"]], [in_house.id])
+
+
+class HomeViewPageSectionRenderingTests(TestCase):
+    def setUp(self):
+        self.home_url = reverse("home")
+        self.home_copy = HomePageCopy.get_solo()
+        self.home_copy.hero_title = "__default_home_title__"
+        self.home_copy.hero_lead = "__default_home_lead__"
+        self.home_copy.save(update_fields=["hero_title", "hero_lead"])
+        self.content_type = ContentType.objects.get_for_model(HomePageCopy)
+        PageSection.objects.filter(content_type=self.content_type, object_id=self.home_copy.pk).delete()
+
+    def test_home_page_uses_standard_hero_when_no_page_sections_exist(self):
+        response = self.client.get(self.home_url, secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "__default_home_title__")
+        self.assertContains(response, "data-hero-carousel")
+        self.assertNotContains(response, "builder-section--hero")
+
+    def test_home_page_renders_page_builder_sections_when_present(self):
+        PageSection.objects.create(
+            content_type=self.content_type,
+            object_id=self.home_copy.pk,
+            section_type=PageSection.SectionType.HERO,
+            order=10,
+            config={
+                "title": "__builder_home_title__",
+                "body": "__builder_home_body__",
+            },
+        )
+
+        response = self.client.get(self.home_url, secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "__builder_home_title__")
+        self.assertContains(response, "__builder_home_body__")
+        self.assertContains(response, "builder-section--hero")
+        self.assertNotContains(response, "__default_home_title__")
+        self.assertNotContains(response, "data-hero-carousel")
