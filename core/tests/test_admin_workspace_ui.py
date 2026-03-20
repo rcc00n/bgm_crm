@@ -35,7 +35,6 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "workspace-hub-page", html=False)
         self.assertContains(response, "data-workspace-jumpbar", html=False)
         self.assertContains(response, "data-workspace-jump-link", html=False)
         self.assertContains(response, "data-workspace-jump-target=\"workspace-card-1\"", html=False)
@@ -43,13 +42,13 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, "IntersectionObserver", html=False)
         self.assertContains(response, "workspace-jumpbar__link.is-active", html=False)
 
-    def test_non_workspace_pages_include_sticky_topbar_rule(self):
-        response = self.client.get(reverse("admin-whats-new"), secure=True)
+    def test_collapsed_sidebar_uses_matching_topbar_offset_without_sticky_header(self):
+        response = self.client.get(reverse("admin:index"), secure=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "body:not(.workspace-hub-page) .main-header", html=False)
-        self.assertContains(response, "position: sticky;", html=False)
-        self.assertNotContains(response, "data-workspace-jumpbar", html=False)
+        self.assertContains(response, ".sidebar-mini.sidebar-collapse .main-header", html=False)
+        self.assertContains(response, "margin-left: 84px;", html=False)
+        self.assertNotContains(response, "body:not(.workspace-hub-page) .main-header", html=False)
 
     def test_whats_new_is_paginated_to_fifteen_entries_per_page(self):
         base_time = timezone.now()
@@ -234,6 +233,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Topbar returned to normal flow and no longer clips into the sidebar")
         self.assertContains(response, "What&#x27;s New now shows 15 updates per page")
         self.assertContains(response, "Topbar now stays visible on admin pages without section jump links")
         self.assertContains(response, "Sidebar stays pinned and follows the new work order")

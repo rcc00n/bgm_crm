@@ -12,6 +12,30 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-topbar-returned-to-normal-flow",
+        "published_at": "2026-03-20T22:10:00-06:00",
+        "title": "Topbar returned to normal flow and no longer clips into the sidebar",
+        "summary": "The top admin bar is no longer sticky, and its collapsed-layout offset now matches the sidebar so the header does not slide into the menu area.",
+        "highlights": [
+            "The topbar now scrolls normally with the page instead of staying pinned.",
+            "Collapsed sidebar layouts now use the same 84px left offset for the topbar, content area, and footer.",
+            "This removes the small header overlap into the sidebar strip on the dashboard and other admin pages.",
+        ],
+        "areas": ["Admin UX", "Navigation", "Topbar"],
+        "links": [
+            {
+                "label": "Dashboard",
+                "url_name": "admin:index",
+                "note": "See the topbar aligned cleanly next to the collapsed sidebar.",
+            },
+            {
+                "label": "What's New",
+                "url_name": "admin-whats-new",
+                "note": "The header now scrolls naturally on long admin pages too.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-whats-new-pagination",
         "published_at": "2026-03-20T21:55:00-06:00",
         "title": "What's New now shows 15 updates per page",
