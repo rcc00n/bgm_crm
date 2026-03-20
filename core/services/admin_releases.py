@@ -12,6 +12,31 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-telegramm-bot-moved-into-email-hub",
+        "published_at": "2026-03-20T20:05:00-06:00",
+        "title": "Telegramm Bot moved into the Email & Campaigns hub",
+        "summary": "The old Automation area now lives at the bottom of the Email & Campaigns workspace and is labeled Telegramm Bot.",
+        "highlights": [
+            "Telegram contacts, bot settings, reminders, and delivery logs no longer live under Operations.",
+            "Email & Campaigns now ends with a dedicated Telegramm Bot section so messaging tools stay together.",
+            "Old Automation workspace links now forward into Email & Campaigns.",
+        ],
+        "areas": ["Navigation", "Workspaces", "Admin UX"],
+        "links": [
+            {
+                "label": "Email & Campaigns",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "email-campaigns"},
+                "note": "Open the updated messaging workspace.",
+            },
+            {
+                "label": "Website & Marketing",
+                "url_name": "admin-workspace-website-marketing",
+                "note": "See the messaging lane inside the wider marketing workspace.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-workspace-anchor-highlight-feedback",
         "published_at": "2026-03-20T19:45:00-06:00",
         "title": "Workspace section numbers now react while you scroll",

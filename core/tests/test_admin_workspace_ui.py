@@ -59,6 +59,7 @@ class AdminWorkspaceUiTests(TestCase):
 
     def test_legacy_workspace_slugs_redirect_to_combined_hubs(self):
         redirects = {
+            "automation": "email-campaigns",
             "brand-assets": "page-content",
             "orders-fulfillment": "catalog-merch",
             "booking-payments": "scheduling-shop",
@@ -90,6 +91,16 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, "Media and backgrounds")
         self.assertContains(response, "More Editors")
 
+    def test_email_workspace_renders_telegramm_bot_at_bottom(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "email-campaigns"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Email &amp; campaigns workspace")
+        self.assertContains(response, "Email monitoring and publishing")
+        self.assertContains(response, "Telegramm Bot")
+        body = response.content.decode()
+        self.assertLess(body.index("Email monitoring and publishing</h2>"), body.index("Telegramm Bot</h2>"))
+
     def test_combined_store_and_moved_reference_workspaces_render_expected_sections(self):
         store_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "catalog-merch"}), secure=True)
         scheduling_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
@@ -109,6 +120,12 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Telegramm Bot moved into the Email &amp; Campaigns hub")
+        self.assertContains(
+            response,
+            reverse("admin-workspace-hub", kwargs={"slug": "email-campaigns"}),
+            html=False,
+        )
         self.assertContains(response, "Workspace section numbers now react while you scroll")
         self.assertContains(response, "Scheduling &amp; Shop now includes payments, promotions, CRM, and vehicles")
         self.assertContains(

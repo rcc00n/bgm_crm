@@ -1489,6 +1489,7 @@ def _workspace_attention_items(slug: str) -> list[dict[str, Any]]:
 
 def _workspace_redirect_slug(slug: str) -> str:
     redirects = {
+        "automation": "email-campaigns",
         "brand-assets": "page-content",
         "orders-fulfillment": "catalog-merch",
         "booking-payments": "scheduling-shop",
@@ -1503,7 +1504,7 @@ def _admin_workspace_config() -> dict[str, dict]:
     config = {
         "operations": {
             "title": "Operations workspace",
-            "eyebrow": "Scheduling, payments, CRM, automation",
+            "eyebrow": "Scheduling, payments, CRM",
             "summary": "Use this page as the operating entry point before dropping into raw admin lists. Scheduling & Shop now keeps shop setup, payments, promos, and core CRM or vehicle references in one workspace.",
             "hero_links": [
                 {"label": "Calendar", "model": "core.Appointment", "note": "Primary booking workspace."},
@@ -1583,18 +1584,6 @@ def _admin_workspace_config() -> dict[str, dict]:
                         "These are foundational tables; change them only when you intend system behavior to shift.",
                     ],
                 },
-                {
-                    "title": "Automation and reminders",
-                    "summary": "Telegram contacts, settings, and delivery trails live together for diagnostics.",
-                    "main_links": [
-                        {"label": "Bot Settings", "model": "notifications.TelegramBotSettings", "note": "Core automation controls."},
-                        {"label": "Reminders", "model": "notifications.TelegramReminder", "note": "Queued and sent reminder records."},
-                    ],
-                    "support_links": [
-                        {"label": "Contacts", "model": "notifications.TelegramContact", "note": "Known Telegram recipients."},
-                        {"label": "Delivery Log", "model": "notifications.TelegramMessageLog", "note": "Send outcomes and failures."},
-                    ],
-                },
             ],
         },
         "customers-sales": {
@@ -1660,8 +1649,8 @@ def _admin_workspace_config() -> dict[str, dict]:
         },
         "website-marketing": {
             "title": "Website & marketing workspace",
-            "eyebrow": "Content, brand system, campaigns",
-            "summary": "This workspace keeps publishing, branding, and outbound messaging in one place, with content and brand assets now sharing one lane.",
+            "eyebrow": "Content, brand system, campaigns, Telegramm Bot",
+            "summary": "This workspace keeps publishing, branding, outbound messaging, and Telegramm Bot tools in one place, with content and brand assets now sharing one lane.",
             "hero_links": [
                 {"label": "Home Page Copy", "model": "core.HomePageCopy", "note": "Homepage content and layout."},
                 {"label": "Font Library", "model": "core.FontPreset", "note": "Reusable type assets."},
@@ -1705,10 +1694,10 @@ def _admin_workspace_config() -> dict[str, dict]:
                     ],
                 },
                 {
-                    "title": "Email and campaign controls",
+                    "title": "Email, campaigns, and Telegramm Bot",
                     "jump_label": "Email",
                     "eyebrow": "Outbound Messaging",
-                    "summary": "Start with monitoring screens when diagnosing sends, then move into campaign and template editing.",
+                    "summary": "Start with monitoring screens when diagnosing sends, then move into campaign, template, and Telegramm Bot controls in the same messaging lane.",
                     "main_links": [
                         {"label": "Email overview", "url_name": "admin-email-overview", "permissions": ["core.view_emailsendlog"], "note": "Best entry point for email health."},
                         {"label": "Email Campaigns", "model": "core.EmailCampaign", "note": "Broadcast workflow."},
@@ -1722,9 +1711,66 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "Email Subscribers", "model": "core.EmailSubscriber", "note": "Audience management."},
                         {"label": "Raw send logs", "model": "core.EmailSendLog", "note": "Record-level diagnostics."},
                         {"label": "Campaign recipients", "model": "core.EmailCampaignRecipient", "note": "Recipient-level history."},
+                        {"label": "Bot Settings", "model": "notifications.TelegramBotSettings", "note": "Telegramm Bot controls."},
+                        {"label": "Reminders", "model": "notifications.TelegramReminder", "note": "Queued and sent Telegram reminders."},
+                        {"label": "Contacts", "model": "notifications.TelegramContact", "note": "Known Telegram recipients."},
+                        {"label": "Delivery Log", "model": "notifications.TelegramMessageLog", "note": "Telegram delivery outcomes."},
                     ],
                     "tips": [
                         "Use raw logs only when the overview and history pages are not enough.",
+                    ],
+                },
+            ],
+        },
+        "email-campaigns": {
+            "title": "Email & campaigns workspace",
+            "eyebrow": "Email, campaigns, Telegramm Bot",
+            "summary": "Email monitoring, campaign publishing, and Telegramm Bot tools now live in one messaging workspace.",
+            "hero_links": [
+                {"label": "Email overview", "url_name": "admin-email-overview", "permissions": ["core.view_emailsendlog"], "note": "Best entry point for email health."},
+                {"label": "Email Campaigns", "model": "core.EmailCampaign", "note": "Broadcast workflow."},
+                {"label": "Bot Settings", "model": "notifications.TelegramBotSettings", "note": "Telegramm Bot controls."},
+            ],
+            "cards": [
+                {
+                    "title": "Email monitoring and publishing",
+                    "jump_label": "Email",
+                    "eyebrow": "Email",
+                    "summary": "Use the overview first, then move into campaigns, templates, logs, and audience pages from the same hub.",
+                    "main_links": [
+                        {"label": "Email overview", "url_name": "admin-email-overview", "permissions": ["core.view_emailsendlog"], "note": "Best entry point for email health."},
+                        {"label": "Email Campaigns", "model": "core.EmailCampaign", "note": "Broadcast workflow."},
+                        {"label": "Email Templates", "model": "core.EmailTemplate", "note": "Reusable email layouts."},
+                    ],
+                    "support_links": [
+                        {"label": "Send logs", "url_name": "admin-email-logs", "permissions": ["core.view_emailsendlog"], "note": "Delivery log summary."},
+                        {"label": "Email history", "url_name": "admin-email-history", "permissions": ["core.view_emailsendlog"], "note": "Historical send breakdown."},
+                        {"label": "Campaign history", "url_name": "admin-email-campaign-history", "permissions": ["core.view_emailcampaign"], "note": "Campaign send trail."},
+                        {"label": "Notifications", "model": "core.Notification", "note": "On-site and admin notifications."},
+                        {"label": "Email Subscribers", "model": "core.EmailSubscriber", "note": "Audience management."},
+                        {"label": "Raw send logs", "model": "core.EmailSendLog", "note": "Record-level diagnostics."},
+                        {"label": "Campaign recipients", "model": "core.EmailCampaignRecipient", "note": "Recipient-level history."},
+                    ],
+                    "tips": [
+                        "Start with Email overview if you are diagnosing send health.",
+                        "Open raw logs only when you need exact delivery detail.",
+                    ],
+                },
+                {
+                    "title": "Telegramm Bot",
+                    "jump_label": "Telegramm",
+                    "eyebrow": "Telegramm Bot",
+                    "summary": "Telegram contacts, bot settings, reminders, and delivery logs moved here from Operations and now sit at the bottom of the email hub.",
+                    "main_links": [
+                        {"label": "Bot Settings", "model": "notifications.TelegramBotSettings", "note": "Telegramm Bot controls."},
+                        {"label": "Reminders", "model": "notifications.TelegramReminder", "note": "Queued and sent Telegram reminders."},
+                    ],
+                    "support_links": [
+                        {"label": "Contacts", "model": "notifications.TelegramContact", "note": "Known Telegram recipients."},
+                        {"label": "Delivery Log", "model": "notifications.TelegramMessageLog", "note": "Telegram delivery outcomes."},
+                    ],
+                    "tips": [
+                        "Use Bot Settings first for behavior changes; Reminders and Delivery Log are follow-up pages.",
                     ],
                 },
             ],
@@ -2294,19 +2340,19 @@ def admin_staff_guide(request):
                     ],
                 },
                 {
-                    "title": "Run email and notifications",
-                    "summary": "Overview and history pages are for monitoring. Campaigns and templates are for publishing.",
+                    "title": "Run email and Telegramm Bot",
+                    "summary": "Overview and history pages are for monitoring. Campaigns, templates, and Telegramm Bot settings now share the same messaging hub.",
                     "frequency": "Weekly",
                     "roles": ["content", "manager"],
-                    "keywords": "email overview logs history campaigns templates notifications subscribers",
+                    "keywords": "email overview logs history campaigns templates notifications subscribers telegram bot reminders",
                     "tips": [
                         "Start with Email overview if you are diagnosing send health.",
-                        "Open raw logs only when you need exact delivery detail.",
+                        "Use Bot Settings for Telegramm Bot behavior changes and Delivery Log only when you need exact message detail.",
                     ],
                     "links": [
                         guide_link("Email overview", url_name="admin-email-overview", note="Best entry point for email health."),
                         guide_link("Email Campaigns", model="core.EmailCampaign", note="Broadcast workflow."),
-                        guide_link("Email Templates", model="core.EmailTemplate", note="Reusable email layouts."),
+                        guide_link("Bot Settings", model="notifications.TelegramBotSettings", note="Telegramm Bot controls."),
                     ],
                 },
             ],

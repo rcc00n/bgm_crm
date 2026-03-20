@@ -574,27 +574,6 @@ ADMIN_SIDEBAR_SECTIONS = [
         ],
     },
     {
-        "label": "Operations",
-        "icon": "fas fa-tachometer-alt",
-        "show_header": False,
-        "groups": [
-            {
-                "label": "Automation",
-                "icon": "fas fa-robot",
-                "sidebar_expand": False,
-                "hub_slug": "automation",
-                "href": "/admin/workspaces/automation/",
-                "hub_primary_count": 2,
-                "items": [
-                    {"model": "notifications.TelegramContact", "label": "Contacts"},
-                    {"model": "notifications.TelegramBotSettings", "label": "Bot Settings"},
-                    {"model": "notifications.TelegramReminder", "label": "Reminders"},
-                    {"model": "notifications.TelegramMessageLog", "label": "Delivery Log"},
-                ],
-            },
-        ],
-    },
-    {
         "label": "Customers & Sales",
         "icon": "fas fa-users-cog",
         "show_header": False,
@@ -761,6 +740,10 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "core.EmailTemplate", "label": "Email Templates"},
                     {"model": "core.EmailSendLog", "label": "Raw send logs"},
                     {"model": "core.EmailCampaignRecipient", "label": "Campaign recipients"},
+                    {"model": "notifications.TelegramBotSettings", "label": "Bot Settings"},
+                    {"model": "notifications.TelegramReminder", "label": "Reminders"},
+                    {"model": "notifications.TelegramContact", "label": "Contacts"},
+                    {"model": "notifications.TelegramMessageLog", "label": "Delivery Log"},
                 ],
             },
         ],
@@ -796,6 +779,7 @@ ADMIN_SIDEBAR_SECTIONS = [
 
 ADMIN_SIDEBAR_GROUP_ALIASES = {
     "operations__promotions": "operations__scheduling-shop",
+    "operations__automation": "website-marketing__email-campaigns",
     "clients__inbound-leads": "customers-sales__client-hub",
     "storefront__services-catalog": "operations__scheduling-shop",
     "website-content__media-hero-assets": "website-marketing__content-brand-assets",
