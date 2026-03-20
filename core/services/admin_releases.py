@@ -10,6 +10,17 @@ from django.utils import timezone
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-catalog-workspace-icon-restored",
+        "published_at": "2026-03-20T18:25:00-06:00",
+        "title": "Catalog workspace icon restored in the sidebar",
+        "summary": "The Catalog, Merch & Fulfillment workspace now shows its sidebar icon correctly again.",
+        "highlights": [
+            "The merged commerce workspace now has a visible icon in the left sidebar instead of a blank slot.",
+            "No pages moved and no workflow changed; this restores the visual cue for the existing hub.",
+        ],
+        "areas": ["Navigation", "Admin UX"],
+    },
+    {
         "key": "2026-03-20-admin-hub-consolidation",
         "published_at": "2026-03-20T18:10:00-06:00",
         "title": "Admin hubs consolidated into fewer workspaces",

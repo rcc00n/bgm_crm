@@ -642,7 +642,7 @@ ADMIN_SIDEBAR_SECTIONS = [
         "groups": [
             {
                 "label": "Catalog, Merch & Fulfillment",
-                "icon": "fas fa-boxes-stacked",
+                "icon": "fas fa-box-open",
                 "sidebar_expand": False,
                 "hub_slug": "catalog-merch",
                 "href": "/admin/workspaces/catalog-merch/",
