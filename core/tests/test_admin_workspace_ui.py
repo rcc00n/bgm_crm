@@ -45,3 +45,51 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, "<ol class=\"breadcrumb\">", html=False)
         self.assertContains(response, "/admin/store/", html=False)
         self.assertContains(response, "Products")
+
+    def test_legacy_workspace_slugs_redirect_to_combined_hubs(self):
+        redirects = {
+            "brand-assets": "page-content",
+            "orders-fulfillment": "catalog-merch",
+            "booking-payments": "scheduling-shop",
+            "people-access": "crm-vehicles",
+        }
+
+        for old_slug, new_slug in redirects.items():
+            with self.subTest(old_slug=old_slug):
+                response = self.client.get(
+                    reverse("admin-workspace-hub", kwargs={"slug": old_slug}),
+                    secure=True,
+                )
+                self.assertRedirects(
+                    response,
+                    reverse("admin-workspace-hub", kwargs={"slug": new_slug}),
+                    status_code=302,
+                    fetch_redirect_response=False,
+                )
+
+    def test_combined_content_workspace_renders_custom_sections(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "page-content"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Content, brand &amp; assets workspace")
+        self.assertContains(response, "Page editors")
+        self.assertContains(response, "Brand system and chrome")
+        self.assertContains(response, "Media and backgrounds")
+        self.assertContains(response, "More Editors")
+
+    def test_combined_store_and_moved_reference_workspaces_render_expected_sections(self):
+        store_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "catalog-merch"}), secure=True)
+        scheduling_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
+        crm_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "crm-vehicles"}), secure=True)
+
+        self.assertEqual(store_response.status_code, 200)
+        self.assertContains(store_response, "Catalog, merch &amp; fulfillment workspace")
+        self.assertContains(store_response, "Catalog cockpit")
+        self.assertContains(store_response, "Orders and fulfillment")
+        self.assertContains(store_response, "Store rules and merch economics")
+
+        self.assertEqual(scheduling_response.status_code, 200)
+        self.assertContains(scheduling_response, "Booking and payment references")
+
+        self.assertEqual(crm_response.status_code, 200)
+        self.assertContains(crm_response, "People and access")

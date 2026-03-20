@@ -797,7 +797,7 @@
           <div class="workspace-jumpbar__links">
             {% for card in workspace.cards %}
               <a class="workspace-jumpbar__link" href="#workspace-card-{{ forloop.counter }}">
-                <span>{{ card.title }}</span>
+                <span>{{ card.jump_label|default:card.title }}</span>
                 <span class="workspace-jumpbar__count">{{ forloop.counter }}</span>
               </a>
             {% endfor %}
@@ -810,7 +810,7 @@
           <article class="workspace-card" id="workspace-card-{{ forloop.counter }}">
             <div class="workspace-card__head">
               <div class="workspace-card__topline">
-                <span class="workspace-card__eyebrow">Workspace Area</span>
+                <span class="workspace-card__eyebrow">{{ card.eyebrow }}</span>
                 <span class="workspace-card__count">
                   {{ card.main_links|length }} main
                   {% if card.support_links %}
@@ -826,10 +826,10 @@
               <div class="workspace-card__primary">
                 {% if card.main_links %}
                   {% with lead=card.main_links.0 %}
-                    <span class="workspace-card__section-label">Main Section</span>
+                    <span class="workspace-card__section-label">{{ card.main_section_label }}</span>
                     <div class="workspace-lead-action">
                       <a class="workspace-lead-action__main" href="{{ lead.url }}">
-                        <span class="workspace-lead-action__eyebrow">Start Here</span>
+                        <span class="workspace-lead-action__eyebrow">{{ card.lead_label }}</span>
                         <div class="workspace-action__top">
                           <span class="workspace-lead-action__title">{{ lead.label }}</span>
                           <span class="workspace-link-cue">Open</span>
@@ -848,7 +848,7 @@
                   {% endwith %}
 
                   {% if card.main_links|length > 1 %}
-                    <span class="workspace-card__section-label">More Main Actions</span>
+                    <span class="workspace-card__section-label">{{ card.more_actions_label }}</span>
                     <div class="workspace-actions">
                       {% for link in card.main_links|slice:"1:" %}
                         <div class="workspace-action">
@@ -878,7 +878,7 @@
                 <aside class="workspace-card__secondary">
                   {% if card.support_links %}
                     <div class="workspace-card__support">
-                      <h3>Support Pages</h3>
+                      <h3>{{ card.support_title }}</h3>
                       <ul class="workspace-support-list">
                         {% for link in card.support_links %}
                           <li>
@@ -899,7 +899,7 @@
 
                   {% if card.tips %}
                     <div class="workspace-card__tips">
-                      <h3>Best Use</h3>
+                      <h3>{{ card.tips_title }}</h3>
                       <ul class="workspace-tips">
                         {% for tip in card.tips %}
                           <li>{{ tip }}</li>

@@ -159,11 +159,11 @@ def get_admin_navigation_targets(user) -> list[AdminTarget]:
         {"label": "Dashboard", "url": reverse("admin:index"), "icon": "fas fa-th-large", "category": "Admin", "note": "Main admin home and health overview."},
         {"label": "What's New", "url": reverse("admin-whats-new"), "icon": "far fa-lightbulb", "category": "Admin", "note": "Release notes and recent admin updates."},
         {"label": "Staff Guide", "url": reverse("admin-staff-guide"), "icon": "fas fa-route", "category": "Admin", "note": "How staff should use the admin."},
-        {"label": "Operations", "url": reverse("admin-workspace-operations"), "icon": "fas fa-tachometer-alt", "category": "Workspace", "note": "Appointments, staffing, payments, automation."},
-        {"label": "Customers & Sales", "url": reverse("admin-workspace-customers-sales"), "icon": "fas fa-users-cog", "category": "Workspace", "note": "Clients, products, orders, fulfillment."},
-        {"label": "Website & Marketing", "url": reverse("admin-workspace-website-marketing"), "icon": "fas fa-globe", "category": "Workspace", "note": "Content, brand assets, campaigns."},
-        {"label": "Reporting & Access", "url": reverse("admin-workspace-reporting-access"), "icon": "fas fa-chart-line", "category": "Workspace", "note": "Insights, QA, users, permissions."},
-        {"label": "Reference & Setup", "url": reverse("admin-workspace-reference-setup"), "icon": "fas fa-archive", "category": "Workspace", "note": "Foundational lists and admin setup."},
+        {"label": "Operations", "url": reverse("admin-workspace-operations"), "icon": "fas fa-tachometer-alt", "category": "Workspace", "note": "Appointments, staffing, payments, automation, booking references."},
+        {"label": "Customers & Sales", "url": reverse("admin-workspace-customers-sales"), "icon": "fas fa-users-cog", "category": "Workspace", "note": "Clients, catalog, orders, fulfillment."},
+        {"label": "Website & Marketing", "url": reverse("admin-workspace-website-marketing"), "icon": "fas fa-globe", "category": "Workspace", "note": "Content, brand system, assets, campaigns."},
+        {"label": "Reporting & Access", "url": reverse("admin-workspace-reporting-access"), "icon": "fas fa-chart-line", "category": "Workspace", "note": "Insights, QA, reporting."},
+        {"label": "Reference & Setup", "url": reverse("admin-workspace-reference-setup"), "icon": "fas fa-archive", "category": "Workspace", "note": "CRM, vehicles, access, and maintenance."},
     ]
     for payload in static_targets:
         add_target(payload, kind="workspace" if payload["category"] == "Workspace" else "page")

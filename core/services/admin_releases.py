@@ -10,6 +10,19 @@ from django.utils import timezone
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-admin-hub-consolidation",
+        "published_at": "2026-03-20T18:10:00-06:00",
+        "title": "Admin hubs consolidated into fewer workspaces",
+        "summary": "Content and brand pages, store and fulfillment pages, booking references, and access controls were regrouped into fewer admin workspaces.",
+        "highlights": [
+            "Page Content and Brand & Assets now live together in one Content, Brand & Assets workspace with separate sections for editors, brand controls, and media.",
+            "Catalog & Merch and Orders & Fulfillment now share one commerce workspace so products, orders, fitment, and fulfillment tools stay one click apart.",
+            "Booking & Payments now lives inside Scheduling & Shop, and People & Access now lives inside CRM & Vehicles.",
+            "Old workspace URLs still forward into the new destinations so bookmarks and saved habits keep working.",
+        ],
+        "areas": ["Navigation", "Workspaces", "Admin UX"],
+    },
+    {
         "key": "2026-03-20-product-editor-redesign",
         "published_at": "2026-03-20T15:15:00-06:00",
         "title": "Product editor redesigned for faster catalog work",
