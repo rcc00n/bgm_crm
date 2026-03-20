@@ -62,6 +62,15 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, ".admin-notify-badge--success", html=False)
         self.assertContains(response, "background: #22c55e;", html=False)
 
+    def test_sidebar_includes_fixed_scroll_css(self):
+        response = self.client.get(reverse("admin:index"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, ".main-sidebar {", html=False)
+        self.assertContains(response, "position: fixed;", html=False)
+        self.assertContains(response, "height: 100vh;", html=False)
+        self.assertContains(response, "overflow-y: auto;", html=False)
+
     def test_product_changelist_still_renders_heading_and_breadcrumbs(self):
         category = Category.objects.create(name="Admin Products", slug="admin-products")
         Product.objects.create(
@@ -145,6 +154,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sidebar now stays visible while you scroll")
         self.assertContains(response, "Favorites badge is now green in the header")
         self.assertContains(response, "Sidebar header and sidebar user panel removed")
         self.assertContains(response, "Telegramm Bot moved into the Email &amp; Campaigns hub")

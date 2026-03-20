@@ -12,6 +12,30 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-sidebar-now-stays-visible-on-scroll",
+        "published_at": "2026-03-20T20:50:00-06:00",
+        "title": "Sidebar now stays visible while you scroll",
+        "summary": "The left admin sidebar now stays pinned on screen during page scroll, with its own internal scroll for longer navigation lists.",
+        "highlights": [
+            "The sidebar no longer drifts away when you scroll down long admin pages.",
+            "Longer sidebars keep their own vertical scroll, so lower hubs remain reachable without losing the menu.",
+            "This keeps navigation available while you review workspace pages, changelists, and release notes.",
+        ],
+        "areas": ["Admin UX", "Navigation", "Sidebar"],
+        "links": [
+            {
+                "label": "Dashboard",
+                "url_name": "admin:index",
+                "note": "See the pinned sidebar on the admin home page.",
+            },
+            {
+                "label": "What's New",
+                "url_name": "admin-whats-new",
+                "note": "Example long page where the sidebar now stays visible.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-favorites-badge-now-green",
         "published_at": "2026-03-20T20:35:00-06:00",
         "title": "Favorites badge is now green in the header",
