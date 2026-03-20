@@ -60,6 +60,8 @@ SKIP_PREFIXES = (
 
 SKIP_PATHS = (
     "/accounts/logout/",
+    "/store/cart/promo/",
+    "/store/checkout/printful-shipping-rates/",
 )
 
 UNSAFE_TOKENS = (
