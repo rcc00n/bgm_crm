@@ -504,21 +504,6 @@ ADMIN_SIDEBAR_SECTIONS = [
                     },
                 ],
             },
-            {
-                "label": "Onboarding",
-                "icon": "fas fa-map-signs",
-                "always_visible": True,
-                "sidebar_expand": False,
-                "href": "/admin/staff-guide/",
-                "items": [
-                    {
-                        "label": "Staff Guide",
-                        "url": "admin-staff-guide",
-                        "icon": "fas fa-route",
-                        "active_patterns": ["admin-staff-guide"],
-                    },
-                ],
-            },
         ],
     },
     {
@@ -579,38 +564,6 @@ ADMIN_SIDEBAR_SECTIONS = [
         "show_header": False,
         "groups": [
             {
-                "label": "Clients & Leads",
-                "icon": "fas fa-address-card",
-                "sidebar_expand": False,
-                "hub_slug": "client-hub",
-                "href": "/admin/workspaces/client-hub/",
-                "hub_title": "Clients & leads",
-                "items": [
-                    {"model": "core.UserProfile", "label": "Client Profiles"},
-                    {"model": "core.ClientFile", "label": "Client Files"},
-                    {
-                        "model": "core.ClientReview",
-                        "label": "Reviews",
-                        "activity_field": "created_at",
-                    },
-                    {"model": "core.AppointmentReview", "label": "Appointment Reviews"},
-                    {"model": "core.ServiceLead", "label": "Service Leads"},
-                    {"model": "core.LeadSubmissionEvent", "label": "Lead Submission Events"},
-                    {
-                        "model": "core.DealerApplication",
-                        "label": "Dealer Applications",
-                        "activity_field": "created_at",
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        "label": "Customers & Sales",
-        "icon": "fas fa-users-cog",
-        "show_header": False,
-        "groups": [
-            {
                 "label": "Catalog, Merch & Fulfillment",
                 "icon": "fas fa-box-open",
                 "sidebar_expand": False,
@@ -643,6 +596,65 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "store.PrintfulWebhookEvent", "label": "Printful Webhooks"},
                     {"model": "store.ImportBatch", "label": "Import History"},
                     {"model": "store.CleanupBatch", "label": "Cleanup History"},
+                ],
+            },
+        ],
+    },
+    {
+        "label": "Reporting & Access",
+        "icon": "fas fa-chart-line",
+        "show_header": False,
+        "groups": [
+            {
+                "label": "Insights & QA",
+                "icon": "fas fa-chart-pie",
+                "sidebar_expand": False,
+                "hub_slug": "insights-qa",
+                "href": "/admin/workspaces/insights-qa/",
+                "hub_primary_count": 2,
+                "items": [
+                    {
+                        "label": "Insights",
+                        "url": "admin-analytics-insights",
+                        "icon": "fas fa-chart-pie",
+                        "active_patterns": ["admin-analytics-insights"],
+                        "permissions": ["core.view_visitorsession"],
+                    },
+                    {"model": "core.VisitorSession", "label": "Visitor Sessions"},
+                    {"model": "core.PageView", "label": "Page Views"},
+                    {"model": "core.ClientUiCheckRun", "label": "Client UI Checks"},
+                ],
+            },
+        ],
+    },
+    {
+        "label": "Customers & Sales",
+        "icon": "fas fa-users-cog",
+        "show_header": False,
+        "groups": [
+            {
+                "label": "Clients & Leads",
+                "icon": "fas fa-address-card",
+                "sidebar_expand": False,
+                "hub_slug": "client-hub",
+                "href": "/admin/workspaces/client-hub/",
+                "hub_title": "Clients & leads",
+                "items": [
+                    {"model": "core.UserProfile", "label": "Client Profiles"},
+                    {"model": "core.ClientFile", "label": "Client Files"},
+                    {
+                        "model": "core.ClientReview",
+                        "label": "Reviews",
+                        "activity_field": "created_at",
+                    },
+                    {"model": "core.AppointmentReview", "label": "Appointment Reviews"},
+                    {"model": "core.ServiceLead", "label": "Service Leads"},
+                    {"model": "core.LeadSubmissionEvent", "label": "Lead Submission Events"},
+                    {
+                        "model": "core.DealerApplication",
+                        "label": "Dealer Applications",
+                        "activity_field": "created_at",
+                    },
                 ],
             },
         ],
@@ -684,13 +696,6 @@ ADMIN_SIDEBAR_SECTIONS = [
                     {"model": "core.ProjectJournalEntry", "label": "Project Journal"},
                 ],
             },
-        ],
-    },
-    {
-        "label": "Website & Marketing",
-        "icon": "fas fa-globe",
-        "show_header": False,
-        "groups": [
             {
                 "label": "Email & Campaigns",
                 "icon": "fas fa-bell",
@@ -749,28 +754,23 @@ ADMIN_SIDEBAR_SECTIONS = [
         ],
     },
     {
-        "label": "Reporting & Access",
-        "icon": "fas fa-chart-line",
+        "label": "Start Here",
+        "icon": "fas fa-compass",
         "show_header": False,
         "groups": [
             {
-                "label": "Insights & QA",
-                "icon": "fas fa-chart-pie",
+                "label": "Onboarding",
+                "icon": "fas fa-map-signs",
+                "always_visible": True,
                 "sidebar_expand": False,
-                "hub_slug": "insights-qa",
-                "href": "/admin/workspaces/insights-qa/",
-                "hub_primary_count": 2,
+                "href": "/admin/staff-guide/",
                 "items": [
                     {
-                        "label": "Insights",
-                        "url": "admin-analytics-insights",
-                        "icon": "fas fa-chart-pie",
-                        "active_patterns": ["admin-analytics-insights"],
-                        "permissions": ["core.view_visitorsession"],
+                        "label": "Staff Guide",
+                        "url": "admin-staff-guide",
+                        "icon": "fas fa-route",
+                        "active_patterns": ["admin-staff-guide"],
                     },
-                    {"model": "core.VisitorSession", "label": "Visitor Sessions"},
-                    {"model": "core.PageView", "label": "Page Views"},
-                    {"model": "core.ClientUiCheckRun", "label": "Client UI Checks"},
                 ],
             },
         ],
@@ -941,7 +941,7 @@ JAZZMIN_UI_TWEAKS = {
     "navbar_fixed": False,
     "layout_boxed": False,
     "footer_fixed": False,
-    "sidebar_fixed": False,
+    "sidebar_fixed": True,
     "sidebar": "sidebar-dark-primary",
     "sidebar_nav_small_text": False,
     "sidebar_disable_expand": False,

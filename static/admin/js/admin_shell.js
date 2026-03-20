@@ -1,4 +1,13 @@
 (function () {
+    function syncSidebarViewport() {
+        const viewportHeight = `${window.innerHeight || document.documentElement.clientHeight || 0}px`;
+        document.documentElement.style.setProperty("--admin-sidebar-vh", viewportHeight);
+    }
+
+    syncSidebarViewport();
+    window.addEventListener("resize", syncSidebarViewport, { passive: true });
+    window.addEventListener("orientationchange", syncSidebarViewport, { passive: true });
+
     function escapeHtml(value) {
         return String(value || "")
             .replace(/&/g, "&amp;")
@@ -100,6 +109,8 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        syncSidebarViewport();
+
         const searchForm = document.querySelector(".admin-global-search");
         if (!searchForm) {
             return;

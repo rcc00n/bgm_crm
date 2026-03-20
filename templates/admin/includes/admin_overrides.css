@@ -688,21 +688,30 @@ body.admin-dashboard .content.border-bottom.mb-2 {
 
 .main-sidebar {
   position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  height: 100vh;
+  inset: 0 auto 0 0;
+  display: flex;
+  flex-direction: column;
+  height: var(--admin-sidebar-vh, 100vh);
+  max-height: var(--admin-sidebar-vh, 100vh);
   background: var(--sidebar-bg);
   color: var(--sidebar-link);
   border-right: 1px solid var(--sidebar-border);
   box-shadow: 24px 0 60px rgba(2, 6, 23, 0.4);
-  overflow-x: hidden;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  z-index: 1040;
 }
 
 .main-sidebar .sidebar {
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  max-height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
 }
 
 .main-sidebar .brand-link {

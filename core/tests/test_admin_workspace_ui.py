@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -62,14 +63,47 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, ".admin-notify-badge--success", html=False)
         self.assertContains(response, "background: #22c55e;", html=False)
 
-    def test_sidebar_includes_fixed_scroll_css(self):
+    def test_sidebar_includes_reliable_fixed_scroll_hooks(self):
         response = self.client.get(reverse("admin:index"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "layout-fixed")
         self.assertContains(response, ".main-sidebar {", html=False)
         self.assertContains(response, "position: fixed;", html=False)
-        self.assertContains(response, "height: 100vh;", html=False)
+        self.assertContains(response, "display: flex;", html=False)
+        self.assertContains(response, "height: var(--admin-sidebar-vh, 100vh);", html=False)
+        self.assertContains(response, "max-height: var(--admin-sidebar-vh, 100vh);", html=False)
+        self.assertContains(response, "min-height: 0;", html=False)
         self.assertContains(response, "overflow-y: auto;", html=False)
+        self.assertContains(response, "scrollbar-gutter: stable;", html=False)
+        self.assertContains(response, "--admin-sidebar-vh", html=False)
+
+    def test_sidebar_items_follow_requested_workflow_order(self):
+        response = self.client.get(reverse("admin:index"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        start = body.index('<aside class="main-sidebar')
+        end = body.index("</aside>", start)
+        sidebar = body[start:end]
+        pattern = re.compile(
+            r'<li class="nav-item">\s*<a href="([^"]+)" class="nav-link[^"]*">\s*<i class="nav-icon [^"]+"></i>\s*<p>\s*([^<]+?)\s*(?:<|$)',
+            re.S,
+        )
+
+        labels = [label for _, label in pattern.findall(sidebar)]
+        expected_labels = [
+            "Dashboard",
+            "Calendar",
+            "Scheduling &amp; Shop",
+            "Catalog, Merch &amp; Fulfillment",
+            "Insights &amp; QA",
+            "Clients &amp; Leads",
+            "Content, Brand &amp; Assets",
+            "Email &amp; Campaigns",
+            "Onboarding",
+        ]
+        self.assertEqual(labels[: len(expected_labels)], expected_labels)
 
     def test_product_changelist_still_renders_heading_and_breadcrumbs(self):
         category = Category.objects.create(name="Admin Products", slug="admin-products")
@@ -154,6 +188,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sidebar stays pinned and follows the new work order")
         self.assertContains(response, "Sidebar now stays visible while you scroll")
         self.assertContains(response, "Favorites badge is now green in the header")
         self.assertContains(response, "Sidebar header and sidebar user panel removed")
@@ -175,6 +210,11 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(
             response,
             reverse("admin-workspace-hub", kwargs={"slug": "catalog-merch"}),
+            html=False,
+        )
+        self.assertContains(
+            response,
+            reverse("admin-workspace-hub", kwargs={"slug": "page-content"}),
             html=False,
         )
         self.assertContains(response, "Catalog, Merch &amp; Fulfillment")

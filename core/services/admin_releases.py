@@ -12,6 +12,37 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-sidebar-pinned-and-reordered",
+        "published_at": "2026-03-20T21:25:00-06:00",
+        "title": "Sidebar stays pinned and follows the new work order",
+        "summary": "The left admin sidebar now stays pinned more reliably while you scroll, and its main hubs were reordered around the daily workflow.",
+        "highlights": [
+            "The main sidebar now uses a fixed layout plus viewport-height sync so it stays visible while long admin pages scroll.",
+            "Calendar, Scheduling & Shop, Catalog, Merch & Fulfillment, Insights & QA, Clients & Leads, Content, Brand & Assets, Email & Campaigns, and Onboarding now appear in the requested top-to-bottom order after Dashboard.",
+            "Longer menus keep their own internal scroll so lower links stay reachable without losing the sidebar.",
+        ],
+        "areas": ["Admin UX", "Navigation", "Sidebar"],
+        "links": [
+            {
+                "label": "Dashboard",
+                "url_name": "admin:index",
+                "note": "See the pinned sidebar and new work order on the admin home page.",
+            },
+            {
+                "label": "Scheduling & Shop",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "scheduling-shop"},
+                "note": "Open one of the primary hubs near the top of the reordered sidebar.",
+            },
+            {
+                "label": "Content, Brand & Assets",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "page-content"},
+                "note": "Check the restored content hub position in the sidebar flow.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-sidebar-now-stays-visible-on-scroll",
         "published_at": "2026-03-20T20:50:00-06:00",
         "title": "Sidebar now stays visible while you scroll",
