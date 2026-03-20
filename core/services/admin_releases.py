@@ -12,6 +12,30 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-favorites-badge-now-green",
+        "published_at": "2026-03-20T20:35:00-06:00",
+        "title": "Favorites badge is now green in the header",
+        "summary": "The count badge on the favorites star now uses a green accent, while the other header badges keep their red alert color.",
+        "highlights": [
+            "The favorites count is now visually separated from alert-style badges in the top bar.",
+            "What's New and notification badges keep their existing red styling.",
+            "This makes the star count read as a saved-items state instead of an error or warning.",
+        ],
+        "areas": ["Admin UX", "Navigation", "Favorites"],
+        "links": [
+            {
+                "label": "Dashboard",
+                "url_name": "admin:index",
+                "note": "See the updated green favorites badge in the header.",
+            },
+            {
+                "label": "What's New",
+                "url_name": "admin-whats-new",
+                "note": "Compare the green favorites badge with the red release badge.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-sidebar-brand-and-user-panel-removed",
         "published_at": "2026-03-20T20:20:00-06:00",
         "title": "Sidebar header and sidebar user panel removed",
