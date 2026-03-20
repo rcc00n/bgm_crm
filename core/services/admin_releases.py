@@ -12,6 +12,35 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-topbar-sticks-on-non-workspace-pages",
+        "published_at": "2026-03-20T21:40:00-06:00",
+        "title": "Topbar now stays visible on admin pages without section jump links",
+        "summary": "The top admin bar now stays pinned on pages that do not have a dedicated Jump To Section workspace bar, so search and header actions remain reachable while you scroll.",
+        "highlights": [
+            "Pages like What's New, changelists, and the admin dashboard now keep the topbar visible during scroll.",
+            "Workspace hub pages keep their existing Jump To Section behavior instead of stacking a second sticky bar above it.",
+            "Search, favorites, What's New, and account actions stay within reach on long admin pages outside the workspace hubs.",
+        ],
+        "areas": ["Admin UX", "Navigation", "Topbar"],
+        "links": [
+            {
+                "label": "Dashboard",
+                "url_name": "admin:index",
+                "note": "Scroll the admin home page and keep the topbar in view.",
+            },
+            {
+                "label": "What's New",
+                "url_name": "admin-whats-new",
+                "note": "Example long page that now keeps the topbar pinned.",
+            },
+            {
+                "label": "Products",
+                "url_name": "admin:store_product_changelist",
+                "note": "Changelists also keep the topbar visible while you review rows.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-sidebar-pinned-and-reordered",
         "published_at": "2026-03-20T21:25:00-06:00",
         "title": "Sidebar stays pinned and follows the new work order",

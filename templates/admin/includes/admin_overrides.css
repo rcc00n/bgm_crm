@@ -152,6 +152,12 @@ body.admin-dashboard .content.border-bottom.mb-2 {
   backdrop-filter: blur(6px);
 }
 
+body:not(.workspace-hub-page) .main-header {
+  position: sticky;
+  top: 0;
+  z-index: 1045;
+}
+
 .main-header .navbar-nav > .nav-item > .nav-link,
 .main-header .navbar-nav > .nav-item > a {
   font-weight: 500;

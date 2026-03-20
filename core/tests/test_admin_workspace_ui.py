@@ -32,12 +32,21 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "workspace-hub-page", html=False)
         self.assertContains(response, "data-workspace-jumpbar", html=False)
         self.assertContains(response, "data-workspace-jump-link", html=False)
         self.assertContains(response, "data-workspace-jump-target=\"workspace-card-1\"", html=False)
         self.assertContains(response, "data-workspace-section", html=False)
         self.assertContains(response, "IntersectionObserver", html=False)
         self.assertContains(response, "workspace-jumpbar__link.is-active", html=False)
+
+    def test_non_workspace_pages_include_sticky_topbar_rule(self):
+        response = self.client.get(reverse("admin-whats-new"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "body:not(.workspace-hub-page) .main-header", html=False)
+        self.assertContains(response, "position: sticky;", html=False)
+        self.assertNotContains(response, "data-workspace-jumpbar", html=False)
 
     def test_sidebar_does_not_render_brand_or_sidebar_user_panel(self):
         response = self.client.get(reverse("admin:index"), secure=True)
@@ -188,6 +197,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Topbar now stays visible on admin pages without section jump links")
         self.assertContains(response, "Sidebar stays pinned and follows the new work order")
         self.assertContains(response, "Sidebar now stays visible while you scroll")
         self.assertContains(response, "Favorites badge is now green in the header")
@@ -217,4 +227,5 @@ class AdminWorkspaceUiTests(TestCase):
             reverse("admin-workspace-hub", kwargs={"slug": "page-content"}),
             html=False,
         )
+        self.assertContains(response, reverse("admin:store_product_changelist"), html=False)
         self.assertContains(response, "Catalog, Merch &amp; Fulfillment")
