@@ -51,7 +51,9 @@ class AdminWorkspaceUiTests(TestCase):
             "brand-assets": "page-content",
             "orders-fulfillment": "catalog-merch",
             "booking-payments": "scheduling-shop",
-            "people-access": "crm-vehicles",
+            "payments-promotions": "scheduling-shop",
+            "crm-vehicles": "scheduling-shop",
+            "people-access": "scheduling-shop",
         }
 
         for old_slug, new_slug in redirects.items():
@@ -80,7 +82,6 @@ class AdminWorkspaceUiTests(TestCase):
     def test_combined_store_and_moved_reference_workspaces_render_expected_sections(self):
         store_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "catalog-merch"}), secure=True)
         scheduling_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
-        crm_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "crm-vehicles"}), secure=True)
 
         self.assertEqual(store_response.status_code, 200)
         self.assertContains(store_response, "Catalog, merch &amp; fulfillment workspace")
@@ -89,15 +90,20 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(store_response, "Store rules and merch economics")
 
         self.assertEqual(scheduling_response.status_code, 200)
+        self.assertContains(scheduling_response, "Payments and promotions")
         self.assertContains(scheduling_response, "Booking and payment references")
-
-        self.assertEqual(crm_response.status_code, 200)
-        self.assertContains(crm_response, "People and access")
+        self.assertContains(scheduling_response, "CRM, vehicles, and access")
 
     def test_whats_new_entries_include_links_to_updated_sections(self):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Scheduling &amp; Shop now includes payments, promotions, CRM, and vehicles")
+        self.assertContains(
+            response,
+            reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}),
+            html=False,
+        )
         self.assertContains(response, "What&#x27;s New entries now link straight to updated sections")
         self.assertContains(response, reverse("admin-whats-new"), html=False)
         self.assertContains(

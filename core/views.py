@@ -1422,7 +1422,9 @@ def _workspace_attention_items(slug: str) -> list[dict[str, Any]]:
         ],
         "scheduling-shop": [
             _make_attention_chip(label="Today’s bookings", count=today_appts_qs.count(), url=_admin_changelist_url("core.Appointment"), tone="info", note="Use Calendar as the daily operating screen."),
+            _make_attention_chip(label="Unpaid orders", count=unpaid_orders_qs.count(), url=_admin_changelist_url("store.Order"), tone="danger", note="Orders still waiting on payment resolution."),
             _make_attention_chip(label="New leads", count=new_leads_qs.count(), url=_admin_changelist_url("core.ServiceLead"), tone="warning", note="Recent requests likely to convert into bookings."),
+            _make_attention_chip(label="Pending dealers", count=pending_dealers_qs.count(), url=_admin_changelist_url("core.DealerApplication"), tone="info", note="Dealer applications tied to CRM setup."),
         ],
         "customers-sales": [
             _make_attention_chip(label="New leads", count=new_leads_qs.count(), url=_admin_changelist_url("core.ServiceLead"), tone="warning", note="Service requests waiting on response."),
@@ -1482,11 +1484,6 @@ def _workspace_attention_items(slug: str) -> list[dict[str, Any]]:
         mapping["reporting-access"] = ui_items
         mapping["insights-qa"] = ui_items
 
-    if slug == "payments-promotions":
-        mapping[slug] = [
-            _make_attention_chip(label="Unpaid orders", count=unpaid_orders_qs.count(), url=_admin_changelist_url("store.Order"), tone="danger", note="Orders waiting on payment resolution."),
-        ]
-
     return [item for item in mapping.get(slug, []) if item.get("count", 0) > 0][:4]
 
 
@@ -1495,7 +1492,9 @@ def _workspace_redirect_slug(slug: str) -> str:
         "brand-assets": "page-content",
         "orders-fulfillment": "catalog-merch",
         "booking-payments": "scheduling-shop",
-        "people-access": "crm-vehicles",
+        "payments-promotions": "scheduling-shop",
+        "crm-vehicles": "scheduling-shop",
+        "people-access": "scheduling-shop",
     }
     return redirects.get(slug, slug)
 
@@ -1504,12 +1503,12 @@ def _admin_workspace_config() -> dict[str, dict]:
     config = {
         "operations": {
             "title": "Operations workspace",
-            "eyebrow": "Appointments, staffing, payments, automation",
-            "summary": "Use this page as the operating entry point before dropping into raw admin lists. Scheduling & Shop now also keeps booking and payment references nearby.",
+            "eyebrow": "Scheduling, payments, CRM, automation",
+            "summary": "Use this page as the operating entry point before dropping into raw admin lists. Scheduling & Shop now keeps shop setup, payments, promos, and core CRM or vehicle references in one workspace.",
             "hero_links": [
                 {"label": "Calendar", "model": "core.Appointment", "note": "Primary booking workspace."},
                 {"label": "Payments", "model": "core.Payment", "note": "Transactions and payment follow-up."},
-                {"label": "Time Tracking", "url_name": "admin-staff-usage", "permissions": ["auth.view_user"], "note": "Staff audit trail."},
+                {"label": "Lead Sources", "model": "core.ClientSource", "note": "CRM attribution and intake setup."},
             ],
             "cards": [
                 {
@@ -1549,20 +1548,39 @@ def _admin_workspace_config() -> dict[str, dict]:
                     ],
                 },
                 {
-                    "title": "Cash, pricing, and offers",
-                    "summary": "Keep transactional work and discount controls in one lane.",
+                    "title": "Payments and promotions",
+                    "summary": "Recorded payments, promo codes, and discount rules now sit in the same workspace as the shop schedule.",
                     "main_links": [
                         {"label": "Payments", "model": "core.Payment", "note": "Recorded payments and reconciliation."},
                         {"label": "Promo Codes", "model": "core.PromoCode", "note": "Service-side promotions."},
+                        {"label": "Service Discounts", "model": "core.ServiceDiscount", "note": "Service discount rules."},
                     ],
                     "support_links": [
-                        {"label": "Service Discounts", "model": "core.ServiceDiscount", "note": "Service discount rules."},
                         {"label": "Product Discounts", "model": "store.ProductDiscount", "note": "Store discount rules."},
                         {"label": "Appointment Promo Codes", "model": "core.AppointmentPromoCode", "note": "Appointment promo usage."},
                         {"label": "Order Promo Codes", "model": "store.OrderPromoCode", "note": "Store promo usage."},
                     ],
                     "tips": [
-                        "Keep promotions here so discount cleanup does not get mixed into scheduling work.",
+                        "Use Payments for transaction follow-up; promo and discount pages are setup lists.",
+                    ],
+                },
+                {
+                    "title": "CRM, vehicles, and access",
+                    "summary": "Lead sources, user access, dealer tiers, and vehicle tables moved into Scheduling & Shop so booking-side reference work starts from one place.",
+                    "main_links": [
+                        {"label": "Lead Sources", "model": "core.ClientSource", "note": "Client source attribution."},
+                        {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
+                        {"label": "Car Makes", "model": "store.CarMake", "note": "Vehicle directory root."},
+                    ],
+                    "support_links": [
+                        {"label": "Tier Levels", "model": "core.DealerTierLevel", "note": "Dealer program tiers."},
+                        {"label": "Roles", "model": "core.Role", "note": "Sidebar visibility and role controls."},
+                        {"label": "Groups", "model": "auth.Group", "note": "Django auth groups."},
+                        {"label": "Role Assignments", "model": "core.UserRole", "note": "User-to-role mapping."},
+                        {"label": "Car Models", "model": "store.CarModel", "note": "Vehicle directory detail."},
+                    ],
+                    "tips": [
+                        "These are foundational tables; change them only when you intend system behavior to shift.",
                     ],
                 },
                 {
@@ -1739,33 +1757,32 @@ def _admin_workspace_config() -> dict[str, dict]:
         },
         "reference-setup": {
             "title": "Reference & setup workspace",
-            "eyebrow": "CRM, vehicles, access, maintenance",
-            "summary": "These pages change core system behavior. CRM, vehicle, and access references now live in one maintenance lane.",
+            "eyebrow": "Maintenance and investigation",
+            "summary": "This page now acts as a low-priority maintenance lane. CRM, vehicle, access, and payment reference lists moved into Scheduling & Shop.",
             "hero_links": [
-                {"label": "Lead Sources", "model": "core.ClientSource", "note": "CRM attribution list."},
-                {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
-                {"label": "Car Makes", "model": "store.CarMake", "note": "Vehicle directory root."},
+                {"label": "Scheduling & Shop", "href": "/admin/workspaces/scheduling-shop/", "note": "Open the merged operating workspace."},
+                {"label": "Import History", "model": "store.ImportBatch", "note": "Catalog import trail."},
+                {"label": "Cleanup History", "model": "store.CleanupBatch", "note": "Cleanup operations trail."},
             ],
             "cards": [
                 {
-                    "title": "CRM, vehicles, and access",
-                    "jump_label": "Core Setup",
-                    "eyebrow": "Reference Lists",
-                    "summary": "Lead sources, access controls, dealer tiers, and vehicle tables are grouped here as foundational setup data.",
+                    "title": "Reference lists now live in Scheduling & Shop",
+                    "jump_label": "Moved",
+                    "eyebrow": "Moved Workspace",
+                    "summary": "Lead sources, access controls, vehicle tables, and payment or promo references were consolidated into Scheduling & Shop for faster admin work.",
                     "main_links": [
+                        {"label": "Scheduling & Shop", "href": "/admin/workspaces/scheduling-shop/", "note": "Open the merged operating workspace."},
                         {"label": "Lead Sources", "model": "core.ClientSource", "note": "Client source attribution."},
-                        {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
-                        {"label": "Car Makes", "model": "store.CarMake", "note": "Vehicle directory root."},
+                        {"label": "Payment Methods", "model": "core.PaymentMethod", "note": "Accepted payment methods."},
                     ],
                     "support_links": [
-                        {"label": "Tier Levels", "model": "core.DealerTierLevel", "note": "Dealer program tiers."},
+                        {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
                         {"label": "Roles", "model": "core.Role", "note": "Sidebar visibility and role controls."},
-                        {"label": "Groups", "model": "auth.Group", "note": "Django auth groups."},
-                        {"label": "Role Assignments", "model": "core.UserRole", "note": "User-to-role mapping."},
-                        {"label": "Car Models", "model": "store.CarModel", "note": "Vehicle directory detail."},
+                        {"label": "Car Makes", "model": "store.CarMake", "note": "Vehicle directory root."},
+                        {"label": "Promo Codes", "model": "core.PromoCode", "note": "Service-side promotions."},
                     ],
                     "tips": [
-                        "If you are not intentionally changing workflow behavior, leave these lists alone.",
+                        "Open this page when you need the reminder, then jump into Scheduling & Shop for the actual edits.",
                     ],
                 },
                 {
@@ -1786,12 +1803,12 @@ def _admin_workspace_config() -> dict[str, dict]:
         },
         "scheduling-shop": {
             "title": "Scheduling & shop workspace",
-            "eyebrow": "Calendar, capacity, booking references",
-            "summary": "Run daily bookings, adjust shop capacity, and keep booking and payment reference lists in the same workspace.",
+            "eyebrow": "Calendar, payments, CRM, shop setup",
+            "summary": "Run daily bookings, adjust shop capacity, handle payments and promotions, and maintain CRM, access, and vehicle references from one workspace.",
             "hero_links": [
                 {"label": "Calendar", "model": "core.Appointment", "note": "Daily booking control."},
-                {"label": "Availability", "model": "core.MasterAvailability", "note": "Open and closed working blocks."},
-                {"label": "Status Library", "model": "core.AppointmentStatus", "note": "Booking status definitions."},
+                {"label": "Payments", "model": "core.Payment", "note": "Transactions and payment follow-up."},
+                {"label": "Lead Sources", "model": "core.ClientSource", "note": "CRM attribution list."},
             ],
             "cards": [
                 {
@@ -1832,6 +1849,25 @@ def _admin_workspace_config() -> dict[str, dict]:
                     ],
                 },
                 {
+                    "title": "Payments and promotions",
+                    "jump_label": "Payments",
+                    "eyebrow": "Payments & Offers",
+                    "summary": "Transactions, promo codes, and discount rules now live inside Scheduling & Shop instead of a separate payments hub.",
+                    "main_links": [
+                        {"label": "Payments", "model": "core.Payment", "note": "Recorded payments and reconciliation."},
+                        {"label": "Promo Codes", "model": "core.PromoCode", "note": "Service-side promotions."},
+                        {"label": "Service Discounts", "model": "core.ServiceDiscount", "note": "Service discount rules."},
+                    ],
+                    "support_links": [
+                        {"label": "Product Discounts", "model": "store.ProductDiscount", "note": "Store discount rules."},
+                        {"label": "Appointment Promo Codes", "model": "core.AppointmentPromoCode", "note": "Appointment promo usage."},
+                        {"label": "Order Promo Codes", "model": "store.OrderPromoCode", "note": "Store promo usage."},
+                    ],
+                    "tips": [
+                        "Use Payments for actual transaction follow-up; promo pages are setup lists.",
+                    ],
+                },
+                {
                     "title": "Booking and payment references",
                     "jump_label": "References",
                     "eyebrow": "System Rules",
@@ -1847,6 +1883,27 @@ def _admin_workspace_config() -> dict[str, dict]:
                     ],
                     "tips": [
                         "Treat these as workflow-defining settings, not daily operating pages.",
+                    ],
+                },
+                {
+                    "title": "CRM, vehicles, and access",
+                    "jump_label": "CRM",
+                    "eyebrow": "CRM & Vehicles",
+                    "summary": "Lead sources, accounts, dealer tiers, access controls, and vehicle tables now live here so booking-side setup stays in one operating hub.",
+                    "main_links": [
+                        {"label": "Lead Sources", "model": "core.ClientSource", "note": "Client source attribution."},
+                        {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
+                        {"label": "Car Makes", "model": "store.CarMake", "note": "Vehicle directory root."},
+                    ],
+                    "support_links": [
+                        {"label": "Tier Levels", "model": "core.DealerTierLevel", "note": "Dealer program tiers."},
+                        {"label": "Roles", "model": "core.Role", "note": "Sidebar visibility and role controls."},
+                        {"label": "Groups", "model": "auth.Group", "note": "Django auth groups."},
+                        {"label": "Role Assignments", "model": "core.UserRole", "note": "User-to-role mapping."},
+                        {"label": "Car Models", "model": "store.CarModel", "note": "Vehicle directory detail."},
+                    ],
+                    "tips": [
+                        "Treat these as foundational reference tables: changes can affect booking, reporting, and fitment behavior.",
                     ],
                 },
             ],
@@ -1987,61 +2044,6 @@ def _admin_workspace_config() -> dict[str, dict]:
                 },
             ],
         },
-        "crm-vehicles": {
-            "title": "CRM & vehicles workspace",
-            "eyebrow": "Lead sources, people, access, vehicle tables",
-            "summary": "CRM reference lists, admin access controls, and vehicle tables now sit in one maintenance workspace.",
-            "hero_links": [
-                {"label": "Lead Sources", "model": "core.ClientSource", "note": "CRM attribution list."},
-                {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
-                {"label": "Car Makes", "model": "store.CarMake", "note": "Vehicle directory root."},
-            ],
-            "cards": [
-                {
-                    "title": "CRM references",
-                    "jump_label": "CRM",
-                    "eyebrow": "CRM",
-                    "summary": "These lists support attribution and dealer program structure.",
-                    "main_links": [
-                        {"label": "Lead Sources", "model": "core.ClientSource", "note": "Client source attribution."},
-                        {"label": "Tier Levels", "model": "core.DealerTierLevel", "note": "Dealer program tiers."},
-                    ],
-                    "tips": [
-                        "Change these only when you intentionally want reporting or dealer workflow to shift.",
-                    ],
-                },
-                {
-                    "title": "People and access",
-                    "jump_label": "Access",
-                    "eyebrow": "Access",
-                    "summary": "Users and roles moved here so account setup sits with the other foundational reference lists.",
-                    "main_links": [
-                        {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
-                        {"label": "Roles", "model": "core.Role", "note": "Sidebar visibility and role controls."},
-                    ],
-                    "support_links": [
-                        {"label": "Groups", "model": "auth.Group", "note": "Django auth groups."},
-                        {"label": "Role Assignments", "model": "core.UserRole", "note": "User-to-role mapping."},
-                    ],
-                    "tips": [
-                        "Use Users and Roles first; groups and assignments are supporting structures.",
-                    ],
-                },
-                {
-                    "title": "Vehicle directory",
-                    "jump_label": "Vehicles",
-                    "eyebrow": "Vehicles",
-                    "summary": "Vehicle tables stay together so fitment reference work does not get split across multiple screens.",
-                    "main_links": [
-                        {"label": "Car Makes", "model": "store.CarMake", "note": "Vehicle directory root."},
-                        {"label": "Car Models", "model": "store.CarModel", "note": "Vehicle directory detail."},
-                    ],
-                    "tips": [
-                        "Treat vehicle tables as reference data: changes affect fitment and catalog matching.",
-                    ],
-                },
-            ],
-        },
     }
     for slug, workspace in _admin_sidebar_group_workspaces().items():
         config.setdefault(slug, workspace)
@@ -2054,12 +2056,15 @@ def admin_staff_guide(request):
         *,
         model: str | None = None,
         url_name: str | None = None,
+        href: str | None = None,
         note: str = "",
     ) -> dict[str, str]:
         if model:
             url = _admin_changelist_url(model)
         elif url_name:
             url = reverse(url_name)
+        elif href:
+            url = href
         else:
             url = "#"
         return {"label": label, "url": url, "note": note}
@@ -2121,7 +2126,7 @@ def admin_staff_guide(request):
         },
         {
             "title": "Shop and scheduling setup",
-            "summary": "These pages support the daily flow, but are usually touched by coordinators or managers.",
+            "summary": "These pages support the daily flow, but now also hold payments, promotions, and core reference tables for coordinators or managers.",
             "cards": [
                 {
                     "title": "Manage team capacity",
@@ -2166,6 +2171,36 @@ def admin_staff_guide(request):
                         guide_link("Status Library", model="core.AppointmentStatus", note="Booking status definitions."),
                         guide_link("Payment Methods", model="core.PaymentMethod", note="Accepted payment methods."),
                         guide_link("Prepayment Options", model="core.PrepaymentOption", note="Deposit options."),
+                    ],
+                },
+                {
+                    "title": "Handle payments and promotions",
+                    "summary": "Payment records, promo codes, and discount rules now stay in the same workspace as scheduling.",
+                    "frequency": "Weekly",
+                    "roles": ["manager", "frontdesk", "commerce"],
+                    "keywords": "payments promo codes discounts appointment promo order promo reconciliation",
+                    "tips": [
+                        "Use Payments for actual transaction follow-up; promo and discount lists are setup pages.",
+                    ],
+                    "links": [
+                        guide_link("Payments", model="core.Payment", note="Recorded payments and reconciliation."),
+                        guide_link("Promo Codes", model="core.PromoCode", note="Service-side promotions."),
+                        guide_link("Service Discounts", model="core.ServiceDiscount", note="Service discount rules."),
+                    ],
+                },
+                {
+                    "title": "Maintain CRM, vehicle, and access references",
+                    "summary": "Lead sources, users, roles, dealer tiers, and vehicle tables now live inside Scheduling & Shop as shared operating references.",
+                    "frequency": "Rare",
+                    "roles": ["manager", "shop", "commerce"],
+                    "keywords": "lead sources users roles groups tier levels car makes models access crm vehicles",
+                    "tips": [
+                        "These are foundational tables; edit them only when you intentionally want workflow, reporting, or fitment behavior to change.",
+                    ],
+                    "links": [
+                        guide_link("Lead Sources", model="core.ClientSource", note="CRM attribution list."),
+                        guide_link("Users", model="auth.User", note="Accounts and staff users."),
+                        guide_link("Car Makes", model="store.CarMake", note="Vehicle directory root."),
                     ],
                 },
             ],
@@ -2277,24 +2312,22 @@ def admin_staff_guide(request):
             ],
         },
         {
-            "title": "Reference and maintenance",
-            "summary": "Touch these pages when setting up the system, debugging edge cases, or doing periodic cleanup.",
+            "title": "Maintenance and investigation",
+            "summary": "Use this lane for periodic cleanup and tracing edge cases. Core reference tables moved into Scheduling & Shop.",
             "cards": [
                 {
-                    "title": "Use reference pages sparingly",
-                    "summary": "Lead sources, access controls, dealer tiers, and vehicle tables are foundational settings.",
+                    "title": "Reference lists moved into Scheduling & Shop",
+                    "summary": "If you need lead sources, users, roles, payment methods, or vehicle tables, start from the merged Scheduling & Shop workspace.",
                     "frequency": "Rare",
-                    "roles": ["manager", "commerce"],
-                    "keywords": "lead sources users roles groups tier levels car makes models reference",
+                    "roles": ["manager", "commerce", "shop"],
+                    "keywords": "scheduling shop lead sources users roles payment methods car makes merged references",
                     "tips": [
-                        "If you are not intentionally changing system behavior, leave these alone.",
-                        "Reference & Setup lives at the bottom of the sidebar on purpose.",
+                        "Reference & Setup is now mainly a reminder and investigation lane.",
                     ],
                     "links": [
+                        guide_link("Scheduling & Shop", href="/admin/workspaces/scheduling-shop/", note="Merged workspace for scheduling, payments, and references."),
                         guide_link("Lead Sources", model="core.ClientSource", note="CRM attribution list."),
-                        guide_link("Users", model="auth.User", note="Accounts and staff users."),
-                        guide_link("Roles", model="core.Role", note="Sidebar visibility and role controls."),
-                        guide_link("Car Makes", model="store.CarMake", note="Vehicle directory root."),
+                        guide_link("Payment Methods", model="core.PaymentMethod", note="Accepted payment methods."),
                     ],
                 },
                 {

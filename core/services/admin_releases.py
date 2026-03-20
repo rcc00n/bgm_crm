@@ -12,6 +12,36 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-scheduling-shop-absorbs-payments-and-crm",
+        "published_at": "2026-03-20T19:20:00-06:00",
+        "title": "Scheduling & Shop now includes payments, promotions, CRM, and vehicles",
+        "summary": "The Scheduling & Shop workspace now absorbs the old Payments & Promotions and CRM & Vehicles hubs so more admin setup work starts from one place.",
+        "highlights": [
+            "Payments, promo codes, discounts, lead sources, users, roles, and vehicle tables now live inside Scheduling & Shop.",
+            "The merged workspace now has dedicated sections for payments and promotions, booking rules, and CRM or vehicle references.",
+            "Old Payments & Promotions and CRM & Vehicles workspace URLs now forward into Scheduling & Shop.",
+        ],
+        "areas": ["Navigation", "Workspaces", "Admin UX"],
+        "links": [
+            {
+                "label": "Scheduling & Shop",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "scheduling-shop"},
+                "note": "Open the merged operating workspace.",
+            },
+            {
+                "label": "Staff Guide",
+                "url_name": "admin-staff-guide",
+                "note": "See the updated staff instructions for the merged setup.",
+            },
+            {
+                "label": "Reference & Setup",
+                "url_name": "admin-workspace-reference-setup",
+                "note": "Maintenance lane with reminder links into Scheduling & Shop.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-whats-new-section-links",
         "published_at": "2026-03-20T18:55:00-06:00",
         "title": "What's New entries now link straight to updated sections",
