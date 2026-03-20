@@ -197,28 +197,9 @@
       width:56px;
       text-align:center;
     }
-    body.app-store.model-product.change-list #result_list th:nth-child(7),
-    body.app-store.model-product.change-list #result_list td:nth-child(7),
-    body.app-store.model-product.change-list #result_list th:nth-child(10),
-    body.app-store.model-product.change-list #result_list td:nth-child(10),
-    body.app-store.model-product.change-list #result_list th:nth-child(11),
-    body.app-store.model-product.change-list #result_list td:nth-child(11){
-      width:72px;
-    }
-    body.app-store.model-product.change-list #result_list th:nth-child(14),
-    body.app-store.model-product.change-list #result_list td:nth-child(14),
-    body.app-store.model-product.change-list #result_list th:nth-child(15),
-    body.app-store.model-product.change-list #result_list td:nth-child(15),
-    body.app-store.model-product.change-list #result_list th:nth-child(16),
-    body.app-store.model-product.change-list #result_list td:nth-child(16){
-      width:64px;
-      text-align:center;
-    }
     body.app-store.model-product.change-list #result_list .field-name,
     body.app-store.model-product.change-list #result_list .field-sku,
-    body.app-store.model-product.change-list #result_list .field-category_short,
-    body.app-store.model-product.change-list #result_list .field-merch_category_short,
-    body.app-store.model-product.change-list #result_list .field-catalog_flags{
+    body.app-store.model-product.change-list #result_list .field-category_short{
       min-width:0;
     }
     body.app-store.model-product.change-list #result_list .field-name a{
@@ -226,29 +207,18 @@
       max-width:100%;
       line-height:1.35;
     }
-    body.app-store.model-product.change-list #result_list .field-unit_cost input{
-      max-width:8.75rem;
-    }
     body.app-store.model-product.change-list #result_list .field-price,
-    body.app-store.model-product.change-list #result_list .field-currency,
     body.app-store.model-product.change-list #result_list .field-inventory,
     body.app-store.model-product.change-list #result_list .field-printful_merch,
+    body.app-store.model-product.change-list #result_list .field-inventory_status,
     body.app-store.model-product.change-list #result_list .field-is_in_house,
     body.app-store.model-product.change-list #result_list .field-is_active,
     body.app-store.model-product.change-list #result_list .field-contact_for_estimate{
       text-align:center;
       white-space:nowrap;
     }
-    body.app-store.model-product.change-list #result_list .field-margin_preview,
     body.app-store.model-product.change-list #result_list .field-inventory_status{
-      min-width:7.25rem;
-    }
-    body.app-store.model-product.change-list #result_list .field-catalog_flags{
-      font-size:.92rem;
-    }
-    body.app-store.model-product.change-list #result_list .field-catalog_flags span{
-      max-width:100%;
-      white-space:normal;
+      width:64px;
     }
     @media (max-width: 1480px){
       .inventory-admin-panel__grid{
@@ -277,46 +247,16 @@
       <span>Import Products</span>
     </a>
   {% endif %}
-  {% if cleanup_url %}
-    <a href="{{ cleanup_url }}" class="btn btn-outline-warning page-action-btn" title="Cleanup junk products">
-      <i class="fas fa-broom"></i>
-      <span>Cleanup Junk</span>
-    </a>
-  {% endif %}
-  {% if name_cleanup_url %}
-    <a href="{{ name_cleanup_url }}" class="btn btn-outline-warning page-action-btn" title="Cleanup product names">
-      <i class="fas fa-eraser"></i>
-      <span>Name Cleanup</span>
-    </a>
-  {% endif %}
   {% if rollback_url and last_import %}
     <a href="{{ rollback_url }}" class="btn btn-outline-danger page-action-btn" title="Rollback last import">
       <i class="fas fa-undo"></i>
       <span>Rollback Last Import</span>
     </a>
   {% endif %}
-  {% if cleanup_rollback_url and last_cleanup %}
-    <a href="{{ cleanup_rollback_url }}" class="btn btn-outline-danger page-action-btn" title="Rollback last cleanup">
-      <i class="fas fa-undo"></i>
-      <span>Rollback Cleanup</span>
-    </a>
-  {% endif %}
-  {% if autofill_photos_url %}
-    <a href="{{ autofill_photos_url }}" class="btn btn-outline-primary page-action-btn" title="Autofill missing photos">
-      <i class="fas fa-image"></i>
-      <span>Autofill Photos</span>
-    </a>
-  {% endif %}
   {% if placeholder_photos_url %}
     <a href="{{ placeholder_photos_url }}" class="btn btn-outline-info page-action-btn" title="Autofill placeholder photos">
       <i class="fas fa-images"></i>
       <span>Autofill 4 Placeholders</span>
-    </a>
-  {% endif %}
-  {% if autofill_rollback_url %}
-    <a href="{{ autofill_rollback_url }}" class="btn btn-outline-danger page-action-btn" title="Rollback autofill photos">
-      <i class="fas fa-undo"></i>
-      <span>Rollback Autofill</span>
     </a>
   {% endif %}
 {% endblock %}

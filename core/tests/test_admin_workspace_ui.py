@@ -3,12 +3,15 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
+from django.contrib import admin
+from django.apps import apps
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from core.models import AdminFavoritePage
+from core.views import WORKSPACE_HIDE_ADD_MODELS, _admin_workspace_config
 from store.models import Category, Product
 
 
@@ -295,6 +298,71 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(analytics_response, "analytics-overview-grid", html=False)
         self.assertContains(analytics_response, "analytics-mosaic", html=False)
         self.assertContains(analytics_response, "Traffic, activity, and engagement curves")
+
+    def test_page_content_hides_new_for_singleton_editors_but_keeps_real_create_flows(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "page-content"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "/admin/core/homepagecopy/add/", html=False)
+        self.assertNotContains(response, "/admin/core/servicespagecopy/add/", html=False)
+        self.assertNotContains(response, "/admin/core/storepagecopy/add/", html=False)
+        self.assertNotContains(response, "/admin/core/topbarsettings/add/", html=False)
+        self.assertContains(response, "/admin/core/fontpreset/add/", html=False)
+        self.assertContains(response, "/admin/core/heroimage/add/", html=False)
+
+    def test_diagnostic_workspace_pages_do_not_render_new_buttons(self):
+        analytics_response = self.client.get(reverse("admin-analytics-insights"), secure=True)
+        email_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "email-campaigns"}), secure=True)
+        client_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "client-hub"}), secure=True)
+
+        self.assertEqual(analytics_response.status_code, 200)
+        self.assertNotContains(analytics_response, "/admin/core/pageview/add/", html=False)
+        self.assertNotContains(analytics_response, "/admin/core/visitorsession/add/", html=False)
+        self.assertNotContains(analytics_response, "/admin/core/clientuicheckrun/add/", html=False)
+
+        self.assertEqual(email_response.status_code, 200)
+        self.assertNotContains(email_response, "/admin/core/emailsendlog/add/", html=False)
+        self.assertNotContains(email_response, "/admin/core/emailcampaignrecipient/add/", html=False)
+        self.assertNotContains(email_response, "/admin/notifications/telegrammessagelog/add/", html=False)
+
+        self.assertEqual(client_response.status_code, 200)
+        self.assertNotContains(client_response, "/admin/core/clientreview/add/", html=False)
+        self.assertNotContains(client_response, "/admin/core/appointmentreview/add/", html=False)
+        self.assertNotContains(client_response, "/admin/core/leadsubmissionevent/add/", html=False)
+
+    def test_workspace_does_not_render_new_for_models_hidden_by_admin_or_workspace_policy(self):
+        request = RequestFactory().get("/admin/")
+        request.user = self.superuser
+        workspace_bodies = {}
+        for slug in _admin_workspace_config():
+            response = self.client.get(
+                reverse("admin-workspace-hub", kwargs={"slug": slug}),
+                secure=True,
+                follow=True,
+            )
+            self.assertEqual(response.status_code, 200)
+            workspace_bodies[slug] = response.content.decode()
+
+        for slug, workspace in _admin_workspace_config().items():
+            body = workspace_bodies[slug]
+            for card_def in workspace.get("cards", []):
+                for bucket in ("main_links", "support_links"):
+                    for link_def in card_def.get(bucket, []):
+                        model_label = (link_def.get("model") or "").strip()
+                        if not model_label:
+                            continue
+                        app_label, model_name = model_label.split(".", 1)
+                        model = apps.get_model(app_label, model_name)
+                        model_admin = admin.site._registry.get(model)
+                        if model_admin is None:
+                            continue
+                        hidden_by_admin = not model_admin.has_add_permission(request)
+                        hidden_by_policy = model_label in WORKSPACE_HIDE_ADD_MODELS
+                        if not (hidden_by_admin or hidden_by_policy):
+                            continue
+                        add_url = reverse(f"admin:{app_label}_{model_name.lower()}_add")
+                        with self.subTest(slug=slug, title=card_def.get("title"), model=model_label):
+                            self.assertNotIn(add_url, body)
 
     def test_whats_new_entries_include_links_to_updated_sections(self):
         response = self.client.get(reverse("admin-whats-new"), secure=True)

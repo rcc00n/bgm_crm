@@ -317,19 +317,14 @@ class ProductAdmin(admin.ModelAdmin):
         "sku",
         "printful_merch",
         "category_short",
-        "merch_category_short",
         "price",
-        "unit_cost",
-        "margin_preview",
-        "currency",
         "inventory",
         "inventory_status",
-        "catalog_flags",
         "is_in_house",
         "is_active",
         "contact_for_estimate",
     )
-    list_editable = ("unit_cost", "is_active")
+    list_editable = ("is_active",)
     list_filter = (
         "is_active",
         PrintfulMerchFilter,
@@ -782,29 +777,9 @@ class ProductAdmin(admin.ModelAdmin):
         extra_context["last_cleanup"] = last_cleanup
         return super().changelist_view(request, extra_context=extra_context)
 
+    @admin.display(description="Stock", ordering="inventory", boolean=True)
     def inventory_status(self, obj):
-        threshold = getattr(self, "_inventory_threshold", StoreInventorySettings.get_low_stock_threshold())
-        available_inventory = obj.available_inventory
-        if available_inventory <= 0:
-            return format_html(
-                '<span style="display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;'
-                'background:rgba(255,92,114,.14);border:1px solid rgba(255,92,114,.35);color:#b42318;font-weight:700;">'
-                'Out of stock</span>'
-            )
-        if threshold > 0 and available_inventory <= threshold:
-            return format_html(
-                '<span style="display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;'
-                'background:rgba(245,166,35,.14);border:1px solid rgba(245,166,35,.35);color:#b54708;font-weight:700;">'
-                'Low stock</span>'
-            )
-        return format_html(
-            '<span style="display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;'
-            'background:rgba(23,212,91,.12);border:1px solid rgba(23,212,91,.3);color:#067647;font-weight:700;">'
-            'In stock</span>'
-        )
-
-    inventory_status.short_description = "Stock"
-    inventory_status.admin_order_field = "inventory"
+        return obj.available_inventory > 0
 
     def catalog_flags(self, obj):
         chips = []

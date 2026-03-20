@@ -33,7 +33,7 @@ from django.core.validators import validate_email
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, Http404
 from django.core.paginator import Paginator
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.template.response import TemplateResponse
 from datetime import date, datetime, timedelta
 import json
@@ -1161,6 +1161,26 @@ def _admin_add_url(model_label: str) -> str:
     return reverse(f"admin:{app_label}_{model_name.lower()}_add")
 
 
+WORKSPACE_HIDE_ADD_MODELS = {
+    "core.AppointmentReview",
+    "core.AppointmentStatusHistory",
+    "core.ClientReview",
+    "core.ClientUiCheckRun",
+    "core.EmailCampaignRecipient",
+    "core.EmailSendLog",
+    "core.LandingPageReview",
+    "core.LeadSubmissionEvent",
+    "core.PageView",
+    "core.VisitorSession",
+    "notifications.TelegramMessageLog",
+    "store.CleanupBatch",
+    "store.ImportBatch",
+    "store.OrderItem",
+    "store.PrintfulWebhookEvent",
+    "store.StoreReview",
+}
+
+
 def _can_access_admin_model(user, model_label: str, *, add: bool = False) -> bool:
     try:
         app_label, model_name = model_label.split(".", 1)
@@ -1183,6 +1203,30 @@ def _can_access_admin_model(user, model_label: str, *, add: bool = False) -> boo
     )
 
 
+def _can_show_workspace_add(request, model_label: str, *, show_add: bool = True) -> bool:
+    if not show_add or model_label in WORKSPACE_HIDE_ADD_MODELS:
+        return False
+    if not _can_access_admin_model(request.user, model_label, add=True):
+        return False
+
+    try:
+        app_label, model_name = model_label.split(".", 1)
+        model = apps.get_model(app_label, model_name)
+    except Exception:
+        return False
+
+    model_admin = admin.site._registry.get(model)
+    if model_admin is None:
+        return False
+
+    try:
+        _admin_add_url(model_label)
+    except NoReverseMatch:
+        return False
+
+    return bool(model_admin.has_add_permission(request))
+
+
 def _resolve_workspace_link(request, link_def: dict) -> dict | None:
     link = dict(link_def)
     label = (link.get("label") or "").strip()
@@ -1193,13 +1237,14 @@ def _resolve_workspace_link(request, link_def: dict) -> dict | None:
     url_name = (link.get("url_name") or "").strip()
     href = (link.get("href") or "").strip()
     add = bool(link.get("add"))
+    show_add = bool(link.get("show_add", True))
     permissions = link.get("permissions") or []
 
     if model_label:
         if not _can_access_admin_model(request.user, model_label, add=add):
             return None
         url = _admin_add_url(model_label) if add else _admin_changelist_url(model_label)
-        add_url = _admin_add_url(model_label) if _can_access_admin_model(request.user, model_label, add=True) else ""
+        add_url = _admin_add_url(model_label) if _can_show_workspace_add(request, model_label, show_add=show_add) else ""
     else:
         if permissions and not request.user.has_perms(permissions):
             return None

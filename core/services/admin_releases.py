@@ -12,6 +12,36 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-admin-buttons-and-products-list-cleanup",
+        "published_at": "2026-03-20T23:58:00-06:00",
+        "title": "Misleading New buttons were removed and the Products list was simplified",
+        "summary": "Workspace cards now hide New buttons when add screens are blocked or not meant to be used, and the Products table now shows a cleaner set of columns with a simple stock check icon.",
+        "highlights": [
+            "Workspace hubs no longer show New buttons for singleton settings, logs, analytics trails, webhook history, or other pages that were returning 403 or causing confusion.",
+            "Page copy, settings, diagnostics, and review-trail pages now act like navigation pages only, without implying that staff should create records there.",
+            "The Products changelist no longer shows Merch, Cost per unit, Margin, Currency, or Signals columns.",
+            "Stock in the Products table now uses the same simple green check or red cross pattern as the other boolean status columns.",
+        ],
+        "areas": ["Admin UX", "Navigation", "Catalog", "Products"],
+        "links": [
+            {
+                "label": "Products",
+                "url_name": "admin:store_product_changelist",
+                "note": "See the simplified table columns and the trimmed action bar.",
+            },
+            {
+                "label": "Content, Brand & Assets",
+                "href": "/admin/workspaces/page-content/",
+                "note": "Page copy cards no longer offer misleading New buttons.",
+            },
+            {
+                "label": "Email & Campaigns",
+                "href": "/admin/workspaces/email-campaigns/",
+                "note": "Diagnostic pages now stay navigation-only inside the workspace.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-admin-workspaces-and-analytics-refresh",
         "published_at": "2026-03-20T23:20:00-06:00",
         "title": "Workspace hubs were reorganized and Insights now opens Analytics directly",
