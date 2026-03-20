@@ -2499,12 +2499,14 @@ def admin_workspace_reference_setup(request):
 def admin_whats_new(request):
     releases = get_admin_releases()
     _mark_admin_releases_seen(request.user)
+    releases_page = Paginator(releases, 15).get_page(request.GET.get("page"))
 
     context = admin.site.each_context(request)
     context.update(
         {
             "title": "What's new",
-            "admin_releases": releases,
+            "admin_releases": releases_page.object_list,
+            "admin_releases_page": releases_page,
         }
     )
     return TemplateResponse(request, "admin/whats_new.html", context)

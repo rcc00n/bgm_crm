@@ -1,9 +1,12 @@
 import re
+from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from core.models import AdminFavoritePage
 from store.models import Category, Product
@@ -47,6 +50,40 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, "body:not(.workspace-hub-page) .main-header", html=False)
         self.assertContains(response, "position: sticky;", html=False)
         self.assertNotContains(response, "data-workspace-jumpbar", html=False)
+
+    def test_whats_new_is_paginated_to_fifteen_entries_per_page(self):
+        base_time = timezone.now()
+        releases = [
+            {
+                "key": f"release-{index}",
+                "published_at": base_time - timedelta(minutes=index),
+                "title": f"Release {index}",
+                "summary": f"Summary {index}",
+                "highlights": [],
+                "areas": [],
+                "links": [],
+            }
+            for index in range(17, 0, -1)
+        ]
+
+        with patch("core.views.get_admin_releases", return_value=releases):
+            page_one = self.client.get(reverse("admin-whats-new"), secure=True)
+            page_two = self.client.get(reverse("admin-whats-new"), {"page": 2}, secure=True)
+
+        self.assertEqual(page_one.status_code, 200)
+        self.assertContains(page_one, "15 per page")
+        self.assertContains(page_one, "Page 1 of 2")
+        self.assertContains(page_one, "Release 17")
+        self.assertContains(page_one, "Release 3")
+        self.assertNotContains(page_one, "Release 2")
+        self.assertContains(page_one, "?page=2", html=False)
+
+        self.assertEqual(page_two.status_code, 200)
+        self.assertContains(page_two, "Page 2 of 2")
+        self.assertContains(page_two, "Release 2")
+        self.assertContains(page_two, "Release 1")
+        self.assertNotContains(page_two, "Release 17")
+        self.assertContains(page_two, "?page=1", html=False)
 
     def test_sidebar_does_not_render_brand_or_sidebar_user_panel(self):
         response = self.client.get(reverse("admin:index"), secure=True)
@@ -197,6 +234,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "What&#x27;s New now shows 15 updates per page")
         self.assertContains(response, "Topbar now stays visible on admin pages without section jump links")
         self.assertContains(response, "Sidebar stays pinned and follows the new work order")
         self.assertContains(response, "Sidebar now stays visible while you scroll")
@@ -228,4 +266,5 @@ class AdminWorkspaceUiTests(TestCase):
             html=False,
         )
         self.assertContains(response, reverse("admin:store_product_changelist"), html=False)
+        self.assertContains(response, "/admin/whats-new/?page=2", html=False)
         self.assertContains(response, "Catalog, Merch &amp; Fulfillment")

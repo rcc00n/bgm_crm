@@ -12,6 +12,30 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-whats-new-pagination",
+        "published_at": "2026-03-20T21:55:00-06:00",
+        "title": "What's New now shows 15 updates per page",
+        "summary": "The admin journal now paginates after 15 release notes, so older updates move onto later pages instead of one endless feed.",
+        "highlights": [
+            "What's New now breaks release notes into pages of 15 entries.",
+            "Page controls appear above and below the release list so it is easier to move through older updates.",
+            "The hero area now shows total update count, current page, and the 15-per-page rule.",
+        ],
+        "areas": ["Release Notes", "Admin UX", "Navigation"],
+        "links": [
+            {
+                "label": "What's New",
+                "url_name": "admin-whats-new",
+                "note": "Open the first page of the admin journal.",
+            },
+            {
+                "label": "What's New page 2",
+                "href": "/admin/whats-new/?page=2",
+                "note": "Older release notes now continue onto later pages.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-topbar-sticks-on-non-workspace-pages",
         "published_at": "2026-03-20T21:40:00-06:00",
         "title": "Topbar now stays visible on admin pages without section jump links",
