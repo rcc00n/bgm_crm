@@ -1,0 +1,104 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static admin_modify jazzmin %}
+
+{% block bodyclass %}{{ block.super }} product-admin-change{% endblock %}
+
+{% block content_title %}
+  {% if add %}
+    Add product
+  {% else %}
+    {{ original.name|default:original }}
+  {% endif %}
+{% endblock %}
+
+{% block field_sets %}
+  <div class="col-12 col-xl-9 product-admin-shell">
+    <section class="product-admin-hero">
+      <div class="product-admin-hero__copy">
+        <p class="product-admin-hero__eyebrow">
+          {% if add %}New catalog entry{% else %}Product editor{% endif %}
+        </p>
+        <h2 class="product-admin-hero__title">{{ product_admin_summary.title }}</h2>
+        <p class="product-admin-hero__summary">{{ product_admin_summary.summary }}</p>
+        {% if product_admin_summary.chips %}
+          <div class="product-admin-hero__chips">
+            {% for chip in product_admin_summary.chips %}
+              <span class="product-admin-chip product-admin-chip--{{ chip.tone|default:'muted' }}">
+                {{ chip.label }}
+              </span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="product-admin-hero__aside">
+        {% if product_admin_summary.image_url %}
+          <div class="product-admin-hero__media">
+            <img src="{{ product_admin_summary.image_url }}" alt="{{ product_admin_summary.title }}">
+          </div>
+        {% endif %}
+        {% if product_admin_summary.stats %}
+          <div class="product-admin-hero__stats">
+            {% for stat in product_admin_summary.stats %}
+              <div class="product-admin-stat product-admin-stat--{{ stat.tone|default:'neutral' }}">
+                <span class="product-admin-stat__label">{{ stat.label }}</span>
+                <strong class="product-admin-stat__value">{{ stat.value }}</strong>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if product_admin_summary.facts %}
+      <section class="product-admin-facts">
+        {% for fact in product_admin_summary.facts %}
+          <div class="product-admin-fact">
+            <span class="product-admin-fact__label">{{ fact.label }}</span>
+            <strong class="product-admin-fact__value">{{ fact.value }}</strong>
+          </div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <div class="product-admin-sections">
+      {% for fieldset in adminform %}
+        {% include "admin/store/product/_product_fieldset.html" with fieldset=fieldset %}
+      {% endfor %}
+
+      {% for inline_admin_formset in inline_admin_formsets %}
+        <section class="product-form-card product-form-card--inline" id="{{ inline_admin_formset.formset.prefix }}-section">
+          <header class="product-form-card__header">
+            <div>
+              <p class="product-form-card__eyebrow">Related records</p>
+              <h3>{{ inline_admin_formset.opts.verbose_name_plural|capfirst }}</h3>
+            </div>
+            {% if inline_admin_formset.formset.prefix == "options" %}
+              <p class="product-form-card__description">Add sellable choices, separators, display columns, and option pricing here.</p>
+            {% elif inline_admin_formset.formset.prefix == "images" %}
+              <p class="product-form-card__description">Keep the gallery clean, ordered, and ready for storefront previews.</p>
+            {% endif %}
+          </header>
+          <div class="product-form-card__body product-form-card__body--inline">
+            {% include inline_admin_formset.opts.template %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block inline_field_sets %}{% endblock %}
+
+{% block submit_buttons_bottom %}
+  <section class="product-admin-sidecard">
+    <p class="product-admin-sidecard__eyebrow">Editing flow</p>
+    <h3>Keep this product tight</h3>
+    <ul class="product-admin-sidecard__list">
+      <li>Start with identity, category, SKU, and pricing.</li>
+      <li>Use compatibility and specs to reduce support questions.</li>
+      <li>Finish with options and gallery before publishing.</li>
+    </ul>
+  </section>
+  {{ block.super }}
+{% endblock %}
