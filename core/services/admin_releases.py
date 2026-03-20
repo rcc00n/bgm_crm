@@ -12,6 +12,30 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-header-now-sits-under-sidebar-edge",
+        "published_at": "2026-03-20T22:50:00-06:00",
+        "title": "Header no longer overlaps the sidebar edge",
+        "summary": "The admin header layer now sits below the fixed sidebar again, while header dropdowns still stay above page content.",
+        "highlights": [
+            "The left sidebar now cleanly covers the header edge instead of being overlapped by it.",
+            "Header dropdown menus still open above dashboard cards and long-page content.",
+            "This keeps the cleaner dropdown overlay fix without breaking the sidebar boundary.",
+        ],
+        "areas": ["Admin UX", "Navigation", "Header"],
+        "links": [
+            {
+                "label": "Dashboard",
+                "url_name": "admin:index",
+                "note": "See the header and sidebar layers aligned correctly on the admin home page.",
+            },
+            {
+                "label": "What's New",
+                "url_name": "admin-whats-new",
+                "note": "Open the release dropdown and confirm the menu still floats above the page content.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-header-dropdown-overlay-and-active-state-fix",
         "published_at": "2026-03-20T22:35:00-06:00",
         "title": "Header dropdowns now stack cleanly and no longer flash blue active states",

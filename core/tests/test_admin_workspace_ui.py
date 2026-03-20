@@ -55,9 +55,9 @@ class AdminWorkspaceUiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, ".main-header {", html=False)
-        self.assertContains(response, "z-index: 1100;", html=False)
+        self.assertContains(response, "z-index: 1030;", html=False)
         self.assertContains(response, ".admin-notify-menu {", html=False)
-        self.assertContains(response, "z-index: 1110;", html=False)
+        self.assertContains(response, "z-index: 1035;", html=False)
         self.assertContains(response, ".admin-notify-menu .dropdown-item.active", html=False)
         self.assertContains(response, "background: rgba(15, 23, 42, 0.08);", html=False)
         self.assertContains(response, "color: var(--admin-text-strong);", html=False)
@@ -245,6 +245,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Header no longer overlaps the sidebar edge")
         self.assertContains(response, "Header dropdowns now stack cleanly and no longer flash blue active states")
         self.assertContains(response, "Topbar returned to normal flow and no longer clips into the sidebar")
         self.assertContains(response, "What&#x27;s New now shows 15 updates per page")
