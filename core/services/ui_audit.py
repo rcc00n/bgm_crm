@@ -98,6 +98,7 @@ STATIC_EXTENSIONS = {
 IGNORED_WARNING_DETAILS = {
     "Button without action",
     "Anchor with empty href (#) and no handler",
+    "Form without action",
 }
 
 
