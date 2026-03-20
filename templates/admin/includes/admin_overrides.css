@@ -94,6 +94,11 @@ body.admin-dashboard .content.border-bottom.mb-2 {
   text-decoration: none;
 }
 
+/* Jazzmin still renders the breadcrumb/title strip even when both are empty. */
+.content.border-bottom.mb-2:not(:has(h1:not(:empty))):not(:has(.breadcrumb)):not(:has(.breadcrumbs)) {
+  display: none;
+}
+
 .page-actions {
   display: flex !important;
   flex-wrap: wrap;
