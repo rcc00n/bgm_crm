@@ -37,6 +37,13 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, "IntersectionObserver", html=False)
         self.assertContains(response, "workspace-jumpbar__link.is-active", html=False)
 
+    def test_sidebar_does_not_render_brand_or_sidebar_user_panel(self):
+        response = self.client.get(reverse("admin:index"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'id="jazzy-logo"', html=False)
+        self.assertNotContains(response, 'class="user-panel mt-3 pb-3 mb-3 d-flex"', html=False)
+
     def test_product_changelist_still_renders_heading_and_breadcrumbs(self):
         category = Category.objects.create(name="Admin Products", slug="admin-products")
         Product.objects.create(
@@ -120,6 +127,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sidebar header and sidebar user panel removed")
         self.assertContains(response, "Telegramm Bot moved into the Email &amp; Campaigns hub")
         self.assertContains(
             response,

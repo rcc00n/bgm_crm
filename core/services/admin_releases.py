@@ -12,6 +12,31 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-sidebar-brand-and-user-panel-removed",
+        "published_at": "2026-03-20T20:20:00-06:00",
+        "title": "Sidebar header and sidebar user panel removed",
+        "summary": "The left admin sidebar no longer shows the old Django Admin brand strip or the extra user panel with your nickname.",
+        "highlights": [
+            "The sidebar now starts directly with the working navigation instead of a brand banner.",
+            "The duplicate sidebar user block was removed, so your account only stays in the top-right account menu.",
+            "This frees vertical space for the actual admin hubs and daily links.",
+        ],
+        "areas": ["Admin UX", "Navigation", "Sidebar"],
+        "links": [
+            {
+                "label": "Dashboard",
+                "url_name": "admin:index",
+                "note": "See the cleaner left sidebar on the admin home page.",
+            },
+            {
+                "label": "Scheduling & Shop",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "scheduling-shop"},
+                "note": "Example page with the trimmed sidebar.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-telegramm-bot-moved-into-email-hub",
         "published_at": "2026-03-20T20:05:00-06:00",
         "title": "Telegramm Bot moved into the Email & Campaigns hub",
