@@ -305,6 +305,9 @@
       gap: 10px;
     }
     .workspace-jumpbar__link {
+      --workspace-jumpbar-accent: rgba(37, 99, 235, 0.16);
+      --workspace-jumpbar-accent-strong: #1d4ed8;
+      --workspace-jumpbar-accent-text: var(--admin-text-strong);
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -317,7 +320,7 @@
       font-size: .92rem;
       font-weight: 700;
       text-decoration: none;
-      transition: background .18s ease, border-color .18s ease, transform .18s ease;
+      transition: background .18s ease, border-color .18s ease, transform .18s ease, color .18s ease, box-shadow .18s ease;
     }
     .workspace-jumpbar__link:hover {
       transform: translateY(-1px);
@@ -325,6 +328,13 @@
       background: #ffffff;
       color: #1d4ed8;
       text-decoration: none;
+    }
+    .workspace-jumpbar__link.is-active {
+      border-color: color-mix(in srgb, var(--workspace-jumpbar-accent-strong) 26%, rgba(15, 23, 42, 0.1));
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--workspace-jumpbar-accent-strong) 12%, #ffffff) 0%, #ffffff 100%);
+      color: var(--workspace-jumpbar-accent-text);
+      box-shadow: 0 14px 30px color-mix(in srgb, var(--workspace-jumpbar-accent-strong) 18%, transparent);
     }
     .workspace-jumpbar__count {
       display: inline-flex;
@@ -338,6 +348,13 @@
       color: #1d4ed8;
       font-size: .74rem;
       font-weight: 800;
+      transition: background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+    .workspace-jumpbar__link.is-active .workspace-jumpbar__count {
+      background: linear-gradient(135deg, var(--workspace-jumpbar-accent-strong) 0%, color-mix(in srgb, var(--workspace-jumpbar-accent-strong) 72%, #ffffff) 100%);
+      color: #ffffff;
+      transform: scale(1.08);
+      box-shadow: 0 10px 20px color-mix(in srgb, var(--workspace-jumpbar-accent-strong) 30%, transparent);
     }
     .workspace-card {
       display: grid;
@@ -348,6 +365,12 @@
       background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
       box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
       min-width: 0;
+      scroll-margin-top: 92px;
+      transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+    }
+    .workspace-card.is-active-section {
+      border-color: color-mix(in srgb, var(--workspace-active-card) 24%, rgba(15, 23, 42, 0.08));
+      box-shadow: 0 18px 42px color-mix(in srgb, var(--workspace-active-card) 16%, rgba(15, 23, 42, 0.05));
     }
     .workspace-card__head {
       display: grid;
@@ -792,13 +815,18 @@
       </section>
 
       {% if workspace.cards|length > 1 %}
-        <nav class="workspace-jumpbar" aria-label="Workspace sections">
+        <nav class="workspace-jumpbar" aria-label="Workspace sections" data-workspace-jumpbar>
           <p class="workspace-jumpbar__title">Jump To Section</p>
           <div class="workspace-jumpbar__links">
             {% for card in workspace.cards %}
-              <a class="workspace-jumpbar__link" href="#workspace-card-{{ forloop.counter }}">
+              <a
+                class="workspace-jumpbar__link"
+                href="#workspace-card-{{ forloop.counter }}"
+                data-workspace-jump-link
+                data-workspace-jump-target="workspace-card-{{ forloop.counter }}"
+              >
                 <span>{{ card.jump_label|default:card.title }}</span>
-                <span class="workspace-jumpbar__count">{{ forloop.counter }}</span>
+                <span class="workspace-jumpbar__count" data-workspace-jump-count>{{ forloop.counter }}</span>
               </a>
             {% endfor %}
           </div>
@@ -807,7 +835,7 @@
 
       <section class="workspace-grid">
         {% for card in workspace.cards %}
-          <article class="workspace-card" id="workspace-card-{{ forloop.counter }}">
+          <article class="workspace-card" id="workspace-card-{{ forloop.counter }}" data-workspace-section>
             <div class="workspace-card__head">
               <div class="workspace-card__topline">
                 <span class="workspace-card__eyebrow">{{ card.eyebrow }}</span>
@@ -976,4 +1004,127 @@
       {% endif %}
     </div>
   </div>
+  <script>
+    (() => {
+      const jumpbar = document.querySelector("[data-workspace-jumpbar]");
+      if (!jumpbar) {
+        return;
+      }
+
+      const palette = [
+        { strong: "#1d4ed8", soft: "rgba(37, 99, 235, 0.16)", text: "#16395f" },
+        { strong: "#0f766e", soft: "rgba(15, 118, 110, 0.16)", text: "#115e59" },
+        { strong: "#b45309", soft: "rgba(180, 83, 9, 0.16)", text: "#92400e" },
+        { strong: "#be123c", soft: "rgba(190, 18, 60, 0.16)", text: "#9f1239" },
+        { strong: "#4338ca", soft: "rgba(67, 56, 202, 0.16)", text: "#3730a3" },
+        { strong: "#0369a1", soft: "rgba(3, 105, 161, 0.16)", text: "#075985" },
+      ];
+
+      const links = Array.from(jumpbar.querySelectorAll("[data-workspace-jump-link]"));
+      const sections = links
+        .map((link, index) => {
+          const targetId = link.dataset.workspaceJumpTarget || "";
+          const section = targetId ? document.getElementById(targetId) : null;
+          if (!section) {
+            return null;
+          }
+          const color = palette[index % palette.length];
+          link.style.setProperty("--workspace-jumpbar-accent", color.soft);
+          link.style.setProperty("--workspace-jumpbar-accent-strong", color.strong);
+          link.style.setProperty("--workspace-jumpbar-accent-text", color.text);
+          section.style.setProperty("--workspace-active-card", color.strong);
+          return { link, section, targetId };
+        })
+        .filter(Boolean);
+
+      if (!sections.length) {
+        return;
+      }
+
+      let activeId = "";
+
+      const applyActiveState = (targetId) => {
+        if (!targetId || activeId === targetId) {
+          return;
+        }
+        activeId = targetId;
+        sections.forEach(({ link, section, targetId: currentId }) => {
+          const isActive = currentId === targetId;
+          link.classList.toggle("is-active", isActive);
+          link.setAttribute("aria-current", isActive ? "true" : "false");
+          section.classList.toggle("is-active-section", isActive);
+        });
+      };
+
+      const findClosestSection = () => {
+        const topOffset = 118;
+        let current = sections[0];
+        for (const entry of sections) {
+          if (entry.section.getBoundingClientRect().top - topOffset <= 0) {
+            current = entry;
+          } else {
+            break;
+          }
+        }
+        return current;
+      };
+
+      const activateFromHash = () => {
+        const hash = window.location.hash.replace("#", "");
+        const match = sections.find((entry) => entry.targetId === hash);
+        if (match) {
+          applyActiveState(match.targetId);
+          return true;
+        }
+        return false;
+      };
+
+      sections.forEach(({ link, targetId }) => {
+        link.addEventListener("click", () => {
+          applyActiveState(targetId);
+        });
+      });
+
+      const syncFromViewport = () => {
+        const closest = findClosestSection();
+        if (closest?.targetId) {
+          applyActiveState(closest.targetId);
+        }
+      };
+
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            const visible = entries
+              .filter((entry) => entry.isIntersecting)
+              .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (visible?.target?.id) {
+              applyActiveState(visible.target.id);
+              return;
+            }
+            syncFromViewport();
+          },
+          {
+            rootMargin: "-18% 0px -58% 0px",
+            threshold: [0.18, 0.38, 0.6],
+          }
+        );
+
+        sections.forEach(({ section }) => observer.observe(section));
+      } else {
+        window.addEventListener("scroll", syncFromViewport, { passive: true });
+        window.addEventListener("resize", syncFromViewport);
+      }
+
+      if (!activateFromHash()) {
+        syncFromViewport();
+      }
+
+      window.addEventListener("hashchange", () => {
+        if (!activateFromHash()) {
+          syncFromViewport();
+        }
+      });
+    })();
+  </script>
 {% endblock %}

@@ -12,6 +12,32 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-workspace-anchor-highlight-feedback",
+        "published_at": "2026-03-20T19:45:00-06:00",
+        "title": "Workspace section numbers now react while you scroll",
+        "summary": "The numbered section chips inside workspace hubs now change color as you move between anchors, making long hubs feel more interactive.",
+        "highlights": [
+            "Jump-to-section chips now highlight the section you are currently reading instead of staying visually static.",
+            "Switching to another anchor updates the numbered chip color immediately, so it is easier to track where you are inside a hub.",
+            "The active workspace card gets a matching accent so the jump bar and the content stay visually linked.",
+        ],
+        "areas": ["Admin UX", "Workspaces", "Navigation"],
+        "links": [
+            {
+                "label": "Scheduling & Shop",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "scheduling-shop"},
+                "note": "Example hub with multiple anchor sections.",
+            },
+            {
+                "label": "Catalog, Merch & Fulfillment",
+                "url_name": "admin-workspace-hub",
+                "url_kwargs": {"slug": "catalog-merch"},
+                "note": "Another long hub using the interactive jump bar.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-scheduling-shop-absorbs-payments-and-crm",
         "published_at": "2026-03-20T19:20:00-06:00",
         "title": "Scheduling & Shop now includes payments, promotions, CRM, and vehicles",

@@ -26,6 +26,17 @@ class AdminWorkspaceUiTests(TestCase):
             ".content.border-bottom.mb-2:not(:has(h1:not(:empty))):not(:has(.breadcrumb)):not(:has(.breadcrumbs))",
         )
 
+    def test_workspace_hub_exposes_anchor_highlight_hooks(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-workspace-jumpbar", html=False)
+        self.assertContains(response, "data-workspace-jump-link", html=False)
+        self.assertContains(response, "data-workspace-jump-target=\"workspace-card-1\"", html=False)
+        self.assertContains(response, "data-workspace-section", html=False)
+        self.assertContains(response, "IntersectionObserver", html=False)
+        self.assertContains(response, "workspace-jumpbar__link.is-active", html=False)
+
     def test_product_changelist_still_renders_heading_and_breadcrumbs(self):
         category = Category.objects.create(name="Admin Products", slug="admin-products")
         Product.objects.create(
@@ -98,6 +109,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Workspace section numbers now react while you scroll")
         self.assertContains(response, "Scheduling &amp; Shop now includes payments, promotions, CRM, and vehicles")
         self.assertContains(
             response,
