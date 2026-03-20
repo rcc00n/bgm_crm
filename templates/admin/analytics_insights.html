@@ -8,36 +8,60 @@
 
 {% block content %}
 <div class="col-12">
-  <div class="dashboard-shell">
-    <section class="dashboard-hero">
-      <div class="dashboard-hero-content">
-        <div>
-          <p class="panel-subtitle">Behavior & traffic deep dive</p>
-          <h1>Analytics insights</h1>
-          <p>Last {{ analytics.window_days }} days · {{ analytics.range.start|date:"M d" }} – {{ analytics.range.end|date:"M d" }}</p>
-          <div class="insights-window">
-            {% for option in window_options %}
-              <a class="pill{% if option == window_days %} active{% endif %}" href="?window={{ option }}">{{ option }}d</a>
-            {% endfor %}
+  <div class="dashboard-shell analytics-insights-page">
+    <div class="analytics-overview-grid">
+      <section class="dashboard-hero analytics-hero">
+        <div class="dashboard-hero-content analytics-hero-content">
+          <div class="analytics-hero-copy">
+            <div class="analytics-section-tag">Analytics overview</div>
+            <p class="panel-subtitle">Behavior & traffic deep dive</p>
+            <h1>Analytics insights</h1>
+            <p>Last {{ analytics.window_days }} days · {{ analytics.range.start|date:"M d" }} – {{ analytics.range.end|date:"M d" }}</p>
+            <p>Traffic, engagement, and technical signals stay on one screen, while raw investigation pages remain one click away.</p>
+            <div class="insights-window">
+              {% for option in window_options %}
+                <a class="pill{% if option == window_days %} active{% endif %}" href="?window={{ option }}">{{ option }}d</a>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="analytics-hero-stat-grid">
+            <div class="hero-stat">
+              <span>Unique visitors</span>
+              <strong>{{ analytics.totals.unique_visitors|default:analytics.totals.visits }}</strong>
+              <small>{{ analytics.totals.new_visitors }} new · {{ analytics.totals.returning_visitors }} returning</small>
+            </div>
+            <div class="hero-stat">
+              <span>Returning sessions</span>
+              <strong>{{ analytics.sessions.returning_pct }}%</strong>
+              <small>{{ analytics.sessions.returning }} returning · {{ analytics.sessions.new }} new</small>
+            </div>
+            <div class="hero-stat">
+              <span>Avg session time</span>
+              <strong>{{ analytics.sessions.avg_seconds|hms }}</strong>
+              <small>Median {{ analytics.sessions.median_seconds|hms }}</small>
+            </div>
           </div>
         </div>
-        <div class="hero-stat">
-          <span>Unique visitors</span>
-          <strong>{{ analytics.totals.unique_visitors|default:analytics.totals.visits }}</strong>
-          <small>{{ analytics.totals.new_visitors }} new · {{ analytics.totals.returning_visitors }} returning</small>
-        </div>
-        <div class="hero-stat">
-          <span>Returning sessions</span>
-          <strong>{{ analytics.sessions.returning_pct }}%</strong>
-          <small>{{ analytics.sessions.returning }} returning · {{ analytics.sessions.new }} new</small>
-        </div>
-        <div class="hero-stat">
-          <span>Avg session time</span>
-          <strong>{{ analytics.sessions.avg_seconds|hms }}</strong>
-          <small>Median {{ analytics.sessions.median_seconds|hms }}</small>
-        </div>
-      </div>
-    </section>
+      </section>
+
+      {% if analytics_support_links %}
+        <aside class="data-panel analytics-support-panel">
+          <div class="analytics-section-tag">Support Pages</div>
+          <div class="panel-title">Raw access and QA pages</div>
+          <div class="panel-subtitle">Open record-level trails when the dashboard needs deeper inspection.</div>
+          <div class="analytics-support-list">
+            {% for link in analytics_support_links %}
+              <a class="analytics-support-link" href="{{ link.url }}">
+                <span class="analytics-support-link__eyebrow">Support page</span>
+                <strong>{{ link.label }}</strong>
+                <small>{{ link.note }}</small>
+                <span class="analytics-support-link__cta">Open</span>
+              </a>
+            {% endfor %}
+          </div>
+        </aside>
+      {% endif %}
+    </div>
 
     <div class="kpi-grid">
       <article class="kpi-card">
@@ -85,267 +109,320 @@
       </article>
     </div>
 
-    <div class="dashboard-grid analytics-grid">
-      <section class="data-panel chart-card span-2">
-        <div class="panel-title">Visits by day</div>
-        <div class="panel-subtitle">Unique sessions per day</div>
-        <canvas id="visitsChart"></canvas>
-      </section>
-      <section class="data-panel chart-card">
-        <div class="panel-title">Activity by hour</div>
-        <div class="panel-subtitle">Local visitor time</div>
-        <canvas id="hourlyChart"></canvas>
-      </section>
-      <section class="data-panel chart-card">
-        <div class="panel-title">Device mix</div>
-        <div class="panel-subtitle">Viewport width buckets</div>
-        <canvas id="deviceChart"></canvas>
-      </section>
-      <section class="data-panel chart-card">
-        <div class="panel-title">Referrer mix</div>
-        <div class="panel-subtitle">Session acquisition</div>
-        <canvas id="referrerChart"></canvas>
-      </section>
-      <section class="data-panel chart-card span-2">
-        <div class="panel-title">Session depth</div>
-        <div class="panel-subtitle">Pages per session</div>
-        <canvas id="depthChart"></canvas>
-      </section>
-      <section class="data-panel chart-card span-2">
-        <div class="panel-title">Time on page distribution</div>
-        <div class="panel-subtitle">All page views in window</div>
-        <canvas id="durationChart"></canvas>
-      </section>
-    </div>
-
-    <div class="dashboard-grid analytics-grid">
-      <section class="data-panel analytics-table-panel span-2">
-        <div class="panel-title">Top landing pages</div>
-        <div class="panel-subtitle">Entry pages ranked by sessions</div>
-        {% if analytics.landing_pages %}
-          <div class="table-scroll">
-            <table class="analytics-table">
-              <thead>
-                <tr>
-                  <th>Landing page</th>
-                  <th class="numeric">Visits</th>
-                  <th class="numeric">Bounce</th>
-                  <th class="numeric">Avg pages</th>
-                <th class="numeric">Avg session</th>
-              </tr>
-            </thead>
-            <tbody>
-                {% for row in analytics.landing_pages %}
-                  <tr>
-                    <td><code>{{ row.path }}</code></td>
-                    <td class="numeric">{{ row.visits }}</td>
-                    <td class="numeric">{{ row.bounce_pct }}%</td>
-                    <td class="numeric">{{ row.avg_pages }}</td>
-                    <td class="numeric">{{ row.avg_seconds|hms }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}
-          <div class="empty-state"><p>No landing data yet.</p></div>
-        {% endif %}
-      </section>
-
-      <section class="data-panel analytics-table-panel">
-        <div class="panel-title">Top exit pages</div>
-        <div class="panel-subtitle">Last page seen in session</div>
-        {% if analytics.exit_pages %}
-          <table class="analytics-table">
-            <thead>
-              <tr>
-                <th>Page</th>
-                <th class="numeric">Exits</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in analytics.exit_pages %}
-                <tr>
-                  <td><code>{{ row.path }}</code></td>
-                  <td class="numeric">{{ row.exits }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <div class="empty-state"><p>No exit data yet.</p></div>
-        {% endif %}
-      </section>
-
-      <section class="data-panel analytics-table-panel span-2">
-        <div class="panel-title">Top pages by dwell time</div>
-        <div class="panel-subtitle">Avg time on page (min 3 views)</div>
-        {% if analytics.top_pages_by_duration %}
-          <table class="analytics-table">
-            <thead>
-              <tr>
-                <th>Page</th>
-                <th class="numeric">Avg time</th>
-                <th class="numeric">Views</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in analytics.top_pages_by_duration %}
-                <tr>
-                  <td><code>{{ row.path }}</code></td>
-                  <td class="numeric">{{ row.avg_seconds|hms }}</td>
-                  <td class="numeric">{{ row.views }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <div class="empty-state"><p>No engagement data yet.</p></div>
-        {% endif %}
-      </section>
-
-      <section class="data-panel analytics-table-panel">
-        <div class="panel-title">Top referrers</div>
-        <div class="panel-subtitle">Distinct sessions by source</div>
-        {% if analytics.top_referrers %}
-          <table class="analytics-table">
-            <thead>
-              <tr>
-                <th>Source</th>
-                <th class="numeric">Visits</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in analytics.top_referrers %}
-                <tr>
-                  <td>{{ row.referrer }}</td>
-                  <td class="numeric">{{ row.visits }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <div class="empty-state"><p>No referral data yet.</p></div>
-        {% endif %}
-      </section>
-
-      <section class="data-panel analytics-table-panel">
-        <div class="panel-title">Top IPs</div>
-        <div class="panel-subtitle">Most active sources</div>
-        {% if analytics.top_ips %}
-          <table class="analytics-table">
-            <thead>
-              <tr>
-                <th>IP address</th>
-                <th>Location</th>
-                <th class="numeric">Visits</th>
-                <th class="numeric">Signed-in</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in analytics.top_ips %}
-                <tr>
-                  <td>{{ row.ip_address }}</td>
-                  <td>{{ row.location|default:"-" }}</td>
-                  <td class="numeric">{{ row.visits }}</td>
-                  <td class="numeric">{{ row.signed_in_pct }}%</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <div class="empty-state"><p>No IP data yet.</p></div>
-        {% endif %}
-      </section>
-
-      <section class="data-panel analytics-table-panel span-2">
-        <div class="panel-title">Most engaged sessions</div>
-        <div class="panel-subtitle">Highest total visible time</div>
-        {% if analytics.session_leaders %}
-          <table class="analytics-table">
-            <thead>
-              <tr>
-                <th>Visitor</th>
-                <th>Entry</th>
-                <th class="numeric">Pages</th>
-                <th class="numeric">Total time</th>
-                <th class="numeric">Last seen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in analytics.session_leaders %}
-                <tr>
-                  <td>
-                    <strong>{{ row.user_name }}</strong><br>
-                    <span class="panel-subtitle" style="margin:0;">{{ row.user_email }}</span>
-                  </td>
-                  <td><code>{{ row.landing_path }}</code></td>
-                  <td class="numeric">{{ row.views }}</td>
-                  <td class="numeric">{{ row.total_seconds|hms }}</td>
-                  <td class="numeric">{{ row.last_seen|date:"M d · H:i" }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <div class="empty-state"><p>No session leaders yet.</p></div>
-        {% endif %}
-      </section>
-
-      <section class="data-panel analytics-table-panel">
-        <div class="panel-title">Browser & OS mix</div>
-        <div class="panel-subtitle">Session user agents</div>
-        <div class="insights-mix-grid">
-          <div>
-            <div class="eyebrow">Browsers</div>
-            <ul class="insights-mix-list">
-              {% for row in analytics.browser_mix %}
-                <li>
-                  <span>{{ row.label }}</span>
-                  <strong>{{ row.count }} · {{ row.pct }}%</strong>
-                </li>
-              {% endfor %}
-            </ul>
-          </div>
-          <div>
-            <div class="eyebrow">Operating systems</div>
-            <ul class="insights-mix-list">
-              {% for row in analytics.os_mix %}
-                <li>
-                  <span>{{ row.label }}</span>
-                  <strong>{{ row.count }} · {{ row.pct }}%</strong>
-                </li>
-              {% endfor %}
-            </ul>
-          </div>
+    <section class="analytics-section">
+      <div class="analytics-section-heading">
+        <div>
+          <div class="analytics-section-tag">Traffic and timing</div>
+          <h2>Traffic, activity, and engagement curves</h2>
         </div>
-      </section>
+        <p>High-volume charts are arranged into full-width rows so the visual scan stays compact and there are no dead gaps between panels.</p>
+      </div>
+      <div class="analytics-mosaic">
+        <section class="data-panel chart-card analytics-panel analytics-span-8">
+          <div class="panel-title">Visits by day</div>
+          <div class="panel-subtitle">Unique sessions per day</div>
+          <div class="chart-shell chart-shell--lg">
+            <canvas id="visitsChart"></canvas>
+          </div>
+        </section>
+        <section class="data-panel chart-card analytics-panel analytics-span-4">
+          <div class="panel-title">Activity by hour</div>
+          <div class="panel-subtitle">Local visitor time</div>
+          <div class="chart-shell chart-shell--md">
+            <canvas id="hourlyChart"></canvas>
+          </div>
+        </section>
+        <section class="data-panel chart-card analytics-panel analytics-span-8">
+          <div class="panel-title">Session depth</div>
+          <div class="panel-subtitle">Pages per session</div>
+          <div class="chart-shell chart-shell--lg">
+            <canvas id="depthChart"></canvas>
+          </div>
+        </section>
+        <section class="data-panel chart-card analytics-panel analytics-span-4">
+          <div class="panel-title">Device mix</div>
+          <div class="panel-subtitle">Viewport width buckets</div>
+          <div class="chart-shell chart-shell--donut">
+            <canvas id="deviceChart"></canvas>
+          </div>
+        </section>
+        <section class="data-panel chart-card analytics-panel analytics-span-8">
+          <div class="panel-title">Time on page distribution</div>
+          <div class="panel-subtitle">All page views in window</div>
+          <div class="chart-shell chart-shell--lg">
+            <canvas id="durationChart"></canvas>
+          </div>
+        </section>
+        <section class="data-panel chart-card analytics-panel analytics-span-4">
+          <div class="panel-title">Referrer mix</div>
+          <div class="panel-subtitle">Session acquisition</div>
+          <div class="chart-shell chart-shell--donut">
+            <canvas id="referrerChart"></canvas>
+          </div>
+        </section>
+      </div>
+    </section>
 
-      <section class="data-panel analytics-table-panel">
-        <div class="panel-title">Screen sizes</div>
-        <div class="panel-subtitle">Most common viewports</div>
-        {% if analytics.screen_sizes %}
-          <table class="analytics-table">
-            <thead>
-              <tr>
-                <th>Size</th>
-                <th class="numeric">Views</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in analytics.screen_sizes %}
-                <tr>
-                  <td>{{ row.label }}</td>
-                  <td class="numeric">{{ row.count }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <div class="empty-state"><p>No viewport data yet.</p></div>
-        {% endif %}
-      </section>
-    </div>
+    <section class="analytics-section">
+      <div class="analytics-section-heading">
+        <div>
+          <div class="analytics-section-tag">Journeys and content</div>
+          <h2>Entry paths and page performance</h2>
+        </div>
+        <p>Landing, exit, dwell, and referrer tables stay grouped so content decisions can be made without leaving the main overview.</p>
+      </div>
+      <div class="analytics-mosaic analytics-mosaic--tables">
+        <section class="data-panel analytics-table-panel analytics-panel analytics-span-7">
+          <div class="panel-title">Top landing pages</div>
+          <div class="panel-subtitle">Entry pages ranked by sessions</div>
+          {% if analytics.landing_pages %}
+            <div class="table-scroll">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Landing page</th>
+                    <th class="numeric">Visits</th>
+                    <th class="numeric">Bounce</th>
+                    <th class="numeric">Avg pages</th>
+                    <th class="numeric">Avg session</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in analytics.landing_pages %}
+                    <tr>
+                      <td><code>{{ row.path }}</code></td>
+                      <td class="numeric">{{ row.visits }}</td>
+                      <td class="numeric">{{ row.bounce_pct }}%</td>
+                      <td class="numeric">{{ row.avg_pages }}</td>
+                      <td class="numeric">{{ row.avg_seconds|hms }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state"><p>No landing data yet.</p></div>
+          {% endif %}
+        </section>
+
+        <section class="data-panel analytics-table-panel analytics-panel analytics-span-5">
+          <div class="panel-title">Top exit pages</div>
+          <div class="panel-subtitle">Last page seen in session</div>
+          {% if analytics.exit_pages %}
+            <div class="table-scroll">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Page</th>
+                    <th class="numeric">Exits</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in analytics.exit_pages %}
+                    <tr>
+                      <td><code>{{ row.path }}</code></td>
+                      <td class="numeric">{{ row.exits }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state"><p>No exit data yet.</p></div>
+          {% endif %}
+        </section>
+
+        <section class="data-panel analytics-table-panel analytics-panel analytics-span-7">
+          <div class="panel-title">Top pages by dwell time</div>
+          <div class="panel-subtitle">Avg time on page (min 3 views)</div>
+          {% if analytics.top_pages_by_duration %}
+            <div class="table-scroll">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Page</th>
+                    <th class="numeric">Avg time</th>
+                    <th class="numeric">Views</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in analytics.top_pages_by_duration %}
+                    <tr>
+                      <td><code>{{ row.path }}</code></td>
+                      <td class="numeric">{{ row.avg_seconds|hms }}</td>
+                      <td class="numeric">{{ row.views }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state"><p>No engagement data yet.</p></div>
+          {% endif %}
+        </section>
+
+        <section class="data-panel analytics-table-panel analytics-panel analytics-span-5">
+          <div class="panel-title">Top referrers</div>
+          <div class="panel-subtitle">Distinct sessions by source</div>
+          {% if analytics.top_referrers %}
+            <div class="table-scroll">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Source</th>
+                    <th class="numeric">Visits</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in analytics.top_referrers %}
+                    <tr>
+                      <td>{{ row.referrer }}</td>
+                      <td class="numeric">{{ row.visits }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state"><p>No referral data yet.</p></div>
+          {% endif %}
+        </section>
+      </div>
+    </section>
+
+    <section class="analytics-section">
+      <div class="analytics-section-heading">
+        <div>
+          <div class="analytics-section-tag">Audience and technical mix</div>
+          <h2>People, sources, and environment details</h2>
+        </div>
+        <p>Investigate who arrived, how they behaved, and which devices or browsers shaped the traffic profile.</p>
+      </div>
+      <div class="analytics-mosaic analytics-mosaic--tables">
+        <section class="data-panel analytics-table-panel analytics-panel analytics-span-8">
+          <div class="panel-title">Most engaged sessions</div>
+          <div class="panel-subtitle">Highest total visible time</div>
+          {% if analytics.session_leaders %}
+            <div class="table-scroll">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Visitor</th>
+                    <th>Entry</th>
+                    <th class="numeric">Pages</th>
+                    <th class="numeric">Total time</th>
+                    <th class="numeric">Last seen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in analytics.session_leaders %}
+                    <tr>
+                      <td>
+                        <strong>{{ row.user_name }}</strong><br>
+                        <span class="analytics-inline-meta">{{ row.user_email }}</span>
+                      </td>
+                      <td><code>{{ row.landing_path }}</code></td>
+                      <td class="numeric">{{ row.views }}</td>
+                      <td class="numeric">{{ row.total_seconds|hms }}</td>
+                      <td class="numeric">{{ row.last_seen|date:"M d · H:i" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state"><p>No session leaders yet.</p></div>
+          {% endif %}
+        </section>
+
+        <section class="data-panel analytics-table-panel analytics-panel analytics-span-4">
+          <div class="panel-title">Top IPs</div>
+          <div class="panel-subtitle">Most active sources</div>
+          {% if analytics.top_ips %}
+            <div class="table-scroll">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>IP address</th>
+                    <th>Location</th>
+                    <th class="numeric">Visits</th>
+                    <th class="numeric">Signed-in</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in analytics.top_ips %}
+                    <tr>
+                      <td>{{ row.ip_address }}</td>
+                      <td>{{ row.location|default:"-" }}</td>
+                      <td class="numeric">{{ row.visits }}</td>
+                      <td class="numeric">{{ row.signed_in_pct }}%</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state"><p>No IP data yet.</p></div>
+          {% endif %}
+        </section>
+
+        <section class="data-panel analytics-table-panel analytics-panel analytics-span-6">
+          <div class="panel-title">Browser & OS mix</div>
+          <div class="panel-subtitle">Session user agents</div>
+          <div class="insights-mix-grid">
+            <div>
+              <div class="eyebrow">Browsers</div>
+              <ul class="insights-mix-list">
+                {% for row in analytics.browser_mix %}
+                  <li>
+                    <span>{{ row.label }}</span>
+                    <strong>{{ row.count }} · {{ row.pct }}%</strong>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div>
+              <div class="eyebrow">Operating systems</div>
+              <ul class="insights-mix-list">
+                {% for row in analytics.os_mix %}
+                  <li>
+                    <span>{{ row.label }}</span>
+                    <strong>{{ row.count }} · {{ row.pct }}%</strong>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="data-panel analytics-table-panel analytics-panel analytics-span-6">
+          <div class="panel-title">Screen sizes</div>
+          <div class="panel-subtitle">Most common viewports</div>
+          {% if analytics.screen_sizes %}
+            <div class="table-scroll">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>Size</th>
+                    <th class="numeric">Views</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in analytics.screen_sizes %}
+                    <tr>
+                      <td>{{ row.label }}</td>
+                      <td class="numeric">{{ row.count }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state"><p>No viewport data yet.</p></div>
+          {% endif %}
+        </section>
+      </div>
+    </section>
   </div>
 </div>
 
@@ -360,6 +437,7 @@
   const $json = (id) => JSON.parse(document.getElementById(id)?.textContent || '[]');
   const gridColor = 'rgba(15, 23, 42, 0.08)';
   const tickColor = '#475569';
+  const legendColor = '#334155';
 
   if (window.Chart) {
     Chart.defaults.font.family = "Inter, 'Segoe UI', system-ui, sans-serif";
@@ -367,6 +445,39 @@
     Chart.defaults.animation = false;
     Chart.defaults.animations = {};
   }
+
+  const cartesianOptions = () => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 8 } },
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+      y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }
+    }
+  });
+
+  const doughnutOptions = () => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '62%',
+    layout: { padding: { top: 8 } },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: legendColor,
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 10,
+          padding: 14,
+          font: { size: 12, weight: '600' }
+        }
+      }
+    }
+  });
 
   (function renderDaily(){
     const el = document.getElementById('visitsChart');
@@ -387,13 +498,7 @@
           pointBackgroundColor: '#1d4ed8'
         }]
       },
-      options: {
-        maintainAspectRatio: false,
-        scales: {
-          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
-          y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }
-        }
-      }
+      options: cartesianOptions()
     });
   })();
 
@@ -411,13 +516,7 @@
           backgroundColor: 'rgba(14, 165, 233, 0.5)'
         }]
       },
-      options: {
-        maintainAspectRatio: false,
-        scales: {
-          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
-          y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }
-        }
-      }
+      options: cartesianOptions()
     });
   })();
 
@@ -434,7 +533,7 @@
           backgroundColor: ['#1d4ed8', '#38bdf8', '#a5b4fc', '#e2e8f0']
         }]
       },
-      options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      options: doughnutOptions()
     });
   })();
 
@@ -451,7 +550,7 @@
           backgroundColor: ['#0ea5e9', '#6366f1', '#f97316', '#22c55e', '#94a3b8', '#f43f5e']
         }]
       },
-      options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      options: doughnutOptions()
     });
   })();
 
@@ -469,13 +568,7 @@
           backgroundColor: 'rgba(37, 99, 235, 0.5)'
         }]
       },
-      options: {
-        maintainAspectRatio: false,
-        scales: {
-          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
-          y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }
-        }
-      }
+      options: cartesianOptions()
     });
   })();
 
@@ -493,13 +586,7 @@
           backgroundColor: 'rgba(99, 102, 241, 0.5)'
         }]
       },
-      options: {
-        maintainAspectRatio: false,
-        scales: {
-          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
-          y: { beginAtZero: true, ticks: { color: tickColor }, grid: { color: gridColor } }
-        }
-      }
+      options: cartesianOptions()
     });
   })();
 </script>

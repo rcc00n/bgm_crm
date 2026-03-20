@@ -73,32 +73,6 @@
       font-size: .96rem;
       line-height: 1.52;
     }
-    .workspace-pills {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
-      gap: 10px;
-      margin-top: 16px;
-    }
-    .workspace-pill {
-      display: grid;
-      gap: 3px;
-      min-width: 0;
-      padding: 12px 14px;
-      border-radius: 16px;
-      border: 1px solid rgba(37, 99, 235, 0.12);
-      background: rgba(255, 255, 255, 0.74);
-      text-decoration: none;
-      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
-      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-      cursor: pointer;
-    }
-    .workspace-pill:hover {
-      transform: translateY(-2px);
-      border-color: rgba(37, 99, 235, 0.22);
-      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
-      text-decoration: none;
-    }
-    .workspace-pill__top,
     .workspace-attention-item__head,
     .workspace-related-item__head,
     .workspace-action__top,
@@ -130,17 +104,6 @@
       color: #7b8aa0;
       font-size: .68rem;
       letter-spacing: .06em;
-    }
-    .workspace-pill__label {
-      color: var(--admin-text-strong);
-      font-weight: 800;
-      font-size: .92rem;
-      line-height: 1.3;
-    }
-    .workspace-pill__note {
-      color: var(--admin-text-muted);
-      font-size: .8rem;
-      line-height: 1.35;
     }
     .workspace-stats {
       display: grid;
@@ -439,6 +402,9 @@
       grid-template-columns: minmax(0, 1.4fr) minmax(300px, .92fr);
       align-items: start;
     }
+    .workspace-card__body--stacked {
+      grid-template-columns: 1fr;
+    }
     .workspace-card__body--single {
       grid-template-columns: 1fr;
     }
@@ -654,6 +620,14 @@
       grid-template-columns: 1fr;
       gap: 10px;
     }
+    .workspace-support-list--columns {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+    .workspace-support-list--columns-wide {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: start;
+    }
     .workspace-support-list li {
       padding: 0;
       border: 0;
@@ -749,6 +723,9 @@
       .workspace-card__body {
         grid-template-columns: 1fr;
       }
+      .workspace-support-list--columns-wide {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
     @media (max-width: 640px) {
       .workspace-jumpbar {
@@ -759,14 +736,13 @@
         padding: 20px;
         border-radius: 22px;
       }
-      .workspace-pills {
-        grid-template-columns: 1fr;
-      }
       .workspace-stats {
         grid-template-columns: 1fr;
       }
       .workspace-actions,
-      .workspace-support-list {
+      .workspace-support-list,
+      .workspace-support-list--columns,
+      .workspace-support-list--columns-wide {
         grid-template-columns: 1fr;
       }
       .workspace-lead-action__footer,
@@ -785,21 +761,6 @@
           <p class="workspace-eyebrow">{{ workspace.eyebrow }}</p>
           <h1>{{ workspace.title }}</h1>
           <p class="workspace-summary">{{ workspace.summary }}</p>
-          {% if workspace.hero_links %}
-            <div class="workspace-pills">
-              {% for link in workspace.hero_links %}
-                <a class="workspace-pill" href="{{ link.url }}">
-                  <div class="workspace-pill__top">
-                    <span class="workspace-pill__label">{{ link.label }}</span>
-                    <span class="workspace-link-cue">Open</span>
-                  </div>
-                  {% if link.note %}
-                    <span class="workspace-pill__note">{{ link.note }}</span>
-                  {% endif %}
-                </a>
-              {% endfor %}
-            </div>
-          {% endif %}
         </div>
 
         <div class="workspace-hero__side">
@@ -850,7 +811,7 @@
               <p>{{ card.summary }}</p>
             </div>
 
-            <div class="workspace-card__body{% if not card.support_links and not card.tips %} workspace-card__body--single{% endif %}">
+            <div class="workspace-card__body{% if card.body_layout == 'stacked' %} workspace-card__body--stacked{% endif %}{% if not card.support_links and not card.tips %} workspace-card__body--single{% endif %}">
               <div class="workspace-card__primary">
                 {% if card.main_links %}
                   {% with lead=card.main_links.0 %}
@@ -907,7 +868,7 @@
                   {% if card.support_links %}
                     <div class="workspace-card__support">
                       <h3>{{ card.support_title }}</h3>
-                      <ul class="workspace-support-list">
+                      <ul class="workspace-support-list{% if card.support_layout == 'columns' %} workspace-support-list--columns{% elif card.support_layout == 'columns-wide' %} workspace-support-list--columns-wide{% endif %}">
                         {% for link in card.support_links %}
                           <li>
                             <a class="workspace-support-link" href="{{ link.url }}">

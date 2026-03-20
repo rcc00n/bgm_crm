@@ -215,6 +215,9 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, "Brand system and chrome")
         self.assertContains(response, "Media and backgrounds")
         self.assertContains(response, "More Editors")
+        self.assertContains(response, "workspace-card__body--stacked", html=False)
+        self.assertContains(response, "workspace-support-list--columns-wide", html=False)
+        self.assertNotContains(response, "Use these pages when changing shared visuals, not day-to-day copy.")
 
     def test_email_workspace_renders_telegramm_bot_at_bottom(self):
         response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "email-campaigns"}), secure=True)
@@ -223,6 +226,8 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, "Email &amp; campaigns workspace")
         self.assertContains(response, "Email monitoring and publishing")
         self.assertContains(response, "Telegramm Bot")
+        self.assertContains(response, "workspace-card__body--stacked", html=False)
+        self.assertContains(response, "workspace-support-list--columns-wide", html=False)
         body = response.content.decode()
         self.assertLess(body.index("Email monitoring and publishing</h2>"), body.index("Telegramm Bot</h2>"))
 
@@ -235,11 +240,61 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(store_response, "Catalog cockpit")
         self.assertContains(store_response, "Orders and fulfillment")
         self.assertContains(store_response, "Store rules and merch economics")
+        self.assertContains(store_response, "Merch economics")
+        self.assertContains(store_response, "Product Reviews")
+        self.assertContains(store_response, "Other Options")
+        self.assertNotContains(store_response, "Treat these as settings pages, not daily workspaces.")
 
         self.assertEqual(scheduling_response.status_code, 200)
+        self.assertContains(scheduling_response, "Staff Availability")
         self.assertContains(scheduling_response, "Payments and promotions")
         self.assertContains(scheduling_response, "Booking and payment references")
-        self.assertContains(scheduling_response, "CRM, vehicles, and access")
+        self.assertContains(scheduling_response, "CRM &amp; settings")
+        self.assertContains(scheduling_response, "Services Payments")
+        self.assertNotContains(scheduling_response, "Appointment Promo Codes")
+        self.assertNotContains(scheduling_response, "Order Promo Codes")
+        self.assertContains(scheduling_response, "Time Tracking")
+        self.assertNotContains(scheduling_response, "Day Overrides")
+        self.assertNotContains(scheduling_response, "Car Makes")
+        self.assertNotContains(scheduling_response, "Car Models")
+        self.assertNotContains(scheduling_response, "Groups")
+
+    def test_workspace_hubs_do_not_render_header_shortcuts(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "workspace-pills", html=False)
+        self.assertNotContains(response, "workspace-pill__label", html=False)
+
+    def test_insights_workspace_redirects_to_analytics_page(self):
+        response = self.client.get(
+            reverse("admin-workspace-hub", kwargs={"slug": "insights-qa"}),
+            secure=True,
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("admin-analytics-insights"),
+            status_code=302,
+            target_status_code=200,
+        )
+
+    def test_reporting_sidebar_links_directly_to_analytics_and_page_has_support_links(self):
+        index_response = self.client.get(reverse("admin:index"), secure=True)
+        analytics_response = self.client.get(reverse("admin-analytics-insights"), secure=True)
+
+        self.assertEqual(index_response.status_code, 200)
+        self.assertContains(index_response, 'href="/admin/analytics/insights/"', html=False)
+        self.assertContains(index_response, "Insights &amp; QA")
+
+        self.assertEqual(analytics_response.status_code, 200)
+        self.assertContains(analytics_response, "Support Pages")
+        self.assertContains(analytics_response, "Page Views")
+        self.assertContains(analytics_response, "Client UI Checks")
+        self.assertContains(analytics_response, "Visitor Sessions")
+        self.assertContains(analytics_response, "analytics-overview-grid", html=False)
+        self.assertContains(analytics_response, "analytics-mosaic", html=False)
+        self.assertContains(analytics_response, "Traffic, activity, and engagement curves")
 
     def test_whats_new_entries_include_links_to_updated_sections(self):
         response = self.client.get(reverse("admin-whats-new"), secure=True)

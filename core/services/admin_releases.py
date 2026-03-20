@@ -12,6 +12,41 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-admin-workspaces-and-analytics-refresh",
+        "published_at": "2026-03-20T23:20:00-06:00",
+        "title": "Workspace hubs were reorganized and Insights now opens Analytics directly",
+        "summary": "Scheduling, catalog, content, email, and insights navigation were tightened up so the main admin entry points are cleaner and analytics now opens as a real working page instead of a separate hub stop.",
+        "highlights": [
+            "Insights & QA now opens Analytics Insights directly, and the analytics page includes quick access buttons for Page Views, Client UI Checks, and Visitor Sessions.",
+            "Scheduling & Shop now uses clearer labels like Staff Availability and Services Payments, with payments, promos, CRM, and support pages grouped into cleaner sections.",
+            "Catalog, content, and email workspaces now promote the main actions first and push long support-page lists into denser layouts so there is less empty space on large cards.",
+            "Clients & Leads now labels Reviews as Product Reviews so the destination is clearer from the workspace and sidebar.",
+        ],
+        "areas": ["Workspaces", "Analytics", "Navigation", "Admin UX"],
+        "links": [
+            {
+                "label": "Analytics Insights",
+                "url_name": "admin-analytics-insights",
+                "note": "Insights & QA now lands here directly with the redesigned analytics layout.",
+            },
+            {
+                "label": "Scheduling & Shop",
+                "href": "/admin/workspaces/scheduling-shop/",
+                "note": "See the updated sections, labels, and grouped support pages.",
+            },
+            {
+                "label": "Catalog, Merch & Fulfillment",
+                "href": "/admin/workspaces/catalog-merch/",
+                "note": "Merchandising and store rules now use cleaner main actions and secondary options.",
+            },
+            {
+                "label": "Content, Brand & Assets",
+                "href": "/admin/workspaces/page-content/",
+                "note": "Large support-page lists now sit below the main actions in a tighter layout.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-header-now-sits-under-sidebar-edge",
         "published_at": "2026-03-20T22:50:00-06:00",
         "title": "Header no longer overlaps the sidebar edge",

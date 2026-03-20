@@ -1242,7 +1242,9 @@ def _build_workspace_card(request, card_def: dict) -> dict | None:
         "lead_label": card_def.get("lead_label") or "Start Here",
         "main_section_label": card_def.get("main_section_label") or "Main Section",
         "more_actions_label": card_def.get("more_actions_label") or "More Main Actions",
+        "body_layout": card_def.get("body_layout") or "",
         "support_title": card_def.get("support_title") or "Support Pages",
+        "support_layout": card_def.get("support_layout") or "",
         "tips_title": card_def.get("tips_title") or "Best Use",
         "tips": [tip for tip in card_def.get("tips", []) if isinstance(tip, str) and tip.strip()],
         "main_links": main_links,
@@ -1534,7 +1536,7 @@ def _admin_workspace_config() -> dict[str, dict]:
                     "title": "Shop capacity and setup",
                     "summary": "These screens shape availability, routing, and physical shop capacity.",
                     "main_links": [
-                        {"label": "Availability", "model": "core.MasterAvailability", "note": "Open and closed working blocks."},
+                        {"label": "Staff Availability", "model": "core.MasterAvailability", "note": "Open and closed working blocks."},
                         {"label": "Team Profiles", "model": "core.MasterProfile", "note": "Roster and shop-facing profile data."},
                         {"label": "Services", "model": "core.Service", "note": "Core service catalog."},
                     ],
@@ -1608,7 +1610,7 @@ def _admin_workspace_config() -> dict[str, dict]:
                     ],
                     "support_links": [
                         {"label": "Client Files", "model": "core.ClientFile", "note": "Uploaded documents and references."},
-                        {"label": "Reviews", "model": "core.ClientReview", "note": "Public client reviews."},
+                        {"label": "Product Reviews", "model": "core.ClientReview", "note": "Public client reviews."},
                         {"label": "Appointment Reviews", "model": "core.AppointmentReview", "note": "Booking-specific feedback."},
                         {"label": "Lead Submission Events", "model": "core.LeadSubmissionEvent", "note": "Intake event trail."},
                     ],
@@ -1688,10 +1690,9 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "Background Assets", "model": "core.BackgroundAsset", "note": "Reusable media assets."},
                         {"label": "Site Backgrounds", "model": "core.SiteBackgroundSettings", "note": "Background assignment rules."},
                     ],
+                    "body_layout": "stacked",
                     "support_title": "Editors And Asset Pages",
-                    "tips": [
-                        "Copy, typography, and asset changes now start from the same workspace.",
-                    ],
+                    "support_layout": "columns-wide",
                 },
                 {
                     "title": "Email, campaigns, and Telegramm Bot",
@@ -1716,6 +1717,8 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "Contacts", "model": "notifications.TelegramContact", "note": "Known Telegram recipients."},
                         {"label": "Delivery Log", "model": "notifications.TelegramMessageLog", "note": "Telegram delivery outcomes."},
                     ],
+                    "body_layout": "stacked",
+                    "support_layout": "columns-wide",
                     "tips": [
                         "Use raw logs only when the overview and history pages are not enough.",
                     ],
@@ -1751,6 +1754,8 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "Raw send logs", "model": "core.EmailSendLog", "note": "Record-level diagnostics."},
                         {"label": "Campaign recipients", "model": "core.EmailCampaignRecipient", "note": "Recipient-level history."},
                     ],
+                    "body_layout": "stacked",
+                    "support_layout": "columns-wide",
                     "tips": [
                         "Start with Email overview if you are diagnosing send health.",
                         "Open raw logs only when you need exact delivery detail.",
@@ -1853,8 +1858,7 @@ def _admin_workspace_config() -> dict[str, dict]:
             "summary": "Run daily bookings, adjust shop capacity, handle payments and promotions, and maintain CRM, access, and vehicle references from one workspace.",
             "hero_links": [
                 {"label": "Calendar", "model": "core.Appointment", "note": "Daily booking control."},
-                {"label": "Payments", "model": "core.Payment", "note": "Transactions and payment follow-up."},
-                {"label": "Lead Sources", "model": "core.ClientSource", "note": "CRM attribution list."},
+                {"label": "Services Payments", "model": "core.Payment", "note": "Transactions and payment follow-up."},
             ],
             "cards": [
                 {
@@ -1864,10 +1868,10 @@ def _admin_workspace_config() -> dict[str, dict]:
                     "summary": "Calendar, deposits, and day exceptions stay together so day-to-day booking work starts from one place.",
                     "main_links": [
                         {"label": "Calendar", "model": "core.Appointment", "note": "Use Day, Week, and Month views."},
-                        {"label": "Collected Prepayments", "model": "core.AppointmentPrepayment", "note": "Deposit lookup and reconciliation."},
-                        {"label": "Day Overrides", "model": "core.BookingDayOverride", "note": "Closures and exceptions."},
+                        {"label": "Services", "model": "core.Service", "note": "Core service catalog."},
                     ],
                     "support_links": [
+                        {"label": "Collected Prepayments", "model": "core.AppointmentPrepayment", "note": "Deposit lookup and reconciliation."},
                         {"label": "Time Tracking", "url_name": "admin-staff-usage", "permissions": ["auth.view_user"], "note": "Usage periods and action history."},
                     ],
                     "tips": [
@@ -1881,9 +1885,8 @@ def _admin_workspace_config() -> dict[str, dict]:
                     "eyebrow": "Shop Setup",
                     "summary": "Availability, staff capacity, and service routing live together so the calendar matches real shop capacity.",
                     "main_links": [
-                        {"label": "Availability", "model": "core.MasterAvailability", "note": "Open and closed working blocks."},
+                        {"label": "Staff Availability", "model": "core.MasterAvailability", "note": "Open and closed working blocks."},
                         {"label": "Team Profiles", "model": "core.MasterProfile", "note": "Staff roster and shop-facing profile data."},
-                        {"label": "Services", "model": "core.Service", "note": "Core service catalog."},
                     ],
                     "support_links": [
                         {"label": "Service Assignment", "model": "core.ServiceMaster", "note": "Map services to staff."},
@@ -1900,14 +1903,12 @@ def _admin_workspace_config() -> dict[str, dict]:
                     "eyebrow": "Payments & Offers",
                     "summary": "Transactions, promo codes, and discount rules now live inside Scheduling & Shop instead of a separate payments hub.",
                     "main_links": [
-                        {"label": "Payments", "model": "core.Payment", "note": "Recorded payments and reconciliation."},
+                        {"label": "Services Payments", "model": "core.Payment", "note": "Recorded payments and reconciliation."},
                         {"label": "Promo Codes", "model": "core.PromoCode", "note": "Service-side promotions."},
-                        {"label": "Service Discounts", "model": "core.ServiceDiscount", "note": "Service discount rules."},
                     ],
                     "support_links": [
+                        {"label": "Service Discounts", "model": "core.ServiceDiscount", "note": "Service discount rules."},
                         {"label": "Product Discounts", "model": "store.ProductDiscount", "note": "Store discount rules."},
-                        {"label": "Appointment Promo Codes", "model": "core.AppointmentPromoCode", "note": "Appointment promo usage."},
-                        {"label": "Order Promo Codes", "model": "store.OrderPromoCode", "note": "Store promo usage."},
                     ],
                     "tips": [
                         "Use Payments for actual transaction follow-up; promo pages are setup lists.",
@@ -1932,21 +1933,18 @@ def _admin_workspace_config() -> dict[str, dict]:
                     ],
                 },
                 {
-                    "title": "CRM, vehicles, and access",
-                    "jump_label": "CRM",
-                    "eyebrow": "CRM & Vehicles",
-                    "summary": "Lead sources, accounts, dealer tiers, access controls, and vehicle tables now live here so booking-side setup stays in one operating hub.",
+                    "title": "CRM & settings",
+                    "jump_label": "CRM & Settings",
+                    "eyebrow": "CRM & Settings",
+                    "summary": "Lead sources, accounts, dealer tiers, access controls, and shared vehicle references now live here so booking-side setup stays in one operating hub.",
                     "main_links": [
                         {"label": "Lead Sources", "model": "core.ClientSource", "note": "Client source attribution."},
                         {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
-                        {"label": "Car Makes", "model": "store.CarMake", "note": "Vehicle directory root."},
                     ],
                     "support_links": [
                         {"label": "Tier Levels", "model": "core.DealerTierLevel", "note": "Dealer program tiers."},
                         {"label": "Roles", "model": "core.Role", "note": "Sidebar visibility and role controls."},
-                        {"label": "Groups", "model": "auth.Group", "note": "Django auth groups."},
                         {"label": "Role Assignments", "model": "core.UserRole", "note": "User-to-role mapping."},
-                        {"label": "Car Models", "model": "store.CarModel", "note": "Vehicle directory detail."},
                     ],
                     "tips": [
                         "Treat these as foundational reference tables: changes can affect booking, reporting, and fitment behavior.",
@@ -1968,14 +1966,12 @@ def _admin_workspace_config() -> dict[str, dict]:
                     "title": "Catalog cockpit",
                     "jump_label": "Catalog",
                     "eyebrow": "Catalog",
-                    "summary": "Product editing, images, options, and taxonomy live together so merchandising work stays in one lane.",
+                    "summary": "Product editing and taxonomy live together so merchandising work stays in one lane.",
                     "main_links": [
                         {"label": "Products", "model": "store.Product", "note": "Main product workspace."},
-                        {"label": "Product Gallery", "model": "store.ProductImage", "note": "Image-only lookup and cleanup."},
-                        {"label": "Product Options", "model": "store.ProductOption", "note": "Variant support page."},
+                        {"label": "Product Reviews", "model": "store.StoreReview", "note": "Store review moderation."},
                     ],
                     "support_links": [
-                        {"label": "Product Reviews", "model": "store.StoreReview", "note": "Store review moderation."},
                         {"label": "Product Categories", "model": "store.Category", "note": "Catalog taxonomy."},
                         {"label": "Merch Categories", "model": "store.MerchCategory", "note": "Merch taxonomy."},
                     ],
@@ -1987,19 +1983,17 @@ def _admin_workspace_config() -> dict[str, dict]:
                     "title": "Orders and fulfillment",
                     "jump_label": "Orders",
                     "eyebrow": "Fulfillment",
-                    "summary": "Orders, fitment checks, and fulfillment diagnostics stay together so order handling does not require a second hub.",
+                    "summary": "Orders, fitment checks, and fulfillment support stay together so order handling does not require a second hub.",
                     "main_links": [
                         {"label": "Orders", "model": "store.Order", "note": "Primary fulfillment screen."},
                         {"label": "Fitment Requests", "model": "store.CustomFitmentRequest", "note": "Compatibility and pre-sale checks."},
-                        {"label": "Order Items", "model": "store.OrderItem", "note": "SKU-level investigation."},
                     ],
                     "support_links": [
-                        {"label": "Printful Webhooks", "model": "store.PrintfulWebhookEvent", "note": "Fulfillment integration diagnostics."},
                         {"label": "Import History", "model": "store.ImportBatch", "note": "Catalog import trail."},
                         {"label": "Cleanup History", "model": "store.CleanupBatch", "note": "Cleanup trail."},
                     ],
                     "tips": [
-                        "Order Items and webhooks are investigation pages, not daily home screens.",
+                        "Import and cleanup histories are support pages, not daily home screens.",
                     ],
                 },
                 {
@@ -2008,12 +2002,12 @@ def _admin_workspace_config() -> dict[str, dict]:
                     "eyebrow": "Global Store Rules",
                     "summary": "Pricing, shipping, and merch thresholds shape the storefront globally and should stay close to catalog work.",
                     "main_links": [
-                        {"label": "Pricing Settings", "model": "store.StorePricingSettings", "note": "Global pricing behavior."},
-                        {"label": "Shipping Settings", "model": "store.StoreShippingSettings", "note": "Checkout and shipping rules."},
                         {"label": "Merch economics", "url_name": "admin-merch-economics", "permissions": ["store.view_product"], "note": "Margin and shipping thresholds."},
                     ],
-                    "tips": [
-                        "Treat these as settings pages, not daily workspaces.",
+                    "support_title": "Other Options",
+                    "support_links": [
+                        {"label": "Pricing Settings", "model": "store.StorePricingSettings", "note": "Global pricing behavior."},
+                        {"label": "Shipping Settings", "model": "store.StoreShippingSettings", "note": "Checkout and shipping rules."},
                     ],
                 },
             ],
@@ -2051,10 +2045,9 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "Journal Categories", "model": "core.ProjectJournalCategory", "note": "Editorial taxonomy."},
                         {"label": "Project Journal", "model": "core.ProjectJournalEntry", "note": "Editorial entries."},
                     ],
+                    "body_layout": "stacked",
                     "support_title": "More Editors",
-                    "tips": [
-                        "Most page copy screens share the same pattern: form, preview, and draft support.",
-                    ],
+                    "support_layout": "columns-wide",
                 },
                 {
                     "title": "Brand system and chrome",
@@ -2083,9 +2076,6 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "Hero Assets", "model": "core.HeroImage", "note": "Primary hero media."},
                         {"label": "Background Assets", "model": "core.BackgroundAsset", "note": "Reusable media assets."},
                         {"label": "Site Backgrounds", "model": "core.SiteBackgroundSettings", "note": "Background assignment rules."},
-                    ],
-                    "tips": [
-                        "Use these pages when changing shared visuals, not day-to-day copy.",
                     ],
                 },
             ],
@@ -2181,11 +2171,11 @@ def admin_staff_guide(request):
                     "roles": ["manager", "shop"],
                     "keywords": "availability team profiles service assignment rooms bays staffing",
                     "tips": [
-                        "Availability controls open slots.",
+                        "Staff availability controls open slots.",
                         "Service Assignment and Rooms & Bays affect who can do what and where the work lands.",
                     ],
                     "links": [
-                        guide_link("Availability", model="core.MasterAvailability", note="Open/closed time blocks."),
+                        guide_link("Staff Availability", model="core.MasterAvailability", note="Open/closed time blocks."),
                         guide_link("Team Profiles", model="core.MasterProfile", note="Staff roster and shop roles."),
                         guide_link("Service Assignment", model="core.ServiceMaster", note="Map services to staff."),
                         guide_link("Rooms & Bays", model="core.MasterRoom", note="Physical capacity."),
@@ -2426,6 +2416,8 @@ def admin_workspace_hub(request, slug: str):
     resolved_slug = _workspace_redirect_slug(slug)
     if resolved_slug != slug:
         return redirect("admin-workspace-hub", slug=resolved_slug)
+    if resolved_slug == "insights-qa":
+        return redirect("admin-analytics-insights")
 
     workspace = _admin_workspace_config().get(resolved_slug)
     if not workspace:
@@ -2687,12 +2679,43 @@ def admin_web_analytics_insights(request):
         host=request.get_host(),
         include_admin=False,
     )
+    support_links = [
+        resolved
+        for resolved in (
+            _resolve_workspace_link(
+                request,
+                {
+                    "label": "Page Views",
+                    "model": "core.PageView",
+                    "note": "Open the raw event stream and dwell records.",
+                },
+            ),
+            _resolve_workspace_link(
+                request,
+                {
+                    "label": "Client UI Checks",
+                    "model": "core.ClientUiCheckRun",
+                    "note": "Open regression runs and failure details.",
+                },
+            ),
+            _resolve_workspace_link(
+                request,
+                {
+                    "label": "Visitor Sessions",
+                    "model": "core.VisitorSession",
+                    "note": "Open individual visitor journeys and session trails.",
+                },
+            ),
+        )
+        if resolved
+    ]
 
     context = admin.site.each_context(request)
     context.update(
         {
             "title": "Web analytics insights",
             "analytics": analytics_summary,
+            "analytics_support_links": support_links,
             "window_days": analytics_summary.get("window_days", window_days),
             "window_options": [1, 7, 30, 60, 90],
         }
