@@ -23,7 +23,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.admin import GenericStackedInline
 from django.forms.models import BaseInlineFormSet
 from django.http import JsonResponse
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import FieldDoesNotExist, PermissionDenied, ValidationError
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
@@ -258,6 +258,59 @@ def custom_index(request):
 
 # Переопределить главную страницу
 admin.site.index = custom_index
+
+
+def _supports_single_object_changelist_redirect(model_admin):
+    if getattr(model_admin, "single_object_changelist_redirect", False):
+        return True
+    try:
+        model_admin.model._meta.get_field("singleton_id")
+    except FieldDoesNotExist:
+        return False
+    return True
+
+
+def _get_single_object_change_url(model_admin, request):
+    if request.method != "GET" or request.GET:
+        return None
+    if not _supports_single_object_changelist_redirect(model_admin):
+        return None
+
+    queryset = model_admin.get_queryset(request)
+    object_ids = list(queryset.values_list("pk", flat=True)[:2])
+    if len(object_ids) != 1:
+        return None
+
+    obj = queryset.filter(pk=object_ids[0]).first()
+    if obj is None:
+        return None
+    if not (
+        model_admin.has_view_permission(request, obj)
+        or model_admin.has_change_permission(request, obj)
+    ):
+        return None
+
+    opts = model_admin.model._meta
+    return reverse(
+        f"admin:{opts.app_label}_{opts.model_name}_change",
+        args=[object_ids[0]],
+        current_app=model_admin.admin_site.name,
+    )
+
+
+if not getattr(admin.ModelAdmin, "_single_object_changelist_redirect_patch", False):
+    _original_changelist_view = admin.ModelAdmin.changelist_view
+
+    def _single_object_redirecting_changelist_view(self, request, extra_context=None):
+        change_url = _get_single_object_change_url(self, request)
+        if change_url:
+            return HttpResponseRedirect(change_url)
+        return _original_changelist_view(self, request, extra_context=extra_context)
+
+    admin.ModelAdmin.changelist_view = _single_object_redirecting_changelist_view
+    admin.ModelAdmin._single_object_changelist_redirect_patch = True
+
+
 class ExportCsvMixin:
     export_fields = None  # список полей; можно переопределить в admin
 

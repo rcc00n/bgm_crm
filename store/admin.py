@@ -198,6 +198,7 @@ class ProductImageAdmin(admin.ModelAdmin):
 
 @admin.register(StorePricingSettings)
 class StorePricingSettingsAdmin(admin.ModelAdmin):
+    single_object_changelist_redirect = True
     list_display = ("price_multiplier_percent", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
@@ -223,6 +224,7 @@ class StorePricingSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(StoreShippingSettings)
 class StoreShippingSettingsAdmin(admin.ModelAdmin):
+    single_object_changelist_redirect = True
     list_display = ("free_shipping_threshold_cad", "delivery_cost_under_threshold_cad", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (

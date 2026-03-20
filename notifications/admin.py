@@ -13,6 +13,7 @@ from .models import (
 
 @admin.register(TelegramBotSettings)
 class TelegramBotSettingsAdmin(admin.ModelAdmin):
+    single_object_changelist_redirect = True
     class RecipientSlotInline(admin.TabularInline):
         model = TelegramRecipientSlot
         extra = 1
