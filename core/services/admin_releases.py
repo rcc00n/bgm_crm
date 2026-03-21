@@ -12,6 +12,31 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-03-20-telegram-reminders-send-on-save",
+        "published_at": "2026-03-21T00:20:00-06:00",
+        "title": "Telegram reminders now send as soon as you save them",
+        "summary": "Saving a pending Telegram reminder in the admin now sends it immediately, so staff no longer need a second bulk action just to push the message out.",
+        "highlights": [
+            "Creating a pending Telegram reminder now triggers delivery right after the admin form saves.",
+            "The reminder save flow now shows a success or warning message based on the delivery result.",
+            "Already sent reminders are not resent just because someone edits and saves them later.",
+            "This makes one-off staff announcements work the way the form implies: save it, and it goes out.",
+        ],
+        "areas": ["Telegram", "Notifications", "Admin UX"],
+        "links": [
+            {
+                "label": "Telegram Reminders",
+                "href": "/admin/notifications/telegramreminder/",
+                "note": "Create a reminder and save it to send the message immediately.",
+            },
+            {
+                "label": "Telegram Bot Settings",
+                "href": "/admin/notifications/telegrambotsettings/",
+                "note": "Recipients still come from the configured Telegram bot chats.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-admin-buttons-and-products-list-cleanup",
         "published_at": "2026-03-20T23:58:00-06:00",
         "title": "Misleading New buttons were removed and the Products list was simplified",

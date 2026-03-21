@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from notifications.services import queue_lead_digest
@@ -130,6 +132,66 @@ class TelegramReminderTests(TestCase):
         )
 
         self.assertEqual(list(TelegramReminder.due()), [due])
+
+
+class TelegramReminderAdminTests(TestCase):
+    def setUp(self):
+        self.superuser = get_user_model().objects.create_superuser(
+            username="telegram-admin",
+            email="telegram-admin@example.com",
+            password="StrongPass123!",
+        )
+        self.client.force_login(self.superuser)
+
+    @patch("notifications.admin.services.deliver_reminder", return_value=2)
+    def test_admin_add_sends_reminder_immediately_on_save(self, deliver_mock):
+        response = self.client.post(
+            reverse("admin:notifications_telegramreminder_add"),
+            data={
+                "title": "Admin update",
+                "message": "Panel refreshed.",
+                "scheduled_for_0": timezone.localdate().isoformat(),
+                "scheduled_for_1": "12:00:00",
+                "status": TelegramReminder.Status.PENDING,
+                "target_chat_ids": "",
+                "_save": "Save",
+            },
+            secure=True,
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        reminder = TelegramReminder.objects.get(title="Admin update")
+        deliver_mock.assert_called_once_with(reminder)
+        self.assertContains(response, "Reminder sent to 2 Telegram recipient(s).")
+
+    @patch("notifications.admin.services.deliver_reminder")
+    def test_admin_change_does_not_resend_when_reminder_already_sent(self, deliver_mock):
+        reminder = TelegramReminder.objects.create(
+            title="Already sent",
+            message="Done",
+            scheduled_for=timezone.now() - timedelta(minutes=1),
+            status=TelegramReminder.Status.SENT,
+            sent_at=timezone.now(),
+        )
+
+        response = self.client.post(
+            reverse("admin:notifications_telegramreminder_change", args=[reminder.pk]),
+            data={
+                "title": reminder.title,
+                "message": reminder.message,
+                "scheduled_for_0": timezone.localdate().isoformat(),
+                "scheduled_for_1": "12:05:00",
+                "status": TelegramReminder.Status.SENT,
+                "target_chat_ids": "",
+                "_save": "Save",
+            },
+            secure=True,
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        deliver_mock.assert_not_called()
 
 
 class LeadDigestScheduleTests(TestCase):
