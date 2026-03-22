@@ -8,6 +8,8 @@ from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+from django.core.files.storage import default_storage
+
 from .types import SourceProduct
 
 logger = logging.getLogger(__name__)
@@ -112,6 +114,29 @@ class DirtyDieselCatalogClient:
             return max(float(raw), 0.0)
         except (TypeError, ValueError):
             return 0.0
+
+
+def load_source_products(path: str) -> list[SourceProduct]:
+    with default_storage.open(path) as fh:
+        payload = json.load(fh)
+    products = payload.get("products") or []
+    extracted: list[SourceProduct] = []
+    for item in products:
+        extracted.append(
+            SourceProduct(
+                product_id=int(item.get("product_id") or 0),
+                variant_id=int(item.get("variant_id") or 0),
+                sku=str(item.get("sku") or "").strip(),
+                product_name=str(item.get("product_name") or "").strip(),
+                variant_name=str(item.get("variant_name") or "").strip(),
+                supplier_name=str(item.get("supplier_name") or "").strip(),
+                supplier_category=str(item.get("supplier_category") or "").strip(),
+                product_page_url=str(item.get("product_page_url") or "").strip(),
+                image_urls=tuple(str(url or "").strip() for url in (item.get("image_urls") or []) if str(url or "").strip()),
+                tags=tuple(str(tag or "").strip() for tag in (item.get("tags") or []) if str(tag or "").strip()),
+            )
+        )
+    return extracted
 
     def _extract_source_products(self, payload: dict[str, Any]) -> list[SourceProduct]:
         product_id = int(payload.get("id") or 0)

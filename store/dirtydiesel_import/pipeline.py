@@ -12,7 +12,7 @@ from store.models import Product, ProductImage
 
 from .matching import build_compact_sku_index, build_name_index, build_sku_index, match_catalog_product
 from .reporting import save_json_report
-from .source import DirtyDieselCatalogClient
+from .source import DirtyDieselCatalogClient, load_source_products
 from .types import ImportReport, SourceProduct
 
 logger = logging.getLogger(__name__)
@@ -30,6 +30,7 @@ class DirtyDieselImportPipeline:
         allow_name_match: bool = False,
         include_gallery_images: bool = True,
         limit: int = 0,
+        source_report_path: str = "",
         report_prefix: str = "store/import-reports/dirtydiesel",
         source_client: DirtyDieselCatalogClient | None = None,
         image_manager: ImageAssetManager | None = None,
@@ -42,6 +43,7 @@ class DirtyDieselImportPipeline:
         self.allow_name_match = bool(allow_name_match)
         self.include_gallery_images = bool(include_gallery_images)
         self.limit = max(int(limit), 0)
+        self.source_report_path = source_report_path.strip()
         self.report_prefix = report_prefix.strip().strip("/") or "store/import-reports/dirtydiesel"
         self.source_client = source_client or DirtyDieselCatalogClient()
         self.image_manager = image_manager or ImageAssetManager(storage_prefix="store/imports/dirtydiesel/assets")
@@ -59,7 +61,11 @@ class DirtyDieselImportPipeline:
         )
 
         products = list(self._target_products())
-        source_products = self.source_client.fetch_catalog()
+        source_products = (
+            load_source_products(self.source_report_path)
+            if self.source_report_path
+            else self.source_client.fetch_catalog()
+        )
         source_by_sku = build_sku_index(source_products)
         source_by_compact_sku = build_compact_sku_index(source_products)
         source_candidates, token_index = build_name_index(source_products)

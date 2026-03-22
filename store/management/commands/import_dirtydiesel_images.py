@@ -41,6 +41,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Include FASS categories in the target set. By default they are excluded.",
         )
+        parser.add_argument(
+            "--source-cache",
+            default="",
+            help="Reuse a previously saved source_products.json report instead of fetching the supplier again.",
+        )
 
     def handle(self, *args, **options):
         excluded_category_prefixes = [] if options["include_fass"] else list(DEFAULT_EXCLUDED_CATEGORY_PREFIXES)
@@ -51,6 +56,7 @@ class Command(BaseCommand):
             allow_name_match=options["match_by_name"],
             include_gallery_images=not options["skip_gallery"],
             limit=options["limit"] or 0,
+            source_report_path=options["source_cache"] or "",
         )
         report = pipeline.run()
 
