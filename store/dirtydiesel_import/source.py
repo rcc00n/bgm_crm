@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from typing import Any
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from .types import SourceProduct
@@ -22,7 +23,7 @@ class DirtyDieselCatalogClient:
         *,
         base_url: str = DIRTYDIESEL_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
-        retries: int = 3,
+        retries: int = 5,
         retry_backoff: float = 1.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
@@ -35,7 +36,7 @@ class DirtyDieselCatalogClient:
         *,
         page_size: int = 250,
         max_pages: int | None = None,
-        page_delay: float = 0.1,
+        page_delay: float = 0.25,
     ) -> list[SourceProduct]:
         extracted: list[SourceProduct] = []
         page = 1
@@ -73,11 +74,25 @@ class DirtyDieselCatalogClient:
             try:
                 with urlopen(req, timeout=self.timeout) as response:
                     return json.load(response)
+            except HTTPError as exc:  # pragma: no cover - exercised in command/runtime
+                last_error = exc
+                if attempt >= self.retries:
+                    break
+                retry_after = self._retry_after_seconds(exc)
+                sleep_for = max(retry_after, self.retry_backoff * (2 ** (attempt - 1)) * 5.0, 5.0)
+                logger.warning(
+                    "Dirty Diesel catalog request rate-limited (%s/%s): %s; sleeping %.1fs",
+                    attempt,
+                    self.retries,
+                    exc,
+                    sleep_for,
+                )
+                time.sleep(sleep_for)
             except Exception as exc:  # pragma: no cover - exercised in command/runtime
                 last_error = exc
                 if attempt >= self.retries:
                     break
-                sleep_for = self.retry_backoff * attempt
+                sleep_for = self.retry_backoff * (2 ** (attempt - 1))
                 logger.warning(
                     "Dirty Diesel catalog request failed (%s/%s): %s",
                     attempt,
@@ -88,6 +103,15 @@ class DirtyDieselCatalogClient:
                     time.sleep(sleep_for)
         assert last_error is not None
         raise last_error
+
+    def _retry_after_seconds(self, exc: HTTPError) -> float:
+        raw = str(exc.headers.get("Retry-After") or "").strip()
+        if not raw:
+            return 0.0
+        try:
+            return max(float(raw), 0.0)
+        except (TypeError, ValueError):
+            return 0.0
 
     def _extract_source_products(self, payload: dict[str, Any]) -> list[SourceProduct]:
         product_id = int(payload.get("id") or 0)
