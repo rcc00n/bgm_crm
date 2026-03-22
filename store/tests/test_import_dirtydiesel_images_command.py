@@ -156,3 +156,32 @@ class ImportDirtyDieselImagesCommandTests(TestCase):
 
         self.assertEqual(product.main_image.name, "store/products/fass-old.png")
         self.assertIn("updated_products=1", output.getvalue())
+
+    def test_generic_shopify_command_uses_custom_storage_prefix(self):
+        media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media_root, ignore_errors=True)
+        output = StringIO()
+
+        with override_settings(MEDIA_ROOT=media_root):
+            with patch(
+                "store.dirtydiesel_import.source.DirtyDieselCatalogClient.fetch_catalog",
+                return_value=[self.source_product],
+            ):
+                with patch("store.fassride_import.images.urlopen", side_effect=self._fake_urlopen):
+                    call_command(
+                        "import_shopify_supplier_images",
+                        "--supplier-name",
+                        "DieselR",
+                        "--base-url",
+                        "https://dieselrcorp.ca",
+                        "--storage-prefix",
+                        "store/imports/dieselr/assets",
+                        "--apply",
+                        stdout=output,
+                    )
+
+        self.product.refresh_from_db()
+
+        self.assertTrue(self.product.main_image.name.startswith("store/imports/dieselr/assets/"))
+        self.assertEqual(self.product.images.count(), 1)
+        self.assertIn("DieselR import complete", output.getvalue())

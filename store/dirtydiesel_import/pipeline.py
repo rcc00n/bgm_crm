@@ -24,17 +24,22 @@ class DirtyDieselImportPipeline:
     def __init__(
         self,
         *,
+        supplier_label: str = "Dirty Diesel",
         category_slugs: list[str] | tuple[str, ...] = (),
         excluded_category_prefixes: list[str] | tuple[str, ...] = DEFAULT_EXCLUDED_CATEGORY_PREFIXES,
         apply_changes: bool = False,
         allow_name_match: bool = False,
         include_gallery_images: bool = True,
         limit: int = 0,
+        replace_current_images: list[str] | tuple[str, ...] = (),
+        replace_current_prefixes: list[str] | tuple[str, ...] = (),
+        require_empty_current: bool = False,
         source_report_path: str = "",
         report_prefix: str = "store/import-reports/dirtydiesel",
         source_client: DirtyDieselCatalogClient | None = None,
         image_manager: ImageAssetManager | None = None,
     ) -> None:
+        self.supplier_label = str(supplier_label or "Supplier").strip()
         self.category_slugs = tuple(dict.fromkeys(slug.strip() for slug in category_slugs if slug.strip()))
         self.excluded_category_prefixes = tuple(
             dict.fromkeys(prefix.strip() for prefix in excluded_category_prefixes if prefix.strip())
@@ -43,6 +48,11 @@ class DirtyDieselImportPipeline:
         self.allow_name_match = bool(allow_name_match)
         self.include_gallery_images = bool(include_gallery_images)
         self.limit = max(int(limit), 0)
+        self.explicit_replace_images = {value.strip() for value in replace_current_images if value and value.strip()}
+        self.explicit_replace_prefixes = tuple(
+            value.strip() for value in replace_current_prefixes if value and value.strip()
+        )
+        self.require_empty_current = bool(require_empty_current)
         self.source_report_path = source_report_path.strip()
         self.report_prefix = report_prefix.strip().strip("/") or "store/import-reports/dirtydiesel"
         self.source_client = source_client or DirtyDieselCatalogClient()
@@ -56,7 +66,7 @@ class DirtyDieselImportPipeline:
                 "FASS categories are excluded by default so Dirty Diesel images do not overwrite the dedicated FASS supplier import.",
                 "Exact SKU and compact SKU matches are treated as high confidence and auto-applied.",
                 "Normalized-name matches are medium confidence and are only applied when --match-by-name is explicitly enabled.",
-                "Gallery imports add missing Dirty Diesel images without duplicating existing gallery entries.",
+                f"Gallery imports add missing {self.supplier_label} images without duplicating existing gallery entries.",
             ]
         )
 
@@ -77,6 +87,9 @@ class DirtyDieselImportPipeline:
 
         for product in products:
             summary["products_scanned"] += 1
+            if not self._should_replace_product_image(product):
+                summary["skipped_existing_images"] += 1
+                continue
             match = match_catalog_product(
                 product,
                 source_by_sku=source_by_sku,
@@ -180,6 +193,22 @@ class DirtyDieselImportPipeline:
             if check.ok:
                 usable.append(url)
         return usable
+
+    def _should_replace_product_image(self, product: Product) -> bool:
+        current_name = str(product.main_image.name or "").strip()
+        if not current_name:
+            return True
+        if product.main_image_is_placeholder:
+            return True
+        if self.require_empty_current:
+            return False
+        if current_name in self.explicit_replace_images:
+            return True
+        if any(current_name.startswith(prefix) for prefix in self.explicit_replace_prefixes):
+            return True
+        if self.explicit_replace_images or self.explicit_replace_prefixes:
+            return False
+        return True
 
     def _needs_update(self, product: Product, main_image_name: str, gallery_image_names: list[str]) -> bool:
         current_main = str(product.main_image.name or "").strip()

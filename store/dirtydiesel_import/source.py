@@ -24,11 +24,13 @@ class DirtyDieselCatalogClient:
         self,
         *,
         base_url: str = DIRTYDIESEL_BASE_URL,
+        catalog_label: str = "Dirty Diesel",
         timeout: float = DEFAULT_TIMEOUT,
         retries: int = 5,
         retry_backoff: float = 1.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
+        self.catalog_label = str(catalog_label or "Supplier").strip()
         self.timeout = max(float(timeout), 1.0)
         self.retries = max(int(retries), 1)
         self.retry_backoff = max(float(retry_backoff), 0.0)
@@ -52,14 +54,15 @@ class DirtyDieselCatalogClient:
             for item in products:
                 extracted.extend(self._extract_source_products(item))
             logger.info(
-                "Fetched %s Dirty Diesel source variants after page %s.",
+                "Fetched %s %s source variants after page %s.",
                 len(extracted),
+                self.catalog_label,
                 page,
             )
             page += 1
             if page_delay > 0:
                 time.sleep(page_delay)
-        logger.info("Fetched %s Dirty Diesel source variants total.", len(extracted))
+        logger.info("Fetched %s %s source variants total.", len(extracted), self.catalog_label)
         return extracted
 
     def _get_json(self, path: str) -> dict[str, Any]:
@@ -83,7 +86,8 @@ class DirtyDieselCatalogClient:
                 retry_after = self._retry_after_seconds(exc)
                 sleep_for = max(retry_after, self.retry_backoff * (2 ** (attempt - 1)) * 5.0, 5.0)
                 logger.warning(
-                    "Dirty Diesel catalog request rate-limited (%s/%s): %s; sleeping %.1fs",
+                    "%s catalog request rate-limited (%s/%s): %s; sleeping %.1fs",
+                    self.catalog_label,
                     attempt,
                     self.retries,
                     exc,
@@ -96,7 +100,8 @@ class DirtyDieselCatalogClient:
                     break
                 sleep_for = self.retry_backoff * (2 ** (attempt - 1))
                 logger.warning(
-                    "Dirty Diesel catalog request failed (%s/%s): %s",
+                    "%s catalog request failed (%s/%s): %s",
+                    self.catalog_label,
                     attempt,
                     self.retries,
                     exc,
