@@ -10,7 +10,7 @@ from django.db import transaction
 from store.models import Category, Product, ProductImage
 
 from .images import ImageAssetManager
-from .matching import build_part_number_index, match_catalog_product
+from .matching import build_compact_part_number_index, build_part_number_index, match_catalog_product
 from .reporting import save_json_report
 from .source import FassrideApiClient
 from .types import CuratedCategoryImage, ImportReport, SourceProduct
@@ -39,6 +39,7 @@ class FassrideImportPipeline:
         category_slugs: list[str] | tuple[str, ...] = DEFAULT_FASS_CATEGORY_SLUGS,
         apply_changes: bool = False,
         allow_name_match: bool = False,
+        allow_embedded_code_match: bool = False,
         include_gallery_images: bool = True,
         replace_current_images: list[str] | tuple[str, ...] = (),
         report_prefix: str = "store/import-reports/fassride",
@@ -48,6 +49,7 @@ class FassrideImportPipeline:
         self.category_slugs = tuple(dict.fromkeys(slug.strip() for slug in category_slugs if slug.strip()))
         self.apply_changes = bool(apply_changes)
         self.allow_name_match = bool(allow_name_match)
+        self.allow_embedded_code_match = bool(allow_embedded_code_match)
         self.include_gallery_images = bool(include_gallery_images)
         self.report_prefix = report_prefix.strip().strip("/") or "store/import-reports/fassride"
         self.source_client = source_client or FassrideApiClient()
@@ -83,6 +85,7 @@ class FassrideImportPipeline:
         source_products = self.source_client.fetch_catalog()
         curated_category_covers = self.source_client.fetch_curated_category_covers(category_slugs=self.category_slugs)
         source_by_part_number = build_part_number_index(source_products)
+        source_by_compact_part_number = build_compact_part_number_index(source_products)
 
         planned_updates: list[dict[str, Any]] = []
         category_cover_candidates: dict[int, list[dict[str, Any]]] = defaultdict(list)
@@ -109,8 +112,10 @@ class FassrideImportPipeline:
             match = match_catalog_product(
                 product,
                 source_by_part_number=source_by_part_number,
+                source_by_compact_part_number=source_by_compact_part_number,
                 source_products=source_products,
                 allow_name_match=self.allow_name_match,
+                allow_embedded_code_match=self.allow_embedded_code_match,
             )
             if match.confidence == "low" or not match.source:
                 summary["skipped_low_confidence"] += 1
@@ -124,6 +129,18 @@ class FassrideImportPipeline:
                 )
                 continue
             if match.reason == "ambiguous_name_match":
+                summary["ambiguous_matches"] += 1
+                report.ambiguous_matches.append(
+                    {
+                        "sku": product.sku,
+                        "name": product.name,
+                        "category": product.category.slug,
+                        "reason": match.reason,
+                        "source_candidates": [candidate.to_dict() for candidate in match.alternatives],
+                    }
+                )
+                continue
+            if match.reason == "ambiguous_embedded_source_part_number":
                 summary["ambiguous_matches"] += 1
                 report.ambiguous_matches.append(
                     {
@@ -166,7 +183,8 @@ class FassrideImportPipeline:
             planned_updates.append(plan_row)
             category_cover_candidates[product.category_id].append(plan_row)
             summary["matched_exact"] += 1 if match.reason == "exact_sku" else 0
-            summary["matched_name"] += 1 if match.reason != "exact_sku" else 0
+            summary["matched_name"] += 1 if match.reason == "normalized_name" else 0
+            summary["matched_embedded_code"] += 1 if match.reason == "embedded_source_part_number" else 0
 
         for category in categories:
             curated_cover = curated_category_covers.get(category.slug)

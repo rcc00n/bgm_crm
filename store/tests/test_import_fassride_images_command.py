@@ -177,3 +177,61 @@ class ImportFassrideImagesCommandTests(TestCase):
         self.assertNotEqual(category.image.name, "store/imports/fassride/assets/old-category-cover.png")
         self.assertIn("updated_products=0", output.getvalue())
         self.assertIn("updated_categories=1", output.getvalue())
+
+    def test_embedded_supplier_code_match_updates_product(self):
+        media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media_root, ignore_errors=True)
+        output = StringIO()
+        category = Category.objects.create(
+            name="FASS Mounting Packages",
+            slug="fass-mounting-packages",
+            image="store/categories/fassfuel_-_fuel_system_upgrade.png",
+        )
+        product = Product.objects.create(
+            name="FASS Mounting Package - DIFSCAT1001",
+            slug="fass-mounting-package-difscat1001",
+            sku="MP-A9095",
+            category=category,
+            price=Decimal("39.99"),
+            main_image="store/categories/fassfuel_-_fuel_system_upgrade.png",
+        )
+        source_product = SourceProduct(
+            product_id=999,
+            part_number="DIFSCAT1001",
+            supplier_name="FASS Diesel Fuel Systems",
+            supplier_category="Fuel Filter System",
+            name="FASS Drop-In Fuel System for CAT Engines DIFSCAT1001",
+            medium_description="CAT",
+            long_description="Long description",
+            product_page_url="https://www.fassride.com/details?id=999",
+            image_urls=("https://cdn.example.com/fass/difscat1001-main.jpg",),
+        )
+
+        def fake_urlopen(req, timeout=0):
+            url = req.full_url
+            if url.endswith("difscat1001-main.jpg"):
+                return _FakeHTTPResponse(b"difscat-image", content_type="image/jpeg")
+            raise AssertionError(f"Unexpected URL requested: {url}")
+
+        with override_settings(MEDIA_ROOT=media_root):
+            with patch(
+                "store.fassride_import.source.FassrideApiClient.fetch_catalog",
+                return_value=[source_product],
+            ):
+                with patch(
+                    "store.fassride_import.source.FassrideApiClient.fetch_curated_category_covers",
+                    return_value={},
+                ):
+                    with patch("store.fassride_import.images.urlopen", side_effect=fake_urlopen):
+                        call_command(
+                            "import_fassride_images",
+                            "--apply",
+                            "--match-by-embedded-code",
+                            "--category-slug",
+                            "fass-mounting-packages",
+                            stdout=output,
+                        )
+
+        product.refresh_from_db()
+        self.assertTrue(product.main_image.name.startswith("store/imports/fassride/assets/"))
+        self.assertIn("updated_products=1", output.getvalue())

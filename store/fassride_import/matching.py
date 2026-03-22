@@ -26,6 +26,10 @@ def normalize_code(value: str) -> str:
     return re.sub(r"\s+", "", str(value or "").strip()).upper()
 
 
+def normalize_compact_code(value: str) -> str:
+    return re.sub(r"[^A-Z0-9]+", "", str(value or "").upper())
+
+
 def normalize_name(value: str) -> str:
     text = unicodedata.normalize("NFKD", str(value or ""))
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
@@ -45,12 +49,23 @@ def build_part_number_index(source_products: list[SourceProduct]) -> dict[str, S
     return index
 
 
+def build_compact_part_number_index(source_products: list[SourceProduct]) -> dict[str, SourceProduct]:
+    index: dict[str, SourceProduct] = {}
+    for item in source_products:
+        key = normalize_compact_code(item.part_number)
+        if key and key not in index:
+            index[key] = item
+    return index
+
+
 def match_catalog_product(
     product: Product,
     *,
     source_by_part_number: dict[str, SourceProduct],
+    source_by_compact_part_number: dict[str, SourceProduct] | None = None,
     source_products: list[SourceProduct],
     allow_name_match: bool = False,
+    allow_embedded_code_match: bool = False,
 ) -> ProductMatch:
     sku_key = normalize_code(product.sku)
     if sku_key and sku_key in source_by_part_number:
@@ -59,6 +74,14 @@ def match_catalog_product(
             reason="exact_sku",
             source=source_by_part_number[sku_key],
         )
+
+    if allow_embedded_code_match and source_by_compact_part_number:
+        embedded_match = _match_by_embedded_part_number(
+            product,
+            source_by_compact_part_number=source_by_compact_part_number,
+        )
+        if embedded_match is not None:
+            return embedded_match
 
     if not allow_name_match:
         return ProductMatch(confidence="low", reason="no_exact_sku")
@@ -95,4 +118,49 @@ def match_catalog_product(
         reason="ambiguous_name_match",
         source=best_source,
         alternatives=tuple(item[1] for item in scored[:3]),
+    )
+
+
+def _match_by_embedded_part_number(
+    product: Product,
+    *,
+    source_by_compact_part_number: dict[str, SourceProduct],
+) -> ProductMatch | None:
+    name_key = normalize_compact_code(product.name)
+    sku_key = normalize_compact_code(product.sku)
+    if not name_key:
+        return None
+
+    matches: list[tuple[str, SourceProduct]] = []
+    for compact_key, source in source_by_compact_part_number.items():
+        if len(compact_key) < 8:
+            continue
+        if compact_key == sku_key:
+            continue
+        if compact_key in name_key:
+            matches.append((compact_key, source))
+
+    if not matches:
+        return None
+
+    matches.sort(key=lambda item: len(item[0]), reverse=True)
+    longest_key, longest_source = matches[0]
+    remaining_keys = [key for key, _source in matches[1:]]
+    if not remaining_keys:
+        return ProductMatch(
+            confidence="high",
+            reason="embedded_source_part_number",
+            source=longest_source,
+        )
+    if all(key in longest_key for key in remaining_keys):
+        return ProductMatch(
+            confidence="high",
+            reason="embedded_source_part_number",
+            source=longest_source,
+        )
+    return ProductMatch(
+        confidence="medium",
+        reason="ambiguous_embedded_source_part_number",
+        source=longest_source,
+        alternatives=tuple(source for _key, source in matches[:3]),
     )

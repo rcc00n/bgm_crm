@@ -26,6 +26,11 @@ class Command(BaseCommand):
             help="Allow normalized-name fallback matching when exact SKU/part-number matching fails.",
         )
         parser.add_argument(
+            "--match-by-embedded-code",
+            action="store_true",
+            help="Allow unambiguous exact supplier part-number matches embedded in the internal product name.",
+        )
+        parser.add_argument(
             "--skip-gallery",
             action="store_true",
             help="Only import the primary product image and skip gallery images.",
@@ -43,6 +48,7 @@ class Command(BaseCommand):
             category_slugs=category_slugs,
             apply_changes=options["apply"],
             allow_name_match=options["match_by_name"],
+            allow_embedded_code_match=options["match_by_embedded_code"],
             include_gallery_images=not options["skip_gallery"],
             replace_current_images=options["replace_current_image"] or [],
         )
