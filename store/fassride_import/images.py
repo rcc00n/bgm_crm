@@ -118,6 +118,12 @@ class ImageAssetManager:
                     time.sleep(sleep_for)
         raise last_error or ValueError(f"Failed to localize image: {url}")
 
+    def storage_name(self, url: str, *, content_type: str = "") -> str:
+        url = (url or "").strip()
+        if not url:
+            raise ValueError("Empty image URL.")
+        return self._storage_name(url, content_type)
+
     def dedupe_urls(self, urls: list[str] | tuple[str, ...]) -> list[str]:
         deduped: list[str] = []
         seen = set()

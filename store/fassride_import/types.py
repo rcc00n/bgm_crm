@@ -23,6 +23,17 @@ class SourceProduct:
 
 
 @dataclass(frozen=True)
+class CuratedCategoryImage:
+    category_slug: str
+    source_page_url: str
+    image_url: str
+    label: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class ProductMatch:
     confidence: str
     reason: str

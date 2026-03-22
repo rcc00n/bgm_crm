@@ -13,7 +13,7 @@ from .images import ImageAssetManager
 from .matching import build_part_number_index, match_catalog_product
 from .reporting import save_json_report
 from .source import FassrideApiClient
-from .types import ImportReport, SourceProduct
+from .types import CuratedCategoryImage, ImportReport, SourceProduct
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,8 @@ class FassrideImportPipeline:
         report = ImportReport(
             assumptions=[
                 "Only high-confidence exact SKU/part-number matches are auto-applied unless name matching is explicitly enabled.",
-                "Category cover images are sourced from the first successfully matched product image in that internal category.",
+                "Configured category cover overrides use curated FASS page assets from authorized source pages before product-derived cover candidates.",
+                "Other category cover images are sourced from the strongest successfully matched product image in that internal category.",
                 "Products with unique non-placeholder images are left untouched unless their current image matches the configured replace list.",
             ]
         )
@@ -80,6 +81,7 @@ class FassrideImportPipeline:
         )
 
         source_products = self.source_client.fetch_catalog()
+        curated_category_covers = self.source_client.fetch_curated_category_covers(category_slugs=self.category_slugs)
         source_by_part_number = build_part_number_index(source_products)
 
         planned_updates: list[dict[str, Any]] = []
@@ -166,6 +168,12 @@ class FassrideImportPipeline:
             summary["matched_exact"] += 1 if match.reason == "exact_sku" else 0
             summary["matched_name"] += 1 if match.reason != "exact_sku" else 0
 
+        for category in categories:
+            curated_cover = curated_category_covers.get(category.slug)
+            if curated_cover is None:
+                continue
+            category_cover_candidates[category.pk].append(self._build_curated_category_cover_plan(curated_cover))
+
         report_paths = self._save_debug_files(source_products, planned_updates)
         report.debug_files.update(report_paths)
 
@@ -178,8 +186,11 @@ class FassrideImportPipeline:
             summary["planned_category_updates"] = sum(
                 1
                 for category in categories
-                if self._should_replace_category_image(category, allowed_replace_images)
-                and category_cover_candidates.get(category.pk)
+                if self._category_cover_needs_update(
+                    category,
+                    category_cover_candidates.get(category.pk) or [],
+                    allowed_replace_images,
+                )
             )
 
         report.summary = dict(summary)
@@ -267,26 +278,25 @@ class FassrideImportPipeline:
         )
         for category in categories:
             candidates = category_cover_candidates.get(category.pk) or []
-            if not candidates:
+            cover = self._select_category_cover_candidate(candidates)
+            if cover is None:
                 continue
-            if not self._should_replace_category_image(category, allowed_replace_images):
+            if not self._should_replace_category_image_for_source(
+                category,
+                allowed_replace_images,
+                source_kind=str(cover.get("source_kind") or "product"),
+            ):
                 summary["skipped_existing_category_images"] += 1
                 continue
-            candidates.sort(key=lambda item: (-len(item["gallery_image_urls"]), item["sku"]))
-            cover = candidates[0]
+            image_name = self.image_manager.storage_name(cover["main_image_url"])
+            if category.image.name == image_name:
+                continue
             image_name = self.image_manager.localize(cover["main_image_url"])
             if category.image.name != image_name:
                 category.image = image_name
                 category.save()
             report.updated_categories.append(
-                {
-                    "slug": category.slug,
-                    "name": category.name,
-                    "image": image_name,
-                    "source_product_sku": cover["sku"],
-                    "source_part_number": cover["source"]["part_number"],
-                    "source_product_url": cover["source"]["product_page_url"],
-                }
+                self._build_category_update_report_row(category, cover, image_name)
             )
             summary["updated_categories"] += 1
 
@@ -304,11 +314,26 @@ class FassrideImportPipeline:
         return current_name == category_name
 
     def _should_replace_category_image(self, category: Category, allowed_replace_images: set[str]) -> bool:
+        return self._should_replace_category_image_for_source(
+            category,
+            allowed_replace_images,
+            source_kind="product",
+        )
+
+    def _should_replace_category_image_for_source(
+        self,
+        category: Category,
+        allowed_replace_images: set[str],
+        *,
+        source_kind: str,
+    ) -> bool:
         current_name = str(getattr(category.image, "name", "") or "").strip()
         if not current_name:
             return True
         placeholder_dir = "store/placeholders/"
         if current_name.startswith(placeholder_dir):
+            return True
+        if source_kind == "curated_page_asset" and current_name.startswith(f"{self.image_manager.storage_prefix}/"):
             return True
         return current_name in allowed_replace_images
 
@@ -319,6 +344,67 @@ class FassrideImportPipeline:
         if current_name.startswith(f"{self.image_manager.storage_prefix}/"):
             return False
         return True
+
+    def _build_curated_category_cover_plan(self, asset: CuratedCategoryImage) -> dict[str, Any]:
+        return {
+            "source_kind": "curated_page_asset",
+            "cover_priority": 100,
+            "main_image_url": asset.image_url,
+            "gallery_image_urls": [],
+            "source_page_url": asset.source_page_url,
+            "source_label": asset.label,
+        }
+
+    def _select_category_cover_candidate(self, candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+        if not candidates:
+            return None
+        return max(
+            candidates,
+            key=lambda item: (
+                int(item.get("cover_priority", 0)),
+                len(item.get("gallery_image_urls") or []),
+                str(item.get("sku") or ""),
+            ),
+        )
+
+    def _category_cover_needs_update(
+        self,
+        category: Category,
+        candidates: list[dict[str, Any]],
+        allowed_replace_images: set[str],
+    ) -> bool:
+        cover = self._select_category_cover_candidate(candidates)
+        if cover is None:
+            return False
+        image_name = self.image_manager.storage_name(cover["main_image_url"])
+        if str(getattr(category.image, "name", "") or "").strip() == image_name:
+            return False
+        return self._should_replace_category_image_for_source(
+            category,
+            allowed_replace_images,
+            source_kind=str(cover.get("source_kind") or "product"),
+        )
+
+    def _build_category_update_report_row(
+        self,
+        category: Category,
+        cover: dict[str, Any],
+        image_name: str,
+    ) -> dict[str, Any]:
+        row = {
+            "slug": category.slug,
+            "name": category.name,
+            "image": image_name,
+            "source_kind": str(cover.get("source_kind") or "product"),
+        }
+        if row["source_kind"] == "curated_page_asset":
+            row["source_label"] = cover.get("source_label") or ""
+            row["source_page_url"] = cover.get("source_page_url") or ""
+            return row
+        row["source_product_sku"] = cover["sku"]
+        row["source_part_number"] = cover["source"]["part_number"]
+        row["source_product_url"] = cover["source"]["product_page_url"]
+        return row
 
     def _save_debug_files(
         self,

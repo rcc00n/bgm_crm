@@ -10,7 +10,7 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.test.utils import override_settings
 
-from store.fassride_import.types import SourceProduct
+from store.fassride_import.types import CuratedCategoryImage, SourceProduct
 from store.models import Category, Product
 
 
@@ -128,3 +128,50 @@ class ImportFassrideImagesCommandTests(TestCase):
 
         self.product.refresh_from_db()
         self.assertEqual(self.product.images.count(), 1)
+
+    def test_curated_category_cover_replaces_prior_imported_category_cover(self):
+        media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media_root, ignore_errors=True)
+        output = StringIO()
+        category = Category.objects.create(
+            name="FASS Fuel Systems",
+            slug="fass-fuel-systems",
+            image="store/imports/fassride/assets/old-category-cover.png",
+        )
+        curated_cover = CuratedCategoryImage(
+            category_slug="fass-fuel-systems",
+            source_page_url="https://www.fassride.com/fuel-air-separation-system",
+            image_url="https://cdn.example.com/fass/fuel-systems-cover.webp",
+            label="Fuel-Air Separation / Universal",
+        )
+
+        def fake_urlopen(req, timeout=0):
+            url = req.full_url
+            if url.endswith("fuel-systems-cover.webp"):
+                return _FakeHTTPResponse(b"fuel-systems-cover", content_type="image/webp")
+            raise AssertionError(f"Unexpected URL requested: {url}")
+
+        with override_settings(MEDIA_ROOT=media_root):
+            with patch(
+                "store.fassride_import.source.FassrideApiClient.fetch_catalog",
+                return_value=[],
+            ):
+                with patch(
+                    "store.fassride_import.source.FassrideApiClient.fetch_curated_category_covers",
+                    return_value={"fass-fuel-systems": curated_cover},
+                ):
+                    with patch("store.fassride_import.images.urlopen", side_effect=fake_urlopen):
+                        call_command(
+                            "import_fassride_images",
+                            "--apply",
+                            "--category-slug",
+                            "fass-fuel-systems",
+                            stdout=output,
+                        )
+
+        category.refresh_from_db()
+
+        self.assertTrue(category.image.name.startswith("store/imports/fassride/assets/"))
+        self.assertNotEqual(category.image.name, "store/imports/fassride/assets/old-category-cover.png")
+        self.assertIn("updated_products=0", output.getvalue())
+        self.assertIn("updated_categories=1", output.getvalue())

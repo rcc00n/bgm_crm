@@ -7,13 +7,48 @@ from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from .types import SourceProduct
+from .types import CuratedCategoryImage, SourceProduct
 
 logger = logging.getLogger(__name__)
 
 FASSRIDE_PAGE_BASE_URL = "https://www.fassride.com"
 FASSRIDE_API_BASE_URL = "https://shop.fassride.com"
 DEFAULT_TIMEOUT = 20.0
+CURATED_CATEGORY_COVERS: dict[str, CuratedCategoryImage] = {
+    "fass-fuel-systems": CuratedCategoryImage(
+        category_slug="fass-fuel-systems",
+        source_page_url="https://www.fassride.com/fuel-air-separation-system",
+        image_url=(
+            "https://lirp.cdn-website.com/d0fc1429/dms3rep/multi/opt/"
+            "FASS_FuelAirSeparartionSystems_Universal-705x705-1-1920w.png"
+        ),
+        label="Fuel-Air Separation System / Universal",
+    ),
+    "fass-industrial-series": CuratedCategoryImage(
+        category_slug="fass-industrial-series",
+        source_page_url="https://www.fassride.com/fass-industrial-series-systems-for-detroit-paccar-cat-and-more",
+        image_url="https://lirp.cdn-website.com/d0fc1429/dms3rep/multi/opt/FASSIndustrialSeries-1920w.webp",
+        label="Industrial Series Hero",
+    ),
+    "fass-mounting-packages": CuratedCategoryImage(
+        category_slug="fass-mounting-packages",
+        source_page_url="https://www.fassride.com/how-to-install-the-fass-single-bolt-sump-kit-sk5501",
+        image_url=(
+            "https://lirp.cdn-website.com/d0fc1429/dms3rep/multi/opt/"
+            "How+to+install+the+FASS+Single-Bolt+Sump+Kit+%28SK5501%29-56009f76-1920w.png"
+        ),
+        label="Mounting Package / Sump Kit",
+    ),
+    "fass-replacement-parts": CuratedCategoryImage(
+        category_slug="fass-replacement-parts",
+        source_page_url="https://www.fassride.com/can-i-purchase-individual-fass-diesel-fuel-system-components",
+        image_url=(
+            "https://lirp.cdn-website.com/d0fc1429/dms3rep/multi/opt/"
+            "Can+I+Purchase+Individual+FASS+Diesel+Fuel+System+Components+%282%29-1920w.png"
+        ),
+        label="Replacement Parts / Components",
+    ),
+}
 
 
 class FassrideApiClient:
@@ -44,6 +79,20 @@ class FassrideApiClient:
         extracted = [self._extract_source_product(item) for item in products]
         logger.info("Fetched %s FASS source products from API.", len(extracted))
         return extracted
+
+    def fetch_curated_category_covers(
+        self,
+        *,
+        category_slugs: list[str] | tuple[str, ...] | None = None,
+    ) -> dict[str, CuratedCategoryImage]:
+        if not category_slugs:
+            return dict(CURATED_CATEGORY_COVERS)
+        requested = {slug.strip() for slug in category_slugs if slug and slug.strip()}
+        return {
+            slug: asset
+            for slug, asset in CURATED_CATEGORY_COVERS.items()
+            if slug in requested
+        }
 
     def _get_json(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         query = urlencode({key: value for key, value in (params or {}).items() if value not in (None, "")}, doseq=True)
