@@ -96,6 +96,7 @@ class ImportFassrideImagesCommandTests(TestCase):
         self.category.refresh_from_db()
 
         self.assertTrue(self.product.main_image.name.startswith("store/imports/fassride/assets/"))
+        self.assertLessEqual(len(self.product.main_image.name), 100)
         self.assertEqual(self.category.image.name, self.product.main_image.name)
         gallery_images = list(self.product.images.order_by("sort_order").values_list("image", flat=True))
         self.assertEqual(len(gallery_images), 1)
@@ -172,6 +173,7 @@ class ImportFassrideImagesCommandTests(TestCase):
         category.refresh_from_db()
 
         self.assertTrue(category.image.name.startswith("store/imports/fassride/assets/"))
+        self.assertLessEqual(len(category.image.name), 100)
         self.assertNotEqual(category.image.name, "store/imports/fassride/assets/old-category-cover.png")
         self.assertIn("updated_products=0", output.getvalue())
         self.assertIn("updated_categories=1", output.getvalue())

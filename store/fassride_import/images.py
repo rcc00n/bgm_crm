@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 IMAGE_CONTENT_TYPE_PREFIX = "image/"
 KNOWN_IMAGE_SUFFIXES = {".avif", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
+MAX_STORAGE_PATH_LENGTH = 100
 
 
 @dataclass(frozen=True)
@@ -150,7 +151,11 @@ class ImageAssetManager:
             suffix = ".jpg"
         safe_stem = slugify(stem) or "image"
         digest = hashlib.sha256(self._canonical_url(url).encode("utf-8")).hexdigest()[:16]
-        return f"{self.storage_prefix}/{safe_stem}-{digest}{suffix}"
+        base_prefix = f"{self.storage_prefix}/"
+        suffix_part = f"-{digest}{suffix}"
+        max_stem_length = max(8, MAX_STORAGE_PATH_LENGTH - len(base_prefix) - len(suffix_part))
+        safe_stem = safe_stem[:max_stem_length] or "image"
+        return f"{base_prefix}{safe_stem}{suffix_part}"
 
     def _canonical_url(self, url: str) -> str:
         parsed = urlparse(url)
