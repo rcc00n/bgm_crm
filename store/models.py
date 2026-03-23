@@ -1,5 +1,6 @@
-from decimal import Decimal, InvalidOperation
 import logging
+import re
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from django.conf import settings
@@ -18,6 +19,28 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 PRICE_QUANT = Decimal("0.01")
+COMPANION_TOKEN_STOPWORDS = {
+    "and",
+    "build",
+    "complete",
+    "custom",
+    "diesel",
+    "fit",
+    "fits",
+    "for",
+    "from",
+    "guy",
+    "kit",
+    "line",
+    "motors",
+    "part",
+    "parts",
+    "return",
+    "the",
+    "this",
+    "truck",
+    "with",
+}
 
 
 # ─────────────────────────── Catalog: car directories ───────────────────────────
@@ -613,22 +636,112 @@ class Product(models.Model):
             return any(opt.is_active and not getattr(opt, "is_separator", False) for opt in cache["options"])
         return self.options.filter(is_active=True, is_separator=False).exists()
 
+    @property
+    def is_merch_product(self) -> bool:
+        try:
+            category_slug = (getattr(getattr(self, "category", None), "slug", "") or "").strip().lower()
+            sku = (getattr(self, "sku", "") or "").strip().upper()
+            slug = (getattr(self, "slug", "") or "").strip().lower()
+        except Exception:
+            return False
+        return category_slug == "merch" or sku.startswith("PF-") or slug.startswith("merch-")
+
+    def _companion_match_tokens(self) -> set[str]:
+        parts = [
+            self.name,
+            self.short_description,
+            self.description,
+            self.compatibility,
+            getattr(getattr(self, "category", None), "name", ""),
+        ]
+        tokens = set()
+        for part in parts:
+            if not part:
+                continue
+            for token in re.findall(r"[a-z0-9]+", str(part).lower()):
+                if len(token) < 3 or token.isdigit() or token in COMPANION_TOKEN_STOPWORDS:
+                    continue
+                tokens.add(token)
+        return tokens
+
+    def _companion_model_ids(self) -> set[int]:
+        cache = getattr(self, "_prefetched_objects_cache", {})
+        if cache and "compatible_models" in cache:
+            return {obj.id for obj in cache["compatible_models"]}
+        return set(self.compatible_models.values_list("id", flat=True))
+
     def get_companion_items(self, limit: int = 3):
         """
-        Deterministically rotates the active catalog to get a varied (but stable) set of companions.
+        Picks companion items using compatibility overlap and lightweight text/category scoring.
         """
-        qs = Product.objects.filter(is_active=True).exclude(pk=self.pk).order_by("id")
-        ids = list(qs.values_list("id", flat=True))
-        if not ids:
+        if limit <= 0 or self.is_merch_product:
             return []
-        seed_source = self.slug or self.name or str(self.pk)
-        seed = sum(ord(ch) for ch in seed_source)
-        idx = seed % len(ids)
-        ordered_ids = ids[idx:] + ids[:idx]
-        pick_ids = ordered_ids[:limit]
-        companions = list(Product.objects.filter(id__in=pick_ids).select_related("category"))
-        companions.sort(key=lambda obj: pick_ids.index(obj.id))
-        return companions
+        candidates = list(
+            Product.objects.filter(is_active=True)
+            .exclude(pk=self.pk)
+            .select_related("category")
+            .prefetch_related("compatible_models")
+            .order_by("-created_at", "-id")
+        )
+        if not candidates:
+            return []
+
+        own_tokens = self._companion_match_tokens()
+        own_model_ids = self._companion_model_ids()
+        own_category_id = self.category_id
+        scored: list[tuple[int, Any, int, Product]] = []
+        same_category_fallback: list[Product] = []
+        catalog_fallback: list[Product] = []
+
+        for candidate in candidates:
+            if candidate.is_merch_product:
+                continue
+            if candidate.category_id == own_category_id:
+                same_category_fallback.append(candidate)
+            else:
+                catalog_fallback.append(candidate)
+
+            candidate_model_ids = candidate._companion_model_ids()
+            shared_models = len(own_model_ids & candidate_model_ids)
+            shared_tokens = len(own_tokens & candidate._companion_match_tokens())
+            same_category = candidate.category_id == own_category_id
+
+            score = 0
+            if shared_models:
+                score += 120 + min(shared_models, 3) * 25
+            if same_category:
+                score += 28
+            if shared_tokens:
+                score += min(shared_tokens, 5) * 9
+            if same_category and shared_tokens:
+                score += 12
+            if own_model_ids and candidate_model_ids and not shared_models:
+                score -= 24
+
+            if score > 0:
+                scored.append((score, candidate.created_at, candidate.pk, candidate))
+
+        scored.sort(key=lambda item: (item[0], item[1], item[2]), reverse=True)
+        ordered: list[Product] = []
+        seen_ids: set[int] = set()
+
+        for _, _, _, candidate in scored:
+            if candidate.pk in seen_ids:
+                continue
+            ordered.append(candidate)
+            seen_ids.add(candidate.pk)
+            if len(ordered) >= limit:
+                return ordered
+
+        for pool in (same_category_fallback, catalog_fallback):
+            for candidate in pool:
+                if candidate.pk in seen_ids:
+                    continue
+                ordered.append(candidate)
+                seen_ids.add(candidate.pk)
+                if len(ordered) >= limit:
+                    return ordered
+        return ordered
 
     def get_active_discount(self, today=None):
         today = today or timezone.now().date()

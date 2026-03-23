@@ -23,7 +23,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.admin import GenericStackedInline
 from django.forms.models import BaseInlineFormSet
 from django.http import JsonResponse
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import FieldDoesNotExist, PermissionDenied, ValidationError
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
@@ -258,6 +258,59 @@ def custom_index(request):
 
 # Переопределить главную страницу
 admin.site.index = custom_index
+
+
+def _supports_single_object_changelist_redirect(model_admin):
+    if getattr(model_admin, "single_object_changelist_redirect", False):
+        return True
+    try:
+        model_admin.model._meta.get_field("singleton_id")
+    except FieldDoesNotExist:
+        return False
+    return True
+
+
+def _get_single_object_change_url(model_admin, request):
+    if request.method != "GET" or request.GET:
+        return None
+    if not _supports_single_object_changelist_redirect(model_admin):
+        return None
+
+    queryset = model_admin.get_queryset(request)
+    object_ids = list(queryset.values_list("pk", flat=True)[:2])
+    if len(object_ids) != 1:
+        return None
+
+    obj = queryset.filter(pk=object_ids[0]).first()
+    if obj is None:
+        return None
+    if not (
+        model_admin.has_view_permission(request, obj)
+        or model_admin.has_change_permission(request, obj)
+    ):
+        return None
+
+    opts = model_admin.model._meta
+    return reverse(
+        f"admin:{opts.app_label}_{opts.model_name}_change",
+        args=[object_ids[0]],
+        current_app=model_admin.admin_site.name,
+    )
+
+
+if not getattr(admin.ModelAdmin, "_single_object_changelist_redirect_patch", False):
+    _original_changelist_view = admin.ModelAdmin.changelist_view
+
+    def _single_object_redirecting_changelist_view(self, request, extra_context=None):
+        change_url = _get_single_object_change_url(self, request)
+        if change_url:
+            return HttpResponseRedirect(change_url)
+        return _original_changelist_view(self, request, extra_context=extra_context)
+
+    admin.ModelAdmin.changelist_view = _single_object_redirecting_changelist_view
+    admin.ModelAdmin._single_object_changelist_redirect_patch = True
+
+
 class ExportCsvMixin:
     export_fields = None  # список полей; можно переопределить в admin
 
@@ -334,7 +387,7 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'first_name', 'last_name', 'phone', 'birth_date',
+            'fields': ('username', 'email', 'first_name', 'last_name', 'phone', 'birth_date', 'roles',
                        'password1', 'password2', 'is_staff', 'is_active', 'is_superuser'),
         }),
     )
@@ -360,6 +413,7 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'birth_date')}),
+        ('Roles', {'fields': ('roles',)}),
         ('System Dates', {'fields': ('date_joined', 'last_login')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Admin Notifications', {'fields': ('admin_notification_sections',)}),
@@ -1234,9 +1288,13 @@ class ServiceMasterAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin)
     """
     Admin interface to assign masters to services.
     """
+    form = ServiceMasterAdminForm
     list_display = ('staff_member', 'service')
-    search_fields = ('master__user__first_name', 'master__user__last_name', 'service__name')
+    search_fields = ('master__first_name', 'master__last_name', 'master__username', 'service__name')
     export_fields = ['master', 'service']
+    fields = ('master', 'assign_all_services', 'services')
+    list_select_related = ('master', 'service')
+    ordering = ('master__first_name', 'master__last_name', 'service__name')
 
     @admin.display(description=STAFF_DISPLAY_NAME, ordering="master__first_name")
     def staff_member(self, obj):
@@ -1257,6 +1315,7 @@ class ServiceAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface for services.
     """
+    form = ServiceAdminForm
     list_display = ('name', 'pricing_display', 'category', 'duration_min', 'image_preview')
     search_fields = ('name',)
     list_filter = ('category', 'contact_for_estimate')
@@ -1270,9 +1329,15 @@ class ServiceAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
         'name', 'category', 'description',
         ('base_price', 'contact_for_estimate'), 'estimate_from_price',
         'prepayment_option', 'duration_min', 'extra_time_min',
+        'staff_members',
         'image', 'image_preview',
     )
     readonly_fields = ('image_preview',)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if hasattr(form, "sync_staff_assignments"):
+            form.sync_staff_assignments(service=obj)
 
     @admin.display(description="Pricing", ordering="base_price")
     def pricing_display(self, obj):

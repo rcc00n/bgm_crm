@@ -61,6 +61,109 @@
       display: grid;
       gap: 8px;
     }
+    .whats-new-links {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 18px;
+    }
+    .whats-new-link {
+      display: grid;
+      gap: 5px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(18, 44, 77, 0.12);
+      background: rgba(255, 255, 255, 0.82);
+      color: #16395f;
+      text-decoration: none;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    .whats-new-link:hover {
+      transform: translateY(-1px);
+      text-decoration: none;
+      border-color: rgba(29, 78, 216, 0.24);
+      box-shadow: 0 16px 34px rgba(10, 24, 40, 0.08);
+      color: #1d4ed8;
+    }
+    .whats-new-link__label {
+      font-weight: 800;
+      line-height: 1.35;
+    }
+    .whats-new-link__note {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #607189;
+    }
+    .whats-new-hero__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .whats-new-hero__meta-item {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(18, 44, 77, 0.08);
+      border: 1px solid rgba(18, 44, 77, 0.12);
+      color: #16395f;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .whats-new-pagination {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 18px 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(22, 36, 58, 0.08);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 18px 44px rgba(10, 24, 40, 0.06);
+    }
+    .whats-new-pagination__summary {
+      color: #42536a;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .whats-new-pagination__links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .whats-new-pagination__link,
+    .whats-new-pagination__current {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 42px;
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(18, 44, 77, 0.12);
+      background: rgba(255, 255, 255, 0.88);
+      color: #16395f;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+    }
+    .whats-new-pagination__link:hover {
+      transform: translateY(-1px);
+      border-color: rgba(29, 78, 216, 0.24);
+      box-shadow: 0 14px 30px rgba(10, 24, 40, 0.08);
+      color: #1d4ed8;
+      text-decoration: none;
+    }
+    .whats-new-pagination__current {
+      border-color: rgba(29, 78, 216, 0.22);
+      background: rgba(37, 99, 235, 0.12);
+      color: #1d4ed8;
+    }
   </style>
 {% endblock %}
 
@@ -70,7 +173,37 @@
       <section class="whats-new-hero">
         <h1>What's New</h1>
         <p>Recent admin panel releases and workflow updates. Opening this page marks the current release notes as seen for your user.</p>
+        {% if admin_releases_page %}
+          <div class="whats-new-hero__meta">
+            <span class="whats-new-hero__meta-item">{{ admin_releases_page.paginator.count }} total updates</span>
+            <span class="whats-new-hero__meta-item">15 per page</span>
+            <span class="whats-new-hero__meta-item">Page {{ admin_releases_page.number }} of {{ admin_releases_page.paginator.num_pages }}</span>
+          </div>
+        {% endif %}
       </section>
+
+      {% if admin_releases_page.has_other_pages %}
+        <nav class="whats-new-pagination" aria-label="What's New pages">
+          <div class="whats-new-pagination__summary">
+            Showing page {{ admin_releases_page.number }} of {{ admin_releases_page.paginator.num_pages }}
+          </div>
+          <div class="whats-new-pagination__links">
+            {% if admin_releases_page.has_previous %}
+              <a class="whats-new-pagination__link" href="?page={{ admin_releases_page.previous_page_number }}">Previous</a>
+            {% endif %}
+            {% for page_number in admin_releases_page.paginator.page_range %}
+              {% if page_number == admin_releases_page.number %}
+                <span class="whats-new-pagination__current">{{ page_number }}</span>
+              {% else %}
+                <a class="whats-new-pagination__link" href="?page={{ page_number }}">{{ page_number }}</a>
+              {% endif %}
+            {% endfor %}
+            {% if admin_releases_page.has_next %}
+              <a class="whats-new-pagination__link" href="?page={{ admin_releases_page.next_page_number }}">Next</a>
+            {% endif %}
+          </div>
+        </nav>
+      {% endif %}
 
       {% for release in admin_releases %}
         <article class="whats-new-entry">
@@ -96,6 +229,18 @@
               {% endfor %}
             </div>
           {% endif %}
+          {% if release.links %}
+            <div class="whats-new-links">
+              {% for link in release.links %}
+                <a class="whats-new-link" href="{{ link.url }}">
+                  <span class="whats-new-link__label">{{ link.label }}</span>
+                  {% if link.note %}
+                    <span class="whats-new-link__note">{{ link.note }}</span>
+                  {% endif %}
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
         </article>
       {% empty %}
         <article class="whats-new-entry">
@@ -103,6 +248,29 @@
           <p>Add entries in <code>core/services/admin_releases.py</code> to populate this page.</p>
         </article>
       {% endfor %}
+
+      {% if admin_releases_page.has_other_pages %}
+        <nav class="whats-new-pagination" aria-label="What's New pages">
+          <div class="whats-new-pagination__summary">
+            Showing page {{ admin_releases_page.number }} of {{ admin_releases_page.paginator.num_pages }}
+          </div>
+          <div class="whats-new-pagination__links">
+            {% if admin_releases_page.has_previous %}
+              <a class="whats-new-pagination__link" href="?page={{ admin_releases_page.previous_page_number }}">Previous</a>
+            {% endif %}
+            {% for page_number in admin_releases_page.paginator.page_range %}
+              {% if page_number == admin_releases_page.number %}
+                <span class="whats-new-pagination__current">{{ page_number }}</span>
+              {% else %}
+                <a class="whats-new-pagination__link" href="?page={{ page_number }}">{{ page_number }}</a>
+              {% endif %}
+            {% endfor %}
+            {% if admin_releases_page.has_next %}
+              <a class="whats-new-pagination__link" href="?page={{ admin_releases_page.next_page_number }}">Next</a>
+            {% endif %}
+          </div>
+        </nav>
+      {% endif %}
     </div>
   </div>
 {% endblock %}

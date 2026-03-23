@@ -3,13 +3,16 @@ from decimal import Decimal
 
 from dal import autocomplete
 from django import forms
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
+from django.db import transaction
 from django.utils import timezone
 from .models import *
 from .constants import STAFF_DISPLAY_NAME
+from core.utils import get_staff_queryset
 from core.validators import clean_phone
 from core.services.admin_notifications import (
     get_notification_group_choices,
@@ -22,6 +25,44 @@ class MultipleFileInput(forms.ClearableFileInput):
     ClearableFileInput variant that allows selecting multiple files.
     """
     allow_multiple_selected = True
+
+
+STAFF_ROLE_NAMES = {"Admin", "Master"}
+
+
+def _ordered_role_queryset():
+    return Role.objects.order_by("name")
+
+
+def _ordered_staff_queryset(active_only: bool = False):
+    return get_staff_queryset(active_only=active_only).order_by(
+        "first_name",
+        "last_name",
+        "username",
+    )
+
+
+def _sync_user_roles(user, roles):
+    roles = list(roles)
+    selected_ids = {role.pk for role in roles if role.pk}
+    UserRole.objects.filter(user=user).exclude(role_id__in=selected_ids).delete()
+    for role in roles:
+        UserRole.objects.get_or_create(user=user, role=role)
+
+
+def _promote_staff_access_for_roles(user, roles):
+    if user.is_superuser or any(role.name in STAFF_ROLE_NAMES for role in roles):
+        user.is_staff = True
+
+
+def _sync_service_staff_assignments(service, staff_members):
+    staff_members = list(staff_members)
+    selected_ids = {staff.pk for staff in staff_members if staff.pk}
+    ServiceMaster.objects.filter(service=service).exclude(master_id__in=selected_ids).delete()
+    existing_ids = set(ServiceMaster.objects.filter(service=service).values_list("master_id", flat=True))
+    for staff in staff_members:
+        if staff.pk not in existing_ids:
+            ServiceMaster.objects.create(service=service, master=staff)
 
 # -----------------------------
 # Font settings
@@ -217,6 +258,12 @@ class CustomUserCreationForm(UserCreationForm):
     last_name = forms.CharField(required=True)
     phone = forms.CharField(required=True)
     birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Pick one or more roles. If nothing is selected, the user will be created as Client.",
+    )
 
 
     class Meta:
@@ -238,6 +285,11 @@ class CustomUserCreationForm(UserCreationForm):
         """
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password1"])
+        selected_roles = list(self.cleaned_data.get("roles") or [])
+        if not selected_roles:
+            client_role, _ = Role.objects.get_or_create(name="Client")
+            selected_roles = [client_role]
+        _promote_staff_access_for_roles(user, selected_roles)
         user.save()
 
         # Create or update UserProfile
@@ -248,14 +300,20 @@ class CustomUserCreationForm(UserCreationForm):
         profile.birth_date = birth_date
         profile.save()
 
-        client_role, _ = Role.objects.get_or_create(name="Client")
-        UserRole.objects.get_or_create(user=user, role=client_role)
+        _sync_user_roles(user, selected_roles)
 
         return user
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["roles"].queryset = _ordered_role_queryset()
+        if not self.is_bound:
+            client_role = Role.objects.filter(name="Client").first()
+            if client_role:
+                self.fields["roles"].initial = [client_role.pk]
+
     def clean(self):
-        # Optional debug print to inspect cleaned data
-        print(self.cleaned_data)
+        return super().clean()
 
     def clean_phone(self):
         phone = self.cleaned_data.get('phone')
@@ -278,6 +336,12 @@ class CustomUserChangeForm(UserChangeForm):
     last_name = forms.CharField(required=False)
     phone = forms.CharField(required=True)
     birth_date = forms.DateField(required=False, widget=forms.SelectDateWidget(years=range(1950, 2030)))
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Assign roles directly from the user profile card.",
+    )
     admin_notification_sections = forms.MultipleChoiceField(
         required=False,
         widget=forms.CheckboxSelectMultiple,
@@ -316,6 +380,7 @@ class CustomUserChangeForm(UserChangeForm):
 
         choices = get_notification_group_choices()
         self.fields["admin_notification_sections"].choices = choices
+        self.fields["roles"].queryset = _ordered_role_queryset()
 
         if self.instance and hasattr(self.instance, 'userprofile'):
             self.fields['phone'].initial = self.instance.userprofile.phone
@@ -324,6 +389,10 @@ class CustomUserChangeForm(UserChangeForm):
             all_keys = [key for key, _ in choices]
             enabled = [key for key in all_keys if key not in disabled]
             self.fields["admin_notification_sections"].initial = enabled
+        if self.instance and self.instance.pk:
+            self.fields["roles"].initial = list(
+                self.instance.userrole_set.values_list("role_id", flat=True)
+            )
 
 
     def save(self, commit=True):
@@ -333,6 +402,8 @@ class CustomUserChangeForm(UserChangeForm):
         - Sync UserRole assignments
         """
         user = super().save(commit=False)
+        selected_roles = list(self.cleaned_data.get("roles") or [])
+        _promote_staff_access_for_roles(user, selected_roles)
         user.save()
 
         # Update profile
@@ -346,6 +417,7 @@ class CustomUserChangeForm(UserChangeForm):
         profile.admin_notification_disabled_sections = sorted(all_sections - selected_sections)
         profile.save()
 
+        _sync_user_roles(user, selected_roles)
 
         uploaded_files = self.files.getlist('files')
         for f in uploaded_files:
@@ -358,8 +430,7 @@ class CustomUserChangeForm(UserChangeForm):
         return user
 
     def clean(self):
-        # Optional debug print to inspect cleaned data
-        print(self.cleaned_data)
+        return super().clean()
 
     def clean_phone(self):
         phone = self.cleaned_data.get('phone')
@@ -369,6 +440,130 @@ class CustomUserChangeForm(UserChangeForm):
         if qs.exists():
             raise forms.ValidationError("User with such phone number already exists.")
         return phone
+
+
+class ServiceMasterAdminForm(forms.ModelForm):
+    services = forms.ModelMultipleChoiceField(
+        queryset=Service.objects.none(),
+        required=False,
+        widget=FilteredSelectMultiple("Services", is_stacked=False),
+        help_text="Pick one or more services. Saving replaces the full assignment set for this staff member.",
+    )
+    assign_all_services = forms.BooleanField(
+        required=False,
+        label="Assign all current services",
+        help_text="Ignores the manual selection and assigns every service in the system to this staff member.",
+    )
+
+    class Meta:
+        model = ServiceMaster
+        fields = ["master", "services", "assign_all_services"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["master"].queryset = _ordered_staff_queryset(active_only=False)
+        self.fields["services"].queryset = Service.objects.select_related("category").order_by(
+            "category__name",
+            "name",
+        )
+        if self.instance and self.instance.pk and not self.is_bound:
+            self.fields["services"].initial = list(
+                ServiceMaster.objects.filter(master=self.instance.master).values_list("service_id", flat=True)
+            )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("assign_all_services"):
+            if not self.fields["services"].queryset.exists():
+                raise forms.ValidationError("There are no services to assign yet.")
+            return cleaned
+
+        services = cleaned.get("services")
+        if not services:
+            raise forms.ValidationError("Select at least one service or enable “Assign all current services”.")
+        return cleaned
+
+    @transaction.atomic
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        master = self.cleaned_data["master"]
+        if self.cleaned_data.get("assign_all_services"):
+            selected_services = list(self.fields["services"].queryset)
+        else:
+            selected_services = list(self.cleaned_data["services"])
+
+        if not selected_services:
+            raise ValidationError("At least one service is required.")
+
+        selected_ids = {service.pk for service in selected_services}
+        other_service_ids = set(
+            ServiceMaster.objects.filter(master=master)
+            .exclude(pk=instance.pk)
+            .values_list("service_id", flat=True)
+        )
+
+        if instance.pk and instance.master_id == master.pk and instance.service_id in selected_ids:
+            anchor_service = next(service for service in selected_services if service.pk == instance.service_id)
+        else:
+            anchor_service = next(
+                (service for service in selected_services if service.pk not in other_service_ids),
+                selected_services[0],
+            )
+            if anchor_service.pk in other_service_ids:
+                ServiceMaster.objects.filter(master=master, service=anchor_service).exclude(pk=instance.pk).delete()
+
+        instance.master = master
+        instance.service = anchor_service
+        instance.save()
+
+        ServiceMaster.objects.filter(master=master).exclude(pk=instance.pk).exclude(
+            service_id__in=selected_ids
+        ).delete()
+
+        existing_ids = set(ServiceMaster.objects.filter(master=master).values_list("service_id", flat=True))
+        for service in selected_services:
+            if service.pk not in existing_ids:
+                ServiceMaster.objects.create(master=master, service=service)
+
+        return instance
+
+
+class ServiceAdminForm(forms.ModelForm):
+    staff_members = forms.ModelMultipleChoiceField(
+        queryset=CustomUserDisplay.objects.none(),
+        required=False,
+        widget=FilteredSelectMultiple(f"{STAFF_DISPLAY_NAME} members", is_stacked=False),
+        label=f"{STAFF_DISPLAY_NAME} members",
+        help_text="Select the staff members who can perform this service. Saving replaces the current assignment set.",
+    )
+
+    class Meta:
+        model = Service
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["staff_members"].queryset = _ordered_staff_queryset(active_only=False)
+        if self.instance and self.instance.pk and not self.is_bound:
+            self.fields["staff_members"].initial = list(
+                ServiceMaster.objects.filter(service=self.instance).values_list("master_id", flat=True)
+            )
+
+    @transaction.atomic
+    def sync_staff_assignments(self, service=None):
+        service = service or self.instance
+        if not service or not service.pk:
+            raise ValidationError("Save the service before updating staff assignments.")
+        _sync_service_staff_assignments(
+            service=service,
+            staff_members=self.cleaned_data.get("staff_members") or [],
+        )
+
+    def save(self, commit=True):
+        service = super().save(commit=commit)
+        if commit:
+            self.sync_staff_assignments(service=service)
+        return service
 
 
 class MasterCreateFullForm(forms.ModelForm):

@@ -1,9 +1,17 @@
+import re
+from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
+from django.contrib import admin
+from django.apps import apps
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
+from django.utils import timezone
 
+from core.models import AdminFavoritePage
+from core.views import WORKSPACE_HIDE_ADD_MODELS, _admin_workspace_config
 from store.models import Category, Product
 
 
@@ -26,6 +34,137 @@ class AdminWorkspaceUiTests(TestCase):
             ".content.border-bottom.mb-2:not(:has(h1:not(:empty))):not(:has(.breadcrumb)):not(:has(.breadcrumbs))",
         )
 
+    def test_workspace_hub_exposes_anchor_highlight_hooks(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-workspace-jumpbar", html=False)
+        self.assertContains(response, "data-workspace-jump-link", html=False)
+        self.assertContains(response, "data-workspace-jump-target=\"workspace-card-1\"", html=False)
+        self.assertContains(response, "data-workspace-section", html=False)
+        self.assertContains(response, "IntersectionObserver", html=False)
+        self.assertContains(response, "workspace-jumpbar__link.is-active", html=False)
+
+    def test_collapsed_sidebar_uses_matching_topbar_offset_without_sticky_header(self):
+        response = self.client.get(reverse("admin:index"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, ".sidebar-mini.sidebar-collapse .main-header", html=False)
+        self.assertContains(response, "margin-left: 84px;", html=False)
+        self.assertNotContains(response, "body:not(.workspace-hub-page) .main-header", html=False)
+
+    def test_header_dropdowns_use_neutral_active_state_and_high_overlay_layer(self):
+        response = self.client.get(reverse("admin:index"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, ".main-header {", html=False)
+        self.assertContains(response, "z-index: 1030;", html=False)
+        self.assertContains(response, ".admin-notify-menu {", html=False)
+        self.assertContains(response, "z-index: 1035;", html=False)
+        self.assertContains(response, ".admin-notify-menu .dropdown-item.active", html=False)
+        self.assertContains(response, "background: rgba(15, 23, 42, 0.08);", html=False)
+        self.assertContains(response, "color: var(--admin-text-strong);", html=False)
+
+    def test_whats_new_is_paginated_to_fifteen_entries_per_page(self):
+        base_time = timezone.now()
+        releases = [
+            {
+                "key": f"release-{index}",
+                "published_at": base_time - timedelta(minutes=index),
+                "title": f"Release {index}",
+                "summary": f"Summary {index}",
+                "highlights": [],
+                "areas": [],
+                "links": [],
+            }
+            for index in range(17, 0, -1)
+        ]
+
+        with patch("core.views.get_admin_releases", return_value=releases):
+            page_one = self.client.get(reverse("admin-whats-new"), secure=True)
+            page_two = self.client.get(reverse("admin-whats-new"), {"page": 2}, secure=True)
+
+        self.assertEqual(page_one.status_code, 200)
+        self.assertContains(page_one, "15 per page")
+        self.assertContains(page_one, "Page 1 of 2")
+        self.assertContains(page_one, "Release 17")
+        self.assertContains(page_one, "Release 3")
+        self.assertNotContains(page_one, "Release 2")
+        self.assertContains(page_one, "?page=2", html=False)
+
+        self.assertEqual(page_two.status_code, 200)
+        self.assertContains(page_two, "Page 2 of 2")
+        self.assertContains(page_two, "Release 2")
+        self.assertContains(page_two, "Release 1")
+        self.assertNotContains(page_two, "Release 17")
+        self.assertContains(page_two, "?page=1", html=False)
+
+    def test_sidebar_does_not_render_brand_or_sidebar_user_panel(self):
+        response = self.client.get(reverse("admin:index"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'id="jazzy-logo"', html=False)
+        self.assertNotContains(response, 'class="user-panel mt-3 pb-3 mb-3 d-flex"', html=False)
+
+    def test_favorites_badge_uses_green_modifier(self):
+        AdminFavoritePage.objects.create(
+            user=self.superuser,
+            url=reverse("admin:index"),
+            label="Dashboard",
+            icon="fas fa-th-large",
+            category="Admin",
+            note="Pinned dashboard.",
+        )
+
+        response = self.client.get(reverse("admin:index"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "admin-notify-badge admin-notify-badge--success", html=False)
+        self.assertContains(response, ".admin-notify-badge--success", html=False)
+        self.assertContains(response, "background: #22c55e;", html=False)
+
+    def test_sidebar_includes_reliable_fixed_scroll_hooks(self):
+        response = self.client.get(reverse("admin:index"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "layout-fixed")
+        self.assertContains(response, ".main-sidebar {", html=False)
+        self.assertContains(response, "position: fixed;", html=False)
+        self.assertContains(response, "display: flex;", html=False)
+        self.assertContains(response, "height: var(--admin-sidebar-vh, 100vh);", html=False)
+        self.assertContains(response, "max-height: var(--admin-sidebar-vh, 100vh);", html=False)
+        self.assertContains(response, "min-height: 0;", html=False)
+        self.assertContains(response, "overflow-y: auto;", html=False)
+        self.assertContains(response, "scrollbar-gutter: stable;", html=False)
+        self.assertContains(response, "--admin-sidebar-vh", html=False)
+
+    def test_sidebar_items_follow_requested_workflow_order(self):
+        response = self.client.get(reverse("admin:index"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        start = body.index('<aside class="main-sidebar')
+        end = body.index("</aside>", start)
+        sidebar = body[start:end]
+        pattern = re.compile(
+            r'<li class="nav-item">\s*<a href="([^"]+)" class="nav-link[^"]*">\s*<i class="nav-icon [^"]+"></i>\s*<p>\s*([^<]+?)\s*(?:<|$)',
+            re.S,
+        )
+
+        labels = [label for _, label in pattern.findall(sidebar)]
+        expected_labels = [
+            "Dashboard",
+            "Calendar",
+            "Scheduling &amp; Shop",
+            "Catalog, Merch &amp; Fulfillment",
+            "Insights &amp; QA",
+            "Clients &amp; Leads",
+            "Content, Brand &amp; Assets",
+            "Email &amp; Campaigns",
+            "Onboarding",
+        ]
+        self.assertEqual(labels[: len(expected_labels)], expected_labels)
+
     def test_product_changelist_still_renders_heading_and_breadcrumbs(self):
         category = Category.objects.create(name="Admin Products", slug="admin-products")
         Product.objects.create(
@@ -45,3 +184,224 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(response, "<ol class=\"breadcrumb\">", html=False)
         self.assertContains(response, "/admin/store/", html=False)
         self.assertContains(response, "Products")
+
+    def test_legacy_workspace_slugs_redirect_to_combined_hubs(self):
+        redirects = {
+            "automation": "email-campaigns",
+            "brand-assets": "page-content",
+            "orders-fulfillment": "catalog-merch",
+            "booking-payments": "scheduling-shop",
+            "payments-promotions": "scheduling-shop",
+            "crm-vehicles": "scheduling-shop",
+            "people-access": "scheduling-shop",
+        }
+
+        for old_slug, new_slug in redirects.items():
+            with self.subTest(old_slug=old_slug):
+                response = self.client.get(
+                    reverse("admin-workspace-hub", kwargs={"slug": old_slug}),
+                    secure=True,
+                )
+                self.assertRedirects(
+                    response,
+                    reverse("admin-workspace-hub", kwargs={"slug": new_slug}),
+                    status_code=302,
+                    fetch_redirect_response=False,
+                )
+
+    def test_combined_content_workspace_renders_custom_sections(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "page-content"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Content, brand &amp; assets workspace")
+        self.assertContains(response, "Page editors")
+        self.assertContains(response, "Brand system and chrome")
+        self.assertContains(response, "Media and backgrounds")
+        self.assertContains(response, "More Editors")
+        self.assertContains(response, "workspace-card__body--stacked", html=False)
+        self.assertContains(response, "workspace-support-list--columns-wide", html=False)
+        self.assertNotContains(response, "Use these pages when changing shared visuals, not day-to-day copy.")
+
+    def test_email_workspace_renders_telegramm_bot_at_bottom(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "email-campaigns"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Email &amp; campaigns workspace")
+        self.assertContains(response, "Email monitoring and publishing")
+        self.assertContains(response, "Telegramm Bot")
+        self.assertContains(response, "workspace-card__body--stacked", html=False)
+        self.assertContains(response, "workspace-support-list--columns-wide", html=False)
+        body = response.content.decode()
+        self.assertLess(body.index("Email monitoring and publishing</h2>"), body.index("Telegramm Bot</h2>"))
+
+    def test_combined_store_and_moved_reference_workspaces_render_expected_sections(self):
+        store_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "catalog-merch"}), secure=True)
+        scheduling_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
+
+        self.assertEqual(store_response.status_code, 200)
+        self.assertContains(store_response, "Catalog, merch &amp; fulfillment workspace")
+        self.assertContains(store_response, "Catalog cockpit")
+        self.assertContains(store_response, "Orders and fulfillment")
+        self.assertContains(store_response, "Store rules and merch economics")
+        self.assertContains(store_response, "Merch economics")
+        self.assertContains(store_response, "Product Reviews")
+        self.assertContains(store_response, "Other Options")
+        self.assertNotContains(store_response, "Treat these as settings pages, not daily workspaces.")
+
+        self.assertEqual(scheduling_response.status_code, 200)
+        self.assertContains(scheduling_response, "Staff Availability")
+        self.assertContains(scheduling_response, "Payments and promotions")
+        self.assertContains(scheduling_response, "Booking and payment references")
+        self.assertContains(scheduling_response, "CRM &amp; settings")
+        self.assertContains(scheduling_response, "Services Payments")
+        self.assertNotContains(scheduling_response, "Appointment Promo Codes")
+        self.assertNotContains(scheduling_response, "Order Promo Codes")
+        self.assertContains(scheduling_response, "Time Tracking")
+        self.assertNotContains(scheduling_response, "Day Overrides")
+        self.assertNotContains(scheduling_response, "Car Makes")
+        self.assertNotContains(scheduling_response, "Car Models")
+        self.assertNotContains(scheduling_response, "Groups")
+
+    def test_workspace_hubs_do_not_render_header_shortcuts(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "workspace-pills", html=False)
+        self.assertNotContains(response, "workspace-pill__label", html=False)
+
+    def test_insights_workspace_redirects_to_analytics_page(self):
+        response = self.client.get(
+            reverse("admin-workspace-hub", kwargs={"slug": "insights-qa"}),
+            secure=True,
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("admin-analytics-insights"),
+            status_code=302,
+            target_status_code=200,
+        )
+
+    def test_reporting_sidebar_links_directly_to_analytics_and_page_has_support_links(self):
+        index_response = self.client.get(reverse("admin:index"), secure=True)
+        analytics_response = self.client.get(reverse("admin-analytics-insights"), secure=True)
+
+        self.assertEqual(index_response.status_code, 200)
+        self.assertContains(index_response, 'href="/admin/analytics/insights/"', html=False)
+        self.assertContains(index_response, "Insights &amp; QA")
+
+        self.assertEqual(analytics_response.status_code, 200)
+        self.assertContains(analytics_response, "Support Pages")
+        self.assertContains(analytics_response, "Page Views")
+        self.assertContains(analytics_response, "Client UI Checks")
+        self.assertContains(analytics_response, "Visitor Sessions")
+        self.assertContains(analytics_response, "analytics-overview-grid", html=False)
+        self.assertContains(analytics_response, "analytics-mosaic", html=False)
+        self.assertContains(analytics_response, "Traffic, activity, and engagement curves")
+
+    def test_page_content_hides_new_for_singleton_editors_but_keeps_real_create_flows(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "page-content"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "/admin/core/homepagecopy/add/", html=False)
+        self.assertNotContains(response, "/admin/core/servicespagecopy/add/", html=False)
+        self.assertNotContains(response, "/admin/core/storepagecopy/add/", html=False)
+        self.assertNotContains(response, "/admin/core/topbarsettings/add/", html=False)
+        self.assertContains(response, "/admin/core/fontpreset/add/", html=False)
+        self.assertContains(response, "/admin/core/heroimage/add/", html=False)
+
+    def test_diagnostic_workspace_pages_do_not_render_new_buttons(self):
+        analytics_response = self.client.get(reverse("admin-analytics-insights"), secure=True)
+        email_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "email-campaigns"}), secure=True)
+        client_response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "client-hub"}), secure=True)
+
+        self.assertEqual(analytics_response.status_code, 200)
+        self.assertNotContains(analytics_response, "/admin/core/pageview/add/", html=False)
+        self.assertNotContains(analytics_response, "/admin/core/visitorsession/add/", html=False)
+        self.assertNotContains(analytics_response, "/admin/core/clientuicheckrun/add/", html=False)
+
+        self.assertEqual(email_response.status_code, 200)
+        self.assertNotContains(email_response, "/admin/core/emailsendlog/add/", html=False)
+        self.assertNotContains(email_response, "/admin/core/emailcampaignrecipient/add/", html=False)
+        self.assertNotContains(email_response, "/admin/notifications/telegrammessagelog/add/", html=False)
+
+        self.assertEqual(client_response.status_code, 200)
+        self.assertNotContains(client_response, "/admin/core/clientreview/add/", html=False)
+        self.assertNotContains(client_response, "/admin/core/appointmentreview/add/", html=False)
+        self.assertNotContains(client_response, "/admin/core/leadsubmissionevent/add/", html=False)
+
+    def test_workspace_does_not_render_new_for_models_hidden_by_admin_or_workspace_policy(self):
+        request = RequestFactory().get("/admin/")
+        request.user = self.superuser
+        workspace_bodies = {}
+        for slug in _admin_workspace_config():
+            response = self.client.get(
+                reverse("admin-workspace-hub", kwargs={"slug": slug}),
+                secure=True,
+                follow=True,
+            )
+            self.assertEqual(response.status_code, 200)
+            workspace_bodies[slug] = response.content.decode()
+
+        for slug, workspace in _admin_workspace_config().items():
+            body = workspace_bodies[slug]
+            for card_def in workspace.get("cards", []):
+                for bucket in ("main_links", "support_links"):
+                    for link_def in card_def.get(bucket, []):
+                        model_label = (link_def.get("model") or "").strip()
+                        if not model_label:
+                            continue
+                        app_label, model_name = model_label.split(".", 1)
+                        model = apps.get_model(app_label, model_name)
+                        model_admin = admin.site._registry.get(model)
+                        if model_admin is None:
+                            continue
+                        hidden_by_admin = not model_admin.has_add_permission(request)
+                        hidden_by_policy = model_label in WORKSPACE_HIDE_ADD_MODELS
+                        if not (hidden_by_admin or hidden_by_policy):
+                            continue
+                        add_url = reverse(f"admin:{app_label}_{model_name.lower()}_add")
+                        with self.subTest(slug=slug, title=card_def.get("title"), model=model_label):
+                            self.assertNotIn(add_url, body)
+
+    def test_whats_new_entries_include_links_to_updated_sections(self):
+        response = self.client.get(reverse("admin-whats-new"), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Header no longer overlaps the sidebar edge")
+        self.assertContains(response, "Header dropdowns now stack cleanly and no longer flash blue active states")
+        self.assertContains(response, "Topbar returned to normal flow and no longer clips into the sidebar")
+        self.assertContains(response, "What&#x27;s New now shows 15 updates per page")
+        self.assertContains(response, "Topbar now stays visible on admin pages without section jump links")
+        self.assertContains(response, "Sidebar stays pinned and follows the new work order")
+        self.assertContains(response, "Sidebar now stays visible while you scroll")
+        self.assertContains(response, "Favorites badge is now green in the header")
+        self.assertContains(response, "Sidebar header and sidebar user panel removed")
+        self.assertContains(response, "Telegramm Bot moved into the Email &amp; Campaigns hub")
+        self.assertContains(
+            response,
+            reverse("admin-workspace-hub", kwargs={"slug": "email-campaigns"}),
+            html=False,
+        )
+        self.assertContains(response, "Workspace section numbers now react while you scroll")
+        self.assertContains(response, "Scheduling &amp; Shop now includes payments, promotions, CRM, and vehicles")
+        self.assertContains(
+            response,
+            reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}),
+            html=False,
+        )
+        self.assertContains(response, "What&#x27;s New entries now link straight to updated sections")
+        self.assertContains(response, reverse("admin-whats-new"), html=False)
+        self.assertContains(
+            response,
+            reverse("admin-workspace-hub", kwargs={"slug": "catalog-merch"}),
+            html=False,
+        )
+        self.assertContains(
+            response,
+            reverse("admin-workspace-hub", kwargs={"slug": "page-content"}),
+            html=False,
+        )
+        self.assertContains(response, reverse("admin:store_product_changelist"), html=False)
+        self.assertContains(response, "/admin/whats-new/?page=2", html=False)
+        self.assertContains(response, "Catalog, Merch &amp; Fulfillment")

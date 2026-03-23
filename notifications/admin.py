@@ -13,6 +13,7 @@ from .models import (
 
 @admin.register(TelegramBotSettings)
 class TelegramBotSettingsAdmin(admin.ModelAdmin):
+    single_object_changelist_redirect = True
     class RecipientSlotInline(admin.TabularInline):
         model = TelegramRecipientSlot
         extra = 1
@@ -75,6 +76,27 @@ class TelegramReminderAdmin(admin.ModelAdmin):
         ("Status", {"fields": ("status", "sent_at", "last_error")}),
         ("Meta", {"fields": ("created_at", "updated_at")}),
     )
+
+    def _autosend_after_save(self, request, obj: TelegramReminder) -> None:
+        if obj.status != TelegramReminder.Status.PENDING:
+            return
+        obj.scheduled_for = timezone.now()
+        obj.save(update_fields=["scheduled_for", "updated_at"])
+        delivered = services.deliver_reminder(obj)
+        if delivered:
+            self.message_user(request, f"Reminder sent to {delivered} Telegram recipient(s).", level=messages.SUCCESS)
+        else:
+            obj.refresh_from_db(fields=["status", "last_error"])
+            error_text = obj.last_error or "Check Telegram bot settings and recipients."
+            self.message_user(request, f"Reminder could not be delivered. {error_text}", level=messages.WARNING)
+
+    def response_add(self, request, obj, post_url_continue=None):
+        self._autosend_after_save(request, obj)
+        return super().response_add(request, obj, post_url_continue)
+
+    def response_change(self, request, obj):
+        self._autosend_after_save(request, obj)
+        return super().response_change(request, obj)
 
     @admin.action(description="Send selected reminders now")
     def send_selected_now(self, request, queryset):

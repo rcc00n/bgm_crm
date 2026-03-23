@@ -236,6 +236,7 @@ urlpatterns = [
     path("financing/", core_views.financing_view, name="financing"),
     path("faq/", core_views.faq_view, name="faq"),
     path("our-story/", core_views.our_story_view, name="our-story"),
+    path("services/", core_views.public_mainmenu, name="services"),
     # Hidden brake & suspension landing page (direct-link only)
     path("services/brake-suspension/", core_views.brake_suspension_view, name="services-brake-suspension"),
     # Hidden electrical work landing page (direct-link only)

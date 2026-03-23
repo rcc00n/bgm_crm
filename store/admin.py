@@ -198,6 +198,7 @@ class ProductImageAdmin(admin.ModelAdmin):
 
 @admin.register(StorePricingSettings)
 class StorePricingSettingsAdmin(admin.ModelAdmin):
+    single_object_changelist_redirect = True
     list_display = ("price_multiplier_percent", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
@@ -223,6 +224,7 @@ class StorePricingSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(StoreShippingSettings)
 class StoreShippingSettingsAdmin(admin.ModelAdmin):
+    single_object_changelist_redirect = True
     list_display = ("free_shipping_threshold_cad", "delivery_cost_under_threshold_cad", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
@@ -259,8 +261,35 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "image_preview")
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
-    fields = ("name", "slug", "description", "image", "image_preview")
-    readonly_fields = ("image_preview",)
+    readonly_fields = ("image_preview", "product_count_summary", "category_products")
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("name", "slug", "description", "image", "image_preview"),
+            },
+        ),
+        (
+            "Products in this category",
+            {
+                "fields": ("product_count_summary", "category_products"),
+            },
+        ),
+    )
+
+    def _get_category_products(self, obj):
+        if not getattr(obj, "pk", None):
+            return []
+        cache_attr = "_admin_category_products_cache"
+        if not hasattr(obj, cache_attr):
+            setattr(
+                obj,
+                cache_attr,
+                list(
+                    obj.products.order_by("name").only("id", "name", "sku", "is_active")
+                ),
+            )
+        return getattr(obj, cache_attr)
 
     def image_preview(self, obj):
         if getattr(obj, "image", None):
@@ -274,6 +303,54 @@ class CategoryAdmin(admin.ModelAdmin):
         return "—"
 
     image_preview.short_description = "Preview"
+
+    @admin.display(description="Category product status")
+    def product_count_summary(self, obj):
+        if not getattr(obj, "pk", None):
+            return "Save this category first to see related products."
+
+        products = self._get_category_products(obj)
+        total = len(products)
+        if total == 0:
+            return "No products in this category yet."
+
+        active = sum(1 for product in products if product.is_active)
+        inactive = total - active
+        product_label = "product" if total == 1 else "products"
+        if inactive:
+            active_label = "active product" if active == 1 else "active products"
+            inactive_label = "inactive product" if inactive == 1 else "inactive products"
+            return (
+                f"{total} {product_label} in this category: "
+                f"{active} {active_label}, {inactive} {inactive_label}."
+            )
+        return f"{total} active {product_label} in this category."
+
+    @admin.display(description="Products in this category")
+    def category_products(self, obj):
+        if not getattr(obj, "pk", None):
+            return "Save this category first to see related products."
+
+        products = self._get_category_products(obj)
+        if not products:
+            return "No products in this category yet."
+
+        return format_html(
+            '<div style="display:grid;gap:.45rem;">{}</div>',
+            format_html_join(
+                "",
+                '<div><a href="{}">{}</a><span style="color:#6b7280;"> &middot; SKU {}{}</span></div>',
+                (
+                    (
+                        reverse("admin:store_product_change", args=[product.pk]),
+                        product.name,
+                        product.sku,
+                        format_html(" &middot; inactive") if not product.is_active else "",
+                    )
+                    for product in products
+                ),
+            ),
+        )
 
 
 @admin.register(MerchCategory)
@@ -315,19 +392,14 @@ class ProductAdmin(admin.ModelAdmin):
         "sku",
         "printful_merch",
         "category_short",
-        "merch_category_short",
         "price",
-        "unit_cost",
-        "margin_preview",
-        "currency",
         "inventory",
         "inventory_status",
-        "catalog_flags",
         "is_in_house",
         "is_active",
         "contact_for_estimate",
     )
-    list_editable = ("unit_cost", "is_active")
+    list_editable = ("is_active",)
     list_filter = (
         "is_active",
         PrintfulMerchFilter,
@@ -780,29 +852,9 @@ class ProductAdmin(admin.ModelAdmin):
         extra_context["last_cleanup"] = last_cleanup
         return super().changelist_view(request, extra_context=extra_context)
 
+    @admin.display(description="Stock", ordering="inventory", boolean=True)
     def inventory_status(self, obj):
-        threshold = getattr(self, "_inventory_threshold", StoreInventorySettings.get_low_stock_threshold())
-        available_inventory = obj.available_inventory
-        if available_inventory <= 0:
-            return format_html(
-                '<span style="display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;'
-                'background:rgba(255,92,114,.14);border:1px solid rgba(255,92,114,.35);color:#b42318;font-weight:700;">'
-                'Out of stock</span>'
-            )
-        if threshold > 0 and available_inventory <= threshold:
-            return format_html(
-                '<span style="display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;'
-                'background:rgba(245,166,35,.14);border:1px solid rgba(245,166,35,.35);color:#b54708;font-weight:700;">'
-                'Low stock</span>'
-            )
-        return format_html(
-            '<span style="display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;'
-            'background:rgba(23,212,91,.12);border:1px solid rgba(23,212,91,.3);color:#067647;font-weight:700;">'
-            'In stock</span>'
-        )
-
-    inventory_status.short_description = "Stock"
-    inventory_status.admin_order_field = "inventory"
+        return obj.available_inventory > 0
 
     def catalog_flags(self, obj):
         chips = []

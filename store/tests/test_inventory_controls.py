@@ -166,6 +166,32 @@ class InventoryAdminTests(TestCase):
         self.assertContains(response, "Out Tuner")
         self.assertContains(response, "Save inventory rules")
 
+    def test_product_admin_changelist_hides_extra_columns_and_uses_boolean_stock_icon(self):
+        response = self.client.get(self.changelist_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "<th scope=\"col\" class=\"sortable column-merch_category_short\">", html=False)
+        self.assertNotContains(response, "<th scope=\"col\" class=\"sortable column-unit_cost\">", html=False)
+        self.assertNotContains(response, "<th scope=\"col\" class=\"sortable column-margin_preview\">", html=False)
+        self.assertNotContains(response, "<th scope=\"col\" class=\"sortable column-currency\">", html=False)
+        self.assertNotContains(response, "<th scope=\"col\" class=\"sortable column-catalog_flags\">", html=False)
+        self.assertContains(response, 'field-inventory_status"><img src="/static/admin/img/icon-yes.svg" alt="True">', html=False)
+        self.assertContains(response, 'field-inventory_status"><img src="/static/admin/img/icon-no.svg" alt="False">', html=False)
+        self.assertNotContains(response, 'field-inventory_status"><span', html=False)
+
+    def test_product_admin_changelist_only_shows_kept_toolbar_actions(self):
+        response = self.client.get(self.changelist_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Import Products")
+        self.assertContains(response, "Rollback Last Import")
+        self.assertContains(response, "Autofill 4 Placeholders")
+        self.assertNotContains(response, "Cleanup Junk")
+        self.assertNotContains(response, "Name Cleanup")
+        self.assertNotContains(response, "Rollback Cleanup")
+        self.assertNotContains(response, "Autofill Photos")
+        self.assertNotContains(response, "Rollback Autofill")
+
     def test_product_admin_inventory_settings_post_updates_singleton(self):
         response = self.client.post(
             self.settings_url,
