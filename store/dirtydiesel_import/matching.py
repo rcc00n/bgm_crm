@@ -229,6 +229,7 @@ def match_catalog_product(
     profile = build_name_profile(
         product.name,
         product.sku,
+        getattr(product, "slug", "") or "",
         getattr(product.category, "name", "") or "",
         getattr(product.category, "slug", "").replace("-", " "),
     )
@@ -459,6 +460,12 @@ def _match_by_exact_name(
     compatible = [candidate for candidate in candidates if _critical_groups_compatible(product_profile, candidate.profile)]
     if not compatible:
         return None
+    vendor_preferred = [
+        candidate for candidate in compatible
+        if product_profile.vendor_tokens and (product_profile.vendor_tokens & candidate.profile.vendor_tokens)
+    ]
+    if vendor_preferred:
+        compatible = vendor_preferred
     if len(compatible) == 1:
         return ProductMatch(confidence="high", reason="exact_name", source=compatible[0].source)
 

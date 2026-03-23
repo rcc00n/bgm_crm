@@ -16,10 +16,19 @@ from store.dirtydiesel_import.types import SourceProduct
 
 
 class DirtyDieselMatchingTests(SimpleTestCase):
-    def _product(self, *, name: str, sku: str = "internal-sku", category_name: str = "Software", category_slug: str = "software"):
+    def _product(
+        self,
+        *,
+        name: str,
+        sku: str = "internal-sku",
+        slug: str = "internal-slug",
+        category_name: str = "Software",
+        category_slug: str = "software",
+    ):
         return SimpleNamespace(
             name=name,
             sku=sku,
+            slug=slug,
             category=SimpleNamespace(name=category_name, slug=category_slug),
         )
 
@@ -107,3 +116,48 @@ class DirtyDieselMatchingTests(SimpleTestCase):
         candidate_profile = build_name_profile("SCT Tune Files (2017-2023 Duramax L5P 6.6L)")
 
         self.assertIsNone(_score_name_match(product_profile, candidate_profile))
+
+    def test_exact_name_prefers_matching_vendor_tokens(self):
+        source_products = [
+            SourceProduct(
+                product_id=301,
+                variant_id=1,
+                sku="100-06105",
+                product_name="GDP Commander Tune Files (2021 F-150 Powerstroke 3.0L)",
+                variant_name="Commander / Single Tune",
+                supplier_name="GDP",
+                supplier_category="Tuners",
+                product_page_url="https://supplier.example/products/gdp-commander",
+                image_urls=("https://cdn.example.com/gdp-commander.jpg",),
+            ),
+            SourceProduct(
+                product_id=302,
+                variant_id=2,
+                sku="100-06105",
+                product_name="DIESELR Commander Tune Files (2021 F-150 Powerstroke 3.0L)",
+                variant_name="Commander / Single Tune",
+                supplier_name="DIESELR Tuning",
+                supplier_category="Tuners",
+                product_page_url="https://supplier.example/products/dieselr-commander",
+                image_urls=("https://cdn.example.com/dieselr-commander.jpg",),
+            ),
+        ]
+        source_by_sku = build_sku_index(source_products)
+        source_by_compact_sku = build_compact_sku_index(source_products)
+        source_candidates, token_index, exact_name_index = build_name_index(source_products)
+
+        match = match_catalog_product(
+            self._product(
+                name="GDP Commander Tune Files (2021 F-150 Powerstroke 3.0L)",
+                slug="gdp-commander-tune-files-2021-f-150-powerstroke-3-0l",
+            ),
+            source_by_sku=source_by_sku,
+            source_by_compact_sku=source_by_compact_sku,
+            source_candidates=source_candidates,
+            token_index=token_index,
+            exact_name_index=exact_name_index,
+            allow_name_match=True,
+        )
+
+        self.assertEqual(match.confidence, "high")
+        self.assertEqual(match.source.supplier_name, "GDP")
