@@ -156,6 +156,7 @@ class InventoryAdminTests(TestCase):
         StoreInventorySettings.objects.create(low_stock_threshold=3, allow_out_of_stock_orders=False)
         self.changelist_url = reverse("admin:store_product_changelist")
         self.settings_url = reverse("admin:store_product_inventory_settings")
+        self.bulk_restock_url = reverse("admin:store_product_bulk_restock")
 
     def test_product_admin_changelist_shows_inventory_watch_panel(self):
         response = self.client.get(self.changelist_url)
@@ -186,6 +187,7 @@ class InventoryAdminTests(TestCase):
         self.assertContains(response, "Import Products")
         self.assertContains(response, "Rollback Last Import")
         self.assertContains(response, "Autofill 4 Placeholders")
+        self.assertContains(response, "Set All Stock to 25")
         self.assertNotContains(response, "Cleanup Junk")
         self.assertNotContains(response, "Name Cleanup")
         self.assertNotContains(response, "Rollback Cleanup")
@@ -207,6 +209,13 @@ class InventoryAdminTests(TestCase):
         self.assertEqual(settings_obj.low_stock_threshold, 7)
         self.assertTrue(settings_obj.allow_out_of_stock_orders)
         self.assertContains(response, "Inventory settings updated")
+
+    def test_product_admin_bulk_restock_sets_positive_inventory_for_all_products(self):
+        response = self.client.post(self.bulk_restock_url, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Set inventory to 25 for 3 product(s).")
+        self.assertEqual(Product.objects.exclude(inventory=25).count(), 0)
 
     def test_merch_economics_page_shows_sync_button(self):
         response = self.client.get(reverse("admin-merch-economics"))
