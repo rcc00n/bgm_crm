@@ -208,3 +208,30 @@ class ImportDirtyDieselImagesCommandTests(TestCase):
         image = self.product.images.get()
         self.assertLessEqual(len(image.alt), 140)
         self.assertEqual(image.alt, self.product.name[:140])
+
+    def test_embedded_supplier_code_match_can_update_product(self):
+        media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media_root, ignore_errors=True)
+        output = StringIO()
+        self.product.sku = "BGM-34103000"
+        self.product.name = "OBD-II Splitter Unlock Cable GDP 341-03000"
+        self.product.save(update_fields=["sku", "name"])
+
+        with override_settings(MEDIA_ROOT=media_root):
+            with patch(
+                "store.dirtydiesel_import.source.DirtyDieselCatalogClient.fetch_catalog",
+                return_value=[self.source_product],
+            ):
+                with patch("store.fassride_import.images.urlopen", side_effect=self._fake_urlopen):
+                    call_command(
+                        "import_dirtydiesel_images",
+                        "--apply",
+                        "--match-by-embedded-code",
+                        stdout=output,
+                    )
+
+        self.product.refresh_from_db()
+
+        self.assertTrue(self.product.main_image.name.startswith("store/imports/dirtydiesel/assets/"))
+        self.assertEqual(self.product.images.count(), 1)
+        self.assertIn("updated_products=1", output.getvalue())

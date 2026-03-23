@@ -37,6 +37,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Allow conservative normalized-name fallback matching when exact SKU matching fails.",
         )
+        parser.add_argument(
+            "--match-by-embedded-code",
+            action="store_true",
+            help="Allow unambiguous exact supplier SKU matches embedded in the internal product name.",
+        )
         parser.add_argument("--skip-gallery", action="store_true", help="Only import the primary product image.")
         parser.add_argument("--limit", type=int, default=0, help="Optional max number of internal products to scan.")
         parser.add_argument(
@@ -73,6 +78,7 @@ class Command(BaseCommand):
             excluded_category_prefixes=excluded_category_prefixes,
             apply_changes=options["apply"],
             allow_name_match=options["match_by_name"],
+            allow_embedded_code_match=options["match_by_embedded_code"],
             include_gallery_images=not options["skip_gallery"],
             limit=options["limit"] or 0,
             replace_current_images=options["replace_current_image"] or [],

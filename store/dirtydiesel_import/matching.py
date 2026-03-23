@@ -112,6 +112,7 @@ def match_catalog_product(
     source_candidates: list[SourceCandidate],
     token_index: dict[str, tuple[SourceCandidate, ...]],
     allow_name_match: bool = False,
+    allow_embedded_code_match: bool = False,
 ) -> ProductMatch:
     sku_key = normalize_code(product.sku)
     exact = source_by_sku.get(sku_key) or ()
@@ -136,6 +137,14 @@ def match_catalog_product(
             source=compact[0],
             alternatives=compact[:3],
         )
+
+    if allow_embedded_code_match and source_by_compact_sku:
+        embedded_match = _match_by_embedded_sku(
+            product,
+            source_by_compact_sku=source_by_compact_sku,
+        )
+        if embedded_match is not None:
+            return embedded_match
 
     if not allow_name_match:
         return ProductMatch(confidence="low", reason="no_exact_sku")
@@ -176,6 +185,60 @@ def match_catalog_product(
         reason="ambiguous_name_match",
         source=best_candidate.source,
         alternatives=tuple(item[1].source for item in scored[:3]),
+    )
+
+
+def _match_by_embedded_sku(
+    product: Product,
+    *,
+    source_by_compact_sku: dict[str, tuple[SourceProduct, ...]],
+) -> ProductMatch | None:
+    name_key = normalize_compact_code(product.name)
+    sku_key = normalize_compact_code(product.sku)
+    if not name_key:
+        return None
+
+    matches: list[tuple[str, tuple[SourceProduct, ...]]] = []
+    for compact_key, candidates in source_by_compact_sku.items():
+        if len(compact_key) < 8:
+            continue
+        if compact_key == sku_key:
+            continue
+        if compact_key in name_key:
+            matches.append((compact_key, candidates))
+
+    if not matches:
+        return None
+
+    matches.sort(key=lambda item: len(item[0]), reverse=True)
+    longest_key, longest_candidates = matches[0]
+    remaining_keys = [key for key, _candidates in matches[1:]]
+
+    if len(longest_candidates) == 1 and (not remaining_keys or all(key in longest_key for key in remaining_keys)):
+        return ProductMatch(
+            confidence="high",
+            reason="embedded_source_sku",
+            source=longest_candidates[0],
+        )
+
+    alternatives: list[SourceProduct] = []
+    seen = set()
+    for _key, candidates in matches:
+        for candidate in candidates:
+            identity = (candidate.product_id, candidate.variant_id, candidate.sku)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            alternatives.append(candidate)
+            if len(alternatives) >= 3:
+                break
+        if len(alternatives) >= 3:
+            break
+    return ProductMatch(
+        confidence="medium",
+        reason="ambiguous_embedded_source_sku",
+        source=alternatives[0] if alternatives else longest_candidates[0],
+        alternatives=tuple(alternatives),
     )
 
 

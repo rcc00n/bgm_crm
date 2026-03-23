@@ -30,6 +30,7 @@ class DirtyDieselImportPipeline:
         excluded_category_prefixes: list[str] | tuple[str, ...] = DEFAULT_EXCLUDED_CATEGORY_PREFIXES,
         apply_changes: bool = False,
         allow_name_match: bool = False,
+        allow_embedded_code_match: bool = False,
         include_gallery_images: bool = True,
         limit: int = 0,
         replace_current_images: list[str] | tuple[str, ...] = (),
@@ -47,6 +48,7 @@ class DirtyDieselImportPipeline:
         )
         self.apply_changes = bool(apply_changes)
         self.allow_name_match = bool(allow_name_match)
+        self.allow_embedded_code_match = bool(allow_embedded_code_match)
         self.include_gallery_images = bool(include_gallery_images)
         self.limit = max(int(limit), 0)
         self.explicit_replace_images = {value.strip() for value in replace_current_images if value and value.strip()}
@@ -66,6 +68,7 @@ class DirtyDieselImportPipeline:
                 "Only non-in-house products are considered.",
                 "FASS categories are excluded by default so Dirty Diesel images do not overwrite the dedicated FASS supplier import.",
                 "Exact SKU and compact SKU matches are treated as high confidence and auto-applied.",
+                "Unambiguous supplier SKUs embedded in the internal product name can be treated as high confidence when explicitly enabled.",
                 "Normalized-name matches are medium confidence and are only applied when --match-by-name is explicitly enabled.",
                 f"Gallery imports add missing {self.supplier_label} images without duplicating existing gallery entries.",
             ]
@@ -98,6 +101,7 @@ class DirtyDieselImportPipeline:
                 source_candidates=source_candidates,
                 token_index=token_index,
                 allow_name_match=self.allow_name_match,
+                allow_embedded_code_match=self.allow_embedded_code_match,
             )
             if match.reason.startswith("ambiguous_"):
                 summary["ambiguous_matches"] += 1
@@ -158,6 +162,7 @@ class DirtyDieselImportPipeline:
                 }
             )
             summary["matched_exact"] += 1 if match.reason in {"exact_sku", "exact_compact_sku"} else 0
+            summary["matched_embedded_code"] += 1 if match.reason == "embedded_source_sku" else 0
             summary["matched_name"] += 1 if match.reason == "normalized_name" else 0
 
         report.debug_files.update(self._save_debug_files(source_products, planned_updates))
