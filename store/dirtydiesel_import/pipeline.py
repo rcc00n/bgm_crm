@@ -69,6 +69,7 @@ class DirtyDieselImportPipeline:
                 "FASS categories are excluded by default so Dirty Diesel images do not overwrite the dedicated FASS supplier import.",
                 "Exact SKU and compact SKU matches are treated as high confidence and auto-applied.",
                 "Unambiguous supplier SKUs embedded in the internal product name can be treated as high confidence when explicitly enabled.",
+                "Exact normalized supplier product-name matches are treated as high confidence when the supplier variants collapse to one product page or one shared primary image.",
                 "Normalized-name matches are medium confidence and are only applied when --match-by-name is explicitly enabled.",
                 f"Gallery imports add missing {self.supplier_label} images without duplicating existing gallery entries.",
             ]
@@ -82,7 +83,7 @@ class DirtyDieselImportPipeline:
         )
         source_by_sku = build_sku_index(source_products)
         source_by_compact_sku = build_compact_sku_index(source_products)
-        source_candidates, token_index = build_name_index(source_products)
+        source_candidates, token_index, exact_name_index = build_name_index(source_products)
 
         planned_updates: list[dict[str, Any]] = []
         summary = defaultdict(int)
@@ -100,6 +101,7 @@ class DirtyDieselImportPipeline:
                 source_by_compact_sku=source_by_compact_sku,
                 source_candidates=source_candidates,
                 token_index=token_index,
+                exact_name_index=exact_name_index,
                 allow_name_match=self.allow_name_match,
                 allow_embedded_code_match=self.allow_embedded_code_match,
             )

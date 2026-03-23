@@ -26,6 +26,7 @@ NAME_STOPWORDS = {
     "universal",
     "with",
 }
+LEADING_NAME_PREFIX_TOKENS = frozenset({"chaos", "custom", "dieselr", "gdp", "tuning"})
 FAMILY_ALIASES = {
     "cummins": frozenset({"cummins", "dodge", "ram"}),
     "duramax": frozenset({"duramax", "gm", "gmc", "chevy", "chevrolet"}),
@@ -34,6 +35,60 @@ FAMILY_ALIASES = {
     "titan": frozenset({"nissan", "titan"}),
 }
 ENGINE_TOKENS = frozenset({"lb7", "lbz", "lly", "lmm", "lml", "lm2", "l5p", "lz0", "6.0l", "6.4l", "6.6l", "6.7l"})
+PLATFORM_TOKENS = frozenset(
+    {
+        "autoagent3",
+        "commander",
+        "cts2",
+        "efilive",
+        "ezlynk",
+        "flashscan",
+        "mm3",
+        "mpvi3",
+        "mpvi4",
+        "rtd4",
+        "sct",
+    }
+)
+TRANSMISSION_TOKENS = frozenset({"68rfe", "aisin", "t87a", "t93", "tcm", "transmission", "transtune"})
+PACKAGE_TOKENS = frozenset({"4week", "doubletune", "fullsupport", "lifetime", "singletune", "sotf", "stockfile"})
+EXHAUST_VARIANT_TOKENS = frozenset(
+    {
+        "cabchassis",
+        "downpipeback",
+        "nomuffler",
+        "scr",
+        "stockmuffler",
+        "stocktailpipe",
+        "turboback",
+        "urea",
+        "withmuffler",
+    }
+)
+VENDOR_TOKENS = frozenset({"chaos", "dieselr", "gdp"})
+TEXT_REPLACEMENTS = (
+    ("auto agent 3", "autoagent3"),
+    ("cab and chassis", "cabchassis"),
+    ("cab & chassis", "cabchassis"),
+    ("double tune", "doubletune"),
+    ("downpipe back", "downpipeback"),
+    ("eco diesel", "ecodiesel"),
+    ("efi live", "efilive"),
+    ("ez lynk", "ezlynk"),
+    ("full support", "fullsupport"),
+    ("lifetime support", "lifetime"),
+    ("no muffler", "nomuffler"),
+    ("without muffler", "nomuffler"),
+    ("4 week", "4week"),
+    ("single tune", "singletune"),
+    ("stock file", "stockfile"),
+    ("stock muffler", "stockmuffler"),
+    ("stock tailpipe", "stocktailpipe"),
+    ("support pack", "supportpack"),
+    ("trans tune", "transtune"),
+    ("turbo back", "turboback"),
+    ("with muffler", "withmuffler"),
+)
 YEAR_RANGE_RE = re.compile(r"\b(19\d{2}|20\d{2})(?:\.\d+)?\s*[-/]\s*(19\d{2}|20\d{2})(?:\.\d+)?\b")
 YEAR_PLUS_RE = re.compile(r"\b(19\d{2}|20\d{2})(?:\.\d+)?\s*\+\b")
 YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
@@ -44,11 +99,17 @@ MIN_NAME_MARGIN = 0.05
 
 @dataclass(frozen=True)
 class NameProfile:
+    exact_name_key: str
     fingerprint: str
     tokens: frozenset[str]
     core_tokens: frozenset[str]
     families: frozenset[str]
     engines: frozenset[str]
+    platform_tokens: frozenset[str]
+    transmission_tokens: frozenset[str]
+    package_tokens: frozenset[str]
+    exhaust_variant_tokens: frozenset[str]
+    vendor_tokens: frozenset[str]
     year_span: tuple[int, int] | None
 
 
@@ -86,13 +147,19 @@ def build_compact_sku_index(source_products: list[SourceProduct]) -> dict[str, t
 
 def build_name_index(
     source_products: list[SourceProduct],
-) -> tuple[list[SourceCandidate], dict[str, tuple[SourceCandidate, ...]]]:
+) -> tuple[
+    list[SourceCandidate],
+    dict[str, tuple[SourceCandidate, ...]],
+    dict[str, tuple[SourceCandidate, ...]],
+]:
     candidates: list[SourceCandidate] = []
     token_index: dict[str, list[SourceCandidate]] = defaultdict(list)
+    exact_name_index: dict[str, list[SourceCandidate]] = defaultdict(list)
     for item in source_products:
         profile = build_name_profile(
             item.product_name,
             item.variant_name if item.variant_name != "Default Title" else "",
+            item.supplier_name,
             item.sku,
             item.supplier_category,
             " ".join(item.tags),
@@ -101,7 +168,13 @@ def build_name_index(
         candidates.append(candidate)
         for token in profile.core_tokens:
             token_index[token].append(candidate)
-    return candidates, {key: tuple(value) for key, value in token_index.items()}
+        if profile.exact_name_key:
+            exact_name_index[profile.exact_name_key].append(candidate)
+    return (
+        candidates,
+        {key: tuple(value) for key, value in token_index.items()},
+        {key: tuple(value) for key, value in exact_name_index.items()},
+    )
 
 
 def match_catalog_product(
@@ -111,6 +184,7 @@ def match_catalog_product(
     source_by_compact_sku: dict[str, tuple[SourceProduct, ...]],
     source_candidates: list[SourceCandidate],
     token_index: dict[str, tuple[SourceCandidate, ...]],
+    exact_name_index: dict[str, tuple[SourceCandidate, ...]],
     allow_name_match: bool = False,
     allow_embedded_code_match: bool = False,
 ) -> ProductMatch:
@@ -157,6 +231,11 @@ def match_catalog_product(
     )
     if not profile.core_tokens or PLACEHOLDER_NAME_RE.match((product.name or "").strip()):
         return ProductMatch(confidence="low", reason="blank_or_placeholder_name")
+
+    exact_name_candidates = tuple(exact_name_index.get(profile.exact_name_key) or ())
+    exact_name_match = _match_by_exact_name(profile, exact_name_candidates)
+    if exact_name_match is not None:
+        return exact_name_match
 
     candidates = _candidate_pool(profile, source_candidates=source_candidates, token_index=token_index)
     if not candidates:
@@ -244,6 +323,7 @@ def _match_by_embedded_sku(
 
 def build_name_profile(*parts: str) -> NameProfile:
     raw = " ".join(part for part in parts if part)
+    primary_name = str(parts[0] or "") if parts else ""
     tokens = tuple(_tokenize(raw))
     token_set = frozenset(tokens)
     family_alias_tokens = frozenset(alias for aliases in FAMILY_ALIASES.values() for alias in aliases)
@@ -263,11 +343,17 @@ def build_name_profile(*parts: str) -> NameProfile:
     )
     fingerprint = " ".join(sorted(core_tokens))
     return NameProfile(
+        exact_name_key=_exact_name_key(primary_name),
         fingerprint=fingerprint,
         tokens=token_set,
         core_tokens=core_tokens,
         families=families,
         engines=engines,
+        platform_tokens=frozenset(token for token in token_set if token in PLATFORM_TOKENS),
+        transmission_tokens=frozenset(token for token in token_set if token in TRANSMISSION_TOKENS),
+        package_tokens=frozenset(token for token in token_set if token in PACKAGE_TOKENS),
+        exhaust_variant_tokens=frozenset(token for token in token_set if token in EXHAUST_VARIANT_TOKENS),
+        vendor_tokens=frozenset(token for token in token_set if token in VENDOR_TOKENS),
         year_span=_extract_year_span(raw),
     )
 
@@ -277,7 +363,8 @@ def _normalize_text(value: str) -> str:
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     text = text.casefold()
     text = text.replace("&", " and ")
-    text = text.replace("eco diesel", "ecodiesel")
+    for source, target in TEXT_REPLACEMENTS:
+        text = text.replace(source, target)
     text = re.sub(r"(\d)\.(\d)l\b", r"\1.\2l", text)
     text = re.sub(r"[^a-z0-9.]+", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
@@ -332,6 +419,60 @@ def _candidate_pool(
     return pool
 
 
+def _exact_name_key(value: str) -> str:
+    tokens = _tokenize(value)
+    while tokens and tokens[0] in LEADING_NAME_PREFIX_TOKENS:
+        tokens.pop(0)
+    return " ".join(tokens)
+
+
+def _match_by_exact_name(
+    product_profile: NameProfile,
+    candidates: tuple[SourceCandidate, ...],
+) -> ProductMatch | None:
+    if not candidates or not product_profile.exact_name_key:
+        return None
+
+    compatible = [candidate for candidate in candidates if _critical_groups_compatible(product_profile, candidate.profile)]
+    if not compatible:
+        return None
+    if len(compatible) == 1:
+        return ProductMatch(confidence="high", reason="exact_name", source=compatible[0].source)
+
+    product_ids = {candidate.source.product_id for candidate in compatible if candidate.source.product_id}
+    product_urls = {candidate.source.product_page_url for candidate in compatible if candidate.source.product_page_url}
+    primary_images = {
+        candidate.source.image_urls[0]
+        for candidate in compatible
+        if candidate.source.image_urls
+    }
+    if len(product_ids) == 1 and product_ids:
+        return ProductMatch(confidence="high", reason="exact_name_same_product", source=compatible[0].source)
+    if len(product_urls) == 1 and product_urls:
+        return ProductMatch(confidence="high", reason="exact_name_same_page", source=compatible[0].source)
+    if len(primary_images) == 1 and primary_images:
+        return ProductMatch(confidence="high", reason="exact_name_shared_primary_image", source=compatible[0].source)
+    return ProductMatch(
+        confidence="medium",
+        reason="ambiguous_exact_name",
+        source=compatible[0].source,
+        alternatives=tuple(candidate.source for candidate in compatible[:3]),
+    )
+
+
+def _critical_groups_compatible(product_profile: NameProfile, candidate_profile: NameProfile) -> bool:
+    grouped_tokens = (
+        (product_profile.platform_tokens, candidate_profile.platform_tokens),
+        (product_profile.transmission_tokens, candidate_profile.transmission_tokens),
+        (product_profile.package_tokens, candidate_profile.package_tokens),
+        (product_profile.exhaust_variant_tokens, candidate_profile.exhaust_variant_tokens),
+    )
+    for left, right in grouped_tokens:
+        if left and right and left.isdisjoint(right):
+            return False
+    return True
+
+
 def _score_name_match(product_profile: NameProfile, candidate_profile: NameProfile) -> float | None:
     if (
         product_profile.families
@@ -350,6 +491,8 @@ def _score_name_match(product_profile: NameProfile, candidate_profile: NameProfi
         and candidate_profile.year_span
         and not _year_spans_overlap(product_profile.year_span, candidate_profile.year_span)
     ):
+        return None
+    if not _critical_groups_compatible(product_profile, candidate_profile):
         return None
 
     shared_core = product_profile.core_tokens & candidate_profile.core_tokens
@@ -375,6 +518,16 @@ def _score_name_match(product_profile: NameProfile, candidate_profile: NameProfi
         and _year_spans_overlap(product_profile.year_span, candidate_profile.year_span)
     ):
         score += 0.06
+    if product_profile.platform_tokens and candidate_profile.platform_tokens:
+        score += 0.08 * len(product_profile.platform_tokens & candidate_profile.platform_tokens)
+    if product_profile.transmission_tokens and candidate_profile.transmission_tokens:
+        score += 0.05 * len(product_profile.transmission_tokens & candidate_profile.transmission_tokens)
+    if product_profile.package_tokens and candidate_profile.package_tokens:
+        score += 0.04 * len(product_profile.package_tokens & candidate_profile.package_tokens)
+    if product_profile.exhaust_variant_tokens and candidate_profile.exhaust_variant_tokens:
+        score += 0.04 * len(product_profile.exhaust_variant_tokens & candidate_profile.exhaust_variant_tokens)
+    if product_profile.vendor_tokens and candidate_profile.vendor_tokens:
+        score += 0.03 * len(product_profile.vendor_tokens & candidate_profile.vendor_tokens)
     return score
 
 
