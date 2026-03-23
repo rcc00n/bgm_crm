@@ -387,7 +387,7 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'first_name', 'last_name', 'phone', 'birth_date',
+            'fields': ('username', 'email', 'first_name', 'last_name', 'phone', 'birth_date', 'roles',
                        'password1', 'password2', 'is_staff', 'is_active', 'is_superuser'),
         }),
     )
@@ -413,6 +413,7 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'birth_date')}),
+        ('Roles', {'fields': ('roles',)}),
         ('System Dates', {'fields': ('date_joined', 'last_login')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Admin Notifications', {'fields': ('admin_notification_sections',)}),
@@ -1287,9 +1288,13 @@ class ServiceMasterAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin)
     """
     Admin interface to assign masters to services.
     """
+    form = ServiceMasterAdminForm
     list_display = ('staff_member', 'service')
-    search_fields = ('master__user__first_name', 'master__user__last_name', 'service__name')
+    search_fields = ('master__first_name', 'master__last_name', 'master__username', 'service__name')
     export_fields = ['master', 'service']
+    fields = ('master', 'assign_all_services', 'services')
+    list_select_related = ('master', 'service')
+    ordering = ('master__first_name', 'master__last_name', 'service__name')
 
     @admin.display(description=STAFF_DISPLAY_NAME, ordering="master__first_name")
     def staff_member(self, obj):
