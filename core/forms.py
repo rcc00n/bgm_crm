@@ -620,6 +620,24 @@ class MasterCreateFullForm(forms.ModelForm):
         validate_password(password2)
         return password2
 
+    def clean_username(self):
+        username = (self.cleaned_data.get("username") or "").strip()
+        qs = CustomUserDisplay.objects.filter(username=username)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.user_id)
+        if qs.exists():
+            raise forms.ValidationError("This username is already registered!")
+        return username
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        qs = CustomUserDisplay.objects.filter(email__iexact=email)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.user_id)
+        if qs.exists():
+            raise forms.ValidationError("This email is already registered!")
+        return email
+
     def clean_phone(self):
         phone = self.cleaned_data.get('phone')
 
@@ -655,11 +673,6 @@ class MasterCreateFullForm(forms.ModelForm):
 
                 birth_date=self.cleaned_data.get('birth_date')
             )
-
-            # Назначаем роль Master
-            master_role = Role.objects.filter(name="Master").first()
-            if master_role:
-                user.userrole_set.create(role=master_role)
 
             # Профиль мастера
             master = super().save(commit=False)
