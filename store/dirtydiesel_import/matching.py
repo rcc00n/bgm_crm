@@ -27,6 +27,7 @@ NAME_STOPWORDS = {
     "with",
 }
 LEADING_NAME_PREFIX_TOKENS = frozenset({"chaos", "custom", "dieselr", "gdp", "tuning"})
+RELAXED_EXACT_PREFIX_TOKENS = frozenset({"efilive", "ezlynk"})
 FAMILY_ALIASES = {
     "cummins": frozenset({"cummins", "dodge", "ram"}),
     "duramax": frozenset({"duramax", "gm", "gmc", "chevy", "chevrolet"}),
@@ -100,6 +101,7 @@ MIN_NAME_MARGIN = 0.05
 @dataclass(frozen=True)
 class NameProfile:
     exact_name_key: str
+    relaxed_exact_name_key: str
     fingerprint: str
     tokens: frozenset[str]
     core_tokens: frozenset[str]
@@ -168,8 +170,9 @@ def build_name_index(
         candidates.append(candidate)
         for token in profile.core_tokens:
             token_index[token].append(candidate)
-        if profile.exact_name_key:
-            exact_name_index[profile.exact_name_key].append(candidate)
+        for key in {profile.exact_name_key, profile.relaxed_exact_name_key}:
+            if key:
+                exact_name_index[key].append(candidate)
     return (
         candidates,
         {key: tuple(value) for key, value in token_index.items()},
@@ -236,6 +239,11 @@ def match_catalog_product(
     exact_name_match = _match_by_exact_name(profile, exact_name_candidates)
     if exact_name_match is not None:
         return exact_name_match
+    if profile.relaxed_exact_name_key and profile.relaxed_exact_name_key != profile.exact_name_key:
+        relaxed_candidates = tuple(exact_name_index.get(profile.relaxed_exact_name_key) or ())
+        relaxed_match = _match_by_exact_name(profile, relaxed_candidates)
+        if relaxed_match is not None:
+            return relaxed_match
 
     candidates = _candidate_pool(profile, source_candidates=source_candidates, token_index=token_index)
     if not candidates:
@@ -344,6 +352,7 @@ def build_name_profile(*parts: str) -> NameProfile:
     fingerprint = " ".join(sorted(core_tokens))
     return NameProfile(
         exact_name_key=_exact_name_key(primary_name),
+        relaxed_exact_name_key=_relaxed_exact_name_key(primary_name),
         fingerprint=fingerprint,
         tokens=token_set,
         core_tokens=core_tokens,
@@ -421,9 +430,23 @@ def _candidate_pool(
 
 def _exact_name_key(value: str) -> str:
     tokens = _tokenize(value)
-    while tokens and tokens[0] in LEADING_NAME_PREFIX_TOKENS:
-        tokens.pop(0)
-    return " ".join(tokens)
+    return _strip_leading_tokens(tokens, LEADING_NAME_PREFIX_TOKENS)
+
+
+def _relaxed_exact_name_key(value: str) -> str:
+    tokens = _tokenize(value)
+    key = _strip_leading_tokens(tokens, LEADING_NAME_PREFIX_TOKENS)
+    if not key:
+        return ""
+    relaxed_tokens = key.split()
+    return _strip_leading_tokens(relaxed_tokens, RELAXED_EXACT_PREFIX_TOKENS)
+
+
+def _strip_leading_tokens(tokens: list[str], allowed: frozenset[str]) -> str:
+    parts = list(tokens)
+    while parts and parts[0] in allowed:
+        parts.pop(0)
+    return " ".join(parts)
 
 
 def _match_by_exact_name(

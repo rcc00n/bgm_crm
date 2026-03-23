@@ -53,7 +53,7 @@ class DirtyDieselMatchingTests(SimpleTestCase):
         source_candidates, token_index, exact_name_index = build_name_index(source_products)
 
         match = match_catalog_product(
-            self._product(name="EZ Lynk Auto Agent 3 w/ GDP Support Pack (Ford/GM/Ram/Nissan)"),
+            self._product(name="Auto Agent 3 w/ GDP Support Pack (Ford/GM/Ram/Nissan)"),
             source_by_sku=source_by_sku,
             source_by_compact_sku=source_by_compact_sku,
             source_candidates=source_candidates,
