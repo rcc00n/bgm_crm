@@ -9,7 +9,7 @@
   <div class="container">
     <div class="section__head">
       <div>
-        <h1 class="section__title">{{ product.name }}</h1>
+        <h1 class="section__title product-detail__title">{{ product.name }}</h1>
         <p class="section__desc">{{ product.short_description }}</p>
       </div>
       <a class="btn btn--ghost" href="{% url 'store-cart' %}">Cart</a>
@@ -348,6 +348,48 @@
       </div>
     </div>
 
+		{# Hide "Items that go along..." cross-sell for merch only. #}
+		{% if go_along and product.sku|slice:":3" != "PF-" and product.slug|slice:":6" != "merch-" and product.category.slug != "merch" %}
+		  <div class="section__head" style="margin-top:1.6rem">
+		    <h3 class="section__title">Items that go along to complete your build</h3>
+		      </div>
+	      <div class="grid grid--cards">
+	        {% for p in go_along %}
+	          <article class="card">
+	            <a href="{% url 'store-product' slug=p.slug %}">
+	              {% if p.main_image and not p.main_image_is_placeholder %}
+	                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
+	              {% else %}
+	                <img class="card__img" src="{% static 'img/hero-products.jpg' %}" alt="{{ p.name }}" loading="lazy" decoding="async">
+	              {% endif %}
+              <div class="card__body" style="padding:.6rem .8rem">
+                <h4>{{ p.name }}</h4>
+                <p class="section__desc">{{ p.short_description|default:p.category.display_name }}</p>
+              <div class="price price--stacked" style="margin-top:.2rem">
+                {% if p.contact_for_estimate %}
+                  <strong>Contact for estimate</strong>
+                  {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
+                {% else %}
+                  <div class="price__retail-row">
+                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
+                    <strong>{{ p.public_price|money }}</strong>
+                  </div>
+                  {% if dealer_portal.show_discount and not p|is_merch_product %}
+                    <div class="price__dealer-row">
+                      <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                      <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
+                      <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                    </div>
+                  {% endif %}
+                {% endif %}
+              </div>
+              </div>
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+
 		    {# Hide the custom fitment brief for merch (Printful + merch catalog). #}
 		    {% if product.sku|slice:":3" != "PF-" and product.slug|slice:":6" != "merch-" and product.category.slug != "merch" %}
 		    <div id="quote-request" class="card card--quote">
@@ -479,48 +521,6 @@
 	      </form>
 	    </div>
 	    {% endif %}
-
-		{# Hide "Items that go along..." cross-sell for merch only. #}
-		{% if go_along and product.sku|slice:":3" != "PF-" and product.slug|slice:":6" != "merch-" and product.category.slug != "merch" %}
-		  <div class="section__head" style="margin-top:1.6rem">
-		    <h3 class="section__title">Items that go along to complete your build</h3>
-		      </div>
-	      <div class="grid grid--cards">
-	        {% for p in go_along %}
-	          <article class="card">
-	            <a href="{% url 'store-product' slug=p.slug %}">
-	              {% if p.main_image and not p.main_image_is_placeholder %}
-	                <img class="card__img" src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
-	              {% else %}
-	                <img class="card__img" src="{% static 'img/hero-products.jpg' %}" alt="{{ p.name }}" loading="lazy" decoding="async">
-	              {% endif %}
-              <div class="card__body" style="padding:.6rem .8rem">
-                <h4>{{ p.name }}</h4>
-                <p class="section__desc">{{ p.short_description|default:p.category.display_name }}</p>
-              <div class="price price--stacked" style="margin-top:.2rem">
-                {% if p.contact_for_estimate %}
-                  <strong>Contact for estimate</strong>
-                  {% if p.estimate_from_price %}<span class="price__hint">From {{ p.estimate_from_price|money }}</span>{% endif %}
-                {% else %}
-                  <div class="price__retail-row">
-                    {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
-                    <strong>{{ p.public_price|money }}</strong>
-                  </div>
-                  {% if dealer_portal.show_discount and not p|is_merch_product %}
-                    <div class="price__dealer-row">
-                      <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
-                      <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                      <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
-                    </div>
-                  {% endif %}
-                {% endif %}
-              </div>
-              </div>
-            </a>
-          </article>
-        {% endfor %}
-      </div>
-    {% endif %}
 
 	    {% if related %}
 	      <div class="section__head" style="margin-top:1.6rem">
@@ -921,6 +921,10 @@
 </section>
 
 <style>
+  .product-detail__title{
+    font-size:clamp(2rem, 3.8vw, 2.8rem);
+    line-height:1.08;
+  }
   .product-detail__grid{
     --product-main-height: clamp(220px, 40vw, 380px);
   }
