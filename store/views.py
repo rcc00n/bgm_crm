@@ -1231,6 +1231,14 @@ def product_search(request):
 
 def category_list(request, slug):
     category = get_object_or_404(Category, slug=slug)
+    category_products = list(
+        Product.objects.filter(is_active=True, category=category)
+        .only("slug")
+        .order_by("-is_in_house", "-created_at")[:2]
+    )
+    if len(category_products) == 1:
+        return redirect("store:store-product", slug=category_products[0].slug)
+
     form = ProductFilterForm(request.GET or None, initial={"category": category.id})
 
     base_qs = (
