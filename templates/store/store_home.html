@@ -271,15 +271,18 @@
       </div>
     {% endif %}
 
-    {# ================== NEW ARRIVALS ================== #}
-    {% if new_arrivals %}
+    {# ================== CURATED SHOWCASE ================== #}
+    {% if showcase_products %}
       <div class="section__head" style="margin-top:2rem">
-        <div><h2 class="section__title">{{ store_copy.new_arrivals_title }}</h2></div>
-        <a class="btn btn--ghost" href="{% url 'store-cart' %}">{{ store_copy.new_arrivals_cart_label }}</a>
+        <div>
+          <h2 class="section__title">Featured Products</h2>
+          <p class="section__desc">In-house products first, then the strongest catalog picks with distinct images.</p>
+        </div>
+        <div class="section__desc">{{ showcase_products|length }} products</div>
       </div>
 
       <div class="grid grid--cards">
-        {% for p in new_arrivals %}
+        {% for p in showcase_products %}
           <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
             <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
 	              <div class="card__img">
@@ -319,66 +322,6 @@
         {% endfor %}
       </div>
     {% endif %}
-
-    {# ================== BROWSE BY CATEGORY (sections) ================== #}
-    <div class="section__head" style="margin-top:1.8rem">
-      <div>
-        <h2 class="section__title">{{ store_copy.browse_title }}</h2>
-        <p class="section__desc">{{ store_copy.browse_desc }}</p>
-      </div>
-    </div>
-
-    <details class="categories-collapse categories-collapse--sections" id="browseCollapse" open>
-      <summary class="categories-toggle">Show category products</summary>
-      <div class="browse-sections">
-        {% for cat, items in sections %}
-          <div class="section__head" style="margin-top:1rem">
-            <div><h3 class="section__title" style="font-size:1.1rem">{{ cat.name }}</h3></div>
-            <div><a class="btn btn--ghost" href="{% url 'store-category' slug=cat.slug %}">{{ store_copy.browse_view_all_label }}</a></div>
-          </div>
-          <div class="grid grid--cards">
-            {% for p in items %}
-            <article class="card product" data-search-item data-search-text="{{ p.name }} {{ p.short_description|default:'' }} {{ p.category.display_name|default:'' }}">
-              <a class="product__link" href="{% url 'store-product' slug=p.slug %}">
-	                <div class="card__img">
-	                    {% if p.main_image and not p.main_image_is_placeholder %}
-	                      <img src="{{ p.main_image_url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
-	                    {% elif p.image %}
-	                      <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
-	                    {% else %}
-	                      <img src="{% static 'img/hero-products.jpg' %}" alt="{{ p.name }}" loading="lazy" decoding="async" class="img-fit">
-	                    {% endif %}
-	                  </div>
-                  <div class="product__meta">
-                    <h3 class="product__title">{{ p.name }}</h3>
-                    <p class="section__desc product__desc">{{ p.short_description|default:p.category.display_name }}</p>
-                    <div class="price price--stacked">
-                      {% if p.contact_for_estimate %}
-                        <strong>{{ store_copy.contact_for_estimate_label }}</strong>
-                        {% if p.estimate_from_price %}<span class="price__hint">{{ store_copy.from_label }} {{ p.estimate_from_price|money }}</span>{% endif %}
-                      {% else %}
-                        <div class="price__retail-row">
-                          {% if p.has_option_price_overrides %}<span class="price__hint">{{ store_copy.from_label }}</span>{% endif %}
-                          <strong>{{ p.public_price|money }}</strong>
-                          {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
-                        </div>
-                        {% if dealer_portal.show_discount and not p|is_merch_product %}
-                          <div class="price__dealer-row">
-                            <span class="price__hint">{{ store_copy.dealer_label }} {{ dealer_portal.discount_percent }}%</span>
-                            <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                            <span class="price__save">{{ store_copy.save_label }} {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
-                          </div>
-                        {% endif %}
-                      {% endif %}
-                    </div>
-                  </div>
-                </a>
-              </article>
-            {% endfor %}
-          </div>
-        {% endfor %}
-      </div>
-    </details>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
 <script>

@@ -1,4 +1,5 @@
 # store/views.py
+from collections import Counter, defaultdict
 from decimal import Decimal, ROUND_HALF_UP
 import os
 import re
@@ -65,6 +66,9 @@ REFERENCE_IMAGE_MAX_BYTES = int(REFERENCE_IMAGE_MAX_MB * 1024 * 1024)
 
 PAYMENT_QUANT = Decimal("0.01")
 FREE_STICKER_THRESHOLD_FALLBACK = Decimal("90.00")
+STORE_HOME_SHOWCASE_LIMIT = 100
+STORE_HOME_BAD_IMAGE_TERMS = ("banner", "favicon", "icon", "logo", "placeholder")
+STORE_HOME_GENERIC_IMAGE_PREFIXES = ("store/categories/",)
 
 
 def _allow_out_of_stock_orders() -> bool:
@@ -563,6 +567,96 @@ def _exclude_merch_products(qs):
     )
 
 
+def _storefront_image_source_rank(image_name: str) -> int:
+    value = str(image_name or "").strip().lower()
+    if value.startswith("store/imports/"):
+        return 0
+    if value.startswith("store/products/imported/"):
+        return 1
+    if value.startswith("store/products/"):
+        return 2
+    if value.startswith(("http://", "https://")):
+        return 3
+    return 4
+
+
+def _is_storefront_showcase_candidate(product: Product, image_usage: Counter[str]) -> bool:
+    image_name = product.main_image_name.strip()
+    if not image_name or product.main_image_is_placeholder:
+        return False
+    if image_usage.get(image_name, 0) != 1:
+        return False
+    lower_name = image_name.lower()
+    if any(lower_name.startswith(prefix) for prefix in STORE_HOME_GENERIC_IMAGE_PREFIXES):
+        return False
+    base_name = os.path.basename(lower_name)
+    return not any(term in base_name for term in STORE_HOME_BAD_IMAGE_TERMS)
+
+
+def _storefront_candidate_sort_key(product: Product) -> tuple:
+    created_at = getattr(product, "created_at", None)
+    created_rank = -created_at.timestamp() if created_at is not None else 0.0
+    return (
+        _storefront_image_source_rank(product.main_image_name),
+        created_rank,
+        int(getattr(product, "pk", 0) or 0),
+    )
+
+
+def _interleave_storefront_categories(products: list[Product], *, limit: int) -> list[Product]:
+    buckets: dict[str, list[Product]] = defaultdict(list)
+    ordered_categories: list[str] = []
+    for product in products:
+        category_slug = getattr(product.category, "slug", "") or f"uncategorized-{product.pk}"
+        if category_slug not in buckets:
+            ordered_categories.append(category_slug)
+        buckets[category_slug].append(product)
+
+    selected: list[Product] = []
+    rotation = list(ordered_categories)
+    while rotation and len(selected) < limit:
+        next_rotation: list[str] = []
+        for category_slug in rotation:
+            bucket = buckets.get(category_slug) or []
+            if not bucket:
+                continue
+            selected.append(bucket.pop(0))
+            if bucket:
+                next_rotation.append(category_slug)
+            if len(selected) >= limit:
+                break
+        rotation = next_rotation
+    return selected
+
+
+def _build_storefront_showcase_products(products: Iterable[Product], *, limit: int = STORE_HOME_SHOWCASE_LIMIT) -> list[Product]:
+    """
+    Build a mixed storefront feed with:
+    1. in-house products first,
+    2. only products with non-generic unique images,
+    3. category interleaving so the page is not grouped into long same-category runs.
+    """
+    product_list = list(products)
+    image_usage = Counter(product.main_image_name.strip() for product in product_list if product.main_image_name.strip())
+    candidates = [product for product in product_list if _is_storefront_showcase_candidate(product, image_usage)]
+    candidates.sort(
+        key=lambda product: (
+            0 if product.is_in_house else 1,
+            *_storefront_candidate_sort_key(product),
+        )
+    )
+
+    featured: list[Product] = []
+    for is_in_house in (True, False):
+        phase_products = [product for product in candidates if bool(product.is_in_house) is is_in_house]
+        if not phase_products:
+            continue
+        featured.extend(_interleave_storefront_categories(phase_products, limit=limit - len(featured)))
+        if len(featured) >= limit:
+            break
+    return featured[:limit]
+
+
 def _normalize_search_text(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "").strip().lower())
 
@@ -1004,7 +1098,7 @@ def store_home(request):
 
     # Блок "New arrivals" показываем только если фильтр НЕ применён
     filters_active = bool(q) or (form.is_valid() and any(form.cleaned_data.values()))
-    new_arrivals = None if filters_active else base_qs[:8]
+    showcase_products = [] if filters_active else _build_storefront_showcase_products(base_qs)
     page_obj = None
     pagination_pages = []
     prev_page_url = ""
@@ -1037,27 +1131,12 @@ def store_home(request):
                 )
             else:
                 pagination_pages.append({"label": str(item), "is_ellipsis": True})
-
-    # Секции по всем категориям
-    sections = []
-    for c in categories:
-        cat_base = (
-            _exclude_merch_products(Product.objects.filter(is_active=True, category=c))
-            .select_related("category")
-            .prefetch_related("options", "discounts")
-            # Show in-house products first inside each category preview.
-            .order_by("-is_in_house", "-created_at")
-        )
-        if cat_base.exists():
-            sections.append((c, cat_base[:8]))
-
     context = {
         "categories": categories,
         "filter_form": form,
         "filters_active": filters_active,
         "products": list(page_obj.object_list) if page_obj else [],
-        "new_arrivals": new_arrivals,
-        "sections": sections,
+        "showcase_products": showcase_products,
         "store_copy": StorePageCopy.get_solo(),
         "q": q,
         "page_obj": page_obj,
