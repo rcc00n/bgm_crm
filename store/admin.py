@@ -261,8 +261,35 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "image_preview")
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
-    fields = ("name", "slug", "description", "image", "image_preview")
-    readonly_fields = ("image_preview",)
+    readonly_fields = ("image_preview", "product_count_summary", "category_products")
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("name", "slug", "description", "image", "image_preview"),
+            },
+        ),
+        (
+            "Products in this category",
+            {
+                "fields": ("product_count_summary", "category_products"),
+            },
+        ),
+    )
+
+    def _get_category_products(self, obj):
+        if not getattr(obj, "pk", None):
+            return []
+        cache_attr = "_admin_category_products_cache"
+        if not hasattr(obj, cache_attr):
+            setattr(
+                obj,
+                cache_attr,
+                list(
+                    obj.products.order_by("name").only("id", "name", "sku", "is_active")
+                ),
+            )
+        return getattr(obj, cache_attr)
 
     def image_preview(self, obj):
         if getattr(obj, "image", None):
@@ -276,6 +303,54 @@ class CategoryAdmin(admin.ModelAdmin):
         return "—"
 
     image_preview.short_description = "Preview"
+
+    @admin.display(description="Category product status")
+    def product_count_summary(self, obj):
+        if not getattr(obj, "pk", None):
+            return "Save this category first to see related products."
+
+        products = self._get_category_products(obj)
+        total = len(products)
+        if total == 0:
+            return "No products in this category yet."
+
+        active = sum(1 for product in products if product.is_active)
+        inactive = total - active
+        product_label = "product" if total == 1 else "products"
+        if inactive:
+            active_label = "active product" if active == 1 else "active products"
+            inactive_label = "inactive product" if inactive == 1 else "inactive products"
+            return (
+                f"{total} {product_label} in this category: "
+                f"{active} {active_label}, {inactive} {inactive_label}."
+            )
+        return f"{total} active {product_label} in this category."
+
+    @admin.display(description="Products in this category")
+    def category_products(self, obj):
+        if not getattr(obj, "pk", None):
+            return "Save this category first to see related products."
+
+        products = self._get_category_products(obj)
+        if not products:
+            return "No products in this category yet."
+
+        return format_html(
+            '<div style="display:grid;gap:.45rem;">{}</div>',
+            format_html_join(
+                "",
+                '<div><a href="{}">{}</a><span style="color:#6b7280;"> &middot; SKU {}{}</span></div>',
+                (
+                    (
+                        reverse("admin:store_product_change", args=[product.pk]),
+                        product.name,
+                        product.sku,
+                        format_html(" &middot; inactive") if not product.is_active else "",
+                    )
+                    for product in products
+                ),
+            ),
+        )
 
 
 @admin.register(MerchCategory)
