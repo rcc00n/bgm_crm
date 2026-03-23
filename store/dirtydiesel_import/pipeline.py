@@ -18,6 +18,7 @@ from .types import ImportReport, SourceProduct
 logger = logging.getLogger(__name__)
 
 DEFAULT_EXCLUDED_CATEGORY_PREFIXES = ("fass-",)
+PRODUCT_IMAGE_ALT_MAX_LENGTH = ProductImage._meta.get_field("alt").max_length or 0
 
 
 class DirtyDieselImportPipeline:
@@ -231,6 +232,9 @@ class DirtyDieselImportPipeline:
             product = product_by_id[row["product_id"]]
             main_image_name = self.image_manager.localize(row["main_image_url"])
             gallery_image_names = [self.image_manager.localize(url) for url in row["gallery_image_urls"]]
+            gallery_alt = (
+                product.name[:PRODUCT_IMAGE_ALT_MAX_LENGTH] if PRODUCT_IMAGE_ALT_MAX_LENGTH else product.name
+            )
             changed = False
 
             with transaction.atomic():
@@ -247,8 +251,8 @@ class DirtyDieselImportPipeline:
                         if existing.sort_order != sort_order:
                             existing.sort_order = sort_order
                             image_changed = True
-                        if existing.alt != product.name:
-                            existing.alt = product.name
+                        if existing.alt != gallery_alt:
+                            existing.alt = gallery_alt
                             image_changed = True
                         if image_changed:
                             existing.save()
@@ -257,7 +261,7 @@ class DirtyDieselImportPipeline:
                     ProductImage.objects.create(
                         product=product,
                         image=image_name,
-                        alt=product.name,
+                        alt=gallery_alt,
                         sort_order=sort_order,
                     )
                     changed = True

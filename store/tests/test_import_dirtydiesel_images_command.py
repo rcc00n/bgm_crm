@@ -185,3 +185,26 @@ class ImportDirtyDieselImagesCommandTests(TestCase):
         self.assertTrue(self.product.main_image.name.startswith("store/imports/dieselr/assets/"))
         self.assertEqual(self.product.images.count(), 1)
         self.assertIn("DieselR import complete", output.getvalue())
+
+    def test_gallery_alt_is_truncated_to_field_limit(self):
+        media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media_root, ignore_errors=True)
+        output = StringIO()
+        self.product.name = "Very Long Diesel Product Name " * 8
+        self.product.save(update_fields=["name"])
+
+        with override_settings(MEDIA_ROOT=media_root):
+            with patch(
+                "store.dirtydiesel_import.source.DirtyDieselCatalogClient.fetch_catalog",
+                return_value=[self.source_product],
+            ):
+                with patch("store.fassride_import.images.urlopen", side_effect=self._fake_urlopen):
+                    call_command(
+                        "import_dirtydiesel_images",
+                        "--apply",
+                        stdout=output,
+                    )
+
+        image = self.product.images.get()
+        self.assertLessEqual(len(image.alt), 140)
+        self.assertEqual(image.alt, self.product.name[:140])

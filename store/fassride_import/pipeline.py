@@ -16,6 +16,7 @@ from .source import FassrideApiClient
 from .types import CuratedCategoryImage, ImportReport, SourceProduct
 
 logger = logging.getLogger(__name__)
+PRODUCT_IMAGE_ALT_MAX_LENGTH = ProductImage._meta.get_field("alt").max_length or 0
 
 DEFAULT_FASS_CATEGORY_SLUGS = (
     "fass-accessories",
@@ -238,6 +239,9 @@ class FassrideImportPipeline:
             product = product_by_id[row["product_id"]]
             main_image_name = self.image_manager.localize(row["main_image_url"])
             gallery_image_names = [self.image_manager.localize(url) for url in row["gallery_image_urls"]]
+            gallery_alt = (
+                product.name[:PRODUCT_IMAGE_ALT_MAX_LENGTH] if PRODUCT_IMAGE_ALT_MAX_LENGTH else product.name
+            )
 
             with transaction.atomic():
                 if product.main_image.name != main_image_name:
@@ -252,8 +256,8 @@ class FassrideImportPipeline:
                         if existing.sort_order != sort_order:
                             existing.sort_order = sort_order
                             changed = True
-                        if existing.alt != product.name:
-                            existing.alt = product.name
+                        if existing.alt != gallery_alt:
+                            existing.alt = gallery_alt
                             changed = True
                         if changed:
                             existing.save()
@@ -261,7 +265,7 @@ class FassrideImportPipeline:
                     ProductImage.objects.create(
                         product=product,
                         image=image_name,
-                        alt=product.name,
+                        alt=gallery_alt,
                         sort_order=sort_order,
                     )
 
