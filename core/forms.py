@@ -34,6 +34,14 @@ def _ordered_role_queryset():
     return Role.objects.order_by("name")
 
 
+def _ordered_staff_queryset(active_only: bool = False):
+    return get_staff_queryset(active_only=active_only).order_by(
+        "first_name",
+        "last_name",
+        "username",
+    )
+
+
 def _sync_user_roles(user, roles):
     roles = list(roles)
     selected_ids = {role.pk for role in roles if role.pk}
@@ -45,6 +53,16 @@ def _sync_user_roles(user, roles):
 def _promote_staff_access_for_roles(user, roles):
     if user.is_superuser or any(role.name in STAFF_ROLE_NAMES for role in roles):
         user.is_staff = True
+
+
+def _sync_service_staff_assignments(service, staff_members):
+    staff_members = list(staff_members)
+    selected_ids = {staff.pk for staff in staff_members if staff.pk}
+    ServiceMaster.objects.filter(service=service).exclude(master_id__in=selected_ids).delete()
+    existing_ids = set(ServiceMaster.objects.filter(service=service).values_list("master_id", flat=True))
+    for staff in staff_members:
+        if staff.pk not in existing_ids:
+            ServiceMaster.objects.create(service=service, master=staff)
 
 # -----------------------------
 # Font settings
@@ -443,11 +461,7 @@ class ServiceMasterAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["master"].queryset = get_staff_queryset(active_only=False).order_by(
-            "first_name",
-            "last_name",
-            "username",
-        )
+        self.fields["master"].queryset = _ordered_staff_queryset(active_only=False)
         self.fields["services"].queryset = Service.objects.select_related("category").order_by(
             "category__name",
             "name",
@@ -512,6 +526,44 @@ class ServiceMasterAdminForm(forms.ModelForm):
                 ServiceMaster.objects.create(master=master, service=service)
 
         return instance
+
+
+class ServiceAdminForm(forms.ModelForm):
+    staff_members = forms.ModelMultipleChoiceField(
+        queryset=CustomUserDisplay.objects.none(),
+        required=False,
+        widget=FilteredSelectMultiple(f"{STAFF_DISPLAY_NAME} members", is_stacked=False),
+        label=f"{STAFF_DISPLAY_NAME} members",
+        help_text="Select the staff members who can perform this service. Saving replaces the current assignment set.",
+    )
+
+    class Meta:
+        model = Service
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["staff_members"].queryset = _ordered_staff_queryset(active_only=False)
+        if self.instance and self.instance.pk and not self.is_bound:
+            self.fields["staff_members"].initial = list(
+                ServiceMaster.objects.filter(service=self.instance).values_list("master_id", flat=True)
+            )
+
+    @transaction.atomic
+    def sync_staff_assignments(self, service=None):
+        service = service or self.instance
+        if not service or not service.pk:
+            raise ValidationError("Save the service before updating staff assignments.")
+        _sync_service_staff_assignments(
+            service=service,
+            staff_members=self.cleaned_data.get("staff_members") or [],
+        )
+
+    def save(self, commit=True):
+        service = super().save(commit=commit)
+        if commit:
+            self.sync_staff_assignments(service=service)
+        return service
 
 
 class MasterCreateFullForm(forms.ModelForm):

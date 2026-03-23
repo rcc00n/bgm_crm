@@ -1315,6 +1315,7 @@ class ServiceAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
     """
     Admin interface for services.
     """
+    form = ServiceAdminForm
     list_display = ('name', 'pricing_display', 'category', 'duration_min', 'image_preview')
     search_fields = ('name',)
     list_filter = ('category', 'contact_for_estimate')
@@ -1328,9 +1329,15 @@ class ServiceAdmin(ExportCsvMixin, MasterSelectorMixing, admin.ModelAdmin):
         'name', 'category', 'description',
         ('base_price', 'contact_for_estimate'), 'estimate_from_price',
         'prepayment_option', 'duration_min', 'extra_time_min',
+        'staff_members',
         'image', 'image_preview',
     )
     readonly_fields = ('image_preview',)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if hasattr(form, "sync_staff_assignments"):
+            form.sync_staff_assignments(service=obj)
 
     @admin.display(description="Pricing", ordering="base_price")
     def pricing_display(self, obj):

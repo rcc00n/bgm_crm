@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from core.forms import CustomUserChangeForm, ServiceMasterAdminForm
+from core.forms import CustomUserChangeForm, ServiceAdminForm, ServiceMasterAdminForm
 from core.models import Role, Service, ServiceMaster, UserProfile, UserRole
 
 
@@ -88,6 +88,16 @@ class AdminServiceAssignmentsTests(TestCase):
             is_staff=True,
         )
         UserRole.objects.create(user=self.master, role=self.master_role)
+        self.second_master = self.user_model.objects.create_user(
+            username="service-master-2",
+            email="service-master-2@example.com",
+            password="StrongPass123!",
+            first_name="Backup",
+            last_name="Master",
+            is_active=True,
+            is_staff=True,
+        )
+        UserRole.objects.create(user=self.second_master, role=self.master_role)
 
         self.service_a = Service.objects.create(
             name="Alignment",
@@ -106,6 +116,38 @@ class AdminServiceAssignmentsTests(TestCase):
             description="Inspection service",
             base_price=Decimal("80.00"),
             duration_min=45,
+        )
+
+    def test_service_change_page_renders_staff_picker(self):
+        self.client.force_login(self.superuser)
+
+        response = self.client.get(reverse("admin:core_service_change", args=[self.service_a.pk]), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="staff_members"', html=False)
+        self.assertContains(response, "Select the staff members who can perform this service")
+
+    def test_service_admin_form_replaces_staff_assignments_for_service(self):
+        ServiceMaster.objects.create(master=self.master, service=self.service_a)
+
+        form = ServiceAdminForm(
+            data={
+                "name": self.service_a.name,
+                "description": self.service_a.description,
+                "base_price": "100.00",
+                "duration_min": "60",
+                "staff_members": [self.second_master.pk],
+            },
+            instance=self.service_a,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_text())
+        saved_service = form.save()
+
+        self.assertEqual(saved_service.pk, self.service_a.pk)
+        self.assertEqual(
+            set(ServiceMaster.objects.filter(service=self.service_a).values_list("master__username", flat=True)),
+            {"service-master-2"},
         )
 
     def test_service_assignments_add_page_renders_bulk_controls(self):
