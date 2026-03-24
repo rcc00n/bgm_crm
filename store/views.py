@@ -670,13 +670,25 @@ def _sort_storefront_products(products: list[Product], sort_key: str) -> list[Pr
                 int(getattr(product, "pk", 0) or 0),
             ),
         )
-    return sorted(
+    featured_products = sorted(
         products,
         key=lambda product: (
             int(not bool(getattr(product, "is_in_house", False))),
             -(getattr(product, "created_at", None).timestamp() if getattr(product, "created_at", None) else 0),
             int(getattr(product, "pk", 0) or 0),
         ),
+    )
+    in_house_products = [
+        product for product in featured_products if bool(getattr(product, "is_in_house", False))
+    ]
+    external_products = [
+        product for product in featured_products if not bool(getattr(product, "is_in_house", False))
+    ]
+    if not external_products:
+        return in_house_products
+    return in_house_products + _interleave_storefront_categories(
+        external_products,
+        limit=len(external_products),
     )
 
 

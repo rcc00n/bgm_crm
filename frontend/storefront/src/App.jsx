@@ -106,6 +106,19 @@ function buildSummary(state, config) {
   return `${totalResults} ${noun.toLowerCase()}`;
 }
 
+function buildFilterDraft(mode, state, searchValue = "") {
+  const selected = state?.filters?.selected || {};
+  return {
+    q: searchValue || state?.filters?.search || "",
+    sort: state?.filters?.sort || "featured",
+    category: selected.category || "",
+    make: selected.make || "",
+    model: selected.model || "",
+    year: selected.year || "",
+    price: selected.price || "",
+  };
+}
+
 function plainText(value) {
   const source = String(value || "");
   if (!source) return "";
@@ -262,6 +275,18 @@ function Pagination({ pagination, onChange }) {
 
 function CategoryBrowser({ categories, selectedCategory, onSelect, onClear }) {
   const [showAll, setShowAll] = useState(false);
+  const [isDesktopCarousel, setIsDesktopCarousel] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(min-width: 901px)").matches
+      : true
+  );
+  const [carouselState, setCarouselState] = useState({
+    enabled: false,
+    canPrev: false,
+    canNext: false,
+  });
+  const featuredRailRef = useRef(null);
+  const autoplayPauseUntilRef = useRef(0);
   const selectedKey = String(selectedCategory || "");
   const orderedCategories = selectedKey
     ? [
@@ -273,6 +298,74 @@ function CategoryBrowser({ categories, selectedCategory, onSelect, onClear }) {
   const featuredCategories = orderedCategories.slice(0, featuredLimit);
   const overflowCategories = orderedCategories.slice(featuredLimit);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 901px)");
+    const syncViewport = () => setIsDesktopCarousel(mediaQuery.matches);
+    syncViewport();
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", syncViewport);
+      return () => mediaQuery.removeEventListener("change", syncViewport);
+    }
+    mediaQuery.addListener(syncViewport);
+    return () => mediaQuery.removeListener(syncViewport);
+  }, []);
+
+  useEffect(() => {
+    const rail = featuredRailRef.current;
+    if (!rail || !isDesktopCarousel) {
+      setCarouselState({
+        enabled: false,
+        canPrev: false,
+        canNext: false,
+      });
+      return undefined;
+    }
+
+    const syncCarouselState = () => {
+      const maxScroll = Math.max(rail.scrollWidth - rail.clientWidth, 0);
+      const enabled = maxScroll > 12;
+      setCarouselState({
+        enabled,
+        canPrev: enabled && rail.scrollLeft > 8,
+        canNext: enabled && rail.scrollLeft < maxScroll - 8,
+      });
+    };
+
+    syncCarouselState();
+    rail.addEventListener("scroll", syncCarouselState, { passive: true });
+    window.addEventListener("resize", syncCarouselState);
+
+    return () => {
+      rail.removeEventListener("scroll", syncCarouselState);
+      window.removeEventListener("resize", syncCarouselState);
+    };
+  }, [featuredCategories.length, isDesktopCarousel]);
+
+  useEffect(() => {
+    if (!isDesktopCarousel || !carouselState.enabled) return undefined;
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mediaQuery.matches) return undefined;
+
+    const timer = window.setInterval(() => {
+      if (Date.now() < autoplayPauseUntilRef.current) return;
+      const rail = featuredRailRef.current;
+      if (!rail) return;
+      const firstCard = rail.querySelector(".storefront-categoryCard");
+      const step = firstCard
+        ? firstCard.getBoundingClientRect().width + 14
+        : Math.max(rail.clientWidth * 0.72, 220);
+      const maxScroll = Math.max(rail.scrollWidth - rail.clientWidth, 0);
+      const nextLeft =
+        rail.scrollLeft >= maxScroll - step * 0.35 ? 0 : rail.scrollLeft + step;
+      rail.scrollTo({
+        left: nextLeft,
+        behavior: "smooth",
+      });
+    }, 3400);
+
+    return () => window.clearInterval(timer);
+  }, [carouselState.enabled, isDesktopCarousel]);
+
   function handleCategorySelect(categoryKey, options = {}) {
     onSelect(categoryKey);
     if (options.collapseOverflow) {
@@ -280,25 +373,72 @@ function CategoryBrowser({ categories, selectedCategory, onSelect, onClear }) {
     }
   }
 
+  function pauseCarousel(duration = 12000) {
+    autoplayPauseUntilRef.current = Date.now() + duration;
+  }
+
+  function nudgeCarousel(direction) {
+    const rail = featuredRailRef.current;
+    if (!rail) return;
+    const firstCard = rail.querySelector(".storefront-categoryCard");
+    const step = firstCard
+      ? firstCard.getBoundingClientRect().width + 14
+      : Math.max(rail.clientWidth * 0.72, 220);
+    pauseCarousel();
+    rail.scrollBy({
+      left: direction * step,
+      behavior: "smooth",
+    });
+  }
+
   return (
     <section className={`storefront-categoryBrowser ${showAll ? "is-expanded" : ""}`}>
-      <div className="storefront-categoryBrowser__featured">
-        {featuredCategories.map((category) => {
-          const key = categoryValue(category);
-          const isSelected = selectedKey === key;
-          return (
-            <button
-              className={`storefront-categoryCard ${isSelected ? "is-selected" : ""}`}
-              type="button"
-              key={key}
-              onClick={() => handleCategorySelect(key)}
-            >
-              {category.imageUrl ? <img src={category.imageUrl} alt={category.label} /> : null}
-              <span>{category.label}</span>
-              <small>{category.productCount || 0} items</small>
-            </button>
-          );
-        })}
+      <div className="storefront-categoryBrowser__featuredWrap">
+        {isDesktopCarousel && carouselState.enabled ? (
+          <button
+            className="storefront-categoryBrowser__nav storefront-categoryBrowser__nav--prev"
+            type="button"
+            aria-label="Previous categories"
+            onClick={() => nudgeCarousel(-1)}
+          >
+            <span aria-hidden="true">‹</span>
+          </button>
+        ) : null}
+
+        <div
+          className="storefront-categoryBrowser__featured"
+          ref={featuredRailRef}
+          onWheel={() => pauseCarousel()}
+          onTouchStart={() => pauseCarousel()}
+        >
+          {featuredCategories.map((category) => {
+            const key = categoryValue(category);
+            const isSelected = selectedKey === key;
+            return (
+              <button
+                className={`storefront-categoryCard ${isSelected ? "is-selected" : ""}`}
+                type="button"
+                key={key}
+                onClick={() => handleCategorySelect(key)}
+              >
+                {category.imageUrl ? <img src={category.imageUrl} alt={category.label} /> : null}
+                <span>{category.label}</span>
+                <small>{category.productCount || 0} items</small>
+              </button>
+            );
+          })}
+        </div>
+
+        {isDesktopCarousel && carouselState.enabled ? (
+          <button
+            className="storefront-categoryBrowser__nav storefront-categoryBrowser__nav--next"
+            type="button"
+            aria-label="Next categories"
+            onClick={() => nudgeCarousel(1)}
+          >
+            <span aria-hidden="true">›</span>
+          </button>
+        ) : null}
       </div>
 
       {overflowCategories.length ? (
@@ -461,12 +601,65 @@ function FilterPanel({
   state,
   filtersOpen,
   setFiltersOpen,
+  isMobileViewport,
   onPatch,
   searchInput,
   setSearchInput,
 }) {
   const available = state.filters?.available || {};
   const selected = state.filters?.selected || {};
+  const [draft, setDraft] = useState(() =>
+    buildFilterDraft(mode, state, searchInput)
+  );
+
+  useEffect(() => {
+    if (!isMobileViewport || !filtersOpen) return;
+    setDraft(buildFilterDraft(mode, state, searchInput));
+  }, [
+    filtersOpen,
+    isMobileViewport,
+    mode,
+    searchInput,
+    selected.category,
+    selected.make,
+    selected.model,
+    selected.price,
+    selected.year,
+    state.filters?.search,
+    state.filters?.sort,
+  ]);
+
+  function updateDraft(patch) {
+    setDraft((current) => ({ ...current, ...patch }));
+  }
+
+  function applyMobileDraft() {
+    const nextSearch = draft.q || "";
+    setSearchInput(nextSearch);
+    onPatch({
+      q: nextSearch,
+      sort: draft.sort || "featured",
+      category: draft.category || "",
+      make: draft.make || "",
+      model: draft.model || "",
+      year: draft.year || "",
+      price: draft.price || "",
+      page: "",
+      product: "",
+    });
+  }
+
+  function resetMobileDraft() {
+    setDraft({
+      q: "",
+      sort: "featured",
+      category: "",
+      make: "",
+      model: "",
+      year: "",
+      price: "",
+    });
+  }
 
   return (
     <>
@@ -486,166 +679,205 @@ function FilterPanel({
           <button
             className="storefront-filters__close"
             type="button"
+            aria-label="Close filters"
             onClick={() => setFiltersOpen(false)}
           >
-            Close
+            <span className="storefront-filters__closeText">Close</span>
+            <span className="storefront-filters__closeIcon" aria-hidden="true">
+              ×
+            </span>
           </button>
         </div>
 
-        <label className="storefront-field">
-          <span>Search</span>
-          <input
-            type="search"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder={mode === "store" ? "Search parts, brands, SKUs" : "Search merch"}
-          />
-        </label>
-
-        <label className="storefront-field">
-          <span>Sort</span>
-          <select
-            value={state.filters?.sort || "featured"}
-            onChange={(event) =>
-              onPatch({ sort: event.target.value, page: "", product: "" })
-            }
-          >
-            {(state.filters?.sortOptions || []).map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="storefront-field">
-          <span>Category</span>
-          <select
-            value={selected.category || ""}
-            onChange={(event) =>
-              onPatch({
-                category: event.target.value,
-                page: "",
-                product: "",
-              })
-            }
-          >
-            <option value="">All categories</option>
-            {(available.categories || []).map((category) => (
-              <option
-                key={category.id || category.key || category.slug}
-                value={category.id || category.key || category.slug}
-              >
-                {category.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {mode === "store" ? (
-          <>
-            <label className="storefront-field">
-              <span>Make</span>
-              <select
-                value={selected.make || ""}
-                onChange={(event) =>
-                  onPatch({
-                    make: event.target.value,
-                    model: "",
-                    page: "",
-                    product: "",
-                  })
-                }
-              >
-                <option value="">Any make</option>
-                {(available.makes || []).map((make) => (
-                  <option key={make.id} value={make.id}>
-                    {make.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="storefront-field">
-              <span>Model</span>
-              <select
-                value={selected.model || ""}
-                onChange={(event) =>
-                  onPatch({
-                    model: event.target.value,
-                    page: "",
-                    product: "",
-                  })
-                }
-              >
-                <option value="">Any model</option>
-                {(available.models || []).map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="storefront-field">
-              <span>Year</span>
-              <input
-                type="number"
-                value={selected.year || ""}
-                min={available.yearMin || 1950}
-                max={available.yearMax || 2100}
-                onChange={(event) =>
-                  onPatch({
-                    year: event.target.value,
-                    page: "",
-                    product: "",
-                  })
-                }
-                placeholder="Any year"
-              />
-            </label>
-          </>
-        ) : (
+        <div className="storefront-filters__body">
           <label className="storefront-field">
-            <span>Price</span>
-            <select
-              value={selected.price || ""}
+            <span>Search</span>
+            <input
+              type="search"
+              value={isMobileViewport ? draft.q : searchInput}
               onChange={(event) =>
-                onPatch({
-                  price: event.target.value,
-                  page: "",
-                  product: "",
-                })
+                isMobileViewport
+                  ? updateDraft({ q: event.target.value })
+                  : setSearchInput(event.target.value)
+              }
+              placeholder={mode === "store" ? "Search parts, brands, SKUs" : "Search merch"}
+            />
+          </label>
+
+          <label className="storefront-field">
+            <span>Sort</span>
+            <select
+              value={isMobileViewport ? draft.sort : state.filters?.sort || "featured"}
+              onChange={(event) =>
+                isMobileViewport
+                  ? updateDraft({ sort: event.target.value })
+                  : onPatch({ sort: event.target.value, page: "", product: "" })
               }
             >
-              {(available.priceOptions || []).map((option) => (
-                <option key={option.value || "all"} value={option.value}>
+              {(state.filters?.sortOptions || []).map((option) => (
+                <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
           </label>
-        )}
 
-        <button
-          className="storefront-button storefront-button--ghost storefront-filters__reset"
-          type="button"
-          onClick={() =>
-            onPatch({
-              q: "",
-              category: "",
-              make: "",
-              model: "",
-              year: "",
-              price: "",
-              page: "",
-              product: "",
-              sort: "featured",
-            })
-          }
-        >
-          Reset all
-        </button>
+          <label className="storefront-field">
+            <span>Category</span>
+            <select
+              value={isMobileViewport ? draft.category : selected.category || ""}
+              onChange={(event) =>
+                isMobileViewport
+                  ? updateDraft({ category: event.target.value })
+                  : onPatch({
+                      category: event.target.value,
+                      page: "",
+                      product: "",
+                    })
+              }
+            >
+              <option value="">All categories</option>
+              {(available.categories || []).map((category) => (
+                <option
+                  key={category.id || category.key || category.slug}
+                  value={category.id || category.key || category.slug}
+                >
+                  {category.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {mode === "store" ? (
+            <>
+              <label className="storefront-field">
+                <span>Make</span>
+                <select
+                  value={isMobileViewport ? draft.make : selected.make || ""}
+                  onChange={(event) =>
+                    isMobileViewport
+                      ? updateDraft({
+                          make: event.target.value,
+                          model: "",
+                        })
+                      : onPatch({
+                          make: event.target.value,
+                          model: "",
+                          page: "",
+                          product: "",
+                        })
+                  }
+                >
+                  <option value="">Any make</option>
+                  {(available.makes || []).map((make) => (
+                    <option key={make.id} value={make.id}>
+                      {make.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="storefront-field">
+                <span>Model</span>
+                <select
+                  value={isMobileViewport ? draft.model : selected.model || ""}
+                  onChange={(event) =>
+                    isMobileViewport
+                      ? updateDraft({ model: event.target.value })
+                      : onPatch({
+                          model: event.target.value,
+                          page: "",
+                          product: "",
+                        })
+                  }
+                >
+                  <option value="">Any model</option>
+                  {(available.models || []).map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="storefront-field">
+                <span>Year</span>
+                <input
+                  type="number"
+                  value={isMobileViewport ? draft.year : selected.year || ""}
+                  min={available.yearMin || 1950}
+                  max={available.yearMax || 2100}
+                  onChange={(event) =>
+                    isMobileViewport
+                      ? updateDraft({ year: event.target.value })
+                      : onPatch({
+                          year: event.target.value,
+                          page: "",
+                          product: "",
+                        })
+                  }
+                  placeholder="Any year"
+                />
+              </label>
+            </>
+          ) : (
+            <label className="storefront-field">
+              <span>Price</span>
+              <select
+                value={isMobileViewport ? draft.price : selected.price || ""}
+                onChange={(event) =>
+                  isMobileViewport
+                    ? updateDraft({ price: event.target.value })
+                    : onPatch({
+                        price: event.target.value,
+                        page: "",
+                        product: "",
+                      })
+                }
+              >
+                {(available.priceOptions || []).map((option) => (
+                  <option key={option.value || "all"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <button
+            className="storefront-button storefront-button--ghost storefront-filters__reset"
+            type="button"
+            onClick={() =>
+              isMobileViewport
+                ? resetMobileDraft()
+                : onPatch({
+                    q: "",
+                    category: "",
+                    make: "",
+                    model: "",
+                    year: "",
+                    price: "",
+                    page: "",
+                    product: "",
+                    sort: "featured",
+                  })
+            }
+          >
+            Reset all
+          </button>
+        </div>
+
+        {isMobileViewport ? (
+          <div className="storefront-filters__footer">
+            <button
+              className="storefront-button storefront-button--primary storefront-filters__apply"
+              type="button"
+              onClick={applyMobileDraft}
+            >
+              Apply filters
+            </button>
+          </div>
+        ) : null}
       </aside>
       <button
         className={`storefront-filters__scrim ${filtersOpen ? "is-open" : ""}`}
@@ -1534,8 +1766,14 @@ export default function App({ bootstrap }) {
   const mode = bootstrap.mode || "store";
   const config = PAGE_CONFIG[mode] || PAGE_CONFIG.store;
   const pageRenderedAtRef = useRef(Date.now());
+  const resultsRef = useRef(null);
   const [state, setState] = useState(bootstrap.initialState || {});
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 900px)").matches
+      : false
+  );
   const [searchInput, setSearchInput] = useState(
     bootstrap.initialState?.filters?.search || ""
   );
@@ -1592,10 +1830,31 @@ export default function App({ bootstrap }) {
 
   listingLoaderRef.current = loadListingFromLocation;
 
+  function scrollToResultsTop({ behavior = "smooth" } = {}) {
+    const target = resultsRef.current;
+    if (!target) return;
+    const topbar = document.querySelector(".bgm-topbar, .site-header");
+    const topbarHeight =
+      topbar?.getBoundingClientRect().height ||
+      Number.parseFloat(
+        getComputedStyle(document.body).getPropertyValue("--bgm-topbar-height")
+      ) ||
+      0;
+    const nextTop =
+      target.getBoundingClientRect().top + window.scrollY - topbarHeight - 12;
+    window.scrollTo({
+      top: Math.max(0, nextTop),
+      behavior,
+    });
+  }
+
   function applyPatch(patch, options = {}) {
     patchLocation(patch, options);
     setFiltersOpen(false);
     setActiveProductSlug(getProductSlugFromLocation());
+    if (options.scrollToResults) {
+      scrollToResultsTop({ behavior: options.scrollBehavior || "smooth" });
+    }
     if (options.load === false) return;
     listingLoaderRef.current?.();
   }
@@ -1620,6 +1879,47 @@ export default function App({ bootstrap }) {
   }
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 900px)");
+    const syncViewport = () => setIsMobileViewport(mediaQuery.matches);
+    syncViewport();
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", syncViewport);
+      return () => mediaQuery.removeEventListener("change", syncViewport);
+    }
+    mediaQuery.addListener(syncViewport);
+    return () => mediaQuery.removeListener(syncViewport);
+  }, []);
+
+  useEffect(() => {
+    const syncShellMetrics = () => {
+      const topbar = document.querySelector(".bgm-topbar, .site-header");
+      const topOffset = topbar?.getBoundingClientRect().bottom || 72;
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty(
+        "--storefront-mobile-top-offset",
+        `${Math.ceil(topOffset + 8)}px`
+      );
+      document.documentElement.style.setProperty(
+        "--storefront-mobile-viewport-height",
+        `${Math.ceil(viewportHeight)}px`
+      );
+    };
+
+    syncShellMetrics();
+    window.addEventListener("resize", syncShellMetrics);
+    window.addEventListener("orientationchange", syncShellMetrics);
+    window.visualViewport?.addEventListener("resize", syncShellMetrics);
+    window.visualViewport?.addEventListener("scroll", syncShellMetrics);
+
+    return () => {
+      window.removeEventListener("resize", syncShellMetrics);
+      window.removeEventListener("orientationchange", syncShellMetrics);
+      window.visualViewport?.removeEventListener("resize", syncShellMetrics);
+      window.visualViewport?.removeEventListener("scroll", syncShellMetrics);
+    };
+  }, []);
+
+  useEffect(() => {
     const onPopState = () => {
       setActiveProductSlug(getProductSlugFromLocation());
       listingLoaderRef.current?.();
@@ -1629,6 +1929,7 @@ export default function App({ bootstrap }) {
   }, []);
 
   useEffect(() => {
+    if (isMobileViewport) return undefined;
     if (deferredSearch === (state.filters?.search || "")) return undefined;
     const timer = window.setTimeout(() => {
       applyPatch(
@@ -1641,7 +1942,7 @@ export default function App({ bootstrap }) {
       );
     }, 220);
     return () => window.clearTimeout(timer);
-  }, [deferredSearch, state.filters?.search]);
+  }, [deferredSearch, isMobileViewport, state.filters?.search]);
 
   useEffect(() => {
     if (!activeProductSlug) {
@@ -1791,12 +2092,14 @@ export default function App({ bootstrap }) {
             state={state}
             filtersOpen={filtersOpen}
             setFiltersOpen={setFiltersOpen}
+            isMobileViewport={isMobileViewport}
             onPatch={applyPatch}
             searchInput={searchInput}
             setSearchInput={setSearchInput}
           />
 
           <div className="storefront-results">
+            <div ref={resultsRef} />
             <div className="storefront-results__header">
               <div>
                 <p className="storefront-results__eyebrow">{config.resultsLabel}</p>
@@ -1918,6 +2221,8 @@ export default function App({ bootstrap }) {
                     applyPatch({
                       page: String(page),
                       product: "",
+                    }, {
+                      scrollToResults: true,
                     })
                   }
                 />
