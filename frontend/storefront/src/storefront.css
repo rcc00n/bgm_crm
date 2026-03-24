@@ -1599,10 +1599,21 @@ body.storefront-overlay-open {
   .storefront-categoryBrowser__footer,
   .storefront-categoryBrowser__actions {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefront-categoryBrowser__footer > *,
+  .storefront-categoryBrowser__actions {
+    width: 100%;
+  }
+
+  .storefront-categoryBrowser__footer {
+    width: 100%;
   }
 
   .storefront-categoryBrowser__actions {
     justify-content: stretch;
+    justify-self: stretch;
   }
 
   .storefront-categoryBrowser__actions > * {
