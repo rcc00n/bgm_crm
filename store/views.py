@@ -585,16 +585,16 @@ def _apply_filters(qs, form: ProductFilterForm):
 
     cat   = form.cleaned_data.get("category")
     make  = form.cleaned_data.get("make")
-    model = form.cleaned_data.get("model")
+    model_name = (form.cleaned_data.get("model") or "").strip()
     year  = form.cleaned_data.get("year")
 
     if cat:
         qs = qs.filter(category=cat)
 
-    if model:
-        qs = qs.filter(compatible_models=model)
-    elif make:
+    if make:
         qs = qs.filter(compatible_models__make=make)
+    if model_name:
+        qs = qs.filter(compatible_models__name=model_name)
 
     if year:
         qs = qs.filter(
@@ -702,7 +702,7 @@ def _storefront_active_chips(form: ProductFilterForm, *, q: str) -> list[dict[st
 
     category = form.cleaned_data.get("category")
     make = form.cleaned_data.get("make")
-    model = form.cleaned_data.get("model")
+    model_name = (form.cleaned_data.get("model") or "").strip()
     year = form.cleaned_data.get("year")
 
     if category:
@@ -715,8 +715,8 @@ def _storefront_active_chips(form: ProductFilterForm, *, q: str) -> list[dict[st
         )
     if make:
         chips.append({"key": "make", "value": str(make.pk), "label": make.name})
-    if model:
-        chips.append({"key": "model", "value": str(model.pk), "label": str(model)})
+    if model_name:
+        chips.append({"key": "model", "value": model_name, "label": model_name})
     if year:
         chips.append({"key": "year", "value": str(year), "label": str(year)})
     return chips
@@ -771,7 +771,12 @@ def _build_storefront_listing_payload(request) -> dict:
         .distinct()
         .order_by("name")
     )
-    model_options = list(form.fields["model"].queryset)
+    model_options = list(
+        CarModel.objects.filter(compatible_products__in=base_qs)
+        .values("make_id", "make__name", "name")
+        .distinct()
+        .order_by("make__name", "name")
+    )
 
     return {
         "filters": {
@@ -782,7 +787,7 @@ def _build_storefront_listing_payload(request) -> dict:
             "selected": {
                 "category": str(getattr(form.cleaned_data.get("category"), "pk", "") or "") if form.is_valid() else "",
                 "make": str(getattr(form.cleaned_data.get("make"), "pk", "") or "") if form.is_valid() else "",
-                "model": str(getattr(form.cleaned_data.get("model"), "pk", "") or "") if form.is_valid() else "",
+                "model": str(form.cleaned_data.get("model") or "") if form.is_valid() else "",
                 "year": str(form.cleaned_data.get("year") or "") if form.is_valid() else "",
             },
             "available": {
@@ -795,7 +800,7 @@ def _build_storefront_listing_payload(request) -> dict:
                     for make in compatible_makes
                 ],
                 "models": [
-                    {"id": int(model.pk), "label": str(model), "makeId": int(model.make_id)}
+                    {"id": str(model["name"]), "label": str(model["name"]), "makeId": int(model["make_id"])}
                     for model in model_options
                 ],
                 "yearMin": 1950,

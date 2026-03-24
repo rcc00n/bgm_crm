@@ -51,6 +51,15 @@ class ProductFilterFormTests(TestCase):
         self.assertTrue(form.fields["category"].queryset.filter(pk=self.category_active.pk).exists())
         self.assertFalse(form.fields["category"].queryset.filter(pk=self.category_inactive.pk).exists())
 
-    def test_model_queryset_filters_by_make_when_bound(self):
+    def test_model_choices_are_empty_until_make_is_selected(self):
+        form = ProductFilterForm()
+        self.assertEqual(form.fields["model"].choices, [("", "Select make first")])
+
+    def test_model_choices_filter_by_make_when_bound(self):
         form = ProductFilterForm(data={"make": self.make_a.pk})
-        self.assertEqual(list(form.fields["model"].queryset), [self.model_a1])
+        self.assertEqual(form.fields["model"].choices, [("", "Any model"), ("Model A1", "Model A1")])
+
+    def test_model_requires_make(self):
+        form = ProductFilterForm(data={"model": "Model A1"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("model", form.errors)

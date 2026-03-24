@@ -627,6 +627,11 @@ function FilterPanel({
   const [draft, setDraft] = useState(() =>
     buildFilterDraft(mode, state, searchInput)
   );
+  const activeMake = isMobileViewport ? draft.make : selected.make || "";
+  const modelOptions = (available.models || []).filter(
+    (model) => activeMake && String(model.makeId) === String(activeMake)
+  );
+  const modelDisabled = mode === "store" && !activeMake;
 
   useEffect(() => {
     if (!isMobileViewport || !filtersOpen) return;
@@ -796,6 +801,7 @@ function FilterPanel({
               <label className="storefront-field">
                 <span>Model</span>
                 <select
+                  disabled={modelDisabled}
                   value={isMobileViewport ? draft.model : selected.model || ""}
                   onChange={(event) =>
                     isMobileViewport
@@ -804,11 +810,11 @@ function FilterPanel({
                           model: event.target.value,
                           page: "",
                           product: "",
-                        })
+                      })
                   }
                 >
-                  <option value="">Any model</option>
-                  {(available.models || []).map((model) => (
+                  <option value="">{activeMake ? "Any model" : "Select make first"}</option>
+                  {modelOptions.map((model) => (
                     <option key={model.id} value={model.id}>
                       {model.label}
                     </option>
