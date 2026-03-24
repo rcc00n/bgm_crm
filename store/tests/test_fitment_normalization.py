@@ -38,6 +38,21 @@ class FitmentInferenceTests(TestCase):
             },
         )
 
+    def test_infer_fitment_maps_obs_powerstroke_to_older_ford_hd_pickups(self):
+        result = infer_fitment(
+            name='Aluminized 2 Piece 3" Downpipe | Ford 7.3L Powerstroke (1994-1997)',
+            sku="156-111124",
+        )
+
+        self.assertTrue(result.is_consumer_specific)
+        self.assertEqual(
+            {(spec.make, spec.model, spec.year_from, spec.year_to) for spec in result.specs},
+            {
+                ("Ford", "F-250", 1994, 1997),
+                ("Ford", "F-350", 1994, 1997),
+            },
+        )
+
     def test_infer_fitment_maps_code_based_fass_ram_mounting_package(self):
         result = infer_fitment(name="FASS Mounting Package - DIFSRAM1001", sku="MP-A9094")
 
@@ -47,6 +62,38 @@ class FitmentInferenceTests(TestCase):
             {
                 ("Ram / Dodge", "2500", 2010, 2018),
                 ("Ram / Dodge", "3500", 2010, 2018),
+            },
+        )
+
+    def test_infer_fitment_maps_first_gen_cummins_to_older_ram_hd_pickups(self):
+        result = infer_fitment(
+            name='Aluminized 4" Turbo Back Exhaust Single | Dodge 2500/3500 5.9L Cummins (1989-1993)',
+            sku="dieselr-aluminized-4-turbo-back-exhaust-single-dodge-25003500-59",
+        )
+
+        self.assertTrue(result.is_consumer_specific)
+        self.assertEqual(
+            {(spec.make, spec.model, spec.year_from, spec.year_to) for spec in result.specs},
+            {
+                ("Ram / Dodge", "2500", 1989, 1993),
+                ("Ram / Dodge", "3500", 1989, 1993),
+            },
+        )
+
+    def test_infer_fitment_maps_legacy_gm_65_diesel_to_ck_and_sierra_hd(self):
+        result = infer_fitment(
+            name='Aluminized 4" Turbo Back Exhaust Single | GM Detroit 6.5L Diesel 1994-2000',
+            sku="dieselr-aluminized-4-turbo-back-exhaust-single-gm-detroit-65l-di",
+        )
+
+        self.assertTrue(result.is_consumer_specific)
+        self.assertEqual(
+            {(spec.make, spec.model, spec.year_from, spec.year_to) for spec in result.specs},
+            {
+                ("Chevy", "C/K 2500", 1994, 2000),
+                ("Chevy", "C/K 3500", 1994, 2000),
+                ("GMC", "Sierra 2500", 1994, 2000),
+                ("GMC", "Sierra 3500", 1994, 2000),
             },
         )
 
@@ -72,7 +119,7 @@ class StorefrontFitmentFilterTests(TestCase):
         self.store_url = reverse("store:store")
         self.category = Category.objects.create(name="Exhaust", slug="exhaust")
         self.ford = CarMake.objects.get(name="Ford")
-        self.f250_broad = CarModel.objects.get(make=self.ford, name="F-250", year_from=1999, year_to=None)
+        self.f250_broad = CarModel.objects.get(make=self.ford, name="F-250", year_from=1994, year_to=None)
         self.f250_specific = CarModel.objects.create(make=self.ford, name="F-250", year_from=2008, year_to=2010)
         self.f350_specific = CarModel.objects.create(make=self.ford, name="F-350", year_from=2008, year_to=2010)
 

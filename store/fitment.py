@@ -59,8 +59,8 @@ class FitmentInference:
 
 CONSUMER_VEHICLE_CATALOG: tuple[VehicleCatalogEntry, ...] = (
     VehicleCatalogEntry("Ford", "F-150", 1997, None),
-    VehicleCatalogEntry("Ford", "F-250", 1999, None),
-    VehicleCatalogEntry("Ford", "F-350", 1999, None),
+    VehicleCatalogEntry("Ford", "F-250", 1994, None),
+    VehicleCatalogEntry("Ford", "F-350", 1994, None),
     VehicleCatalogEntry("Ford", "F-450", 2008, None),
     VehicleCatalogEntry("Ford", "F-550", 2008, None),
     VehicleCatalogEntry("Ford", "Ranger", 2019, None),
@@ -81,8 +81,8 @@ CONSUMER_VEHICLE_CATALOG: tuple[VehicleCatalogEntry, ...] = (
     VehicleCatalogEntry("GMC", "Yukon", 1992, None),
     VehicleCatalogEntry("GMC", "Yukon XL", 2000, None),
     VehicleCatalogEntry("Ram / Dodge", "1500", 1994, None),
-    VehicleCatalogEntry("Ram / Dodge", "2500", 1994, None),
-    VehicleCatalogEntry("Ram / Dodge", "3500", 1994, None),
+    VehicleCatalogEntry("Ram / Dodge", "2500", 1989, None),
+    VehicleCatalogEntry("Ram / Dodge", "3500", 1989, None),
     VehicleCatalogEntry("Ram / Dodge", "4500", 2008, None),
     VehicleCatalogEntry("Ram / Dodge", "5500", 2008, None),
     VehicleCatalogEntry("Toyota", "Tacoma", 1995, None),
@@ -100,7 +100,15 @@ CONSUMER_VEHICLE_CATALOG: tuple[VehicleCatalogEntry, ...] = (
     VehicleCatalogEntry("Nissan", "Armada", 2004, None),
 )
 
-CATALOG_BY_KEY = {(entry.make, entry.model): entry for entry in CONSUMER_VEHICLE_CATALOG}
+SPECIFIC_ONLY_VEHICLE_CATALOG: tuple[VehicleCatalogEntry, ...] = (
+    VehicleCatalogEntry("Chevy", "C/K 2500", 1988, 2000),
+    VehicleCatalogEntry("Chevy", "C/K 3500", 1988, 2000),
+    VehicleCatalogEntry("GMC", "Sierra 2500", 1988, 2000),
+    VehicleCatalogEntry("GMC", "Sierra 3500", 1988, 2000),
+)
+
+FITMENT_CATALOG = CONSUMER_VEHICLE_CATALOG + SPECIFIC_ONLY_VEHICLE_CATALOG
+CATALOG_BY_KEY = {(entry.make, entry.model): entry for entry in FITMENT_CATALOG}
 ALL_CONSUMER_SPECS = tuple(
     FitmentSpec(
         make=entry.make,
@@ -159,6 +167,12 @@ MODEL_GROUPS: dict[str, tuple[tuple[str, str], ...]] = {
         ("Chevy", "Silverado 3500HD"),
         ("GMC", "Sierra 2500HD"),
         ("GMC", "Sierra 3500HD"),
+    ),
+    "gm_hd_legacy": (
+        ("Chevy", "C/K 2500"),
+        ("Chevy", "C/K 3500"),
+        ("GMC", "Sierra 2500"),
+        ("GMC", "Sierra 3500"),
     ),
     "gm_1500_all": (
         ("Chevy", "Silverado 1500"),
@@ -564,6 +578,22 @@ def infer_fitment(
             kind="universal",
             specs=ALL_CONSUMER_SPECS,
             note=UNIVERSAL_COMPATIBILITY_NOTE,
+        )
+
+    if (
+        year_from is not None
+        and (year_to or year_from) <= 2000
+        and "6.5l" in lower
+        and ("gm" in lower or "detroit" in lower)
+    ):
+        return FitmentInference(
+            kind="specific",
+            specs=_clamped_fitment_specs(
+                MODEL_GROUPS["gm_hd_legacy"],
+                year_from=year_from,
+                year_to=year_to,
+            ),
+            note="",
         )
 
     for pattern, group, override_from, override_to in CODE_PATTERN_GROUPS:
