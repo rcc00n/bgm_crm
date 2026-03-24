@@ -326,16 +326,24 @@ body.storefront-overlay-open {
 .storefront-categoryBrowser {
   display: grid;
   gap: 0.95rem;
+  min-width: 0;
 }
 
 .storefront-categoryBrowser__featuredWrap {
   position: relative;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .storefront-categoryBrowser__featured {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.9rem;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .storefront-categoryBrowser__nav {
@@ -1811,16 +1819,26 @@ body.storefront-overlay-open {
 }
 
 @media (min-width: 901px) {
+  .storefront-hero,
+  .storefront-shell {
+    width: min(1380px, calc(100% - 2.25rem));
+  }
+
+  .storefront-categoryBrowser__featuredWrap {
+    overflow: hidden;
+    padding-inline: 3.25rem;
+    box-sizing: border-box;
+  }
+
   .storefront-categoryBrowser__featured {
-    grid-auto-flow: column;
-    grid-auto-columns: clamp(210px, 16vw, 290px);
-    grid-template-columns: none;
+    display: flex;
+    flex-wrap: nowrap;
     overflow-x: auto;
     gap: 0.9rem;
-    padding-inline: 3.25rem;
     scroll-behavior: smooth;
     scrollbar-width: none;
-    scroll-snap-type: x mandatory;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
   }
 
   .storefront-categoryBrowser__featured::-webkit-scrollbar {
@@ -1828,6 +1846,15 @@ body.storefront-overlay-open {
   }
 
   .storefront-categoryCard {
+    flex: 0 0 clamp(210px, 16vw, 290px);
     scroll-snap-align: start;
+  }
+
+  .storefront-categoryBrowser__nav--prev {
+    left: 0.45rem;
+  }
+
+  .storefront-categoryBrowser__nav--next {
+    right: 0.45rem;
   }
 }

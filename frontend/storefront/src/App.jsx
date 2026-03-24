@@ -296,6 +296,7 @@ function CategoryBrowser({ categories, selectedCategory, onSelect, onClear }) {
     : categories;
   const featuredLimit = orderedCategories.length > 8 ? 6 : orderedCategories.length;
   const featuredCategories = orderedCategories.slice(0, featuredLimit);
+  const featuredSignature = featuredCategories.map((category) => categoryValue(category)).join("|");
   const overflowCategories = orderedCategories.slice(featuredLimit);
 
   useEffect(() => {
@@ -330,16 +331,28 @@ function CategoryBrowser({ categories, selectedCategory, onSelect, onClear }) {
         canNext: enabled && rail.scrollLeft < maxScroll - 8,
       });
     };
+    let frameId = 0;
+    const scheduleSync = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(syncCarouselState);
+    };
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(scheduleSync) : null;
 
-    syncCarouselState();
-    rail.addEventListener("scroll", syncCarouselState, { passive: true });
-    window.addEventListener("resize", syncCarouselState);
+    scheduleSync();
+    rail.addEventListener("scroll", scheduleSync, { passive: true });
+    window.addEventListener("resize", scheduleSync);
+    resizeObserver?.observe(rail);
+    Array.from(rail.children).forEach((child) => resizeObserver?.observe(child));
+    document.fonts?.ready?.then(scheduleSync).catch(() => {});
 
     return () => {
-      rail.removeEventListener("scroll", syncCarouselState);
-      window.removeEventListener("resize", syncCarouselState);
+      window.cancelAnimationFrame(frameId);
+      rail.removeEventListener("scroll", scheduleSync);
+      window.removeEventListener("resize", scheduleSync);
+      resizeObserver?.disconnect();
     };
-  }, [featuredCategories.length, isDesktopCarousel]);
+  }, [featuredSignature, isDesktopCarousel]);
 
   useEffect(() => {
     if (!isDesktopCarousel || !carouselState.enabled) return undefined;
@@ -409,6 +422,7 @@ function CategoryBrowser({ categories, selectedCategory, onSelect, onClear }) {
           className="storefront-categoryBrowser__featured"
           ref={featuredRailRef}
           onWheel={() => pauseCarousel()}
+          onMouseEnter={() => pauseCarousel()}
           onTouchStart={() => pauseCarousel()}
         >
           {featuredCategories.map((category) => {
