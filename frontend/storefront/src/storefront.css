@@ -1605,6 +1605,15 @@ body.storefront-overlay-open {
     justify-content: stretch;
   }
 
+  .storefront-categoryBrowser__actions > * {
+    width: 100%;
+  }
+
+  .storefront-button--categoryToggle {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .storefront-categoryBrowser__pillGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

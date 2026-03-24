@@ -295,7 +295,9 @@ function CategoryBrowser({ categories, selectedCategory, onSelect, onClear }) {
       ]
     : categories;
   const featuredLimit = orderedCategories.length > 8 ? 6 : orderedCategories.length;
-  const featuredCategories = orderedCategories.slice(0, featuredLimit);
+  const featuredCategories = isDesktopCarousel
+    ? orderedCategories
+    : orderedCategories.slice(0, featuredLimit);
   const featuredSignature = featuredCategories.map((category) => categoryValue(category)).join("|");
   const overflowCategories = orderedCategories.slice(featuredLimit);
 
