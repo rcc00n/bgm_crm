@@ -3,7 +3,7 @@ from collections import Counter, defaultdict
 from decimal import Decimal, ROUND_HALF_UP
 import os
 import re
-from typing import Dict, Iterable
+from typing import Any, Dict, Iterable
 import logging
 import uuid
 import json
@@ -57,6 +57,15 @@ from core.utils import apply_dealer_discount, get_dealer_discount_percent
 from core.services.fonts import build_page_font_context
 from core.services.lead_security import evaluate_lead_submission, log_lead_submission
 from notifications import services as notification_services
+from .storefront import (
+    request_wants_json,
+    serialize_product_card,
+    serialize_product_detail,
+    serialize_store_category,
+    storefront_asset_urls,
+    storefront_lead_security_payload,
+    storefront_shell_payload,
+)
 
 logger = logging.getLogger(__name__)
 UserModel = get_user_model()
@@ -69,6 +78,7 @@ FREE_STICKER_THRESHOLD_FALLBACK = Decimal("90.00")
 STORE_HOME_SHOWCASE_LIMIT = 100
 STORE_HOME_BAD_IMAGE_TERMS = ("banner", "favicon", "icon", "logo", "placeholder")
 STORE_HOME_GENERIC_IMAGE_PREFIXES = ("store/categories/",)
+STOREFRONT_PAGE_SIZE = 24
 
 
 def _allow_out_of_stock_orders() -> bool:
@@ -312,6 +322,46 @@ def _handle_review_submission(
         success=True,
     )
     return redirect(success_redirect), form
+
+
+def _json_form_errors(form) -> tuple[dict[str, list[str]], list[str]]:
+    raw_errors = form.errors.get_json_data(escape_html=False)
+    field_errors: dict[str, list[str]] = {}
+    non_field_errors: list[str] = []
+    for name, items in raw_errors.items():
+        messages_list = [str(item.get("message") or "").strip() for item in items if str(item.get("message") or "").strip()]
+        if not messages_list:
+            continue
+        if name == "__all__":
+            non_field_errors.extend(messages_list)
+        else:
+            field_errors[name] = messages_list
+    return field_errors, non_field_errors
+
+
+def _json_form_response(
+    *,
+    ok: bool,
+    form_type: str,
+    message: str = "",
+    form=None,
+    lead_security: dict[str, str] | None = None,
+    status: int = 200,
+):
+    payload: dict[str, Any] = {
+        "ok": bool(ok),
+        "formType": form_type,
+        "message": message,
+    }
+    if lead_security:
+        payload["leadSecurity"] = lead_security
+    if form is not None:
+        field_errors, non_field_errors = _json_form_errors(form)
+        if field_errors:
+            payload["errors"] = field_errors
+        if non_field_errors:
+            payload["nonFieldErrors"] = non_field_errors
+    return JsonResponse(payload, status=status)
 
 
 def _resolve_client_file_owner(*, request_user=None, email: str = ""):
@@ -565,6 +615,196 @@ def _exclude_merch_products(qs):
         | Q(sku__startswith="PF-")
         | Q(slug__startswith="merch-")
     )
+
+
+def _normalize_storefront_sort(raw_value: str) -> str:
+    value = (raw_value or "").strip().lower()
+    if value in {"newest", "price-asc", "price-desc", "name"}:
+        return value
+    return "featured"
+
+
+def _storefront_sort_options() -> list[dict[str, str]]:
+    return [
+        {"value": "featured", "label": "Featured"},
+        {"value": "newest", "label": "Newest"},
+        {"value": "price-asc", "label": "Price: low to high"},
+        {"value": "price-desc", "label": "Price: high to low"},
+        {"value": "name", "label": "Name"},
+    ]
+
+
+def _sort_storefront_products(products: list[Product], sort_key: str) -> list[Product]:
+    sort_key = _normalize_storefront_sort(sort_key)
+    if sort_key == "newest":
+        return sorted(
+            products,
+            key=lambda product: (
+                getattr(product, "created_at", None) or 0,
+                int(getattr(product, "pk", 0) or 0),
+            ),
+            reverse=True,
+        )
+    if sort_key == "price-asc":
+        return sorted(
+            products,
+            key=lambda product: (
+                product.public_price,
+                (getattr(product, "name", "") or "").lower(),
+            ),
+        )
+    if sort_key == "price-desc":
+        return sorted(
+            products,
+            key=lambda product: (
+                product.public_price,
+                (getattr(product, "name", "") or "").lower(),
+            ),
+            reverse=True,
+        )
+    if sort_key == "name":
+        return sorted(
+            products,
+            key=lambda product: (
+                (getattr(product, "name", "") or "").lower(),
+                int(getattr(product, "pk", 0) or 0),
+            ),
+        )
+    return sorted(
+        products,
+        key=lambda product: (
+            int(not bool(getattr(product, "is_in_house", False))),
+            -(getattr(product, "created_at", None).timestamp() if getattr(product, "created_at", None) else 0),
+            int(getattr(product, "pk", 0) or 0),
+        ),
+    )
+
+
+def _storefront_active_chips(form: ProductFilterForm, *, q: str) -> list[dict[str, str]]:
+    chips: list[dict[str, str]] = []
+    if q:
+        chips.append({"key": "q", "value": q, "label": f"Search: {q}"})
+
+    if not form.is_valid():
+        return chips
+
+    category = form.cleaned_data.get("category")
+    make = form.cleaned_data.get("make")
+    model = form.cleaned_data.get("model")
+    year = form.cleaned_data.get("year")
+
+    if category:
+        chips.append(
+            {
+                "key": "category",
+                "value": str(category.pk),
+                "label": getattr(category, "display_name", None) or category.name,
+            }
+        )
+    if make:
+        chips.append({"key": "make", "value": str(make.pk), "label": make.name})
+    if model:
+        chips.append({"key": "model", "value": str(model.pk), "label": str(model)})
+    if year:
+        chips.append({"key": "year", "value": str(year), "label": str(year)})
+    return chips
+
+
+def _build_storefront_listing_payload(request) -> dict:
+    form_data = request.GET.copy()
+    if form_data.get("cat") and not form_data.get("category"):
+        form_data["category"] = form_data.get("cat")
+    q = (form_data.get("q") or "").strip()
+    sort = _normalize_storefront_sort(form_data.get("sort"))
+    page_number = form_data.get("page") or 1
+
+    form = ProductFilterForm(form_data or None)
+    base_qs = (
+        _exclude_merch_products(Product.objects.filter(is_active=True))
+        .select_related("category")
+        .prefetch_related("compatible_models__make", "options", "discounts")
+    )
+
+    categories_qs = Category.objects.filter(products__in=base_qs).distinct().order_by("name")
+    categories = list(categories_qs)
+    form.fields["category"].queryset = categories_qs
+    form.fields["category"].label_from_instance = lambda obj: obj.display_name
+
+    filtered_qs = _apply_filters(base_qs, form)
+    if q:
+        tokens = [token for token in re.split(r"[^a-z0-9]+", q.lower()) if token]
+        if tokens:
+            q_obj = Q()
+            for token in tokens:
+                q_obj &= (
+                    Q(name__icontains=token)
+                    | Q(sku__icontains=token)
+                    | Q(short_description__icontains=token)
+                    | Q(category__name__icontains=token)
+                )
+            filtered_qs = filtered_qs.filter(q_obj)
+
+    products = _sort_storefront_products(list(filtered_qs), sort)
+    paginator = Paginator(products, STOREFRONT_PAGE_SIZE)
+    page_obj = paginator.get_page(page_number)
+    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+
+    category_counts = {
+        row["category_id"]: int(row["total"] or 0)
+        for row in base_qs.values("category_id").annotate(total=Count("id"))
+    }
+
+    compatible_makes = list(
+        CarMake.objects.filter(models__compatible_products__in=base_qs)
+        .distinct()
+        .order_by("name")
+    )
+    model_options = list(form.fields["model"].queryset)
+
+    return {
+        "filters": {
+            "search": q,
+            "sort": sort,
+            "sortOptions": _storefront_sort_options(),
+            "activeChips": _storefront_active_chips(form, q=q),
+            "selected": {
+                "category": str(getattr(form.cleaned_data.get("category"), "pk", "") or "") if form.is_valid() else "",
+                "make": str(getattr(form.cleaned_data.get("make"), "pk", "") or "") if form.is_valid() else "",
+                "model": str(getattr(form.cleaned_data.get("model"), "pk", "") or "") if form.is_valid() else "",
+                "year": str(form.cleaned_data.get("year") or "") if form.is_valid() else "",
+            },
+            "available": {
+                "categories": [
+                    serialize_store_category(category, product_count=category_counts.get(category.pk, 0))
+                    for category in categories
+                ],
+                "makes": [
+                    {"id": int(make.pk), "label": make.name}
+                    for make in compatible_makes
+                ],
+                "models": [
+                    {"id": int(model.pk), "label": str(model), "makeId": int(model.make_id)}
+                    for model in model_options
+                ],
+                "yearMin": 1950,
+                "yearMax": 2100,
+            },
+        },
+        "catalog": {
+            "products": [
+                serialize_product_card(product, dealer_discount=dealer_discount, mode="store")
+                for product in page_obj.object_list
+            ],
+            "pagination": {
+                "page": int(page_obj.number),
+                "pageSize": STOREFRONT_PAGE_SIZE,
+                "totalPages": int(paginator.num_pages),
+                "totalResults": int(paginator.count),
+                "hasPrevious": bool(page_obj.has_previous()),
+                "hasNext": bool(page_obj.has_next()),
+            },
+        },
+    }
 
 
 def _storefront_image_source_rank(image_name: str) -> int:
@@ -1065,88 +1305,56 @@ def _send_order_confirmation(
 
 
 def store_home(request):
-    form_data = request.GET.copy()
-    if form_data.get("cat") and not form_data.get("category"):
-        form_data["category"] = form_data.get("cat")
-    q = (form_data.get("q") or "").strip()
-    form = ProductFilterForm(form_data or None)
+    listing_payload = _build_storefront_listing_payload(request)
+    if request_wants_json(request):
+        return JsonResponse(listing_payload)
 
-    base_qs = (
-        _exclude_merch_products(Product.objects.filter(is_active=True))
-        .select_related("category")
-        .prefetch_related("compatible_models", "options", "discounts")
-        # Show in-house products first across the storefront.
-        .order_by("-is_in_house", "-created_at")
+    store_copy = StorePageCopy.get_solo()
+    from core.context_processors_core import hero_media as hero_media_context
+
+    hero_payload = hero_media_context(request).get("hero_media", {})
+    cart_item_count, cart_line_count = _cart_summary_counts(request.session)
+    bootstrap = storefront_shell_payload(
+        mode="store",
+        listing_url=request.path,
+        cart_item_count=cart_item_count,
+        cart_line_count=cart_line_count,
     )
-    categories = Category.objects.filter(products__in=base_qs).distinct()
-    form.fields["category"].queryset = categories
-    form.fields["category"].label_from_instance = lambda obj: obj.display_name
-
-    filtered_qs = _apply_filters(base_qs, form)
-    if q:
-        tokens = [t for t in re.split(r"[^a-z0-9]+", q.lower()) if t]
-        if tokens:
-            q_obj = Q()
-            for token in tokens:
-                q_obj &= (
-                    Q(name__icontains=token)
-                    | Q(sku__icontains=token)
-                    | Q(short_description__icontains=token)
-                    | Q(category__name__icontains=token)
-                )
-            filtered_qs = filtered_qs.filter(q_obj)
-
-    # Блок "New arrivals" показываем только если фильтр НЕ применён
-    filters_active = bool(q) or (form.is_valid() and any(form.cleaned_data.values()))
-    showcase_products = [] if filters_active else _build_storefront_showcase_products(base_qs)
-    page_obj = None
-    pagination_pages = []
-    prev_page_url = ""
-    next_page_url = ""
-    if filters_active:
-        paginator = Paginator(filtered_qs, 50)
-        page_obj = paginator.get_page(request.GET.get("page") or 1)
-
-        def _page_url(page_number: int) -> str:
-            params = request.GET.copy()
-            if page_number <= 1:
-                params.pop("page", None)
-            else:
-                params["page"] = str(page_number)
-            query_string = params.urlencode()
-            return f"{reverse('store:store')}?{query_string}" if query_string else reverse("store:store")
-
-        if page_obj.has_previous():
-            prev_page_url = _page_url(page_obj.previous_page_number())
-        if page_obj.has_next():
-            next_page_url = _page_url(page_obj.next_page_number())
-        for item in paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1):
-            if isinstance(item, int):
-                pagination_pages.append(
-                    {
-                        "number": item,
-                        "url": _page_url(item),
-                        "is_current": item == page_obj.number,
-                    }
-                )
-            else:
-                pagination_pages.append({"label": str(item), "is_ellipsis": True})
-    context = {
-        "categories": categories,
-        "filter_form": form,
-        "filters_active": filters_active,
-        "products": list(page_obj.object_list) if page_obj else [],
-        "showcase_products": showcase_products,
-        "store_copy": StorePageCopy.get_solo(),
-        "q": q,
-        "page_obj": page_obj,
-        "pagination_pages": pagination_pages,
-        "prev_page_url": prev_page_url,
-        "next_page_url": next_page_url,
+    bootstrap["page"] = {
+        "kicker": "Storefront",
+        "title": store_copy.hero_title,
+        "lead": store_copy.hero_lead,
+        "primaryCta": {
+            "label": store_copy.hero_primary_cta_label,
+            "href": reverse("client-dashboard"),
+        },
+        "secondaryCta": {
+            "label": store_copy.hero_secondary_cta_label,
+            "href": reverse("store-cart"),
+        },
+        "labels": {
+            "browseTitle": store_copy.categories_title,
+            "browseDescription": store_copy.categories_desc,
+            "emptyResults": store_copy.results_empty_label,
+            "clearFilters": store_copy.filters_clear_label,
+            "filtersTitle": store_copy.filters_heading,
+        },
+        "heroMedia": {
+            "src": hero_payload.get("src", ""),
+            "alt": hero_payload.get("alt", "Products hero"),
+            "caption": hero_payload.get("caption", ""),
+        },
     }
-    context["page_sections"] = get_page_sections(context["store_copy"])
-    context["font_settings"] = build_page_font_context(PageFontSetting.Page.STORE)
-    return render(request, "store/store_home.html", context)
+    bootstrap["initialState"] = listing_payload
+
+    context = {
+        "store_copy": store_copy,
+        "font_settings": build_page_font_context(PageFontSetting.Page.STORE),
+        "storefront_bootstrap": bootstrap,
+        "current": "store",
+    }
+    context.update(storefront_asset_urls())
+    return render(request, "store/storefront_page.html", context)
 
 
 @require_GET
@@ -1238,31 +1446,25 @@ def category_list(request, slug):
     )
     if len(category_products) == 1:
         return redirect("store:store-product", slug=category_products[0].slug)
-
-    form = ProductFilterForm(request.GET or None, initial={"category": category.id})
-
-    base_qs = (
-        Product.objects.filter(is_active=True, category=category)
-        .select_related("category")
-        .prefetch_related("compatible_models", "options", "discounts")
-        .order_by("-is_in_house", "-created_at")
-    )
-    products = _apply_filters(base_qs, form)
-
-    context = {
-        "category": category,
-        "filter_form": form,
-        "products": products,
-        "filters_active": True,
-        "store_copy": StorePageCopy.get_solo(),
-    }
-    return render(request, "store/category_list.html", context)
+    params = request.GET.copy()
+    params["category"] = str(category.pk)
+    params.pop("page", None)
+    query_string = params.urlencode()
+    target = reverse("store:store")
+    if query_string:
+        target = f"{target}?{query_string}"
+    return redirect(target)
 
 
 def product_detail(request, slug: str):
     try:
         product = get_object_or_404(
-            Product.objects.select_related("category").prefetch_related("options", "compatible_models", "discounts"),
+            Product.objects.select_related("category").prefetch_related(
+                "options",
+                "compatible_models__make",
+                "discounts",
+                "images",
+            ),
             slug=slug,
             is_active=True
         )
@@ -1317,6 +1519,17 @@ def product_detail(request, slug: str):
             product_inventory_notice = "Out of stock right now. This item can't be ordered until inventory is updated."
         elif product.is_low_stock:
             product_inventory_notice = f"Only {product.available_inventory} left in stock."
+    wants_json = request_wants_json(request)
+
+    if request.method == "GET" and wants_json:
+        dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+        return JsonResponse(
+            serialize_product_detail(
+                product,
+                request=request,
+                dealer_discount=dealer_discount,
+            )
+        )
 
     if request.method == "POST":
         form_type = (request.POST.get("form_type") or "").strip()
@@ -1345,6 +1558,14 @@ def product_detail(request, slug: str):
                     success=False,
                     validation_errors="rate_limited",
                 )
+                if wants_json:
+                    return _json_form_response(
+                        ok=False,
+                        form_type="custom_fitment",
+                        message="Please try again in a few minutes.",
+                        lead_security=storefront_lead_security_payload(request, purpose="fitment_request"),
+                        status=429,
+                    )
                 messages.error(request, "Please try again in a few minutes.")
                 return redirect(product.get_absolute_url() + "#quote-request")
 
@@ -1362,6 +1583,13 @@ def product_detail(request, slug: str):
                     ip_address=evaluation.ip_address,
                     asn=evaluation.cf_asn,
                 )
+                if wants_json:
+                    return _json_form_response(
+                        ok=True,
+                        form_type="custom_fitment",
+                        message=success_text,
+                        lead_security=storefront_lead_security_payload(request, purpose="fitment_request"),
+                    )
                 messages.success(request, success_text)
                 return redirect(product.get_absolute_url() + "#quote-request")
 
@@ -1374,8 +1602,24 @@ def product_detail(request, slug: str):
                     validation_errors=f"token:{evaluation.token_error or 'invalid'}",
                 )
                 if evaluation.token_error == "too_fast":
+                    if wants_json:
+                        return _json_form_response(
+                            ok=False,
+                            form_type="custom_fitment",
+                            message="Please wait a moment and try again.",
+                            lead_security=storefront_lead_security_payload(request, purpose="fitment_request"),
+                            status=400,
+                        )
                     messages.error(request, "Please wait a moment and try again.")
                 else:
+                    if wants_json:
+                        return _json_form_response(
+                            ok=False,
+                            form_type="custom_fitment",
+                            message="Please refresh the page and try again.",
+                            lead_security=storefront_lead_security_payload(request, purpose="fitment_request"),
+                            status=400,
+                        )
                     messages.error(request, "Please refresh the page and try again.")
                 return redirect(product.get_absolute_url() + "#quote-request")
 
@@ -1393,6 +1637,13 @@ def product_detail(request, slug: str):
                     ip_address=evaluation.ip_address,
                     asn=evaluation.cf_asn,
                 )
+                if wants_json:
+                    return _json_form_response(
+                        ok=True,
+                        form_type="custom_fitment",
+                        message=success_text,
+                        lead_security=storefront_lead_security_payload(request, purpose="fitment_request"),
+                    )
                 messages.success(request, success_text)
                 return redirect(product.get_absolute_url() + "#quote-request")
 
@@ -1429,6 +1680,13 @@ def product_detail(request, slug: str):
                     outcome="suspected" if evaluation.action == "suspect" else "accepted",
                     success=True,
                 )
+                if wants_json:
+                    return _json_form_response(
+                        ok=True,
+                        form_type="custom_fitment",
+                        message=success_text,
+                        lead_security=storefront_lead_security_payload(request, purpose="fitment_request"),
+                    )
                 messages.success(
                     request,
                     success_text,
@@ -1441,6 +1699,15 @@ def product_detail(request, slug: str):
                 success=False,
                 validation_errors=quote_form.errors.as_text(),
             )
+            if wants_json:
+                return _json_form_response(
+                    ok=False,
+                    form_type="custom_fitment",
+                    message="Please correct the fields highlighted below.",
+                    form=quote_form,
+                    lead_security=storefront_lead_security_payload(request, purpose="fitment_request"),
+                    status=400,
+                )
             messages.error(request, "Please correct the fields highlighted below.")
         elif form_type == "product_review":
             review_form = StoreReviewForm(request.POST)
@@ -1451,7 +1718,29 @@ def product_detail(request, slug: str):
                 success_redirect=product.get_absolute_url() + "?review_submitted=1#reviews",
             )
             if response is not None:
+                if wants_json:
+                    return _json_form_response(
+                        ok=True,
+                        form_type="product_review",
+                        message="Thanks for the review. It's in the approval queue now.",
+                        lead_security=storefront_lead_security_payload(request, purpose="store_review"),
+                    )
                 return response
+            if wants_json:
+                field_errors, non_field_errors = _json_form_errors(review_form)
+                message = (
+                    (non_field_errors[0] if non_field_errors else "")
+                    or next((errors[0] for errors in field_errors.values() if errors), "")
+                    or "Please correct the review form and try again."
+                )
+                return _json_form_response(
+                    ok=False,
+                    form_type="product_review",
+                    message=message,
+                    form=review_form,
+                    lead_security=storefront_lead_security_payload(request, purpose="store_review"),
+                    status=400,
+                )
 
     return render(
         request,
@@ -1588,6 +1877,20 @@ def _cart(session) -> Dict[str, list]:
     data["items"] = normalized
     session[CART_KEY] = data
     return data
+
+
+def _cart_summary_counts(session) -> tuple[int, int]:
+    cart = _cart(session)
+    item_count = 0
+    line_count = 0
+    for entry in cart.get("items", []):
+        try:
+            qty = max(1, int(entry.get("qty") or 1))
+        except (TypeError, ValueError):
+            qty = 1
+        item_count += qty
+        line_count += 1
+    return item_count, line_count
 
 
 def _normalize_promocode(raw: str) -> str:
@@ -2035,9 +2338,29 @@ def _mixed_merch_cart_message() -> str:
 @require_POST
 def cart_add(request, slug: str):
     product = get_object_or_404(Product, slug=slug, is_active=True)
+    wants_json = request_wants_json(request)
+
+    def _json_error(message: str, *, status: int = 400):
+        if not wants_json:
+            return None
+        item_count, line_count = _cart_summary_counts(request.session)
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": message,
+                "cart": {
+                    "itemCount": item_count,
+                    "lineCount": line_count,
+                },
+            },
+            status=status,
+        )
 
     if product.contact_for_estimate:
-        messages.error(request, "This build is quoted individually. Please contact us to get an estimate.")
+        message = "This build is quoted individually. Please contact us to get an estimate."
+        if wants_json:
+            return _json_error(message)
+        messages.error(request, message)
         return redirect("store:store-product", slug=product.slug)
 
     try:
@@ -2052,6 +2375,8 @@ def cart_add(request, slug: str):
         current_cart_qty=current_cart_qty,
     )
     if inventory_error:
+        if wants_json:
+            return _json_error(inventory_error)
         messages.error(request, inventory_error)
         return redirect("store:store-product", slug=product.slug)
 
@@ -2068,7 +2393,10 @@ def cart_add(request, slug: str):
             for entry in cart_positions
         )
         if (incoming_is_merch and cart_has_non_merch) or ((not incoming_is_merch) and cart_has_merch):
-            messages.error(request, _mixed_merch_cart_message())
+            message = _mixed_merch_cart_message()
+            if wants_json:
+                return _json_error(message)
+            messages.error(request, message)
             return redirect("store:store-cart")
 
     option = None
@@ -2081,13 +2409,22 @@ def cart_add(request, slug: str):
         if option_id:
             option = get_object_or_404(ProductOption, id=option_id, product=product)
             if not option.is_active:
-                messages.error(request, "This option is currently unavailable.")
+                message = "This option is currently unavailable."
+                if wants_json:
+                    return _json_error(message)
+                messages.error(request, message)
                 return redirect("store:store-product", slug=product.slug)
             if getattr(option, "is_separator", False):
-                messages.error(request, "Please select a valid option.")
+                message = "Please select a valid option."
+                if wants_json:
+                    return _json_error(message)
+                messages.error(request, message)
                 return redirect("store:store-product", slug=product.slug)
     elif product.has_active_options:
-        messages.error(request, "Please select an option before adding the product to the cart.")
+        message = "Please select an option before adding the product to the cart."
+        if wants_json:
+            return _json_error(message)
+        messages.error(request, message)
         return redirect("store:store-product", slug=product.slug)
 
     reference_client_file_id = None
@@ -2096,14 +2433,16 @@ def cart_add(request, slug: str):
     if reference_file:
         reference_error = _validate_reference_image(reference_file)
         if reference_error:
+            if wants_json:
+                return _json_error(reference_error)
             messages.error(request, reference_error)
             return redirect("store:store-product", slug=product.slug)
         reference_owner = _resolve_client_file_owner(request_user=request.user)
         if not reference_owner:
-            messages.error(
-                request,
-                "Please sign in to attach a reference photo to a specific cart item.",
-            )
+            message = "Please sign in to attach a reference photo to a specific cart item."
+            if wants_json:
+                return _json_error(message, status=401)
+            messages.error(request, message)
             return redirect("store:store-product", slug=product.slug)
         option_name = option.name if option else "default option"
         client_file = _create_client_portal_file_from_upload(
@@ -2112,7 +2451,10 @@ def cart_add(request, slug: str):
             description=f"Store cart reference for {product.name} ({option_name})",
         )
         if not client_file:
-            messages.error(request, "Could not save the reference photo. Please try again.")
+            message = "Could not save the reference photo. Please try again."
+            if wants_json:
+                return _json_error(message)
+            messages.error(request, message)
             return redirect("store:store-product", slug=product.slug)
         reference_client_file_id = str(client_file.id)
         reference_file_name = client_file.filename or os.path.basename(getattr(reference_file, "name", "") or "")
@@ -2127,14 +2469,41 @@ def cart_add(request, slug: str):
     )
 
     if request.POST.get("buy_now") == "1":
-        messages.success(request, f'"{product.name}" added. Redirecting to checkout.')
+        message = f'"{product.name}" added. Redirecting to checkout.'
+        if wants_json:
+            item_count, line_count = _cart_summary_counts(request.session)
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "message": message,
+                    "redirectUrl": reverse("store-checkout"),
+                    "cart": {
+                        "itemCount": item_count,
+                        "lineCount": line_count,
+                    },
+                }
+            )
+        messages.success(request, message)
         return redirect("store:store-checkout")
 
     opt_suffix = f" ({option.name})" if option else ""
     if reference_client_file_id:
-        messages.success(request, f'Added to cart: "{product.name}{opt_suffix}" with a reference photo.')
+        success_message = f'Added to cart: "{product.name}{opt_suffix}" with a reference photo.'
     else:
-        messages.success(request, f'Added to cart: "{product.name}{opt_suffix}".')
+        success_message = f'Added to cart: "{product.name}{opt_suffix}".'
+    if wants_json:
+        item_count, line_count = _cart_summary_counts(request.session)
+        return JsonResponse(
+            {
+                "ok": True,
+                "message": success_message,
+                "cart": {
+                    "itemCount": item_count,
+                    "lineCount": line_count,
+                },
+            }
+        )
+    messages.success(request, success_message)
     return redirect("store:store-product", slug=product.slug)
 
 

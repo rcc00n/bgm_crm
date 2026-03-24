@@ -1,0 +1,31 @@
+{% extends "store/_base_store.html" %}
+{% load static %}
+
+{% block title %}{{ store_copy.page_title|default:"BGM Store" }}{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ storefront_css_url }}">
+  <script type="module" src="{{ storefront_js_url }}"></script>
+{% endblock %}
+
+{% block body %}
+  <div id="bg"></div>
+  {{ storefront_bootstrap|json_script:"storefront-bootstrap" }}
+  <main class="storefront-page" id="storefrontMain">
+    <div id="storefront-root"></div>
+    <noscript>
+      <section class="section">
+        <div class="container">
+          <h1 class="section__title">{{ store_copy.page_title|default:"Storefront" }}</h1>
+          <p class="section__desc">This storefront requires JavaScript to render the catalog experience.</p>
+          <div class="btn-row">
+            <a class="btn btn--primary" href="{% url 'store-cart' %}">Open cart</a>
+            <a class="btn btn--ghost" href="{% url 'home' %}#contact">Contact us</a>
+          </div>
+        </div>
+      </section>
+    </noscript>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="{% static 'admin/js/bgm-smoke.js' %}"></script>
+{% endblock %}

@@ -453,6 +453,12 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
 }
 
+# WhiteNoise caches file metadata by path. During local storefront rebuilds we
+# emit new hashed filenames and want runserver to pick them up immediately.
+WHITENOISE_AUTOREFRESH = RUNNING_DEVSERVER
+WHITENOISE_USE_FINDERS = RUNNING_DEVSERVER
+WHITENOISE_MAX_AGE = 0 if RUNNING_DEVSERVER else 60
+
 # S3 для медиа включается переменной USE_S3_MEDIA=1
 if os.getenv("USE_S3_MEDIA") == "1":
     AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")

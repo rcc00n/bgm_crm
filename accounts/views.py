@@ -15,6 +15,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
@@ -65,6 +66,13 @@ from store.printful_catalog import (
     sync_printful_merch_products,
 )
 from store.models import Category, MerchCategory, Order, Product, ProductOption
+from store.storefront import (
+    request_wants_json,
+    serialize_merch_category_card,
+    serialize_merch_listing_row,
+    storefront_asset_urls,
+    storefront_shell_payload,
+)
 from store.utils_merch import normalize_merch_category
 
 CLIENT_PORTAL_FILE_MAX_MB = getattr(settings, "CLIENT_PORTAL_FILE_MAX_MB", 10)
@@ -1373,8 +1381,187 @@ def _get_merch_listing_products() -> tuple[list[dict], str, str]:
     return [], printful_feed.get("catalog_url", "") or catalog_url, (printful_feed.get("error", "") if isinstance(printful_feed, dict) else "")
 
 
+def _session_cart_counts(session) -> tuple[int, int]:
+    item_count = 0
+    line_count = 0
+    data = session.get("cart_items") if session is not None else None
+    items = []
+    if isinstance(data, dict):
+        items = data.get("items") or []
+    elif isinstance(data, list):
+        items = data
+    for entry in items:
+        if not isinstance(entry, dict):
+            continue
+        try:
+            qty = max(1, int(entry.get("qty") or 1))
+        except (TypeError, ValueError):
+            qty = 1
+        item_count += qty
+        line_count += 1
+    return item_count, line_count
+
+
+def _normalize_merch_sort(raw_value: str) -> str:
+    value = (raw_value or "").strip().lower()
+    if value in {"name", "price-asc", "price-desc"}:
+        return value
+    return "featured"
+
+
+def _normalize_merch_price_filter(raw_value: str) -> str:
+    value = (raw_value or "").strip().lower()
+    if value in {"under-40", "40-80", "80-plus"}:
+        return value
+    return ""
+
+
+def _merch_active_chips(*, selected_category: str, category_map: dict[str, str], query: str, price_filter: str) -> list[dict]:
+    chips: list[dict] = []
+    if selected_category:
+        chips.append(
+            {
+                "key": "category",
+                "value": selected_category,
+                "label": category_map.get(selected_category, "Selected category"),
+            }
+        )
+    if query:
+        chips.append({"key": "q", "value": query, "label": f"Search: {query}"})
+    if price_filter == "under-40":
+        chips.append({"key": "price", "value": price_filter, "label": "Under $40"})
+    elif price_filter == "40-80":
+        chips.append({"key": "price", "value": price_filter, "label": "$40-$80"})
+    elif price_filter == "80-plus":
+        chips.append({"key": "price", "value": price_filter, "label": "$80+"})
+    return chips
+
+
+def _filter_merch_products(products: list[dict], *, query: str, price_filter: str, sort_key: str) -> list[dict]:
+    rows = list(products)
+    if query:
+        tokens = [token for token in re.split(r"[^a-z0-9]+", query.lower()) if token]
+        if tokens:
+            filtered_rows = []
+            for row in rows:
+                haystack = " ".join(
+                    [
+                        str(row.get("name") or ""),
+                        str(row.get("category_label") or ""),
+                        str(row.get("checkout_label") or ""),
+                    ]
+                ).lower()
+                if all(token in haystack for token in tokens):
+                    filtered_rows.append(row)
+            rows = filtered_rows
+
+    if price_filter:
+        filtered_rows = []
+        for row in rows:
+            try:
+                price = Decimal(str(row.get("base_price") or "0.00"))
+            except (InvalidOperation, TypeError, ValueError):
+                price = Decimal("0.00")
+            if price_filter == "under-40" and price >= Decimal("40.00"):
+                continue
+            if price_filter == "40-80" and (price < Decimal("40.00") or price > Decimal("80.00")):
+                continue
+            if price_filter == "80-plus" and price < Decimal("80.00"):
+                continue
+            filtered_rows.append(row)
+        rows = filtered_rows
+
+    if sort_key == "name":
+        rows.sort(key=lambda row: (str(row.get("name") or "").lower(), int(row.get("id") or 0)))
+    elif sort_key == "price-asc":
+        rows.sort(key=lambda row: (Decimal(str(row.get("base_price") or "0.00")), str(row.get("name") or "").lower()))
+    elif sort_key == "price-desc":
+        rows.sort(
+            key=lambda row: (Decimal(str(row.get("base_price") or "0.00")), str(row.get("name") or "").lower()),
+            reverse=True,
+        )
+    return rows
+
+
+def _build_merch_listing_payload(
+    request,
+    *,
+    merch_display_products: list[dict],
+    merch_category_cards: list[dict],
+    selected_merch_category: str,
+) -> dict:
+    query = (request.GET.get("q") or "").strip()
+    price_filter = _normalize_merch_price_filter(request.GET.get("price"))
+    sort_key = _normalize_merch_sort(request.GET.get("sort"))
+    page_number = request.GET.get("page") or 1
+
+    category_cards = [serialize_merch_category_card(card) for card in merch_category_cards]
+    category_map = {
+        card["key"]: card["label"]
+        for card in category_cards
+        if card.get("key") and card.get("label")
+    }
+    rows = _filter_merch_products(
+        merch_display_products,
+        query=query,
+        price_filter=price_filter,
+        sort_key=sort_key,
+    )
+    paginator = Paginator(rows, 24)
+    page_obj = paginator.get_page(page_number)
+
+    return {
+        "filters": {
+            "search": query,
+            "sort": sort_key,
+            "sortOptions": [
+                {"value": "featured", "label": "Featured"},
+                {"value": "name", "label": "Name"},
+                {"value": "price-asc", "label": "Price: low to high"},
+                {"value": "price-desc", "label": "Price: high to low"},
+            ],
+            "activeChips": _merch_active_chips(
+                selected_category=selected_merch_category,
+                category_map=category_map,
+                query=query,
+                price_filter=price_filter,
+            ),
+            "selected": {
+                "category": selected_merch_category,
+                "price": price_filter,
+            },
+            "available": {
+                "categories": category_cards,
+                "priceOptions": [
+                    {"value": "", "label": "All prices"},
+                    {"value": "under-40", "label": "Under $40"},
+                    {"value": "40-80", "label": "$40-$80"},
+                    {"value": "80-plus", "label": "$80+"},
+                ],
+            },
+        },
+        "catalog": {
+            "products": [serialize_merch_listing_row(row) for row in page_obj.object_list],
+            "pagination": {
+                "page": int(page_obj.number),
+                "pageSize": 24,
+                "totalPages": int(paginator.num_pages),
+                "totalResults": int(paginator.count),
+                "hasPrevious": bool(page_obj.has_previous()),
+                "hasNext": bool(page_obj.has_next()),
+            },
+        },
+    }
+
+
 class MerchPlaceholderView(TemplateView):
-    template_name = "client/merch.html"
+    template_name = "store/storefront_page.html"
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        if request_wants_json(request):
+            return JsonResponse(context["storefront_bootstrap"]["initialState"])
+        return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -1537,6 +1724,56 @@ class MerchPlaceholderView(TemplateView):
                     "caption": "",
                     "location": "merch",
                 }
+
+        from core.context_processors_core import hero_media as hero_media_context
+
+        hero_payload = ctx.get("hero_media") or hero_media_context(self.request).get("hero_media", {})
+        listing_payload = _build_merch_listing_payload(
+            self.request,
+            merch_display_products=merch_display_products,
+            merch_category_cards=merch_category_cards,
+            selected_merch_category=selected_merch_category,
+        )
+        cart_item_count, cart_line_count = _session_cart_counts(self.request.session)
+        bootstrap = storefront_shell_payload(
+            mode="merch",
+            listing_url=self.request.path,
+            cart_item_count=cart_item_count,
+            cart_line_count=cart_line_count,
+        )
+        bootstrap["page"] = {
+            "kicker": ctx["merch_copy"].hero_kicker,
+            "title": ctx["merch_copy"].hero_title,
+            "lead": ctx["merch_copy"].hero_lead,
+            "primaryCta": {
+                "label": ctx["merch_copy"].hero_primary_cta_label,
+                "href": reverse("home"),
+            },
+            "secondaryCta": {
+                "label": ctx["merch_copy"].hero_secondary_cta_label,
+                "href": reverse("client-dashboard"),
+            },
+            "labels": {
+                "browseTitle": ctx["merch_copy"].section_title,
+                "browseDescription": ctx["merch_copy"].section_desc,
+                "emptyResults": ctx["merch_copy"].coming_soon_desc,
+                "clearFilters": "Clear filters",
+                "filtersTitle": "Browse merch",
+            },
+            "heroMedia": {
+                "src": hero_payload.get("src", ""),
+                "alt": hero_payload.get("alt", "Merch hero"),
+                "caption": hero_payload.get("caption", ""),
+            },
+        }
+        bootstrap["initialState"] = listing_payload
+
+        ctx["store_copy"] = ctx["merch_copy"]
+        ctx["header_copy"] = ctx["merch_copy"]
+        ctx["font_settings"] = build_page_font_context(PageFontSetting.Page.MERCH)
+        ctx["storefront_bootstrap"] = bootstrap
+        ctx["current"] = "merch"
+        ctx.update(storefront_asset_urls())
         return ctx
 
 # accounts/views.py
