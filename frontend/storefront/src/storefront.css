@@ -898,6 +898,14 @@ body.storefront-overlay-open {
   line-height: 1.5;
 }
 
+.storefront-card__summary {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
 .storefront-fitmentList,
 .storefront-detailList {
   margin: 0;
@@ -908,6 +916,12 @@ body.storefront-overlay-open {
 .storefront-fitmentList li,
 .storefront-detailList li {
   margin: 0;
+}
+
+.storefront-fitmentList li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .storefront-swatches {

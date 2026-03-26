@@ -129,6 +129,15 @@ function plainText(value) {
   return (parsed.body?.textContent || "").replace(/\s+/g, " ").trim();
 }
 
+function truncateText(value, maxLength) {
+  const text = String(value || "").trim();
+  if (!text || !maxLength || text.length <= maxLength) {
+    return text;
+  }
+  const trimmed = text.slice(0, Math.max(0, maxLength - 1)).trimEnd();
+  return `${trimmed}...`;
+}
+
 function categoryValue(category) {
   return String(category?.id || category?.key || category?.slug || "");
 }
@@ -537,6 +546,8 @@ function ProductCard({ mode, product, onOpen }) {
       product.description ||
       "Open the product to inspect the purchase flow."
   );
+  const compatibilityItems = (product.compatibility || []).slice(0, 2);
+  const truncatedSummary = truncateText(summaryText, mode === "store" ? 150 : 132);
 
   return (
     <article className="storefront-card">
@@ -576,7 +587,7 @@ function ProductCard({ mode, product, onOpen }) {
           ) : null}
         </div>
         <h3>{product.name}</h3>
-        <p>{summaryText}</p>
+        <p className="storefront-card__summary">{truncatedSummary}</p>
         {mode === "merch" && product.colorSwatches?.length ? (
           <div className="storefront-swatches">
             {product.colorSwatches.slice(0, 5).map((swatch, index) => (
@@ -591,8 +602,10 @@ function ProductCard({ mode, product, onOpen }) {
         ) : null}
         {mode === "store" && product.compatibility?.length ? (
           <ul className="storefront-fitmentList">
-            {product.compatibility.slice(0, 2).map((item) => (
-              <li key={item.key || item.label}>{item.label}</li>
+            {compatibilityItems.map((item) => (
+              <li key={item.key || item.label}>
+                {truncateText(item.label, 44)}
+              </li>
             ))}
           </ul>
         ) : null}
