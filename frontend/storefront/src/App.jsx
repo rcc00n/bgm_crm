@@ -657,17 +657,22 @@ function FilterPanel({
   function applyMobileDraft() {
     const nextSearch = draft.q || "";
     setSearchInput(nextSearch);
-    onPatch({
-      q: nextSearch,
-      sort: draft.sort || "featured",
-      category: draft.category || "",
-      make: draft.make || "",
-      model: draft.model || "",
-      year: draft.year || "",
-      price: draft.price || "",
-      page: "",
-      product: "",
-    });
+    onPatch(
+      {
+        q: nextSearch,
+        sort: draft.sort || "featured",
+        category: draft.category || "",
+        make: draft.make || "",
+        model: draft.model || "",
+        year: draft.year || "",
+        price: draft.price || "",
+        page: "",
+        product: "",
+      },
+      {
+        scrollToResults: true,
+      }
+    );
   }
 
   function resetMobileDraft() {
@@ -750,11 +755,16 @@ function FilterPanel({
               onChange={(event) =>
                 isMobileViewport
                   ? updateDraft({ category: event.target.value })
-                  : onPatch({
-                      category: event.target.value,
-                      page: "",
-                      product: "",
-                    })
+                  : onPatch(
+                      {
+                        category: event.target.value,
+                        page: "",
+                        product: "",
+                      },
+                      {
+                        scrollToResults: true,
+                      }
+                    )
               }
             >
               <option value="">All categories</option>
@@ -1789,6 +1799,8 @@ export default function App({ bootstrap }) {
   const config = PAGE_CONFIG[mode] || PAGE_CONFIG.store;
   const pageRenderedAtRef = useRef(Date.now());
   const resultsRef = useRef(null);
+  const pendingResultsRevealRef = useRef(null);
+  const resultsRevealTimeoutRef = useRef(0);
   const [state, setState] = useState(bootstrap.initialState || {});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(() =>
@@ -1809,6 +1821,7 @@ export default function App({ bootstrap }) {
   const [detailStatus, setDetailStatus] = useState(activeProductSlug ? "loading" : "idle");
   const [toast, setToast] = useState("");
   const [cart, setCart] = useState(bootstrap.cart || {});
+  const [resultsRevealed, setResultsRevealed] = useState(false);
   const [isPending, startTransition] = useTransition();
   const listingAbortRef = useRef(null);
   const detailAbortRef = useRef(null);
@@ -1842,6 +1855,15 @@ export default function App({ bootstrap }) {
           setSearchInput(payload.filters?.search || "");
         });
         setListingStatus("ready");
+        if (pendingResultsRevealRef.current) {
+          const nextReveal = pendingResultsRevealRef.current;
+          pendingResultsRevealRef.current = null;
+          window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+              revealResults(nextReveal);
+            });
+          });
+        }
       })
       .catch((error) => {
         if (error.name === "AbortError") return;
@@ -1855,6 +1877,9 @@ export default function App({ bootstrap }) {
   function scrollToResultsTop({ behavior = "smooth" } = {}) {
     const target = resultsRef.current;
     if (!target) return;
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
     const topbar = document.querySelector(".bgm-topbar, .site-header");
     const topbarHeight =
       topbar?.getBoundingClientRect().height ||
@@ -1866,8 +1891,19 @@ export default function App({ bootstrap }) {
       target.getBoundingClientRect().top + window.scrollY - topbarHeight - 12;
     window.scrollTo({
       top: Math.max(0, nextTop),
-      behavior,
+      behavior: prefersReducedMotion ? "auto" : behavior,
     });
+  }
+
+  function revealResults(options = {}) {
+    const { behavior = "smooth", highlight = true } = options;
+    scrollToResultsTop({ behavior });
+    if (!highlight) return;
+    window.clearTimeout(resultsRevealTimeoutRef.current);
+    setResultsRevealed(true);
+    resultsRevealTimeoutRef.current = window.setTimeout(() => {
+      setResultsRevealed(false);
+    }, 1200);
   }
 
   function applyPatch(patch, options = {}) {
@@ -1875,7 +1911,14 @@ export default function App({ bootstrap }) {
     setFiltersOpen(false);
     setActiveProductSlug(getProductSlugFromLocation());
     if (options.scrollToResults) {
-      scrollToResultsTop({ behavior: options.scrollBehavior || "smooth" });
+      const nextReveal = {
+        behavior: options.scrollBehavior || "smooth",
+        highlight: options.highlightResults !== false,
+      };
+      pendingResultsRevealRef.current = nextReveal;
+      revealResults(nextReveal);
+    } else {
+      pendingResultsRevealRef.current = null;
     }
     if (options.load === false) return;
     listingLoaderRef.current?.();
@@ -2023,6 +2066,11 @@ export default function App({ bootstrap }) {
     return () => document.body.classList.remove("storefront-overlay-open");
   }, [activeProductSlug, filtersOpen]);
 
+  useEffect(
+    () => () => window.clearTimeout(resultsRevealTimeoutRef.current),
+    []
+  );
+
   const categories = state.filters?.available?.categories || [];
   const summary = buildSummary(state, config);
   const emptyResultsLabel =
@@ -2092,18 +2140,28 @@ export default function App({ bootstrap }) {
             categories={categories}
             selectedCategory={state.filters?.selected?.category}
             onSelect={(category) =>
-              applyPatch({
-                category,
-                page: "",
-                product: "",
-              })
+              applyPatch(
+                {
+                  category,
+                  page: "",
+                  product: "",
+                },
+                {
+                  scrollToResults: true,
+                }
+              )
             }
             onClear={() =>
-              applyPatch({
-                category: "",
-                page: "",
-                product: "",
-              })
+              applyPatch(
+                {
+                  category: "",
+                  page: "",
+                  product: "",
+                },
+                {
+                  scrollToResults: true,
+                }
+              )
             }
           />
         ) : null}
@@ -2120,7 +2178,11 @@ export default function App({ bootstrap }) {
             setSearchInput={setSearchInput}
           />
 
-          <div className="storefront-results">
+          <div
+            className={`storefront-results ${
+              resultsRevealed ? "storefront-results--revealed" : ""
+            }`}
+          >
             <div ref={resultsRef} />
             <div className="storefront-results__header">
               <div>

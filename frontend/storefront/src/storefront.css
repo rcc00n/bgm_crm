@@ -683,6 +683,7 @@ body.storefront-overlay-open {
 .storefront-results {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 .storefront-results__header {
@@ -695,6 +696,10 @@ body.storefront-overlay-open {
   border-radius: 1.3rem;
   background:
     linear-gradient(180deg, rgba(14, 14, 14, 0.84), rgba(6, 6, 6, 0.92));
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background 220ms ease;
 }
 
 .storefront-results__header h3 {
@@ -703,6 +708,23 @@ body.storefront-overlay-open {
 
 .storefront-results__reset {
   white-space: nowrap;
+}
+
+.storefront-results--revealed .storefront-results__header {
+  border-color: rgba(255, 72, 72, 0.34);
+  background:
+    radial-gradient(circle at top right, rgba(255, 52, 52, 0.14), transparent 42%),
+    linear-gradient(180deg, rgba(18, 18, 18, 0.92), rgba(8, 8, 8, 0.96));
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 54, 54, 0.08);
+  animation: storefront-results-pulse 720ms ease;
+}
+
+.storefront-results--revealed .storefront-grid,
+.storefront-results--revealed .storefront-empty,
+.storefront-results--revealed .storefront-pagination {
+  animation: storefront-results-rise 420ms ease;
 }
 
 .storefront-chips {
@@ -1548,6 +1570,43 @@ body.storefront-overlay-open {
   }
   100% {
     background-position: -180% 0;
+  }
+}
+
+@keyframes storefront-results-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(255, 56, 56, 0.22),
+      0 20px 40px rgba(0, 0, 0, 0.2);
+  }
+  100% {
+    box-shadow:
+      0 0 0 14px rgba(255, 56, 56, 0),
+      0 20px 40px rgba(0, 0, 0, 0.2);
+  }
+}
+
+@keyframes storefront-results-rise {
+  0% {
+    opacity: 0.78;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefront-results__header {
+    transition: none;
+  }
+
+  .storefront-results--revealed .storefront-results__header,
+  .storefront-results--revealed .storefront-grid,
+  .storefront-results--revealed .storefront-empty,
+  .storefront-results--revealed .storefront-pagination {
+    animation: none;
   }
 }
 
