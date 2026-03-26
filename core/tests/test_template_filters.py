@@ -43,6 +43,38 @@ class MetaTextFilterTests(SimpleTestCase):
 
 
 class CopyExtrasFilterTests(SimpleTestCase):
+    def test_suppress_placeholder_disclaimer_hides_known_placeholder_variants(self):
+        from core.templatetags.copy_extras import suppress_placeholder_disclaimer
+
+        self.assertEqual(
+            suppress_placeholder_disclaimer("  Product may not appear exactly as shown.  "),
+            "",
+        )
+        self.assertEqual(
+            suppress_placeholder_disclaimer("PRODUCT MAY NOT BE EXACTLY AS SHOWN!"),
+            "",
+        )
+
+    def test_suppress_placeholder_disclaimer_strips_embedded_boilerplate_phrase(self):
+        from core.templatetags.copy_extras import suppress_placeholder_disclaimer
+
+        self.assertEqual(
+            suppress_placeholder_disclaimer(
+                "Limited edition drop | Product may not appear exactly as shown."
+            ),
+            "Limited edition drop",
+        )
+
+    def test_suppress_placeholder_disclaimer_hides_legacy_label_after_cleanup(self):
+        from core.templatetags.copy_extras import suppress_placeholder_disclaimer
+
+        self.assertEqual(
+            suppress_placeholder_disclaimer(
+                "Outlaw Series - Product may not appear exactly as shown"
+            ),
+            "",
+        )
+
     def test_suppress_symbol_only_copy_hides_placeholder_symbols(self):
         from core.templatetags.copy_extras import suppress_symbol_only_copy
 
