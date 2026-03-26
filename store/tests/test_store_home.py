@@ -182,6 +182,58 @@ class StoreHomeViewTests(TestCase):
         showcase_slugs = [product.slug for product in response.context["showcase_products"]]
         self.assertEqual(showcase_slugs[:4], ["showcase-a1", "showcase-b1", "showcase-a2", "showcase-b2"])
 
+    def test_storefront_json_featured_keeps_inhouse_first_and_interleaves_remaining_categories(self):
+        other_category = Category.objects.create(name="Fuel", slug="fuel")
+        base_time = timezone.now().replace(microsecond=0)
+
+        inhouse_new = self._create_product(
+            name="Inhouse New",
+            slug="inhouse-new",
+            sku="INHOUSE-NEW",
+            category=self.parts_category,
+        )
+        inhouse_new.is_in_house = True
+        inhouse_new.save(update_fields=["is_in_house"])
+        Product.objects.filter(pk=inhouse_new.pk).update(created_at=base_time)
+
+        inhouse_old = self._create_product(
+            name="Inhouse Old",
+            slug="inhouse-old",
+            sku="INHOUSE-OLD",
+            category=other_category,
+        )
+        inhouse_old.is_in_house = True
+        inhouse_old.save(update_fields=["is_in_house"])
+        Product.objects.filter(pk=inhouse_old.pk).update(created_at=base_time - timedelta(minutes=1))
+
+        for offset, (name, slug, sku, category) in enumerate(
+            (
+                ("Alpha One", "alpha-one", "ALPHA-ONE", self.parts_category),
+                ("Alpha Two", "alpha-two", "ALPHA-TWO", self.parts_category),
+                ("Bravo One", "bravo-one", "BRAVO-ONE", other_category),
+                ("Bravo Two", "bravo-two", "BRAVO-TWO", other_category),
+            ),
+            start=2,
+        ):
+            product = self._create_product(name=name, slug=slug, sku=sku, category=category)
+            Product.objects.filter(pk=product.pk).update(created_at=base_time - timedelta(minutes=offset))
+
+        response = self.client.get(self.store_url, {"format": "json"})
+
+        self.assertEqual(response.status_code, 200)
+        slugs = [row["slug"] for row in response.json()["catalog"]["products"][:6]]
+        self.assertEqual(
+            slugs,
+            [
+                "inhouse-new",
+                "inhouse-old",
+                "alpha-one",
+                "bravo-one",
+                "alpha-two",
+                "bravo-two",
+            ],
+        )
+
     def test_store_home_showcase_limits_to_100_products(self):
         other_category = Category.objects.create(name="Exhaust", slug="exhaust")
         for index in range(105):

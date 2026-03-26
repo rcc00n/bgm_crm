@@ -4,8 +4,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from core.forms import CustomUserChangeForm, ServiceAdminForm, ServiceMasterAdminForm
-from core.models import Role, Service, ServiceMaster, UserProfile, UserRole
+from core.forms import CustomUserChangeForm, MasterCreateFullForm, ServiceAdminForm, ServiceMasterAdminForm
+from core.models import MasterProfile, Role, Service, ServiceMaster, UserProfile, UserRole
 
 
 class AdminUserRoleFormTests(TestCase):
@@ -66,6 +66,107 @@ class AdminUserRoleFormTests(TestCase):
         self.assertEqual(
             set(saved_user.userrole_set.values_list("role__name", flat=True)),
             {"Admin", "Sales"},
+        )
+
+    def test_user_change_form_creates_master_profile_when_master_role_selected(self):
+        master_role = Role.objects.create(name="Master")
+
+        form = CustomUserChangeForm(
+            data={
+                "username": self.user.username,
+                "email": self.user.email,
+                "first_name": self.user.first_name,
+                "last_name": self.user.last_name,
+                "phone": self.user.userprofile.phone,
+                "birth_date_month": "",
+                "birth_date_day": "",
+                "birth_date_year": "",
+                "roles": [master_role.pk],
+                "is_active": "on",
+                "password": self.user.password,
+            },
+            instance=self.user,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_text())
+        saved_user = form.save()
+
+        self.assertTrue(saved_user.is_staff)
+        self.assertTrue(MasterProfile.objects.filter(user=saved_user).exists())
+
+
+class MasterCreateFullFormTests(TestCase):
+    def setUp(self):
+        self.user_model = get_user_model()
+        self.existing_user = self.user_model.objects.create_user(
+            username="existing-master",
+            email="existing-master@example.com",
+            password="StrongPass123!",
+            first_name="Existing",
+            last_name="Master",
+            is_active=True,
+        )
+        UserProfile.objects.create(user=self.existing_user, phone="+14035550111")
+
+    def test_duplicate_username_is_reported_as_form_error(self):
+        form = MasterCreateFullForm(
+            data={
+                "username": self.existing_user.username,
+                "email": "fresh-master@example.com",
+                "first_name": "Fresh",
+                "last_name": "Master",
+                "phone": "+14035550112",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+                "work_start": "08:00",
+                "work_end": "17:00",
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("username", form.errors)
+
+    def test_duplicate_email_is_reported_as_form_error(self):
+        form = MasterCreateFullForm(
+            data={
+                "username": "fresh-master",
+                "email": self.existing_user.email,
+                "first_name": "Fresh",
+                "last_name": "Master",
+                "phone": "+14035550113",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+                "work_start": "08:00",
+                "work_end": "17:00",
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("email", form.errors)
+
+    def test_save_creates_master_profile_and_assigns_master_role(self):
+        Role.objects.create(name="Master")
+        form = MasterCreateFullForm(
+            data={
+                "username": "brand-new-master",
+                "email": "brand-new-master@example.com",
+                "first_name": "Brand",
+                "last_name": "New",
+                "phone": "+14035550114",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+                "work_start": "08:00",
+                "work_end": "17:00",
+            }
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_text())
+        profile = form.save()
+
+        self.assertTrue(MasterProfile.objects.filter(pk=profile.pk).exists())
+        self.assertEqual(
+            set(profile.user.userrole_set.values_list("role__name", flat=True)),
+            {"Master"},
         )
 
 

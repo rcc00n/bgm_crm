@@ -165,6 +165,16 @@
       color:#667085;
       font-size:.9rem;
     }
+    .page-action-form{
+      display:inline-flex;
+      margin:0;
+    }
+    .page-action-form .page-action-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      cursor:pointer;
+    }
     .inventory-admin-panel__subgrid{
       display:grid;
       grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
@@ -258,6 +268,20 @@
       <i class="fas fa-images"></i>
       <span>Autofill 4 Placeholders</span>
     </a>
+  {% endif %}
+  {% if bulk_restock_url %}
+    <form method="post" action="{{ bulk_restock_url }}" class="page-action-form">
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="btn btn-outline-success page-action-btn"
+        title="Set every product inventory to {{ bulk_restock_inventory }}"
+        onclick="return confirm('Set inventory to {{ bulk_restock_inventory }} for every product?');"
+      >
+        <i class="fas fa-boxes"></i>
+        <span>Set All Stock to {{ bulk_restock_inventory }}</span>
+      </button>
+    </form>
   {% endif %}
 {% endblock %}
 

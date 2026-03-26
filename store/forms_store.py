@@ -152,11 +152,10 @@ class ProductFilterForm(forms.Form):
         required=False,
         empty_label="Any make",
     )
-    model = forms.ModelChoiceField(
+    model = forms.ChoiceField(
         label="Model",
-        queryset=CarModel.objects.none(),
         required=False,
-        empty_label="Any model",
+        choices=(),
     )
     year = forms.IntegerField(
         label="Year",
@@ -167,25 +166,40 @@ class ProductFilterForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         """
-        If a make is selected, narrow 'model' queryset accordingly.
-        Otherwise show all models (sorted by make then name).
+        Models are chosen by name and only after a make is selected. This keeps
+        the storefront clean even when the fitment table stores multiple
+        make/model/year bands for the same visible model.
         """
         super().__init__(*args, **kwargs)
         active_categories = Category.objects.filter(products__is_active=True).distinct()
         self.fields["category"].queryset = active_categories
         self.fields["category"].label_from_instance = lambda obj: obj.display_name
-        data = self.data if self.is_bound else self.initial
+        data = self.data if self.is_bound else (self.initial or {})
         make_id = data.get("make")
 
+        choices: list[tuple[str, str]] = [("", "Any model")]
         if make_id:
             try:
-                # handle both str/int ids
                 make_id = int(make_id)
             except (TypeError, ValueError):
-                pass
-            self.fields["model"].queryset = CarModel.objects.filter(make_id=make_id).order_by("name")
+                make_id = None
+            if make_id:
+                model_names = (
+                    CarModel.objects.filter(make_id=make_id)
+                    .order_by("name")
+                    .values_list("name", flat=True)
+                    .distinct()
+                )
+                choices.extend((name, name) for name in model_names)
         else:
-            self.fields["model"].queryset = CarModel.objects.all().order_by("make__name", "name")
+            choices = [("", "Select make first")]
+        self.fields["model"].choices = choices
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("model") and not cleaned.get("make"):
+            self.add_error("model", "Select a make first.")
+        return cleaned
 
 
 # =========================

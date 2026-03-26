@@ -382,6 +382,7 @@ class ProductAdmin(admin.ModelAdmin):
     - HTML preview для specs
     - галерея через inline
     """
+    BULK_RESTOCK_INVENTORY = 25
     NAME_CLEANUP_WORDS = ("DIESELR", "EFI", "EZ", "Lynk")
     NAME_CLEANUP_PATTERN = re.compile(r"\b(?:DIESELR|EFI|EZ|Lynk)\b", re.IGNORECASE)
     form = ProductAdminForm
@@ -712,6 +713,11 @@ class ProductAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.inventory_settings_view),
                 name=f"{opts.app_label}_{opts.model_name}_inventory_settings",
             ),
+            path(
+                "bulk-restock/",
+                self.admin_site.admin_view(self.bulk_restock_view),
+                name=f"{opts.app_label}_{opts.model_name}_bulk_restock",
+            ),
         ]
         return custom_urls + urls
 
@@ -823,6 +829,13 @@ class ProductAdmin(admin.ModelAdmin):
             )
         except Exception:
             extra_context["product_changelist_url"] = None
+        try:
+            extra_context["bulk_restock_url"] = reverse(
+                f"admin:{opts.app_label}_{opts.model_name}_bulk_restock"
+            )
+        except Exception:
+            extra_context["bulk_restock_url"] = None
+        extra_context["bulk_restock_inventory"] = self.BULK_RESTOCK_INVENTORY
         extra_context["inventory_settings_form"] = StoreInventorySettingsAdminForm(instance=inventory_settings)
         extra_context["inventory_threshold"] = inventory_threshold
         extra_context["allow_out_of_stock_orders"] = bool(inventory_settings.allow_out_of_stock_orders)
@@ -916,6 +929,19 @@ class ProductAdmin(admin.ModelAdmin):
             for field_errors in form.errors.values():
                 errors.extend(str(err) for err in field_errors)
             messages.error(request, "Could not update inventory settings. " + " ".join(errors))
+        return redirect("admin:store_product_changelist")
+
+    def bulk_restock_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+        if request.method != "POST":
+            return redirect("admin:store_product_changelist")
+
+        updated = self.model.objects.update(inventory=self.BULK_RESTOCK_INVENTORY)
+        messages.success(
+            request,
+            f"Set inventory to {self.BULK_RESTOCK_INVENTORY} for {updated} product(s).",
+        )
         return redirect("admin:store_product_changelist")
 
     def import_view(self, request):
