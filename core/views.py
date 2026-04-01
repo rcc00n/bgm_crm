@@ -119,6 +119,7 @@ from core.services.admin_navigation import (
 )
 from core.services.dealer_application_emails import send_dealer_application_submitted
 from notifications.services import (
+    notify_about_lead,
     notify_about_service_lead,
     notify_about_site_notice_signup,
     notify_about_dealer_application,
@@ -4465,6 +4466,10 @@ def qualify_view(request):
         )
 
     _notify_about_qualify_lead(lead, request=request)
+    try:
+        notify_about_lead(lead.pk)
+    except Exception:
+        logger.exception("Failed to send Telegram alert for qualify lead %s", lead.pk)
     _allow_qualify_thank_you(request)
     return redirect("qualify-thank-you")
 

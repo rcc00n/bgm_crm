@@ -34,11 +34,15 @@
       padding:1.25rem;
       color:var(--text);
       font-family:var(--font-body);
+      position:relative;
+      isolation:isolate;
       background:
         radial-gradient(circle at 50% 0%, rgba(213,0,0,.18), transparent 26%),
         linear-gradient(180deg, #090909 0%, #030303 100%);
     }
     .card{
+      position:relative;
+      z-index:2;
       width:min(680px, 100%);
       padding:2rem;
       border-radius:1rem;
@@ -99,6 +103,9 @@
   </style>
 </head>
 <body>
+  <script>
+    window.__bgmSmokeAutoStart = false;
+  </script>
   {% include "includes/marketing_body.html" %}
   <section class="card">
     <p class="eyebrow">Lead Received</p>

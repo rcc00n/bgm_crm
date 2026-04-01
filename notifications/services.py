@@ -511,6 +511,45 @@ def notify_about_service_lead(lead_id) -> int:
     )
 
 
+def notify_about_lead(lead_id) -> int:
+    """
+    Notify ops chat about a new qualification lead.
+    """
+    settings_obj = TelegramBotSettings.load_active()
+    if not settings_obj:
+        return 0
+
+    from core.models import Lead  # late import to avoid circular dependency
+
+    lead = Lead.objects.get(pk=lead_id)
+
+    def _safe(val: str | None) -> str:
+        return html.escape(val) if val else "—"
+
+    work_needed = ", ".join(lead.get_work_needed_display_list()) or "—"
+    truck_label = f"{lead.truck_year} {lead.truck_make} {lead.truck_model}".strip()
+
+    message = (
+        "<b>New lead</b>\n"
+        f"Flagged: {_safe('Yes' if lead.flagged else 'No')}\n"
+        f"Name: {_safe(lead.name)}\n"
+        f"Phone: {_safe(lead.phone)}\n"
+        f"Email: {_safe(lead.email)}\n"
+        f"Preferred contact: {_safe(lead.get_contact_pref_display())}\n"
+        f"Truck: {_safe(truck_label)}\n"
+        f"Mileage: {_safe(lead.get_mileage_display())}\n"
+        f"Primary use: {_safe(lead.get_industry_display())}\n"
+        f"Work needed: {_safe(work_needed)}\n"
+        f"Timeline: {_safe(lead.get_timeline_display())}\n"
+        f"Frustration: {_safe(lead.frustration)}\n"
+    )
+
+    return send_telegram_message(
+        message,
+        event_type=TelegramMessageLog.EVENT_LEAD,
+    )
+
+
 def notify_about_fitment_request(request_id) -> int:
     """
     Notify ops chat about a new custom fitment request.
