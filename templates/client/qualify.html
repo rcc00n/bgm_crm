@@ -104,6 +104,10 @@
       line-height:1.65;
       max-width:34rem;
     }
+    .intro-copy--mobile,
+    .intro-pills-mobile{
+      display:none;
+    }
     .bullet-list{
       display:grid;
       gap:.75rem;
@@ -250,7 +254,44 @@
     }
     @media (max-width: 920px){
       .layout{grid-template-columns:1fr}
-      .intro{position:static}
+      .intro{
+        position:static;
+        padding:1.15rem 1rem;
+      }
+      .intro h1{
+        font-size:clamp(1.9rem, 9vw, 2.5rem);
+      }
+      .intro-copy--desktop,
+      .bullet-list{
+        display:none;
+      }
+      .intro-copy--mobile{
+        display:block;
+        margin-top:.7rem;
+        font-size:.95rem;
+        line-height:1.45;
+        max-width:none;
+      }
+      .intro-pills-mobile{
+        display:flex;
+        flex-wrap:wrap;
+        gap:.45rem;
+        margin-top:.85rem;
+      }
+      .intro-pill{
+        display:inline-flex;
+        align-items:center;
+        min-height:2rem;
+        padding:.35rem .65rem;
+        border:1px solid var(--line);
+        border-radius:999px;
+        background:rgba(255,255,255,.03);
+        color:var(--muted);
+        font-size:.8rem;
+        font-weight:700;
+        letter-spacing:.04em;
+        text-transform:uppercase;
+      }
       .grid{grid-template-columns:1fr}
       .checkbox-grid > div{grid-template-columns:1fr}
     }
@@ -267,7 +308,13 @@
       <div class="panel intro">
         <p class="eyebrow">Truck Intake</p>
         <h1>Build the right quote from the first call</h1>
-        <p>Tell the team what truck you have, how it gets used, what is frustrating you, and how soon you want to move. This form goes straight into our internal lead pipeline.</p>
+        <p class="intro-copy--desktop">Tell the team what truck you have, how it gets used, what is frustrating you, and how soon you want to move. This form goes straight into our internal lead pipeline.</p>
+        <p class="intro-copy--mobile">Tell us the truck, use case, problem, and timeline. Your lead goes straight to the team.</p>
+        <div class="intro-pills-mobile" aria-hidden="true">
+          <span class="intro-pill">Work Trucks</span>
+          <span class="intro-pill">Fast Follow Up</span>
+          <span class="intro-pill">Admin CRM</span>
+        </div>
         <div class="bullet-list">
           <div class="bullet">
             <strong>Built for Work Trucks</strong>
