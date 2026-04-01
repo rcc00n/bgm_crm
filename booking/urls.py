@@ -236,6 +236,9 @@ urlpatterns = [
     path("financing/", core_views.financing_view, name="financing"),
     path("faq/", core_views.faq_view, name="faq"),
     path("our-story/", core_views.our_story_view, name="our-story"),
+    path("qualify", core_views.qualify_view, name="qualify"),
+    path("qualify/", RedirectView.as_view(pattern_name="qualify", permanent=False)),
+    path("thank-you/", core_views.qualify_thank_you_view, name="qualify-thank-you"),
     path("services/", core_views.public_mainmenu, name="services"),
     # Hidden brake & suspension landing page (direct-link only)
     path("services/brake-suspension/", core_views.brake_suspension_view, name="services-brake-suspension"),

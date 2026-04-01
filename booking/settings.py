@@ -241,6 +241,7 @@ MARKETING = {
     "google_ads_id": os.getenv("GOOGLE_ADS_ID", ""),
     "google_ads_conversion_label": os.getenv("GOOGLE_ADS_CONVERSION_LABEL", ""),
     "google_ads_send_page_view": _bool_env("GOOGLE_ADS_SEND_PAGE_VIEW", "True"),
+    "meta_pixel_id": os.getenv("META_PIXEL_ID", ""),
 }
 
 # ── Company contact (email footer defaults) ──────────────────────────────
@@ -652,6 +653,7 @@ ADMIN_SIDEBAR_SECTIONS = [
                         "activity_field": "created_at",
                     },
                     {"model": "core.AppointmentReview", "label": "Appointment Reviews"},
+                    {"model": "core.Lead", "label": "Leads", "activity_field": "created_at"},
                     {"model": "core.ServiceLead", "label": "Service Leads"},
                     {"model": "core.LeadSubmissionEvent", "label": "Lead Submission Events"},
                     {
@@ -899,6 +901,7 @@ JAZZMIN_SETTINGS = {
         "core.Service": "fas fa-tools",
         "core.ServiceCategory": "fas fa-project-diagram",
         "core.ServiceDiscount": "fas fa-percent",
+        "core.Lead": "fas fa-user-tag",
         "core.ServiceLead": "fas fa-inbox",
         "core.LeadSubmissionEvent": "fas fa-paper-plane",
         "core.ServiceMaster": "fas fa-user-cog",

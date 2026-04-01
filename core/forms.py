@@ -789,3 +789,176 @@ class ServiceLeadForm(forms.ModelForm):
 
     def clean_notes(self):
         return (self.cleaned_data.get("notes") or "").strip()
+
+
+class LeadForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=80)
+    last_name = forms.CharField(max_length=80)
+    work_needed = forms.MultipleChoiceField(
+        choices=Lead.WorkNeeded.choices,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    class Meta:
+        model = Lead
+        fields = [
+            "contact_pref",
+            "phone",
+            "email",
+            "truck_year",
+            "truck_make",
+            "truck_model",
+            "mileage",
+            "industry",
+            "frustration",
+            "work_needed",
+            "timeline",
+        ]
+        widgets = {
+            "contact_pref": forms.Select(),
+            "phone": forms.TextInput(attrs={"autocomplete": "tel"}),
+            "email": forms.EmailInput(attrs={"autocomplete": "email"}),
+            "truck_year": forms.NumberInput(attrs={"min": 1900, "max": timezone.now().year + 1}),
+            "truck_make": forms.TextInput(),
+            "truck_model": forms.TextInput(),
+            "mileage": forms.Select(),
+            "industry": forms.Select(),
+            "frustration": forms.Textarea(attrs={"rows": 5}),
+            "timeline": forms.Select(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.name:
+            parts = self.instance.name.strip().split(None, 1)
+            self.fields["first_name"].initial = parts[0]
+            if len(parts) > 1:
+                self.fields["last_name"].initial = parts[1]
+        select_placeholders = {
+            "contact_pref": "Select preferred contact",
+            "mileage": "Select mileage range",
+            "industry": "Select primary use",
+            "timeline": "Select timeline",
+        }
+        for field_name, placeholder in select_placeholders.items():
+            choices = list(self.fields[field_name].choices)
+            if choices and choices[0][0] != "":
+                self.fields[field_name].choices = [("", placeholder)] + choices
+        self.fields["first_name"].widget.attrs.update({"autocomplete": "given-name"})
+        self.fields["last_name"].widget.attrs.update({"autocomplete": "family-name"})
+        self.fields["contact_pref"].label = "Preferred Contact"
+        self.fields["truck_year"].label = "Truck Year"
+        self.fields["truck_make"].label = "Truck Make"
+        self.fields["truck_model"].label = "Truck Model"
+        self.fields["industry"].label = "Primary Use"
+        self.fields["frustration"].label = "Biggest Frustration"
+        self.fields["work_needed"].label = "Work Needed"
+        self.fields["timeline"].label = "Timeline"
+
+    def clean_first_name(self):
+        value = (self.cleaned_data.get("first_name") or "").strip()
+        if not value:
+            raise forms.ValidationError("First name is required.")
+        return value
+
+    def clean_last_name(self):
+        value = (self.cleaned_data.get("last_name") or "").strip()
+        if not value:
+            raise forms.ValidationError("Last name is required.")
+        return value
+
+    def clean_phone(self):
+        raw = (self.cleaned_data.get("phone") or "").strip()
+        if not raw:
+            raise forms.ValidationError("Phone number is required.")
+        normalized = re.sub(r"\D", "", raw)
+        if raw.startswith("+"):
+            normalized = f"+{normalized}"
+        try:
+            return clean_phone(normalized)
+        except ValidationError as exc:
+            raise forms.ValidationError(exc.messages[0])
+
+    def clean_email(self):
+        value = (self.cleaned_data.get("email") or "").strip()
+        if not value:
+            raise forms.ValidationError("Email address is required.")
+        return value
+
+    def clean_truck_year(self):
+        value = self.cleaned_data.get("truck_year")
+        current_year = timezone.now().year + 1
+        if value is None:
+            raise forms.ValidationError("Truck year is required.")
+        if value < 1900 or value > current_year:
+            raise forms.ValidationError(f"Enter a valid truck year between 1900 and {current_year}.")
+        return value
+
+    def clean_truck_make(self):
+        value = (self.cleaned_data.get("truck_make") or "").strip()
+        if not value:
+            raise forms.ValidationError("Truck make is required.")
+        return value
+
+    def clean_truck_model(self):
+        value = (self.cleaned_data.get("truck_model") or "").strip()
+        if not value:
+            raise forms.ValidationError("Truck model is required.")
+        return value
+
+    def clean_frustration(self):
+        value = (self.cleaned_data.get("frustration") or "").strip()
+        if not value:
+            raise forms.ValidationError("Tell us your biggest frustration.")
+        return value
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        first_name = self.cleaned_data.get("first_name", "").strip()
+        last_name = self.cleaned_data.get("last_name", "").strip()
+        instance.name = " ".join(bit for bit in [first_name, last_name] if bit).strip()
+        instance.work_needed = self.cleaned_data.get("work_needed") or []
+        if not instance.pk:
+            instance.apply_auto_flag()
+        if commit:
+            instance.save()
+        return instance
+
+
+class LeadAdminForm(forms.ModelForm):
+    work_needed = forms.MultipleChoiceField(
+        choices=Lead.WorkNeeded.choices,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    class Meta:
+        model = Lead
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        current = self.instance.work_needed if self.instance and self.instance.pk else []
+        self.fields["work_needed"].initial = current if isinstance(current, list) else []
+
+    def clean_phone(self):
+        raw = (self.cleaned_data.get("phone") or "").strip()
+        if not raw:
+            raise forms.ValidationError("Phone number is required.")
+        normalized = re.sub(r"\D", "", raw)
+        if raw.startswith("+"):
+            normalized = f"+{normalized}"
+        try:
+            return clean_phone(normalized)
+        except ValidationError as exc:
+            raise forms.ValidationError(exc.messages[0])
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.work_needed = self.cleaned_data.get("work_needed") or []
+        if not instance.pk and not instance.flagged:
+            instance.apply_auto_flag()
+        if commit:
+            instance.save()
+        return instance

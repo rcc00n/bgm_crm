@@ -4665,6 +4665,102 @@ class SiteNoticeSignup(models.Model):
         return f"{self.email} ({self.welcome_code})"
 
 
+class Lead(models.Model):
+    """
+    Intake lead captured from the qualification landing page.
+    Managed directly inside Django admin as the internal CRM workflow.
+    """
+
+    class ContactPreference(models.TextChoices):
+        TEXT = ("text", "Text")
+        CALL = ("call", "Call")
+        EMAIL = ("email", "Email")
+
+    class Mileage(models.TextChoices):
+        UNDER_150K = ("under_150k", "Under 150K km")
+        BETWEEN_150K_250K = ("150_250k", "150-250K km")
+        BETWEEN_250K_400K = ("250_400k", "250-400K km")
+        ABOVE_400K = ("400k_plus", "400K+ km")
+
+    class Industry(models.TextChoices):
+        CONSTRUCTION = ("construction", "Construction")
+        OILFIELD = ("oilfield", "Oilfield")
+        FARMING = ("farming", "Farming")
+        PERSONAL = ("personal", "Personal")
+        OTHER = ("other", "Other")
+
+    class WorkNeeded(models.TextChoices):
+        ENGINE_TRANS = ("engine_trans", "Engine & Trans")
+        SUSPENSION = ("suspension", "Suspension")
+        PERFORMANCE = ("performance", "Performance")
+        CUSTOM_FAB = ("custom_fab", "Custom Fab")
+        INTERIOR = ("interior", "Interior")
+        BED_LINER = ("bed_liner", "Bed Liner")
+        FULL_BUILD = ("full_build", "Full Build")
+        NOT_SURE = ("not_sure", "Not Sure")
+
+    class Timeline(models.TextChoices):
+        ASAP = ("asap", "ASAP")
+        ONE_TO_THREE_MONTHS = ("1_3_months", "1-3 months")
+        THREE_TO_SIX_MONTHS = ("3_6_months", "3-6 months")
+        JUST_RESEARCHING = ("just_researching", "Just researching")
+
+    class Status(models.TextChoices):
+        NEW = ("new", "New")
+        CONTACTED = ("contacted", "Contacted")
+        QUALIFIED = ("qualified", "Qualified")
+        ESTIMATE_SENT = ("estimate_sent", "Estimate sent")
+        CLOSED_WON = ("closed_won", "Closed won")
+        CLOSED_LOST = ("closed_lost", "Closed lost")
+
+    name = models.CharField(max_length=160)
+    phone = models.CharField(max_length=40)
+    email = models.EmailField()
+    contact_pref = models.CharField(
+        max_length=16,
+        choices=ContactPreference.choices,
+        default=ContactPreference.CALL,
+    )
+    truck_year = models.PositiveIntegerField()
+    truck_make = models.CharField(max_length=80)
+    truck_model = models.CharField(max_length=80)
+    mileage = models.CharField(max_length=24, choices=Mileage.choices)
+    industry = models.CharField(max_length=24, choices=Industry.choices)
+    frustration = models.TextField()
+    work_needed = models.JSONField(default=list, blank=True)
+    timeline = models.CharField(max_length=24, choices=Timeline.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+    flagged = models.BooleanField(default=False, db_index=True)
+    notes = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NEW,
+        db_index=True,
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Lead"
+        verbose_name_plural = "Leads"
+
+    def __str__(self) -> str:
+        return f"{self.name} — {self.truck_year} {self.truck_make} {self.truck_model}"
+
+    def should_auto_flag(self) -> bool:
+        return self.mileage == self.Mileage.UNDER_150K or self.timeline == self.Timeline.JUST_RESEARCHING
+
+    def apply_auto_flag(self) -> None:
+        self.flagged = self.should_auto_flag()
+
+    def get_work_needed_display_list(self) -> list[str]:
+        labels = dict(self.WorkNeeded.choices)
+        values = self.work_needed or []
+        if not isinstance(values, list):
+            return []
+        return [labels.get(value, str(value)) for value in values]
+
+
 class ServiceLead(models.Model):
     """
     Inbound lead captured from public service landing pages.

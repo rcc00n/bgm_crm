@@ -10,7 +10,7 @@ from django.db.models import Q
 from django.urls import NoReverseMatch, reverse
 from django.utils.text import capfirst
 
-from core.models import ServiceLead, UserProfile
+from core.models import Lead, ServiceLead, UserProfile
 from store.models import Order, Product
 
 
@@ -354,5 +354,31 @@ def search_admin_records(user, query: str, *, per_group: int = 5) -> list[dict[s
         ]
         if items:
             results.append({"title": "Service Leads", "kind": "records", "items": items})
+
+    if _user_can_access_model(user, "core.Lead"):
+        leads = Lead.objects.filter(
+            Q(name__icontains=q)
+            | Q(email__icontains=q)
+            | Q(phone__icontains=q)
+            | Q(truck_make__icontains=q)
+            | Q(truck_model__icontains=q)
+            | Q(frustration__icontains=q)
+        )[:per_group]
+        items = [
+            {
+                "label": lead.name,
+                "url": reverse("admin:core_lead_change", args=[lead.pk]),
+                "icon": _resolve_model_icon("core.Lead"),
+                "note": " · ".join(
+                    bit for bit in [
+                        f"{lead.truck_year} {lead.truck_make} {lead.truck_model}".strip(),
+                        lead.phone or lead.email,
+                    ] if bit
+                ),
+            }
+            for lead in leads
+        ]
+        if items:
+            results.append({"title": "Leads", "kind": "records", "items": items})
 
     return results

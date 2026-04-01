@@ -82,10 +82,12 @@ from core.models import (
     EmailSubscriber,
     ClientFile,
     ClientUiCheckRun,
+    Lead,
+    SiteContactSettings,
     ServiceLead,
     ServiceDiscount,
 )
-from core.forms import ServiceLeadForm
+from core.forms import LeadForm, ServiceLeadForm
 from core.services.booking import (
     get_available_slots, get_service_masters,
     get_or_create_status, get_default_payment_status, _tz_aware
@@ -128,6 +130,7 @@ from store.models import Order as StoreOrder, Product as StoreProduct, StoreInve
 logger = logging.getLogger(__name__)
 BOOKING_REFERENCE_IMAGE_MAX_MB = int(getattr(settings, "BOOKING_REFERENCE_IMAGE_MAX_MB", 8))
 BOOKING_REFERENCE_IMAGE_MAX_BYTES = BOOKING_REFERENCE_IMAGE_MAX_MB * 1024 * 1024
+QUALIFY_THANK_YOU_SESSION_KEY = "qualify_lead_submitted_v1"
 
 
 def _validate_booking_reference_image(uploaded_file) -> str:
@@ -4364,6 +4367,117 @@ def general_service_request_view(request):
     return render(request, "client/general_request.html")
 
 
+@require_http_methods(["GET", "POST"])
+@csrf_protect
+def qualify_view(request):
+    if request.method == "GET":
+        return render(request, "client/qualify.html", {"form": LeadForm()})
+
+    form = LeadForm(request.POST)
+    email = (request.POST.get("email") or "").strip()
+    evaluation = evaluate_lead_submission(request, purpose="service_lead", email=email)
+
+    if evaluation.action == "rate_limited":
+        form.add_error(None, "Please try again in a few minutes.")
+        log_lead_submission(
+            form_type="service_lead",
+            evaluation=evaluation,
+            outcome="rate_limited",
+            success=False,
+            validation_errors="rate_limited",
+        )
+        return render(request, "client/qualify.html", {"form": form}, status=429)
+
+    if evaluation.honeypot_hit:
+        log_lead_submission(
+            form_type="service_lead",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="honeypot",
+        )
+        queue_lead_digest(
+            form_type="service_lead",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        _allow_qualify_thank_you(request)
+        return redirect("qualify-thank-you")
+
+    if not evaluation.token_valid:
+        log_lead_submission(
+            form_type="service_lead",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors=f"token:{evaluation.token_error or 'invalid'}",
+        )
+        if evaluation.token_error == "too_fast":
+            form.add_error(None, "Please wait a moment and try again.")
+            return render(request, "client/qualify.html", {"form": form}, status=429)
+        form.add_error(None, "Please refresh the page and try again.")
+        return render(request, "client/qualify.html", {"form": form}, status=400)
+
+    if evaluation.action == "blocked":
+        log_lead_submission(
+            form_type="service_lead",
+            evaluation=evaluation,
+            outcome="blocked",
+            success=False,
+            validation_errors="score_block",
+        )
+        queue_lead_digest(
+            form_type="service_lead",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+        _allow_qualify_thank_you(request)
+        return redirect("qualify-thank-you")
+
+    if not form.is_valid():
+        errors = [err for field_errors in form.errors.values() for err in field_errors]
+        log_lead_submission(
+            form_type="service_lead",
+            evaluation=evaluation,
+            outcome="rejected",
+            success=False,
+            validation_errors="; ".join(str(error) for error in errors),
+        )
+        return render(request, "client/qualify.html", {"form": form}, status=400)
+
+    lead = form.save()
+
+    log_lead_submission(
+        form_type="service_lead",
+        evaluation=evaluation,
+        outcome="suspected" if evaluation.action == "suspect" else "accepted",
+        success=True,
+    )
+
+    if evaluation.action == "suspect":
+        queue_lead_digest(
+            form_type="service_lead",
+            suspicious=True,
+            ip_address=evaluation.ip_address,
+            asn=evaluation.cf_asn,
+        )
+
+    _notify_about_qualify_lead(lead, request=request)
+    _allow_qualify_thank_you(request)
+    return redirect("qualify-thank-you")
+
+
+@require_GET
+def qualify_thank_you_view(request):
+    allowed = bool(request.session.pop(QUALIFY_THANK_YOU_SESSION_KEY, False))
+    request.session.modified = True
+    if not allowed:
+        return redirect("qualify")
+    return render(request, "client/thank_you.html")
+
+
 def performance_tuning_view(request):
     media = build_performance_tuning_media()
     font_settings = build_page_font_context(PageFontSetting.Page.PERFORMANCE_TUNING)
@@ -4389,6 +4503,106 @@ def _lead_redirect_target(request, *, fallback: str = "/") -> str:
         if target and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
             return target
     return fallback
+
+
+def _allow_qualify_thank_you(request) -> None:
+    request.session[QUALIFY_THANK_YOU_SESSION_KEY] = True
+    request.session.modified = True
+
+
+def _lead_notification_recipient() -> str:
+    recipient = (getattr(settings, "LEAD_NOTIFICATION_EMAIL", "") or "").strip()
+    if recipient:
+        return recipient
+
+    recipient = (getattr(settings, "SUPPORT_EMAIL", "") or "").strip()
+    if recipient:
+        return recipient
+
+    try:
+        return (SiteContactSettings.get_solo().contact_email or "").strip()
+    except Exception:
+        logger.exception("Failed to resolve lead notification recipient.")
+    return ""
+
+
+def _notify_about_qualify_lead(lead: Lead, *, request=None) -> None:
+    recipient = _lead_notification_recipient()
+    sender = (
+        getattr(settings, "DEFAULT_FROM_EMAIL", None)
+        or getattr(settings, "SUPPORT_EMAIL", None)
+    )
+    if not recipient or not sender:
+        logger.warning(
+            "Skipped qualify lead email for lead=%s due to missing sender/recipient.",
+            getattr(lead, "pk", None),
+        )
+        return
+
+    work_needed = ", ".join(lead.get_work_needed_display_list()) or "—"
+    detail_rows = [
+        ("Flagged", "Yes" if lead.flagged else "No"),
+        ("Name", lead.name),
+        ("Phone", lead.phone),
+        ("Email", lead.email),
+        ("Preferred contact", lead.get_contact_pref_display()),
+        ("Truck year", lead.truck_year),
+        ("Truck make", lead.truck_make),
+        ("Truck model", lead.truck_model),
+        ("Mileage", lead.get_mileage_display()),
+        ("Primary use", lead.get_industry_display()),
+        ("Work needed", work_needed),
+        ("Timeline", lead.get_timeline_display()),
+        ("Biggest frustration", lead.frustration),
+        ("Status", lead.get_status_display()),
+        ("Created", timezone.localtime(lead.created_at).strftime("%Y-%m-%d %H:%M")),
+    ]
+
+    link_rows = []
+    if request is not None:
+        try:
+            link_rows.append(("Open in admin", request.build_absolute_uri(reverse("admin:core_lead_change", args=[lead.pk]))))
+        except Exception:
+            logger.exception("Failed to build admin URL for lead=%s", lead.pk)
+
+    subject = f"New lead: {lead.name}"
+    intro_lines = [
+        f"New qualifying lead submitted for {lead.truck_year} {lead.truck_make} {lead.truck_model}.",
+    ]
+    notice_lines = []
+    if lead.flagged:
+        notice_lines.append("Flagged lead: Under 150K km or just researching.")
+
+    text_lines = [f"{label}: {value}" for label, value in detail_rows]
+    text_body = join_text_sections(
+        ["Team,"],
+        intro_lines,
+        text_lines,
+        notice_lines,
+    )
+    html_body = build_email_html(
+        title=subject,
+        preheader=subject,
+        greeting="Team,",
+        intro_lines=intro_lines,
+        detail_rows=detail_rows,
+        notice_title="Priority",
+        notice_lines=notice_lines,
+        link_rows=link_rows,
+        footer_lines=[],
+    )
+
+    try:
+        send_html_email(
+            subject=subject,
+            text_body=text_body,
+            html_body=html_body,
+            from_email=sender,
+            recipient_list=[recipient],
+            email_type="lead_notification",
+        )
+    except Exception:
+        logger.exception("Failed to send qualify lead email for lead=%s", lead.pk)
 
 
 def _resolve_site_notice_code() -> str:

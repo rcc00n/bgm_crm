@@ -240,6 +240,7 @@ def marketing_tags(request):
             "google_ads_id": config.get("google_ads_id") or "",
             "google_ads_conversion_label": config.get("google_ads_conversion_label") or "",
             "google_ads_send_page_view": config.get("google_ads_send_page_view", True),
+            "meta_pixel_id": config.get("meta_pixel_id") or "",
         }
     }
 

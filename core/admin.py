@@ -6253,6 +6253,34 @@ class SiteContactSettingsAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+
+@admin.register(Lead)
+class LeadAdmin(admin.ModelAdmin):
+    form = LeadAdminForm
+    list_display = (
+        "name",
+        "phone",
+        "email",
+        "truck_make",
+        "truck_model",
+        "timeline",
+        "status",
+        "flagged",
+        "created_at",
+    )
+    list_filter = ("status", "flagged", "timeline", "contact_pref", "created_at")
+    search_fields = ("name", "email", "phone", "truck_make", "truck_model")
+    ordering = ("-created_at",)
+    list_editable = ("status",)
+    readonly_fields = ("created_at",)
+    fieldsets = (
+        ("Pipeline", {"fields": ("status", "flagged", "created_at")}),
+        ("Contact", {"fields": ("name", "phone", "email", "contact_pref")}),
+        ("Truck", {"fields": ("truck_year", "truck_make", "truck_model", "mileage", "industry")}),
+        ("Request", {"fields": ("frustration", "work_needed", "timeline", "notes")}),
+    )
+
+
 @admin.register(ServiceLead)
 class ServiceLeadAdmin(admin.ModelAdmin):
     list_display = ("created_at", "full_name", "service_needed", "phone", "email", "source_page", "status")

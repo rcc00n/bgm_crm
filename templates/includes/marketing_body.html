@@ -1,4 +1,15 @@
 {% load static %}
+{% if marketing.meta_pixel_id %}
+<noscript>
+  <img
+    height="1"
+    width="1"
+    style="display:none"
+    src="https://www.facebook.com/tr?id={{ marketing.meta_pixel_id|urlencode }}&ev=PageView&noscript=1"
+    alt=""
+  >
+</noscript>
+{% endif %}
 {% with marketing.google_tag_manager_id|default:"GTM-M7FTNXV6" as gtm_id %}
 {% if gtm_id %}
 <noscript>

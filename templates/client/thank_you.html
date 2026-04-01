@@ -1,0 +1,121 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Thank You - Bad Guy Motors</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% with meta_title="Thank You - Bad Guy Motors" meta_description="Your lead has been submitted to Bad Guy Motors." meta_section="services" %}
+    {% include "includes/marketing_head.html" %}
+  {% endwith %}
+  <link rel="preload" href="{% static 'fonts/Diesel.ttf' %}" as="font" type="font/ttf" crossorigin>
+  <style>
+    :root{
+      --bg:#050505;
+      --panel:#121212;
+      --line:rgba(255,255,255,.12);
+      --text:#f5f5f5;
+      --muted:rgba(255,255,255,.72);
+      --accent:#d50000;
+      --font-body:"Inter", system-ui, sans-serif;
+      --font-head:"Diesel", "Impact", sans-serif;
+    }
+    @font-face{
+      font-family:"Diesel";
+      src:url("{% static 'fonts/Diesel.ttf' %}") format("truetype");
+      font-display:swap;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:1.25rem;
+      color:var(--text);
+      font-family:var(--font-body);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(213,0,0,.18), transparent 26%),
+        linear-gradient(180deg, #090909 0%, #030303 100%);
+    }
+    .card{
+      width:min(680px, 100%);
+      padding:2rem;
+      border-radius:1rem;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      text-align:center;
+      box-shadow:0 24px 50px rgba(0,0,0,.4);
+    }
+    .eyebrow{
+      margin:0 0 .75rem;
+      color:var(--muted);
+      font-size:.82rem;
+      font-weight:800;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+    }
+    h1{
+      margin:0;
+      font-family:var(--font-head);
+      font-size:clamp(2.2rem, 6vw, 3.5rem);
+      line-height:1;
+      text-transform:uppercase;
+    }
+    p{
+      margin:1rem auto 0;
+      max-width:34rem;
+      color:var(--muted);
+      line-height:1.7;
+    }
+    .actions{
+      margin-top:1.5rem;
+      display:flex;
+      justify-content:center;
+      gap:.8rem;
+      flex-wrap:wrap;
+    }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:3rem;
+      padding:0 1.2rem;
+      border-radius:.85rem;
+      border:1px solid transparent;
+      font-weight:800;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      text-decoration:none;
+    }
+    .btn--primary{
+      background:linear-gradient(90deg, #d50000, #ff2e2e);
+      color:#fff;
+    }
+    .btn--ghost{
+      border-color:var(--line);
+      color:#fff;
+    }
+  </style>
+</head>
+<body>
+  {% include "includes/marketing_body.html" %}
+  <section class="card">
+    <p class="eyebrow">Lead Received</p>
+    <h1>Thank You</h1>
+    <p>Your information has been sent to the Bad Guy Motors team. We will review the truck details, your frustration points, and your timeline before reaching out.</p>
+    <div class="actions">
+      <a class="btn btn--primary" href="/">Back to Site</a>
+      <a class="btn btn--ghost" href="{% url 'qualify' %}">Submit Another Lead</a>
+    </div>
+  </section>
+
+  {% if marketing.meta_pixel_id %}
+    <script>
+      if (typeof fbq === 'function') {
+        fbq('track', 'Lead');
+      }
+    </script>
+  {% endif %}
+</body>
+</html>
