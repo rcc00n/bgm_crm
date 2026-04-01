@@ -78,6 +78,9 @@
     }
     .intro{
       padding:2rem;
+      position:sticky;
+      top:1.25rem;
+      align-self:start;
     }
     .eyebrow{
       margin:0 0 .6rem;
@@ -247,6 +250,7 @@
     }
     @media (max-width: 920px){
       .layout{grid-template-columns:1fr}
+      .intro{position:static}
       .grid{grid-template-columns:1fr}
       .checkbox-grid > div{grid-template-columns:1fr}
     }
