@@ -828,7 +828,11 @@ def summarize_web_analytics_insights(
     }
 
 
-def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) -> Dict[str, object]:
+def summarize_staff_usage(
+    window_days: int = 7,
+    include_inactive: bool = False,
+    user_ids: Optional[List[int]] = None,
+) -> Dict[str, object]:
     """
     Summarize staff time on admin vs client pages within a window.
     """
@@ -911,14 +915,25 @@ def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) 
 
         return _overlap_ms(active_start, active_end, window_start, window_end)
 
+    normalized_user_ids: List[int] = []
+    for raw_user_id in user_ids or []:
+        try:
+            user_id = int(raw_user_id)
+        except (TypeError, ValueError):
+            continue
+        if user_id > 0 and user_id not in normalized_user_ids:
+            normalized_user_ids.append(user_id)
+
+    view_qs = PageView.objects.filter(
+        updated_at__gte=window_start,
+        user__isnull=False,
+        user__is_staff=True,
+    )
+    if normalized_user_ids:
+        view_qs = view_qs.filter(user_id__in=normalized_user_ids)
+
     view_rows = (
-        PageView.objects.filter(
-            updated_at__gte=window_start,
-            user__isnull=False,
-            user__is_staff=True,
-        )
-        .values("user_id", "path", "full_path", "started_at", "updated_at", "duration_ms")
-        .iterator()
+        view_qs.values("user_id", "path", "full_path", "started_at", "updated_at", "duration_ms").iterator()
     )
 
     admin_ms_by_user: Dict[int, int] = defaultdict(int)
@@ -953,6 +968,8 @@ def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) 
 
     User = get_user_model()
     staff_qs = User.objects.filter(is_staff=True)
+    if normalized_user_ids:
+        staff_qs = staff_qs.filter(pk__in=normalized_user_ids)
     if not include_inactive:
         staff_qs = staff_qs.filter(is_active=True)
     staff_list = list(staff_qs.order_by("first_name", "last_name", "username", "email"))
@@ -1027,7 +1044,9 @@ def summarize_staff_usage(window_days: int = 7, include_inactive: bool = False) 
 
 
 def summarize_staff_usage_periods(
-    windows: List[int], include_inactive: bool = False
+    windows: List[int],
+    include_inactive: bool = False,
+    user_ids: Optional[List[int]] = None,
 ) -> List[Dict[str, object]]:
     """
     Produce staff usage summaries for multiple windows.
@@ -1041,7 +1060,11 @@ def summarize_staff_usage_periods(
             continue
         normalized_seen.add(normalized)
 
-        summary = summarize_staff_usage(window_days=normalized, include_inactive=include_inactive)
+        summary = summarize_staff_usage(
+            window_days=normalized,
+            include_inactive=include_inactive,
+            user_ids=user_ids,
+        )
         label = "Today" if normalized == 1 else f"Last {normalized} days"
 
         results.append(

@@ -47,7 +47,11 @@ from core.email_templates import (
     email_dark_color,
     template_tokens,
 )
-from core.services.analytics import summarize_web_analytics, summarize_web_analytics_periods
+from core.services.analytics import (
+    summarize_staff_usage_periods,
+    summarize_web_analytics,
+    summarize_web_analytics_periods,
+)
 from core.services.email_campaigns import (
     estimate_campaign_audience,
     import_email_subscribers,
@@ -419,11 +423,18 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
         ('Admin Notifications', {'fields': ('admin_notification_sections',)}),
         ('Files', {'fields': ('files', 'files_overview')}),
     )
-    readonly_fields = BaseUserAdmin.readonly_fields + ('date_joined', 'last_login', 'files_overview')
+    readonly_fields = BaseUserAdmin.readonly_fields + (
+        'date_joined',
+        'last_login',
+        'files_overview',
+        'time_tracking_overview',
+    )
 
     def get_fieldsets(self, request, obj=None):
-        # Allow Django to use default fieldsets logic
-        return super().get_fieldsets(request, obj)
+        fieldsets = list(super().get_fieldsets(request, obj))
+        if obj and self._has_staff_time_tracking(obj):
+            fieldsets.insert(4, ('Time Tracking', {'fields': ('time_tracking_overview',)}))
+        return fieldsets
 
     def get_form(self, request, obj=None, **kwargs):
         # Return different form on add vs change
@@ -464,6 +475,94 @@ class CustomUserAdmin(ExportCsvMixin ,BaseUserAdmin):
         if remaining > 0:
             extra = format_html("<div style='margin-top:.5rem;color:#999'>+ {} more file(s)</div>", remaining)
         return format_html("<ul style='margin:0;padding-left:1rem;list-style:disc'>{}</ul>{}", rows, extra)
+
+    def _has_staff_time_tracking(self, obj):
+        return bool(
+            obj
+            and obj.pk
+            and obj.is_staff
+            and PageView.objects.filter(user_id=obj.pk).exists()
+        )
+
+    @admin.display(description="Staff time tracking")
+    def time_tracking_overview(self, obj):
+        if not self._has_staff_time_tracking(obj):
+            return "No tracked staff activity yet."
+
+        periods = summarize_staff_usage_periods(
+            windows=[1, 7, 30, 90],
+            include_inactive=True,
+            user_ids=[obj.pk],
+        )
+        rows = []
+        last_seen = None
+
+        for period in periods:
+            row = (period.get("rows") or [{}])[0]
+            period_last_seen = row.get("last_seen")
+            if period_last_seen and (last_seen is None or period_last_seen > last_seen):
+                last_seen = period_last_seen
+            rows.append(
+                (
+                    period.get("label", "Period"),
+                    row.get("admin_label", "00:00:00"),
+                    row.get("client_label", "00:00:00"),
+                    row.get("total_label", "00:00:00"),
+                    row.get("admin_views", 0),
+                    row.get("client_views", 0),
+                    row.get("total_views", 0),
+                )
+            )
+
+        row_html = format_html_join(
+            "",
+            "<tr>"
+            "<th scope='row' style='text-align:left;white-space:nowrap'>{}</th>"
+            "<td style='text-align:right'>{}</td>"
+            "<td style='text-align:right'>{}</td>"
+            "<td style='text-align:right'><strong>{}</strong></td>"
+            "<td style='text-align:right'>{}</td>"
+            "<td style='text-align:right'>{}</td>"
+            "<td style='text-align:right'>{}</td>"
+            "</tr>",
+            rows,
+        )
+
+        last_seen_html = "—"
+        if last_seen:
+            last_seen_html = timezone.localtime(last_seen).strftime("%b %d, %Y %H:%M")
+
+        tracking_url = reverse("admin-staff-usage")
+        return format_html(
+            "<div>"
+            "<div style='margin-bottom:.5rem;color:#666'>"
+            "Worked time from activity tracking across admin and client pages. "
+            "Last active: <strong>{}</strong>."
+            "</div>"
+            "<div style='overflow-x:auto'>"
+            "<table style='width:100%;max-width:760px;border-collapse:collapse'>"
+            "<thead>"
+            "<tr>"
+            "<th style='text-align:left'>Period</th>"
+            "<th style='text-align:right'>Admin</th>"
+            "<th style='text-align:right'>Client</th>"
+            "<th style='text-align:right'>Total</th>"
+            "<th style='text-align:right'>Admin views</th>"
+            "<th style='text-align:right'>Client views</th>"
+            "<th style='text-align:right'>All views</th>"
+            "</tr>"
+            "</thead>"
+            "<tbody>{}</tbody>"
+            "</table>"
+            "</div>"
+            "<div style='margin-top:.5rem'>"
+            "<a href='{}'>Open full staff time tracking</a>"
+            "</div>"
+            "</div>",
+            last_seen_html,
+            row_html,
+            tracking_url,
+        )
 
     # Custom display methods for user profile fields
     def phone(self, instance):

@@ -1,11 +1,22 @@
 from decimal import Decimal
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from core.forms import CustomUserChangeForm, MasterCreateFullForm, ServiceAdminForm, ServiceMasterAdminForm
-from core.models import MasterProfile, Role, Service, ServiceMaster, UserProfile, UserRole
+from core.models import (
+    MasterProfile,
+    PageView,
+    Role,
+    Service,
+    ServiceMaster,
+    UserProfile,
+    UserRole,
+    VisitorSession,
+)
 
 
 class AdminUserRoleFormTests(TestCase):
@@ -40,6 +51,39 @@ class AdminUserRoleFormTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'name="roles"', html=False)
         self.assertContains(response, "Assign roles directly from the user profile card.")
+        self.assertNotContains(response, "Staff time tracking")
+
+    def test_user_change_page_shows_staff_time_tracking_summary(self):
+        self.client.force_login(self.superuser)
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+
+        session = VisitorSession.objects.create(
+            session_key="staff-tracking-session",
+            user=self.user,
+            user_email_snapshot=self.user.email,
+            user_name_snapshot=self.user.get_full_name(),
+            landing_path="/admin/",
+        )
+        now = timezone.now()
+        PageView.objects.create(
+            session=session,
+            user=self.user,
+            page_instance_id="staff-tracking-page-view",
+            path="/admin/core/appointment/",
+            full_path="/admin/core/appointment/",
+            page_title="Appointments",
+            started_at=now - timedelta(hours=2),
+            duration_ms=2 * 60 * 60 * 1000,
+        )
+
+        response = self.client.get(reverse("admin:auth_user_change", args=[self.user.pk]), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Staff time tracking")
+        self.assertContains(response, "Last 7 days")
+        self.assertContains(response, "02:00:00")
+        self.assertContains(response, reverse("admin-staff-usage"))
 
     def test_user_change_form_replaces_roles_and_promotes_staff_for_admin_role(self):
         form = CustomUserChangeForm(
