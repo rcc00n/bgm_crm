@@ -205,6 +205,26 @@ def _serialize_compatibility(product: Product, *, limit: int = 10) -> list[dict[
     return rows
 
 
+def _serialize_liner_pricing_guide(product: Product) -> dict[str, Any] | None:
+    if not getattr(product, "show_liner_pricing_guide", False):
+        return None
+
+    return {
+        "eyebrow": "Finish pricing guide",
+        "title": "Armadillo vs Smooth Criminal",
+        "body": (
+            "Armadillo is the rugged textured finish. Smooth Criminal Liner gives you "
+            "a smoother, more refined look and is priced as the upgraded finish when "
+            "it appears in the options."
+        ),
+        "items": [
+            "Base options are typically priced in Armadillo unless the option name says otherwise.",
+            "SCL or Smooth Criminal options already include the premium finish upgrade in that listed price.",
+            "If you want help choosing the right finish for daily use or a show build, send us a fitment brief below.",
+        ],
+    }
+
+
 def _build_badges(product: Product) -> list[dict[str, str]]:
     badges: list[dict[str, str]] = []
     if getattr(product, "is_in_house", False):
@@ -609,6 +629,7 @@ def serialize_product_detail(product: Product, *, request, dealer_discount: int 
         "product": serialize_product_card(product, dealer_discount=dealer_discount),
         "gallery": gallery,
         "description": (getattr(product, "description", "") or "").strip(),
+        "linerPricingGuide": _serialize_liner_pricing_guide(product),
         "specs": specs,
         "compatibility": {
             "note": (getattr(product, "compatibility", "") or "").strip(),

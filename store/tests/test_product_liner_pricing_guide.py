@@ -40,3 +40,28 @@ class ProductLinerPricingGuideTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Armadillo vs Smooth Criminal")
         self.assertNotContains(response, "data-liner-guide-open")
+
+    def test_product_detail_json_includes_liner_pricing_guide_for_quick_view(self):
+        product = self._product(show_liner_pricing_guide=True)
+
+        response = self.client.get(
+            reverse("store:store-product", kwargs={"slug": product.slug}),
+            {"format": "json"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["linerPricingGuide"]["title"], "Armadillo vs Smooth Criminal")
+        self.assertIn("Smooth Criminal Liner", payload["linerPricingGuide"]["body"])
+        self.assertEqual(len(payload["linerPricingGuide"]["items"]), 3)
+
+    def test_product_detail_json_omits_liner_pricing_guide_when_disabled(self):
+        product = self._product(show_liner_pricing_guide=False)
+
+        response = self.client.get(
+            reverse("store:store-product", kwargs={"slug": product.slug}),
+            {"format": "json"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()["linerPricingGuide"])

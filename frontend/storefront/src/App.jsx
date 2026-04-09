@@ -197,6 +197,50 @@ function priceForDetail(detail, selectedOptionId) {
   };
 }
 
+function linerGuideStorageKey(detail, productSlug) {
+  return `bgm:liner-guide:${detail?.product?.slug || productSlug || "product"}`;
+}
+
+function ProductLinerGuide({ guide, isOpen, onClose, onOpen }) {
+  if (!guide) return null;
+
+  return (
+    <>
+      {isOpen ? (
+        <aside className="storefront-linerGuide" aria-label={guide.title}>
+          <button
+            className="storefront-linerGuide__close"
+            type="button"
+            aria-label="Close finish guide"
+            onClick={onClose}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+          <p className="storefront-linerGuide__eyebrow">{guide.eyebrow}</p>
+          <h3 className="storefront-linerGuide__title">{guide.title}</h3>
+          {guide.body ? <p className="storefront-linerGuide__copy">{guide.body}</p> : null}
+          {guide.items?.length ? (
+            <ul className="storefront-linerGuide__list">
+              {guide.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          ) : null}
+        </aside>
+      ) : null}
+
+      <button
+        className="storefront-linerGuide__toggle"
+        type="button"
+        onClick={onOpen}
+        hidden={isOpen}
+      >
+        {guide.title}
+      </button>
+    </>
+  );
+}
+
 function LoadingCards() {
   return (
     <div className="storefront-grid">
@@ -1089,6 +1133,7 @@ function QuickViewDrawer({
   const [reviewErrors, setReviewErrors] = useState({});
   const [reviewFormError, setReviewFormError] = useState("");
   const [reviewSuccess, setReviewSuccess] = useState("");
+  const [showLinerGuide, setShowLinerGuide] = useState(false);
   const renderedAtRef = useRef(pageRenderedAt || Date.now());
 
   useEffect(() => {
@@ -1148,6 +1193,20 @@ function QuickViewDrawer({
   }, [detail, onClose, productSlug]);
 
   useEffect(() => {
+    if (!detail?.linerPricingGuide) {
+      setShowLinerGuide(false);
+      return;
+    }
+    try {
+      setShowLinerGuide(
+        window.localStorage.getItem(linerGuideStorageKey(detail, productSlug)) !== "hidden"
+      );
+    } catch {
+      setShowLinerGuide(true);
+    }
+  }, [detail, productSlug]);
+
+  useEffect(() => {
     const shouldLockScroll = Boolean(productSlug);
     document.body.classList.toggle("storefront-overlay-open", shouldLockScroll);
     return () => document.body.classList.remove("storefront-overlay-open");
@@ -1167,12 +1226,31 @@ function QuickViewDrawer({
   const compatibilityNote = plainText(detail?.compatibility?.note);
   const galleryImages = buildGalleryImages(detail);
   const activeImage = galleryImages[activeImageIndex] || galleryImages[0] || null;
+  const linerGuide = detail?.linerPricingGuide || null;
 
   function cycleImage(direction) {
     setActiveImageIndex((current) => {
       if (galleryImages.length <= 1) return current;
       return (current + direction + galleryImages.length) % galleryImages.length;
     });
+  }
+
+  function closeLinerGuide() {
+    setShowLinerGuide(false);
+    try {
+      window.localStorage.setItem(linerGuideStorageKey(detail, productSlug), "hidden");
+    } catch {
+      // Ignore localStorage write failures and keep the UI responsive.
+    }
+  }
+
+  function reopenLinerGuide() {
+    setShowLinerGuide(true);
+    try {
+      window.localStorage.removeItem(linerGuideStorageKey(detail, productSlug));
+    } catch {
+      // Ignore localStorage write failures and keep the UI responsive.
+    }
   }
 
   async function submitCart({ buyNow = false }) {
@@ -1403,6 +1481,12 @@ function QuickViewDrawer({
                   ) : (
                     <div className="storefront-drawer__heroImage storefront-drawer__heroImage--fallback" />
                   )}
+                  <ProductLinerGuide
+                    guide={linerGuide}
+                    isOpen={showLinerGuide}
+                    onClose={closeLinerGuide}
+                    onOpen={reopenLinerGuide}
+                  />
                   {galleryImages.length > 1 ? (
                     <>
                       <button

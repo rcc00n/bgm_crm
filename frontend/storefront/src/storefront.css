@@ -1123,6 +1123,86 @@ body.storefront-overlay-open {
     linear-gradient(150deg, rgba(22, 22, 22, 0.95), rgba(10, 10, 10, 0.98));
 }
 
+.storefront-linerGuide {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 3;
+  display: grid;
+  gap: 0.55rem;
+  max-width: min(440px, calc(100% - 2rem));
+  padding: 1rem 1rem 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.15rem;
+  background:
+    linear-gradient(155deg, rgba(8, 8, 8, 0.94), rgba(33, 7, 7, 0.9)),
+    rgba(0, 0, 0, 0.75);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(18px);
+}
+
+.storefront-linerGuide__close {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  cursor: pointer;
+}
+
+.storefront-linerGuide__eyebrow {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.storefront-linerGuide__title {
+  margin: 0;
+  padding-right: 2.4rem;
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1.1;
+}
+
+.storefront-linerGuide__copy {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.5;
+}
+
+.storefront-linerGuide__list {
+  margin: 0;
+  padding-left: 1rem;
+  color: rgba(255, 255, 255, 0.76);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.storefront-linerGuide__toggle {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 3;
+  min-height: 40px;
+  padding: 0.65rem 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(8, 8, 8, 0.82);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+}
+
 .storefront-drawer__nav {
   position: absolute;
   top: 50%;
@@ -1861,6 +1941,21 @@ body.storefront-overlay-open {
   .storefront-drawer__nav {
     width: 40px;
     height: 40px;
+  }
+
+  .storefront-linerGuide {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    max-width: none;
+    padding: 0.95rem 0.95rem 0.9rem;
+  }
+
+  .storefront-linerGuide__toggle {
+    top: 0.75rem;
+    left: 0.75rem;
+    padding-inline: 0.8rem;
+    font-size: 0.92rem;
   }
 
   .storefront-drawer__nav--prev {
