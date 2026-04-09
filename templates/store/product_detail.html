@@ -17,11 +17,32 @@
 
 	    <div class="grid product-detail__grid" style="grid-template-columns:1fr 1fr;gap:1.25rem">
 	      <div class="product-detail__media">
+          <div class="product-detail__media-stage">
 	        {% if product.main_image and not product.main_image_is_placeholder %}
 	          <img class="card__img product-main__img" src="{{ product.main_image_url }}" alt="{{ product.name }}" loading="eager" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/hero-products.jpg' %}';">
 	        {% else %}
 	          <img class="card__img product-main__img" src="{% static 'img/hero-products.jpg' %}" alt="{{ product.name }}" loading="eager" decoding="async">
 	        {% endif %}
+            {% if product.show_liner_pricing_guide %}
+              <aside class="liner-guide" data-liner-guide data-guide-product="{{ product.slug }}">
+                <button class="liner-guide__close" type="button" aria-label="Close finish guide" data-liner-guide-close>&times;</button>
+                <p class="liner-guide__eyebrow">Finish pricing guide</p>
+                <h3 class="liner-guide__title">Armadillo vs Smooth Criminal</h3>
+                <p class="liner-guide__copy">
+                  Armadillo is the rugged textured finish. Smooth Criminal Liner gives you a smoother,
+                  more refined look and is priced as the upgraded finish when it appears in the options.
+                </p>
+                <ul class="liner-guide__list">
+                  <li>Base options are typically priced in Armadillo unless the option name says otherwise.</li>
+                  <li>SCL or Smooth Criminal options already include the premium finish upgrade in that listed price.</li>
+                  <li>If you want help choosing the right finish for daily use or a show build, send us a fitment brief below.</li>
+                </ul>
+              </aside>
+              <button class="liner-guide__toggle" type="button" data-liner-guide-open hidden>
+                Armadillo vs Smooth Criminal
+              </button>
+            {% endif %}
+          </div>
 
         {# галерея; если есть свой related_name=gallery — он сработает; иначе просто не отрисуется #}
 	        {% if product.gallery.all %}
@@ -928,7 +949,82 @@
   .product-detail__grid{
     --product-main-height: clamp(220px, 40vw, 380px);
   }
+  .product-detail__media-stage{
+    position:relative;
+    isolation:isolate;
+  }
   .product-form{display:flex; flex-direction:column; gap:1rem}
+  .liner-guide{
+    position:absolute;
+    left:1rem;
+    bottom:1rem;
+    width:min(26rem, calc(100% - 2rem));
+    padding:1rem 1rem .95rem;
+    border-radius:1rem;
+    border:1px solid rgba(255,255,255,.18);
+    background:linear-gradient(180deg, rgba(9,10,12,.88), rgba(17,20,24,.94));
+    box-shadow:0 24px 70px rgba(0,0,0,.38);
+    backdrop-filter:blur(14px);
+    color:#f5f4ef;
+    z-index:2;
+  }
+  .liner-guide[hidden]{display:none !important;}
+  .liner-guide__close{
+    position:absolute;
+    top:.55rem;
+    right:.55rem;
+    width:2rem;
+    height:2rem;
+    border:0;
+    border-radius:999px;
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    font-size:1.1rem;
+    cursor:pointer;
+  }
+  .liner-guide__eyebrow{
+    margin:0 0 .35rem;
+    font-size:.72rem;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:#c7a56a;
+  }
+  .liner-guide__title{
+    margin:0 0 .45rem;
+    font-size:1.12rem;
+    line-height:1.1;
+  }
+  .liner-guide__copy{
+    margin:0 0 .7rem;
+    color:rgba(245,244,239,.9);
+    font-size:.93rem;
+    line-height:1.5;
+  }
+  .liner-guide__list{
+    margin:0;
+    padding-left:1rem;
+    display:grid;
+    gap:.45rem;
+    color:#ddd6ca;
+    font-size:.84rem;
+    line-height:1.45;
+  }
+  .liner-guide__toggle{
+    position:absolute;
+    top:1rem;
+    left:1rem;
+    z-index:2;
+    padding:.72rem .95rem;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:999px;
+    background:rgba(10,12,15,.78);
+    color:#fff;
+    font-weight:700;
+    font-size:.8rem;
+    letter-spacing:.01em;
+    backdrop-filter:blur(12px);
+    cursor:pointer;
+  }
   .qty-row{display:flex; flex-wrap:wrap; gap:.6rem; align-items:center}
   .inventory-note{
     padding:.75rem .9rem;
@@ -1261,6 +1357,8 @@
 	    .section__head{flex-direction:column;align-items:flex-start;gap:.6rem;}
 	    .product-detail__grid{grid-template-columns:1fr !important;}
 	    .product-detail__grid > div{width:100%;}
+      .liner-guide{left:.75rem;right:.75rem;bottom:.75rem;width:auto;padding:.95rem .95rem .9rem;}
+      .liner-guide__toggle{top:.75rem;left:.75rem;}
       {% if product|is_merch_product %}
       img.product-main__img{
         height:auto;
@@ -1290,6 +1388,21 @@
   @media (max-width:640px){
     .cta{flex-direction:column;align-items:flex-start}
     .cta .btn{width:100%;justify-content:center}
+    .liner-guide{
+      position:relative;
+      left:auto;
+      right:auto;
+      bottom:auto;
+      width:100%;
+      margin-top:.75rem;
+    }
+    .liner-guide__toggle{
+      top:.75rem;
+      left:.75rem;
+      max-width:calc(100% - 1.5rem);
+      white-space:normal;
+      text-align:left;
+    }
   }
   .card--reviews{
     padding:1.5rem;
@@ -1488,6 +1601,53 @@
       mount.appendChild(table);
     } catch (e) {
       // silent fail — оставим noscript-версию/ничего
+    }
+  })();
+</script>
+<script>
+  (function () {
+    var guide = document.querySelector('[data-liner-guide]');
+    if (!guide) return;
+
+    var closeBtn = guide.querySelector('[data-liner-guide-close]');
+    var openBtn = document.querySelector('[data-liner-guide-open]');
+    var storageKey = 'bgm:liner-guide:' + (guide.getAttribute('data-guide-product') || 'product');
+
+    function hideGuide(persist) {
+      guide.hidden = true;
+      if (openBtn) openBtn.hidden = false;
+      if (persist) {
+        try { window.localStorage.setItem(storageKey, 'hidden'); } catch (err) {}
+      }
+    }
+
+    function showGuide(persist) {
+      guide.hidden = false;
+      if (openBtn) openBtn.hidden = true;
+      if (persist) {
+        try { window.localStorage.removeItem(storageKey); } catch (err) {}
+      }
+    }
+
+    try {
+      if (window.localStorage.getItem(storageKey) === 'hidden') {
+        hideGuide(false);
+      } else {
+        showGuide(false);
+      }
+    } catch (err) {
+      showGuide(false);
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function () {
+        hideGuide(true);
+      });
+    }
+    if (openBtn) {
+      openBtn.addEventListener('click', function () {
+        showGuide(true);
+      });
     }
   })();
 </script>

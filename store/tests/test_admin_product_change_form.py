@@ -39,3 +39,4 @@ class ProductAdminChangeFormTests(TestCase):
         self.assertContains(response, "Pricing &amp; stock")
         self.assertContains(response, "Product options")
         self.assertContains(response, "Product images")
+        self.assertContains(response, "Show Armadillo vs Smooth Criminal guide")

@@ -455,6 +455,7 @@ class ProductAdmin(admin.ModelAdmin):
                     "main_image",
                     "short_description",
                     "description",
+                    "show_liner_pricing_guide",
                     ("option_column_1_label", "option_column_2_label"),
                 ),
             },

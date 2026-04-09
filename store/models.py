@@ -478,6 +478,14 @@ class Product(models.Model):
         default=False,
         help_text='Show “Contact for estimate” instead of the numeric price on the storefront.',
     )
+    show_liner_pricing_guide = models.BooleanField(
+        "Show Armadillo vs Smooth Criminal guide",
+        default=False,
+        help_text=(
+            "Display a customer-facing finish guide on the product page that explains "
+            "how Armadillo and Smooth Criminal Liner pricing is presented."
+        ),
+    )
     estimate_from_price = models.DecimalField(
         "Starting from",
         max_digits=10,
