@@ -9,11 +9,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from core.views import DealerApplyWizardView, DealerEntryView, DealerStatusView
 from core import views as core_views
+from core import views_shop as shop_views
 from store import views as store_views
 urlpatterns = [
     path("robots.txt", core_views.robots_txt, name="robots-txt"),
     path("analytics/collect/", core_views.analytics_collect, name="analytics-collect"),
     path("site-notice/signup/", core_views.site_notice_signup, name="site-notice-signup"),
+    path("api/shop/storage/<str:key>/", shop_views.shop_shared_data_api, name="shop-shared-data-api"),
+    path("api/shop/webhooks/website-lead/", shop_views.shop_website_lead_webhook, name="shop-website-lead-webhook"),
     path("admin/logout/", core_views.admin_logout, name="admin-logout"),
     path(
         "admin/api/clients/<int:user_id>/contact/",

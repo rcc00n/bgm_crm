@@ -118,6 +118,11 @@ from core.services.admin_navigation import (
     search_admin_records,
 )
 from core.services.dealer_application_emails import send_dealer_application_submitted
+from core.services.shop_sync import (
+    queue_shop_sync,
+    sync_qualify_lead_to_shop,
+    sync_service_lead_to_shop,
+)
 from notifications.services import (
     notify_about_lead,
     notify_about_service_lead,
@@ -4449,6 +4454,11 @@ def qualify_view(request):
         return render(request, "client/qualify.html", {"form": form}, status=400)
 
     lead = form.save()
+    queue_shop_sync(
+        sync_qualify_lead_to_shop,
+        lead.pk,
+        label=f"shop qualify sync for lead={lead.pk}",
+    )
 
     log_lead_submission(
         form_type="service_lead",
@@ -4918,6 +4928,11 @@ def submit_service_lead(request):
     form = ServiceLeadForm(request.POST)
     if form.is_valid():
         lead = form.save()
+        queue_shop_sync(
+            sync_service_lead_to_shop,
+            lead.pk,
+            label=f"shop service sync for lead={lead.pk}",
+        )
         if evaluation.action == "allow":
             notify_about_service_lead(lead.pk)
         else:

@@ -4665,6 +4665,26 @@ class SiteNoticeSignup(models.Model):
         return f"{self.email} ({self.welcome_code})"
 
 
+class ShopSharedDataRecord(models.Model):
+    """
+    Shared JSON document that backs the shop management app storage layer.
+    """
+
+    key = models.CharField(max_length=120, unique=True, db_index=True)
+    shared = models.BooleanField(default=True, db_index=True)
+    payload = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("key",)
+        verbose_name = "Shop shared data record"
+        verbose_name_plural = "Shop shared data records"
+
+    def __str__(self) -> str:
+        return self.key
+
+
 class Lead(models.Model):
     """
     Intake lead captured from the qualification landing page.

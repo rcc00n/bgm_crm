@@ -66,6 +66,31 @@
             </div>
           </section>
 
+          <section>
+            <h3 class="block-title">Vehicle <span class="section__desc" style="font-size:.9rem;">(optional)</span></h3>
+            <div class="fields-3">
+              <div>
+                <label class="label" for="vehicle_year">Year</label>
+                <input id="vehicle_year" class="input{% if errors.vehicle_year %} input--invalid{% endif %}"
+                       type="number" name="vehicle_year" min="1900" max="2100"
+                       placeholder="2020" value="{{ form.vehicle_year|default_if_none:'' }}">
+                {% if errors.vehicle_year %}<div class="err">{{ errors.vehicle_year }}</div>{% endif %}
+              </div>
+              <div>
+                <label class="label" for="vehicle_make">Make</label>
+                <input id="vehicle_make" class="input"
+                       type="text" name="vehicle_make"
+                       placeholder="Ford" value="{{ form.vehicle_make|default_if_none:'' }}">
+              </div>
+              <div>
+                <label class="label" for="vehicle_model">Model</label>
+                <input id="vehicle_model" class="input"
+                       type="text" name="vehicle_model"
+                       placeholder="F-350" value="{{ form.vehicle_model|default_if_none:'' }}">
+              </div>
+            </div>
+          </section>
+
           <!-- Delivery -->
           <section>
             <h3 class="block-title">Delivery</h3>

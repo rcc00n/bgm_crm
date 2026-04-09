@@ -294,6 +294,16 @@ PRINTFUL_MERCH_CACHE_SECONDS = max(0, _int_env("PRINTFUL_MERCH_CACHE_SECONDS", 3
 PRINTFUL_TIMEOUT_SECONDS = max(0.5, _float_env("PRINTFUL_TIMEOUT_SECONDS", 4.0))
 PRINTFUL_MERCH_SHOW_PRICE = _bool_env("PRINTFUL_MERCH_SHOW_PRICE", "True")
 PRINTFUL_WEBHOOK_SECRET = os.getenv("PRINTFUL_WEBHOOK_SECRET", "")
+SHOP_SHARED_DATA_KEY = os.getenv("SHOP_SHARED_DATA_KEY", "bgm-shop-data-v3")
+SHOP_API_TOKEN = os.getenv("SHOP_API_TOKEN", "")
+SHOP_API_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("SHOP_API_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+SHOP_LEGACY_STORAGE_URL = os.getenv("SHOP_LEGACY_STORAGE_URL", "")
+SHOP_LEGACY_STORAGE_TOKEN = os.getenv("SHOP_LEGACY_STORAGE_TOKEN", "")
+SHOP_LEGACY_STORAGE_AUTH_HEADER = os.getenv("SHOP_LEGACY_STORAGE_AUTH_HEADER", "Authorization")
 # Internal inbox for staff notifications (fallback when per-feature recipients are not configured).
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@badguymotors.com")
 # e-Transfer instructions should default to the payments inbox, not the support inbox.

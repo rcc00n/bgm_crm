@@ -22,6 +22,7 @@ from django.db.models import Avg, Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
@@ -53,6 +54,11 @@ from .printful_fulfillment import (
 )
 from core.models import ClientFile, Payment, PaymentMethod, StorePageCopy, PageFontSetting, PromoCode
 from core.services.page_sections import get_page_sections
+from core.services.shop_sync import (
+    queue_shop_sync,
+    sync_fitment_request_to_shop,
+    sync_order_to_shop,
+)
 from core.utils import apply_dealer_discount, get_dealer_discount_percent
 from core.services.fonts import build_page_font_context
 from core.services.lead_security import evaluate_lead_submission, log_lead_submission
@@ -1668,6 +1674,11 @@ def product_detail(request, slug: str):
                 fitment_request = quote_form.save(commit=False)
                 fitment_request._skip_telegram_notify = True  # avoid duplicate signal send
                 fitment_request.save()
+                queue_shop_sync(
+                    sync_fitment_request_to_shop,
+                    fitment_request.pk,
+                    label=f"shop fitment sync for request={fitment_request.pk}",
+                )
                 fitment_owner = _resolve_client_file_owner(
                     request_user=request.user,
                     email=fitment_request.email,
@@ -2869,6 +2880,9 @@ def checkout(request):
         "payment_method": payment_method,
         "printful_shipping_rate_id": "",
         "free_sticker_choice": "",
+        "vehicle_year": "",
+        "vehicle_make": "",
+        "vehicle_model": "",
     }
 
     def _empty_shipping_quote() -> dict:
@@ -3034,6 +3048,9 @@ def checkout(request):
             "customer_name": val("customer_name"),
             "email": val("email"),
             "phone": val("phone"),
+            "vehicle_year": val("vehicle_year"),
+            "vehicle_make": val("vehicle_make"),
+            "vehicle_model": val("vehicle_model"),
             "delivery_method": "shipping" if cart_is_merch_checkout else val("delivery_method", "shipping"),
             "address_line1": val("address_line1"),
             "address_line2": val("address_line2"),
@@ -3074,6 +3091,14 @@ def checkout(request):
             validate_email(form["email"])
         except ValidationError:
             errors["email"] = "Enter a valid email."
+        if form["vehicle_year"]:
+            try:
+                parsed_vehicle_year = int(form["vehicle_year"])
+            except (TypeError, ValueError):
+                parsed_vehicle_year = None
+            current_year = timezone.now().year + 1
+            if parsed_vehicle_year is None or parsed_vehicle_year < 1900 or parsed_vehicle_year > current_year:
+                errors["vehicle_year"] = f"Enter a valid year between 1900 and {current_year}."
 
         is_pickup = form["delivery_method"] == "pickup"
         if not is_pickup:
@@ -3159,6 +3184,12 @@ def checkout(request):
             for key in ["customer_name", "email", "phone"]:
                 if key in o_fields:
                     order_kwargs[key] = form[key]
+            if "vehicle_make" in o_fields:
+                order_kwargs["vehicle_make"] = form.get("vehicle_make", "")
+            if "vehicle_model" in o_fields:
+                order_kwargs["vehicle_model"] = form.get("vehicle_model", "")
+            if "vehicle_year" in o_fields:
+                order_kwargs["vehicle_year"] = int(form["vehicle_year"]) if form.get("vehicle_year") else None
             if "total" in o_fields:
                 order_kwargs["total"] = total
             if "shipping_cost" in o_fields:
@@ -3351,6 +3382,11 @@ def checkout(request):
                 transaction.on_commit(lambda: _mark_abandoned_cart_recovered(form.get("email", "")))
                 if cart_is_merch_checkout and not is_etransfer:
                     transaction.on_commit(lambda: handle_order_payment_status_transition(order.id))
+                queue_shop_sync(
+                    sync_order_to_shop,
+                    order.id,
+                    label=f"shop order sync for order={order.id}",
+                )
 
             if is_etransfer:
                 amount_str = f"{currency_symbol}{charge_amount.quantize(PAYMENT_QUANT)}"
