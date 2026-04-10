@@ -3156,17 +3156,17 @@ class TopbarSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(ShopRateSettings)
 class ShopRateSettingsAdmin(admin.ModelAdmin):
-    list_display = ("label", "our_shop_rate", "updated_at")
+    list_display = ("label", "our_shop_rate", "our_design_rate", "updated_at")
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
         (
-            "Shared shop rate",
+            "Shared shop and design rates",
             {
                 "description": (
-                    "Single source of truth for the shop rate shown in the client portal "
-                    "and shared public-site sections."
+                    "Single source of truth for the shop and design/CAD rates shown "
+                    "in the client portal and shared public-site sections."
                 ),
-                "fields": ("our_shop_rate",),
+                "fields": ("our_shop_rate", "our_design_rate"),
             },
         ),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
@@ -4533,7 +4533,7 @@ class StorePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
 @admin.register(ClientPortalPageCopy)
 class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
-    readonly_fields = ("shared_shop_rate_notice", "created_at", "updated_at")
+    readonly_fields = ("shared_shop_rate_notice", "shared_design_rate_notice", "created_at", "updated_at")
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
@@ -4582,7 +4582,7 @@ class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "rates_shop_label",
                 "shared_shop_rate_notice",
                 "rates_cad_label",
-                "rates_cad_value",
+                "shared_design_rate_notice",
                 "rates_customer_parts_label",
                 "rates_customer_parts_value",
                 "quick_facts_title",
@@ -4719,6 +4719,16 @@ class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     def shared_shop_rate_notice(self, obj):
         url = reverse("admin:core_shopratesettings_changelist")
         rate = ShopRateSettings.get_shop_rate_value(default=getattr(obj, "rates_shop_value", "130/hr"))
+        return format_html(
+            'Managed from <a href="{}">Shop rate settings</a> in Scheduling &amp; Shop. Current value: <strong>{}</strong>.',
+            url,
+            rate,
+        )
+
+    @admin.display(description="Shared design/CAD rate")
+    def shared_design_rate_notice(self, obj):
+        url = reverse("admin:core_shopratesettings_changelist")
+        rate = ShopRateSettings.get_design_rate_value(default=getattr(obj, "rates_cad_value", "150/hr"))
         return format_html(
             'Managed from <a href="{}">Shop rate settings</a> in Scheduling &amp; Shop. Current value: <strong>{}</strong>.',
             url,
@@ -5101,7 +5111,7 @@ class FinancingPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
 @admin.register(AboutPageCopy)
 class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
-    readonly_fields = ("shared_shop_rate_notice", "created_at", "updated_at")
+    readonly_fields = ("shared_shop_rate_notice", "shared_design_rate_notice", "created_at", "updated_at")
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
@@ -5189,7 +5199,7 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "rates_shop_label",
                 "shared_shop_rate_notice",
                 "rates_cad_label",
-                "rates_cad_value",
+                "shared_design_rate_notice",
                 "rates_customer_parts_label",
                 "rates_customer_parts_value",
                 "rates_policies",
@@ -5249,6 +5259,16 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     def shared_shop_rate_notice(self, obj):
         url = reverse("admin:core_shopratesettings_changelist")
         rate = ShopRateSettings.get_shop_rate_value(default=getattr(obj, "rates_shop_value", "130/hr"))
+        return format_html(
+            'Managed from <a href="{}">Shop rate settings</a> in Scheduling &amp; Shop. Current value: <strong>{}</strong>.',
+            url,
+            rate,
+        )
+
+    @admin.display(description="Shared design/CAD rate")
+    def shared_design_rate_notice(self, obj):
+        url = reverse("admin:core_shopratesettings_changelist")
+        rate = ShopRateSettings.get_design_rate_value(default=getattr(obj, "rates_cad_value", "150/hr"))
         return format_html(
             'Managed from <a href="{}">Shop rate settings</a> in Scheduling &amp; Shop. Current value: <strong>{}</strong>.',
             url,

@@ -1462,6 +1462,10 @@ class ClientPortalPageCopy(models.Model):
     def resolved_rates_shop_value(self) -> str:
         return ShopRateSettings.get_shop_rate_value(default=self.rates_shop_value)
 
+    @property
+    def resolved_rates_cad_value(self) -> str:
+        return ShopRateSettings.get_design_rate_value(default=self.rates_cad_value)
+
     def save(self, *args, **kwargs):
         self.singleton_id = 1
         super().save(*args, **kwargs)
@@ -2009,6 +2013,10 @@ class AboutPageCopy(models.Model):
     @property
     def resolved_rates_shop_value(self) -> str:
         return ShopRateSettings.get_shop_rate_value(default=self.rates_shop_value)
+
+    @property
+    def resolved_rates_cad_value(self) -> str:
+        return ShopRateSettings.get_design_rate_value(default=self.rates_cad_value)
 
     def save(self, *args, **kwargs):
         self.singleton_id = 1
@@ -3025,6 +3033,11 @@ class ShopRateSettings(models.Model):
         default="130/hr",
         help_text="Shared shop rate shown in the client portal and public site sections.",
     )
+    our_design_rate = models.CharField(
+        max_length=40,
+        default="150/hr",
+        help_text="Shared design/CAD rate shown in the client portal and public site sections.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -3049,6 +3062,14 @@ class ShopRateSettings(models.Model):
     def get_shop_rate_value(cls, *, default: str = "130/hr") -> str:
         try:
             value = (cls.get_solo().our_shop_rate or "").strip()
+        except (OperationalError, ProgrammingError):
+            return default
+        return value or default
+
+    @classmethod
+    def get_design_rate_value(cls, *, default: str = "150/hr") -> str:
+        try:
+            value = (cls.get_solo().our_design_rate or "").strip()
         except (OperationalError, ProgrammingError):
             return default
         return value or default
