@@ -1466,6 +1466,10 @@ class ClientPortalPageCopy(models.Model):
     def resolved_rates_cad_value(self) -> str:
         return ShopRateSettings.get_design_rate_value(default=self.rates_cad_value)
 
+    @property
+    def resolved_rates(self) -> list[dict[str, str]]:
+        return ShopRateSettings.get_rate_rows()
+
     def save(self, *args, **kwargs):
         self.singleton_id = 1
         super().save(*args, **kwargs)
@@ -2017,6 +2021,10 @@ class AboutPageCopy(models.Model):
     @property
     def resolved_rates_cad_value(self) -> str:
         return ShopRateSettings.get_design_rate_value(default=self.rates_cad_value)
+
+    @property
+    def resolved_rates(self) -> list[dict[str, str]]:
+        return ShopRateSettings.get_rate_rows()
 
     def save(self, *args, **kwargs):
         self.singleton_id = 1
@@ -3027,6 +3035,14 @@ class TopbarSettings(models.Model):
 
 
 class ShopRateSettings(models.Model):
+    DEFAULT_RATE_ROWS = (
+        {"label": "Mechanical Service", "display_rate": "$140 / hr", "sort_order": 10},
+        {"label": "Custom Fabrication", "display_rate": "$145 / hr", "sort_order": 20},
+        {"label": "Specialty / European", "display_rate": "$150 / hr", "sort_order": 30},
+        {"label": "Design & Engineering", "display_rate": "$150 / hr", "sort_order": 40},
+        {"label": "Customer-Supplied Parts", "display_rate": "$145 / hr", "sort_order": 50},
+    )
+
     singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
     our_shop_rate = models.CharField(
         max_length=40,
@@ -3073,6 +3089,48 @@ class ShopRateSettings(models.Model):
         except (OperationalError, ProgrammingError):
             return default
         return value or default
+
+    @classmethod
+    def default_rate_rows(cls) -> list[dict[str, str]]:
+        return [dict(row) for row in cls.DEFAULT_RATE_ROWS]
+
+    @classmethod
+    def get_rate_rows(cls) -> list[dict[str, str]]:
+        try:
+            settings_obj = cls.get_solo()
+            rows = [
+                {
+                    "label": (row.label or "").strip(),
+                    "display_rate": (row.display_rate or "").strip(),
+                }
+                for row in settings_obj.rate_rows.order_by("sort_order", "id")
+                if (row.label or "").strip() and (row.display_rate or "").strip()
+            ]
+        except (OperationalError, ProgrammingError):
+            return cls.default_rate_rows()
+        return rows
+
+
+class ShopRateLine(models.Model):
+    settings = models.ForeignKey(
+        ShopRateSettings,
+        on_delete=models.CASCADE,
+        related_name="rate_rows",
+    )
+    label = models.CharField(max_length=120)
+    display_rate = models.CharField(max_length=60, help_text="Shown exactly as entered, for example: $140 / hr")
+    sort_order = models.PositiveSmallIntegerField(
+        default=10,
+        help_text="Lower numbers show first.",
+    )
+
+    class Meta:
+        verbose_name = "Shop rate line"
+        verbose_name_plural = "Shop rate lines"
+        ordering = ("sort_order", "id")
+
+    def __str__(self) -> str:
+        return f"{self.label} — {self.display_rate}"
 
 
 class ProjectJournalQuerySet(models.QuerySet):

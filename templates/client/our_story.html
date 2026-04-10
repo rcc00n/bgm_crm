@@ -672,18 +672,12 @@
         <article class="card">
 	          <h2 class="section__title">{{ about_copy.rates_title }}</h2>
 		          <ul class="list list--rates">
+		            {% for rate in about_copy.resolved_rates %}
 		            <li class="rate-row">
-                  <span class="rate-label">{{ about_copy.rates_shop_label }}</span>
-                  <span class="rate-value"><strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.resolved_rates_shop_value }}</strong></span>
+                  <span class="rate-label">{{ rate.label }}</span>
+                  <span class="rate-value"><strong>{{ rate.display_rate }}</strong></span>
                 </li>
-		            <li class="rate-row">
-                  <span class="rate-label">{{ about_copy.rates_cad_label }}</span>
-                  <span class="rate-value"><strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.resolved_rates_cad_value }}</strong></span>
-                </li>
-		            <li class="rate-row">
-                  <span class="rate-label">{{ about_copy.rates_customer_parts_label }}</span>
-                  <span class="rate-value"><strong>{{ currency.code }} {{ currency.symbol }}{{ about_copy.rates_customer_parts_value }}</strong></span>
-                </li>
+                {% endfor %}
 		            {% for policy in about_copy.rates_policies|split_lines %}
 		              <li class="rate-policy">{{ policy|striptags|safe }}</li>
 		            {% endfor %}

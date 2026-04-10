@@ -368,7 +368,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Shop Rate")
+        self.assertContains(response, "Shop Rates")
         self.assertContains(response, reverse("admin:core_shopratesettings_changelist"), html=False)
         self.assertNotContains(response, reverse("admin:core_shopratesettings_add"), html=False)
 

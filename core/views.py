@@ -1946,7 +1946,7 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "Service Assignment", "model": "core.ServiceMaster", "note": "Map services to staff."},
                         {"label": "Rooms & Bays", "model": "core.MasterRoom", "note": "Physical capacity."},
                         {"label": "Service Categories", "model": "core.ServiceCategory", "note": "Service grouping and organization."},
-                        {"label": "Shop Rate", "model": "core.ShopRateSettings", "note": "Shared rate shown in the client portal and site."},
+                        {"label": "Shop Rates", "model": "core.ShopRateSettings", "note": "Shared rates shown in the client portal and site."},
                     ],
                     "tips": [
                         "Touch these pages when the calendar stops reflecting real capacity.",
