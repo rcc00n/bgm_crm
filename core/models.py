@@ -14,6 +14,7 @@ from core.validators import clean_phone
 from .constants import STAFF_DISPLAY_NAME
 from django.conf import settings
 from django.db.models import Sum
+from django.db.utils import OperationalError, ProgrammingError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.templatetags.static import static
 from django.contrib.staticfiles import finders
@@ -1457,6 +1458,10 @@ class ClientPortalPageCopy(models.Model):
     def __str__(self) -> str:
         return "Client portal copy"
 
+    @property
+    def resolved_rates_shop_value(self) -> str:
+        return ShopRateSettings.get_shop_rate_value(default=self.rates_shop_value)
+
     def save(self, *args, **kwargs):
         self.singleton_id = 1
         super().save(*args, **kwargs)
@@ -2000,6 +2005,10 @@ class AboutPageCopy(models.Model):
 
     def __str__(self) -> str:
         return "About page copy"
+
+    @property
+    def resolved_rates_shop_value(self) -> str:
+        return ShopRateSettings.get_shop_rate_value(default=self.rates_shop_value)
 
     def save(self, *args, **kwargs):
         self.singleton_id = 1
@@ -3007,6 +3016,43 @@ class TopbarSettings(models.Model):
     def get_solo(cls):
         obj, _ = cls.objects.get_or_create(singleton_id=1)
         return obj
+
+
+class ShopRateSettings(models.Model):
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    our_shop_rate = models.CharField(
+        max_length=40,
+        default="130/hr",
+        help_text="Shared shop rate shown in the client portal and public site sections.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Shop rate settings"
+        verbose_name_plural = "Shop rate settings"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return f"Shop rate ({self.our_shop_rate})"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj
+
+    @classmethod
+    def get_shop_rate_value(cls, *, default: str = "130/hr") -> str:
+        try:
+            value = (cls.get_solo().our_shop_rate or "").strip()
+        except (OperationalError, ProgrammingError):
+            return default
+        return value or default
+
 
 class ProjectJournalQuerySet(models.QuerySet):
     def published(self):

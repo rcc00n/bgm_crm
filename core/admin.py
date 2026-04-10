@@ -3154,6 +3154,37 @@ class TopbarSettingsAdmin(admin.ModelAdmin):
         return super().has_add_permission(request)
 
 
+@admin.register(ShopRateSettings)
+class ShopRateSettingsAdmin(admin.ModelAdmin):
+    list_display = ("label", "our_shop_rate", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (
+            "Shared shop rate",
+            {
+                "description": (
+                    "Single source of truth for the shop rate shown in the client portal "
+                    "and shared public-site sections."
+                ),
+                "fields": ("our_shop_rate",),
+            },
+        ),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="Settings")
+    def label(self, obj):
+        return "Shop rate settings"
+
+    def has_add_permission(self, request):
+        if ShopRateSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(LegalPage)
 class LegalPageAdmin(admin.ModelAdmin):
     list_display = ("title", "slug", "is_active", "updated_at")
@@ -4502,7 +4533,7 @@ class StorePageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
 @admin.register(ClientPortalPageCopy)
 class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("shared_shop_rate_notice", "created_at", "updated_at")
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
@@ -4545,21 +4576,21 @@ class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "table_amount_label",
             )
         }),
-	        ("Rates & facts", {
-	            "fields": (
-	                "rates_title",
-	                "rates_shop_label",
-	                "rates_shop_value",
-	                "rates_cad_label",
-	                "rates_cad_value",
-	                "rates_customer_parts_label",
-	                "rates_customer_parts_value",
-	                "quick_facts_title",
-	                "quick_fact_1",
-	                "quick_fact_2",
-	                "quick_fact_3",
-	            )
-	        }),
+        ("Rates & facts", {
+            "fields": (
+                "rates_title",
+                "rates_shop_label",
+                "shared_shop_rate_notice",
+                "rates_cad_label",
+                "rates_cad_value",
+                "rates_customer_parts_label",
+                "rates_customer_parts_value",
+                "quick_facts_title",
+                "quick_fact_1",
+                "quick_fact_2",
+                "quick_fact_3",
+            )
+        }),
         ("Policies & care", {
             "fields": (
                 "policies_title",
@@ -4683,6 +4714,16 @@ class ClientPortalPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     @admin.display(description="Page")
     def label(self, obj):
         return "Client portal"
+
+    @admin.display(description="Shared shop rate")
+    def shared_shop_rate_notice(self, obj):
+        url = reverse("admin:core_shopratesettings_changelist")
+        rate = ShopRateSettings.get_shop_rate_value(default=getattr(obj, "rates_shop_value", "130/hr"))
+        return format_html(
+            'Managed from <a href="{}">Shop rate settings</a> in Scheduling &amp; Shop. Current value: <strong>{}</strong>.',
+            url,
+            rate,
+        )
 
 
 class MerchPageCopyAdminForm(forms.ModelForm):
@@ -5060,7 +5101,7 @@ class FinancingPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
 @admin.register(AboutPageCopy)
 class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     list_display = ("label", "updated_at")
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("shared_shop_rate_notice", "created_at", "updated_at")
     formfield_overrides = {
         models.TextField: {"widget": forms.Textarea(attrs={"rows": 3})},
     }
@@ -5142,18 +5183,18 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
                 "how_step_4_desc",
             )
         }),
-	        ("Rates & policies", {
-	            "fields": (
-	                "rates_title",
-	                "rates_shop_label",
-	                "rates_shop_value",
-	                "rates_cad_label",
-	                "rates_cad_value",
-	                "rates_customer_parts_label",
-	                "rates_customer_parts_value",
-	                "rates_policies",
-	            )
-	        }),
+        ("Rates & policies", {
+            "fields": (
+                "rates_title",
+                "rates_shop_label",
+                "shared_shop_rate_notice",
+                "rates_cad_label",
+                "rates_cad_value",
+                "rates_customer_parts_label",
+                "rates_customer_parts_value",
+                "rates_policies",
+            )
+        }),
         ("Location", {
             "fields": (
                 "location_title",
@@ -5203,6 +5244,16 @@ class AboutPageCopyAdmin(PageCopyAdminMixin, admin.ModelAdmin):
     @admin.display(description="Page")
     def label(self, obj):
         return "About page"
+
+    @admin.display(description="Shared shop rate")
+    def shared_shop_rate_notice(self, obj):
+        url = reverse("admin:core_shopratesettings_changelist")
+        rate = ShopRateSettings.get_shop_rate_value(default=getattr(obj, "rates_shop_value", "130/hr"))
+        return format_html(
+            'Managed from <a href="{}">Shop rate settings</a> in Scheduling &amp; Shop. Current value: <strong>{}</strong>.',
+            url,
+            rate,
+        )
 
 
 @admin.register(DealerStatusPageCopy)

@@ -364,6 +364,14 @@ class AdminWorkspaceUiTests(TestCase):
                         with self.subTest(slug=slug, title=card_def.get("title"), model=model_label):
                             self.assertNotIn(add_url, body)
 
+    def test_scheduling_shop_workspace_includes_shared_shop_rate_settings_link(self):
+        response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Shop Rate")
+        self.assertContains(response, reverse("admin:core_shopratesettings_changelist"), html=False)
+        self.assertNotContains(response, reverse("admin:core_shopratesettings_add"), html=False)
+
     def test_whats_new_entries_include_links_to_updated_sections(self):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
