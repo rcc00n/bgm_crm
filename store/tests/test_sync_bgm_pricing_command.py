@@ -68,3 +68,39 @@ class SyncBgmPricingCommandTests(TestCase):
         self.assertTrue(unrelated.is_active)
         self.assertTrue(catalog_product.is_active)
         self.assertEqual(catalog_product.dealer_tier_1_price, Decimal("2000.00"))
+
+    def test_sync_catalog_assigns_best_fit_image_when_catalog_product_is_blank(self):
+        donor_category = Category.objects.create(name="Running Boards", slug="running-boards")
+        Product.objects.create(
+            name="Running Boards/ Step Bars",
+            slug="running-boards-step-bars",
+            sku="BGM-RUNNING-BOARDS-DONOR",
+            category=donor_category,
+            price=Decimal("899.00"),
+            is_in_house=True,
+            is_active=True,
+            main_image="store/products/photo_2025-08-22_06-57-57_2.jpg",
+        )
+
+        self.command._sync_catalog(
+            grouped_rows={
+                "Badland Bar": [
+                    PricingRow(
+                        sku="BGM-BADLAND-BAR-ROW",
+                        category="Badland Bar",
+                        description="Cab Length",
+                        finish="ARM",
+                        size_class="Vehicle Specific",
+                        unit="Each",
+                        msrp=Decimal("1200.00"),
+                        tier_1_price=Decimal("1100.00"),
+                        tier_2_price=Decimal("1000.00"),
+                    )
+                ]
+            },
+            batch=self.batch,
+            deactivate_obsolete=False,
+        )
+
+        catalog_product = Product.objects.get(sku="BGM-BADLAND-BAR-CATALOG")
+        self.assertEqual(catalog_product.main_image_name, "store/products/photo_2025-08-22_06-57-57_2.jpg")

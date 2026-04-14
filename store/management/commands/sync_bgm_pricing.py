@@ -118,6 +118,26 @@ LEGACY_PRODUCT_FAMILY_FILTERS = {
         {"category": "Bumpers", "name_prefix": "Rear Bumpers -"},
     ),
 }
+CATALOG_IMAGE_DONORS = {
+    "Kickback Mudflap": (
+        {"category": "Kickback Mudflaps", "name": "Long JohnKickback Mudflaps"},
+        {"category": "Kickback Mudflaps", "name": "Shorty Kickback Mudflaps"},
+    ),
+    "Dually Mudflap": (
+        {"category": "Kickback Mudflaps", "name": "Shorty Kickback Mudflaps"},
+        {"category": "Kickback Mudflaps", "name": "Long JohnKickback Mudflaps"},
+    ),
+    "Front Bumper": (
+        {"category": "Bumpers", "name": "Front Bumpers - Armadillo"},
+    ),
+    "Rear Bumper": (
+        {"category": "Bumpers", "name": "Rear Bumpers - Smooth Liner"},
+        {"category": "Bumpers", "name": "Rear Bumpers - Armadillo"},
+    ),
+    "Badland Bar": (
+        {"category": "Running Boards", "name": "Running Boards/ Step Bars"},
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -263,6 +283,23 @@ def _inventory_value(existing: Product | None) -> int:
         return max(int(existing.inventory or 0), DEFAULT_INVENTORY)
     except (TypeError, ValueError):
         return DEFAULT_INVENTORY
+
+
+def _find_catalog_image(category_name: str) -> str:
+    for donor_filter in CATALOG_IMAGE_DONORS.get(category_name, ()):
+        donor = (
+            Product.objects.filter(
+                is_in_house=True,
+                category__name=donor_filter["category"],
+                name=donor_filter["name"],
+            )
+            .exclude(main_image="")
+            .exclude(main_image__isnull=True)
+            .first()
+        )
+        if donor and donor.main_image_name:
+            return donor.main_image_name
+    return ""
 
 
 def _unique_option_sku(base_sku: str, row: PricingRow, used: set[str]) -> str:
@@ -505,6 +542,11 @@ class Command(BaseCommand):
                 sku=definition["product_sku"],
                 defaults=product_defaults,
             )
+            if not product.main_image_name:
+                catalog_image = _find_catalog_image(category_name)
+                if catalog_image:
+                    product.main_image = catalog_image
+                    product.save(update_fields=["main_image"])
             managed_product_skus.add(product.sku)
             if created:
                 summary["created_products"] += 1
