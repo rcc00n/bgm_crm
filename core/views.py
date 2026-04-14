@@ -1623,14 +1623,13 @@ def _admin_workspace_config() -> dict[str, dict]:
                 },
                 {
                     "title": "CRM, vehicles, and access",
-                    "summary": "Lead sources, user access, dealer tiers, and vehicle tables moved into Scheduling & Shop so booking-side reference work starts from one place.",
+                    "summary": "Lead sources, user access, and vehicle tables moved into Scheduling & Shop so booking-side reference work starts from one place.",
                     "main_links": [
                         {"label": "Lead Sources", "model": "core.ClientSource", "note": "Client source attribution."},
                         {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
                         {"label": "Car Makes", "model": "store.CarMake", "note": "Vehicle directory root."},
                     ],
                     "support_links": [
-                        {"label": "Tier Levels", "model": "core.DealerTierLevel", "note": "Dealer program tiers."},
                         {"label": "Roles", "model": "core.Role", "note": "Sidebar visibility and role controls."},
                         {"label": "Groups", "model": "auth.Group", "note": "Django auth groups."},
                         {"label": "Role Assignments", "model": "core.UserRole", "note": "User-to-role mapping."},
@@ -1656,11 +1655,11 @@ def _admin_workspace_config() -> dict[str, dict]:
                     "title": "Client desk",
                     "jump_label": "Clients",
                     "eyebrow": "Client Desk",
-                    "summary": "Profiles, reviews, leads, and dealer intake are grouped here so follow-up starts from one place.",
+                    "summary": "Profiles, reviews, and lead follow-up are grouped here so customer support starts from one place.",
                     "main_links": [
                         {"label": "Client Profiles", "model": "core.UserProfile", "note": "Client history and contact context."},
                         {"label": "Service Leads", "model": "core.ServiceLead", "note": "New inbound service requests."},
-                        {"label": "Dealer Applications", "model": "core.DealerApplication", "note": "Dealer intake pipeline."},
+                        {"label": "Leads", "model": "core.Lead", "note": "Broader sales and intake follow-up."},
                     ],
                     "support_links": [
                         {"label": "Client Files", "model": "core.ClientFile", "note": "Uploaded documents and references."},
@@ -1729,7 +1728,6 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "FAQ Page Copy", "model": "core.FAQPageCopy", "note": "FAQ content."},
                         {"label": "Financing Page Copy", "model": "core.FinancingPageCopy", "note": "Financing landing page."},
                         {"label": "About Page Copy", "model": "core.AboutPageCopy", "note": "Brand story page."},
-                        {"label": "Dealer Portal Copy", "model": "core.DealerStatusPageCopy", "note": "Dealer portal page copy."},
                         {"label": "Client Portal Copy", "model": "core.ClientPortalPageCopy", "note": "Client dashboard copy."},
                         {"label": "Merch Page Copy", "model": "core.MerchPageCopy", "note": "Merch landing page."},
                         {"label": "Project Journal Page Copy", "model": "core.ProjectJournalPageCopy", "note": "Journal landing page copy."},
@@ -1991,13 +1989,12 @@ def _admin_workspace_config() -> dict[str, dict]:
                     "title": "CRM & settings",
                     "jump_label": "CRM & Settings",
                     "eyebrow": "CRM & Settings",
-                    "summary": "Lead sources, accounts, dealer tiers, access controls, and shared vehicle references now live here so booking-side setup stays in one operating hub.",
+                    "summary": "Lead sources, accounts, access controls, and shared vehicle references now live here so booking-side setup stays in one operating hub.",
                     "main_links": [
                         {"label": "Lead Sources", "model": "core.ClientSource", "note": "Client source attribution."},
                         {"label": "Users", "model": "auth.User", "note": "Accounts and staff users."},
                     ],
                     "support_links": [
-                        {"label": "Tier Levels", "model": "core.DealerTierLevel", "note": "Dealer program tiers."},
                         {"label": "Roles", "model": "core.Role", "note": "Sidebar visibility and role controls."},
                         {"label": "Role Assignments", "model": "core.UserRole", "note": "User-to-role mapping."},
                     ],
@@ -2065,6 +2062,33 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "Shipping Settings", "model": "store.StoreShippingSettings", "note": "Checkout and shipping rules."},
                     ],
                 },
+                {
+                    "title": "Dealer program",
+                    "jump_label": "Dealers",
+                    "eyebrow": "Dealer Controls",
+                    "summary": "Use this section for dealer approvals, thresholds, profiles, and dealer-facing copy. Dealer price values themselves still live on product and option records in this same workspace.",
+                    "main_links": [
+                        {"label": "Dealer Applications", "model": "core.DealerApplication", "note": "Approve, reject, and review dealer intake."},
+                        {
+                            "label": "Dealer Profiles",
+                            "href": "/admin/core/userprofile/?is_dealer__exact=1",
+                            "permissions": ["core.view_userprofile"],
+                            "icon": "fas fa-id-badge",
+                            "note": "Profiles with active dealer access.",
+                        },
+                        {"label": "Tier Levels", "model": "core.DealerTierLevel", "note": "Dealer thresholds and tier availability."},
+                    ],
+                    "support_links": [
+                        {"label": "Products", "model": "store.Product", "note": "Dealer prices on base product records."},
+                        {"label": "Product Options", "model": "store.ProductOption", "note": "Option-level dealer price fields."},
+                        {"label": "Dealer Portal Copy", "model": "core.DealerStatusPageCopy", "note": "Dealer portal page text and labels."},
+                        {"label": "Products Page Copy", "model": "core.StorePageCopy", "note": "Storefront dealer pricing labels."},
+                    ],
+                    "tips": [
+                        "Use Dealer Applications for approvals, Tier Levels for thresholds, and Dealer Profiles when access needs to be checked on a real account.",
+                        "Edit fixed dealer prices on Products or Product Options, not on the application or tier pages.",
+                    ],
+                },
             ],
         },
         "page-content": {
@@ -2091,7 +2115,6 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "FAQ Page Copy", "model": "core.FAQPageCopy", "note": "FAQ content."},
                         {"label": "Financing Page Copy", "model": "core.FinancingPageCopy", "note": "Financing landing page."},
                         {"label": "About Page Copy", "model": "core.AboutPageCopy", "note": "Brand story page."},
-                        {"label": "Dealer Portal Copy", "model": "core.DealerStatusPageCopy", "note": "Dealer portal page copy."},
                         {"label": "Client Portal Copy", "model": "core.ClientPortalPageCopy", "note": "Client dashboard copy."},
                         {"label": "Merch Page Copy", "model": "core.MerchPageCopy", "note": "Merch landing page."},
                         {"label": "Project Journal Page Copy", "model": "core.ProjectJournalPageCopy", "note": "Journal landing page copy."},
@@ -2281,10 +2304,10 @@ def admin_staff_guide(request):
                 },
                 {
                     "title": "Maintain CRM, vehicle, and access references",
-                    "summary": "Lead sources, users, roles, dealer tiers, and vehicle tables now live inside Scheduling & Shop as shared operating references.",
+                    "summary": "Lead sources, users, roles, and vehicle tables now live inside Scheduling & Shop as shared operating references.",
                     "frequency": "Rare",
                     "roles": ["manager", "shop", "commerce"],
-                    "keywords": "lead sources users roles groups tier levels car makes models access crm vehicles",
+                    "keywords": "lead sources users roles groups car makes models access crm vehicles",
                     "tips": [
                         "These are foundational tables; edit them only when you intentionally want workflow, reporting, or fitment behavior to change.",
                     ],
@@ -2361,7 +2384,7 @@ def admin_staff_guide(request):
                     "keywords": "page copy content editor homepage faq services store about legal journal",
                     "tips": [
                         "Most page copy screens share the same pattern: form, preview, and draft support.",
-                        "Dealer Portal Copy and Client Portal Copy still live here because they are content pages first.",
+                        "Client Portal Copy stays here; dealer-facing copy now opens from the Dealer program section inside Catalog, Merch & Fulfillment.",
                     ],
                     "links": [
                         guide_link("Home Page Copy", model="core.HomePageCopy", note="Home content and layout."),

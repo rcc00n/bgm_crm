@@ -12,6 +12,36 @@ from django.urls import NoReverseMatch, reverse
 # release entry here and follow docs/admin_whats_new_agent_instructions.md.
 ADMIN_RELEASES: list[dict[str, Any]] = [
     {
+        "key": "2026-04-14-dealer-controls-moved-into-catalog-workspace",
+        "published_at": "2026-04-14T15:55:00-06:00",
+        "title": "Dealer controls moved into Catalog, Merch & Fulfillment",
+        "summary": "Dealer approvals, thresholds, dealer profiles, and dealer-facing copy now have a dedicated Dealer program section inside Catalog, Merch & Fulfillment instead of being split across multiple admin hubs.",
+        "highlights": [
+            "Catalog, Merch & Fulfillment now includes a fourth Dealer program section for dealer-specific work.",
+            "Dealer Applications, Dealer Profiles, Tier Levels, and Dealer Portal Copy now sit together in the commerce workspace.",
+            "Scheduling & Shop and Clients & Leads no longer present dealer setup pages as the main place to edit dealer program settings.",
+            "Use Products and Product Options from the same workspace when you need to update dealer price fields on catalog items.",
+        ],
+        "areas": ["Admin UX", "Navigation", "Dealers", "Catalog"],
+        "links": [
+            {
+                "label": "Catalog, Merch & Fulfillment",
+                "href": "/admin/workspaces/catalog-merch/",
+                "note": "Open the new Dealer program section inside the commerce workspace.",
+            },
+            {
+                "label": "Dealer Applications",
+                "url_name": "admin:core_dealerapplication_changelist",
+                "note": "Review and approve dealer intake from the new dealer section.",
+            },
+            {
+                "label": "Dealer Tier Levels",
+                "url_name": "admin:core_dealertierlevel_changelist",
+                "note": "Adjust thresholds and tier availability from the same workspace.",
+            },
+        ],
+    },
+    {
         "key": "2026-03-20-telegram-reminders-send-on-save",
         "published_at": "2026-03-21T00:20:00-06:00",
         "title": "Telegram reminders now send as soon as you save them",

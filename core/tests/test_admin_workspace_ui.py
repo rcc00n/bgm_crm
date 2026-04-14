@@ -243,9 +243,15 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertContains(store_response, "Catalog cockpit")
         self.assertContains(store_response, "Orders and fulfillment")
         self.assertContains(store_response, "Store rules and merch economics")
+        self.assertContains(store_response, "Dealer program")
         self.assertContains(store_response, "Merch economics")
         self.assertContains(store_response, "Product Reviews")
         self.assertContains(store_response, "Other Options")
+        self.assertContains(store_response, "Dealer Applications")
+        self.assertContains(store_response, "Dealer Profiles")
+        self.assertContains(store_response, "Tier Levels")
+        self.assertContains(store_response, "Dealer Portal Copy")
+        self.assertContains(store_response, "Products Page Copy")
         self.assertNotContains(store_response, "Treat these as settings pages, not daily workspaces.")
 
         self.assertEqual(scheduling_response.status_code, 200)
@@ -261,6 +267,7 @@ class AdminWorkspaceUiTests(TestCase):
         self.assertNotContains(scheduling_response, "Car Makes")
         self.assertNotContains(scheduling_response, "Car Models")
         self.assertNotContains(scheduling_response, "Groups")
+        self.assertNotContains(scheduling_response, "Tier Levels")
 
     def test_workspace_hubs_do_not_render_header_shortcuts(self):
         response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "scheduling-shop"}), secure=True)
@@ -376,6 +383,7 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-whats-new"), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Dealer controls moved into Catalog, Merch &amp; Fulfillment")
         self.assertContains(response, "Header no longer overlaps the sidebar edge")
         self.assertContains(response, "Header dropdowns now stack cleanly and no longer flash blue active states")
         self.assertContains(response, "Topbar returned to normal flow and no longer clips into the sidebar")
