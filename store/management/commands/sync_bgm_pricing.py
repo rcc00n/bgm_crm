@@ -10,6 +10,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.db.models import Q
 from django.utils.text import slugify
 
 from store.models import Category, ImportBatch, Product, ProductOption
@@ -108,6 +109,14 @@ PRODUCT_DEFINITIONS = {
         "option_column_1_label": "Options",
         "option_column_2_label": "",
     },
+}
+LEGACY_PRODUCT_FAMILY_FILTERS = {
+    "Front Bumper": (
+        {"category": "Bumpers", "name_prefix": "Front Bumpers -"},
+    ),
+    "Rear Bumper": (
+        {"category": "Bumpers", "name_prefix": "Rear Bumpers -"},
+    ),
 }
 
 
@@ -550,8 +559,16 @@ class Command(BaseCommand):
             product.options.exclude(id__in=kept_option_ids).update(is_active=False, import_batch=batch)
 
         if deactivate_obsolete and managed_categories:
+            obsolete_scope = Q(category__name__in=managed_categories)
+            for category_name in grouped_rows:
+                for legacy_filter in LEGACY_PRODUCT_FAMILY_FILTERS.get(category_name, ()):
+                    obsolete_scope |= Q(
+                        category__name=legacy_filter["category"],
+                        name__startswith=legacy_filter["name_prefix"],
+                    )
+
             Product.objects.filter(
-                category__name__in=managed_categories,
+                obsolete_scope,
                 is_in_house=True,
                 sku__startswith="BGM-",
             ).exclude(
