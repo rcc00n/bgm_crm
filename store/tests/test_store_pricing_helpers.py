@@ -185,3 +185,55 @@ class ProductPricingTests(SimpleTestCase):
 
         self.assertEqual(product.get_discounted_display_price(), Decimal("100.00"))
         self.assertIsNone(product.old_price)
+
+    @patch.object(StorePricingSettings, "get_multiplier", return_value=Decimal("1"))
+    def test_dealer_unit_price_uses_fixed_tier_price_for_in_house_product(self, _mock_multiplier):
+        product = self._create_product(
+            price=Decimal("100.00"),
+            is_in_house=True,
+            dealer_tier_1_price=Decimal("82.50"),
+        )
+        self._with_prefetched_discounts(product)
+
+        self.assertEqual(product.get_dealer_unit_price("TIER_1"), Decimal("82.50"))
+
+    @patch.object(StorePricingSettings, "get_multiplier", return_value=Decimal("1"))
+    def test_dealer_display_price_prefers_cheapest_option_tier_price(self, _mock_multiplier):
+        product = self._create_product(
+            price=Decimal("100.00"),
+            is_in_house=True,
+            dealer_tier_1_price=Decimal("90.00"),
+        )
+        option_large = ProductOption(
+            product=product,
+            name="Large",
+            sku="SKU-LARGE",
+            price=Decimal("150.00"),
+            dealer_tier_1_price=Decimal("120.00"),
+            is_active=True,
+            sort_order=1,
+        )
+        option_small = ProductOption(
+            product=product,
+            name="Small",
+            sku="SKU-SMALL",
+            price=Decimal("90.00"),
+            dealer_tier_1_price=Decimal("70.00"),
+            is_active=True,
+            sort_order=2,
+        )
+        self._with_prefetched_options(product, option_large, option_small)
+        self._with_prefetched_discounts(product)
+
+        self.assertEqual(product.get_dealer_display_price("TIER_1"), Decimal("70.00"))
+
+    @patch.object(StorePricingSettings, "get_multiplier", return_value=Decimal("1"))
+    def test_dealer_price_never_exceeds_current_public_price(self, _mock_multiplier):
+        product = self._create_product(
+            price=Decimal("100.00"),
+            is_in_house=True,
+            dealer_tier_1_price=Decimal("120.00"),
+        )
+        self._with_prefetched_discounts(product)
+
+        self.assertEqual(product.get_dealer_unit_price("TIER_1"), Decimal("100.00"))

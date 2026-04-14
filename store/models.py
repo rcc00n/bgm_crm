@@ -19,6 +19,8 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 PRICE_QUANT = Decimal("0.01")
+DEALER_TIER_CODE_LEVEL_1 = "TIER_1"
+DEALER_TIER_CODE_LEVEL_2 = "TIER_2"
 COMPANION_TOKEN_STOPWORDS = {
     "and",
     "build",
@@ -130,6 +132,15 @@ def apply_store_price_multiplier(amount: Decimal, *, apply_multiplier: bool = Tr
         return (amount_value * multiplier).quantize(PRICE_QUANT)
     except (InvalidOperation, TypeError):
         return Decimal("0.00")
+
+
+def _dealer_price_field_name(tier_code: str | None) -> str:
+    normalized = str(tier_code or "").strip().upper()
+    if normalized == DEALER_TIER_CODE_LEVEL_1:
+        return "dealer_tier_1_price"
+    if normalized == DEALER_TIER_CODE_LEVEL_2:
+        return "dealer_tier_2_price"
+    return ""
 
 
 class StoreShippingSettings(models.Model):
@@ -414,6 +425,24 @@ class Product(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(0)],
         help_text="Base price before the global multiplier.",
+    )
+    dealer_tier_1_price = models.DecimalField(
+        "Tier 1 price",
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Optional fixed dealer price for Tier 1. Used only for in-house products.",
+    )
+    dealer_tier_2_price = models.DecimalField(
+        "Tier 2 price",
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Optional fixed dealer price for Tier 2. Used only for in-house products.",
     )
     unit_cost = models.DecimalField(
         "Cost / value (per unit)",
@@ -814,7 +843,55 @@ class Product(models.Model):
             return Decimal("0.00")
         return apply_store_price_multiplier(amount, apply_multiplier=not self.is_in_house)
 
-    def _option_price_values(self):
+    def _get_fixed_dealer_price_value(self, tier_code: str | None, option=None) -> Decimal | None:
+        if not self.is_in_house or self.contact_for_estimate:
+            return None
+        field_name = _dealer_price_field_name(tier_code)
+        if not field_name:
+            return None
+        raw_value = None
+        if option and getattr(option, field_name, None) is not None:
+            raw_value = getattr(option, field_name)
+        else:
+            raw_value = getattr(self, field_name, None)
+        if raw_value is None:
+            return None
+        try:
+            return Decimal(raw_value).quantize(PRICE_QUANT)
+        except (InvalidOperation, TypeError):
+            return None
+
+    def has_dealer_price_for_tier(self, tier_code: str | None, option=None) -> bool:
+        return self._get_fixed_dealer_price_value(tier_code, option=option) is not None
+
+    def get_dealer_unit_price(self, tier_code: str | None, option=None) -> Decimal:
+        public_price = self.get_discounted_unit_price(option)
+        tier_price = self._get_fixed_dealer_price_value(tier_code, option=option)
+        if tier_price is None:
+            return public_price
+        return min(public_price, tier_price).quantize(PRICE_QUANT)
+
+    def get_dealer_display_price(self, tier_code: str | None) -> Decimal:
+        overrides = []
+        for value in self._option_price_values(tier_code=tier_code, dealer=True):
+            try:
+                overrides.append(Decimal(value))
+            except (InvalidOperation, TypeError):
+                continue
+        if overrides:
+            return min(overrides).quantize(PRICE_QUANT)
+        public_price = self.get_discounted_display_price()
+        tier_price = self._get_fixed_dealer_price_value(tier_code)
+        if tier_price is None:
+            return public_price
+        return min(public_price, tier_price).quantize(PRICE_QUANT)
+
+    def _option_price_values(self, *, tier_code: str | None = None, dealer: bool = False):
+        if dealer:
+            for opt in self.get_selectable_options():
+                yield self.get_dealer_unit_price(tier_code, opt)
+            return
+
         apply_multiplier = not self.is_in_house
         for opt in self.get_selectable_options():
             value = getattr(opt, "price", None)
@@ -896,6 +973,24 @@ class ProductOption(models.Model):
             "Global multiplier still applies unless the product is in-house."
         ),
     )
+    dealer_tier_1_price = models.DecimalField(
+        "Tier 1 price",
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        help_text="Optional fixed Tier 1 dealer price for this option.",
+    )
+    dealer_tier_2_price = models.DecimalField(
+        "Tier 2 price",
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        help_text="Optional fixed Tier 2 dealer price for this option.",
+    )
     is_active = models.BooleanField(
         "Active",
         default=False,
@@ -955,6 +1050,9 @@ class ProductOption(models.Model):
     @property
     def discounted_price(self) -> Decimal:
         return self.product.get_discounted_unit_price(self)
+
+    def get_dealer_price(self, tier_code: str | None) -> Decimal:
+        return self.product.get_dealer_unit_price(tier_code, self)
 
 
 class ProductImage(models.Model):

@@ -3542,17 +3542,15 @@ from django.core.validators import MinLengthValidator
 
 
 class DealerTier(models.TextChoices):
-    NONE = "NONE", "None"
-    # Keep display labels generic so ops can control discount % via DealerTierLevel rows.
-    TIER_5 = "TIER_5", "T1"
-    TIER_10 = "TIER_10", "T2"
-    TIER_15 = "TIER_15", "T3"
+    NONE = "NONE", "Standard"
+    TIER_1 = "TIER_1", "Tier 1"
+    TIER_2 = "TIER_2", "Tier 2"
 
 
 class DealerTierLevel(models.Model):
     """
     Editable tier configuration accessible from the admin panel.
-    Allows ops to tune names, minimum spend, and discount percent without code changes.
+    Allows ops to tune names, minimum spend, and descriptive copy without code changes.
     """
     code = models.CharField(
         "Code",
@@ -3561,7 +3559,6 @@ class DealerTierLevel(models.Model):
         unique=True,
     )
     label = models.CharField("Label", max_length=120)
-    discount_percent = models.PositiveIntegerField("Discount percent", default=5)
     minimum_spend = models.PositiveIntegerField(
         f"Minimum lifetime spend ({settings.DEFAULT_CURRENCY_CODE})",
         default=0,
@@ -3582,17 +3579,11 @@ class DealerTierLevel(models.Model):
         ordering = ["minimum_spend", "sort_order", "code"]
 
     def __str__(self) -> str:
-        return f"{self.label} ({self.discount_percent}% off)"
+        return self.label
 
 DEALER_THRESHOLDS = {
-    DealerTier.TIER_5: 1000,
-    DealerTier.TIER_10: 5000,
-    DealerTier.TIER_15: 20000,
-}
-DEALER_DISCOUNTS = {
-    DealerTier.TIER_5: 15,
-    DealerTier.TIER_10: 20,
-    DealerTier.TIER_15: 25,
+    DealerTier.TIER_1: 15000,
+    DealerTier.TIER_2: 50000,
 }
 
 class DealerApplication(models.Model):
@@ -3639,7 +3630,7 @@ class DealerApplication(models.Model):
         "Preferred tier",
         max_length=16,
         choices=DealerTier.choices,
-        default=DealerTier.TIER_5,
+        default=DealerTier.TIER_1,
         help_text="Requested tier based on projected volume.",
     )
     assigned_tier = models.CharField(
@@ -3952,12 +3943,10 @@ class UserProfile(models.Model):
         else:
             # Fallback to static thresholds if no rows configured in DB.
             fallback = DealerTier.NONE
-            if spent >= Decimal(DEALER_THRESHOLDS[DealerTier.TIER_15]):
-                fallback = DealerTier.TIER_15
-            elif spent >= Decimal(DEALER_THRESHOLDS[DealerTier.TIER_10]):
-                fallback = DealerTier.TIER_10
-            elif spent >= Decimal(DEALER_THRESHOLDS[DealerTier.TIER_5]):
-                fallback = DealerTier.TIER_5
+            if spent >= Decimal(DEALER_THRESHOLDS[DealerTier.TIER_2]):
+                fallback = DealerTier.TIER_2
+            elif spent >= Decimal(DEALER_THRESHOLDS[DealerTier.TIER_1]):
+                fallback = DealerTier.TIER_1
             chosen = fallback
 
         self.dealer_tier = chosen  # do NOT flip is_dealer here
@@ -3968,10 +3957,9 @@ class UserProfile(models.Model):
 
     @property
     def dealer_discount_percent(self) -> int:
-        level = self.get_dealer_tier_level()
-        if level:
-            return level.discount_percent
-        return DEALER_DISCOUNTS.get(self.dealer_tier, 0)
+        # Dealer pricing is now driven by fixed tier prices on products/options.
+        # Keep the legacy property for compatibility with older templates/callers.
+        return 0
 
 # --- 2. SERVICES ---
 

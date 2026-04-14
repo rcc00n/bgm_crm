@@ -246,7 +246,7 @@ class Command(BaseCommand):
                 roles=[roles["Client"]],
                 marketing=True,
                 is_dealer=True,
-                dealer_tier=DealerTier.TIER_10,
+                dealer_tier=DealerTier.TIER_1,
             ),
             self._upsert_user(
                 username="demo_dealer_pending",
@@ -573,13 +573,13 @@ class Command(BaseCommand):
             (
                 approved,
                 DealerApplication.Status.APPROVED,
-                DealerTier.TIER_10,
+                DealerTier.TIER_1,
                 "Demo Offroad Supply",
             ),
             (
                 pending,
                 DealerApplication.Status.PENDING,
-                DealerTier.TIER_5,
+                DealerTier.TIER_1,
                 "Demo Trail Partners",
             ),
             (

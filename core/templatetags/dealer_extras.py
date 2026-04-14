@@ -51,6 +51,36 @@ def dealer_savings(value, percent):
         return Decimal("0.00")
     return dealer_discount_savings(value, pct)
 
+
+@register.filter
+def dealer_price_for_tier(value, tier_code):
+    if hasattr(value, "get_dealer_price"):
+        return value.get_dealer_price(tier_code)
+    if hasattr(value, "get_dealer_display_price"):
+        return value.get_dealer_display_price(tier_code)
+    return value
+
+
+@register.filter
+def dealer_savings_for_tier(value, tier_code):
+    if hasattr(value, "get_dealer_price"):
+        public_price = Decimal(getattr(value, "discounted_price", getattr(value, "unit_price", Decimal("0.00"))))
+        dealer_price = value.get_dealer_price(tier_code)
+        return max(Decimal("0.00"), public_price - dealer_price)
+    if hasattr(value, "get_dealer_display_price"):
+        public_price = Decimal(getattr(value, "public_price", getattr(value, "display_price", Decimal("0.00"))))
+        dealer_price = value.get_dealer_display_price(tier_code)
+        return max(Decimal("0.00"), public_price - dealer_price)
+    return Decimal("0.00")
+
+
+@register.filter
+def dealer_has_price_for_tier(value, tier_code) -> bool:
+    try:
+        return bool(dealer_savings_for_tier(value, tier_code))
+    except Exception:
+        return False
+
 @register.filter
 def is_merch_product(product) -> bool:
     """

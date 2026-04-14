@@ -161,6 +161,8 @@ class ProductOptionInline(admin.TabularInline):
         "is_separator",
         "option_column",
         "price",
+        "dealer_tier_1_price",
+        "dealer_tier_2_price",
         "is_active",
         "sort_order",
     )
@@ -437,10 +439,11 @@ class ProductAdmin(admin.ModelAdmin):
         (
             "Pricing & stock",
             {
-                "description": "Retail pricing, internal cost, inventory, and sellability flags.",
+                "description": "Retail, Tier 1, Tier 2 pricing, internal cost, inventory, and sellability flags.",
                 "classes": ("product-admin-fieldset", "product-admin-fieldset--pricing"),
                 "fields": (
-                    ("price", "unit_cost"),
+                    ("price", "dealer_tier_1_price", "dealer_tier_2_price"),
+                    ("unit_cost",),
                     ("inventory", "estimate_from_price"),
                     ("contact_for_estimate", "is_in_house", "is_active"),
                 ),

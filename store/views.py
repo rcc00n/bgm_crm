@@ -59,7 +59,7 @@ from core.services.shop_sync import (
     sync_fitment_request_to_shop,
     sync_order_to_shop,
 )
-from core.utils import apply_dealer_discount, get_dealer_discount_percent
+from core.utils import get_dealer_tier_code, get_dealer_tier_level
 from core.services.fonts import build_page_font_context
 from core.services.lead_security import evaluate_lead_submission, log_lead_submission
 from notifications import services as notification_services
@@ -85,6 +85,16 @@ STORE_HOME_SHOWCASE_LIMIT = 100
 STORE_HOME_BAD_IMAGE_TERMS = ("banner", "favicon", "icon", "logo", "placeholder")
 STORE_HOME_GENERIC_IMAGE_PREFIXES = ("store/categories/",)
 STOREFRONT_PAGE_SIZE = 24
+
+
+def _dealer_pricing_context(user) -> tuple[str, str]:
+    if not user or not getattr(user, "is_authenticated", False):
+        return "", ""
+    tier_code = get_dealer_tier_code(user)
+    if not tier_code:
+        return "", ""
+    level = get_dealer_tier_level(user)
+    return tier_code, (level.label if level else "")
 
 
 def _allow_out_of_stock_orders() -> bool:
@@ -765,7 +775,7 @@ def _build_storefront_listing_payload(request) -> dict:
     products = _sort_storefront_products(list(filtered_qs), sort)
     paginator = Paginator(products, STOREFRONT_PAGE_SIZE)
     page_obj = paginator.get_page(page_number)
-    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    dealer_tier_code, _dealer_tier_label = _dealer_pricing_context(request.user)
 
     category_counts = {
         row["category_id"]: int(row["total"] or 0)
@@ -815,7 +825,7 @@ def _build_storefront_listing_payload(request) -> dict:
         },
         "catalog": {
             "products": [
-                serialize_product_card(product, dealer_discount=dealer_discount, mode="store")
+                serialize_product_card(product, dealer_tier_code=dealer_tier_code, mode="store")
                 for product in page_obj.object_list
             ],
             "pagination": {
@@ -1545,12 +1555,12 @@ def product_detail(request, slug: str):
     wants_json = request_wants_json(request)
 
     if request.method == "GET" and wants_json:
-        dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+        dealer_tier_code, _dealer_tier_label = _dealer_pricing_context(request.user)
         return JsonResponse(
             serialize_product_detail(
                 product,
                 request=request,
-                dealer_discount=dealer_discount,
+                dealer_tier_code=dealer_tier_code,
             )
         )
 
@@ -2125,7 +2135,14 @@ def _free_sticker_available_for_delivery(*, cart_is_merch_checkout: bool, delive
     return (delivery_method or "shipping").strip().lower() != "pickup"
 
 
-def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: PromoCode | None = None):
+def _cart_positions(
+    session,
+    *,
+    dealer_tier_code: str = "",
+    dealer_tier_label: str = "",
+    user=None,
+    promo: PromoCode | None = None,
+):
     """
     Build hydrated cart positions for rendering/checkout.
     Returns (positions, dealer_total, retail_total).
@@ -2164,7 +2181,8 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: Prom
     positions = []
     total = Decimal("0.00")
     retail_total = Decimal("0.00")
-    dealer_discount = int(dealer_discount or 0)
+    dealer_tier_code = str(dealer_tier_code or "").strip()
+    dealer_tier_label = str(dealer_tier_label or "").strip()
     promo = promo if (promo and promo.applies_to_products and promo.is_active()) else None
     promo_percent = int(getattr(promo, "discount_percent", 0) or 0) if promo else 0
     promo_applicable_ids = None
@@ -2186,13 +2204,19 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: Prom
         if option and not getattr(option, "is_active", True):
             option = None
         qty = entry["qty"]
-        unit = product.get_unit_price(option)
-        retail_unit = unit
+        retail_unit = product.get_unit_price(option)
+        public_unit = product.get_discounted_unit_price(option)
         retail_line = (retail_unit * qty).quantize(quant)
 
-        # Dealer discounts never apply to merch products.
-        dealer_percent = dealer_discount if (dealer_discount and not _is_merch_product(product)) else 0
-        product_percent = product.active_discount_percent if not product.contact_for_estimate else 0
+        dealer_eligible = bool(
+            dealer_tier_code
+            and not _is_merch_product(product)
+            and getattr(product, "is_in_house", False)
+            and not product.contact_for_estimate
+        )
+        dealer_unit = product.get_dealer_unit_price(dealer_tier_code, option) if dealer_eligible else public_unit
+        dealer_applied = dealer_eligible and dealer_unit < public_unit
+        sale_applied = (not product.contact_for_estimate) and public_unit < retail_unit
 
         promo_eligible = False
         promo_percent_line = 0
@@ -2201,28 +2225,31 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: Prom
             if promo_eligible:
                 promo_percent_line = promo_percent
 
-        base_discount_percent = max(product_percent, dealer_percent)
-        discounted_unit = apply_dealer_discount(retail_unit, base_discount_percent) if base_discount_percent else retail_unit
+        if dealer_applied:
+            discounted_unit = dealer_unit
+            discount_type = "dealer"
+            discount_label = dealer_tier_label or "Dealer price"
+            line_discount_indicator = 1
+        elif sale_applied:
+            discounted_unit = public_unit
+            discount_type = "sale"
+            discount_label = "Sale"
+            line_discount_indicator = 1
+        else:
+            discounted_unit = public_unit
+            discount_type = ""
+            discount_label = ""
+            line_discount_indicator = 0
+
         promo_savings_unit = Decimal("0.00")
         if promo_percent_line:
             promo_savings_unit = (discounted_unit * (Decimal(promo_percent_line) / Decimal("100"))).quantize(quant)
             discounted_unit = (discounted_unit - promo_savings_unit).quantize(quant)
         line_total = (discounted_unit * qty).quantize(quant)
-        discount_type = ""
-        discount_label = ""
-        line_discount_percent = 0
         if promo_percent_line:
             discount_type = "promo"
             discount_label = "Promo"
-            line_discount_percent = promo_percent_line
-        elif product_percent and product_percent == base_discount_percent:
-            discount_type = "sale"
-            discount_label = "Sale"
-            line_discount_percent = product_percent
-        elif dealer_percent and dealer_percent == base_discount_percent:
-            discount_type = "dealer"
-            discount_label = "Dealer"
-            line_discount_percent = dealer_percent
+            line_discount_indicator = promo_percent_line
 
         reference_client_file_id = entry.get("reference_client_file_id") or None
         reference_file_name = (entry.get("reference_file_name") or "").strip()
@@ -2250,7 +2277,7 @@ def _cart_positions(session, *, dealer_discount: int = 0, user=None, promo: Prom
                 "line_total": line_total,
                 "retail_line_total": retail_line,
                 "savings": (retail_line - line_total).quantize(quant),
-                "discount_percent": line_discount_percent,
+                "discount_percent": line_discount_indicator,
                 "discount_type": discount_type,
                 "discount_label": discount_label,
                 "discount_code": promo.code if discount_type == "promo" and promo else "",
@@ -2408,9 +2435,11 @@ def cart_add(request, slug: str):
         messages.error(request, inventory_error)
         return redirect("store:store-product", slug=product.slug)
 
+    dealer_tier_code, dealer_tier_label = _dealer_pricing_context(request.user)
     cart_positions, _, _ = _cart_positions(
         request.session,
-        dealer_discount=get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0,
+        dealer_tier_code=dealer_tier_code,
+        dealer_tier_label=dealer_tier_label,
         user=request.user if request.user.is_authenticated else None,
     )
     if cart_positions:
@@ -2536,7 +2565,7 @@ def cart_add(request, slug: str):
 
 
 def cart_view(request):
-    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    dealer_tier_code, dealer_tier_label = _dealer_pricing_context(request.user)
     promo_code = _get_cart_promocode(request.session)
     promo = None
     promo_error = ""
@@ -2548,7 +2577,8 @@ def cart_view(request):
             promo = None
     positions, total, retail_total = _cart_positions(
         request.session,
-        dealer_discount=dealer_discount,
+        dealer_tier_code=dealer_tier_code,
+        dealer_tier_label=dealer_tier_label,
         user=request.user if request.user.is_authenticated else None,
         promo=promo,
     )
@@ -2559,7 +2589,6 @@ def cart_view(request):
     )
     any_discounted = any(int(entry.get("discount_percent") or 0) > 0 for entry in (positions or []))
     has_dealer_discount = any(entry.get("discount_type") == "dealer" for entry in (positions or []))
-    effective_dealer_discount = int(dealer_discount or 0) if has_dealer_discount else 0
     savings = (retail_total - total) if retail_total and total else Decimal("0.00")
     promo_applied = any(entry.get("discount_type") == "promo" for entry in (positions or []))
     promo_savings = sum((entry.get("promo_savings") or Decimal("0.00")) for entry in (positions or []))
@@ -2588,7 +2617,7 @@ def cart_view(request):
         "total": total,
         "retail_total": retail_total,
         "cart_savings": savings,
-        "dealer_discount_percent": effective_dealer_discount,
+        "dealer_discount_percent": 0,
         "cart_has_merch": cart_has_merch,
         "store_copy": StorePageCopy.get_solo(),
         "promo_code": promo_code,
@@ -2619,10 +2648,11 @@ def cart_promo(request):
         messages.error(request, error)
         return redirect(next_url)
 
-    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    dealer_tier_code, dealer_tier_label = _dealer_pricing_context(request.user)
     positions, _, _ = _cart_positions(
         request.session,
-        dealer_discount=dealer_discount,
+        dealer_tier_code=dealer_tier_code,
+        dealer_tier_label=dealer_tier_label,
         user=request.user if request.user.is_authenticated else None,
         promo=promo,
     )
@@ -2693,10 +2723,11 @@ def cart_remove(request, slug: str):
 
 @require_POST
 def checkout_printful_rates(request):
-    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    dealer_tier_code, dealer_tier_label = _dealer_pricing_context(request.user)
     positions, total, _ = _cart_positions(
         request.session,
-        dealer_discount=dealer_discount,
+        dealer_tier_code=dealer_tier_code,
+        dealer_tier_label=dealer_tier_label,
         user=request.user if request.user.is_authenticated else None,
     )
     if not positions:
@@ -2809,7 +2840,7 @@ def _first_present(model_fields: set, candidates: Iterable[str]):
 # ─────────────────────────────── Checkout ────────────────────────────────
 
 def checkout(request):
-    dealer_discount = get_dealer_discount_percent(request.user) if request.user.is_authenticated else 0
+    dealer_tier_code, dealer_tier_label = _dealer_pricing_context(request.user)
     promo_code = _get_cart_promocode(request.session)
     promo = None
     promo_error = ""
@@ -2822,7 +2853,8 @@ def checkout(request):
 
     positions, total, retail_total = _cart_positions(
         request.session,
-        dealer_discount=dealer_discount,
+        dealer_tier_code=dealer_tier_code,
+        dealer_tier_label=dealer_tier_label,
         user=request.user if request.user.is_authenticated else None,
         promo=promo,
     )
@@ -2835,7 +2867,6 @@ def checkout(request):
 
     cart_has_merch = any(_is_merch_product(entry.get("product")) for entry in (positions or []))
     has_dealer_discount = any(entry.get("discount_type") == "dealer" for entry in (positions or []))
-    effective_dealer_discount = int(dealer_discount or 0) if has_dealer_discount else 0
     cart_is_merch_checkout = cart_is_merch_only(positions)
     free_sticker_threshold = _free_sticker_threshold()
     free_sticker_choices = []
@@ -3446,7 +3477,7 @@ def checkout(request):
             "reference_image_limit_mb": REFERENCE_IMAGE_MAX_MB,
             "retail_total": retail_total,
             "cart_savings": (retail_total - total) if retail_total and total else Decimal("0.00"),
-            "dealer_discount_percent": effective_dealer_discount,
+            "dealer_discount_percent": 0,
             "cart_has_merch": cart_has_merch,
             "cart_is_merch_checkout": cart_is_merch_checkout,
             "promo_code": promo_code,

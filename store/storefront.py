@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from core.services.lead_security import HONEYPOT_FIELD, build_form_token, ensure_session_key
-from core.utils import apply_dealer_discount, format_currency
+from core.utils import format_currency
 
 from .forms_store import CustomFitmentRequestForm, StoreReviewForm
 from .models import Product, ProductOption, StoreInventorySettings, StoreShippingSettings, StoreReview
@@ -245,16 +245,20 @@ def _build_badges(product: Product) -> list[dict[str, str]]:
 def serialize_product_card(
     product: Product,
     *,
-    dealer_discount: int = 0,
+    dealer_tier_code: str = "",
     mode: str = "store",
     category_label: str | None = None,
     category_key: str | None = None,
 ) -> dict[str, Any]:
     is_merch = bool(getattr(product, "is_merch_product", False))
-    can_show_dealer = bool(dealer_discount and not is_merch and not getattr(product, "contact_for_estimate", False))
     public_price = _to_decimal(getattr(product, "public_price", Decimal("0.00")))
-    display_price = _to_decimal(getattr(product, "display_price", public_price))
-    dealer_price = apply_dealer_discount(display_price, dealer_discount) if can_show_dealer else public_price
+    dealer_price = _to_decimal(product.get_dealer_display_price(dealer_tier_code)) if dealer_tier_code else public_price
+    can_show_dealer = bool(
+        dealer_tier_code
+        and not is_merch
+        and not getattr(product, "contact_for_estimate", False)
+        and dealer_price < public_price
+    )
 
     category = getattr(product, "category", None)
     compatibility_rows = _serialize_compatibility(product, limit=3)
@@ -289,7 +293,7 @@ def serialize_product_card(
             if getattr(product, "old_price", None) is not None
             else "",
             "dealerLabel": _money_label(dealer_price) if can_show_dealer else "",
-            "dealerSavingsLabel": _money_label(display_price - dealer_price) if can_show_dealer else "",
+            "dealerSavingsLabel": _money_label(public_price - dealer_price) if can_show_dealer else "",
         },
         "badges": _build_badges(product),
         "compatibility": compatibility_rows,
@@ -557,12 +561,17 @@ def _serialize_review_payload(product: Product, *, request) -> dict[str, Any]:
     }
 
 
-def serialize_product_detail(product: Product, *, request, dealer_discount: int = 0) -> dict[str, Any]:
+def serialize_product_detail(product: Product, *, request, dealer_tier_code: str = "") -> dict[str, Any]:
     options = list(product.get_active_options())
     default_option = next((opt for opt in options if not getattr(opt, "is_separator", False)), None)
     allow_out_of_stock_orders = StoreInventorySettings.get_allow_out_of_stock_orders()
+    product_dealer_price = _to_decimal(product.get_dealer_display_price(dealer_tier_code)) if dealer_tier_code else None
     can_show_dealer = bool(
-        dealer_discount and not getattr(product, "is_merch_product", False) and not getattr(product, "contact_for_estimate", False)
+        dealer_tier_code
+        and not getattr(product, "is_merch_product", False)
+        and not getattr(product, "contact_for_estimate", False)
+        and product_dealer_price is not None
+        and product_dealer_price < _to_decimal(getattr(product, "public_price", Decimal("0.00")))
     )
 
     inventory_notice = ""
@@ -576,7 +585,7 @@ def serialize_product_detail(product: Product, *, request, dealer_discount: int 
     gallery = _serialize_gallery(product)
     specs = _serialize_specs(product)
     related = [
-        serialize_product_card(item, dealer_discount=dealer_discount)
+        serialize_product_card(item, dealer_tier_code=dealer_tier_code)
         for item in product.get_companion_items(limit=4)
     ]
 
@@ -598,7 +607,7 @@ def serialize_product_detail(product: Product, *, request, dealer_discount: int 
             continue
 
         option_price = _to_decimal(getattr(option, "discounted_price", Decimal("0.00")))
-        dealer_price = apply_dealer_discount(_to_decimal(getattr(option, "unit_price", option_price)), dealer_discount)
+        dealer_price = _to_decimal(option.get_dealer_price(dealer_tier_code)) if dealer_tier_code else option_price
         option_payload.append(
             {
                 "id": int(getattr(option, "pk", 0) or 0),
@@ -608,7 +617,7 @@ def serialize_product_detail(product: Product, *, request, dealer_discount: int 
                 "column": int(getattr(option, "option_column", 1) or 1),
                 "priceLabel": _money_label(option_price),
                 "priceValue": _decimal_text(option_price),
-                "dealerPriceLabel": _money_label(dealer_price) if can_show_dealer else "",
+                "dealerPriceLabel": _money_label(dealer_price) if can_show_dealer and dealer_price < option_price else "",
                 "selected": bool(default_option and option.pk == default_option.pk),
             }
         )
@@ -626,7 +635,7 @@ def serialize_product_detail(product: Product, *, request, dealer_discount: int 
     free_shipping_threshold = StoreShippingSettings.get_free_shipping_threshold_cad()
 
     return {
-        "product": serialize_product_card(product, dealer_discount=dealer_discount),
+        "product": serialize_product_card(product, dealer_tier_code=dealer_tier_code),
         "gallery": gallery,
         "description": (getattr(product, "description", "") or "").strip(),
         "linerPricingGuide": _serialize_liner_pricing_guide(product),

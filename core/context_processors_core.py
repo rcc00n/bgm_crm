@@ -137,15 +137,17 @@ def hero_media(request):
 
 def dealer_portal(request):
     """
-    Lightweight context that exposes dealer status, tier label, and discount percent across templates.
+    Lightweight context that exposes dealer status and tier pricing across templates.
     """
     data = {
         "is_dealer": False,
         "tier_code": "NONE",
         "tier_label": "Standard access",
+        "pricing_label": "",
         "discount_percent": 0,
         "dealer_since": None,
         "show_discount": False,
+        "show_pricing": False,
         "url": reverse("dealer-entry"),
     }
 
@@ -160,15 +162,17 @@ def dealer_portal(request):
 
     level = profile.get_dealer_tier_level()
     label = level.label if level else profile.get_dealer_tier_display()
-    discount = profile.dealer_discount_percent
+    show_pricing = bool(profile.is_dealer and str(profile.dealer_tier or "").strip() not in {"", "NONE"})
     data.update(
         {
             "is_dealer": bool(profile.is_dealer),
             "tier_code": profile.dealer_tier,
             "tier_label": label or "Dealer",
-            "discount_percent": discount,
+            "pricing_label": f"{label} pricing" if label else "Dealer pricing",
+            "discount_percent": 0,
             "dealer_since": profile.dealer_since,
-            "show_discount": bool(profile.is_dealer and discount),
+            "show_discount": show_pricing,
+            "show_pricing": show_pricing,
         }
     )
     return {"dealer_portal": data}

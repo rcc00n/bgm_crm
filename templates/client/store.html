@@ -28,9 +28,9 @@
             {% else %}
               <p>
                 <strong>{% if product.has_option_price_overrides %}From {% endif %}{{ product.public_price|money }}</strong>
-                {% if dealer_portal.show_discount and not product|is_merch_product %}
+                {% if dealer_portal.show_pricing and not product|is_merch_product and product|dealer_has_price_for_tier:dealer_portal.tier_code %}
                   <span style="display:block;color:var(--muted);font-size:.9rem;">
-                    Dealer {{ product.display_price|dealer_price:dealer_portal.discount_percent|money }} · Save {{ product.display_price|dealer_savings:dealer_portal.discount_percent|money }}
+                    {{ dealer_portal.pricing_label|default:"Dealer pricing" }} {{ product|dealer_price_for_tier:dealer_portal.tier_code|money }} · Save {{ product|dealer_savings_for_tier:dealer_portal.tier_code|money }}
                   </span>
                 {% endif %}
               </p>

@@ -512,9 +512,9 @@
         {% if is_dealer %}
           <div class="hero__meta">
             <span class="badge">{{ dealer_copy.hero_tier_label_prefix|trim|default:"Tier:" }} {{ portal_display.tier_label|default:portal.tier_label|default:dealer_copy.tier_default_label|normalize_tier_label }}</span>
-            {% if portal_display.discount_percent %}
+            {% if portal_display.pricing_label %}
               <span class="badge badge--accent">
-                {{ portal_display.discount_percent }}% {{ dealer_copy.hero_discount_suffix|trim|default:"off catalog" }}
+                {{ portal_display.pricing_label }}
                 {% if portal_display.note %}
                   <span style="opacity:.75;font-weight:700;margin-left:.35rem">{{ portal_display.note }}</span>
                 {% endif %}
@@ -594,7 +594,7 @@
           </div>
           <div class="metrics">
             <div class="metric"><span class="metric__label">{{ dealer_copy.account_metric_tier_label }}</span><span class="metric__value">{{ portal.tier_label|default:dealer_copy.tier_default_label|normalize_tier_label }}</span></div>
-            <div class="metric"><span class="metric__label">{{ dealer_copy.account_metric_discount_label }}</span><span class="metric__value">{% if portal.discount_percent %}{{ portal.discount_percent }}%{% else %}—{% endif %}</span></div>
+            <div class="metric"><span class="metric__label">Pricing</span><span class="metric__value">{% if portal.pricing_label %}{{ portal.pricing_label }}{% else %}Standard pricing{% endif %}</span></div>
             <div class="metric"><span class="metric__label">{{ dealer_copy.account_metric_lifetime_spend_label }}</span><span class="metric__value">{{ lifetime_spent|money }}</span></div>
             <div class="metric"><span class="metric__label">{{ dealer_copy.account_metric_last_review_label }}</span><span class="metric__value">
               {% if dealer_application and dealer_application.reviewed_at %}
@@ -767,7 +767,7 @@
                 <tr>
                   <th scope="col">{{ dealer_copy.tier_table_tier_label }}</th>
                   <th scope="col">{{ dealer_copy.tier_table_min_spend_label }}</th>
-                  <th scope="col">{{ dealer_copy.tier_table_discount_label }}</th>
+                  <th scope="col">Pricing</th>
                   <th scope="col">{{ dealer_copy.tier_table_notes_label }}</th>
                 </tr>
               </thead>
@@ -776,7 +776,7 @@
                   <tr {% if tier.code == portal_display.tier_code %}style="background:rgba(213,0,0,.08)"{% endif %}>
                     <td>{{ tier.label|normalize_tier_label }}</td>
                     <td>{{ tier.minimum_spend|money }}</td>
-                    <td>{{ tier.discount_percent }}%</td>
+                    <td>{{ tier.label|normalize_tier_label }} pricing</td>
                     <td>{{ tier.description|default:"—" }}</td>
                   </tr>
                 {% endfor %}

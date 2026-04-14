@@ -2458,13 +2458,13 @@ from core.models import DealerApplication, DealerTier, DealerTierLevel, UserProf
 
 @admin.register(DealerTierLevel)
 class DealerTierLevelAdmin(admin.ModelAdmin):
-    list_display = ("label", "code", "discount_percent", "minimum_spend", "is_active")
-    list_editable = ("discount_percent", "minimum_spend", "is_active")
+    list_display = ("label", "code", "minimum_spend", "is_active")
+    list_editable = ("minimum_spend", "is_active")
     search_fields = ("label", "code")
     ordering = ("minimum_spend", "sort_order")
     fieldsets = (
         (None, {"fields": ("label", "code", "description")}),
-        ("Eligibility", {"fields": ("minimum_spend", "discount_percent", "sort_order", "is_active")}),
+        ("Eligibility", {"fields": ("minimum_spend", "sort_order", "is_active")}),
     )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -2621,7 +2621,7 @@ class DealerApplicationAdmin(admin.ModelAdmin):
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = (
         "user", "is_dealer", "dealer_tier", "dealer_since",
-        "products_spent_display", "total_spent_display", "dealer_discount_display",
+        "products_spent_display", "total_spent_display", "dealer_pricing_display",
     )
     list_filter = ("is_dealer", "dealer_tier")
     search_fields = ("user__email", "user__username")
@@ -2647,12 +2647,13 @@ class UserProfileAdmin(admin.ModelAdmin):
         except Exception:
             return format_currency(0)
 
-    @admin.display(description="Dealer discount")
-    def dealer_discount_display(self, obj):
+    @admin.display(description="Dealer pricing")
+    def dealer_pricing_display(self, obj):
         try:
-            return f"{obj.dealer_discount_percent}%"
+            level = obj.get_dealer_tier_level()
+            return level.label if level else "—"
         except Exception:
-            return "0%"
+            return "—"
 
     actions = ["recompute_tiers"]
 

@@ -78,14 +78,14 @@
                   </strong>
                   {% if product.old_price %}<span class="old" data-product-price-old>{{ product.old_price|money }}</span>{% endif %}
                 </div>
-                {% if dealer_portal.show_discount and not product|is_merch_product %}
+                {% if dealer_portal.show_pricing and not product|is_merch_product and product|dealer_has_price_for_tier:dealer_portal.tier_code %}
                   <div class="price__dealer-row" data-dealer-price-wrapper>
-                    <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
+                    <span class="price__hint">{{ dealer_portal.pricing_label|default:"Dealer pricing" }}</span>
                     <strong class="price__value" data-product-price-dealer>
-                      {{ product.display_price|dealer_price:dealer_portal.discount_percent|money }}
+                      {{ product|dealer_price_for_tier:dealer_portal.tier_code|money }}
                     </strong>
                     <span class="price__save" data-product-price-savings>
-                      Save {{ product.display_price|dealer_savings:dealer_portal.discount_percent|money }}
+                      Save {{ product|dealer_savings_for_tier:dealer_portal.tier_code|money }}
                     </span>
                   </div>
                 {% endif %}
@@ -149,8 +149,8 @@
                                     value="{{ opt.id }}"
                                     data-price-retail="{{ opt.discounted_price|floatformat:2 }}"
                                     data-price-base="{{ opt.unit_price|floatformat:2 }}"
-                                    data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
-                                    data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
+                                    data-price-dealer="{{ opt|dealer_price_for_tier:dealer_portal.tier_code|floatformat:2 }}"
+                                    data-price-savings="{{ opt|dealer_savings_for_tier:dealer_portal.tier_code|floatformat:2 }}"
                                     {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
                                     {% if not product.contact_for_estimate %}required{% endif %}
                                   >
@@ -162,8 +162,8 @@
                                       {% if not product.contact_for_estimate %}
                                         <span class="option-pill__price">
                                           {{ opt.discounted_price|money }}
-                                          {% if dealer_portal.show_discount and not product|is_merch_product %}
-                                            <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+                                          {% if dealer_portal.show_pricing and not product|is_merch_product and opt|dealer_has_price_for_tier:dealer_portal.tier_code %}
+                                            <span class="option-pill__dealer">{{ dealer_portal.pricing_label|default:"Dealer pricing" }} {{ opt|dealer_price_for_tier:dealer_portal.tier_code|money }}</span>
                                           {% endif %}
                                         </span>
                                       {% endif %}
@@ -194,8 +194,8 @@
                                     value="{{ opt.id }}"
                                     data-price-retail="{{ opt.discounted_price|floatformat:2 }}"
                                     data-price-base="{{ opt.unit_price|floatformat:2 }}"
-                                    data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
-                                    data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
+                                    data-price-dealer="{{ opt|dealer_price_for_tier:dealer_portal.tier_code|floatformat:2 }}"
+                                    data-price-savings="{{ opt|dealer_savings_for_tier:dealer_portal.tier_code|floatformat:2 }}"
                                     {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
                                     {% if not product.contact_for_estimate %}required{% endif %}
                                   >
@@ -207,8 +207,8 @@
                                       {% if not product.contact_for_estimate %}
                                         <span class="option-pill__price">
                                           {{ opt.discounted_price|money }}
-                                          {% if dealer_portal.show_discount and not product|is_merch_product %}
-                                            <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+                                          {% if dealer_portal.show_pricing and not product|is_merch_product and opt|dealer_has_price_for_tier:dealer_portal.tier_code %}
+                                            <span class="option-pill__dealer">{{ dealer_portal.pricing_label|default:"Dealer pricing" }} {{ opt|dealer_price_for_tier:dealer_portal.tier_code|money }}</span>
                                           {% endif %}
                                         </span>
                                       {% endif %}
@@ -238,8 +238,8 @@
                                 value="{{ opt.id }}"
                                 data-price-retail="{{ opt.discounted_price|floatformat:2 }}"
                                 data-price-base="{{ opt.unit_price|floatformat:2 }}"
-                                data-price-dealer="{{ opt.unit_price|dealer_price:dealer_portal.discount_percent|floatformat:2 }}"
-                                data-price-savings="{{ opt.unit_price|dealer_savings:dealer_portal.discount_percent|floatformat:2 }}"
+                                data-price-dealer="{{ opt|dealer_price_for_tier:dealer_portal.tier_code|floatformat:2 }}"
+                                data-price-savings="{{ opt|dealer_savings_for_tier:dealer_portal.tier_code|floatformat:2 }}"
                                 {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
                                 {% if not product.contact_for_estimate %}required{% endif %}
                               >
@@ -251,8 +251,8 @@
                                   {% if not product.contact_for_estimate %}
                                     <span class="option-pill__price">
                                       {{ opt.discounted_price|money }}
-                                      {% if dealer_portal.show_discount and not product|is_merch_product %}
-                                        <span class="option-pill__dealer">Dealer {{ opt.unit_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+                                      {% if dealer_portal.show_pricing and not product|is_merch_product and opt|dealer_has_price_for_tier:dealer_portal.tier_code %}
+                                        <span class="option-pill__dealer">{{ dealer_portal.pricing_label|default:"Dealer pricing" }} {{ opt|dealer_price_for_tier:dealer_portal.tier_code|money }}</span>
                                       {% endif %}
                                     </span>
                                   {% endif %}
@@ -287,8 +287,8 @@
 	                            </span>
 	                            <span class="option-pill__price">
 	                              {{ product.public_price|money }}
-	                              {% if dealer_portal.show_discount and not product|is_merch_product %}
-	                                <span class="option-pill__dealer">Dealer {{ product.display_price|dealer_price:dealer_portal.discount_percent|money }}</span>
+	                              {% if dealer_portal.show_pricing and not product|is_merch_product and product|dealer_has_price_for_tier:dealer_portal.tier_code %}
+	                                <span class="option-pill__dealer">{{ dealer_portal.pricing_label|default:"Dealer pricing" }} {{ product|dealer_price_for_tier:dealer_portal.tier_code|money }}</span>
 	                              {% endif %}
 	                            </span>
 	                          </span>
@@ -395,11 +395,11 @@
                     {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
                     <strong>{{ p.public_price|money }}</strong>
                   </div>
-                  {% if dealer_portal.show_discount and not p|is_merch_product %}
+                  {% if dealer_portal.show_pricing and not p|is_merch_product and p|dealer_has_price_for_tier:dealer_portal.tier_code %}
                     <div class="price__dealer-row">
-                      <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
-                      <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                      <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                      <span class="price__hint">{{ dealer_portal.pricing_label|default:"Dealer pricing" }}</span>
+                      <strong>{{ p|dealer_price_for_tier:dealer_portal.tier_code|money }}</strong>
+                      <span class="price__save">Save {{ p|dealer_savings_for_tier:dealer_portal.tier_code|money }}</span>
                     </div>
                   {% endif %}
                 {% endif %}
@@ -566,11 +566,11 @@
                     {% if p.has_option_price_overrides %}<span class="price__hint">From</span>{% endif %}
                     <strong>{{ p.public_price|money }}</strong>
                   </div>
-                  {% if dealer_portal.show_discount and not p|is_merch_product %}
+                  {% if dealer_portal.show_pricing and not p|is_merch_product and p|dealer_has_price_for_tier:dealer_portal.tier_code %}
                     <div class="price__dealer-row">
-                      <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
-                      <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                      <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                      <span class="price__hint">{{ dealer_portal.pricing_label|default:"Dealer pricing" }}</span>
+                      <strong>{{ p|dealer_price_for_tier:dealer_portal.tier_code|money }}</strong>
+                      <span class="price__save">Save {{ p|dealer_savings_for_tier:dealer_portal.tier_code|money }}</span>
                     </div>
                   {% endif %}
                 {% endif %}

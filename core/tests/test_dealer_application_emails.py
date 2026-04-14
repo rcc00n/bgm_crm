@@ -27,7 +27,7 @@ class DealerApplicationEmailTests(TestCase):
             business_name="Test Shop",
             phone="12345",
             email="dealer@example.com",
-            preferred_tier=DealerTier.TIER_5,
+            preferred_tier=DealerTier.TIER_1,
         )
 
     def test_send_submitted_email(self):
@@ -41,7 +41,7 @@ class DealerApplicationEmailTests(TestCase):
         self.assertEqual(log.email_type, "dealer_application_submitted")
 
     def test_send_approved_email(self):
-        self.app.assigned_tier = DealerTier.TIER_10
+        self.app.assigned_tier = DealerTier.TIER_1
         self.app.save(update_fields=["assigned_tier"])
 
         sent = send_dealer_application_approved(self.app.pk)
@@ -62,4 +62,3 @@ class DealerApplicationEmailTests(TestCase):
         log = EmailSendLog.objects.get()
         self.assertTrue(log.success)
         self.assertEqual(log.email_type, "dealer_application_rejected")
-

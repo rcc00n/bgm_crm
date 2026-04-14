@@ -91,11 +91,11 @@
                   <strong>{{ p.public_price|money }}</strong>
                   {% if p.old_price %}<span class="old">{{ p.old_price|money }}</span>{% endif %}
                 </div>
-                {% if dealer_portal.show_discount and not p|is_merch_product %}
+                {% if dealer_portal.show_pricing and not p|is_merch_product and p|dealer_has_price_for_tier:dealer_portal.tier_code %}
                   <div class="price__dealer-row">
-                    <span class="price__hint">Dealer {{ dealer_portal.discount_percent }}%</span>
-                    <strong>{{ p.display_price|dealer_price:dealer_portal.discount_percent|money }}</strong>
-                    <span class="price__save">Save {{ p.display_price|dealer_savings:dealer_portal.discount_percent|money }}</span>
+                    <span class="price__hint">{{ dealer_portal.pricing_label|default:"Dealer pricing" }}</span>
+                    <strong>{{ p|dealer_price_for_tier:dealer_portal.tier_code|money }}</strong>
+                    <span class="price__save">Save {{ p|dealer_savings_for_tier:dealer_portal.tier_code|money }}</span>
                   </div>
                 {% endif %}
               {% endif %}

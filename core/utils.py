@@ -31,19 +31,38 @@ def get_staff_queryset(active_only: bool = True):
     return qs
 
 
-def get_dealer_discount_percent(user) -> int:
+def get_dealer_tier_code(user) -> str:
     """
-    Унифицированный доступ к скидке дилера.
-    Используйте в расчёте final_price, в корзине, на чеках и т.п.
+    Returns the current dealer tier code for approved dealer accounts.
     """
     try:
         up = user.userprofile
     except Exception:
-        return 0
-    # Discounts apply only after the account is approved as a dealer.
+        return ""
     if not getattr(up, "is_dealer", False):
-        return 0
-    return getattr(up, "dealer_discount_percent", 0) or 0
+        return ""
+    return str(getattr(up, "dealer_tier", "") or "").strip()
+
+
+def get_dealer_tier_level(user):
+    try:
+        up = user.userprofile
+    except Exception:
+        return None
+    if not getattr(up, "is_dealer", False):
+        return None
+    try:
+        return up.get_dealer_tier_level()
+    except Exception:
+        return None
+
+
+def get_dealer_discount_percent(user) -> int:
+    """
+    Legacy compatibility helper.
+    Dealer pricing is no longer percent-based, so this returns 0.
+    """
+    return 0
 
 
 def _to_decimal(value) -> Decimal:

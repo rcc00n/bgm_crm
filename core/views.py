@@ -4079,7 +4079,7 @@ class DealerApplyWizardView(LoginRequiredMixin, TemplateView):
         for slug, _form, _label in DEALER_WIZARD_STEPS:
             payload.update(state.get(slug) or {})
 
-        preferred = DealerTier.TIER_5
+        preferred = DealerTier.TIER_1
         # Bump created_at on submit so admin notifications (which track created_at for public submissions)
         # reflect fresh (re)submissions as "new" work items.
         submitted_at = timezone.now()
@@ -4269,6 +4269,7 @@ class DealerStatusView(LoginRequiredMixin, TemplateView):
             "tier_code": portal_snapshot.get("tier_code"),
             "tier_label": portal_snapshot.get("tier_label"),
             "discount_percent": portal_snapshot.get("discount_percent") or 0,
+            "pricing_label": portal_snapshot.get("pricing_label") or "",
             "note": "",
         }
         ctx["portal_display"] = portal_display
