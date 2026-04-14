@@ -650,21 +650,26 @@ def _storefront_sort_options() -> list[dict[str, str]]:
     ]
 
 
+def _storefront_inhouse_rank(product: Product) -> int:
+    return int(not bool(getattr(product, "is_in_house", False)))
+
+
 def _sort_storefront_products(products: list[Product], sort_key: str) -> list[Product]:
     sort_key = _normalize_storefront_sort(sort_key)
     if sort_key == "newest":
         return sorted(
             products,
             key=lambda product: (
-                getattr(product, "created_at", None) or 0,
-                int(getattr(product, "pk", 0) or 0),
+                _storefront_inhouse_rank(product),
+                -(getattr(product, "created_at", None).timestamp() if getattr(product, "created_at", None) else 0),
+                -int(getattr(product, "pk", 0) or 0),
             ),
-            reverse=True,
         )
     if sort_key == "price-asc":
         return sorted(
             products,
             key=lambda product: (
+                _storefront_inhouse_rank(product),
                 product.public_price,
                 (getattr(product, "name", "") or "").lower(),
             ),
@@ -673,15 +678,16 @@ def _sort_storefront_products(products: list[Product], sort_key: str) -> list[Pr
         return sorted(
             products,
             key=lambda product: (
-                product.public_price,
+                _storefront_inhouse_rank(product),
+                -product.public_price,
                 (getattr(product, "name", "") or "").lower(),
             ),
-            reverse=True,
         )
     if sort_key == "name":
         return sorted(
             products,
             key=lambda product: (
+                _storefront_inhouse_rank(product),
                 (getattr(product, "name", "") or "").lower(),
                 int(getattr(product, "pk", 0) or 0),
             ),
@@ -689,7 +695,7 @@ def _sort_storefront_products(products: list[Product], sort_key: str) -> list[Pr
     featured_products = sorted(
         products,
         key=lambda product: (
-            int(not bool(getattr(product, "is_in_house", False))),
+            _storefront_inhouse_rank(product),
             -(getattr(product, "created_at", None).timestamp() if getattr(product, "created_at", None) else 0),
             int(getattr(product, "pk", 0) or 0),
         ),
@@ -979,14 +985,20 @@ def _score_product_match(product: Product, query: str, tokens: list[str]) -> int
 def _rank_products(qs, query: str, limit: int = 60):
     products = list(qs)
     if not query:
-        products.sort(key=lambda p: (getattr(p, "name", "") or "").lower())
+        products.sort(key=lambda p: (_storefront_inhouse_rank(p), (getattr(p, "name", "") or "").lower()))
         return products[:limit]
 
     tokens = [t for t in re.split(r"[^a-z0-9]+", _normalize_search_text(query)) if t]
     scored = [(p, _score_product_match(p, query, tokens)) for p in products]
     positive = [pair for pair in scored if pair[1] > 0]
     ranked = positive if positive else scored
-    ranked.sort(key=lambda pair: (-pair[1], (getattr(pair[0], "name", "") or "").lower()))
+    ranked.sort(
+        key=lambda pair: (
+            _storefront_inhouse_rank(pair[0]),
+            -pair[1],
+            (getattr(pair[0], "name", "") or "").lower(),
+        )
+    )
     return [p for p, _ in ranked[:limit]]
 
 
@@ -1408,7 +1420,7 @@ def product_search(request):
 
     ranked = []
     if not q:
-        ranked = list(qs.order_by("name")[:60])
+        ranked = _rank_products(qs.order_by("-is_in_house", "name")[:120], "", limit=60)
     else:
         tokens = [t for t in re.split(r"[^a-z0-9]+", q.lower()) if t]
         if tokens:
@@ -1520,7 +1532,7 @@ def product_detail(request, slug: str):
     related = (
         Product.objects.filter(is_active=True, category=product.category)
         .exclude(pk=product.pk)
-        .order_by("-created_at")[:8]
+        .order_by("-is_in_house", "-created_at")[:8]
     )
     go_along = product.get_companion_items(limit=3)
     quote_initial = {

@@ -234,6 +234,53 @@ class StoreHomeViewTests(TestCase):
             ],
         )
 
+    def test_storefront_json_named_sort_still_keeps_inhouse_first(self):
+        inhouse = self._create_product(
+            name="Zulu In-house",
+            slug="zulu-in-house",
+            sku="INHOUSE-ZULU",
+            category=self.parts_category,
+        )
+        inhouse.is_in_house = True
+        inhouse.price = Decimal("500.00")
+        inhouse.save(update_fields=["is_in_house", "price"])
+
+        self._create_product(
+            name="Alpha Supplier",
+            slug="alpha-supplier",
+            sku="SUP-ALPHA",
+            category=self.parts_category,
+        )
+
+        response = self.client.get(self.store_url, {"format": "json", "sort": "name"})
+
+        self.assertEqual(response.status_code, 200)
+        slugs = [row["slug"] for row in response.json()["catalog"]["products"][:2]]
+        self.assertEqual(slugs, ["zulu-in-house", "alpha-supplier"])
+
+    def test_product_search_empty_query_keeps_inhouse_first(self):
+        inhouse = self._create_product(
+            name="Zulu In-house Search",
+            slug="zulu-in-house-search",
+            sku="INHOUSE-SEARCH-ZULU",
+            category=self.parts_category,
+        )
+        inhouse.is_in_house = True
+        inhouse.save(update_fields=["is_in_house"])
+
+        self._create_product(
+            name="Alpha Supplier Search",
+            slug="alpha-supplier-search",
+            sku="SUP-SEARCH-ALPHA",
+            category=self.parts_category,
+        )
+
+        response = self.client.get(self.search_url)
+
+        self.assertEqual(response.status_code, 200)
+        names = [item["name"] for item in response.json()["results"][:2]]
+        self.assertEqual(names, ["Zulu In-house Search", "Alpha Supplier Search"])
+
     def test_store_home_showcase_limits_to_100_products(self):
         other_category = Category.objects.create(name="Exhaust", slug="exhaust")
         for index in range(105):
