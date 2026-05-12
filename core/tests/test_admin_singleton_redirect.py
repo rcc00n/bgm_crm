@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from core.models import AdminLoginBranding, ShopRateSettings
+from core.models import AdminLoginBranding, ShopRateSettings, SiteHoursSettings
 from store.models import Category, StorePricingSettings
 
 
@@ -35,6 +35,17 @@ class AdminSingletonRedirectTests(TestCase):
         self.assertEqual(
             response.headers["Location"],
             reverse("admin:core_shopratesettings_change", args=[settings_obj.pk]),
+        )
+
+    def test_site_hours_settings_changelist_redirects_to_change_form(self):
+        settings_obj = SiteHoursSettings.objects.get(singleton_id=1)
+
+        response = self.client.get(reverse("admin:core_sitehourssettings_changelist"), secure=True)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.headers["Location"],
+            reverse("admin:core_sitehourssettings_change", args=[settings_obj.pk]),
         )
 
     def test_singleton_like_model_changelist_redirects_to_change_form(self):

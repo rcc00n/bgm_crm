@@ -310,10 +310,12 @@ class AdminWorkspaceUiTests(TestCase):
         response = self.client.get(reverse("admin-workspace-hub", kwargs={"slug": "page-content"}), secure=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Site Hours Settings")
         self.assertNotContains(response, "/admin/core/homepagecopy/add/", html=False)
         self.assertNotContains(response, "/admin/core/servicespagecopy/add/", html=False)
         self.assertNotContains(response, "/admin/core/storepagecopy/add/", html=False)
         self.assertNotContains(response, "/admin/core/topbarsettings/add/", html=False)
+        self.assertNotContains(response, "/admin/core/sitehourssettings/add/", html=False)
         self.assertContains(response, "/admin/core/fontpreset/add/", html=False)
         self.assertContains(response, "/admin/core/heroimage/add/", html=False)
 

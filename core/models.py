@@ -470,6 +470,49 @@ class SiteContactSettings(models.Model):
         return obj
 
 
+def _default_company_hours() -> str:
+    return (getattr(settings, "COMPANY_HOURS", "") or "Monday - Friday: 8:00 AM - 4:30 PM").strip()
+
+
+class SiteHoursSettings(models.Model):
+    """
+    Singleton for global public-facing business hours shown across the website.
+    """
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    hours_text = models.TextField(
+        default="Monday - Friday: 8:00 AM - 4:30 PM",
+        blank=True,
+        help_text="One line per row, exactly as it should appear on the website.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Site hours settings"
+        verbose_name_plural = "Site hours settings"
+        ordering = ("singleton_id",)
+
+    def __str__(self) -> str:
+        return "Site hours settings"
+
+    def save(self, *args, **kwargs):
+        self.singleton_id = 1
+        self.hours_text = "\n".join(line.strip() for line in (self.hours_text or "").splitlines() if line.strip())
+        super().save(*args, **kwargs)
+
+    @property
+    def hours_lines(self) -> list[str]:
+        return [line.strip() for line in (self.hours_text or "").splitlines() if line.strip()]
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(
+            singleton_id=1,
+            defaults={"hours_text": _default_company_hours()},
+        )
+        return obj
+
+
 class PageCopyDraft(models.Model):
     """
     Stores autosaved draft edits for PageCopy models before publishing.

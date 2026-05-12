@@ -3,9 +3,9 @@ from unittest.mock import patch
 
 from django.db.utils import OperationalError
 from django.template import Context, Template
-from django.test import RequestFactory, SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase, override_settings
 
-from core.context_processors_core import site_contact
+from core.context_processors_core import company_info, site_contact
 
 
 class SiteContactContextTests(SimpleTestCase):
@@ -37,6 +37,31 @@ class SiteContactContextTests(SimpleTestCase):
         self.assertEqual(payload["site_contact"]["email"], "support@badguymotors.com")
         self.assertEqual(payload["site_contact"]["office_phone"], "+14035250432")
         self.assertEqual(payload["site_contact"]["text_phone"], "+15874060101")
+
+    @patch("core.context_processors_core.SiteHoursSettings.get_solo")
+    def test_company_info_uses_admin_hours(self, get_solo_mock):
+        get_solo_mock.return_value = SimpleNamespace(
+            hours_text="Monday - Friday: 8:00 AM - 4:30 PM\nSaturday: Closed",
+        )
+
+        payload = company_info(self.factory.get("/"))
+
+        self.assertEqual(
+            payload["company"]["hours_lines"],
+            ["Monday - Friday: 8:00 AM - 4:30 PM", "Saturday: Closed"],
+        )
+
+    @override_settings(COMPANY_HOURS="Monday - Friday: 9:00 AM - 5:00 PM\nSunday: Closed")
+    @patch("core.context_processors_core.SiteHoursSettings.get_solo")
+    def test_company_info_falls_back_to_settings_hours(self, get_solo_mock):
+        get_solo_mock.side_effect = OperationalError("missing table")
+
+        payload = company_info(self.factory.get("/"))
+
+        self.assertEqual(
+            payload["company"]["hours_lines"],
+            ["Monday - Friday: 9:00 AM - 5:00 PM", "Sunday: Closed"],
+        )
 
     def test_template_can_render_different_call_and_text_numbers(self):
         template = Template(

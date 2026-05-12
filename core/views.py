@@ -1739,6 +1739,7 @@ def _admin_workspace_config() -> dict[str, dict]:
                         {"label": "Topbar Settings", "model": "core.TopbarSettings", "note": "Global topbar controls."},
                         {"label": "Admin Login Branding", "model": "core.AdminLoginBranding", "note": "Admin sign-in branding."},
                         {"label": "Site Contact Settings", "model": "core.SiteContactSettings", "note": "Global contact details."},
+                        {"label": "Site Hours Settings", "model": "core.SiteHoursSettings", "note": "Client-facing business hours."},
                         {"label": "Background Assets", "model": "core.BackgroundAsset", "note": "Reusable media assets."},
                         {"label": "Site Backgrounds", "model": "core.SiteBackgroundSettings", "note": "Background assignment rules."},
                     ],
@@ -2139,6 +2140,7 @@ def _admin_workspace_config() -> dict[str, dict]:
                     ],
                     "support_links": [
                         {"label": "Site Contact Settings", "model": "core.SiteContactSettings", "note": "Global contact details."},
+                        {"label": "Site Hours Settings", "model": "core.SiteHoursSettings", "note": "Client-facing business hours."},
                         {"label": "Admin Login Branding", "model": "core.AdminLoginBranding", "note": "Admin sign-in branding."},
                     ],
                     "tips": [
@@ -2405,6 +2407,7 @@ def admin_staff_guide(request):
                         guide_link("Font Library", model="core.FontPreset", note="Reusable font assets."),
                         guide_link("Hero Assets", model="core.HeroImage", note="Homepage hero media."),
                         guide_link("Site Contact Settings", model="core.SiteContactSettings", note="Global contact details."),
+                        guide_link("Site Hours Settings", model="core.SiteHoursSettings", note="Client-facing business hours."),
                     ],
                 },
                 {

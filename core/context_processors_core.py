@@ -18,6 +18,7 @@ from .models import (
     ServicesPageCopy,
     StorePageCopy,
     SiteContactSettings,
+    SiteHoursSettings,
 )
 from core.services.fonts import serialize_font_preset
 from core.utils import format_currency
@@ -251,10 +252,16 @@ def marketing_tags(request):
 
 def company_info(request):
     """
-    Basic shop contact + hours, backed by env-configurable Django settings.
-    Keeps templates simple and makes footer/about blocks consistent.
+    Basic shop contact + business hours for public templates.
+    Business hours are admin-editable with an env fallback before migrations exist.
     """
     hours_raw = (getattr(settings, "COMPANY_HOURS", "") or "").strip()
+    try:
+        hours_raw = (SiteHoursSettings.get_solo().hours_text or "").strip()
+    except (OperationalError, ProgrammingError):
+        pass
+    except Exception:
+        pass
     hours_lines = [line.strip() for line in hours_raw.splitlines() if line.strip()]
 
     return {

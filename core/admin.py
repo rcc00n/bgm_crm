@@ -6424,6 +6424,38 @@ class SiteContactSettingsAdmin(admin.ModelAdmin):
         return False
 
 
+@admin.register(SiteHoursSettings)
+class SiteHoursSettingsAdmin(admin.ModelAdmin):
+    list_display = ("label", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    formfield_overrides = {
+        models.TextField: {
+            "widget": forms.Textarea(
+                attrs={
+                    "rows": 5,
+                    "placeholder": "Monday - Friday: 8:00 AM - 4:30 PM\nSaturday: Closed\nSunday: Closed",
+                }
+            )
+        },
+    }
+    fieldsets = (
+        ("Hours shown on the website", {"fields": ("hours_text",)}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    @admin.display(description="Settings")
+    def label(self, obj):
+        return "Business hours"
+
+    def has_add_permission(self, request):
+        if SiteHoursSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Lead)
 class LeadAdmin(admin.ModelAdmin):
     form = LeadAdminForm
