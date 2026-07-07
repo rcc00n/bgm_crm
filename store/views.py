@@ -1792,12 +1792,24 @@ def product_detail(request, slug: str):
                     status=400,
                 )
 
+    # ── Bumper add-on products (purchasable) ──
+    addon_products = []
+    if product.specs and isinstance(product.specs, dict):
+        addons_data = product.specs.get("addons")
+        if addons_data and isinstance(addons_data, dict):
+            addon_skus = [it.get("sku") for it in addons_data.get("items", []) if it.get("sku")]
+            if addon_skus:
+                addon_qs = Product.objects.filter(sku__in=addon_skus, is_active=True)
+                addon_map = {p.sku: p for p in addon_qs}
+                addon_products = [addon_map[sku] for sku in addon_skus if sku in addon_map]
+
     return render(
         request,
         "store/product_detail.html",
         {
             "product": product,
             "related": related,
+            "addon_products": addon_products,
             "product_options": options,
             "options_col_1": options_col_1,
             "options_col_2": options_col_2,
