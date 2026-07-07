@@ -342,6 +342,26 @@
           </form>
         </div>
 
+        {% if product.specs.addons and product.specs.addons.items %}
+          <div class="card bumper-addons" style="margin-top:1rem">
+            <div class="bumper-addons__head">
+              <h3 class="bumper-addons__title">{{ product.specs.addons.heading|default:"Available Add-Ons" }}</h3>
+              <p class="bumper-addons__note">Add any of these to your build - we'll include them on your custom fitment quote below.</p>
+            </div>
+            <ul class="bumper-addons__list">
+              {% for it in product.specs.addons.items %}
+                <li class="bumper-addon">
+                  <div class="bumper-addon__main">
+                    <span class="bumper-addon__name">{{ it.name }}</span>
+                    {% if it.sku %}<span class="bumper-addon__sku">{{ it.sku }}</span>{% endif %}
+                  </div>
+                  <span class="bumper-addon__price">${{ it.price|floatformat:2 }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+            <p class="bumper-addons__disclaimer">Prices shown are MSRP. Final add-on pricing confirmed at production.</p>
+          </div>
+        {% endif %}
         {% if product.specs %}
           <div class="card" style="margin-top:1rem">
             <h3 style="font-weight:900;margin-bottom:.4rem">Specifications</h3>
@@ -353,10 +373,12 @@
             <noscript>
               <dl class="specs">
                 {% for k, v in product.specs.items %}
+                  {% if k != "addons" %}
                   <div class="specs__row">
                     <dt class="specs__k">{{ k|title }}</dt>
                     <dd class="specs__v">{{ v }}</dd>
                   </div>
+                  {% endif %}
                 {% endfor %}
               </dl>
             </noscript>
@@ -1328,6 +1350,19 @@
   .specs__row:last-child{border-bottom:none}
   .specs__k{font-weight:700; color:var(--ink)}
   .specs__v{color:var(--muted)}
+  /* Bumper add-ons */
+  .bumper-addons{border:1px solid var(--card-border);}
+  .bumper-addons__head{margin-bottom:.6rem}
+  .bumper-addons__title{font-weight:900;font-size:1.05rem;margin:0 0 .2rem}
+  .bumper-addons__note{color:var(--muted);font-size:.85rem;margin:0}
+  .bumper-addons__list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.15rem}
+  .bumper-addon{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.55rem .2rem;border-bottom:1px solid var(--card-border)}
+  .bumper-addon:last-child{border-bottom:none}
+  .bumper-addon__main{display:flex;flex-direction:column;gap:.15rem;min-width:0}
+  .bumper-addon__name{font-weight:700;color:var(--ink);line-height:1.25}
+  .bumper-addon__sku{font-size:.72rem;letter-spacing:.04em;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .bumper-addon__price{font-weight:900;color:#e11b1b;white-space:nowrap;font-size:1rem}
+  .bumper-addons__disclaimer{margin:.7rem 0 0;font-size:.76rem;color:var(--muted);font-style:italic}
   .compat{margin:.2rem 0 0;padding-left:1.1rem}
   .compat li{margin:.2rem 0}
   .card--cta{background:linear-gradient(135deg,rgba(213,0,0,.12),rgba(0,0,0,.65));border:1px solid rgba(213,0,0,.3)}
@@ -1568,6 +1603,7 @@
       table.style.borderRadius = '8px';
 
       Object.keys(specs).forEach(function (key) {
+        if (key === 'addons') return;
         var tr = document.createElement('tr');
 
         var th = document.createElement('th');
