@@ -113,6 +113,9 @@
             {% endif %}
 
 	            {% if product_options %}
+              {% if is_bumper_configurator %}
+                {% include "store/_bumper_configurator.html" %}
+              {% else %}
 	              <div class="options-collapse" data-options-collapse>
 	                <div class="options-preview" data-options-preview>
 	                  <fieldset class="option-picker{% if options_two_column %} option-picker--split{% endif %}" id="product-options">
@@ -269,6 +272,7 @@
 	                  </fieldset>
 	                </div>
 	              </div>
+              {% endif %}{# end is_bumper_configurator #}
 	            {% elif not product.contact_for_estimate %}
 	              <div class="options-collapse" data-options-collapse>
 	                <div class="options-preview" data-options-preview>
@@ -1393,6 +1397,19 @@
   .bumper-addon__btn{font-size:.75rem;padding:.35rem .7rem;white-space:nowrap}
   .bumper-addons__disclaimer{margin:.7rem 0 0;font-size:.76rem;color:var(--muted);font-style:italic}
   @media(max-width:600px){.bumper-addon{flex-wrap:wrap}.bumper-addon__actions{width:100%;justify-content:space-between;margin-top:.3rem}}
+  /* Bumper Configurator */
+  .bumper-config{margin:0 0 .5rem}
+  .bumper-config__title{font-weight:900;font-size:1.1rem;margin:0 0 .8rem;color:var(--ink)}
+  .bumper-config__step{margin-bottom:.7rem}
+  .bumper-config__label{display:block;font-weight:700;font-size:.85rem;color:var(--ink);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em}
+  .bumper-config__select{width:100%;padding:.6rem .8rem;font-size:1rem;font-weight:600;border:1px solid rgba(255,255,255,.15);border-radius:.5rem;background:rgba(255,255,255,.05);color:var(--ink);appearance:none;-webkit-appearance:none;cursor:pointer;transition:border-color .15s ease}
+  .bumper-config__select:focus{outline:none;border-color:rgba(213,0,0,.6);box-shadow:0 0 0 2px rgba(213,0,0,.15)}
+  .bumper-config__select:disabled{opacity:.4;cursor:not-allowed}
+  .bumper-config__select option{background:#1a1a1a;color:#fff}
+  .bumper-config__result{margin-top:.8rem;padding:.7rem .9rem;border-radius:.5rem;background:rgba(213,0,0,.08);border:1px solid rgba(213,0,0,.3)}
+  .bumper-config__price{font-size:1.3rem;font-weight:900;color:var(--ink)}
+  .bumper-config__selection{font-size:.82rem;color:var(--muted);margin-top:.2rem}
+  .bumper-config__hidden-options{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
   .compat{margin:.2rem 0 0;padding-left:1.1rem}
   .compat li{margin:.2rem 0}
   .card--cta{background:linear-gradient(135deg,rgba(213,0,0,.12),rgba(0,0,0,.65));border:1px solid rgba(213,0,0,.3)}

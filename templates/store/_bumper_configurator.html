@@ -1,0 +1,299 @@
+{% comment %}
+  Bumper Configurator — stepped dropdown UI
+  Replaces the massive option pill list for bumper products.
+  Expects: product_options (list of ProductOption objects)
+  Option names follow pattern: "Style · Finish · Truck" or "Style + Winch Mount · Finish · Truck"
+{% endcomment %}
+
+<div class="bumper-config" id="bumper-configurator">
+  <h3 class="bumper-config__title">Build Your Bumper</h3>
+
+  <div class="bumper-config__step">
+    <label class="bumper-config__label" for="cfg-truck">1. Pick Your Truck</label>
+    <select class="bumper-config__select" id="cfg-truck" disabled>
+      <option value="">— Select —</option>
+    </select>
+  </div>
+
+  <div class="bumper-config__step">
+    <label class="bumper-config__label" for="cfg-style">2. Pick Your Style</label>
+    <select class="bumper-config__select" id="cfg-style" disabled>
+      <option value="">— Select truck first —</option>
+    </select>
+  </div>
+
+  <div class="bumper-config__step">
+    <label class="bumper-config__label" for="cfg-finish">3. Pick Your Finish</label>
+    <select class="bumper-config__select" id="cfg-finish" disabled>
+      <option value="">— Select style first —</option>
+    </select>
+  </div>
+
+  <div class="bumper-config__step" id="cfg-winch-step">
+    <label class="bumper-config__label" for="cfg-winch">4. Winch Mount?</label>
+    <select class="bumper-config__select" id="cfg-winch" disabled>
+      <option value="">— Select finish first —</option>
+    </select>
+  </div>
+
+  <div class="bumper-config__result" id="cfg-result" hidden>
+    <div class="bumper-config__price" id="cfg-price"></div>
+    <div class="bumper-config__selection" id="cfg-selection"></div>
+  </div>
+</div>
+
+<!-- Hidden original option radios (form still uses these) -->
+<fieldset id="product-options" class="bumper-config__hidden-options" hidden>
+  {% for opt in product_options %}
+    <label>
+      <input
+        type="radio"
+        name="option_id"
+        value="{{ opt.id }}"
+        data-option-name="{{ opt.name }}"
+        data-price-retail="{{ opt.discounted_price|floatformat:2 }}"
+        data-price-base="{{ opt.unit_price|floatformat:2 }}"
+        {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
+      >
+    </label>
+  {% endfor %}
+</fieldset>
+
+<script>
+(function() {
+  var inputs = Array.from(document.querySelectorAll('#product-options input[name="option_id"]'));
+  if (!inputs.length) return;
+
+  // Parse all options into structured data
+  var options = inputs.map(function(input) {
+    var raw = input.dataset.optionName || '';
+    // Pattern: "Style (+ Winch Mount) · Finish · Truck"
+    var parts = raw.split('·').map(function(s) { return s.trim(); });
+    if (parts.length < 3) return null;
+
+    var stylePart = parts[0]; // e.g. "Base" or "Full-Tube + Winch Mount"
+    var finish = parts[1];    // e.g. "Armadillo" or "Smooth Criminal"
+    var truck = parts[2];     // e.g. "1500" or "2500/3500"
+
+    var hasWinch = stylePart.indexOf('+ Winch Mount') !== -1;
+    var style = stylePart.replace('+ Winch Mount', '').trim();
+
+    return {
+      input: input,
+      style: style,
+      finish: finish,
+      truck: truck,
+      winch: hasWinch,
+      price: input.dataset.priceRetail,
+      name: raw
+    };
+  }).filter(Boolean);
+
+  if (!options.length) return;
+
+  // Get unique values
+  var trucks = [];
+  var stylesAll = [];
+  var finishesAll = [];
+  var hasAnyWinch = false;
+
+  options.forEach(function(o) {
+    if (trucks.indexOf(o.truck) === -1) trucks.push(o.truck);
+    if (stylesAll.indexOf(o.style) === -1) stylesAll.push(o.style);
+    if (finishesAll.indexOf(o.finish) === -1) finishesAll.push(o.finish);
+    if (o.winch) hasAnyWinch = true;
+  });
+
+  // Sort trucks: 1500 first
+  trucks.sort(function(a, b) {
+    return a.indexOf('1500') !== -1 ? -1 : 1;
+  });
+
+  // Sort styles in logical order
+  var styleOrder = ['Base', 'Pre-Runner', 'Full-Tube'];
+  stylesAll.sort(function(a, b) {
+    var ai = styleOrder.indexOf(a);
+    var bi = styleOrder.indexOf(b);
+    if (ai === -1) ai = 99;
+    if (bi === -1) bi = 99;
+    return ai - bi;
+  });
+
+  var selTruck = document.getElementById('cfg-truck');
+  var selStyle = document.getElementById('cfg-style');
+  var selFinish = document.getElementById('cfg-finish');
+  var selWinch = document.getElementById('cfg-winch');
+  var winchStep = document.getElementById('cfg-winch-step');
+  var resultDiv = document.getElementById('cfg-result');
+  var priceDiv = document.getElementById('cfg-price');
+  var selectionDiv = document.getElementById('cfg-selection');
+  var retailEl = document.querySelector('[data-product-price-retail]');
+
+  // Hide winch step if no winch options exist
+  if (!hasAnyWinch && winchStep) {
+    winchStep.style.display = 'none';
+  }
+
+  // Populate trucks
+  selTruck.innerHTML = '<option value="">— Select —</option>';
+  trucks.forEach(function(t) {
+    selTruck.innerHTML += '<option value="' + t + '">' + t + '</option>';
+  });
+  selTruck.disabled = false;
+
+  function getFiltered(truck, style, finish) {
+    return options.filter(function(o) {
+      if (truck && o.truck !== truck) return false;
+      if (style && o.style !== style) return false;
+      if (finish && o.finish !== finish) return false;
+      return true;
+    });
+  }
+
+  function populateSelect(sel, values, placeholder) {
+    sel.innerHTML = '<option value="">' + placeholder + '</option>';
+    values.forEach(function(v) {
+      sel.innerHTML += '<option value="' + v + '">' + v + '</option>';
+    });
+    sel.disabled = false;
+  }
+
+  function resetFrom(level) {
+    if (level <= 2) {
+      selStyle.innerHTML = '<option value="">— Select truck first —</option>';
+      selStyle.disabled = true;
+    }
+    if (level <= 3) {
+      selFinish.innerHTML = '<option value="">— Select style first —</option>';
+      selFinish.disabled = true;
+    }
+    if (level <= 4) {
+      selWinch.innerHTML = '<option value="">— Select finish first —</option>';
+      selWinch.disabled = true;
+    }
+    resultDiv.hidden = true;
+  }
+
+  function selectOption(opt) {
+    opt.input.checked = true;
+    opt.input.dispatchEvent(new Event('change', { bubbles: true }));
+    // Update price display
+    var symbol = (retailEl && retailEl.dataset.currencySymbol) || '$';
+    var code = (retailEl && retailEl.dataset.currencyCode) || '';
+    var formatted = (code ? code + ' ' : '') + symbol + Number(opt.price).toFixed(2);
+    priceDiv.textContent = formatted;
+    selectionDiv.textContent = opt.name;
+    resultDiv.hidden = false;
+  }
+
+  function tryMatch() {
+    var truck = selTruck.value;
+    var style = selStyle.value;
+    var finish = selFinish.value;
+    var winch = selWinch.value;
+
+    if (!truck || !style || !finish) {
+      resultDiv.hidden = true;
+      return;
+    }
+    if (hasAnyWinch && !winch) {
+      resultDiv.hidden = true;
+      return;
+    }
+
+    var wantWinch = (winch === 'yes');
+    var match = options.find(function(o) {
+      return o.truck === truck && o.style === style && o.finish === finish && o.winch === wantWinch;
+    });
+
+    if (match) {
+      selectOption(match);
+    } else {
+      // If no winch variant exists, try without
+      match = options.find(function(o) {
+        return o.truck === truck && o.style === style && o.finish === finish && !o.winch;
+      });
+      if (match) selectOption(match);
+    }
+  }
+
+  selTruck.addEventListener('change', function() {
+    resetFrom(2);
+    if (!selTruck.value) return;
+    var filtered = getFiltered(selTruck.value, null, null);
+    var styles = [];
+    filtered.forEach(function(o) {
+      if (styles.indexOf(o.style) === -1) styles.push(o.style);
+    });
+    styles.sort(function(a, b) {
+      var ai = styleOrder.indexOf(a);
+      var bi = styleOrder.indexOf(b);
+      if (ai === -1) ai = 99;
+      if (bi === -1) bi = 99;
+      return ai - bi;
+    });
+    populateSelect(selStyle, styles, '— Select —');
+  });
+
+  selStyle.addEventListener('change', function() {
+    resetFrom(3);
+    if (!selStyle.value) return;
+    var filtered = getFiltered(selTruck.value, selStyle.value, null);
+    var finishes = [];
+    filtered.forEach(function(o) {
+      if (finishes.indexOf(o.finish) === -1) finishes.push(o.finish);
+    });
+    populateSelect(selFinish, finishes, '— Select —');
+  });
+
+  selFinish.addEventListener('change', function() {
+    resetFrom(4);
+    if (!selFinish.value) return;
+
+    if (hasAnyWinch) {
+      // Check if winch options actually exist for this combo
+      var filtered = getFiltered(selTruck.value, selStyle.value, selFinish.value);
+      var hasWinchForCombo = filtered.some(function(o) { return o.winch; });
+      var hasNoWinchForCombo = filtered.some(function(o) { return !o.winch; });
+
+      if (hasWinchForCombo && hasNoWinchForCombo) {
+        populateSelect(selWinch, ['No', 'Yes'], '— Select —');
+        winchStep.style.display = '';
+        return;
+      } else if (hasWinchForCombo) {
+        // Only winch version exists
+        winchStep.style.display = 'none';
+        var match = filtered.find(function(o) { return o.winch; });
+        if (match) selectOption(match);
+        return;
+      } else {
+        // No winch version
+        winchStep.style.display = 'none';
+        var match = filtered.find(function(o) { return !o.winch; });
+        if (match) selectOption(match);
+        return;
+      }
+    } else {
+      // No winch at all — auto-select
+      var filtered = getFiltered(selTruck.value, selStyle.value, selFinish.value);
+      if (filtered.length === 1) {
+        selectOption(filtered[0]);
+      }
+    }
+  });
+
+  selWinch.addEventListener('change', function() {
+    if (!selWinch.value) {
+      resultDiv.hidden = true;
+      return;
+    }
+    var wantWinch = (selWinch.value === 'Yes');
+    var filtered = getFiltered(selTruck.value, selStyle.value, selFinish.value);
+    var match = filtered.find(function(o) { return o.winch === wantWinch; });
+    if (match) {
+      selectOption(match);
+    }
+  });
+
+})();
+</script>

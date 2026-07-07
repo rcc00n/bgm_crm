@@ -1792,6 +1792,12 @@ def product_detail(request, slug: str):
                     status=400,
                 )
 
+    # ── Bumper configurator detection ──
+    is_bumper_configurator = (
+        product.slug in ('bgm-front-bumper', 'bgm-rear-bumper')
+        and len(options) >= 4
+    )
+
     # ── Bumper add-on products (purchasable) ──
     addon_products = []
     if product.specs and isinstance(product.specs, dict):
@@ -1810,6 +1816,7 @@ def product_detail(request, slug: str):
             "product": product,
             "related": related,
             "addon_products": addon_products,
+            "is_bumper_configurator": is_bumper_configurator,
             "product_options": options,
             "options_col_1": options_col_1,
             "options_col_2": options_col_2,
