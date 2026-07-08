@@ -3309,6 +3309,10 @@ def checkout(request):
             comment_field = _first_present(o_fields, ["comment", "comments", "notes", "note", "customer_note", "customer_notes"])
             if comment_field:
                 extra_blocks = []
+                # Prepend factory paint code if provided (from Color Match add-on)
+                paint_code_val = (request.POST.get("paint_code") or "").strip()
+                if paint_code_val:
+                    extra_blocks.append(f"[Factory Paint Code: {paint_code_val}]")
                 if form["comment"]:
                     extra_blocks.append(form["comment"])
                 if is_pickup and form["pickup_notes"]:

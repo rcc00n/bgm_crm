@@ -290,6 +290,21 @@
             {% endif %}
           </section>
 
+          <!-- Factory Paint Code (shown when cart contains a color-match add-on) -->
+          <section id="paint-code-section" style="display:none">
+            <h3 class="block-title">Factory Paint Code</h3>
+            <p class="section__desc" style="margin-bottom:.6rem">Your cart includes a Color Match Paint add-on. Please enter your vehicle's factory paint code below so we can match it exactly.</p>
+            <input
+              class="input"
+              id="checkout-paint-code"
+              name="paint_code"
+              type="text"
+              placeholder="e.g. G7C, 040, WA8624 (found on door jamb sticker)"
+              value="{{ form.paint_code|default_if_none:'' }}"
+              autocomplete="off"
+            >
+          </section>
+
           <!-- Order notes -->
           <section>
             <h3 class="block-title">Order notes</h3>
@@ -1436,6 +1451,39 @@
         loadPrintfulRates();
       }
       if (serverPaymentError && cardErrors && getPaymentMethod() === 'card'){ cardErrors.textContent = serverPaymentError; }
+
+      // ── Paint Code section: show if cart has a Color Match add-on ──
+      (function() {
+        var paintSection = document.getElementById('paint-code-section');
+        var paintInput = document.getElementById('checkout-paint-code');
+        if (!paintSection || !paintInput) return;
+
+        // Check cart summary for color-match slugs
+        var colorMatchSlugs = ['front-bumper-color-match-paint', 'rear-bumper-color-match-paint'];
+        var summaryTitles = Array.from(document.querySelectorAll('.summary__title'));
+        var hasColorMatch = summaryTitles.some(function(el) {
+          var txt = (el.textContent || '').toLowerCase();
+          return txt.indexOf('color match paint') !== -1;
+        });
+        if (hasColorMatch) {
+          paintSection.style.display = '';
+          paintInput.required = true;
+        }
+
+        // On form submit: merge paint code into the comment textarea
+        if (formEl) {
+          formEl.addEventListener('submit', function() {
+            var code = (paintInput.value || '').trim();
+            if (!code) return;
+            var commentArea = formEl.querySelector('textarea[name="comment"]');
+            if (commentArea) {
+              var existing = (commentArea.value || '').trim();
+              var prefix = '[Factory Paint Code: ' + code + ']';
+              commentArea.value = existing ? prefix + '\n' + existing : prefix;
+            }
+          }, true); // capture phase so it runs before the Square handler
+        }
+      })();
     });
   })();
 </script>

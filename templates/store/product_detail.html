@@ -352,22 +352,72 @@
               <h3 class="bumper-addons__title">{{ product.specs.addons.heading|default:"Available Add-Ons" }}</h3>
               <p class="bumper-addons__note">Add any of these to your bumper build.</p>
             </div>
-            <ul class="bumper-addons__list">
+            <ul class="bumper-addons__list bumper-addons__list--grid">
               {% for addon in addon_products %}
-                <li class="bumper-addon">
-                  <div class="bumper-addon__main">
-                    <span class="bumper-addon__name">{{ addon.name }}</span>
-                    {% if addon.sku %}<span class="bumper-addon__sku">{{ addon.sku }}</span>{% endif %}
-                  </div>
-                  <div class="bumper-addon__actions">
-                    <span class="bumper-addon__price">{{ addon.public_price|money }}</span>
-                    <form method="post" action="{% url 'store-cart-add' slug=addon.slug %}" class="bumper-addon__form">
-                      {% csrf_token %}
-                      <input type="hidden" name="qty" value="1">
-                      <button type="submit" class="btn btn--sm btn--primary bumper-addon__btn">Add to Cart</button>
-                    </form>
-                  </div>
-                </li>
+                {% if addon.sku == 'ADD-FB-COLOR-MATCH' or addon.sku == 'ADD-RB-COLOR-MATCH' %}
+                  {# ── Color Match Paint — special card with paint code field ── #}
+                  <li class="bumper-addon bumper-addon--color-match bumper-addon--full">
+                    <div class="bumper-addon__main">
+                      <span class="bumper-addon__name">{{ addon.name }}</span>
+                      {% if addon.sku %}<span class="bumper-addon__sku">{{ addon.sku }}</span>{% endif %}
+                      <span class="bumper-addon__desc">{{ addon.short_description }}</span>
+                    </div>
+                    <div class="bumper-addon__cm-body">
+                      <div class="bumper-addon__cm-pricing">
+                        <span class="bumper-addon__price">CAD $399.00</span>
+                        <span class="bumper-addon__cm-quote-note">Quoted separately — we'll contact you with pricing</span>
+                        <span class="bumper-addon__cm-premium">Tri-coat / pearl / candy — quoted separately</span>
+                      </div>
+                      <form method="post" action="{% url 'store-cart-add' slug=addon.slug %}" class="bumper-addon__form bumper-addon__cm-form" id="cm-form-{{ addon.sku }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="qty" value="1">
+                        <div class="bumper-addon__cm-fields">
+                          <div class="bumper-addon__cm-type">
+                            <label class="bumper-addon__cm-radio">
+                              <input type="radio" name="cm_type" value="standard" checked> Standard color ($399)
+                            </label>
+                            <label class="bumper-addon__cm-radio">
+                              <input type="radio" name="cm_type" value="premium"> Tri-coat / pearl / candy (quoted)
+                            </label>
+                          </div>
+                          <div class="bumper-addon__cm-code-wrap">
+                            <label class="bumper-addon__cm-label" for="paint-code-{{ addon.sku }}">Factory Paint Code <span class="bumper-addon__cm-req">*</span></label>
+                            <input
+                              class="bumper-addon__cm-input field"
+                              id="paint-code-{{ addon.sku }}"
+                              name="paint_code"
+                              type="text"
+                              placeholder="e.g. G7C, 040, WA8624"
+                              required
+                              autocomplete="off"
+                            >
+                            <span class="bumper-addon__cm-hint">Enter your vehicle's factory paint code (found on the door jamb sticker).</span>
+                          </div>
+                        </div>
+                        <div class="bumper-addon__actions bumper-addon__cm-actions">
+                          <span class="bumper-addon__price bumper-addon__cm-price-inline">CAD $399.00</span>
+                          <button type="submit" class="btn btn--sm btn--primary bumper-addon__btn" id="cm-btn-{{ addon.sku }}">Add to Cart</button>
+                        </div>
+                      </form>
+                    </div>
+                  </li>
+                {% else %}
+                  <li class="bumper-addon">
+                    <div class="bumper-addon__main">
+                      <span class="bumper-addon__name">{{ addon.name }}</span>
+                      {% if addon.sku %}<span class="bumper-addon__sku">{{ addon.sku }}</span>{% endif %}
+                      {% if addon.short_description %}<span class="bumper-addon__desc">{{ addon.short_description }}</span>{% endif %}
+                    </div>
+                    <div class="bumper-addon__actions">
+                      <span class="bumper-addon__price">{{ addon.public_price|money }}</span>
+                      <form method="post" action="{% url 'store-cart-add' slug=addon.slug %}" class="bumper-addon__form">
+                        {% csrf_token %}
+                        <input type="hidden" name="qty" value="1">
+                        <button type="submit" class="btn btn--sm btn--primary bumper-addon__btn">Add to Cart</button>
+                      </form>
+                    </div>
+                  </li>
+                {% endif %}
               {% endfor %}
             </ul>
             <p class="bumper-addons__disclaimer">Prices shown are MSRP. Final add-on pricing confirmed at production.</p>
@@ -1385,18 +1435,43 @@
   .bumper-addons__head{margin-bottom:.6rem}
   .bumper-addons__title{font-weight:900;font-size:1.05rem;margin:0 0 .2rem}
   .bumper-addons__note{color:var(--muted);font-size:.85rem;margin:0}
-  .bumper-addons__list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.15rem}
-  .bumper-addon{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.55rem .2rem;border-bottom:1px solid var(--card-border)}
-  .bumper-addon:last-child{border-bottom:none}
-  .bumper-addon__main{display:flex;flex-direction:column;gap:.15rem;min-width:0;flex:1}
+  /* Horizontal grid layout for desktop */
+  .bumper-addons__list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem}
+  .bumper-addon--full{grid-column:1/-1;}
+  .bumper-addon{display:flex;flex-direction:column;gap:.5rem;padding:.65rem .7rem;border:1px solid var(--card-border);border-radius:.6rem;background:rgba(255,255,255,.02)}
+  .bumper-addon__main{display:flex;flex-direction:column;gap:.15rem;min-width:0}
   .bumper-addon__name{font-weight:700;color:var(--ink);line-height:1.25}
   .bumper-addon__sku{font-size:.72rem;letter-spacing:.04em;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-  .bumper-addon__actions{display:flex;align-items:center;gap:.6rem;flex-shrink:0}
+  .bumper-addon__desc{font-size:.8rem;color:var(--muted);line-height:1.4;margin-top:.15rem}
+  .bumper-addon__actions{display:flex;align-items:center;gap:.6rem;margin-top:auto;padding-top:.4rem}
   .bumper-addon__price{font-weight:900;color:#e11b1b;white-space:nowrap;font-size:1rem}
   .bumper-addon__form{margin:0}
   .bumper-addon__btn{font-size:.75rem;padding:.35rem .7rem;white-space:nowrap}
-  .bumper-addons__disclaimer{margin:.7rem 0 0;font-size:.76rem;color:var(--muted);font-style:italic}
-  @media(max-width:600px){.bumper-addon{flex-wrap:wrap}.bumper-addon__actions{width:100%;justify-content:space-between;margin-top:.3rem}}
+  .bumper-addons__disclaimer{margin:.7rem 0 0;font-size:.76rem;color:var(--muted);font-style:italic;grid-column:1/-1}
+  /* Color Match card */
+  .bumper-addon--color-match{background:rgba(213,0,0,.04);border-color:rgba(213,0,0,.2)}
+  .bumper-addon__cm-body{display:flex;flex-direction:column;gap:.7rem}
+  .bumper-addon__cm-pricing{display:flex;align-items:baseline;gap:.8rem;flex-wrap:wrap}
+  .bumper-addon__cm-premium{font-size:.8rem;color:var(--muted);font-style:italic}
+  .bumper-addon__cm-fields{display:flex;flex-direction:column;gap:.55rem}
+  .bumper-addon__cm-type{display:flex;flex-direction:column;gap:.3rem}
+  .bumper-addon__cm-radio{display:flex;align-items:center;gap:.45rem;font-size:.88rem;cursor:pointer}
+  .bumper-addon__cm-radio input{cursor:pointer}
+  .bumper-addon__cm-code-wrap{display:flex;flex-direction:column;gap:.25rem}
+  .bumper-addon__cm-label{font-size:.82rem;font-weight:700;color:var(--ink)}
+  .bumper-addon__cm-req{color:#e11b1b}
+  .bumper-addon__cm-input{padding:.5rem .7rem;font-size:.95rem;border-radius:.45rem;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:var(--ink);width:100%}
+  .bumper-addon__cm-input:focus{outline:none;border-color:rgba(213,0,0,.5);box-shadow:0 0 0 2px rgba(213,0,0,.12)}
+  .bumper-addon__cm-hint{font-size:.75rem;color:var(--muted)}
+  .bumper-addon__cm-actions{padding-top:.2rem}
+  /* Premium color type — hide price, show quote note */
+  .bumper-addon--premium-selected .bumper-addon__price{display:none}
+  .bumper-addon__cm-quote-note{display:none;font-size:.82rem;color:#f7c948;font-weight:700}
+  .bumper-addon--premium-selected .bumper-addon__cm-quote-note{display:inline}
+  @media(max-width:760px){
+    .bumper-addons__list{grid-template-columns:1fr}
+    .bumper-addon--full{grid-column:auto}
+  }
   /* Bumper Configurator */
   /* Bumper configurator card must not clip its content */
   .product-detail__options-card:has(.bumper-config){height:auto;min-height:0;}
@@ -1734,6 +1809,63 @@
         showGuide(true);
       });
     }
+  })();
+
+  // ── Color Match Paint add-on: premium/standard toggle + paint code validation ──
+  (function() {
+    document.querySelectorAll('.bumper-addon__cm-form').forEach(function(form) {
+      var card = form.closest('.bumper-addon--color-match');
+      var radios = form.querySelectorAll('input[name="cm_type"]');
+      var paintInput = form.querySelector('input[name="paint_code"]');
+      var btn = form.querySelector('.bumper-addon__btn');
+
+      function updateState() {
+        var isPremium = form.querySelector('input[name="cm_type"]:checked');
+        isPremium = isPremium && isPremium.value === 'premium';
+        if (card) {
+          card.classList.toggle('bumper-addon--premium-selected', isPremium);
+        }
+        if (btn) {
+          btn.textContent = isPremium ? 'Request Quote' : 'Add to Cart';
+        }
+        // For premium, paint code is still required (so we know the color)
+        if (paintInput) {
+          paintInput.placeholder = isPremium
+            ? 'e.g. G7C, 040, WA8624 (we will quote this color)'
+            : 'e.g. G7C, 040, WA8624';
+        }
+      }
+
+      radios.forEach(function(r) {
+        r.addEventListener('change', updateState);
+      });
+
+      // Inject cm_type and paint_code into the cart comment on submit
+      form.addEventListener('submit', function(e) {
+        var code = paintInput ? (paintInput.value || '').trim() : '';
+        if (!code) {
+          e.preventDefault();
+          if (paintInput) {
+            paintInput.focus();
+            paintInput.style.borderColor = '#e11b1b';
+          }
+          return false;
+        }
+        // Append paint code to a hidden comment field so it arrives in order notes
+        var cmType = form.querySelector('input[name="cm_type"]:checked');
+        var typeLabel = cmType && cmType.value === 'premium' ? 'Premium (quoted)' : 'Standard ($399)';
+        var noteInput = form.querySelector('input[name="paint_code_note"]');
+        if (!noteInput) {
+          noteInput = document.createElement('input');
+          noteInput.type = 'hidden';
+          noteInput.name = 'paint_code_note';
+          form.appendChild(noteInput);
+        }
+        noteInput.value = '[Color Match] Type: ' + typeLabel + ' | Paint Code: ' + code;
+      });
+
+      updateState();
+    });
   })();
 </script>
 {% endblock %}
