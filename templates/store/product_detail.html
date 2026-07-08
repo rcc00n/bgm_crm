@@ -1398,6 +1398,8 @@
   .bumper-addons__disclaimer{margin:.7rem 0 0;font-size:.76rem;color:var(--muted);font-style:italic}
   @media(max-width:600px){.bumper-addon{flex-wrap:wrap}.bumper-addon__actions{width:100%;justify-content:space-between;margin-top:.3rem}}
   /* Bumper Configurator */
+  /* Bumper configurator card must not clip its content */
+  .product-detail__options-card:has(.bumper-config){height:auto;min-height:0;}
   .bumper-config{margin:0 0 .5rem}
   .bumper-config__title{font-weight:900;font-size:1.1rem;margin:0 0 .8rem;color:var(--ink)}
   .bumper-config__step{margin-bottom:.7rem}
@@ -1406,7 +1408,7 @@
   .bumper-config__select:focus{outline:none;border-color:rgba(213,0,0,.6);box-shadow:0 0 0 2px rgba(213,0,0,.15)}
   .bumper-config__select:disabled{opacity:.4;cursor:not-allowed}
   .bumper-config__select option{background:#1a1a1a;color:#fff}
-  .bumper-config__result{margin-top:.8rem;padding:.7rem .9rem;border-radius:.5rem;background:rgba(213,0,0,.08);border:1px solid rgba(213,0,0,.3)}
+  .bumper-config__result{margin-top:.8rem;margin-bottom:1rem;padding:.7rem .9rem;border-radius:.5rem;background:rgba(213,0,0,.08);border:1px solid rgba(213,0,0,.3)}
   .bumper-config__price{font-size:1.3rem;font-weight:900;color:var(--ink)}
   .bumper-config__selection{font-size:.82rem;color:var(--muted);margin-top:.2rem}
   .bumper-config__hidden-options{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
