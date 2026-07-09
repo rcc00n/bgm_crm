@@ -346,7 +346,70 @@
           </form>
         </div>
 
-        {# add-ons rendered full-width below the grid — see section below #}
+        {% if addon_products %}
+          <div class="card bumper-addons" style="margin-top:1rem">
+            <div class="bumper-addons__head">
+              <h3 class="bumper-addons__title">{{ product.specs.addons.heading|default:"Available Add-Ons" }}</h3>
+              <p class="bumper-addons__note">Add any of these to your bumper build.</p>
+            </div>
+            <ul class="bumper-addons__list bumper-addons__list--grid">
+              {% for addon in addon_products %}
+                {% if addon.sku == 'ADD-FB-COLOR-MATCH' or addon.sku == 'ADD-RB-COLOR-MATCH' %}
+                  <li class="bumper-addon bumper-addon--color-match bumper-addon--full">
+                    <div class="bumper-addon__main">
+                      <span class="bumper-addon__name">{{ addon.name }}</span>
+                      {% if addon.sku %}<span class="bumper-addon__sku">{{ addon.sku }}</span>{% endif %}
+                      <span class="bumper-addon__desc">{{ addon.short_description }}</span>
+                    </div>
+                    <div class="bumper-addon__cm-body">
+                      <div class="bumper-addon__cm-pricing">
+                        <span class="bumper-addon__price">CAD $399.00</span>
+                        <span class="bumper-addon__cm-quote-note">Quoted separately &mdash; we'll contact you with pricing</span>
+                        <span class="bumper-addon__cm-premium">Tri-coat / pearl / candy &mdash; quoted separately</span>
+                      </div>
+                      <form method="post" action="{% url 'store-cart-add' slug=addon.slug %}" class="bumper-addon__form bumper-addon__cm-form" id="cm-form-{{ addon.sku }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="qty" value="1">
+                        <div class="bumper-addon__cm-fields">
+                          <div class="bumper-addon__cm-type">
+                            <label class="bumper-addon__cm-radio"><input type="radio" name="cm_type" value="standard" checked> Standard color ($399)</label>
+                            <label class="bumper-addon__cm-radio"><input type="radio" name="cm_type" value="premium"> Tri-coat / pearl / candy (quoted)</label>
+                          </div>
+                          <div class="bumper-addon__cm-code-wrap">
+                            <label class="bumper-addon__cm-label" for="paint-code-{{ addon.sku }}">Factory Paint Code <span class="bumper-addon__cm-req">*</span></label>
+                            <input class="bumper-addon__cm-input field" id="paint-code-{{ addon.sku }}" name="paint_code" type="text" placeholder="e.g. G7C, 040, WA8624" required autocomplete="off">
+                            <span class="bumper-addon__cm-hint">Enter your vehicle's factory paint code (found on the door jamb sticker).</span>
+                          </div>
+                        </div>
+                        <div class="bumper-addon__actions bumper-addon__cm-actions">
+                          <span class="bumper-addon__price bumper-addon__cm-price-inline">CAD $399.00</span>
+                          <button type="submit" class="btn btn--sm btn--primary bumper-addon__btn" id="cm-btn-{{ addon.sku }}">Add to Cart</button>
+                        </div>
+                      </form>
+                    </div>
+                  </li>
+                {% else %}
+                  <li class="bumper-addon">
+                    <div class="bumper-addon__main">
+                      <span class="bumper-addon__name">{{ addon.name }}</span>
+                      {% if addon.sku %}<span class="bumper-addon__sku">{{ addon.sku }}</span>{% endif %}
+                      {% if addon.short_description %}<span class="bumper-addon__desc">{{ addon.short_description }}</span>{% endif %}
+                    </div>
+                    <div class="bumper-addon__actions">
+                      <span class="bumper-addon__price">{{ addon.public_price|money }}</span>
+                      <form method="post" action="{% url 'store-cart-add' slug=addon.slug %}" class="bumper-addon__form">
+                        {% csrf_token %}
+                        <input type="hidden" name="qty" value="1">
+                        <button type="submit" class="btn btn--sm btn--primary bumper-addon__btn">Add to Cart</button>
+                      </form>
+                    </div>
+                  </li>
+                {% endif %}
+              {% endfor %}
+            </ul>
+            <p class="bumper-addons__disclaimer">Prices shown are MSRP. Final add-on pricing confirmed at production.</p>
+          </div>
+        {% endif %}
         {% if product.specs %}
           <div class="card" style="margin-top:1rem">
             <h3 style="font-weight:900;margin-bottom:.4rem">Specifications</h3>
@@ -375,73 +438,6 @@
 
       </div>
     </div>
-
-    {# ── Full-width add-ons section (bumper pages only) ── #}
-    {% if addon_products %}
-      <div class="bumper-addons-full" style="margin-top:1.75rem">
-        <div class="bumper-addons__head" style="margin-bottom:.9rem">
-          <h3 class="bumper-addons__title" style="font-size:1.15rem">{{ product.specs.addons.heading|default:"Available Add-Ons" }}</h3>
-          <p class="bumper-addons__note">Add any of these to your bumper build.</p>
-        </div>
-        <ul class="bumper-addons__list bumper-addons__list--grid bumper-addons__list--wide">
-          {% for addon in addon_products %}
-            {% if addon.sku == 'ADD-FB-COLOR-MATCH' or addon.sku == 'ADD-RB-COLOR-MATCH' %}
-              {# ── Color Match Paint ── #}
-              <li class="bumper-addon bumper-addon--color-match bumper-addon--full">
-                <div class="bumper-addon__main">
-                  <span class="bumper-addon__name">{{ addon.name }}</span>
-                  {% if addon.sku %}<span class="bumper-addon__sku">{{ addon.sku }}</span>{% endif %}
-                  <span class="bumper-addon__desc">{{ addon.short_description }}</span>
-                </div>
-                <div class="bumper-addon__cm-body">
-                  <div class="bumper-addon__cm-pricing">
-                    <span class="bumper-addon__price">CAD $399.00</span>
-                    <span class="bumper-addon__cm-quote-note">Quoted separately &mdash; we'll contact you with pricing</span>
-                    <span class="bumper-addon__cm-premium">Tri-coat / pearl / candy &mdash; quoted separately</span>
-                  </div>
-                  <form method="post" action="{% url 'store-cart-add' slug=addon.slug %}" class="bumper-addon__form bumper-addon__cm-form" id="cm-form-{{ addon.sku }}">
-                    {% csrf_token %}
-                    <input type="hidden" name="qty" value="1">
-                    <div class="bumper-addon__cm-fields">
-                      <div class="bumper-addon__cm-type">
-                        <label class="bumper-addon__cm-radio"><input type="radio" name="cm_type" value="standard" checked> Standard color ($399)</label>
-                        <label class="bumper-addon__cm-radio"><input type="radio" name="cm_type" value="premium"> Tri-coat / pearl / candy (quoted)</label>
-                      </div>
-                      <div class="bumper-addon__cm-code-wrap">
-                        <label class="bumper-addon__cm-label" for="paint-code-{{ addon.sku }}">Factory Paint Code <span class="bumper-addon__cm-req">*</span></label>
-                        <input class="bumper-addon__cm-input field" id="paint-code-{{ addon.sku }}" name="paint_code" type="text" placeholder="e.g. G7C, 040, WA8624" required autocomplete="off">
-                        <span class="bumper-addon__cm-hint">Enter your vehicle's factory paint code (found on the door jamb sticker).</span>
-                      </div>
-                    </div>
-                    <div class="bumper-addon__actions bumper-addon__cm-actions">
-                      <span class="bumper-addon__price bumper-addon__cm-price-inline">CAD $399.00</span>
-                      <button type="submit" class="btn btn--sm btn--primary bumper-addon__btn" id="cm-btn-{{ addon.sku }}">Add to Cart</button>
-                    </div>
-                  </form>
-                </div>
-              </li>
-            {% else %}
-              <li class="bumper-addon">
-                <div class="bumper-addon__main">
-                  <span class="bumper-addon__name">{{ addon.name }}</span>
-                  {% if addon.sku %}<span class="bumper-addon__sku">{{ addon.sku }}</span>{% endif %}
-                  {% if addon.short_description %}<span class="bumper-addon__desc">{{ addon.short_description }}</span>{% endif %}
-                </div>
-                <div class="bumper-addon__actions">
-                  <span class="bumper-addon__price">{{ addon.public_price|money }}</span>
-                  <form method="post" action="{% url 'store-cart-add' slug=addon.slug %}" class="bumper-addon__form">
-                    {% csrf_token %}
-                    <input type="hidden" name="qty" value="1">
-                    <button type="submit" class="btn btn--sm btn--primary bumper-addon__btn">Add to Cart</button>
-                  </form>
-                </div>
-              </li>
-            {% endif %}
-          {% endfor %}
-        </ul>
-        <p class="bumper-addons__disclaimer">Prices shown are MSRP. Final add-on pricing confirmed at production.</p>
-      </div>
-    {% endif %}
 
 			{# Hide "Items that go along..." cross-sell for merch only. #}
 		{% if go_along and product.sku|slice:":3" != "PF-" and product.slug|slice:":6" != "merch-" and product.category.slug != "merch" %}
