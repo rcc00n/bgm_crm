@@ -1803,7 +1803,11 @@ def product_detail(request, slug: str):
     if product.specs and isinstance(product.specs, dict):
         addons_data = product.specs.get("addons")
         if addons_data and isinstance(addons_data, dict):
-            addon_skus = [it.get("sku") for it in addons_data.get("items", []) if it.get("sku")]
+            addon_skus = [
+                (it if isinstance(it, str) else it.get("sku"))
+                for it in addons_data.get("items", [])
+                if (it if isinstance(it, str) else it.get("sku"))
+            ]
             if addon_skus:
                 addon_qs = Product.objects.filter(sku__in=addon_skus, is_active=True)
                 addon_map = {p.sku: p for p in addon_qs}
@@ -2593,6 +2597,87 @@ def cart_add(request, slug: str):
         )
     messages.success(request, success_message)
     return redirect("store:store-product", slug=product.slug)
+
+
+@require_POST
+def bumper_build_add(request, slug: str):
+    """
+    Multi-item cart add for the integrated bumper configurator.
+    Adds the main bumper (by option_id) plus any selected add-on products
+    (passed as repeated 'addon_slug' POST fields) in a single request.
+    Also captures an optional paint_code and prepends it to the session
+    paint_code store so checkout can display it.
+    """
+    from django.http import JsonResponse as _JR
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or \
+                 request.POST.get("format") == "json"
+
+    # ── 1. Add the main bumper ──────────────────────────────────────────────
+    product = get_object_or_404(Product, slug=slug, is_active=True)
+
+    option_id_raw = request.POST.get("option_id")
+    option = None
+    if option_id_raw:
+        try:
+            option = get_object_or_404(ProductOption, id=int(option_id_raw), product=product)
+        except (TypeError, ValueError):
+            pass
+
+    if not option and product.has_active_options:
+        msg = "Please complete all bumper selections before adding to cart."
+        if wants_json:
+            return _JR({"ok": False, "message": msg}, status=400)
+        messages.error(request, msg)
+        return redirect("store:store-product", slug=slug)
+
+    _cart_add_item(
+        request.session,
+        product_id=product.id,
+        qty=1,
+        option_id=option.id if option else None,
+    )
+
+    added_names = [product.name + (f" ({option.name})" if option else "")]
+
+    # ── 2. Add selected add-ons ─────────────────────────────────────────────
+    addon_slugs = request.POST.getlist("addon_slug")
+    for aslug in addon_slugs:
+        if not aslug:
+            continue
+        try:
+            addon = Product.objects.get(slug=aslug, is_active=True)
+        except Product.DoesNotExist:
+            continue
+        _cart_add_item(
+            request.session,
+            product_id=addon.id,
+            qty=1,
+            option_id=None,
+        )
+        added_names.append(addon.name)
+
+    # ── 3. Store paint code in session for checkout ─────────────────────────
+    paint_code = (request.POST.get("paint_code") or "").strip()
+    if paint_code:
+        request.session["bumper_paint_code"] = paint_code[:100]
+        request.session.modified = True
+
+    # ── 4. Respond ──────────────────────────────────────────────────────────
+    if request.POST.get("buy_now") == "1":
+        if wants_json:
+            item_count, line_count = _cart_summary_counts(request.session)
+            return _JR({"ok": True, "redirectUrl": reverse("store-checkout"),
+                        "cart": {"itemCount": item_count, "lineCount": line_count}})
+        return redirect("store:store-checkout")
+
+    if wants_json:
+        item_count, line_count = _cart_summary_counts(request.session)
+        return _JR({"ok": True,
+                    "message": "Added to cart: " + ", ".join(added_names),
+                    "cart": {"itemCount": item_count, "lineCount": line_count}})
+
+    messages.success(request, "Added to cart: " + ", ".join(added_names) + ".")
+    return redirect("store:store-product", slug=slug)
 
 
 def cart_view(request):

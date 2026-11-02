@@ -10,6 +10,7 @@ urlpatterns = [
     path("p/<slug:slug>/", views.product_detail, name="store-product"),
     path("cart/", views.cart_view, name="store-cart"),
     path("cart/add/<slug:slug>/", views.cart_add, name="store-cart-add"),
+    path("cart/build/<slug:slug>/", views.bumper_build_add, name="store-bumper-build-add"),
     path("cart/remove/<slug:slug>/", views.cart_remove, name="store-cart-remove"),
     path("cart/promo/", views.cart_promo, name="store-cart-promo"),
     path("checkout/printful-shipping-rates/", views.checkout_printful_rates, name="store-checkout-printful-rates"),

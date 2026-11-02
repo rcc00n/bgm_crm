@@ -1,138 +1,300 @@
 {% comment %}
-  Bumper Configurator — stepped dropdown UI
-  Replaces the massive option pill list for bumper products.
-  Expects: product_options (list of ProductOption objects)
-  Option names follow pattern: "Style · Finish · Truck" or "Style + Winch Mount · Finish · Truck"
+  Bumper Configurator — integrated stepped UI (bumper + add-ons in one form)
+  Steps: Truck → Style → Finish → Winch → Bezels → Stainless Pkg → Pod Lights → Light Bars → Color Match
+  Single POST to bumper_build_add adds bumper + all selected add-ons at once.
 {% endcomment %}
 
-<div class="bumper-config" id="bumper-configurator">
-  <h3 class="bumper-config__title">Build Your Bumper</h3>
+<form class="product-form bumper-build-form" method="post"
+      action="{% url 'store:store-bumper-build-add' slug=product.slug %}"
+      id="bumper-build-form">
+  {% csrf_token %}
 
-  <div class="bumper-config__step">
-    <label class="bumper-config__label" for="cfg-truck">1. Pick Your Truck</label>
-    <select class="bumper-config__select" id="cfg-truck" disabled>
-      <option value="">— Select —</option>
-    </select>
-  </div>
+  {# Hidden radio inputs for the bumper option — JS selects the right one #}
+  <fieldset id="product-options" class="bumper-config__hidden-options" hidden>
+    {% for opt in product_options %}
+      <label>
+        <input
+          type="radio"
+          name="option_id"
+          value="{{ opt.id }}"
+          data-option-name="{{ opt.name }}"
+          data-price-retail="{{ opt.discounted_price|floatformat:2 }}"
+          data-price-base="{{ opt.unit_price|floatformat:2 }}"
+          {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
+        >
+      </label>
+    {% endfor %}
+  </fieldset>
 
-  <div class="bumper-config__step">
-    <label class="bumper-config__label" for="cfg-style">2. Pick Your Style</label>
-    <select class="bumper-config__select" id="cfg-style" disabled>
-      <option value="">— Select truck first —</option>
-    </select>
-  </div>
+  <div class="bumper-config" id="bumper-configurator">
+    <h3 class="bumper-config__title">Build Your Bumper</h3>
 
-  <div class="bumper-config__step">
-    <label class="bumper-config__label" for="cfg-finish">3. Pick Your Finish</label>
-    <select class="bumper-config__select" id="cfg-finish" disabled>
-      <option value="">— Select style first —</option>
-    </select>
-  </div>
+    {# ── Step 1: Truck ── #}
+    <div class="bumper-config__step">
+      <label class="bumper-config__label" for="cfg-truck">1. Pick Your Truck</label>
+      <select class="bumper-config__select" id="cfg-truck" disabled>
+        <option value="">— Select —</option>
+      </select>
+    </div>
 
-  <div class="bumper-config__step" id="cfg-winch-step">
-    <label class="bumper-config__label" for="cfg-winch">4. Winch Mount?</label>
-    <select class="bumper-config__select" id="cfg-winch" disabled>
-      <option value="">— Select finish first —</option>
-    </select>
-  </div>
+    {# ── Step 2: Style ── #}
+    <div class="bumper-config__step">
+      <label class="bumper-config__label" for="cfg-style">2. Pick Your Style</label>
+      <select class="bumper-config__select" id="cfg-style" disabled>
+        <option value="">— Select truck first —</option>
+      </select>
+    </div>
 
-  <div class="bumper-config__result" id="cfg-result" hidden>
-    <div class="bumper-config__price" id="cfg-price"></div>
-    <div class="bumper-config__selection" id="cfg-selection"></div>
-  </div>
-</div>
+    {# ── Step 3: Finish ── #}
+    <div class="bumper-config__step">
+      <label class="bumper-config__label" for="cfg-finish">3. Pick Your Finish</label>
+      <select class="bumper-config__select" id="cfg-finish" disabled>
+        <option value="">— Select style first —</option>
+      </select>
+    </div>
 
-<!-- Hidden original option radios (form still uses these) -->
-<fieldset id="product-options" class="bumper-config__hidden-options" hidden>
-  {% for opt in product_options %}
-    <label>
-      <input
-        type="radio"
-        name="option_id"
-        value="{{ opt.id }}"
-        data-option-name="{{ opt.name }}"
-        data-price-retail="{{ opt.discounted_price|floatformat:2 }}"
-        data-price-base="{{ opt.unit_price|floatformat:2 }}"
-        {% if default_option_id and opt.id == default_option_id %}checked{% endif %}
-      >
-    </label>
-  {% endfor %}
-</fieldset>
+    {# ── Step 4: Winch Mount ── #}
+    <div class="bumper-config__step" id="cfg-winch-step">
+      <label class="bumper-config__label" for="cfg-winch">4. Winch Mount?</label>
+      <select class="bumper-config__select" id="cfg-winch" disabled>
+        <option value="">— Select finish first —</option>
+      </select>
+    </div>
+
+    {# ── Add-on steps (hidden until bumper is fully configured) ── #}
+    <div id="cfg-addons-section" hidden>
+
+      {# ── Step 5: Bezels ── #}
+      <div class="bumper-config__step">
+        <label class="bumper-config__label">5. Bezels <span class="bumper-config__optional">(optional)</span></label>
+        <div class="bumper-config__addon-group bumper-config__addon-group--radio">
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="bezel_choice" value="" checked> None
+          </label>
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="bezel_choice" value="add-fb-bzl-cm"
+                   data-addon-price="149.99" data-addon-label="Bezels – Color Match">
+            Color Match <span class="bumper-config__addon-price">+CAD $149.99</span>
+          </label>
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="bezel_choice" value="add-fb-bzl-br"
+                   data-addon-price="199.99" data-addon-label="Bezels – Brushed Stainless">
+            Brushed Stainless <span class="bumper-config__addon-price">+CAD $199.99</span>
+          </label>
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="bezel_choice" value="add-fb-bzl-pl"
+                   data-addon-price="249.99" data-addon-label="Bezels – Polished Stainless">
+            Polished Stainless <span class="bumper-config__addon-price">+CAD $249.99</span>
+          </label>
+        </div>
+      </div>
+
+      {# ── Step 6: Stainless Package (auto-hides options based on style) ── #}
+      <div class="bumper-config__step" id="cfg-ss-step">
+        <label class="bumper-config__label">6. Stainless Package <span class="bumper-config__optional">(optional)</span></label>
+        <div class="bumper-config__addon-group bumper-config__addon-group--radio">
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="ss_choice" value="" checked> None
+          </label>
+          <label class="bumper-config__addon-radio" id="cfg-ss-base-pr">
+            <input type="radio" name="ss_choice" value="add-fb-ss-pkg-bs-pr"
+                   data-addon-price="399.99" data-addon-label="Stainless Pkg – Base/Pre-Runner">
+            Base / Pre-Runner Package <span class="bumper-config__addon-price">+CAD $399.99</span>
+            <span class="bumper-config__addon-desc">Bezels + center plate</span>
+          </label>
+          <label class="bumper-config__addon-radio" id="cfg-ss-ft">
+            <input type="radio" name="ss_choice" value="add-fb-ss-pkg-ft"
+                   data-addon-price="549.99" data-addon-label="Stainless Pkg – Full-Tube">
+            Full-Tube Package <span class="bumper-config__addon-price">+CAD $549.99</span>
+            <span class="bumper-config__addon-desc">Bezels + center plate + grille</span>
+          </label>
+        </div>
+      </div>
+
+      {# ── Step 7: Pod Lights (pick one bundle or none) ── #}
+      <div class="bumper-config__step">
+        <label class="bumper-config__label">7. Pod Light Bundle <span class="bumper-config__optional">(optional — pick one)</span></label>
+        <div class="bumper-config__addon-group bumper-config__addon-group--radio">
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="pod_choice" value="" checked> None
+          </label>
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="pod_choice" value="speed-demon-premium-light-bundle"
+                   data-addon-price="421.96" data-addon-label="Speed Demon Premium Bundle">
+            Premium Bundle <span class="bumper-config__addon-price">+CAD $421.96</span>
+            <span class="bumper-config__addon-desc">2× Hi-Lux 2.0 (10-20217) + 2× DOT Fog (10-20181)</span>
+          </label>
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="pod_choice" value="speed-demon-budget-light-bundle"
+                   data-addon-price="247.96" data-addon-label="Speed Demon Budget Bundle">
+            Budget Bundle <span class="bumper-config__addon-price">+CAD $247.96</span>
+            <span class="bumper-config__addon-desc">2× Driving (10-20031) + 2× Fog (10-20030)</span>
+          </label>
+        </div>
+      </div>
+
+      {# ── Step 8: Light Bars (checkboxes — can pick multiple) ── #}
+      <div class="bumper-config__step">
+        <label class="bumper-config__label">8. Light Bars <span class="bumper-config__optional">(optional — pick any)</span></label>
+        <div class="bumper-config__addon-group bumper-config__addon-group--check">
+          <label class="bumper-config__addon-check">
+            <input type="checkbox" name="lightbar_32" value="sdl-new-single-row-32-hi-lux-2-0-10-10158"
+                   data-addon-price="348.99" data-addon-label='Hi-Lux 2.0 32&quot; Single Row Light Bar'>
+            Hi-Lux 2.0 32" Single Row Light Bar (10-10158) <span class="bumper-config__addon-price">+CAD $348.99</span>
+            <span class="bumper-config__addon-desc">Fits the light bar mount on all bumper styles</span>
+          </label>
+          <label class="bumper-config__addon-check" id="cfg-lb-20-dual-wrap">
+            <input type="checkbox" name="lightbar_20d" value="add-fb-20-dual-light-bar"
+                   data-addon-price="217.95" data-addon-label='20" Dual Row Light Bar (Full-Tube)'>
+            20" Dual Row Hi-Lux 2.0 (10-10152) <span class="bumper-config__addon-price">+CAD $217.95</span>
+            <span class="bumper-config__addon-desc">Full-Tube grille opening only — replaces center plate</span>
+          </label>
+          <label class="bumper-config__addon-check" id="cfg-lb-20-single-wrap">
+            <input type="checkbox" name="lightbar_20s" value="add-fb-20-single-light-bar"
+                   data-addon-price="137.95" data-addon-label='20" Single Row Light Bar (Full-Tube)'>
+            20" Single Row (10-10157) <span class="bumper-config__addon-price">+CAD $137.95</span>
+            <span class="bumper-config__addon-desc">Full-Tube grille opening only — replaces center plate</span>
+          </label>
+        </div>
+      </div>
+
+      {# ── Step 10: Wiring & Accessories ── #}
+      <div class="bumper-config__step" id="cfg-wiring-step">
+        <label class="bumper-config__label">10. Wiring &amp; Accessories <span class="bumper-config__optional">(optional — select any that apply)</span></label>
+        <div class="bumper-config__addon-group bumper-config__addon-group--check">
+          <label class="bumper-config__addon-check">
+            <input type="checkbox" name="wiring_fog_adapters" value="sdl-fog-light-adaptors-pair-10-30250"
+                   data-addon-price="51.99" data-addon-label="LED Fog Light Adapters (pair)">
+            LED Fog Light Adapters — pair (10-30250) <span class="bumper-config__addon-price">+CAD $51.99</span>
+            <span class="bumper-config__addon-desc">Required when mounting pods in factory fog light position (9005/9006/9012/H10/9145)</span>
+          </label>
+          <label class="bumper-config__addon-check">
+            <input type="checkbox" name="wiring_h2" value="sdl-speeddemon-led-wiringharness2lighth2"
+                   data-addon-price="54.99" data-addon-label="H2 Wiring Harness &amp; Switch Kit">
+            H2 Wiring Harness &amp; Switch Kit (10-30031) <span class="bumper-config__addon-price">+CAD $54.99</span>
+            <span class="bumper-config__addon-desc">Controls pod flood lights — needed if your truck lacks factory aux switches</span>
+          </label>
+          <label class="bumper-config__addon-check">
+            <input type="checkbox" name="wiring_h1" value="sdl-speeddemon-led-wiringharness1lighth1"
+                   data-addon-price="44.99" data-addon-label="H1 Wiring Harness &amp; Switch Kit">
+            H1 Wiring Harness &amp; Switch Kit (10-30030) <span class="bumper-config__addon-price">+CAD $44.99</span>
+            <span class="bumper-config__addon-desc">Controls light bar — needed if your truck lacks factory aux switches</span>
+          </label>
+        </div>
+      </div>
+
+      {# ── Step 9: Color Match Paint ── #}
+      <div class="bumper-config__step" id="cfg-cm-step">
+        <label class="bumper-config__label">11. Color Match Paint <span class="bumper-config__optional">(optional)</span></label>
+        <div class="bumper-config__addon-group bumper-config__addon-group--radio">
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="cm_choice" value="" checked id="cfg-cm-none"> No thanks
+          </label>
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="cm_choice" value="front-bumper-color-match-paint"
+                   data-addon-price="399.00" data-addon-label="Color Match Paint – Standard"
+                   id="cfg-cm-standard">
+            Standard Color Match <span class="bumper-config__addon-price">+CAD $399.00</span>
+            <span class="bumper-config__addon-desc">Solid and standard metallic colors</span>
+          </label>
+          <label class="bumper-config__addon-radio">
+            <input type="radio" name="cm_choice" value="front-bumper-color-match-paint"
+                   data-addon-price="0" data-addon-label="Color Match Paint – Premium (Quoted)"
+                   id="cfg-cm-premium">
+            Tri-coat / Pearl / Candy <span class="bumper-config__addon-price bumper-config__addon-price--quote">Quoted separately</span>
+            <span class="bumper-config__addon-desc">We'll contact you with pricing after your order</span>
+          </label>
+        </div>
+        {# Paint code field — shown when any color match is selected #}
+        <div id="cfg-paint-code-wrap" hidden style="margin-top:.6rem">
+          <label class="bumper-config__label" for="cfg-paint-code" style="font-size:.85rem">
+            Factory Paint Code <span style="color:var(--clr-accent)">*</span>
+          </label>
+          <input class="field" id="cfg-paint-code" name="paint_code" type="text"
+                 placeholder="e.g. G7C, 040, WA8624" autocomplete="off"
+                 style="max-width:280px">
+          <span class="bumper-config__addon-desc">Found on your door jamb sticker.</span>
+        </div>
+      </div>
+
+    </div>{# /cfg-addons-section #}
+
+    {# ── Running total + summary ── #}
+    <div class="bumper-config__result" id="cfg-result" hidden>
+      <div class="bumper-config__price" id="cfg-price"></div>
+      <div class="bumper-config__selection" id="cfg-selection"></div>
+      <div class="bumper-config__addons-summary" id="cfg-addons-summary"></div>
+    </div>
+
+    {# ── Buttons (shown once bumper is configured) ── #}
+    <div class="btn-pair" id="cfg-btn-pair" hidden style="margin-top:1rem">
+      <button class="btn btn--primary" type="submit" id="cfg-atc-btn">Add to cart</button>
+      <button class="btn btn--ghost" type="submit" name="buy_now" value="1" id="cfg-buy-btn">Buy now</button>
+    </div>
+
+  </div>{# /bumper-config #}
+</form>
 
 <script>
 (function() {
   var inputs = Array.from(document.querySelectorAll('#product-options input[name="option_id"]'));
   if (!inputs.length) return;
 
-  // Parse all options into structured data
+  // ── Parse bumper options ──────────────────────────────────────────────────
   var options = inputs.map(function(input) {
     var raw = input.dataset.optionName || '';
-    // Pattern: "Style (+ Winch Mount) · Finish · Truck"
     var parts = raw.split('·').map(function(s) { return s.trim(); });
     if (parts.length < 3) return null;
-
-    var stylePart = parts[0]; // e.g. "Base" or "Full-Tube + Winch Mount"
-    var finish = parts[1];    // e.g. "Armadillo" or "Smooth Criminal"
-    var truck = parts[2];     // e.g. "1500" or "2500/3500"
-
-    var hasWinch = stylePart.indexOf('+ Winch Mount') !== -1;
-    var style = stylePart.replace('+ Winch Mount', '').trim();
-
-    return {
-      input: input,
-      style: style,
-      finish: finish,
-      truck: truck,
-      winch: hasWinch,
-      price: input.dataset.priceRetail,
-      name: raw
-    };
+    var stylePart = parts[0];
+    var finish    = parts[1];
+    var truck     = parts[2];
+    var hasWinch  = stylePart.indexOf('+ Winch Mount') !== -1;
+    var style     = stylePart.replace('+ Winch Mount', '').trim();
+    return { input: input, style: style, finish: finish, truck: truck,
+             winch: hasWinch, price: parseFloat(input.dataset.priceRetail), name: raw };
   }).filter(Boolean);
 
   if (!options.length) return;
 
-  // Get unique values
-  var trucks = [];
-  var stylesAll = [];
-  var finishesAll = [];
-  var hasAnyWinch = false;
-
+  var trucks = [], stylesAll = [], hasAnyWinch = false;
   options.forEach(function(o) {
     if (trucks.indexOf(o.truck) === -1) trucks.push(o.truck);
     if (stylesAll.indexOf(o.style) === -1) stylesAll.push(o.style);
-    if (finishesAll.indexOf(o.finish) === -1) finishesAll.push(o.finish);
     if (o.winch) hasAnyWinch = true;
   });
-
-  // Sort trucks: 1500 first
-  trucks.sort(function(a, b) {
-    return a.indexOf('1500') !== -1 ? -1 : 1;
-  });
-
-  // Sort styles in logical order
+  trucks.sort(function(a) { return a.indexOf('1500') !== -1 ? -1 : 1; });
   var styleOrder = ['Base', 'Pre-Runner', 'Full-Tube'];
-  stylesAll.sort(function(a, b) {
-    var ai = styleOrder.indexOf(a);
-    var bi = styleOrder.indexOf(b);
-    if (ai === -1) ai = 99;
-    if (bi === -1) bi = 99;
-    return ai - bi;
-  });
 
-  var selTruck = document.getElementById('cfg-truck');
-  var selStyle = document.getElementById('cfg-style');
-  var selFinish = document.getElementById('cfg-finish');
-  var selWinch = document.getElementById('cfg-winch');
-  var winchStep = document.getElementById('cfg-winch-step');
-  var resultDiv = document.getElementById('cfg-result');
-  var priceDiv = document.getElementById('cfg-price');
+  // ── DOM refs ──────────────────────────────────────────────────────────────
+  var selTruck    = document.getElementById('cfg-truck');
+  var selStyle    = document.getElementById('cfg-style');
+  var selFinish   = document.getElementById('cfg-finish');
+  var selWinch    = document.getElementById('cfg-winch');
+  var winchStep   = document.getElementById('cfg-winch-step');
+  var addonsSection = document.getElementById('cfg-addons-section');
+  var resultDiv   = document.getElementById('cfg-result');
+  var priceDiv    = document.getElementById('cfg-price');
   var selectionDiv = document.getElementById('cfg-selection');
-  var retailEl = document.querySelector('[data-product-price-retail]');
+  var addonsSummaryDiv = document.getElementById('cfg-addons-summary');
+  var btnPair     = document.getElementById('cfg-btn-pair');
+  var retailEl    = document.querySelector('[data-product-price-retail]');
 
-  // Hide winch step if no winch options exist
-  if (!hasAnyWinch && winchStep) {
-    winchStep.style.display = 'none';
-  }
+  // Stainless package option labels
+  var ssBsPr = document.getElementById('cfg-ss-base-pr');
+  var ssFt   = document.getElementById('cfg-ss-ft');
+
+  // 20" light bar labels (Full-Tube only)
+  var lb20DualWrap   = document.getElementById('cfg-lb-20-dual-wrap');
+  var lb20SingleWrap = document.getElementById('cfg-lb-20-single-wrap');
+
+  // Color match
+  var cmNone     = document.getElementById('cfg-cm-none');
+  var cmStandard = document.getElementById('cfg-cm-standard');
+  var cmPremium  = document.getElementById('cfg-cm-premium');
+  var paintCodeWrap = document.getElementById('cfg-paint-code-wrap');
+  var paintCodeInput = document.getElementById('cfg-paint-code');
+
+  if (!hasAnyWinch && winchStep) winchStep.style.display = 'none';
 
   // Populate trucks
   selTruck.innerHTML = '<option value="">— Select —</option>';
@@ -141,10 +303,11 @@
   });
   selTruck.disabled = false;
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   function getFiltered(truck, style, finish) {
     return options.filter(function(o) {
-      if (truck && o.truck !== truck) return false;
-      if (style && o.style !== style) return false;
+      if (truck  && o.truck  !== truck)  return false;
+      if (style  && o.style  !== style)  return false;
       if (finish && o.finish !== finish) return false;
       return true;
     });
@@ -159,78 +322,183 @@
   }
 
   function resetFrom(level) {
-    if (level <= 2) {
-      selStyle.innerHTML = '<option value="">— Select truck first —</option>';
-      selStyle.disabled = true;
+    if (level <= 2) { selStyle.innerHTML  = '<option value="">— Select truck first —</option>';  selStyle.disabled  = true; }
+    if (level <= 3) { selFinish.innerHTML = '<option value="">— Select style first —</option>';  selFinish.disabled = true; }
+    if (level <= 4) { selWinch.innerHTML  = '<option value="">— Select finish first —</option>'; selWinch.disabled  = true; }
+    hideAddons();
+  }
+
+  function hideAddons() {
+    addonsSection.hidden = true;
+    resultDiv.hidden     = true;
+    btnPair.hidden       = true;
+  }
+
+  function currentStyle() { return selStyle.value; }
+
+  function updateStainlessVisibility(style) {
+    if (!ssBsPr || !ssFt) return;
+    if (style === 'Full-Tube') {
+      ssBsPr.style.display = 'none';
+      // Reset selection if base/pr was chosen
+      var inp = ssBsPr.querySelector('input');
+      if (inp && inp.checked) {
+        document.querySelector('input[name="ss_choice"][value=""]').checked = true;
+      }
+      ssFt.style.display = '';
+    } else {
+      ssFt.style.display = 'none';
+      var inp2 = ssFt.querySelector('input');
+      if (inp2 && inp2.checked) {
+        document.querySelector('input[name="ss_choice"][value=""]').checked = true;
+      }
+      ssBsPr.style.display = '';
     }
-    if (level <= 3) {
-      selFinish.innerHTML = '<option value="">— Select style first —</option>';
-      selFinish.disabled = true;
+  }
+
+  function updateLightBarVisibility(style) {
+    var isFullTube = (style === 'Full-Tube');
+    if (lb20DualWrap)   lb20DualWrap.style.display   = isFullTube ? '' : 'none';
+    if (lb20SingleWrap) lb20SingleWrap.style.display = isFullTube ? '' : 'none';
+    if (!isFullTube) {
+      // Uncheck 20" bars if style changed away from Full-Tube
+      ['lightbar_20d','lightbar_20s'].forEach(function(n) {
+        var cb = document.querySelector('input[name="' + n + '"]');
+        if (cb) cb.checked = false;
+      });
     }
-    if (level <= 4) {
-      selWinch.innerHTML = '<option value="">— Select finish first —</option>';
-      selWinch.disabled = true;
+  }
+
+  function getAddonPrice(name) {
+    var inp = document.querySelector('input[name="' + name + '"]:checked');
+    if (!inp || !inp.value) return 0;
+    return parseFloat(inp.dataset.addonPrice || 0) || 0;
+  }
+
+  function getCheckboxPrice(name) {
+    var inp = document.querySelector('input[name="' + name + '"]:checked');
+    if (!inp) return 0;
+    return parseFloat(inp.dataset.addonPrice || 0) || 0;
+  }
+
+  function getAddonLabel(name) {
+    var inp = document.querySelector('input[name="' + name + '"]:checked');
+    if (!inp || !inp.value) return null;
+    return inp.dataset.addonLabel || null;
+  }
+
+  function updateTotal(bumperPrice) {
+    var total = bumperPrice;
+    var addons = [];
+
+    // Bezels
+    var bl = getAddonLabel('bezel_choice');
+    if (bl) { total += getAddonPrice('bezel_choice'); addons.push(bl); }
+
+    // Stainless pkg
+    var ssl = getAddonLabel('ss_choice');
+    if (ssl) { total += getAddonPrice('ss_choice'); addons.push(ssl); }
+
+    // Pod lights
+    var pl = getAddonLabel('pod_choice');
+    if (pl) { total += getAddonPrice('pod_choice'); addons.push(pl); }
+
+    // Light bars (checkboxes)
+    ['lightbar_32','lightbar_20d','lightbar_20s'].forEach(function(n) {
+      var inp = document.querySelector('input[name="' + n + '"]:checked');
+      if (inp && inp.value) {
+        total += parseFloat(inp.dataset.addonPrice || 0) || 0;
+        addons.push(inp.dataset.addonLabel || '');
+      }
+    });
+
+    // Wiring & accessories (checkboxes)
+    ['wiring_fog_adapters','wiring_h2','wiring_h1'].forEach(function(n) {
+      var inp = document.querySelector('input[name="' + n + '"]:checked');
+      if (inp && inp.value) {
+        total += parseFloat(inp.dataset.addonPrice || 0) || 0;
+        addons.push(inp.dataset.addonLabel || '');
+      }
+    });
+
+    // Color match
+    var cml = getAddonLabel('cm_choice');
+    if (cml) {
+      var cmp = getAddonPrice('cm_choice');
+      if (cmp > 0) total += cmp;
+      addons.push(cml);
     }
-    resultDiv.hidden = true;
+
+    var code   = (retailEl && retailEl.dataset.currencyCode)   || 'CAD';
+    var symbol = (retailEl && retailEl.dataset.currencySymbol) || '$';
+    priceDiv.textContent = (code ? code + ' ' : '') + symbol + total.toFixed(2);
+
+    if (addons.length) {
+      addonsSummaryDiv.textContent = '+ ' + addons.join(', ');
+      addonsSummaryDiv.hidden = false;
+    } else {
+      addonsSummaryDiv.textContent = '';
+      addonsSummaryDiv.hidden = true;
+    }
   }
 
   function selectOption(opt) {
     opt.input.checked = true;
     opt.input.dispatchEvent(new Event('change', { bubbles: true }));
-    // Update price display
-    var symbol = (retailEl && retailEl.dataset.currencySymbol) || '$';
-    var code = (retailEl && retailEl.dataset.currencyCode) || '';
-    var formatted = (code ? code + ' ' : '') + symbol + Number(opt.price).toFixed(2);
-    priceDiv.textContent = formatted;
     selectionDiv.textContent = opt.name;
     resultDiv.hidden = false;
+    addonsSection.hidden = false;
+    btnPair.hidden = false;
+    updateStainlessVisibility(opt.style);
+    updateLightBarVisibility(opt.style);
+    updateTotal(opt.price);
   }
 
-  function tryMatch() {
-    var truck = selTruck.value;
-    var style = selStyle.value;
-    var finish = selFinish.value;
-    var winch = selWinch.value;
+  // ── Addon change listeners ─────────────────────────────────────────────────
+  function currentBumperPrice() {
+    var checked = document.querySelector('#product-options input[name="option_id"]:checked');
+    return checked ? parseFloat(checked.dataset.priceRetail) || 0 : 0;
+  }
 
-    if (!truck || !style || !finish) {
-      resultDiv.hidden = true;
-      return;
-    }
-    if (hasAnyWinch && !winch) {
-      resultDiv.hidden = true;
-      return;
-    }
+  function onAddonChange() { updateTotal(currentBumperPrice()); }
 
-    var wantWinch = (winch === 'yes');
-    var match = options.find(function(o) {
-      return o.truck === truck && o.style === style && o.finish === finish && o.winch === wantWinch;
+  ['bezel_choice','ss_choice','pod_choice'].forEach(function(n) {
+    document.querySelectorAll('input[name="' + n + '"]').forEach(function(inp) {
+      inp.addEventListener('change', onAddonChange);
     });
+  });
+  ['lightbar_32','lightbar_20d','lightbar_20s'].forEach(function(n) {
+    var inp = document.querySelector('input[name="' + n + '"]');
+    if (inp) inp.addEventListener('change', onAddonChange);
+  });
+  ['wiring_fog_adapters','wiring_h2','wiring_h1'].forEach(function(n) {
+    var inp = document.querySelector('input[name="' + n + '"]');
+    if (inp) inp.addEventListener('change', onAddonChange);
+  });
 
-    if (match) {
-      selectOption(match);
-    } else {
-      // If no winch variant exists, try without
-      match = options.find(function(o) {
-        return o.truck === truck && o.style === style && o.finish === finish && !o.winch;
-      });
-      if (match) selectOption(match);
-    }
-  }
+  // Color match toggle
+  document.querySelectorAll('input[name="cm_choice"]').forEach(function(inp) {
+    inp.addEventListener('change', function() {
+      var hasColor = (cmStandard && cmStandard.checked) || (cmPremium && cmPremium.checked);
+      if (paintCodeWrap) paintCodeWrap.hidden = !hasColor;
+      if (paintCodeInput) {
+        paintCodeInput.required = hasColor;
+        if (!hasColor) paintCodeInput.value = '';
+      }
+      onAddonChange();
+    });
+  });
 
+  // ── Bumper selector listeners ─────────────────────────────────────────────
   selTruck.addEventListener('change', function() {
     resetFrom(2);
     if (!selTruck.value) return;
     var filtered = getFiltered(selTruck.value, null, null);
     var styles = [];
-    filtered.forEach(function(o) {
-      if (styles.indexOf(o.style) === -1) styles.push(o.style);
-    });
+    filtered.forEach(function(o) { if (styles.indexOf(o.style) === -1) styles.push(o.style); });
     styles.sort(function(a, b) {
-      var ai = styleOrder.indexOf(a);
-      var bi = styleOrder.indexOf(b);
-      if (ai === -1) ai = 99;
-      if (bi === -1) bi = 99;
-      return ai - bi;
+      var ai = styleOrder.indexOf(a), bi = styleOrder.indexOf(b);
+      if (ai === -1) ai = 99; if (bi === -1) bi = 99; return ai - bi;
     });
     populateSelect(selStyle, styles, '— Select —');
   });
@@ -240,60 +508,87 @@
     if (!selStyle.value) return;
     var filtered = getFiltered(selTruck.value, selStyle.value, null);
     var finishes = [];
-    filtered.forEach(function(o) {
-      if (finishes.indexOf(o.finish) === -1) finishes.push(o.finish);
-    });
+    filtered.forEach(function(o) { if (finishes.indexOf(o.finish) === -1) finishes.push(o.finish); });
     populateSelect(selFinish, finishes, '— Select —');
   });
 
   selFinish.addEventListener('change', function() {
     resetFrom(4);
     if (!selFinish.value) return;
-
     if (hasAnyWinch) {
-      // Check if winch options actually exist for this combo
       var filtered = getFiltered(selTruck.value, selStyle.value, selFinish.value);
-      var hasWinchForCombo = filtered.some(function(o) { return o.winch; });
-      var hasNoWinchForCombo = filtered.some(function(o) { return !o.winch; });
-
-      if (hasWinchForCombo && hasNoWinchForCombo) {
+      var hasW = filtered.some(function(o) { return o.winch; });
+      var hasNW = filtered.some(function(o) { return !o.winch; });
+      if (hasW && hasNW) {
         populateSelect(selWinch, ['No', 'Yes'], '— Select —');
         winchStep.style.display = '';
         return;
-      } else if (hasWinchForCombo) {
-        // Only winch version exists
+      } else if (hasW) {
         winchStep.style.display = 'none';
-        var match = filtered.find(function(o) { return o.winch; });
-        if (match) selectOption(match);
+        var m = filtered.find(function(o) { return o.winch; });
+        if (m) selectOption(m);
         return;
       } else {
-        // No winch version
         winchStep.style.display = 'none';
-        var match = filtered.find(function(o) { return !o.winch; });
-        if (match) selectOption(match);
+        var m2 = filtered.find(function(o) { return !o.winch; });
+        if (m2) selectOption(m2);
         return;
       }
     } else {
-      // No winch at all — auto-select
-      var filtered = getFiltered(selTruck.value, selStyle.value, selFinish.value);
-      if (filtered.length === 1) {
-        selectOption(filtered[0]);
-      }
+      var filtered2 = getFiltered(selTruck.value, selStyle.value, selFinish.value);
+      if (filtered2.length === 1) selectOption(filtered2[0]);
     }
   });
 
   selWinch.addEventListener('change', function() {
-    if (!selWinch.value) {
-      resultDiv.hidden = true;
-      return;
-    }
+    if (!selWinch.value) { hideAddons(); return; }
     var wantWinch = (selWinch.value === 'Yes');
     var filtered = getFiltered(selTruck.value, selStyle.value, selFinish.value);
-    var match = filtered.find(function(o) { return o.winch === wantWinch; });
-    if (match) {
-      selectOption(match);
-    }
+    var m = filtered.find(function(o) { return o.winch === wantWinch; });
+    if (m) selectOption(m);
   });
+
+  // ── Form submission: inject addon_slug hidden inputs ──────────────────────
+  var form = document.getElementById('bumper-build-form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      // Remove any previously injected addon_slug inputs
+      form.querySelectorAll('input[name="addon_slug"]').forEach(function(el) { el.remove(); });
+
+      var addonSlugs = [];
+
+      // Radio add-ons
+      ['bezel_choice','ss_choice','pod_choice','cm_choice'].forEach(function(n) {
+        var inp = document.querySelector('input[name="' + n + '"]:checked');
+        if (inp && inp.value) addonSlugs.push(inp.value);
+      });
+
+      // Checkbox add-ons
+      ['lightbar_32','lightbar_20d','lightbar_20s','wiring_fog_adapters','wiring_h2','wiring_h1'].forEach(function(n) {
+        var inp = document.querySelector('input[name="' + n + '"]:checked');
+        if (inp && inp.value) addonSlugs.push(inp.value);
+      });
+
+      // Validate paint code if color match selected
+      var cmChecked = document.querySelector('input[name="cm_choice"]:checked');
+      if (cmChecked && cmChecked.value && paintCodeInput && !paintCodeInput.value.trim()) {
+        e.preventDefault();
+        paintCodeInput.focus();
+        paintCodeInput.style.borderColor = 'var(--clr-accent)';
+        paintCodeInput.placeholder = 'Please enter your factory paint code';
+        return;
+      }
+
+      // Inject hidden addon_slug inputs
+      addonSlugs.forEach(function(slug) {
+        var hidden = document.createElement('input');
+        hidden.type  = 'hidden';
+        hidden.name  = 'addon_slug';
+        hidden.value = slug;
+        form.appendChild(hidden);
+      });
+    });
+  }
 
 })();
 </script>

@@ -114,7 +114,7 @@
 
 	            {% if product_options %}
               {% if is_bumper_configurator %}
-                {% include "store/_bumper_configurator.html" %}
+                {# Bumper configurator has its own <form> — rendered outside the outer form below #}
               {% else %}
 	              <div class="options-collapse" data-options-collapse>
 	                <div class="options-preview" data-options-preview>
@@ -307,46 +307,54 @@
 	              </div>
 	            {% endif %}
 
-            {% if not product.contact_for_estimate %}
-              {% if product_inventory_notice %}
-                <div class="inventory-note{% if not product_can_order %} inventory-note--blocked{% endif %}">
-                  {{ product_inventory_notice }}
-                </div>
-              {% endif %}
-              {% if product_can_order %}
-                <label class="section__desc" for="qty">Quantity</label>
-                <div class="qty-row">
-                  <input
-                    class="field"
-                    id="qty"
-                    name="qty"
-                    type="number"
-                    min="1"
-                    value="1"
-                    style="width:110px"
-                    {% if not out_of_stock_orders_allowed %}max="{{ product.available_inventory }}"{% endif %}
-                  >
-                  <div class="btn-pair">
-                    <button class="btn btn--primary" type="submit">Add to cart</button>
-                    <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Buy now</button>
+            {% if not is_bumper_configurator %}
+              {% if not product.contact_for_estimate %}
+                {% if product_inventory_notice %}
+                  <div class="inventory-note{% if not product_can_order %} inventory-note--blocked{% endif %}">
+                    {{ product_inventory_notice }}
                   </div>
-                </div>
+                {% endif %}
+                {% if product_can_order %}
+                  <label class="section__desc" for="qty">Quantity</label>
+                  <div class="qty-row">
+                    <input
+                      class="field"
+                      id="qty"
+                      name="qty"
+                      type="number"
+                      min="1"
+                      value="1"
+                      style="width:110px"
+                      {% if not out_of_stock_orders_allowed %}max="{{ product.available_inventory }}"{% endif %}
+                    >
+                    <div class="btn-pair">
+                      <button class="btn btn--primary" type="submit">Add to cart</button>
+                      <button class="btn btn--ghost" type="submit" name="buy_now" value="1">Buy now</button>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="btn-pair">
+                    <button class="btn btn--ghost" type="button" disabled>Out of stock</button>
+                    <a class="btn btn--ghost" href="{% url 'store' %}">Browse products</a>
+                  </div>
+                {% endif %}
               {% else %}
-                <div class="btn-pair">
-                  <button class="btn btn--ghost" type="button" disabled>Out of stock</button>
+                <div class="btn-pair" style="margin-top:1rem">
+                  <a class="btn btn--primary" href="{% url 'home' %}#contact">Contact us</a>
                   <a class="btn btn--ghost" href="{% url 'store' %}">Browse products</a>
                 </div>
               {% endif %}
-            {% else %}
-              <div class="btn-pair" style="margin-top:1rem">
-                <a class="btn btn--primary" href="{% url 'home' %}#contact">Contact us</a>
-                <a class="btn btn--ghost" href="{% url 'store' %}">Browse products</a>
-              </div>
-            {% endif %}
-          </form>
+            {% endif %}{# not is_bumper_configurator #}
+            {% if not is_bumper_configurator %}</form>{% endif %}
         </div>
 
-        {% if addon_products %}
+        {% if is_bumper_configurator %}
+          <div class="card product-detail__options-card" style="padding:1.2rem;margin-top:1rem">
+            {% include "store/_bumper_configurator.html" %}
+          </div>
+        {% endif %}
+
+        {% if addon_products and not is_bumper_configurator %}
           <div class="card bumper-addons" style="margin-top:1rem">
             <div class="bumper-addons__head">
               <h3 class="bumper-addons__title">{{ product.specs.addons.heading|default:"Available Add-Ons" }}</h3>
@@ -1459,6 +1467,20 @@
   .bumper-config__price{font-size:1.3rem;font-weight:900;color:var(--ink)}
   .bumper-config__selection{font-size:.82rem;color:var(--muted);margin-top:.2rem}
   .bumper-config__hidden-options{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  /* Integrated add-on steps */
+  .bumper-config__optional{font-weight:400;font-size:.78rem;color:var(--muted);text-transform:none;letter-spacing:0}
+  .bumper-config__addon-group{display:flex;flex-direction:column;gap:.35rem;margin-top:.25rem}
+  .bumper-config__addon-radio,.bumper-config__addon-check{display:flex;align-items:flex-start;gap:.5rem;padding:.5rem .65rem;border:1px solid rgba(255,255,255,.12);border-radius:.45rem;cursor:pointer;font-size:.9rem;color:var(--ink);transition:border-color .15s,background .15s;line-height:1.35}
+  .bumper-config__addon-radio:has(input:checked),.bumper-config__addon-check:has(input:checked){border-color:rgba(213,0,0,.5);background:rgba(213,0,0,.07)}
+  .bumper-config__addon-radio input,.bumper-config__addon-check input{margin-top:.15rem;flex-shrink:0;accent-color:#d50000}
+  .bumper-config__addon-price{font-weight:800;color:#e11b1b;margin-left:.3rem;white-space:nowrap}
+  .bumper-config__addon-price--quote{font-weight:700;color:#f7c948}
+  .bumper-config__addon-desc{display:block;font-size:.76rem;color:var(--muted);margin-top:.1rem;font-weight:400}
+  .bumper-config__addons-summary{font-size:.78rem;color:var(--muted);margin-top:.25rem}
+  .bumper-build-form{margin:0}
+  @media(max-width:480px){
+    .bumper-config__addon-radio,.bumper-config__addon-check{font-size:.83rem;padding:.45rem .55rem}
+  }
   .compat{margin:.2rem 0 0;padding-left:1.1rem}
   .compat li{margin:.2rem 0}
   .card--cta{background:linear-gradient(135deg,rgba(213,0,0,.12),rgba(0,0,0,.65));border:1px solid rgba(213,0,0,.3)}

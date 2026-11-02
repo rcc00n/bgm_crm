@@ -773,58 +773,5 @@
 
   {% include "includes/analytics_tracker.html" %}
 
-  <!-- ============================================================
-       BAD GUY MOTORS — Shopmonkey Scheduler: Floating Book Now Button
-       ============================================================ -->
-  <script
-    src="https://app.shopmonkey.cloud/scripts/scheduler.js?lid=6a6bfe51-bbf7-4dc0-adc7-9dfb263bfaa5&e=stable"
-    type="text/javascript"
-    id="sm_w_scheduler"
-    defer
-  ></script>
-  <button
-    id="bgm-book-fab"
-    type="button"
-    aria-label="Book an appointment"
-    onclick="sm_w_scheduler_open()"
-  >
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M19 4h-1V2h-2v2H8V2H6v2H5C3.9 4 3 4.9 3 6v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zM7 12h5v5H7z"/>
-    </svg>
-    BOOK NOW
-  </button>
-  <style>
-    #bgm-book-fab {
-      position: fixed;
-      left: 22px;
-      bottom: 22px;
-      right: auto;
-      z-index: 2099;
-      display: inline-flex;
-      align-items: center;
-      gap: .6em;
-      padding: .9rem 1.15rem;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, .08);
-      background: linear-gradient(180deg, var(--accent, #d50000) 0%, var(--accent-dark, #b60000) 100%);
-      color: #fff;
-      font-family: var(--font-ui, var(--font-body), inherit);
-      font-size: .85rem;
-      font-weight: 900;
-      letter-spacing: .08em;
-      line-height: 1;
-      cursor: pointer;
-      box-shadow: 0 12px 26px rgba(213, 0, 0, .28), 0 0 26px rgba(213, 0, 0, .18);
-      transition: transform .15s ease, filter .15s ease;
-      text-transform: uppercase;
-    }
-    #bgm-book-fab:hover { transform: translateY(-2px); filter: saturate(1.1) brightness(1.08); }
-    #bgm-book-fab:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
-    #bgm-book-fab svg { width: 18px; height: 18px; fill: currentColor; opacity: .95; flex-shrink: 0; }
-    body.nav-open #bgm-book-fab,
-    .site-header--open ~ #bgm-book-fab { display: none !important; }
-    @media (max-width: 480px) { #bgm-book-fab { left: 14px; bottom: 14px; } }
-  </style>
-  <!-- END Shopmonkey Scheduler block -->
 </body>
 </html>
