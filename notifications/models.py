@@ -14,7 +14,7 @@ def _parse_id_list(raw: str) -> list[int]:
     if not raw:
         return []
     ids: list[int] = []
-    for chunk in re.split(r"[\\s,]+", raw.strip()):
+    for chunk in re.split(r"[\s,]+", raw.strip()):
         if not chunk:
             continue
         try:
@@ -87,8 +87,7 @@ class TelegramBotSettings(models.Model):
         then falls back to free-form IDs (keeps legacy behavior).
         """
         slot_ids = self.slot_chat_ids
-        legacy_ids = [cid for cid in _parse_id_list(self.admin_chat_ids) if cid not in slot_ids]
-        return slot_ids + legacy_ids
+        return list(dict.fromkeys(slot_ids + _parse_id_list(self.admin_chat_ids)))
 
     @property
     def allowed_user_id_list(self) -> list[int]:
@@ -158,17 +157,38 @@ class TelegramMessageLog(models.Model):
     EVENT_MANUAL = "manual"
     EVENT_UI_CHECK = "ui_check"
 
+    class Status(models.TextChoices):
+        PENDING = "pending", "Queued"
+        SENDING = "sending", "Sending"
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed; retry scheduled"
+        UNCERTAIN = "uncertain", "Delivery unknown; retry scheduled"
+
     event_type = models.CharField(max_length=64, db_index=True)
     chat_id = models.BigIntegerField()
     payload = models.TextField()
     success = models.BooleanField(default=True)
     error_message = models.TextField(blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.SENT, db_default=Status.SENT)
+    dedupe_key = models.CharField(max_length=255, null=True, blank=True)
+    entity_type = models.CharField(max_length=64, blank=True, db_default="")
+    entity_id = models.CharField(max_length=80, blank=True, db_default="")
+    digest_slot = models.CharField(max_length=64, blank=True, db_default="")
+    telegram_message_id = models.BigIntegerField(null=True, blank=True)
+    attempts = models.PositiveIntegerField(default=0, db_default=0)
+    next_attempt_at = models.DateTimeField(null=True, blank=True)
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
         verbose_name = "Telegram message log"
         verbose_name_plural = "Telegram message log"
+        constraints = [
+            models.UniqueConstraint(fields=["chat_id", "dedupe_key"], name="tg_unique_recipient_message"),
+        ]
+        indexes = [models.Index(fields=["status", "next_attempt_at"], name="tg_delivery_due_idx")]
 
     def __str__(self) -> str:
         state = "sent" if self.success else "failed"
@@ -243,8 +263,7 @@ class TelegramReminder(models.Model):
         contact_ids: list[int] = []
         if self.pk:
             contact_ids = list(self.contacts.values_list("chat_id", flat=True))
-        combined = contact_ids + [cid for cid in manual_ids if cid not in contact_ids]
-        return combined
+        return list(dict.fromkeys(contact_ids + manual_ids))
 
     def mark_sent(self, *, success: bool, error_message: str | None = None):
         self.status = self.Status.SENT if success else self.Status.FAILED

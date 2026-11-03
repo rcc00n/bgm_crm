@@ -4,12 +4,13 @@ Utilities for the Telegram bot integration.
 from __future__ import annotations
 
 import html
+import re
+import uuid
 from datetime import timedelta
 from decimal import Decimal
 from typing import Sequence
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db.models import (
     DecimalField,
     ExpressionWrapper,
@@ -21,10 +22,11 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.timezone import localtime
 from telebot import TeleBot
-from telebot.apihelper import ApiTelegramException
 
 from core.emails import build_email_html, send_html_email
 from core.email_templates import join_text_sections
+
+from .lead_digest import queue_lead_digest
 
 from .models import (
     TelegramBotSettings,
@@ -37,11 +39,6 @@ class TelegramConfigurationError(Exception):
     """Raised when Telegram bot actions are requested without valid settings."""
 
 
-# Lead digests are limited to 3pm and 9pm local time to avoid spam.
-LEAD_DIGEST_HOURS_LOCAL = (15, 21)
-LEAD_DIGEST_CACHE_TTL = 60 * 60 * 48
-
-
 def build_bot(settings_obj: TelegramBotSettings | None = None) -> tuple[TeleBot, TelegramBotSettings]:
     settings_obj = settings_obj or TelegramBotSettings.load_active()
     if not settings_obj:
@@ -50,46 +47,89 @@ def build_bot(settings_obj: TelegramBotSettings | None = None) -> tuple[TeleBot,
     return bot, settings_obj
 
 
+def _neutralize_campaign_links(value: str) -> str:
+    from core.services.lead_security import KNOWN_CAMPAIGN_DOMAINS
+
+    for domain in KNOWN_CAMPAIGN_DOMAINS:
+        pattern = r"(?<![\w.-])(?:[\w-]+\.)*" + re.escape(domain) + r"(?![\w.-])"
+        value = re.sub(pattern, lambda match: match.group(0).replace(".", "[.]"), value, flags=re.IGNORECASE)
+    return value
+
+
+def safe_user_text(value: object | None, *, max_length: int = 120) -> str:
+    if value is None or value == "":
+        return "—"
+    cleaned = _neutralize_campaign_links(str(value))
+    escaped = html.escape(cleaned)
+    if len(escaped.encode("utf-16-le", errors="replace")) // 2 <= max_length:
+        return escaped
+    # Budget escaped characters, so input containing many '&' or '<' characters
+    # cannot create an oversized message. Never split an HTML entity/tag.
+    parts = []
+    length = 0
+    for char in cleaned:
+        part = html.escape(char)
+        part_length = len(part.encode("utf-16-le", errors="replace")) // 2
+        if length + part_length > max_length - 1:
+            break
+        parts.append(part)
+        length += part_length
+    return "".join(parts) + "…"
+
+
+def _entity_link(entity_type: str, entity_id) -> str:
+    paths = {
+        "appointment": "core/appointment",
+        "order": "store/order",
+        "dealer_application": "core/dealerapplication",
+        "service_lead": "core/servicelead",
+        "lead": "core/lead",
+        "fitment_request": "store/customfitmentrequest",
+        "site_notice": "core/sitenoticesignup",
+        "order_review_request": "store/order",
+        "reminder": "notifications/telegramreminder",
+    }
+    base = (getattr(settings, "PUBLIC_BASE_URL", "") or "https://badguymotors.com").rstrip("/")
+    url = f"{base}/admin/{paths[entity_type]}/{entity_id}/change/"
+    return f'\n<a href="{html.escape(url, quote=True)}">Open full details</a>'
+
+
+def _review_notice(entity_type: str, entity_id) -> str:
+    from core.services.lead_review import review_case_for
+
+    case = review_case_for(entity_type, entity_id)
+    if not case or case.status != "pending":
+        return ""
+    base = (getattr(settings, "PUBLIC_BASE_URL", "") or "https://badguymotors.com").rstrip("/")
+    reasons = ", ".join(str(reason) for reason in case.reasons) or "Needs staff verification"
+    return (
+        "<b>Lead needs review</b>\n"
+        f"Reason: {safe_user_text(reasons)}\n"
+        f"Review: {base}/admin/core/leadreviewcase/{case.pk}/change/\n\n"
+    )
+
+
 def send_telegram_message(
     message: str,
     *,
     event_type: str,
     chat_ids: Sequence[int] | None = None,
+    dedupe_key: str | None = None,
+    entity_type: str = "",
+    entity_id: str = "",
+    digest_slot: str = "",
 ) -> int:
-    """
-    Sends a Telegram message and persists the send result.
-    """
-    try:
-        bot, settings_obj = build_bot()
-    except TelegramConfigurationError:
-        return 0
+    from .delivery import send_message
 
-    recipients = list(chat_ids or settings_obj.chat_id_list)
-    if not recipients:
-        return 0
-
-    delivered = 0
-    for chat_id in recipients:
-        success = True
-        error_text = ""
-        try:
-            bot.send_message(chat_id, message, disable_web_page_preview=True)
-            delivered += 1
-        except ApiTelegramException as exc:
-            success = False
-            error_text = f"{exc.__class__.__name__}: {exc}"
-        except Exception as exc:
-            success = False
-            error_text = f"{exc.__class__.__name__}: {exc}"
-
-        TelegramMessageLog.objects.create(
-            chat_id=chat_id,
-            event_type=event_type,
-            payload=message,
-            success=success,
-            error_message=error_text[:500],
-        )
-    return delivered
+    return send_message(
+        _neutralize_campaign_links(message),
+        event_type=event_type,
+        chat_ids=chat_ids,
+        dedupe_key=dedupe_key,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        digest_slot=digest_slot,
+    )
 
 
 ROLE_NOTIFICATION_FIELDS = {
@@ -183,116 +223,6 @@ def send_staff_email_notification(
         return 0
 
 
-def _format_digest_counts(items: dict[str, int], limit: int = 3) -> str:
-    if not items:
-        return ""
-    ordered = sorted(items.items(), key=lambda kv: kv[1], reverse=True)[:limit]
-    return ", ".join(f"{label} ({count})" for label, count in ordered)
-
-
-def _lead_digest_slot(now_local: timezone.datetime) -> timezone.datetime | None:
-    for hour in sorted(LEAD_DIGEST_HOURS_LOCAL, reverse=True):
-        slot_dt = now_local.replace(hour=hour, minute=0, second=0, microsecond=0)
-        if now_local >= slot_dt:
-            return slot_dt
-    return None
-
-
-def _lead_digest_slot_key(slot_dt: timezone.datetime) -> str:
-    return slot_dt.strftime("%Y-%m-%d-%H")
-
-
-def queue_lead_digest(
-    *,
-    form_type: str,
-    suspicious: bool,
-    ip_address: str | None = None,
-    asn: str | None = None,
-    interval_seconds: int = 300,
-) -> None:
-    """
-    Aggregate noisy lead alerts and emit a compact digest at 3pm/9pm local time.
-    """
-    cache_key = f"tg:lead_digest:{form_type}"
-    now = timezone.now()
-    state = cache.get(cache_key) or {
-        "started_at": now,
-        "total": 0,
-        "suspected": 0,
-        "ips": {},
-        "asns": {},
-        "last_sent_slot": "",
-    }
-
-    state["total"] = int(state.get("total") or 0) + 1
-    if suspicious:
-        state["suspected"] = int(state.get("suspected") or 0) + 1
-
-    ips = state.get("ips") or {}
-    if ip_address and len(ips) < 25:
-        ips[ip_address] = int(ips.get(ip_address, 0)) + 1
-    state["ips"] = ips
-
-    asns = state.get("asns") or {}
-    if asn and len(asns) < 25:
-        asns[asn] = int(asns.get(asn, 0)) + 1
-    state["asns"] = asns
-
-    started_at = state.get("started_at") or now
-    if isinstance(started_at, str):
-        try:
-            started_at = timezone.datetime.fromisoformat(started_at)
-        except Exception:
-            started_at = now
-    if timezone.is_naive(started_at):
-        started_at = timezone.make_aware(started_at, timezone.get_default_timezone())
-
-    slot_dt = _lead_digest_slot(localtime(now))
-    slot_key = _lead_digest_slot_key(slot_dt) if slot_dt else ""
-    last_sent_slot = state.get("last_sent_slot") or ""
-
-    if slot_dt and slot_key and slot_key != last_sent_slot:
-        elapsed = (now - started_at).total_seconds()
-        total = int(state.get("total") or 0)
-        suspected = int(state.get("suspected") or 0)
-        top_ips = _format_digest_counts(state.get("ips") or {})
-        top_asns = _format_digest_counts(state.get("asns") or {})
-
-        label_map = {
-            "site_notice": "Site notice",
-            "service_lead": "Service leads",
-            "fitment_request": "Fitment requests",
-            "store_review": "Store reviews",
-        }
-        label = label_map.get(form_type, "Service leads")
-        message = (
-            f"<b>Lead digest — {label}</b>\n"
-            f"Window: {int(elapsed // 60)} min\n"
-            f"New: {total}\n"
-            f"Suspected: {suspected}\n"
-        )
-        if top_ips:
-            message += f"Top IPs: {top_ips}\n"
-        if top_asns:
-            message += f"Top ASN: {top_asns}\n"
-
-        send_telegram_message(
-            message,
-            event_type=TelegramMessageLog.EVENT_DIGEST,
-        )
-        state = {
-            "started_at": now,
-            "total": 0,
-            "suspected": 0,
-            "ips": {},
-            "asns": {},
-            "last_sent_slot": slot_key,
-        }
-
-    cache_timeout = max(interval_seconds * 4, LEAD_DIGEST_CACHE_TTL)
-    cache.set(cache_key, state, timeout=cache_timeout)
-
-
 def notify_about_appointment(appointment_id) -> int:
     settings_obj = TelegramBotSettings.load_active()
     from core.models import Appointment
@@ -313,15 +243,15 @@ def notify_about_appointment(appointment_id) -> int:
     start = localtime(appointment.start_time).strftime("%Y-%m-%d %H:%M")
     message = (
         f"<b>New appointment booked</b>\n"
-        f"Client: {client_name}\n"
-        f"Service: {service_name}\n"
-        f"Tech: {master_name}\n"
+        f"Client: {safe_user_text(client_name)}\n"
+        f"Service: {safe_user_text(service_name)}\n"
+        f"Tech: {safe_user_text(master_name)}\n"
         f"When: {start}\n"
     )
     if appointment.contact_phone:
-        message += f"Phone: {appointment.contact_phone}\n"
+        message += f"Phone: {safe_user_text(appointment.contact_phone)}\n"
     if appointment.contact_email:
-        message += f"Email: {appointment.contact_email}\n"
+        message += f"Email: {safe_user_text(appointment.contact_email)}\n"
 
     detail_rows = [
         ("Client", client_name),
@@ -341,10 +271,15 @@ def notify_about_appointment(appointment_id) -> int:
         detail_rows=detail_rows,
     )
 
+    message += _entity_link("appointment", appointment_id)
+
     if settings_obj and settings_obj.notify_on_new_appointment:
         return send_telegram_message(
             message,
             event_type=TelegramMessageLog.EVENT_APPOINTMENT_CREATED,
+            dedupe_key=f"appointment:{appointment_id}",
+            entity_type="appointment",
+            entity_id=appointment_id,
         )
     return 0
 
@@ -363,20 +298,22 @@ def notify_about_order(order_id) -> int:
     lines = []
     for item in order.items.all():
         option_label = f" ({item.option.name})" if getattr(item, "option", None) else ""
-        lines.append(f"• {item.product.name}{option_label} × {item.qty}")
+        lines.append(f"• {safe_user_text(item.product.name + option_label)} × {item.qty}")
 
     total = f"{order.total:.2f}"
     message = (
         f"<b>New order #{order.pk}</b>\n"
-        f"Customer: {order.customer_name}\n"
-        f"Email: {order.email}\n"
-        f"Phone: {order.phone or '—'}\n"
+        f"Customer: {safe_user_text(order.customer_name)}\n"
+        f"Email: {safe_user_text(order.email)}\n"
+        f"Phone: {safe_user_text(order.phone)}\n"
         f"Total: {total}\n"
     )
     if lines:
-        message += "Items:\n" + "\n".join(lines)
+        message += "Items:\n" + "\n".join(lines[:8])
+        if len(lines) > 8:
+            message += f"\n… and {len(lines) - 8} more items; see full order."
     if order.notes:
-        message += f"\nNote: {order.notes}"
+        message += f"\nNote: {safe_user_text(order.notes, max_length=1600)}"
 
     detail_rows = [
         ("Order #", order.pk),
@@ -398,10 +335,15 @@ def notify_about_order(order_id) -> int:
         item_rows=item_rows,
     )
 
+    message += _entity_link("order", order_id)
+
     if settings_obj and settings_obj.notify_on_new_order:
         return send_telegram_message(
             message,
             event_type=TelegramMessageLog.EVENT_ORDER_CREATED,
+            dedupe_key=f"order:{order_id}",
+            entity_type="order",
+            entity_id=order_id,
         )
     return 0
 
@@ -415,7 +357,7 @@ def notify_about_dealer_application(application_id) -> int:
     )
 
     def _safe(val: str | None) -> str:
-        return html.escape(val) if val else "—"
+        return safe_user_text(val)
 
     user = app.user
     user_label = user.get_full_name() or user.username or "User"
@@ -450,9 +392,14 @@ def notify_about_dealer_application(application_id) -> int:
     if address_bits:
         message += "Address:\n" + "\n".join(_safe(line) for line in address_bits)
 
+    message += _entity_link("dealer_application", application_id)
+
     return send_telegram_message(
         message,
         event_type=TelegramMessageLog.EVENT_DEALER_APPLICATION_CREATED,
+        dedupe_key=f"dealer_application:{application_id}",
+        entity_type="dealer_application",
+        entity_id=application_id,
     )
 
 
@@ -467,7 +414,7 @@ def notify_about_service_lead(lead_id) -> int:
     lead = ServiceLead.objects.get(pk=lead_id)
 
     def _safe(val: str | None) -> str:
-        return html.escape(val) if val else "—"
+        return safe_user_text(val)
 
     message = (
         "<b>New service lead</b>\n"
@@ -480,7 +427,7 @@ def notify_about_service_lead(lead_id) -> int:
     if lead.vehicle:
         message += f"Vehicle: {_safe(lead.vehicle)}\n"
     if lead.notes:
-        message += f"Notes: {_safe(lead.notes)}\n"
+        message += f"Notes: {safe_user_text(lead.notes, max_length=1600)}\n"
     if lead.source_url:
         message += f"Source: {_safe(lead.source_url)}"
 
@@ -498,16 +445,26 @@ def notify_about_service_lead(lead_id) -> int:
     if lead.source_url:
         detail_rows.append(("Source", lead.source_url))
 
-    send_staff_email_notification(
-        event_type=TelegramMessageLog.EVENT_SERVICE_LEAD,
-        subject="New service lead",
-        intro_lines=[f"New service lead from {lead.full_name or 'guest'}."],
-        detail_rows=detail_rows,
-    )
+    review_notice = _review_notice("service_lead", lead_id)
+    if not review_notice:
+        send_staff_email_notification(
+            event_type=TelegramMessageLog.EVENT_SERVICE_LEAD,
+            subject="New service lead",
+            intro_lines=[f"New service lead from {lead.full_name or 'guest'}."],
+            detail_rows=detail_rows,
+        )
+
+    if review_notice:
+        message = review_notice + message
+
+    message += _entity_link("service_lead", lead_id)
 
     return send_telegram_message(
         message,
         event_type=TelegramMessageLog.EVENT_SERVICE_LEAD,
+        dedupe_key=f"service_lead:{lead_id}",
+        entity_type="service_lead",
+        entity_id=lead_id,
     )
 
 
@@ -515,16 +472,12 @@ def notify_about_lead(lead_id) -> int:
     """
     Notify ops chat about a new qualification lead.
     """
-    settings_obj = TelegramBotSettings.load_active()
-    if not settings_obj:
-        return 0
-
     from core.models import Lead  # late import to avoid circular dependency
 
     lead = Lead.objects.get(pk=lead_id)
 
     def _safe(val: str | None) -> str:
-        return html.escape(val) if val else "—"
+        return safe_user_text(val)
 
     work_needed = ", ".join(lead.get_work_needed_display_list()) or "—"
     truck_label = f"{lead.truck_year} {lead.truck_make} {lead.truck_model}".strip()
@@ -541,12 +494,21 @@ def notify_about_lead(lead_id) -> int:
         f"Primary use: {_safe(lead.get_industry_display())}\n"
         f"Work needed: {_safe(work_needed)}\n"
         f"Timeline: {_safe(lead.get_timeline_display())}\n"
-        f"Frustration: {_safe(lead.frustration)}\n"
+        f"Frustration: {safe_user_text(lead.frustration, max_length=1600)}\n"
     )
+
+    review_notice = _review_notice("lead", lead_id)
+    if review_notice:
+        message = review_notice + message
+
+    message += _entity_link("lead", lead_id)
 
     return send_telegram_message(
         message,
         event_type=TelegramMessageLog.EVENT_LEAD,
+        dedupe_key=f"lead:{lead_id}",
+        entity_type="lead",
+        entity_id=lead_id,
     )
 
 
@@ -561,7 +523,7 @@ def notify_about_fitment_request(request_id) -> int:
     req = CustomFitmentRequest.objects.select_related("product").get(pk=request_id)
 
     def _safe(val: str | None) -> str:
-        return html.escape(val) if val else "—"
+        return safe_user_text(val)
 
     product_name = req.product_name or (req.product.name if req.product else "")
     message = (
@@ -577,7 +539,7 @@ def notify_about_fitment_request(request_id) -> int:
         f"Timeline: {_safe(req.timeline)}\n"
     )
     if req.message:
-        message += f"Message: {_safe(req.message)}\n"
+        message += f"Message: {safe_user_text(req.message, max_length=1600)}\n"
     if req.source_url:
         message += f"Source: {_safe(req.source_url)}"
 
@@ -597,16 +559,26 @@ def notify_about_fitment_request(request_id) -> int:
     if req.source_url:
         detail_rows.append(("Source", req.source_url))
 
-    send_staff_email_notification(
-        event_type=TelegramMessageLog.EVENT_FITMENT_REQUEST,
-        subject="New fitment request",
-        intro_lines=[f"New fitment request from {req.customer_name or 'guest'}."],
-        detail_rows=detail_rows,
-    )
+    review_notice = _review_notice("fitment_request", request_id)
+    if not review_notice:
+        send_staff_email_notification(
+            event_type=TelegramMessageLog.EVENT_FITMENT_REQUEST,
+            subject="New fitment request",
+            intro_lines=[f"New fitment request from {req.customer_name or 'guest'}."],
+            detail_rows=detail_rows,
+        )
+
+    if review_notice:
+        message = review_notice + message
+
+    message += _entity_link("fitment_request", request_id)
 
     return send_telegram_message(
         message,
         event_type=TelegramMessageLog.EVENT_FITMENT_REQUEST,
+        dedupe_key=f"fitment_request:{request_id}",
+        entity_type="fitment_request",
+        entity_id=request_id,
     )
 
 
@@ -621,7 +593,7 @@ def notify_about_site_notice_signup(signup_id) -> int:
     signup = SiteNoticeSignup.objects.get(pk=signup_id)
 
     def _safe(val: str | None) -> str:
-        return html.escape(val) if val else "—"
+        return safe_user_text(val)
 
     sent_at = localtime(signup.welcome_sent_at).strftime("%Y-%m-%d %H:%M")
     message = (
@@ -643,9 +615,14 @@ def notify_about_site_notice_signup(signup_id) -> int:
         detail_rows=detail_rows,
     )
 
+    message += _entity_link("site_notice", signup_id)
+
     return send_telegram_message(
         message,
         event_type=TelegramMessageLog.EVENT_SITE_NOTICE_WELCOME,
+        dedupe_key=f"site_notice:{signup_id}",
+        entity_type="site_notice",
+        entity_id=signup_id,
     )
 
 
@@ -660,7 +637,7 @@ def notify_about_order_review_request(order_id, *, review_url: str = "", store_u
     order = Order.objects.select_related("user").get(pk=order_id)
 
     def _safe(val: str | None) -> str:
-        return html.escape(val) if val else "—"
+        return safe_user_text(val)
 
     completed_at = ""
     if order.completed_at:
@@ -696,10 +673,15 @@ def notify_about_order_review_request(order_id, *, review_url: str = "", store_u
         detail_rows=detail_rows,
     )
 
+    message += _entity_link("order_review_request", order_id)
+
     if settings_obj:
         return send_telegram_message(
             message,
             event_type=TelegramMessageLog.EVENT_ORDER_REVIEW_REQUEST,
+            dedupe_key=f"order_review_request:{order_id}",
+            entity_type="order_review_request",
+            entity_id=order_id,
         )
     return 0
 
@@ -743,58 +725,84 @@ def build_operations_digest() -> str:
         for slot in upcoming:
             slot_time = localtime(slot.start_time).strftime("%b %d %H:%M")
             master_name = slot.master.get_full_name() or slot.master.username
-            message += f"• {slot.service.name} with {master_name} at {slot_time}\n"
+            message += f"• {safe_user_text(slot.service.name)} with {safe_user_text(master_name)} at {slot_time}\n"
     return message
 
 
 def send_daily_digest(force: bool = False) -> int:
+    from .delivery import queued_message_count
+
     settings_obj = TelegramBotSettings.load_active()
     if not settings_obj or (not settings_obj.digest_enabled and not force):
         return 0
-
     today = timezone.localdate()
-    current_hour = localtime(timezone.now()).hour
-    if not force and current_hour < settings_obj.digest_hour_local:
+    if not force and localtime(timezone.now()).hour < settings_obj.digest_hour_local:
         return 0
     if not force and settings_obj.last_digest_sent_on == today:
         return 0
 
+    key = f"daily-operations:{today.isoformat()}"
+    if force:
+        key += f":manual:{uuid.uuid4().hex}"
+    recipients = settings_obj.chat_id_list
     delivered = send_telegram_message(
         build_operations_digest(),
         event_type=TelegramMessageLog.EVENT_DIGEST,
+        chat_ids=recipients,
+        dedupe_key=key,
+        entity_type="daily_operations",
+        entity_id=today.isoformat(),
+        digest_slot=today.isoformat(),
     )
-    if delivered:
+    # A queued copy survives Telegram failure, so the bot's retry loop owns it.
+    if queued_message_count(key, recipients) == len(set(recipients)):
         settings_obj.last_digest_sent_on = today
         settings_obj.save(update_fields=["last_digest_sent_on", "updated_at"])
     return delivered
 
 
 def deliver_reminder(reminder: TelegramReminder) -> int:
-    settings_obj = TelegramBotSettings.load_active()
-    recipients = reminder.chat_id_list or (settings_obj.chat_id_list if settings_obj else [])
+    settings_obj = TelegramBotSettings.load()
+    recipients = list(dict.fromkeys(reminder.chat_id_list or (settings_obj.chat_id_list if settings_obj else [])))
     if not recipients:
-        reminder.mark_sent(
-            success=False,
-            error_message="Telegram bot is disabled or no recipients are configured.",
-        )
+        reminder.last_error = "No recipients configured; reminder remains pending."
+        reminder.save(update_fields=["last_error", "updated_at"])
         return 0
 
-    text = f"<b>{reminder.title}</b>\n{reminder.message}"
+    key = f"reminder:{reminder.pk}"
+    text = f"<b>{safe_user_text(reminder.title)}</b>\n{safe_user_text(reminder.message, max_length=2800)}"
+    text += _entity_link("reminder", reminder.pk)
     delivered = send_telegram_message(
         text,
         event_type=TelegramMessageLog.EVENT_REMINDER,
         chat_ids=recipients,
+        dedupe_key=key,
+        entity_type="reminder",
+        entity_id=reminder.pk,
     )
-    if delivered:
+    sent_count = TelegramMessageLog.objects.filter(
+        dedupe_key=key, chat_id__in=recipients, status=TelegramMessageLog.Status.SENT,
+    ).count()
+    if sent_count == len(recipients):
         reminder.mark_sent(success=True)
     else:
-        reminder.mark_sent(success=False, error_message="Failed to deliver reminder.")
+        reminder.status = TelegramReminder.Status.PENDING
+        reminder.last_error = "Delivery queued; remaining recipients will retry automatically."
+        reminder.save(update_fields=["status", "last_error", "updated_at"])
     return delivered
 
 
-def process_due_reminders() -> int:
+def process_due_reminders(*, since=None, limit: int = 20) -> int:
+    if since is None:
+        since = getattr(settings, "TELEGRAM_AUTOMATION_START_AT", None)
+    if isinstance(since, str):
+        from django.utils.dateparse import parse_datetime
+        since = parse_datetime(since)
+    due = TelegramReminder.due()
+    if since is not None:
+        due = due.filter(scheduled_for__gte=since)
     processed = 0
-    for reminder in TelegramReminder.due().order_by("scheduled_for"):
+    for reminder in due.order_by("scheduled_for")[:max(0, min(limit, 100))]:
         deliver_reminder(reminder)
         processed += 1
     return processed

@@ -102,6 +102,8 @@ from core.services.media import (
 from core.services.page_sections import get_page_sections
 from core.services.pagecopy_preview import PREVIEW_CONFIG
 from core.services.lead_security import evaluate_lead_submission, log_lead_submission
+from core.services.lead_review import notify_review_case
+from core.services.lead_intake import save_public_lead
 from core.services.analytics import (
     summarize_staff_login_history,
     summarize_staff_usage_periods,
@@ -4481,33 +4483,41 @@ def qualify_view(request):
         )
         return render(request, "client/qualify.html", {"form": form}, status=400)
 
-    lead = form.save()
-    queue_shop_sync(
-        sync_qualify_lead_to_shop,
-        lead.pk,
-        label=f"shop qualify sync for lead={lead.pk}",
-    )
+    lead, assessment, review_case = save_public_lead(form, evaluation, "lead")
+    if review_case is None:
+        queue_shop_sync(
+            sync_qualify_lead_to_shop,
+            lead.pk,
+            label=f"shop qualify sync for lead={lead.pk}",
+        )
 
     log_lead_submission(
         form_type="service_lead",
         evaluation=evaluation,
         outcome="suspected" if evaluation.action == "suspect" else "accepted",
         success=True,
+        entity_type="lead",
+        entity_id=lead.pk,
+        review_case_id=review_case.pk if review_case else None,
     )
 
-    if evaluation.action == "suspect":
-        queue_lead_digest(
+    if review_case:
+        queued = queue_lead_digest(
             form_type="service_lead",
             suspicious=True,
             ip_address=evaluation.ip_address,
             asn=evaluation.cf_asn,
+            outcome="saved_for_review",
+            entity_id=lead.pk,
         )
-
-    _notify_about_qualify_lead(lead, request=request)
-    try:
-        notify_about_lead(lead.pk)
-    except Exception:
-        logger.exception("Failed to send Telegram alert for qualify lead %s", lead.pk)
+        if assessment.known_campaign and not queued:
+            notify_review_case(review_case)
+    if not assessment.known_campaign:
+        _notify_about_qualify_lead(lead, request=request)
+        try:
+            notify_about_lead(lead.pk)
+        except Exception:
+            logger.exception("Failed to send Telegram alert for qualify lead %s", lead.pk)
     _allow_qualify_thank_you(request)
     return redirect("qualify-thank-you")
 
@@ -4955,26 +4965,34 @@ def submit_service_lead(request):
 
     form = ServiceLeadForm(request.POST)
     if form.is_valid():
-        lead = form.save()
-        queue_shop_sync(
-            sync_service_lead_to_shop,
-            lead.pk,
-            label=f"shop service sync for lead={lead.pk}",
-        )
-        if evaluation.action == "allow":
-            notify_about_service_lead(lead.pk)
+        lead, assessment, review_case = save_public_lead(form, evaluation, "service_lead")
+        if review_case is None:
+            queue_shop_sync(
+                sync_service_lead_to_shop,
+                lead.pk,
+                label=f"shop service sync for lead={lead.pk}",
+            )
         else:
-            queue_lead_digest(
+            queued = queue_lead_digest(
                 form_type="service_lead",
                 suspicious=True,
                 ip_address=evaluation.ip_address,
                 asn=evaluation.cf_asn,
+                outcome="saved_for_review",
+                entity_id=lead.pk,
             )
+            if assessment.known_campaign and not queued:
+                notify_review_case(review_case)
+        if not assessment.known_campaign:
+            notify_about_service_lead(lead.pk)
         log_lead_submission(
             form_type="service_lead",
             evaluation=evaluation,
             outcome="suspected" if evaluation.action == "suspect" else "accepted",
             success=True,
+            entity_type="service_lead",
+            entity_id=lead.pk,
+            review_case_id=review_case.pk if review_case else None,
         )
         messages.success(
             request,

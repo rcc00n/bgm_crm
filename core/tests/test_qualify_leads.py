@@ -6,7 +6,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from core.models import Lead
+from core.models import Lead, LeadSubmissionEvent
 from core.services.lead_security import build_form_token
 
 
@@ -95,11 +95,14 @@ class QualifyLeadFlowTests(TestCase):
             self._payload(last_name="", frustration=""),
         )
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.status_code, 400,
+            list(LeadSubmissionEvent.objects.values("outcome", "validation_errors", "flags")),
+        )
         self.assertEqual(Lead.objects.count(), 0)
         self.assertEqual(len(mail.outbox), 0)
-        self.assertContains(response, "Last name is required.")
-        self.assertContains(response, "Tell us your biggest frustration.")
+        self.assertFormError(response.context["form"], "last_name", "This field is required.")
+        self.assertFormError(response.context["form"], "frustration", "This field is required.")
 
     def test_thank_you_requires_successful_submission(self):
         response = self.client.get(reverse("qualify-thank-you"))

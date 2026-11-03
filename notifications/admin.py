@@ -53,10 +53,14 @@ class TelegramBotSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(TelegramMessageLog)
 class TelegramMessageLogAdmin(admin.ModelAdmin):
-    list_display = ("created_at", "event_type", "chat_id", "success")
-    list_filter = ("event_type", "success")
-    search_fields = ("payload", "chat_id")
-    readonly_fields = ("event_type", "chat_id", "payload", "success", "error_message", "created_at")
+    list_display = ("created_at", "event_type", "chat_id", "status", "attempts", "entity_type", "entity_id", "telegram_message_id")
+    list_filter = ("event_type", "status", "success", "entity_type")
+    search_fields = ("payload", "chat_id", "dedupe_key", "entity_id", "telegram_message_id")
+    readonly_fields = (
+        "event_type", "chat_id", "payload", "success", "error_message", "created_at",
+        "status", "attempts", "dedupe_key", "entity_type", "entity_id", "digest_slot",
+        "telegram_message_id", "next_attempt_at", "claimed_at", "sent_at",
+    )
     date_hierarchy = "created_at"
 
     def has_add_permission(self, request):
@@ -80,8 +84,9 @@ class TelegramReminderAdmin(admin.ModelAdmin):
     def _autosend_after_save(self, request, obj: TelegramReminder) -> None:
         if obj.status != TelegramReminder.Status.PENDING:
             return
-        obj.scheduled_for = timezone.now()
-        obj.save(update_fields=["scheduled_for", "updated_at"])
+        if obj.scheduled_for > timezone.now():
+            self.message_user(request, "Reminder scheduled; it will be sent at the selected time.", level=messages.INFO)
+            return
         delivered = services.deliver_reminder(obj)
         if delivered:
             self.message_user(request, f"Reminder sent to {delivered} Telegram recipient(s).", level=messages.SUCCESS)

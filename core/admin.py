@@ -6662,3 +6662,51 @@ class ClientUiCheckRunAdmin(admin.ModelAdmin):
     @admin.display(description="Duration")
     def duration(self, obj):
         return format_hms_ms(getattr(obj, "duration_ms", 0) or 0)
+
+
+@admin.register(LeadReviewCase)
+class LeadReviewCaseAdmin(admin.ModelAdmin):
+    list_display = ("source_inquiry", "status", "known_campaign", "reasons", "created_at", "reviewed_at")
+    list_filter = ("status", "known_campaign", "entity_type", "created_at")
+    search_fields = ("entity_id", "fingerprint")
+    readonly_fields = (
+        "source_inquiry", "entity_type", "entity_id", "reasons", "known_campaign", "fingerprint",
+        "status", "shop_synced_at", "reviewed_at", "last_error", "created_at", "updated_at",
+    )
+    actions = ("release_selected", "mark_spam")
+    ordering = ("status", "-created_at")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Saved inquiry")
+    def source_inquiry(self, obj):
+        from core.services.lead_review import entity_admin_url
+
+        return format_html('<a href="{}">{} #{}</a>', entity_admin_url(obj), obj.get_entity_type_display(), obj.entity_id)
+
+    @admin.action(description="Release selected inquiries to the team", permissions=["change"])
+    def release_selected(self, request, queryset):
+        from core.services.lead_review import release_lead_review
+
+        released = 0
+        failed = 0
+        for case in queryset:
+            try:
+                released += bool(release_lead_review(case))
+            except Exception:
+                failed += 1
+        if released:
+            self.message_user(request, f"Released {released} saved inquiry/inquiries.", messages.SUCCESS)
+        if failed:
+            self.message_user(request, f"{failed} inquiry/inquiries remain in the review queue for retry.", messages.ERROR)
+
+    @admin.action(description="Mark selected as spam (keep saved inquiries)", permissions=["change"])
+    def mark_spam(self, request, queryset):
+        from core.services.lead_review import mark_lead_review_spam
+
+        marked = sum(bool(mark_lead_review_spam(case)) for case in queryset)
+        self.message_user(request, f"Marked {marked} saved inquiry/inquiries as spam.", messages.SUCCESS)

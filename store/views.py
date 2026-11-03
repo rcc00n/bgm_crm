@@ -61,7 +61,8 @@ from core.services.shop_sync import (
 )
 from core.utils import get_dealer_tier_code, get_dealer_tier_level
 from core.services.fonts import build_page_font_context
-from core.services.lead_security import evaluate_lead_submission, log_lead_submission
+from core.services.lead_security import assess_lead_content, evaluate_lead_submission, log_lead_submission
+from core.services.lead_review import register_lead_review, notify_review_case
 from notifications import services as notification_services
 from .storefront import (
     request_wants_json,
@@ -1695,12 +1696,26 @@ def product_detail(request, slug: str):
             if quote_form.is_valid():
                 fitment_request = quote_form.save(commit=False)
                 fitment_request._skip_telegram_notify = True  # avoid duplicate signal send
-                fitment_request.save()
-                queue_shop_sync(
-                    sync_fitment_request_to_shop,
-                    fitment_request.pk,
-                    label=f"shop fitment sync for request={fitment_request.pk}",
+                assessment = assess_lead_content(
+                    text=fitment_request.message,
+                    email=fitment_request.email,
+                    phone=fitment_request.phone,
                 )
+                if assessment.requires_review:
+                    evaluation.action = "suspect"
+                    evaluation.reasons = list(dict.fromkeys(evaluation.reasons + assessment.reasons))
+                with transaction.atomic():
+                    fitment_request.save()
+                    review_case = (
+                        register_lead_review("fitment_request", fitment_request.pk, assessment, evaluation)
+                        if evaluation.action == "suspect" else None
+                    )
+                if review_case is None:
+                    queue_shop_sync(
+                        sync_fitment_request_to_shop,
+                        fitment_request.pk,
+                        label=f"shop fitment sync for request={fitment_request.pk}",
+                    )
                 fitment_owner = _resolve_client_file_owner(
                     request_user=request.user,
                     email=fitment_request.email,
@@ -1711,24 +1726,34 @@ def product_detail(request, slug: str):
                         image_field=fitment_request.reference_image,
                         description=f"Custom fitment reference for {fitment_request.product_name or 'custom build'}",
                     )
-                if evaluation.action == "allow":
+                if review_case is None:
                     _notify_fitment_request(fitment_request)
                     _send_fitment_request_received_email(fitment_request)
                     transaction.on_commit(
                         lambda: notification_services.notify_about_fitment_request(fitment_request.pk)
                     )
                 else:
-                    notification_services.queue_lead_digest(
+                    queued = notification_services.queue_lead_digest(
                         form_type="fitment_request",
                         suspicious=True,
                         ip_address=evaluation.ip_address,
                         asn=evaluation.cf_asn,
+                        outcome="saved_for_review",
+                        entity_id=fitment_request.pk,
                     )
+                    if not assessment.known_campaign:
+                        _send_fitment_request_received_email(fitment_request)
+                        notification_services.notify_about_fitment_request(fitment_request.pk)
+                    elif not queued:
+                        notify_review_case(review_case)
                 log_lead_submission(
                     form_type="fitment_request",
                     evaluation=evaluation,
                     outcome="suspected" if evaluation.action == "suspect" else "accepted",
                     success=True,
+                    entity_type="fitment_request",
+                    entity_id=fitment_request.pk,
+                    review_case_id=review_case.pk if review_case else None,
                 )
                 if wants_json:
                     return _json_form_response(

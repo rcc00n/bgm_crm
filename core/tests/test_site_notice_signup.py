@@ -42,8 +42,9 @@ class SiteNoticeSignupTests(TestCase):
         payload = response.json()
         self.assertTrue(payload.get("ok"))
 
-        self.assertEqual(len(mail.outbox), 1)
-        message = mail.outbox[0]
+        customer_messages = [message for message in mail.outbox if message.to == ["test@example.com"]]
+        self.assertEqual(len(customer_messages), 1)
+        message = customer_messages[0]
         self.assertIn("welcome code", message.subject.lower())
         self.assertIn("WELCOME5", message.body)
         self.assertEqual(SiteNoticeSignup.objects.count(), 1)

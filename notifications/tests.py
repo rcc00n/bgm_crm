@@ -1,14 +1,12 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from notifications.services import queue_lead_digest
 from notifications.models import (
     TelegramBotSettings,
     TelegramContact,
@@ -144,14 +142,15 @@ class TelegramReminderAdminTests(TestCase):
         self.client.force_login(self.superuser)
 
     @patch("notifications.admin.services.deliver_reminder", return_value=2)
-    def test_admin_add_sends_reminder_immediately_on_save(self, deliver_mock):
+    def test_admin_add_sends_due_reminder_on_save(self, deliver_mock):
+        due_local = timezone.localtime(timezone.now() - timedelta(minutes=1))
         response = self.client.post(
             reverse("admin:notifications_telegramreminder_add"),
             data={
                 "title": "Admin update",
                 "message": "Panel refreshed.",
-                "scheduled_for_0": timezone.localdate().isoformat(),
-                "scheduled_for_1": "12:00:00",
+                "scheduled_for_0": due_local.date().isoformat(),
+                "scheduled_for_1": due_local.strftime("%H:%M:%S"),
                 "status": TelegramReminder.Status.PENDING,
                 "target_chat_ids": "",
                 "_save": "Save",
@@ -194,52 +193,126 @@ class TelegramReminderAdminTests(TestCase):
         deliver_mock.assert_not_called()
 
 
-class LeadDigestScheduleTests(TestCase):
+    @patch("notifications.admin.services.deliver_reminder")
+    def test_admin_add_preserves_future_schedule(self, deliver_mock):
+        future = timezone.localtime(timezone.now() + timedelta(days=1))
+        response = self.client.post(
+            reverse("admin:notifications_telegramreminder_add"),
+            data={
+                "title": "Tomorrow",
+                "message": "Scheduled customer follow-up.",
+                "scheduled_for_0": future.date().isoformat(),
+                "scheduled_for_1": future.strftime("%H:%M:%S"),
+                "status": TelegramReminder.Status.PENDING,
+                "target_chat_ids": "",
+                "_save": "Save",
+            },
+            secure=True,
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        reminder = TelegramReminder.objects.get(title="Tomorrow")
+        self.assertGreater(reminder.scheduled_for, timezone.now())
+        self.assertEqual(reminder.status, TelegramReminder.Status.PENDING)
+        deliver_mock.assert_not_called()
+        self.assertContains(response, "Reminder scheduled")
+
+
+class SafeTelegramTextTests(SimpleTestCase):
+    def test_campaign_domains_are_neutralized_and_html_escaped(self):
+        from notifications.services import safe_user_text
+
+        rendered = safe_user_text('<script> https://files.partagepro.online/en/project')
+        self.assertIn("&lt;script&gt;", rendered)
+        self.assertIn("files[.]partagepro[.]online", rendered)
+        self.assertNotIn("partagepro.online", rendered)
+
+    def test_normal_customer_urls_and_unrelated_domains_remain_readable(self):
+        from notifications.services import safe_user_text
+
+        value = "https://drive.google.com/customer-photo https://partagepro.online.example.com/legitimate"
+        self.assertEqual(safe_user_text(value), value)
+
+    def test_long_escaped_text_and_emoji_respect_budget_without_cutting_entities(self):
+        from notifications.services import safe_user_text
+
+        rendered = safe_user_text("&" * 10000, max_length=1600)
+        self.assertLessEqual(len(rendered), 1600)
+        self.assertTrue(rendered.endswith("…"))
+        self.assertNotIn("&am…", rendered)
+        emoji = safe_user_text("🚚" * 3000, max_length=1600)
+        self.assertLessEqual(len(emoji.encode("utf-16-le")) // 2, 1600)
+
+
+class ScheduledTelegramDeliveryTests(TestCase):
     def setUp(self):
-        cache.clear()
+        from types import SimpleNamespace
+        from unittest.mock import Mock
 
-    def _dt(self, year, month, day, hour, minute=0):
-        tz = timezone.get_default_timezone()
-        return timezone.make_aware(datetime(year, month, day, hour, minute), tz)
-
-    @patch("notifications.services.send_telegram_message")
-    @patch("notifications.services.timezone.now")
-    def test_digest_only_sends_on_scheduled_slots(self, mock_now, mock_send):
-        mock_now.side_effect = [
-            self._dt(2026, 1, 30, 14, 0),
-            self._dt(2026, 1, 30, 15, 5),
-            self._dt(2026, 1, 30, 15, 10),
-            self._dt(2026, 1, 30, 21, 1),
-        ]
-
-        queue_lead_digest(
-            form_type="site_notice",
-            suspicious=True,
-            ip_address="1.2.3.4",
-            asn="AS100",
+        self.settings = TelegramBotSettings.objects.create(
+            enabled=True, bot_token="123456:test", admin_chat_ids="101, 202", digest_enabled=True, digest_hour_local=0,
         )
-        self.assertEqual(mock_send.call_count, 0)
+        self.bot = Mock()
+        self.bot.send_message.return_value = SimpleNamespace(message_id=123)
+        self.factory = patch("notifications.services.build_bot", return_value=(self.bot, self.settings))
+        self.factory.start()
+        self.addCleanup(self.factory.stop)
 
-        queue_lead_digest(
-            form_type="site_notice",
-            suspicious=True,
-            ip_address="1.2.3.5",
-            asn="AS100",
-        )
-        self.assertEqual(mock_send.call_count, 1)
+    @patch("notifications.services.build_operations_digest", return_value="Daily operations")
+    def test_daily_digest_is_deduplicated_across_stale_settings(self, build_mock):
+        from notifications.services import send_daily_digest
+        from notifications.models import TelegramMessageLog
 
-        queue_lead_digest(
-            form_type="site_notice",
-            suspicious=True,
-            ip_address="1.2.3.6",
-            asn="AS200",
-        )
-        self.assertEqual(mock_send.call_count, 1)
+        self.assertEqual(send_daily_digest(), 2)
+        # Simulate another scheduler observing stale singleton date state.
+        TelegramBotSettings.objects.filter(pk=self.settings.pk).update(last_digest_sent_on=None)
+        self.assertEqual(send_daily_digest(), 0)
+        self.assertEqual(self.bot.send_message.call_count, 2)
+        self.assertEqual(TelegramMessageLog.objects.count(), 2)
 
-        queue_lead_digest(
-            form_type="site_notice",
-            suspicious=True,
-            ip_address="1.2.3.7",
-            asn="AS200",
+    def test_reminder_retains_pending_state_until_all_recipients_succeed(self):
+        from types import SimpleNamespace
+        from notifications.delivery import process_pending_messages
+        from notifications.models import TelegramMessageLog
+        from notifications.services import deliver_reminder
+
+        reminder = TelegramReminder.objects.create(title="Follow-up", message="Customer call")
+        self.bot.send_message.side_effect = [SimpleNamespace(message_id=1), TimeoutError("timeout")]
+        self.assertEqual(deliver_reminder(reminder), 1)
+        reminder.refresh_from_db()
+        self.assertEqual(reminder.status, TelegramReminder.Status.PENDING)
+        TelegramMessageLog.objects.filter(status="uncertain").update(next_attempt_at=timezone.now() - timedelta(seconds=1))
+        self.bot.send_message.side_effect = None
+        self.assertEqual(process_pending_messages(), 1)
+        self.assertEqual(deliver_reminder(reminder), 0)
+        reminder.refresh_from_db()
+        self.assertEqual(reminder.status, TelegramReminder.Status.SENT)
+        self.assertEqual(self.bot.send_message.call_count, 3)
+
+    @patch("notifications.services.deliver_reminder")
+    def test_automatic_reminders_exclude_legacy_pending_items_before_cutover(self, deliver_mock):
+        from notifications.services import process_due_reminders
+
+        cutover = timezone.now() - timedelta(hours=1)
+        TelegramReminder.objects.create(title="Legacy", message="Old", scheduled_for=cutover - timedelta(days=365))
+        due = TelegramReminder.objects.create(title="Current", message="Due", scheduled_for=cutover + timedelta(minutes=1))
+        self.assertEqual(process_due_reminders(since=cutover), 1)
+        deliver_mock.assert_called_once_with(due)
+
+    @patch("notifications.services.send_staff_email_notification", return_value=1)
+    def test_long_customer_message_is_preserved_with_bounded_telegram_and_admin_link(self, email_mock):
+        from notifications.models import TelegramMessageLog
+        from notifications.services import notify_about_fitment_request
+        from store.models import CustomFitmentRequest
+
+        original_message = "Truck details & photos " * 1000
+        request = CustomFitmentRequest.objects.create(
+            customer_name="Real customer", email="customer@example.com", message=original_message,
         )
-        self.assertEqual(mock_send.call_count, 2)
+        self.assertEqual(notify_about_fitment_request(request.pk), 2)
+        request.refresh_from_db()
+        self.assertEqual(request.message, original_message)
+        payload = TelegramMessageLog.objects.first().payload
+        self.assertLessEqual(len(payload.encode("utf-16-le")) // 2, 4096)
+        self.assertIn(f"/admin/store/customfitmentrequest/{request.pk}/change/", payload)
+        self.assertIn("…", payload)

@@ -1,5 +1,6 @@
 import hashlib
 import time
+import threading
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
@@ -53,6 +54,17 @@ class Command(BaseCommand):
         bot.delete_webhook(drop_pending_updates=True)
         allowed_ids = set(settings_obj.allowed_user_id_list)
 
+        def _respond(message, text):
+            from notifications.models import TelegramMessageLog
+            return services.send_telegram_message(
+                text,
+                event_type=TelegramMessageLog.EVENT_MANUAL,
+                chat_ids=[message.chat.id],
+                dedupe_key=f"bot-reply:{message.chat.id}:{message.message_id}",
+                entity_type="bot_command",
+                entity_id=str(message.message_id),
+            )
+
         def _authorized(message) -> bool:
             if not allowed_ids:
                 return True
@@ -64,34 +76,37 @@ class Command(BaseCommand):
         @bot.message_handler(commands=["start", "help"])
         def _handle_start(message):
             if not _authorized(message):
-                bot.reply_to(message, "Unauthorized.")
+                _respond(message, "Unauthorized.")
                 return
             text = (
                 "Hey! I'm the BGM operations bot.\n"
                 "Use /today to see the current workload or /digest to push the summary "
                 "to every configured chat."
             )
-            bot.reply_to(message, text)
+            _respond(message, text)
 
         @bot.message_handler(commands=["today"])
         def _handle_today(message):
             if not _authorized(message):
-                bot.reply_to(message, "Unauthorized.")
+                _respond(message, "Unauthorized.")
                 return
-            bot.send_message(message.chat.id, services.build_operations_digest(), disable_web_page_preview=True)
+            _respond(message, services.build_operations_digest())
 
         @bot.message_handler(commands=["digest"])
         def _handle_digest(message):
             if not _authorized(message):
-                bot.reply_to(message, "Unauthorized.")
+                _respond(message, "Unauthorized.")
                 return
             delivered = services.send_daily_digest(force=True)
             if delivered:
-                bot.reply_to(message, f"Digest sent to {delivered} chat(s).")
+                _respond(message, f"Digest sent to {delivered} chat(s).")
             else:
-                bot.reply_to(message, "Digest not sent (check configuration).")
+                _respond(message, "Digest queued or already sent; check the delivery log for details.")
 
         self.stdout.write(self.style.SUCCESS("Telegram bot is running. Press CTRL+C to stop."))
+        from notifications.automation import start_scheduler
+        stop_event = threading.Event()
+        scheduler = start_scheduler(stop_event)
         try:
             while True:
                 try:
@@ -110,4 +125,6 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.WARNING("Bot stopped by user."))
                     break
         finally:
+            stop_event.set()
+            scheduler.join(timeout=2)
             self._release_advisory_lock()

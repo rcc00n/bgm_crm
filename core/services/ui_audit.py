@@ -558,6 +558,9 @@ def run_client_ui_check(*, trigger: str, triggered_by=None, force: bool = False,
         telegram_services.send_telegram_message(
             message,
             event_type=TelegramMessageLog.EVENT_UI_CHECK,
+            dedupe_key=f"ui-check:{run.pk}",
+            entity_type="ui_check",
+            entity_id=str(run.pk),
         )
 
     return run

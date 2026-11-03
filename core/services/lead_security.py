@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import hashlib
 import ipaddress
+import re
 import time
+import unicodedata
 import uuid
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlsplit
 
 import logging
 from django.conf import settings
 from django.core import signing
-from django.core.cache import cache
+from django.core.cache import cache, caches
 from django.utils import timezone
 
 from core.services.ip_location import format_ip_location, get_client_ip
@@ -122,6 +125,23 @@ BLOCK_SCORE_THRESHOLD = int(getattr(settings, "LEAD_BLOCK_SCORE_THRESHOLD", 6))
 FAST_SUBMIT_SECONDS = int(getattr(settings, "LEAD_FAST_SUBMIT_SECONDS", 5))
 UA_BURST_LIMIT = int(getattr(settings, "LEAD_UA_BURST_LIMIT", 25))
 
+# These exact domains identify the observed fake-project-document campaign.
+# They are review signals, never a reason to discard a customer's submission.
+KNOWN_CAMPAIGN_DOMAINS = frozenset({
+    "prodmail.online",
+    "partagepro.online",
+    "northshare.online",
+    "monpartage.online",
+    "mondocs.my.id",
+})
+_LINK_PATTERN = re.compile(
+    r"(?:https?://|//|www\.)[^\s<>\"']+"
+    r"|(?<![@\w/.-])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
+    r"[a-z]{2,63}(?:/[^\s<>\"']*)?",
+    re.IGNORECASE,
+)
+_last_cache_warning = 0.0
+
 DISPOSABLE_EMAIL_DOMAINS = {
     "10minutemail.com",
     "10minutemail.net",
@@ -196,6 +216,89 @@ class TokenValidation:
     valid: bool
     error: str | None
     age_seconds: int | None
+
+
+@dataclass
+class LeadContentAssessment:
+    reasons: list[str]
+    link_domains: list[str]
+    known_campaign: bool
+    fingerprint: str
+    repeat_count: int = 0
+
+    @property
+    def requires_review(self) -> bool:
+        # Repeated text and ordinary external links alone can be genuine.
+        return self.known_campaign
+
+
+def _security_cache():
+    """Use the shared security cache; keep development/test setups usable."""
+    if "lead_security" in settings.CACHES:
+        return caches["lead_security"]
+    return cache
+
+
+def _warn_cache_failure(exc: Exception) -> None:
+    global _last_cache_warning
+    now = time.monotonic()
+    if now - _last_cache_warning >= 60:
+        _last_cache_warning = now
+        # Avoid logging connection strings or credentials from exception text.
+        logger.warning(
+            "Lead security cache unavailable (%s); preserving valid submissions.",
+            type(exc).__name__,
+        )
+
+
+def _normalized_hostname(value: str) -> str:
+    try:
+        return value.strip().rstrip(".").encode("idna").decode("ascii").lower()
+    except (UnicodeError, ValueError):
+        return ""
+
+
+def _campaign_domain(host: str) -> bool:
+    return any(host == domain or host.endswith("." + domain) for domain in KNOWN_CAMPAIGN_DOMAINS)
+
+
+def assess_lead_content(
+    *, text: str = "", email: str = "", phone: str = ""
+) -> LeadContentAssessment:
+    """Inspect local content without fetching links or rejecting a submission."""
+    text = unicodedata.normalize("NFKC", str(text or "")[:65536])
+    domains: set[str] = set()
+    for match in _LINK_PATTERN.finditer(text):
+        url = match.group(0).rstrip(".,;:!?)]}>")
+        try:
+            parsed = urlsplit(url if "://" in url or url.startswith("//") else "//" + url)
+            host = _normalized_hostname(parsed.hostname or "")
+        except ValueError:
+            continue
+        if host:
+            domains.add(host)
+    email_domain = _normalized_hostname(str(email or "").rsplit("@", 1)[-1]) if "@" in str(email or "") else ""
+    reasons = []
+    if _campaign_domain(email_domain):
+        reasons.append("known_campaign_email_domain")
+    if any(_campaign_domain(host) for host in domains):
+        reasons.append("known_campaign_link_domain")
+    known_campaign = bool(reasons)
+
+    # Store only a keyed fingerprint in the short-lived cache, never message PII.
+    normalized = " ".join(_LINK_PATTERN.sub("<link>", text).casefold().split())
+    phone_digits = re.sub(r"\D", "", str(phone or "")[:100])
+    fingerprint = ""
+    repeat_count = 0
+    if normalized or phone_digits:
+        secret = getattr(settings, "SECRET_KEY", "")
+        fingerprint = hashlib.sha256(
+            f"{secret}:lead-content:{normalized}\x00{phone_digits}".encode("utf-8")
+        ).hexdigest()
+        repeat_count = _increment_counter(f"lead:content:{fingerprint}", 60 * 60 * 24)
+        if repeat_count >= 3:
+            reasons.append("repeated_content")
+    return LeadContentAssessment(reasons, sorted(domains), known_campaign, fingerprint, repeat_count)
 
 
 def _now_ts() -> int:
@@ -312,29 +415,31 @@ def validate_form_token(
         return TokenValidation(False, "too_fast", age)
 
     nonce_key = f"lead:nonce:{purpose}:{nonce}"
-    if not cache.add(nonce_key, 1, timeout=TOKEN_MAX_AGE_SECONDS):
-        return TokenValidation(False, "replay", age)
+    try:
+        if not _security_cache().add(nonce_key, 1, timeout=TOKEN_MAX_AGE_SECONDS):
+            return TokenValidation(False, "replay", age)
+    except Exception as exc:
+        # A valid signed token remains acceptable when Redis is unavailable.
+        _warn_cache_failure(exc)
 
     return TokenValidation(True, None, age)
 
 
 def _increment_counter(key: str, window: int) -> int:
     try:
-        if cache.add(key, 1, timeout=window):
-            return 1
-        return int(cache.incr(key))
-    except Exception:
-        # If cache backends don't support incr, fall back to set/add.
-        try:
-            current = cache.get(key)
-        except Exception:
-            current = None
-        count = int(current or 0) + 1
-        try:
-            cache.set(key, count, timeout=window)
-        except Exception:
-            pass
-        return count
+        backend = _security_cache()
+        for _ in range(2):
+            if backend.add(key, 1, timeout=window):
+                return 1
+            try:
+                return int(backend.incr(key))
+            except ValueError:
+                # The key can expire between add and incr. Retry atomically.
+                continue
+        raise ValueError("Counter expired during increment")
+    except Exception as exc:
+        _warn_cache_failure(exc)
+        return 0
 
 
 def check_rate_limits(
@@ -481,13 +586,17 @@ def evaluate_lead_submission(request, *, purpose: str, email: str | None = None)
         reasons.append("disposable_email")
 
     action = "allow"
-    if rate_limit.exceeded:
+    if rate_limit.exceeded and (honeypot_hit or not token_status.valid):
         action = "rate_limited"
     elif honeypot_hit or not token_status.valid:
         action = "blocked"
-    elif score >= BLOCK_SCORE_THRESHOLD:
-        action = "blocked"
-    elif score >= SUSPECT_SCORE_THRESHOLD:
+    elif rate_limit.exceeded:
+        # Shared IPs and customer retries can exceed counters. A valid signed
+        # form is retained for review instead of being refused or discarded.
+        action = "suspect"
+    elif score >= min(SUSPECT_SCORE_THRESHOLD, BLOCK_SCORE_THRESHOLD):
+        # Timing, headers and shared browser signatures can also describe real
+        # customers. Keep valid submissions for review instead of discarding.
         action = "suspect"
 
     return LeadEvaluation(
@@ -526,6 +635,9 @@ def log_lead_submission(
     outcome: str,
     success: bool,
     validation_errors: str = "",
+    entity_type: str = "",
+    entity_id=None,
+    review_case_id=None,
 ) -> None:
     from core.models import LeadSubmissionEvent
 
@@ -540,6 +652,12 @@ def log_lead_submission(
         "session_cookie": evaluation.has_session_cookie,
         "email_domain": evaluation.email_domain,
     }
+    if entity_type:
+        flags["entity_type"] = str(entity_type)[:40]
+    if entity_id is not None:
+        flags["entity_id"] = str(entity_id)[:64]
+    if review_case_id is not None:
+        flags["review_case_id"] = str(review_case_id)[:64]
 
     try:
         LeadSubmissionEvent.objects.create(

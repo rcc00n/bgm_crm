@@ -45,6 +45,7 @@ class ProductDetailQuoteFormTests(TestCase):
     def test_quote_submission_creates_request_and_sends_email(self):
         payload = {
             "form_type": "custom_fitment",
+            "source_url": "https://badguymotors.com" + self.url,
             "customer_name": "Jane Builder",
             "email": "jane@example.com",
             "phone": "+1 555 0100",
@@ -96,6 +97,7 @@ class ProductDetailQuoteFormTests(TestCase):
 
         payload = {
             "form_type": "custom_fitment",
+            "source_url": "https://badguymotors.com" + self.url,
             "customer_name": "Fitment Client",
             "email": "fitment.client@example.com",
             "phone": "+1 555 0111",
@@ -119,6 +121,7 @@ class ProductDetailQuoteFormTests(TestCase):
     def test_invalid_submission_shows_errors(self):
         payload = {
             "form_type": "custom_fitment",
+            "source_url": "https://badguymotors.com" + self.url,
             "customer_name": "Jane Builder",
             # missing email
             "form_token": self._token(),
@@ -135,6 +138,7 @@ class ProductDetailQuoteFormTests(TestCase):
     def test_quote_submission_shows_named_success_message(self):
         payload = {
             "form_type": "custom_fitment",
+            "source_url": "https://badguymotors.com" + self.url,
             "customer_name": "Jane Builder",
             "email": "jane@example.com",
             "vehicle": "2020 F-350 crew cab",

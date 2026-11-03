@@ -5169,3 +5169,40 @@ class PageView(models.Model):
     @property
     def duration_seconds(self) -> float:
         return round(self.duration_ms / 1000, 2)
+
+
+class LeadReviewCase(models.Model):
+    """Staff review of a saved inquiry; customer data remains on its source."""
+
+    class EntityType(models.TextChoices):
+        FITMENT_REQUEST = "fitment_request", "Fitment request"
+        SERVICE_LEAD = "service_lead", "Service lead"
+        LEAD = "lead", "Qualification lead"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        RELEASED = "released", "Released"
+        SPAM = "spam", "Marked as spam"
+
+    entity_type = models.CharField(max_length=40, choices=EntityType.choices)
+    entity_id = models.CharField(max_length=64)
+    reasons = models.JSONField(default=list, blank=True)
+    known_campaign = models.BooleanField(default=False)
+    fingerprint = models.CharField(max_length=64, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True)
+    shop_synced_at = models.DateTimeField(null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("status", "-created_at")
+        verbose_name = "Lead review case"
+        verbose_name_plural = "Lead review queue"
+        constraints = [
+            models.UniqueConstraint(fields=("entity_type", "entity_id"), name="unique_lead_review_entity"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_entity_type_display()} #{self.entity_id} — {self.get_status_display()}"

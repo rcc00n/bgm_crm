@@ -427,6 +427,23 @@ TIME_ZONE = "America/Edmonton"
 USE_I18N = True
 USE_TZ = True
 
+# Share only notification/security state; keep existing storefront caching intact.
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+LEAD_REDIS_URL = os.getenv("LEAD_REDIS_URL", "")
+if LEAD_REDIS_URL:
+    CACHES["lead_security"] = {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": LEAD_REDIS_URL,
+        "KEY_PREFIX": "bgm:leads",
+        "OPTIONS": {
+            "socket_connect_timeout": 1,
+            "socket_timeout": 2,
+            "max_connections": 20,
+        },
+    }
+LEAD_REVIEW_ADMIN_PATH = "/admin/core/leadreviewcase/?status__exact=pending"
+TELEGRAM_AUTOMATION_START_AT = os.getenv("TELEGRAM_AUTOMATION_START_AT", "")
+
 # ── Статика/медиа ────────────────────────────────────────────────────────
 STATIC_URL = "/static/"
 STATIC_ROOT = os.getenv("STATIC_ROOT", BASE_DIR / "staticfiles")
