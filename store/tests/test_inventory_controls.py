@@ -4,8 +4,9 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils.html import escape
 
-from store.models import Category, Order, Product, StoreInventorySettings
+from store.models import Category, ImportBatch, Order, Product, StoreInventorySettings
 
 
 @override_settings(
@@ -68,7 +69,7 @@ class InventoryControlsTests(TestCase):
         response = self.client.post(self.add_url, data={"qty": "3"}, follow=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Only 2 left for "Turbo Back Exhaust".')
+        self.assertContains(response, escape('Only 2 left for "Turbo Back Exhaust".'))
         cart_items = (self.client.session.get("cart_items") or {}).get("items") or []
         self.assertEqual(cart_items, [])
 
@@ -181,6 +182,8 @@ class InventoryAdminTests(TestCase):
         self.assertNotContains(response, 'field-inventory_status"><span', html=False)
 
     def test_product_admin_changelist_only_shows_kept_toolbar_actions(self):
+        # Rollback only exists after a real non-dry import.
+        ImportBatch.objects.create(source_filename="synthetic-products.csv", created_products=1)
         response = self.client.get(self.changelist_url)
 
         self.assertEqual(response.status_code, 200)
