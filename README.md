@@ -1,284 +1,99 @@
-BGM CRM & Store
+<p align="center">
+  <img src="docs/assets/banner-dark.svg#gh-dark-mode-only" alt="BGM CRM &amp; Store — automotive services, commerce and operations" width="100%">
+  <img src="docs/assets/banner-light.svg#gh-light-mode-only" alt="BGM CRM &amp; Store — automotive services, commerce and operations" width="100%">
+</p>
 
-BGM CRM is a full‑featured customer relationship management (CRM) and e‑commerce platform built with the Django framework. It powers the digital presence for a service‑oriented business by combining appointment scheduling, client dashboards, dealer programs and an online store into a single cohesive project. The repository contains several Django apps (accounts, core, store and booking) that cooperate to deliver a rich experience for staff, service providers (masters) and clients.
+<p align="center">
+  <a href="#capabilities">Capabilities</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#local-development">Local development</a> ·
+  <a href="#source-map">Source map</a>
+</p>
 
-Key features
-Multi‑role authentication and dashboards
+BGM brings automotive service booking, customer relationships, dealer applications
+and product sales into one Django application. Customers use a service and shopping
+portal; staff manage the underlying appointments, orders, content and communication.
 
-The accounts app extends Django’s authentication to support role‑based redirects and access control. After login the application inspects the user’s roles (Admin, Master or Client) and redirects accordingly
-GitHub
-. A RoleRequiredMixin checks for the presence of specific roles and raises a PermissionDenied error when unauthorized
-GitHub
-. Dedicated dashboard views provide tailored experiences:
+## Capabilities
 
-Client dashboard: shows the user’s profile, recent appointments, upcoming appointments and monthly statistics
-GitHub
-. Users can update their profile via a POST request
-GitHub
-.
+- **Service operations:** service catalogues, staff availability, appointment booking,
+  rescheduling, cancellation and payment records.
+- **Customer and dealer workflows:** role-oriented dashboards, customer profiles,
+  documents, order history and dealer applications with tiered pricing.
+- **Commerce:** vehicle-fitment filters, product options, session carts, pickup and
+  shipping checkout, discounts and order management.
+- **Store integrations:** Square payment configuration and Printful merchandise,
+  shipping and webhook support.
+- **Back office:** Django admin workspaces, editable site copy, project journals,
+  email campaigns and lead-review tools.
+- **Operations messaging:** a separate Telegram worker, recipient controls,
+  reminders, delivery logs and daily digests.
 
-Master dashboard: a placeholder for service providers (masters) who need a management interface
-GitHub
-.
+## Architecture
 
-Main menu: a protected landing page for clients, serving as an entry point into the service catalog
-GitHub
-.
-
-Order history: clients can browse past orders and view details; queries fall back to email matching when no user relation exists
-GitHub
-.
-
-Service catalog and appointment scheduling
-
-The core app exposes both UI views and JSON APIs to manage services and appointments. A helper builds catalog context by filtering services by text query or category and prefetches categories for efficient templates
-GitHub
-. The public main menu uses this context and injects the authenticated user’s profile and appointments
-GitHub
-.
-
-Authenticated endpoints allow clients to:
-
-Query availability: Given a service, date and optional master, the api_availability endpoint returns available time slots and a list of masters capable of performing the service
-GitHub
-.
-
-Book an appointment: The api_book view validates input, ensures the selected master can perform the service, normalizes start time with timezone awareness and creates an appointment with an initial status
-GitHub
-.
-
-Cancel or reschedule appointments: Additional endpoints enforce owner or staff permissions and update appointment status atomically using transaction safeguards
-GitHub
-.
-
-An API for searching services supports full‑text queries and optional category filtering; it limits results and includes discounted prices and image URLs for rendering card components
-GitHub
-.
-
-Dealer program
-
-Users can apply to become dealers through a dedicated form. The DealerApplyView injects the current user into the form, prevents multiple in‑progress applications and saves a DealerApplication record
-GitHub
-. A status page summarizes the user’s application and whether they are an approved dealer
-GitHub
-.
-
-Online store
-
-The store app implements a complete product catalogue and checkout flow:
-
-Filtering and catalog navigation: Products can be filtered by category, make, model and year. _apply_filters processes the form and filters querysets accordingly
-GitHub
-. The store_home view displays products, new arrivals and sectional listings when no filters are active
-GitHub
-. Clients can browse specific categories or view a product’s detail page with related products
-GitHub
-.
-
-Cart management: Session‑based carts hold quantities keyed by product id. Users can add products (with optional “buy now” redirect), view the cart with calculated totals, and remove items
-GitHub
-GitHub
-. Server‑side messages provide feedback.
-
-Checkout: When placing an order, the system collects customer information, validates required fields, and handles both shipping and pickup options. It dynamically maps the collected data onto Order model fields, creates the order and associated OrderItem records inside a transaction, and finally empties the cart
-GitHub
-. Authenticated users are linked to the order when possible
-GitHub
-.
-
-Utility functions and validation
-
-Role assignment & discounts: Helpers assign roles and automatically grant is_staff access for Admin/Master users. Dealer discounts are retrieved from the user profile and applied to base prices via a simple calculation
-GitHub
-.
-
-Phone number validation: A regular expression checks international phone numbers (optional + followed by 10–15 digits) and raises a ValidationError on invalid input
-GitHub
-.
-
-Hero images: A context processor maps route names to hero images and provides fallbacks so pages can display appropriate hero banners
-GitHub
-.
-
-Project structure
-booking/           – Django project settings and WSGI entry point.
-accounts/          – authentication, role management and user dashboards.
-core/              – service catalogue, appointment APIs, dealer program, utilities.
-store/             – product catalogue, shopping cart and checkout.
-templates/         – HTML templates for client and admin interfaces.
-static/            – static assets (images, CSS, JS).
-manage.py          – entry point for Django management commands:contentReference[oaicite:25]{index=25}.
-README.md          – original quick‑start instructions (superseded by this file).
-
-Getting started
-Prerequisites
-
-Python 3.8 or later and pip installed on your system.
-
-A virtual environment is recommended to isolate dependencies.
-
-PostgreSQL, SQLite or another database supported by Django; configure it in booking/settings.py (not included here for security reasons).
-
-Installation
-
-Clone the repository and change into the project directory.
-
-Create a virtual environment and activate it:
-
-python -m venv venv
-source venv/bin/activate
-
-
-Install dependencies using the provided requirements.txt:
-
-pip install -r requirements.txt
-
-
-Configure environment variables: set DJANGO_SECRET_KEY, database credentials and other settings in an .env file or through your environment. The project uses booking.settings as the settings module
-GitHub
-.
-
-For live merch via Printful, add these optional variables:
-
-```bash
-PRINTFUL_TOKEN=your_private_printful_token
-PRINTFUL_STORE_ID=                  # optional for account-level tokens
-PRINTFUL_MERCH_CATALOG_URL=         # optional public shop URL for "Browse full catalog"
-PRINTFUL_MERCH_PRODUCT_URL_TEMPLATE= # optional, e.g. https://yourshop.com/products/{slug}
-PRINTFUL_MERCH_LIMIT=8          # set 0 to fetch all synced products
-PRINTFUL_MERCH_CACHE_SECONDS=300
-PRINTFUL_TIMEOUT_SECONDS=4
-PRINTFUL_MERCH_SHOW_PRICE=true
+```mermaid
+flowchart LR
+  Browser[Customer and staff browser] --> Django[Django views and admin]
+  Django --> Core[Services, clients and dealer workflows]
+  Django --> Store[Catalogue, cart and orders]
+  Core --> DB[(PostgreSQL)]
+  Store --> DB
+  Store --> Providers[Square and Printful]
+  Bot[Telegram worker] --> DB
+  Bot --> Telegram[Telegram]
 ```
 
-Apply migrations and create a superuser:
+| Layer | Implementation |
+| --- | --- |
+| Application | Python, Django 5.2, Django templates |
+| Data | PostgreSQL, Django ORM and migrations |
+| Back office | Django admin, Jazzmin, autocomplete widgets |
+| Integrations | Square, Printful, Telegram, configurable email and S3 storage |
+| Runtime | Gunicorn, WhiteNoise, optional Redis-backed lead controls |
 
-python manage.py makemigrations
+## Local development
+
+Use a fresh checkout and an empty local PostgreSQL database. Set `SECRET_KEY` and
+`DATABASE_URL` to your own local values before running Django; see the complete
+[development guide](docs/DEVELOPMENT.md). Keep external providers unconfigured until
+you intentionally test their integrations.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+# Configure the local environment and empty PostgreSQL database first.
 python manage.py migrate
 python manage.py createsuperuser
-
-
-Run the development server:
-
-python manage.py runserver
-
-
-Visit http://127.0.0.1:8000/admin/ for the admin panel and http://127.0.0.1:8000/accounts/login/ for the user login page. Sample credentials are provided in the original README for local testing.
-
-Populating data
-
-Services & categories: Add service categories and services through the admin panel. Each service can include duration, price and an optional image.
-
-Products & categories: Create product categories, car makes, models and products. Specify compatibility and active status. Products appear on the store home page and category pages once added.
-
-Telegram operations bot
-
-The notifications app ships an operations-grade Telegram bot that lives alongside the Django project.
-
-- Configuration lives at “Telegram bot settings” in the admin. Fill BotFather token, enable the bot, and add recipients via the new “Recipient slots” (one chat ID per slot). The legacy free-form field still works and is merged with the slots.
-- “Allowed user IDs” controls who can run bot commands. Leave blank to fall back to all recipients.
-- Commands: `/today` returns a snapshot of operations; `/digest` pushes the daily summary to every configured chat. Real-time alerts fire on new appointments and orders when toggles are enabled.
-- Address book & reminders: “Telegram contacts” stores reusable IDs. “Telegram reminders” can be queued, sent manually via the admin action, or processed with `python manage.py process_telegram_reminders`. Daily digests can also be forced with `python manage.py send_telegram_digest --force`.
-- Dokku deploy / restart:
-  - Procfile includes `telegrambot: python manage.py run_telegram_bot`.
-  - `git push dokku main:master` (or your branch) to deploy.
-  - Scale/start: `dokku ps:scale bgm web=1 telegrambot=1`.
-  - Restart bot only: `dokku ps:restart bgm telegrambot`; all processes: `dokku ps:restart bgm`.
-  - Logs: `dokku logs bgm -p telegrambot`.
-  - One-off manual run (non-daemon): `dokku run bgm python manage.py run_telegram_bot`.
-
-Users & roles: Create users and assign roles via the admin interface or programmatically using assign_role
-GitHub
-. Granting the Admin or Master role will automatically set is_staff.
-
-Customization
-
-Hero banners: To customize hero images per route, update the HERO_MAP dictionary in core/context_processors_core.py or add new keys for additional routes
-GitHub
-. Place your images in static/img/.
-
-Dealer discount logic: The dealer discount functions are located in core/utils.py
-GitHub
-. Adjust them to fit your pricing rules, or expose the discount percent on the user profile model.
-
-Phone validation: Modify the regular expression in core/validators.py if you need different phone formats
-GitHub
-.
-
-Templates & styling: The project uses Django templates located under templates/. Feel free to extend or override them to suit your brand. Static assets reside in static/ and can be replaced.
-
-API endpoints: The service and booking APIs return JSON responses designed for use with AJAX. Extend them to integrate with front‑end frameworks or mobile clients.
-
-Contributing
-
-Contributions and suggestions are welcome. Please follow these guidelines when contributing:
-
-Fork the repository and create a new branch for your feature or bug fix.
-
-Write clear commit messages and include tests when adding new functionality.
-
-Submit a pull request describing your changes.
-
-Avoid including sensitive information (such as secret keys) in your code or documentation.
-
-License
-
-This project is provided for internal use and educational purposes. Licensing for third‑party assets in the staticfiles/admin/ directory remains under their respective licenses.
-
-
-
-### Commands:
-
-
-Kill the port:
-```
-fuser -k 8000/tcp
+python manage.py runserver 127.0.0.1:8000
 ```
 
-Command to activate the enviroment and install dependencies:
-```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+Open [the staff admin](http://127.0.0.1:8000/admin/) or
+[customer login](http://127.0.0.1:8000/accounts/login/). Create your own account;
+there are no shared demonstration credentials in this documentation.
 
-Command to start the server:
-```bash
-python manage.py runserver
-```
+These commands match the repository entry points and requirements. This README
+does not assert that dependencies, a database or third-party services were started
+or verified during the documentation refresh.
 
-Command to make migration:
-```bash
-python manage.py makemigrations
-```
+## Source map
 
-Command to migrate:
-```bash
-python manage.py migrate
-```
+| Area | Code and documentation |
+| --- | --- |
+| Project settings and routes | [booking/](booking/) |
+| Accounts and customer portal | [accounts/](accounts/) |
+| Services, CRM and staff workflows | [core/](core/) |
+| Catalogue, cart and orders | [store/](store/) |
+| Telegram worker | [notifications/](notifications/) · [bot guide](docs/telegram-notifications.md) |
+| Merchandise and shipping | [Printful guide](docs/merch_shipping_and_printful.md) |
+| Setup, data entry and customization | [Development](docs/DEVELOPMENT.md) |
 
-Command to add superuser to the Admin panel:
-```bash
-python manage.py createsuperuser
-```
+## Scope and project terms
 
-Pages:
+Use a dedicated local database and configuration when working with a checkout.
+Payment and messaging capabilities depend on their own configuration and external
+services. Configure uploads and backups separately for any deployment.
 
-http://127.0.0.1:8000/admin/ - admin panel login
-
-http://127.0.0.1:8000/accounts/login/ - general login
-
-
-Test accounts:
-
-  Admin:
-  
-    UN: Vadim
-    
-    P: 7238523qwQW!
-    
-  User:
-  
-    UN: user
-    
-    P: useruser!!!
+The existing project notice provides this code for internal use and educational
+purposes. Third-party assets retain their respective terms. This presentation refresh
+does not introduce a new licence.

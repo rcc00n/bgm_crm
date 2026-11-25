@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="270" viewBox="0 0 1120 270" role="img" aria-labelledby="title desc">
+  <title id="title">BGM CRM &amp; Store</title>
+  <desc id="desc">AUTOMOTIVE SERVICES, COMMERCE, OPERATIONS</desc>
+  <rect width="1120" height="270" fill="#f6f8fa"/>
+  <path d="M64 54H1056" stroke="#d8e0e8"/>
+  <path d="M64 54H128" stroke="#efb363" stroke-width="3"/>
+  <text x="64" y="91" fill="#536579" font-family="Arial, Helvetica, sans-serif" font-size="12" letter-spacing="2.6">BUSINESS SOFTWARE</text>
+  <text x="60" y="166" fill="#18222f" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" letter-spacing="-2">BGM CRM &amp; Store</text>
+  <text x="64" y="211" fill="#536579" font-family="Arial, Helvetica, sans-serif" font-size="14" letter-spacing="1.5">AUTOMOTIVE SERVICES · COMMERCE · OPERATIONS</text>
+  <path d="M1056 198V216H1038" fill="none" stroke="#efb363" stroke-width="3"/>
+</svg>
