@@ -1,0 +1,17 @@
+name: Improvement
+description: Explain an independently useful improvement.
+title: "idea: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and constraints
+      description: Explain the smallest useful change and any compatibility concerns.
+    validations:
+      required: true
