@@ -1,0 +1,32 @@
+name: Bug report
+description: Report a reproducible application or documentation problem.
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: "Use synthetic examples. Report security issues privately as described in SECURITY.md."
+  - type: input
+    id: revision
+    attributes:
+      label: Revision and environment
+      description: Commit/tag, operating system and relevant runtime versions.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction
+      description: Minimal steps and sanitized input.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Omit credentials, customer records, identity documents and private exports.
