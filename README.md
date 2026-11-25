@@ -4,6 +4,8 @@
 </p>
 
 <p align="center">
+  <a href="docs/DEMO.md">Demo</a> ·
+  <a href="docs/ENGINEERING_CASE_STUDY.md">Engineering</a> ·
   <a href="#capabilities">Capabilities</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#local-development">Local development</a> ·
@@ -13,6 +15,16 @@
 BGM brings automotive service booking, customer relationships, dealer applications
 and product sales into one Django application. Customers use a service and shopping
 portal; staff manage the underlying appointments, orders, content and communication.
+
+## In the application
+
+| Staff calendar · desktop | Day calendar · mobile |
+| --- | --- |
+| ![Actual BGM staff calendar with synthetic bookings](docs/assets/showcase/bgm-appointments-desktop.png) | <img src="docs/assets/showcase/bgm-appointments-mobile.png" width="200" alt="Actual BGM mobile day calendar with synthetic bookings"> |
+
+**Synthetic local demo.** [Watch the workflow and run it](docs/DEMO.md) ·
+[Read the engineering case study](docs/ENGINEERING_CASE_STUDY.md).
+Real source views, a new isolated database and example records only; no payment or notification providers are called.
 
 ## Capabilities
 
@@ -72,9 +84,10 @@ Open [the staff admin](http://127.0.0.1:8000/admin/) or
 [customer login](http://127.0.0.1:8000/accounts/login/). Create your own account;
 there are no shared demonstration credentials in this documentation.
 
-These commands match the repository entry points and requirements. This README
-does not assert that dependencies, a database or third-party services were started
-or verified during the documentation refresh.
+These commands match the repository entry points and requirements. A separate
+[verified synthetic demo](docs/DEMO.md) migrates a new bounded PostgreSQL instance
+and renders the actual staff workspace. Payment, messaging and fulfilment providers
+were disabled and were not verified by that demonstration.
 
 ## Source map
 
