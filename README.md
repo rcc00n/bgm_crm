@@ -16,6 +16,17 @@ BGM brings automotive service booking, customer relationships, dealer applicatio
 and product sales into one Django application. Customers use a service and shopping
 portal; staff manage the underlying appointments, orders, content and communication.
 
+## Review the engineering
+
+1. [Explore the synthetic staff workflow](docs/DEMO.md): real calendar and admin
+   views with labelled example records, without customer data or provider calls.
+2. [Read the engineering case](docs/ENGINEERING_CASE_STUDY.md): scheduling boundaries,
+   checkout decisions and durable notification claims.
+3. [Run the PostgreSQL business regressions](ci/README.md#postgresql-business-regressions):
+   booking and checkout contracts, delivery retries and eight workers competing for
+   one recipient/message. The provider is mocked; this does not promise exactly-once
+   external Telegram delivery.
+
 ## In the application
 
 | Staff calendar · desktop | Day calendar · mobile |
