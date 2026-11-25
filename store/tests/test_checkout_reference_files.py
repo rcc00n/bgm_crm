@@ -1,5 +1,6 @@
 import io
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -78,7 +79,18 @@ class CheckoutReferenceFileTests(TestCase):
         self.assertTrue(bool(order.reference_image))
         self.assertEqual(ClientFile.objects.filter(user=user).count(), 1)
 
-    def test_checkout_reference_photo_is_ignored_for_merch(self):
+    @patch("store.views.get_checkout_printful_shipping")
+    def test_checkout_reference_photo_is_ignored_for_merch(self, shipping_quote):
+        # Merch now requires a delivery address and live rate. Stub only the
+        # external quote so this still exercises order persistence/upload rules.
+        shipping_quote.return_value = {
+            "rates": [{"id": "synthetic-standard"}],
+            "selected_rate_id": "synthetic-standard",
+            "shipping_cost": Decimal("12.00"),
+            "shipping_name": "Standard",
+            "shipping_currency": "CAD",
+            "errors": {}, "error": "", "recipient": {},
+        }
         merch_category = Category.objects.create(name="Merch", slug="merch")
         merch_product = Product.objects.create(
             name="BGM Hoodie",
@@ -123,7 +135,13 @@ class CheckoutReferenceFileTests(TestCase):
                 "customer_name": "Checkout Merch Client",
                 "email": "checkout.merch@example.com",
                 "phone": "+1 555 222 3333",
-                "delivery_method": "pickup",
+                "delivery_method": "shipping",
+                "address_line1": "123 Example St",
+                "city": "Calgary",
+                "region": "AB",
+                "postal_code": "T1T1T1",
+                "country": "Canada",
+                "printful_shipping_rate_id": "synthetic-standard",
                 "pay_mode": "full",
                 "payment_method": "etransfer",
                 "agree": "1",

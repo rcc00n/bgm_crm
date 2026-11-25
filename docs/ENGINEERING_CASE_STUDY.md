@@ -27,6 +27,25 @@ flowchart LR
 - Service prices are stored as `DecimalField` values. The existing `Service.base_price_amount()` and discount methods return quantized `Decimal` amounts, while contact-for-estimate services can withhold a fixed public price.
 - [The store](../store/models.py) models products, variants and orders. [Checkout](../store/views.py) combines cart validation, shipping rules and the configured payment and fulfilment integrations. Those provider paths were inspected, not exercised in this local showcase.
 
+## Decision: claim notification work durably
+
+A committed business record and a successful provider notification are different
+states. [Delivery coordination](../notifications/delivery.py) reserves recipient
+records, uses deduplication identities and records attempts before external work.
+Independent recipients can succeed or retry separately. The staff can inspect the
+[delivery log](../notifications/models.py) rather than infer acceptance from a bot.
+
+The [eight-worker regression](../notifications/test_delivery_concurrency.py) starts
+competing PostgreSQL connections at one barrier. With a mocked bot, it requires one
+successful claim, one provider call and one sent log row. [Delivery regressions](../notifications/test_delivery.py)
+cover repeat entity keys, recipient failures and retry states. The new
+[PostgreSQL CI job](../.github/workflows/checks.yml) also runs booking and checkout
+contracts using the actual schema and URL configuration.
+
+The tradeoff is explicit coordination and operational state. A response lost after
+an external provider accepts a request can remain ambiguous; an in-process race
+test does not establish exactly-once delivery across that provider boundary.
+
 ## Tradeoffs and limits
 
 A Django monolith makes cross-domain staff workflows straightforward, but large model and view modules increase the cost of understanding side effects. Appointment validation is application-level and uses bounded overlap queries; this case does not establish a database-level concurrency guarantee for competing bookings.
