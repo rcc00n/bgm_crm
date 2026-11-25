@@ -1,0 +1,1 @@
+Run from a trusted local clone with the documented dependencies. See [the demo guide](../../docs/DEMO.md). All state is newly created outside the repository by default. Never commit the generated state.

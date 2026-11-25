@@ -15,7 +15,7 @@ python3 ci/checks.py
 ```
 
 Install the workflow's Python dependencies first. [CI scope](ci/README.md) explains
-what these checks cover and what they do not. 
+what these checks cover and what they do not.
 
 In a pull request, describe the trigger, resulting behavior and actual validation.
 State any database, provider or deployment impact. Do not commit environment files,
