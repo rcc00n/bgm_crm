@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+<title id="title">BGM CRM &amp; Store</title><desc id="desc">From service booking to the back office.</desc>
+<rect width="1280" height="640" fill="#0d1117"/>
+<g stroke="#243241" stroke-width="1" opacity=".45" fill="none"><path d="M840 0V640"/><path d="M920 0V640"/><path d="M1000 0V640"/><path d="M1080 0V640"/><path d="M1160 0V640"/><path d="M1240 0V640"/><path d="M800 100H1280"/><path d="M800 180H1280"/><path d="M800 260H1280"/><path d="M800 340H1280"/><path d="M800 420H1280"/><path d="M800 500H1280"/><path d="M800 580H1280"/></g>
+<g font-family="Arial, Helvetica, sans-serif">
+<path d="M70 72H1210" stroke="#293542"/><path d="M70 72H148" stroke="#efb363" stroke-width="4"/>
+<text x="70" y="124" fill="#efb363" font-size="15" letter-spacing="3.2">AUTOMOTIVE BUSINESS SOFTWARE</text>
+<text x="68" y="258" fill="#f0f6fc" font-size="76" font-weight="700" letter-spacing="-2.3">BGM CRM &amp; Store</text>
+<text x="70" y="348" fill="#c0ccd8" font-size="36" letter-spacing="-.4">From service booking</text>
+<text x="70" y="396" fill="#c0ccd8" font-size="36" letter-spacing="-.4">to the back office.</text>
+<circle cx="884" cy="205" r="7" fill="#0d1117" stroke="#efb363" stroke-width="2"/><text x="872" y="181" fill="#9aa9b9" font-size="13" letter-spacing="1.4">SERVICES</text><path d="M884 205H1095V325" fill="none" stroke="#efb363" stroke-width="2" opacity=".7"/><circle cx="1095" cy="325" r="7" fill="#0d1117" stroke="#efb363" stroke-width="2"/><text x="1083" y="301" fill="#9aa9b9" font-size="13" letter-spacing="1.4">CRM</text><path d="M1095 325H930V441" fill="none" stroke="#efb363" stroke-width="2" opacity=".7"/><circle cx="930" cy="441" r="7" fill="#0d1117" stroke="#efb363" stroke-width="2"/><text x="918" y="417" fill="#9aa9b9" font-size="13" letter-spacing="1.4">STORE</text>
+<path d="M70 542H1210" stroke="#293542"/>
+<text x="70" y="585" fill="#91a2b4" font-size="16">Python  /  Django  /  PostgreSQL</text>
+<text x="1210" y="585" text-anchor="end" fill="#efb363" font-size="14" letter-spacing=".8">github.com/rcc00n/bgm_crm</text>
+</g></svg>
