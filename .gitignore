@@ -168,3 +168,4 @@ local_dev/
 
 # Frontend tooling
 node_modules/
+!.env.example

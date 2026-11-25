@@ -402,12 +402,15 @@ TEMPLATES[0]["OPTIONS"].setdefault("builtins", []).append("django.templatetags.s
 # ── База данных ──────────────────────────────────────────────────────────
 # В проде Dokku подставит DATABASE_URL из `dokku postgres:link`.
 # Локально используем твою PostgreSQL-конфигурацию по умолчанию.
-DEFAULT_LOCAL_DB_URL = (
-    "postgres://bgm:malva_strong_password@localhost:5432/bgm_db"
-)
+# Database credentials are private deployment/local configuration.
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+if not DATABASE_URL:
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured("Set DATABASE_URL before starting the application.")
 DATABASES = {
-    "default": dj_database_url.config(
-        default=os.getenv("DATABASE_URL", DEFAULT_LOCAL_DB_URL),
+    "default": dj_database_url.parse(
+        DATABASE_URL,
         conn_max_age=600,
         ssl_require=False,
     )
